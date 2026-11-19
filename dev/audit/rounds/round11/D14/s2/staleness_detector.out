@@ -1,0 +1,43 @@
+# measured package: /home/user/audit-r11-D14-s2/custom_components/heatpump_optimizer
+RESULT age_limited_keys=28 keys
+SEAM arm=quiet q=255 key=external_heat_entity limit_min=60.0
+SEAM arm=quiet q=255 key=heat_pump_backup_heater_entity limit_min=30.0
+SEAM arm=quiet q=255 key=heat_pump_capacity_limited_entity limit_min=30.0
+SEAM arm=quiet q=255 key=heat_pump_defrost_entity limit_min=30.0
+SEAM arm=quiet q=255 key=heat_pump_dhw_booster_entity limit_min=30.0
+SEAM arm=quiet q=255 key=heat_pump_fault_entity limit_min=60.0
+SEAM arm=quiet q=255 key=heat_pump_online_entity limit_min=30.0
+SEAM arm=quiet q=255 key=outdoor_temp_entity limit_min=180.0
+SEAM arm=quiet q=255 key=pv_production_entity limit_min=30.0
+SEAM arm=quiet q=255 key=solar_radiation_entity limit_min=90.0
+SEAM arm=quiet q=255 key=valve_outlet_temp_entity limit_min=60.0
+SEAM arm=quiet q=255 key=wood_tank_bottom_entity limit_min=60.0
+SEAM arm=quiet q=255 key=wood_tank_top_entity limit_min=60.0
+RESULT quiet_stale_q255=13 keys
+RESULT refind_D1_s5_51=0
+RESULT polled_stale_q255=0 keys
+SEAM arm=quiet q=480 key=buffer_tank_temp_entity limit_min=360.0
+SEAM arm=quiet q=480 key=dhw_temp_entity limit_min=360.0
+SEAM arm=quiet q=480 key=external_heat_entity limit_min=60.0
+SEAM arm=quiet q=480 key=floor_return_temp_entity limit_min=360.0
+SEAM arm=quiet q=480 key=heat_pump_backup_heater_entity limit_min=30.0
+SEAM arm=quiet q=480 key=heat_pump_capacity_limited_entity limit_min=30.0
+SEAM arm=quiet q=480 key=heat_pump_defrost_entity limit_min=30.0
+SEAM arm=quiet q=480 key=heat_pump_dhw_booster_entity limit_min=30.0
+SEAM arm=quiet q=480 key=heat_pump_fault_entity limit_min=60.0
+SEAM arm=quiet q=480 key=heat_pump_online_entity limit_min=30.0
+SEAM arm=quiet q=480 key=indoor_humidity_entity limit_min=360.0
+SEAM arm=quiet q=480 key=indoor_temp_entity limit_min=360.0
+SEAM arm=quiet q=480 key=lower_floor_temp_entity limit_min=360.0
+SEAM arm=quiet q=480 key=outdoor_temp_entity limit_min=180.0
+SEAM arm=quiet q=480 key=pv_production_entity limit_min=30.0
+SEAM arm=quiet q=480 key=solar_radiation_entity limit_min=90.0
+SEAM arm=quiet q=480 key=valve_outlet_temp_entity limit_min=60.0
+SEAM arm=quiet q=480 key=wood_tank_bottom_entity limit_min=60.0
+SEAM arm=quiet q=480 key=wood_tank_top_entity limit_min=60.0
+RESULT quiet_stale_q480=19 keys
+RESULT refind_D14_s3_02=0
+RESULT polled_stale_q480=0 keys
+RESULT thread_factor=0.992
+RESULT load1=4.31
+RESULT swapins=0

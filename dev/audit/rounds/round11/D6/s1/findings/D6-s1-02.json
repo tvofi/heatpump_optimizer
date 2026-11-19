@@ -1,0 +1,39 @@
+{
+  "id": "D6-s1-02",
+  "scope": "D6-s1",
+  "step": "D6.M3",
+  "title": "README.md: legionella 'every 7 days' (code 10) and the closed-loop learner sentence (learner diverges) are false",
+  "severity": "medium",
+  "claim": "README.md holds 2 ledger rows whose executed check contradicts the tree: line 499 says anti-legionella runs every 7 days by default while ThermalParameters() defaults to 10 days, and line 916 says the learned correction converges toward a 35 % heavier true loss over three days and strictly cuts the comfort breach, while the driven closed loop takes the scale from 1.000 to 0.300 and raises the breach from 0.00 to 5.42 K·h.",
+  "mechanism": "The README states a default and a learner outcome; the code delivers DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS = 10.0, and tests/rolling.py's own closed loop (run_rolling, real HeatPumpOptimizerCoordinator learner) at plant_error 1.35 drives _house_heat_loss_scale away from the truth to 0.30 in the tree under test.",
+  "evidence": {
+    "command": "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py && PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt",
+    "harness_path": "dev/audit/rounds/round11/D6/s1/claims.py",
+    "value": 2,
+    "unit": "false rows in README.md (claims.py RESULT legionella_default_days=10, learned_scale_end=0.300)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B1 (export /home/user/audit-r11-baseline)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out (load1 8.45); counts and ratios, not timings",
+    "tolerance": "exact for the count; learned_scale_end ±0.02 (solver/BLAS-dependent)",
+    "load1": 8.45,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalParameters (dhw_legionella_interval_days); heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._house_heat_loss_scale via tests/rolling.py:run_rolling",
+  "perturbation": {
+    "change": "claims.py --perturb-legionella 7 (ThermalParameters/const default -> 7) for the legionella row; for the learner row, the arm's plant_error 1.35 -> 1.0 (the correct-model arm, run by the same harness)",
+    "expected_direction": "down",
+    "observed_value": "legionella_contradictions 1 -> 0; correct-model arm scale 0.979 (|drift| 0.021) against 0.300 at 1.35"
+  },
+  "metric_definition": "Count of README.md ledger rows whose executed check (ThermalParameters default; run_rolling learned arm scale/breach) contradicts the sentence.",
+  "phenomenon_property": "Every default and every learner outcome README.md states equals what the production code delivers when driven: the parameter default, and the closed-loop learner's direction, overshoot and breach effect.",
+  "seam_rule": "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/ledger.py --tree TREE.txt  (FILE README.md; FALSE lines)",
+  "null_control": {"command": "claims.py (learner_left_alone_12pct arm, plant_error 1.0)", "value": "0.979", "note": "with a correct model the learner stays within ±12 % (0.021), so the 1.35 arm's 0.300 is the learner's response to the error, not a harness artefact"},
+  "reproduction_steps": [
+    "PYTHONUTF8=1 PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D6/s1/claims.py  (about 6 min; CLAIM legionella_default FALSE, CLAIM learner_converges_35pct FALSE)"
+  ],
+  "proposed_fix_scope": "Legionella: align README line 499 with the decided default (see D6-s1-01). Learner: the README sentence is false because the learner diverges in this tree (lead to D2-s1); fix the learner, then re-run claims.py; only if the behaviour is intended does the sentence change.",
+  "files": ["README.md", "custom_components/heatpump_optimizer/const.py", "custom_components/heatpump_optimizer/coordinator.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "I5"
+}

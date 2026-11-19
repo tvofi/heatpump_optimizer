@@ -1,0 +1,33 @@
+{
+ "id": "D13-s3-03",
+ "scope": "D13-s3",
+ "step": "D13.M5",
+ "title": "governance_cost.py reads 10.7% of the CI seconds a merge pays: final head only, latest attempt only",
+ "severity": "medium",
+ "claim": "governance_cost.py sums check-run durations at a pull request's FINAL head from the default check-runs listing, which returns the latest attempt only. Over the window's 271 merges that surface reads 3,100,885 s of the 28,895,795 s their CI ran at every commit of the pull request (filter=all) plus the merge commit: omitted_share 0.893 (by day 0.857..0.921 over 8 day-cells; 0.896 with the lowest day dropped; 0.887 with runs deduplicated across stacked PRs). Mean seconds per merge read 11,442 against 106,627 paid, a 9.3x under-read. At the final heads alone the default listing hides 37,189 run attempts (5,331,965 s) that filter=all returns, although d11lib.check_runs's docstring says the listing shows a re-run. The governance share barely moves (0.204 vs 0.186), so the split survives; the per-merge cost the instrument reports does not.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D13/s3/ci_seconds.py",
+  "harness_path": "dev/audit/rounds/round11/D13/s3/ci_seconds.py",
+  "value": 0.893,
+  "unit": "omitted_share = 1 - head-surface seconds / all seconds paid",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B8 (light seat), Linux 6.18.44 container; network-bound, GitHub-reported durations and counts",
+  "cpu_or_wall": "ratio",
+  "contention_note": "shared box during fan-out; the number is a count / GitHub-reported duration, contention-immune",
+  "tolerance": "exact",
+  "load1": 1.26,
+  "thread_factor": 1.012
+ },
+ "instrumented_symbol": "tools/audit/round4/D11/governance_cost.py:GOV, :bare and :dur (every second is classified and timed by the instrument's own symbols); tools/audit/round4/D11/d11lib.py:check_runs's listing reproduced (default filter)",
+ "perturbation": "D13S3_HEAD_ONLY=1 (the full surface collapses onto governance_cost.py's): omitted_share moves 0.893 -> 0.0; --gov-drop pr-contract moves governance share 0.204 -> 0.197 (the instrument's own control)",
+ "metric_definition": "omitted_share = 1 - sum over merges of concluded check-run seconds at the final PR head (default listing) / sum of concluded check-run seconds at every PR commit (filter=all) plus the merge commit",
+ "phenomenon_property": "A per-merge CI-cost reading sums every concluded check-run attempt the merge triggered: every head the pull request had, every re-run attempt, and the push run at its merge commit",
+ "seam_rule": "grep -nE 'check_runs\\(|check-runs\\?' tools/audit/round4/D11/*.py dev/audit/rounds/round4/D11/*.py tools/audit/seat/*.py",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "tools/audit/round4/D11/governance_cost.py",
+  "tools/audit/round4/D11/d11lib.py"
+ ],
+ "proposed_fix_scope": "read check runs with filter=all at each commit of pulls/<n>/commits and at the merge commit, report the head-only figure beside it; correct check_runs's docstring; S. Null control: single-commit, no-rerun merges still omit 0.492 (the merge-commit push run alone)"
+}

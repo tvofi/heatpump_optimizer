@@ -1,0 +1,39 @@
+{
+  "id": "D10-s2-02",
+  "scope": "D10-s2",
+  "step": "D10.M1",
+  "title": "Three ENERGY sensors publish state class measurement, a pair HA declares impossible",
+  "severity": "high",
+  "claim": "Lifetime Space Heating Energy, DHW Energy (lifetime) and Lifetime Total Energy publish device class energy with state class measurement (3 sensors), which Home Assistant's DEVICE_CLASS_STATE_CLASSES forbids (energy admits only total/total_increasing), so HA logs the impossible-state-class warning and the recorder compiles mean statistics instead of a sum, keeping them out of the Energy dashboard the README says they feed.",
+  "mechanism": "sensor._AccumulatingSensor declares _attr_state_class = SensorStateClass.MEASUREMENT although its own docstring calls it the base of the TOTAL_INCREASING accumulators; the three cost subclasses override to TOTAL, the three energy subclasses inherit MEASUREMENT. The entity-device-class row's done (D10-criteria Q2) fails at these three sites: the device class is declared but HA rejects the pair.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s2/entity_census.py",
+    "value": 3,
+    "unit": "sensors with a (device_class, state_class) pair HA's table forbids",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "local macOS box B2 (orchestrator machine), Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 42.64,
+    "thread_factor": 0.999
+  },
+  "instrumented_symbol": "heatpump_optimizer.sensor:_AccumulatingSensor",
+  "perturbation": {
+    "change": "--perturb-state: set sensor._AccumulatingSensor._attr_state_class = 'total_increasing' in memory",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "impossible_pairs = sensors (all 62, via each platform's async_setup_entry) whose published device_class and state_class form a pair outside HA core's DEVICE_CLASS_STATE_CLASSES",
+  "phenomenon_property": "Every sensor's published (device_class, state_class) pair is one Home Assistant's DEVICE_CLASS_STATE_CLASSES admits; every lifetime kWh accumulator is total_increasing.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py | grep IMPOSSIBLE",
+  "reproduction_steps": [
+    "Run the harness: IMPOSSIBLE SpaceEnergySensor/DHWEnergySensor/TotalEnergySensor: energy+measurement.",
+    "In HA core (homeassistant/components/sensor/entity.py) the state write logs 'is using state class measurement which is impossible considering device class (energy)'; sensor/recorder.py compiles mean/min/max for measurement, no sum."
+  ],
+  "proposed_fix_scope": "sensor.py: _AccumulatingSensor's state class TOTAL_INCREASING (the cost subclasses keep TOTAL)",
+  "files": ["custom_components/heatpump_optimizer/sensor.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

@@ -1,0 +1,35 @@
+{
+  "id": "D5-s2-02",
+  "scope": "D5-s2",
+  "step": "D5.M2",
+  "title": "docs/CONTRIBUTING.md is linked from no other document of README.md + docs/*.md",
+  "severity": "low",
+  "claim": "Of the 8 docs/*.md documents, exactly one, docs/CONTRIBUTING.md, has zero inbound links from README.md or any other docs/*.md; README's Documentation table lists the other seven plus DISCLAIMER.md and docs/index.html but not it.",
+  "mechanism": "The contributor guide was added without a row in README.md's 'Documentation' table or a link from architecture.md, the developer-facing document; a reader reaches it only through GitHub's repository sidebar, which surfaces docs/CONTRIBUTING.md automatically.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/structure.py",
+    "harness_path": "dev/audit/rounds/round11/D5/s2/structure.py",
+    "value": 1,
+    "unit": "count (orphan_doc)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "box heavily loaded; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 145.63,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/audit/text_ledger.py:outline (link rows) driven over README.md and docs/*.md",
+  "perturbation": {
+    "change": "--link-orphans: in memory, one README.md link to docs/CONTRIBUTING.md",
+    "expected_direction": "to_zero",
+    "observed_value": "orphan_doc 1 -> 0"
+  },
+  "metric_definition": "docs/*.md documents with no inbound link from any other document among README.md + docs/*.md (outline link rows, paths resolved relative to the linking file).",
+  "phenomenon_property": "Every document under docs/*.md is reachable by a link from README.md or another docs/*.md document.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/structure.py  (orphan_doc lines)",
+  "stop_rule_class": "hygiene",
+  "class_guess": "new",
+  "files": ["README.md", "docs/CONTRIBUTING.md"],
+  "proposed_fix_scope": "Add a docs/CONTRIBUTING.md row to README.md's Documentation table (and optionally link it from docs/architecture.md's opening, the developer reader's entry)."
+}

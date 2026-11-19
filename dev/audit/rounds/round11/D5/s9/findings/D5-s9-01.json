@@ -1,0 +1,46 @@
+{
+ "scope": "D5-s9",
+ "step": "D5.M4",
+ "severity": "low",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the tracked tree at the ref (git ls-tree); the code literals tests/entities.py:_handovers check and tests/entities.py:_preflight",
+ "metric_definition": "(unit, cited path) pairs where a D5 comment unit names a docs/ tools/ dev/ .claude/ .github/ path not tracked at the ref",
+ "phenomenon_property": "Every repository path a D5 comment unit in tests/ names under docs/, tools/, dev/, .claude/ or .github/ is a tracked file or directory at the ref; a move updates the comments that cite the moved path.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo <repo-with-baseline> | grep ^STALE",
+ "id": "D5-s9-01",
+ "title": "tests/entities.py comments cite 13 repository paths that do not exist at the baseline (12 units)",
+ "claim": "At 92d38ecb, 12 comment units in tests/entities.py cite 13 in-repository paths absent from the tree; 10 of them were moved (same name tracked elsewhere), and 2 are contradicted by the code directly beneath them.",
+ "mechanism": "Files moved in the governance/tooling relocations (docs/HANDOVER.md -> dev/programme/HANDOVER.md, tools/audit/briefs/*.md -> dev/governance/roles/, tools/audit/preflight.sh -> tools/pr/preflight.sh, .claude/workflows/cfr_exclusions.json -> dev/governance/config/, .claude/workflows/check-wave-script.mjs -> tools/policy/, tools/audit/w5-partition/coverage_tree.sh -> tools/coverage/, tools/gen_device_fixtures.py -> tools/devices/) and the code was updated, but the comments above it still name the old path; three cited files (round5 D3 resource_r5.py, round5 D11 ruleset.py, dev/programme/carries/carry-201.json) are absent with no same-named successor. Lines 17345 ('keeps `docs/HANDOVER.md` out of INERT') sits on a check asserting _handovers == ['dev/programme/HANDOVER.md']; line 19807 ('tools/audit/preflight.sh refuses ...') sits on _preflight = Path('tools/pr/preflight.sh'). Criteria C2 (resolvable) and, for the two, C1 (true of the code).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo /home/user/heatpump_optimizer --perturb",
+  "harness_path": "dev/audit/rounds/round11/D5/s9/stale_paths.py",
+  "value": 13,
+  "unit": "stale path refs in tests/entities.py (RESULT stale_refs total 17; FILE tests/entities.py stale_refs=13; contradicted=2)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 container, 4 vCPU",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.03,
+  "thread_factor": 1.0
+ },
+ "perturbation": {
+  "change": "--perturb restore: add every cited stale path to the tracked set in memory (the moves undone), equivalently edit each comment to the current path",
+  "expected_direction": "to_zero",
+  "observed_value": "17->0 (all files)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo /home/user/heatpump_optimizer --perturb",
+  "value": "66 of 69 seat files print no FILE line (0 stale refs)",
+  "note": "the same scan over the rest of the seat's files"
+ },
+ "reproduction_steps": [
+  "Run the command; read the STALE lines for tests/entities.py and the two CONTRADICTED lines.",
+  "git -C <repo> cat-file -e 92d38ecb:docs/HANDOVER.md fails; dev/programme/HANDOVER.md exists."
+ ],
+ "proposed_fix_scope": "Edit the 12 comment units in tests/entities.py (lines 1804, 17194, 17345, 17445, 17456, 19807, 22305, 25451, 33848, 34658, 34784, 41019, 41024) to the current paths, or drop the citation where the target no longer exists; no code change.",
+ "files": [
+  "tests/entities.py"
+ ]
+}

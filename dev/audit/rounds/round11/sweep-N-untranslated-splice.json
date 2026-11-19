@@ -1,0 +1,116 @@
+{
+ "class": "N-untranslated-splice",
+ "instances": 8,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/enumerate.py  (controls: bash dev/audit/rounds/round11/D14/N-untranslated-splice/controls.sh)",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "_refuse_quiet (services.py:439, {error}=str(DHWWindowError))",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/probe.py quiet_windows_invalid",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_set_thermal_params dhw windows (services.py:672)",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/probe.py set_thermal_params_invalid_dhw_windows",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_simulate_plan invalid_windows (services.py:810, slice of Refused text)",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/probe.py simulate_plan_invalid_windows",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_simulate_plan simulate_plan_failed (services.py:818, str(error))",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/probe.py simulate_plan_failed",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_apply_schedule dhw windows (services.py:1006)",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/probe.py apply_schedule_invalid_dhw_windows",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_set_manual_plan manual_plan_invalid_slots (services.py:1157, whole sv message = English ManualPlanError)",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/probe.py manual_plan_invalid_slots",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "symbol": "handle_diagnose_interval diagnose_interval_failed (services.py:1285, str(ProcessWorkerUnavailable))",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/probe.py diagnose_interval_failed",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "WhatIfPanel simulate result: L('errors.could_not_simulate',{err:first.error}) (card.js:13428) fed by coordinator.py:11234/11242 str(whatif.Refused|Exception)",
+   "probe": "python3 dev/audit/rounds/round11/D14/N-untranslated-splice/probe.py simulate_plan_invalid_windows  # same English Refused text the card splices; enumerator arm js-errfield",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:11038",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:11082",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:11091",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:11641",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:11660",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:13332",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:13437",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:13937",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:14173",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "(err && err.message) failure line, card.js:15098",
+   "probe": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --err=ha --states=pin_fail,save_fail",
+   "beyond_finding": false
+  }
+ ]
+}

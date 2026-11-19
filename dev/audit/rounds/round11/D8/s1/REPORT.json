@@ -1,0 +1,240 @@
+{
+ "dimension": "D8",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D8/s1/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D8.M1",
+   "enumerator": "python3 tools/audit/enumerate.py d8-cells",
+   "universe": 396,
+   "examined": 393,
+   "not_reached": [
+    "de datetime.away_return name",
+    "en datetime.away_return name",
+    "sv datetime.away_return name"
+   ],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/cells.py -v: d8_cells=396, built_translation_keys=81, missing=3 (climate preset_mode attribute NAME, which Home Assistant core translates; non-finding), same_as_en=1 (de 'Auto', a German word), unbuilt=3 (the datetime.away_return lines: datetime.py is outside D8's file universe, so not examined), option_gap=0, unreached=29 informational state cells no matrix cell published. Matrix: 18 topology x feature cells built through the real async_setup_entry of the five platforms."
+  },
+  {
+   "step": "D8.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/matrix.py --list",
+   "universe": 1458,
+   "examined": 1458,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    }
+   ],
+   "evidence": "matrix.py -v: 1458 (cell, entity) pairs x 2 cycles, raise/numeric/timestamp/enum/unit/serial/state_len/attr_bytes/unknown_src all 0; follows.py: all 298 static sensor pairs resolved per traced payload leaf (203 source static, 95 categorical or count states whose read leaves moved without crossing a category; 0 stale); opstate.py: 114 cycles over 19 cells incl. the Tuya DHW-only overlay (6 space-blocked cycles) and minimum modulation, 0 contradictions against current_action power+dhw_power and heat_pump_on (perturbation --perturb moves hvac_action 0 -> 5); extras.py: preheat_weather under flat weather at scale 1.3 = 0 (perturbation 0 -> 10, null at scale 1.0 = 0), merged-slot avg power on a non-modulating 2 kW pump 0 of 15 mismatches (perturbation 0 -> 15); monthly.py and gapdhw.py: findings D8-s1-01..03. C1: the static keys resolved per key by follows.py; MonthlySavingsSensor available-but-None measured by monthly.py (D8-s1-03)."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D8-s1-01",
+   "scope": "D8-s1",
+   "step": "D8.M2",
+   "title": "Sensor Gap Advisor prices a hot-water tank thermometer as the top gap on installs with no hot water",
+   "severity": "medium",
+   "claim": "On every matrix cell whose payload says dhw_enabled is False, once a power series exists SensorGapAdvisorSensor publishes dhw_temp_entity as its top gap with a positive monthly cost (12 of 22 no-DHW cell-cycles), because _gap_probe_terms prices a month of the default tank volume whether or not hot water is configured.",
+   "mechanism": "sensor._gap_probe_terms sets dhw_extra_kwh from EntryConfig.dhw_tank_volume, which falls back to DEFAULT_DHW_TANK_VOLUME when no tank is configured; topology.rank_sensor_gaps prices the dhw_temp_entity row whenever that key is unset, with no DHW-enabled gate. The plan sensors gate their DHW attributes on the payload's dhw_enabled (round-5 D12-01, #1237); the gap advisor decides the same fact without it. The entity is enabled by default and the card's advisor page reads it (heatpump-optimizer-card.js advisorRow(plan, \"gap\", ...)).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/gapdhw.py -v",
+    "harness_path": "dev/audit/rounds/round11/D8/s1/gapdhw.py",
+    "value": 12,
+    "unit": "cell-cycles (of 22 no-DHW cell-cycles) publishing a priced dhw_temp_entity gap; all 12 have it as top_slot and state",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box with other finder seats running; the count is deterministic (frozen clock, injected prices, no network); this run's load1 line was filtered, nearest run 207.89",
+    "tolerance": "exact",
+    "load1": 207.89,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:SensorGapAdvisorSensor (native_value, extra_state_attributes), through heatpump_optimizer.sensor:_gap_probe_terms and heatpump_optimizer.topology:rank_sensor_gaps",
+   "perturbation": {
+    "change": "--fix: _gap_probe_terms returns dhw_extra_kwh 0.0 when thermal_model._dhw_enabled_from_config(config) is false (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of (cell, cycle) pairs with payload dhw_enabled False where SensorGapAdvisorSensor publishes a dhw_temp_entity gap with sek_per_month > 0",
+   "phenomenon_property": "An advisor gap is priced only for a slot whose feature is configured: no slot of a disabled feature carries a positive monthly cost or becomes the advisor's state.",
+   "seam_rule": "dev/audit/rounds/round11/D8/s1/gapdhw.py -v (and every row of topology.rank_sensor_gaps whose feature can be unconfigured; at baseline only dhw_temp_entity)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/gapdhw.py --fix",
+    "value": "dhw_null=4 of 6 in both arms",
+    "note": "DHW-enabled cells without a tank probe keep their priced gap under the fix: there the gap is real"
+   },
+   "reproduction_steps": [
+    "run the command: 12 lines print, e.g. coord_minimal|c1|state=59.32|top=dhw_temp_entity|dhw_sek=59.32",
+    "run with --fix: no_dhw_priced=0 and no_dhw_top=0, dhw_null unchanged"
+   ],
+   "proposed_fix_scope": "gate the DHW coast term on the install's DHW status (sensor._gap_probe_terms or the dhw row of topology.rank_sensor_gaps)",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/topology.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D8-s1-02",
+   "scope": "D8-s1",
+   "step": "D8.M2",
+   "title": "Plan Monthly Savings publishes the open month extrapolated from one settled interval (x2688 to x2976)",
+   "severity": "high",
+   "claim": "Through the production cycle, the first numeric state Plan Monthly Savings publishes in a new month is one settled 15-minute interval's saving multiplied by the coverage factor 2688 (Feb) / 2976 (Jan, install month), and the state swings by over 1700 in currency within the first hour (-1728.39, -1232.94, -1398.17, then 18.44).",
+   "mechanism": "ledger.MonthlyLedger.savings_months scales every open-month figure by ledger.coverage_factor = month_hours / settled_hours with no floor on settled hours; MonthlySavingsSensor._waiting_for only asks for a row to exist, so the sensor publishes the estimate from the first booked interval. The sensor is enabled by default and is the card's savings headline (statEntity(\"_plan_monthly_savings\")).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py -v",
+    "harness_path": "dev/audit/rounds/round11/D8/s1/monthly.py",
+    "value": 2688.0,
+    "unit": "coverage factor applied to the first numeric state of the new month (ratio); swing over the first four numeric states 1728.39 currency",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
+    "cpu_or_wall": "ratio",
+    "contention_note": "shared box with other finder seats running; deterministic (frozen clock, injected prices and inputs, no network)",
+    "tolerance": "exact",
+    "load1": 212.99,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:MonthlySavingsSensor (native_value, available, _waiting_for); heatpump_optimizer.ledger:MonthlyLedger.savings_months and coverage_factor",
+   "perturbation": {
+    "change": "--min-hours 24: MonthlySavingsSensor._waiting_for also waits until the open month has 24 settled hours (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0
+   },
+   "metric_definition": "ledger.coverage_factor of the open month on the first cycle of the month whose MonthlySavingsSensor state is a number",
+   "phenomenon_property": "A published open-month money estimate is not extrapolated from a settled span too short to bound it: the multiplier applied to the settled figures stays bounded (no estimate before a minimum settled coverage).",
+   "seam_rule": "dev/audit/rounds/round11/D8/s1/monthly.py -v (every published reader of ledger.coverage_factor-scaled open-month figures: grep -n coverage_factor custom_components/heatpump_optimizer/*.py)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py --gate-waiting",
+    "value": "first_scale=2688.0, swing=1728.39",
+    "note": "the availability-only gate (finding D8-s1-03's fix) leaves the extrapolation unchanged; only the coverage floor moves it"
+   },
+   "reproduction_steps": [
+    "run the command: 2026-01-31T22:15 state -2040.75 at factor 2976.0; 2026-02-01T00:15 state -1728.39 at factor 2688.0; 01:00 state 18.44",
+    "run with --min-hours 24: no numeric state in the window, first_scale=0.0"
+   ],
+   "proposed_fix_scope": "a minimum settled coverage before the open month's estimate is published (sensor-side waiting_for or ledger-side), so the published multiplier is bounded",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/ledger.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D8-s1-03",
+   "scope": "D8-s1",
+   "step": "D8.M2",
+   "title": "Plan Monthly Savings is available with state unknown at a month rollover while settled months exist",
+   "severity": "low",
+   "claim": "At the first cycle of a new month (2026-02-01T00:00), MonthlySavingsSensor is available and publishes None (Home Assistant 'unknown') while savings_months carries the settled January row: 1 of 17 cycles across the rollover.",
+   "mechanism": "MonthlySavingsSensor._waiting_for returns None whenever any row exists, but native_value is a number only for the open month's estimated row with a non-None savings_sek. The two predicates disagree whenever the open month has no row yet (rollover, measured) or its row is withheld (old_basis / below_meter_floor, read from code, not measured). The _WaitsForEvidenceMixin's own contract is that 'not measured yet' is unavailable, never unknown.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py -v",
+    "harness_path": "dev/audit/rounds/round11/D8/s1/monthly.py",
+    "value": 1,
+    "unit": "cycles (of 17, 2026-01-31T22:00 to 2026-02-01T02:00 UTC) with the sensor available and its state None",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box with other finder seats running; deterministic",
+    "tolerance": "exact",
+    "load1": 212.99,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:MonthlySavingsSensor (available, _waiting_for, native_value)",
+   "perturbation": {
+    "change": "--gate-waiting: _waiting_for answers settled_savings_month unless an estimated row with a numeric savings_sek exists (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "count of cycles where MonthlySavingsSensor.available is True and native_value is None",
+   "phenomenon_property": "MonthlySavingsSensor is available exactly when its native_value can be a number: availability and value read the same row.",
+   "seam_rule": "dev/audit/rounds/round11/D8/s1/monthly.py -v (seams: no open-month row; open-month row withheld by old_basis or below_meter_floor)",
+   "reproduction_steps": [
+    "run the command: the 2026-02-01T00:00:00 line reads avail True state None rows ['2026-01']",
+    "run with --gate-waiting: avail_none_cycles=0"
+   ],
+   "proposed_fix_scope": "key MonthlySavingsSensor._waiting_for on the open month's estimated row with a numeric saving, the row native_value reads",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No entity of the five platforms raises, publishes a non-number under a unit/state_class, a naive or non-datetime TIMESTAMP, an ENUM value outside options, a unit foreign to its device_class, a numpy scalar/NaN/inf or foreign object, a string state over 255 chars, or recorded attributes over 16 KB, in 18 cells x 2 cycles",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/matrix.py -v",
+   "value": "raise=0 numeric=0 timestamp=0 enum=0 unit=0 serial=0 state_len=0 attr_bytes=0 over entity_cell_pairs=1458; no perturbation run for these classes (harness gap: a judge re-take should swap one native_value for np.float64 to show serial moves)"
+  },
+  {
+   "claim": "No sensor is available with state None while the payload key it is named for is non-None",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/matrix.py -v",
+   "value": "unknown_src=0 (heuristic key: _payload_path or _key; MonthlySavingsSensor's case is D8-s1-03, found by monthly.py)"
+  },
+  {
+   "claim": "C1 value-follows-payload: every sensor state static between cycles A and B is explained by its own traced payload reads",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/follows.py -v",
+   "value": "static_src_static=203, static_src_moved=95 (all categorical/count states: ScheduleSensor/ScheduleStepsSensor 96 steps, PredictiveInsight 'normal' with urgency 0.10->0.13, PlanNarrative top reason, plan sensors' slot counts, DHW plan 'heating now', ModelRestartAdvisor 1.0 with model_restart unchanged, SensorGapAdvisor whose rate recent_kwh_price(B)=current_price(A)=0.85), static_no_payload_read=0"
+  },
+  {
+   "claim": "Operating-state entities agree with the plan's own draw (current_action power + dhw_power, heat_pump_on) incl. the Tuya DHW-only overlay and minimum modulation",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/opstate.py -v",
+   "value": "checked_cycles=114, space_blocked_cycles=6, hpa_state=hpa_power=rec_power=hvac_action=climate_kw=plan_now=narr_idle=0; --perturb (hvac_action without the heat_pump_on clause) -> hvac_action=5 in the DHW-only cell"
+  },
+  {
+   "claim": "A house with heat-loss scale 1.3 under a flat forecast publishes no preheat_weather reason",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/extras.py",
+   "value": "weather_reason_steps=0, null at scale 1.0 = 0; --unscaled-divisor -> 10"
+  },
+  {
+   "claim": "Merged plan slots' avg_power_kw and energy match the plan's own step draws on a non-modulating pump with a minimum power",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/extras.py",
+   "value": "slot_avg_mismatch=0 of 15; --slot-halve -> 15"
+  },
+  {
+   "claim": "Every ENUM option and climate preset an entity can publish has a strings.json state (or a Home Assistant built-in preset name), and every d8-cell string exists in de/en/sv",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/cells.py -v",
+   "value": "option_gap=0; missing=3 are the climate preset_mode attribute name, translated by Home Assistant core; same_as_en=1 is de 'Auto'"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D8/s1/rig.py",
+  "dev/audit/rounds/round11/D8/s1/matrix.py",
+  "dev/audit/rounds/round11/D8/s1/cells.py",
+  "dev/audit/rounds/round11/D8/s1/follows.py",
+  "dev/audit/rounds/round11/D8/s1/opstate.py",
+  "dev/audit/rounds/round11/D8/s1/monthly.py",
+  "dev/audit/rounds/round11/D8/s1/gapdhw.py",
+  "dev/audit/rounds/round11/D8/s1/extras.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "dev/audit/README.md",
+   "symbol": "What to reuse, and what will trip you",
+   "what": "Trap not listed: HeatPumpOptimizerCoordinator._async_update_data solves in the process worker (coordinator._run_in_process), so an in-memory perturbation of optimizer.py moves nothing; extras.py had to route coordinator._run_in_process inline (lambda fn, args: fn(*args)) before --unscaled-divisor moved 0 -> 10."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/ledger.py",
+   "symbol": "coverage_factor / MonthlyLedger.savings_months",
+   "what": "The receipt/notifier readers of the open month (notifier.py reads savings_months) inherit the same unbounded month_hours/settled_hours multiplier D8-s1-02 measures on the sensor; owner of the ledger maths to confirm the floor belongs there."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/topology.py",
+   "symbol": "rank_sensor_gaps",
+   "what": "The dhw_temp_entity row is priced with no DHW-enabled gate (D8-s1-01's seam on the topology side); the plan sensors' setup_topology/sensor_advisor attribute (_sensor_advisor_attribute) was not checked for the same gap."
+  }
+ ]
+}

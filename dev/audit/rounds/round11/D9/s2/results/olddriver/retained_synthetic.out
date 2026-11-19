@@ -1,0 +1,93 @@
+# machine Linux-6.18.44-fc-v509-x86_64-with-glibc2.39 x86_64 py3.14.7
+# fixture=synthetic cycles=1100 warmup=200 step_minutes=None perturb=None cycle_errors=0 []
+RESULT traced_slope=507.1 B/cycle
+RESULT traced_year_mib=25.42 MiB (B4 budget 10 MiB = 199 B/cycle)
+RESULT root_slope[coord._accuracy]=217.7 B/cycle
+RESULT root_slope[coord.data]=17.8 B/cycle
+RESULT root_slope[coord._thermal_model]=8.7 B/cycle
+RESULT root_slope[coord._prices]=7.6 B/cycle
+RESULT root_slope[coord._start_counter]=3.2 B/cycle
+RESULT root_slope[coord._price_learner]=2.2 B/cycle
+RESULT root_slope[coord._dhw_learner]=0.4 B/cycle
+RESULT root_slope[coord._dhw_accuracy]=0.2 B/cycle
+RESULT root_slope[coord._ledger]=0.1 B/cycle
+RESULT root_slope[module.heatpump_optimizer.debugger.DOMAINS]=-0.0 B/cycle
+RESULT root_slope[coord._immersion_clear_count]=0.0 B/cycle
+RESULT root_slope[coord._ctx]=0.0 B/cycle
+RESULT root_slope[module.heatpump_optimizer.grid_fee._MONTHS]=-0.0 B/cycle
+RESULT file_slope[coordinator.py]=250.0 B/cycle
+RESULT file_slope[other]=83.8 B/cycle
+RESULT file_slope[inputs.py]=52.3 B/cycle
+RESULT file_slope[accuracy.py]=42.9 B/cycle
+RESULT file_slope[drift.py]=19.8 B/cycle
+RESULT file_slope[defrost.py]=11.7 B/cycle
+RESULT file_slope[price_model.py]=10.2 B/cycle
+RESULT file_slope[ledger.py]=8.8 B/cycle
+RESULT file_slope[dhw_draws.py]=5.5 B/cycle
+RESULT file_slope[store.py]=3.5 B/cycle
+RESULT file_slope[thermal_model.py]=-3.1 B/cycle
+RESULT file_slope[entity.py]=1.5 B/cycle
+RESULT file_slope[dhw_learning.py]=1.4 B/cycle
+RESULT file_slope[plan_slots.py]=1.2 B/cycle
+RESULT file_slope[optimizer.py]=0.8 B/cycle
+RESULT file_slope[sensor.py]=0.8 B/cycle
+RESULT file_slope[wear.py]=0.6 B/cycle
+RESULT file_slope[driving_grade.py]=0.3 B/cycle
+RESULT file_slope[narrative.py]=-0.2 B/cycle
+RESULT file_slope[pump_arbiter.py]=-0.1 B/cycle
+RESULT file_slope[boost.py]=-0.1 B/cycle
+RESULT file_slope[legionella.py]=-0.1 B/cycle
+RESULT file_slope[switch.py]=0.1 B/cycle
+RESULT file_slope[external_heat.py]=-0.1 B/cycle
+RESULT file_slope[heat_energy.py]=-0.1 B/cycle
+RESULT late_traced_slope=176.0 B/cycle (from cycle 700)
+RESULT late_root_slope[coord._thermal_model]=35.2 B/cycle
+RESULT late_root_slope[coord._accuracy]=-5.7 B/cycle
+RESULT late_root_slope[coord._start_counter]=3.0 B/cycle
+RESULT late_root_slope[coord._dhw_accuracy]=1.8 B/cycle
+RESULT late_root_slope[coord.data]=0.5 B/cycle
+RESULT late_root_slope[coord._dhw_learner]=0.4 B/cycle
+RESULT late_root_slope[coord._price_learner]=0.4 B/cycle
+RESULT late_root_slope[module.heatpump_optimizer.debugger.DOMAINS]=-0.1 B/cycle
+RESULT late_root_slope[coord._sysid]=0.1 B/cycle
+RESULT late_root_slope[module.heatpump_optimizer.grid_fee._MONTHS]=0.1 B/cycle
+#   growth 127.5 B/cycle (+652 blocks) at coordinator.py:10051 via ['coordinator.py:10051', 'coordinator.py:682', 'coordinator.py:6117', 'events.py:94']
+#   growth 74.7 B/cycle (+2 blocks) at other via ['tracemalloc.py:469', 'retained.py:136', 'retained.py:192', 'retained.py:271']
+#   growth 34.8 B/cycle (+653 blocks) at coordinator.py:9996 via ['dt.py:58', 'coordinator.py:9996', 'coordinator.py:682', 'coordinator.py:6117']
+#   growth 32.0 B/cycle (+1154 blocks) at coordinator.py:2047 via ['coordinator.py:2047', 'coordinator.py:2081', 'harness.py:194', 'coordinator.py:2129']
+#   growth 18.7 B/cycle (+234 blocks) at accuracy.py:273 via ['accuracy.py:273', 'coordinator.py:10031', 'coordinator.py:682', 'coordinator.py:6117']
+#   growth 17.8 B/cycle (+667 blocks) at coordinator.py:10061 via ['coordinator.py:10061', 'coordinator.py:682', 'coordinator.py:6117', 'events.py:94']
+#   growth 17.7 B/cycle (+664 blocks) at coordinator.py:5011 via ['coordinator.py:5011', 'coordinator.py:10108', 'coordinator.py:682', 'coordinator.py:6117']
+#   growth 17.5 B/cycle (+656 blocks) at coordinator.py:10066 via ['coordinator.py:10066', 'coordinator.py:682', 'coordinator.py:6117', 'events.py:94']
+#   growth 17.5 B/cycle (+655 blocks) at inputs.py:371 via ['inputs.py:371', 'inputs.py:836', 'inputs.py:1112', 'coordinator.py:6655']
+#   growth 17.4 B/cycle (+654 blocks) at inputs.py:341 via ['inputs.py:341', 'inputs.py:1222', 'coordinator.py:6694', 'coordinator.py:6064']
+#   growth 17.4 B/cycle (+654 blocks) at inputs.py:371 via ['inputs.py:371', 'inputs.py:836', 'inputs.py:1112', 'coordinator.py:6649']
+#   growth 10.3 B/cycle (+1 blocks) at defrost.py:346 via ['defrost.py:346', 'thermal_model.py:3337', 'thermal_model.py:3301', 'coordinator.py:5100']
+#   growth 10.1 B/cycle (+189 blocks) at drift.py:67 via ['drift.py:67', 'coordinator.py:10194', 'coordinator.py:10221', 'coordinator.py:6461']
+#   growth 10.0 B/cycle (+187 blocks) at drift.py:67 via ['drift.py:67', 'coordinator.py:10233', 'coordinator.py:6461', 'coordinator.py:6083']
+#   growth 7.2 B/cycle (+198 blocks) at accuracy.py:571 via ['accuracy.py:571', 'accuracy.py:216', 'coordinator.py:10225', 'coordinator.py:6461']
+# checkpoint cycle=200 traced=528660 cpu_s=15.1
+# checkpoint cycle=250 traced=677143 cpu_s=43.3
+# checkpoint cycle=300 traced=721189 cpu_s=72.7
+# checkpoint cycle=350 traced=749114 cpu_s=103.3
+# checkpoint cycle=400 traced=777969 cpu_s=134.6
+# checkpoint cycle=450 traced=803631 cpu_s=163.7
+# checkpoint cycle=500 traced=828407 cpu_s=191.7
+# checkpoint cycle=550 traced=851588 cpu_s=223.2
+# checkpoint cycle=600 traced=865336 cpu_s=254.8
+# checkpoint cycle=650 traced=894537 cpu_s=283.5
+# checkpoint cycle=700 traced=914602 cpu_s=314.9
+# checkpoint cycle=750 traced=928653 cpu_s=343.1
+# checkpoint cycle=800 traced=959886 cpu_s=372.9
+# checkpoint cycle=850 traced=978360 cpu_s=404.4
+# checkpoint cycle=900 traced=968301 cpu_s=435.0
+# checkpoint cycle=950 traced=986127 cpu_s=463.0
+# checkpoint cycle=1000 traced=978565 cpu_s=492.2
+# checkpoint cycle=1050 traced=974060 cpu_s=519.9
+# checkpoint cycle=1100 traced=985006 cpu_s=549.3
+RESULT ru_maxrss=119316 KiB (coordinator process, incl. tracemalloc overhead; provisional)
+RESULT worker_ru_maxrss=107992 KiB (solving child; provisional; B5 128 MB)
+RESULT wall_s=1800.9 s (provisional)
+RESULT thread_factor=1.0
+RESULT load1=10.1
+RESULT swapins=0

@@ -1,0 +1,47 @@
+{
+ "id": "D14-s2-03",
+ "scope": "D14-s2",
+ "step": "D14.M4",
+ "title": "N-log-flood barrier counts only _LOGGER.warning/.error: an unlatched per-cycle .exception or .critical passes it",
+ "severity": "low",
+ "claim": "An unlatched per-cycle _LOGGER.exception or _LOGGER.critical site (or a _LOGGER.log(level, ...) call, or a logger alias) planted in coordinator.py moves tests/entities.py's _r10_unlatched_logs count by 0, where the same site as _LOGGER.warning moves it by 1; widening the barrier's one attribute test makes exception and critical count 1.",
+ "mechanism": "_r10_unlatched_logs matches a Call only when func.attr is in (\"warning\", \"error\") and func.value unparses to exactly \"_LOGGER\". _LOGGER.exception logs at ERROR with a traceback (the heaviest flood shape, and the idiom of an except handler that runs every cycle), _LOGGER.critical logs above it, and _LOGGER.log(logging.WARNING, ...) or a rebinding logs the same records; none is read. The class's RCA countermeasure is that an unlatched per-cycle site off the reasoned list is refused, so the barrier does not make the class impossible, only the two spelled methods. At the baseline the package has one blind-shape site, sysid.py:1850 (_finish's fit-raised handler, once per experiment, not a per-cycle instance), so this is a reach gap with no live instance.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py",
+  "harness_path": "dev/audit/rounds/round11/D14/s2/logflood_shape.py",
+  "value": 0,
+  "unit": "barrier count delta for a planted unlatched _LOGGER.exception (counted_exception); counted_critical=0, counted_log_level=0, counted_alias=0, control counted_warning=1",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B7, linux, 4 cpu",
+  "cpu_or_wall": "count",
+  "contention_note": "shared compute box, other finder seats running; AST counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 9.99,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/entities.py:_r10_unlatched_logs (extracted by AST from the baseline file and run over the package's own sources plus one planted site per shape)",
+ "perturbation": {
+  "change": "the barrier's attribute test widened to (\"warning\", \"error\", \"exception\", \"critical\") in memory (harness --widen)",
+  "expected_direction": "up",
+  "observed_value": "counted_exception 0 -> 1, counted_critical 0 -> 1, barrier_sites_baseline 71 -> 72 (the sysid _finish site)"
+ },
+ "metric_definition": "Change in sum(_r10_unlatched_logs(package).values()) when one unlatched site of a given logging shape is appended to coordinator.py.",
+ "phenomenon_property": "Every logging call in the package that can emit at WARNING or above, whatever method or logger binding spells it, is either latched or on the reasoned list with its exact count.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py   (SITE lines: every live call the barrier cannot see; 1 at baseline, sysid.py:1850 _LOGGER.exception)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py --no-control",
+  "value": "the counted_warning control plant reads 1 when present; the blind shapes read 0 either way",
+  "note": "The plant mechanism is honest: the same site spelled .warning is counted."
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py -> counted_warning=1, counted_exception=0, counted_critical=0, counted_log_level=0, counted_alias=0, live_blind_sites=1",
+  "... --widen -> counted_exception=1, counted_critical=1"
+ ],
+ "proposed_fix_scope": "tests/entities.py _r10_unlatched_logs: count exception and critical beside warning/error, and _LOGGER.log with a level >= WARNING; refuse any other logger binding in the package (or resolve aliases of _LOGGER); add sysid.py _finish to the 'once per event' reasoned group. Barrier cost: AST pass already in entities.py, under 1 s.",
+ "files": [
+  "tests/entities.py",
+  "custom_components/heatpump_optimizer/sysid.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-log-flood"
+}

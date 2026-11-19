@@ -1,0 +1,42 @@
+{
+ "id": "D17-s2-05",
+ "scope": "D17-s2",
+ "step": "D17.M3",
+ "title": "The setup pre-fill page stores its After-saving navigation choice in the entry's data",
+ "severity": "low",
+ "claim": "Submitting the config flow's device pre-fill page writes the navigation field after_save ('menu' or 'close') into the created entry's data, where no reader uses it.",
+ "mechanism": "async_step_device_prefill keeps every non-empty submitted key (`saved = {k: v for k, v in _flatten_section_input(user_input).items() if v not in (None, '')}`) and the shared _prefill_schema carries after_save with a default; the options flow pops the key instead.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/after_save_stray.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s2/after_save_stray.py",
+  "value": 2,
+  "unit": "entries carrying after_save over choices {menu, close}",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+  "tolerance": "exact",
+  "load1": 3.1,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_device_prefill",
+ "perturbation": {
+  "change": "config_flow._flatten_section_input wrapped to drop after_save (`after_save_stray.py --perturb`)",
+  "expected_direction": "to_zero",
+  "observed_value": "entries_with_after_save 2->0; next step finish_setup in both arms"
+ },
+ "metric_definition": "Count of created entries whose data holds the key after_save, over the two choices.",
+ "phenomenon_property": "A navigation-only form field is never persisted into the config entry.",
+ "seam_rule": "grep -n \"CONF_AFTER_SAVE\" custom_components/heatpump_optimizer/config_flow.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/after_save_stray.py",
+  "value": "next step=finish_setup for both choices",
+  "note": "the documented navigation holds; only the persistence is wrong"
+ },
+ "proposed_fix_scope": "config_flow.async_step_device_prefill: drop CONF_AFTER_SAVE from `saved` (or omit the field from the setup variant of the page).",
+ "files": [
+  "custom_components/heatpump_optimizer/config_flow.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

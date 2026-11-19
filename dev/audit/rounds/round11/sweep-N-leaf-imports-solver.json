@@ -1,0 +1,86 @@
+{
+ "class": "N-leaf-imports-solver",
+ "instances": 6,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/comfort_learning.py",
+   "symbol": "import edge via accuracy",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe comfort_learning",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/external_heat.py",
+   "symbol": "import edge via accuracy",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe external_heat",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "symbol": "import edge via currency",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe grid_fee",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "import edge via tariff > accuracy",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe optimizer",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/power_guard.py",
+   "symbol": "import edge via accuracy",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe power_guard",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "symbol": "import edge via accuracy",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe tariff",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/topology.py",
+   "symbol": "import edge via tariff > accuracy",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe topology",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/disinfection.py",
+   "symbol": "import edge via inputs",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe disinfection",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "symbol": "import edge via inputs",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe price_model",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/quiet_windows.py",
+   "symbol": "import edge via inputs",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe quiet_windows",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/setpoint_check.py",
+   "symbol": "import edge via inputs",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe setpoint_check",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/snapshots.py",
+   "symbol": "import edge via store",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe snapshots",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "import edge via accuracy, and a second path that survives the accuracy and currency cuts",
+   "probe": "python3 dev/audit/rounds/round11/D14/leaf_imports_solver.py . --probe sysid",
+   "beyond_finding": true
+  }
+ ]
+}

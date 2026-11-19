@@ -1,0 +1,8 @@
+RESULT service_published_price=2.0 SEK/kWh
+RESULT service_plan_republished=1 bool
+RESULT button_published_price=2.0 SEK/kWh
+RESULT button_plan_republished=1 bool
+RESULT perturbed=1 bool
+RESULT thread_factor=1.000
+RESULT load1=4.21
+RESULT swapins=0

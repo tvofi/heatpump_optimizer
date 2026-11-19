@@ -1,0 +1,312 @@
+{
+ "dimension": "D6",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D6/s6/REPORT.md",
+ "exposure": "Read custom_components/heatpump_optimizer/translations/de.json (the cell), and en.json/sv.json only to locate the owner of each comparison; no docs/ page, no earlier findings, no GitHub.",
+ "coverage": [
+  {
+   "step": "D6.M1",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/de.json",
+   "universe": 2300,
+   "examined": 2300,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "dev/audit/rounds/round11/D6/s6/ledger.tsv rows every unit as kind claim (2300 rows; text_ledger check rows=2300 unrowed=0 orphan=0 malformed=0). C2: every behavioural sentence of de.json is a numbered unit with its own row (1228 behavioural rows). C3 names docs/how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md, automations.md: outside this seat's cells (D6-s1 holds them), handed on as a lead."
+  },
+  {
+   "step": "D6.M2",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/de.json",
+   "universe": 2300,
+   "examined": 1072,
+   "not_reached": [
+    "de.json config/step/user_sensors: 59 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/set_thermal_parameters: 53 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/building: 51 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/entities: 48 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/entities_metering: 47 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/error: 45 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/hot_water: 42 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/entities_pump: 41 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/comfort: 34 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/simulate_plan: 29 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/hot_water_tank: 29 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/dhw: 28 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/zones: 27 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/thermal_model: 26 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/quick_setup: 25 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/modbus_prefill: 24 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/apply_schedule: 23 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/error: 23 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/quick_setup: 22 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/thermal: 22 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/thermal_model_zones: 21 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/learning_features: 21 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/heat_curve: 20 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/tuning: 19 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/grid: 19 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/building_preset: 19 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/device_prefill: 19 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/learning: 18 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/temperature: 16 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/user: 14 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/apply_topology: 13 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/grid_connection: 13 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/assign_entity: 12 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/grid_fees: 12 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/building_describe: 12 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/solar_pv: 11 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/away: 11 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/restore_learned_snapshot: 10 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/apply_manual_plan: 9 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/set_away: 8 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/reset_heat_loss_learners: 8 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/factory_reset: 7 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/building_extras: 7 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/diagnose_interval: 6 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/debug_collect: 6 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/hot_water_pumps: 6 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/abort: 6 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/pump_mode_unreadable: 6 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_legionella_mode_blocked: 6 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/factory_reset: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/store_version: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/solve_worker_fallback: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/price_currency_mismatch: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/floor_return_implausible: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_legionella_overdue: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_legionella_off_step: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/comfort_band_contradiction: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/weather_sensitivity: 5 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/valve_target_above_comfort: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/space_setpoint_unreadable: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/solve_failures: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/price_unit_unrecognised: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/price_feed_stale: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/floor_return_silent: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_legionella_unreachable: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_legionella_above_setpoint: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_disinfection_switch_lost: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/accuracy_drift_rolled_back: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/accuracy_drift: 4 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/clear_manual_plan: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/quiet_silent_not_enforced: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/grid_fee_sign: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/freq_watchdog: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_setpoint_below_disinfection: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_minimum_above_start: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_disinfection_write_failed: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/cop_degradation: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/reauth_confirm: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/building: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/abort: 3 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/set_mode: 2 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json services/run_optimization: 2 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/setup_overview: 2 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/pump_write_ignored: 2 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/lower_floor_modelled: 2 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/dhw_legionella_unverified: 2 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/setup_overview: 2 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json config/step/finish_setup: 2 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/init: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json options/step/advanced: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json issues/grid_fee_magnitude: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/update_failed: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/tibber_fetch_failed: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/tibber_auth_failed: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/simulate_plan_no_prices: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/simulate_plan_no_plan: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/simulate_plan_invalid_windows: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/simulate_plan_invalid_quiet_windows: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/simulate_plan_failed: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/set_thermal_params_invalid_quiet_windows: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/set_thermal_params_invalid_dhw_windows: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/set_thermal_params_dhw_min_no_deadband: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/set_temperature_comfort_band_violation: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/run_optimization_solve_failed: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/run_optimization_no_prices: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/restore_learned_snapshot_no_snapshot: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/restore_learned_snapshot_no_refit: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/quiet_windows_overlap: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/process_worker_unusable: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/process_worker_timeout: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/no_loaded_config_entry: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/manual_plan_invalid_slots: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/manual_plan_invalid_expires_at: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/factory_reset_not_applied: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/diagnose_interval_failed: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/debug_collect_inactive: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/config_entry_not_loaded: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/config_entry_not_found: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/assign_entity_wrong_domain: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/assign_entity_missing: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/apply_topology_unsupported: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/apply_schedule_invalid_quiet_windows: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/apply_schedule_invalid_dhw_windows: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/apply_schedule_dhw_min_no_deadband: 1 behavioural rows (unverifiable in ledger.tsv)",
+    "de.json exceptions/apply_schedule_comfort_band_violation: 1 behavioural rows (unverifiable in ledger.tsv)"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py -> true=1054 false=2 stale=16 unverifiable=1228; 842 label rows checked for existence against rendered schemas, collected entities, registered services, selectors and string constants; 230 content rows checked by value (numbers, defaults, ranges, register map, quoted references, Optional markers); unmapped_numeric=0. C1: de.json's only C1 claim, the 20-hour manual plan (services/apply_manual_plan), checked against const.MANUAL_PLAN_WINDOW_HOURS=20; '23 options pages', '8 weekly snapshots' and '±12 %' do not occur in de.json; de.json holds no URL (grep -c http = 0), so no HEAD request is owed. C4: the 1228 behavioural sentences were not driven against golden scenarios this round."
+  },
+  {
+   "step": "D6.M3",
+   "enumerator": "python3 tools/audit/text_ledger.py units --dim D6 custom_components/heatpump_optimizer/translations/de.json",
+   "universe": 2300,
+   "examined": 2300,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "python3 tools/audit/text_ledger.py check --dim D6 dev/audit/rounds/round11/D6/s6/ledger.tsv custom_components/heatpump_optimizer/translations/de.json --plant -> units=2300 rows=2300 unrowed=0 orphan=0 malformed=0 plant_refused=1; one finding for the one file holding false/stale rows (D6-s6-01)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D6.M2",
+   "what": "1228 behavioural sentences of de.json (rows verdict unverifiable in ledger.tsv; grouped by step/service/issue in coverage.not_reached) were rowed with their anchor object checked but the behaviour they state was not driven; C4's golden-scenario check of them stays open."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D6-s6-01",
+   "scope": "D6-s6",
+   "step": "D6.M3",
+   "title": "de.json: 18 false/stale rows (English or renamed UI labels, ECL110-only heat-curve page, 2 numbers code contradicts)",
+   "severity": "medium",
+   "claim": "18 of the 2300 text_ledger D6 units of custom_components/heatpump_optimizer/translations/de.json contradict the value the production seam delivers (text_ledger check over the ledger: false=2, stale=16).",
+   "mechanism": "Three mechanisms. (1) 13 stale rows quote a UI object by a name the German UI never renders: the English entity/service names („Optimizer active“ x2, „Model Restart Advisor“, \"Restore learned snapshot\", „Mold Floor Breach“, „Wood Cheaper Than Heat Pump“, „Lower floor temperature sensor“), the card's English series label „Lower floor (modelled)“ where its STRINGS.de reads „Untergeschoss (modelliert)“, and German paraphrases no label carries („Gelernte Momentaufnahme wiederherstellen“ x2 vs service name „Gelernten Snapshot wiederherstellen“; „Anhebung der Vorlauftemperatur bepreisen“ vs „Vorlauftemperaturanhebung bepreisen (kein Mischventil)“; „Vorbelegung aus einem Wärmepumpengerät“ vs menu „Aus einem Wärmepumpengerät vorbefüllen“; „günstiger als Pumpe“ vs „Holz günstiger als Wärmepumpe“). (2) 3 stale rows (advanced menu label and heat_curve title „Heizkurvensteuerung (ECL110)“, description „Für Danfoss-ECL110-Regler, die über MQTT angesteuert werden.“) restrict the page to MQTT ECL110 while config_flow._OPTION_FIELDS renders six non-MQTT rows (heat_curve_displace_entity, heat_curve_target_kind, offset/persistent bands, writes/day, dwell). (3) 2 false rows state numbers the code contradicts: combi_potable_volume_l '0 für eine Frischwasserstation' while config_flow._combi_preset_fill writes 150.0 L for external_station (the const.py comment above the table itself says 0 l); wood_packing 'lose ... mit 0,60 des gepackten Volumens' while wood_fuel.useful_kwh_m3 gives loose/packed = 1.667 for birch (0.600 for pine and mixed: birch's two entries are swapped).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+    "harness_path": "dev/audit/rounds/round11/D6/s6/ledger.py",
+    "value": 18,
+    "unit": "rows",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13, 4-vCPU Linux container, CPython 3.14.7 (venv-ci), node 22",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out (load1 5.5); a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 5.5,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.config_flow:_combi_preset_fill (with wood_fuel:useful_kwh_m3, config_flow:_OPTION_FIELDS, each platform's async_setup_entry, services:async_register_services and the card's STRINGS.de, all driven by dev/audit/rounds/round11/D6/s6/facts.py:collect)",
+   "perturbation": {
+    "change": "In memory, const.COMBI_TANK_PRESETS['external_station'] = CombiTankPreset(0.75, 0.0) (ledger.py --perturb combi_station); likewise --perturb wood_birch swaps wood_fuel.WOOD_KWH_M3['birch'] to packed 1900/loose 1140, and --perturb card_de sets the card's STRINGS.de series.lower_floor_modelled to the quoted English: each moves the count 18 -> 17",
+    "expected_direction": "down",
+    "observed_value": 17
+   },
+   "metric_definition": "Count of de.json text_ledger D6 units whose ledger verdict is false or stale, each verdict decided by an executed check on a production symbol (text_ledger check RESULT false + stale).",
+   "phenomenon_property": "Every sentence of translations/de.json that names a UI object, a default or a behaviour states what the German UI renders and what the code does: a quoted UI reference equals a label the German UI shows (a de.json string or the card's STRINGS.de), a page's described scope matches the rows config_flow renders on it, and every number equals the value the production symbol deciding it delivers.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py  (prints one FALSE/STALE line per contradicted unit, with the truth)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+    "value": "842 label rows (entity/field/menu/selector/service/issue names) 842 true; plant_refused=1",
+    "note": "The same harness's existence checks pass every label row, so the count is not an artefact of the checker refusing labels; the --plant arm shows an unrowed unit is refused."
+   },
+   "reproduction_steps": [
+    "cd <export root>",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+    "grep -E '^   (FALSE|STALE)' on its output lists the 18 units with the production value"
+   ],
+   "proposed_fix_scope": "translations/de.json: quote the German labels the UI shows (or drop the quotes), retitle and re-describe the heat_curve page for both arms (ECL110 MQTT and a number entity), and correct the two numbers once the owners of const.COMBI_TANK_PRESETS['external_station'] (150.0 vs the commented 0 l) and wood_fuel.WOOD_KWH_M3['birch'] (swapped) rule on the code; the same three sentences in en.json/strings.json/sv.json are leads, not measured here.",
+   "files": [
+    "custom_components/heatpump_optimizer/translations/de.json",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/wood_fuel.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I5"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every de.json label names an object production creates: 842 label units (entity names and states, config/options field labels, menu options, sections, selector options, service and field names, issue titles)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+   "value": "842/842 true"
+  },
+  {
+   "claim": "Numbers in de.json that code decides agree with it (plan horizon 24 h, night floor 0.5 K, economy 1.5 K and open window 1 K with the 15 °C floor via away.solve_bands, floor-return 12 K, buffer store 100 L, register map 0194H/0195H/0196H/02C8H/02C9H/02CAH/0206H/0207H/100DH via modbus_prefill.infer, pump arbiter gates 25/20/30 °C, leases 90/30 min, retry 5 min, partload limits 0.44/0.17, rain 2 mm/h full and 0.1 mm/h none, manual plan 20 h, and the rest of checks.CHECKS)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+   "value": "every content check but two ok (combi station volume, wood loose ratio); unmapped_numeric=0"
+  },
+  {
+   "claim": "Every sentence opening 'Optional' or 'Erforderlich' matches the rendered field marker or the services.yaml required flag",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+   "value": "52 rows, all ok"
+  },
+  {
+   "claim": "de.json and en.json carry the same key set (context only; key parity is no truth check)",
+   "command": "python3 -c \"...leaves(de) vs leaves(en)\" (in REPORT.md)",
+   "value": "0 keys only in de, 0 only in en"
+  },
+  {
+   "claim": "Every quoted value example in de.json parses: dhw windows, weekday windows, quiet/silent windows, the grid-fee rule (also with a decimal comma), the peak-hours example",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+   "value": "all ok (dhw_schedule.parse_windows/parse_weekly_windows, grid_fee.parse_rules, config_flow.is_valid_spec)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D6/s6/ledger.py",
+  "dev/audit/rounds/round11/D6/s6/facts.py",
+  "dev/audit/rounds/round11/D6/s6/checks.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D6-s3",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "COMBI_TANK_PRESETS['external_station']",
+   "what": "potable_volume_l is 150.0 while the comment above the table says '0 l (a plate exchanger stores no potable water)'; config_flow._combi_preset_fill writes 150 L when a user picks a fresh-water station, which also keeps the legionella cycle on (COMBI_LEGIONELLA_POTABLE_LIMIT_L = 3). de.json's '0 für eine Frischwasserstation' is false against it."
+  },
+  {
+   "owner_seat": "D6-s3",
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "symbol": "WOOD_KWH_M3['birch']",
+   "what": "packed 1140 / loose 1900 kWh/m3: loose/packed = 1.667 for birch against 0.600 for pine and mixed, so birch loose firewood is priced as 1.67x the energy of stacked; looks swapped. Also a D2 (physical sanity) matter."
+  },
+  {
+   "owner_seat": "D6-s3",
+   "file": "custom_components/heatpump_optimizer/translations/en.json",
+   "symbol": "options.step.building.sections.combi/wood data_description",
+   "what": "The English counterparts of the two false de rows (combi_potable_volume_l '0 for a fresh-water station', wood_packing loose 0.60) are contradicted by the same code; not measured here."
+  },
+  {
+   "owner_seat": "D6-s2",
+   "file": "custom_components/heatpump_optimizer/strings.json",
+   "symbol": "options.step.building.sections.combi/wood data_description",
+   "what": "Same two sentences as en.json (strings.json is byte-identical to en.json at the baseline); not measured here."
+  },
+  {
+   "owner_seat": "D6-s4",
+   "file": "custom_components/heatpump_optimizer/translations/sv.json",
+   "symbol": "combi_potable_volume_l, wood_packing descriptions; quoted labels",
+   "what": "sv.json likely carries the same two code-contradicted numbers; whether it quotes English labels was not measured (pump_write_ignored there names the Swedish 'Optimerare aktiv')."
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "docs/how-it-works.md",
+   "symbol": "prose claims (C3)",
+   "what": "Redispatched C3 names prose claims in docs/how-it-works.md, architecture.md, dashboard-card.md, ecl110.md, setup.md and automations.md: those files are D6-s1's cells, not this seat's."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/._const.py",
+   "symbol": "AppleDouble files",
+   "what": "The baseline export carries macOS '._*.py' AppleDouble files beside the package modules (._const.py, ._optimizer.py, ...); any tool globbing *.py and parsing them fails on null bytes (this seat's facts.py had to skip them). Whether they exist in the git tree or only in this export was not checked."
+  }
+ ]
+}

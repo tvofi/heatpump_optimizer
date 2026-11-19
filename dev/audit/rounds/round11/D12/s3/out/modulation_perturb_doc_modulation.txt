@@ -1,0 +1,30 @@
+CELL winter_typical winter_cold on_off=0(clamp=1) modulating=3(clamp=0) absent=3(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL winter_typical winter_mild on_off=0(clamp=1) modulating=12(clamp=0) absent=12(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL winter_extreme winter_cold on_off=0(clamp=1) modulating=4(clamp=0) absent=4(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL winter_extreme winter_mild on_off=0(clamp=1) modulating=26(clamp=0) absent=26(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL shoulder winter_cold on_off=0(clamp=1) modulating=8(clamp=0) absent=8(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL shoulder winter_mild on_off=0(clamp=1) modulating=36(clamp=0) absent=36(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL winter_moderate winter_cold on_off=0(clamp=1) modulating=0(clamp=0) absent=0(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL winter_moderate winter_mild on_off=0(clamp=1) modulating=15(clamp=0) absent=15(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL summer_typical winter_cold on_off=0(clamp=1) modulating=0(clamp=0) absent=0(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+CELL summer_typical winter_mild on_off=0(clamp=1) modulating=25(clamp=0) absent=25(clamp=0) switch_setpoint_absent=0(clamp=1) switch_setpoint_on_off=0(clamp=1)
+RESULT grid_cells=10 count
+RESULT on_off_sub_min_total=0 count
+RESULT on_off_clamped_cells=10 count
+RESULT modulating_sub_min_total=129 count
+RESULT modulating_clamped_cells=0 count
+RESULT absent_sub_min_total=129 count
+RESULT absent_clamped_cells=0 count
+RESULT switch_setpoint_absent_sub_min_total=0 count
+RESULT switch_setpoint_absent_clamped_cells=10 count
+RESULT switch_setpoint_on_off_sub_min_total=0 count
+RESULT switch_setpoint_on_off_clamped_cells=10 count
+RESULT on_off_cells_failing=0 count
+RESULT switch_setpoint_on_off_cells_failing=0 count
+RESULT loo_min=0 count
+RESULT loo_max=0 count
+RESULT loo_drop_most_favourable_total=0 count
+RESULT wall_s=254.1 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=10.74
+RESULT swapins=0

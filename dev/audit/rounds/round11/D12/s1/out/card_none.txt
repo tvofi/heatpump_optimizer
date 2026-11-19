@@ -1,0 +1,9 @@
+FAIL 138 single-zone plant: the expanded chart names an Upper/Lower floor trace  e.g. level CONF_AWAY_PRESENCE_ENTITY=present [minimal+entity] | level CONF_BUFFER_TANK_TEMP_ENTITY=present [minimal+entity] | level CONF_COMPRESSOR_FREQ_ENTITY=present [minimal+entity]
+RESULT card_runs=337 count
+RESULT card_fail_plants=0 count
+RESULT card_single_zone_plants=140 count
+RESULT card_zone_traces_on_single_zone=138 count
+RESULT thread_factor=1.000
+RESULT load1=3.73
+RESULT swapins=0
+RESULT cpu_s=45.9 s (provisional)

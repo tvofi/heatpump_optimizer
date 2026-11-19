@@ -1,0 +1,2347 @@
+{
+  "box": "B11",
+  "missing": [],
+  "reports": {
+    "D16-s1": {
+      "dimension": "D16",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D16/s1/REPORT.md",
+      "exposure": "Read docs/configuration.md's Pump duty control table and strings.json's pump_duty_mode description to classify the observe/off supply-switch write and the documented DHW gate; no earlier findings read.",
+      "coverage": [
+        {
+          "step": "D16.M1",
+          "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+          "universe": 532,
+          "examined": 532,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py (cells_baseline.txt, per-cell table cells_table.json): every cell's site attributed on the stack of services.async_call / log_held, under 14 states x 5 rigs on coord_all_features plus the pump's slots; RESULT cells=532 examined=532 unattributed_calls=0; the 11 solve/fetch holds of coordinator.py driven into their latched branch per state (gate_cells=154, command_diff=2, both explained). Hold sites whose cause is absent in a state (heat_curve.py:366/399, off_restore.py:253, heat_curve.py:551 outside one state) read evaluations=0 there, with the guarded write's row graded. M1: each state's oracle is ORACLE in cells.py, written from D16.md's table before the sites were read."
+        },
+        {
+          "step": "D16.M2",
+          "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+          "universe": 532,
+          "examined": 532,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py (cells_baseline.txt, per-cell table cells_table.json): every cell's site attributed on the stack of services.async_call / log_held, under 14 states x 5 rigs on coord_all_features plus the pump's slots; RESULT cells=532 examined=532 unattributed_calls=0; the 11 solve/fetch holds of coordinator.py driven into their latched branch per state (gate_cells=154, command_diff=2, both explained). Hold sites whose cause is absent in a state (heat_curve.py:366/399, off_restore.py:253, heat_curve.py:551 outside one state) read evaluations=0 there, with the guarded write's row graded. M2: each command graded against its state's row and the entity's min/max/step; owed cells boost-partial (3562), disinfection (3452), min-cold-tank (R10-SETPOINT-BOOST) run on all 5 rigs. P1 moves arbiter_value_rows_failing 4->41, P2 4->35, P2doc 4->4."
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D16-s1-01",
+          "scope": "D16-s1",
+          "step": "D16.M2",
+          "title": "Frequency control writes a decile mid that is not on the frequency entity's step",
+          "severity": "medium",
+          "claim": "On every heating state the compressor frequency write sends FrequencyMap's decile midpoint (23.5, 37.5, 51.5, 86.5 Hz) to a number entity whose step is 1 Hz, so the command lies off the entity's grid in 50 of 50 heating rows (10 states x 5 rigs).",
+          "mechanism": "coordinator._command_frequency sends round(target, 1) from freq_control.FrequencyMap.recommend, whose candidates are hz_min + (decile + 0.5) * span / 10; nothing puts the value on the entity's 'step' attribute, while every set-point write goes through inputs.write_setpoint, which does (setpoint_step). Home Assistant's number.set_value validates min/max only, so the off-step value reaches the device integration, which rounds, truncates or refuses it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+            "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+            "value": 50,
+            "unit": "rows (rig x state) with a frequency write off the entity step",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+            "cpu_or_wall": "count",
+            "contention_note": "count; contention-immune (two other seats on the box)",
+            "tolerance": "exact",
+            "load1": 1.1,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._command_frequency (via freq_control:FrequencyMap.recommend)",
+          "perturbation": {
+            "change": "--perturb freq_grid: FrequencyMap.recommend's answer rounded to the entity's 1 Hz step (the one-line production edit: quantise the target on the entity step before set_value)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Rows (rig x enumerator state) where a number.set_value to the frequency entity carries a value not equal to round(v/step)*step or outside min..max (count key: the value the seam delivered).",
+          "phenomenon_property": "Every number written to an actuator entity lies on that entity's own step and inside its min..max, whatever writer computes it.",
+          "seam_rule": "grep -n '\"set_value\"\\|services.async_call' custom_components/heatpump_optimizer/*.py  # every number write not routed through inputs.write_setpoint",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb freq_step_half",
+            "value": 0,
+            "note": "the same rigs with the frequency entity stating a 0.5 Hz step: every decile mid is on it and clause_grid reads 0"
+          },
+          "leave_one_out": {
+            "cells": 10,
+            "min": 5,
+            "max": 5,
+            "drop_most_favourable": 45
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep clause_grid  # 50",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb freq_grid | grep clause_grid  # 0"
+          ],
+          "proposed_fix_scope": "coordinator._command_frequency: quantise the target onto the frequency entity's step (inputs.setpoint_step / _on_step) inside its range before the call and the dedup.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/freq_control.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D16-s1-02",
+          "scope": "D16-s1",
+          "step": "D16.M2",
+          "title": "A space-only step on a pump with no heating-only mode charges a cold tank: the DHW gate is floored at 30 C",
+          "severity": "medium",
+          "claim": "With a mode select offering only Heating + DHW (GCHV), a step booking f kW of space heat and no hot water writes the tank set-point 30 C over a 20 C tank whose start hysteresis is 5 K, so the pump is asked to charge the tank on a step the plan booked none: 2 of 2 such rigs.",
+          "mechanism": "pump_arbiter.desired, space row with no Heating option: dhw_setpoint = _bounded(DHW_GATE_C=30, rounding down) \u2014 the entity's minimum but never below 30 C, independent of the tank reading; the hot-water entity in the rig accepts down to 10 C. A tank under 30 C less the pump's own hysteresis starts charging under Heating + DHW.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+            "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+            "value": 2,
+            "unit": "rigs (gchv-flow, gchv-indoor) where min-cold-tank asks the tank to charge",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+            "cpu_or_wall": "count",
+            "contention_note": "count; contention-immune (two other seats on the box)",
+            "tolerance": "exact",
+            "load1": 1.1,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:desired (DHW_GATE_C)",
+          "perturbation": {
+            "change": "--perturb dhw_gate: pump_arbiter.DHW_GATE_C = 10.0",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Rigs whose min-cold-tank row reads mode in {DHW, Heating+DHW} and tank set-point minus the pump's hysteresis above the tank reading after the step's writes.",
+          "phenomenon_property": "On a step the plan books no hot water, the pump is never left with a tank set-point its own thermostat would start a charge on, where the entity's range allows a lower one.",
+          "seam_rule": "grep -n 'DHW_GATE_C\\|FLOW_GATE_C' custom_components/heatpump_optimizer/pump_arbiter.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+            "value": 0,
+            "note": "the same gchv rigs at partial/full with the tank at 48 C: the 30 C gate asks no charge (rows ok); and the fork rigs at min-cold-tank, where the Heating mode gates the tank: rows ok"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep 'min-cold-tank'",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb dhw_gate | grep cold_tank_charge  # 0"
+          ],
+          "proposed_fix_scope": "pump_arbiter.desired's single-mode-less space row: gate the tank at the entity's minimum (or below the tank reading less the read hysteresis), not a fixed 30 C floor; doc table and strings.json follow.",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D16-s1-03",
+          "scope": "D16-s1",
+          "step": "D16.M2",
+          "title": "A space boost on an indoor set-point entity holds the plan's partial set-point, not the band top",
+          "severity": "high",
+          "claim": "With Boost Space Heating live on a partial step and an indoor space set-point entity, the pump holds optimal_setpoints[K] = 21.0 C while the boost's own action asks max_temperature 23.0 C, on 2 of 2 indoor rigs; the water rigs write the top (55 C).",
+          "mechanism": "pump_arbiter.desired passes boosted only for a water unit ('The boost fact is read for a water set-point only'); _space_target's indoor branch reads _planned_room(result, now), the plan's step, while boost.overlay replaced the action's setpoint with max_temp. The boost lifts the supply switch and mode but never the indoor set-point, so the pump's own thermostat stops at the plan's partial target.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+            "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+            "value": 2,
+            "unit": "rigs (fork-indoor, gchv-indoor) whose boost-partial set-point lies between floor and top",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+            "cpu_or_wall": "count",
+            "contention_note": "count; contention-immune (two other seats on the box)",
+            "tolerance": "exact",
+            "load1": 1.1,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:desired (_space_target indoor branch)",
+          "perturbation": {
+            "change": "--perturb boost_indoor: desired maps an indoor set-point under a live space boost to max_temperature",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Rigs whose indoor space entity, after the boost-partial step's writes, reads other than max_temperature (the boost overlay's setpoint).",
+          "phenomenon_property": "Under a live space boost the space channel's target is the top of its band on every space set-point unit, never the plan's partial level.",
+          "seam_rule": "grep -n 'boosted' custom_components/heatpump_optimizer/pump_arbiter.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+            "value": 0,
+            "note": "the flow rigs' boost-partial rows hold 55 C = the band top (rows ok); the indoor partial rows without a boost hold optimal_setpoints[K] (rows ok)"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep boost-partial",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb boost_indoor | grep boost_indoor_between  # 0"
+          ],
+          "proposed_fix_scope": "pump_arbiter.desired/_space_target: an indoor unit under a live space boost (or MODE_BOOST) writes the boost's setpoint (max_temperature on the entity grid).",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D16-s1-04",
+          "scope": "D16-s1",
+          "step": "D16.M2",
+          "title": "A plan that goes stale on an idle step leaves the supply switch off: the pump is never handed back",
+          "severity": "high",
+          "claim": "When the last fresh actuation switched the pump off (an idle step) and solves then fail, the power switch still reads off 100 and 130 minutes past the plan's end on 5 of 5 rigs, and the arbiter writes nothing, so the pump is not handed back to its own thermostats; with the switch on at that moment the baseline row holds on 5 of 5.",
+          "mechanism": "coordinator._apply_action returns before the supply write once _plan_is_stale ('the pump's own weather-compensated curve holds comfort'), supply_tick's step_supply answers None on a stale plan, and pump_arbiter._pump_off stops every arbiter write while the switch reads off, so the baseline row (Heating + DHW, configured tank, hold flow) is never written either. Nothing switches the supply on until a solve succeeds.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+            "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+            "value": 5,
+            "unit": "rigs whose baseline row reads the supply switch off past the plan",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+            "cpu_or_wall": "count",
+            "contention_note": "count; contention-immune (two other seats on the box)",
+            "tolerance": "exact",
+            "load1": 1.1,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_action (stale branch) with pump_arbiter:_pump_off",
+          "perturbation": {
+            "change": "--perturb stale_on: the stale branch of _apply_action also writes the supply on through _write_supply",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Rigs where the configured power switch reads off after the cycle and ticks 100-130 min past the plan's last step, the plan stale since that step.",
+          "phenomenon_property": "Whenever the optimizer stops actuating (stale or missing plan), every entity it switched is returned to the pump's own control: the supply allowed on and both circuits allowed.",
+          "seam_rule": "grep -n '_plan_is_stale()' custom_components/heatpump_optimizer/coordinator.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+            "value": 0,
+            "note": "baseline-on: the same staleness with the switch on at the last fresh step; the baseline row (switch on, Heating + DHW, configured tank) holds on 5 of 5 (NULL ... ok)"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'baseline'",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb stale_on | grep baseline_switch_off  # 0"
+          ],
+          "proposed_fix_scope": "coordinator._apply_action stale branch: release the supply (write on once, or restore its pre-optimizer state) and let the arbiter write its baseline row; adjacent to D1's staleness ownership.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/pump_arbiter.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D16-s1-05",
+          "scope": "D16-s1",
+          "step": "D16.M2",
+          "title": "A mode write to an unavailable select is recorded as made",
+          "severity": "low",
+          "claim": "With the mode select, hot-water and space entities unavailable at a partial step's switch-on, the arbiter records the mode write in held.written (and reports it to duty_switch) although Home Assistant's entity service call skips an unavailable entity, on 5 of 5 rigs.",
+          "mechanism": "pump_arbiter._write gates on 'state is None', never on state 'unavailable'; _lead_mode writes the step's mode ahead of the switch-on, services.async_call returns without error because Home Assistant leaves an unavailable entity out of the call, and held.written, _report_write (duty_switch.note_mode_write) and _persist record a write that never landed. The stub FakeServices records every call, so the suite cannot see it. The pump then starts in its previous mode; the next pass after the entity returns rewrites it (hold), so the cost is one tick and a phantom mode switch in the learner.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+            "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+            "value": 5,
+            "unit": "rigs whose unavailable row records a skipped write as made",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+            "cpu_or_wall": "count",
+            "contention_note": "count; contention-immune (two other seats on the box)",
+            "tolerance": "exact",
+            "load1": 1.1,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:_write (via _lead_mode)",
+          "perturbation": {
+            "change": "--perturb write_skips_unavailable: _write returns before the call when the slot's entity reads 'unavailable'",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Rigs where a slot whose service call the Home Assistant emulation skipped (entity state 'unavailable') is in pump_arbiter.state_for(coord).written after the pass.",
+          "phenomenon_property": "A write is recorded as made only when Home Assistant delivered it to an available entity.",
+          "seam_rule": "grep -n 'held.written\\[slot\\]\\|_pump_commanded\\[\\|_freq_last_write = \\|_valve_commanded_target = ' custom_components/heatpump_optimizer/*.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb ha_skip_off",
+            "value": 0,
+            "note": "the emulation without Home Assistant's skip (the stub's behaviour): no write is skipped and the count reads 0, so the count keys on the skip"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep unavailable",
+            "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb write_skips_unavailable | grep unavailable_recorded  # 0"
+          ],
+          "proposed_fix_scope": "pump_arbiter._write: treat an entity reading unavailable/unknown as no write (as state None); tests/hastub's FakeServices to skip unavailable entities as Home Assistant does (ha_contract row).",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "tests/harness.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P11"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "idle: no mode written and the supply never switched on inside the step (5 rigs)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep ' idle '",
+          "value": "5/5 rows ok"
+        },
+        {
+          "claim": "min-cold-tank/partial/full on the fork transport: Heating mode, no tank charge asked; water set-point 33 < 44 < 55 C, all above the 25 C gate; indoor set-point equals optimal_setpoints[K]",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'LEVELS|partial|full'",
+          "value": "LEVELS water [33, 44, 55]; partial and full rows ok on 5/5 rigs; min-cold-tank ok on 3/3 fork rigs"
+        },
+        {
+          "claim": "dhw-only: DHW-only mode where offered, else the space set-point that calls for no heat; tank set-point the configured 55 C",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep dhw-only",
+          "value": "5/5 rows ok"
+        },
+        {
+          "claim": "both: hot water asked first, then the house, inside the one step",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep ' both '",
+          "value": "5/5 rows ok (fork: DHW then Heating; gchv: Heating + DHW, tank gated on the space leg at +7 min)"
+        },
+        {
+          "claim": "boost-partial on a water set-point writes the band top",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep boost-partial",
+          "value": "3/3 flow rigs ok (55 C)"
+        },
+        {
+          "claim": "disinfection: the tank write reaches the disinfection target with the integration's switch held on",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep disinfection",
+          "value": "5/5 rows ok (written 60 C, target 60 C, memo True)"
+        },
+        {
+          "claim": "restart and upgrade (store written by v10.0.2 through old_release.py): partial's row after the reload",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'restart|upgrade'",
+          "value": "10/10 rows ok"
+        },
+        {
+          "claim": "observe and off duty modes: no arbiter-slot write after the reload; each written entity returned once at the unload",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'observe|  off '",
+          "value": "10/10 rows ok"
+        },
+        {
+          "claim": "ECL110 MQTT displace and legacy heat_pump_on, the heat-curve offset/persistent entity, the circulation pump and the smart_write valve follow the plan's step K",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep -E 'clause_(mqtt|circ|valve|freq|stale)'",
+          "value": "clause_mqtt=0 clause_circ=0 clause_valve=0 clause_freq=0 clause_stale=0"
+        },
+        {
+          "claim": "The price, weather, solar, worker-timeout and solve-failure holds gate no actuator write: latched at step K, the state's commands are unchanged",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py | grep gate_cells",
+          "value": "gate_cells=154 evaluated=154 latched=112 command_diff=2 (the two baseline cells where the real solve refreshed the stale plan)"
+        },
+        {
+          "claim": "The enumerator misses no writer the 70 state runs reach",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep unattributed",
+          "value": "unattributed_calls=0"
+        },
+        {
+          "claim": "Null: the docstring edited alone (P2doc) moves no cell",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb P2doc | grep arbiter_value",
+          "value": "4 (unchanged)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D16/s1/cells.py",
+        "dev/audit/rounds/round11/D16/s1/old_release.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D16-s3",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._command_frequency",
+          "what": "No _plan_is_stale gate, unlike _apply_action and _space_pump_to_drive: in cells.py's baseline-on run the stale action's 3.0 kW was asked of FrequencyMap.recommend 100 min past the plan; the last frequency is held and never handed back on stale, off or unload (D16.M6 restore)."
+        },
+        {
+          "owner_seat": "D16-s2",
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_lead_mode / write_supply",
+          "what": "partial entered from idle (cell 3530): the switch-on writes only the mode ahead; the space set-point follows at the next one-minute tick (cells.py timeline fork-flow partial: 07:02 mode + switch on, 07:03 space 44 C), so the pump starts against the idle gate (25 C) for up to a minute (D16.M3/M4)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "desired (idle row) without heat_pump_switch_entity",
+          "what": "D12 configuration level: on an install with no power switch the idle row leaves the mode as last written (often Heating + DHW after a baseline) and holds the configured tank set-point, so the tank thermostat may charge on idle steps; not measured here (the rigs all configure a switch)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._apply_action (stale branch)",
+          "what": "D1 staleness neighbour of D16-s1-04: the plan-stale path and the supply switch; D1 owns whether the stale state is reached and announced."
+        }
+      ]
+    },
+    "D16-s2": {
+      "dimension": "D16",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D16/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D16.M3",
+          "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+          "universe": 532,
+          "examined": 532,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py --cells-out dev/audit/rounds/round11/D16/s2/cells_verdicts.txt -> RESULT cells_universe=532 cells_examined_m3=532 cells_not_reached=0 unattributed_sites=0; per-cell verdicts in dev/audit/rounds/round11/D16/s2/cells_verdicts.txt; channel timing in dev/audit/rounds/round11/D16/s2/timing.py and dev/audit/rounds/round11/D16/s2/disinfect.py"
+        },
+        {
+          "step": "D16.M4",
+          "enumerator": "python3 tools/audit/enumerate.py d16-writes --cells",
+          "universe": 532,
+          "examined": 532,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py -> RESULT cells_examined_m4=532 (pump model on the null plant per state); plant sweep in dev/audit/rounds/round11/D16/s2/effect.py"
+        }
+      ],
+      "unfinished": [],
+      "findings": [
+        {
+          "id": "D16-s2-01",
+          "scope": "D16-s2",
+          "step": "D16.M3",
+          "title": "Frequency, ECL110 displace and heat-curve offset hold the cycle's step through the next step",
+          "severity": "medium",
+          "claim": "The writes cut from the cycle's action (compressor frequency, ECL110 MQTT displace on both topics, the heat-curve offset entity) are never re-derived at a plan-step boundary, so with the default 30-min cycle over 15-min steps the command in force is another step's in 45-57 % of graded minutes on the reference plant.",
+          "mechanism": "`_current_action` is cut once per solve (async_run_optimization -> get_current_action) and `_command_frequency` (via `_commanded_split`), `async_publish_current_action` -> `heat_curve.publish` and the valve hold schedule read it only inside `_async_update_data`; the supply (`pump_arbiter.supply_tick`, #2492) and the arbiter's one-minute tick re-derive their step each minute, these do not. A cycle whose tail lands after the boundary (cell 3478) writes the step it was cut for into the next one.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py",
+            "harness_path": "dev/audit/rounds/round11/D16/s2/timing.py",
+            "value": 0.5732,
+            "unit": "stale share, mqtt displace (curve 0.4644, frequency 0.4480)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+            "cpu_or_wall": "ratio",
+            "contention_note": "other finder seats on the box; counts are contention-immune",
+            "tolerance": "exact for a given phase set",
+            "load1": 1.8,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._command_frequency; heatpump_optimizer.heat_curve:publish_ecl110_topics; heatpump_optimizer.heat_curve:write_displace (driven through HeatPumpOptimizerCoordinator._apply_action)",
+          "perturbation": {
+            "change": "cycle every 15 min aligned to the step grid (optimization_interval 15, --interval 15 --phases 0): every write re-cut at each boundary",
+            "expected_direction": "to_zero",
+            "observed_value": "mqtt 0.0000, curve 0.0000, frequency 0.0000"
+          },
+          "metric_definition": "minutes >=1 min after a boundary whose in-force value != the step's own (displace_schedule[k] by plain index; frequency the value a same-step cut writes) / graded minutes",
+          "phenomenon_property": "Every actuator write whose value is a function of the plan step is re-derived at each plan-step boundary (within the arbiter's one-minute tick), not only when the cycle runs.",
+          "seam_rule": "grep -nE '_command_frequency|async_publish_current_action|_command_valve_target|_async_drive_pumps|_current_action\\.get\\(\"(valve_target|displace_value|heat_pump_on)\"' custom_components/heatpump_optimizer/coordinator.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --interval 15 --phases 0",
+            "value": 0.0,
+            "note": "a cycle on every boundary: all three shares 0, supply/mode/flow 0 in both arms"
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 0.4135,
+            "max": 0.7303,
+            "drop_most_favourable": 0.6057
+          },
+          "reproduction_steps": [
+            "run timing.py: RESULT stale_share_mqtt_displace=0.5732, curve_offset=0.4644, frequency=0.4480 over cycle phases 1,6,11,16,21,26",
+            "cell 3478 line: frequency 65.5 Hz (partial's) in force in a full step whose own cut writes 90.0 Hz; mqtt '4' against the step's 6",
+            "--interval 15 --phases 0: all 0"
+          ],
+          "proposed_fix_scope": "coordinator write tail: re-cut the action's step-dependent fields (or the action) at each plan-step boundary from the same one-minute step tick that drives the supply, and run the frequency/MQTT/curve/valve writes from it, keeping their own rate limits.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/heat_curve.py",
+            "custom_components/heatpump_optimizer/pump_arbiter.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D16-s2-02",
+          "scope": "D16-s2",
+          "step": "D16.M3",
+          "title": "Disinfection switch is commanded from the previous solve's action, one interval late",
+          "severity": "high",
+          "claim": "The pump's disinfection switch turns on one cycle after the steps the plan books the anti-legionella cycle on: for a 06:30-07:00 window it is on 0 of 30 minutes inside the window and 30 minutes after it, and the space-only steps of the window stay in Heating mode (0 of 30 minutes Heating + DHW).",
+          "mechanism": "`LegionellaGuard.async_track_cycle` (reached from `_update_current_state` -> `async_observe`, the first thing `_async_update_data` does) reads `self._action()`, the action the previous solve cut; the solve that adopts this step's legionella action runs after it, so the switch and the arbiter's `inp.disinfecting` (DisinfectionSwitch.memo) follow one interval behind, and the switch is not re-driven between cycles.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/disinfect.py",
+            "harness_path": "dev/audit/rounds/round11/D16/s2/disinfect.py",
+            "value": 0,
+            "unit": "minutes the switch reads on inside a 30-min booked window (30 on outside it)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+            "cpu_or_wall": "count",
+            "contention_note": "other finder seats on the box; counts only",
+            "tolerance": "exact",
+            "load1": 1.35,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.legionella:LegionellaGuard.async_track_cycle (driven through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_current_state); heatpump_optimizer.disinfection:DisinfectionSwitch.turn_on",
+          "perturbation": {
+            "change": "run LegionellaGuard.async_track_cycle again right after the solve adopts its action (--perturb track-after-adopt)",
+            "expected_direction": "up",
+            "observed_value": "on_in_window 29 of 30, on_outside 1, mode Heating + DHW 29 of 30"
+          },
+          "metric_definition": "minutes the disinfection switch entity reads on inside the steps whose plan dhw_reasons[k] is legionella (plain index), and outside them",
+          "phenomenon_property": "An actuator driven from the action is driven from the action of the step it lands in: no write path reads an action older than the current solve's.",
+          "seam_rule": "grep -nE 'self\\._action\\(\\)|_action=|async_observe|async_track_cycle' custom_components/heatpump_optimizer/legionella.py custom_components/heatpump_optimizer/coordinator.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/disinfect.py",
+            "value": 0,
+            "note": "no step booked legionella: null_on_minutes=0; a 90-min window shows the same 30-min shift (59 of 90 in window, 31 after)"
+          },
+          "reproduction_steps": [
+            "disinfect.py: switch writes turn_on at minute 61, turn_off at 91 for a window 30-60",
+            "the tank set-point does reach 60 C from minute 31 (the arbiter reads the new action), so the set-point and the switch disagree for the whole window"
+          ],
+          "proposed_fix_scope": "legionella/coordinator: drive the disinfection switch from the adopted action (after the solve's adoption, and on the step tick), not from the input read that precedes the solve.",
+          "files": [
+            "custom_components/heatpump_optimizer/legionella.py",
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/disinfection.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D16-s2-03",
+          "scope": "D16-s2",
+          "step": "D16.M3",
+          "title": "A switch-on leads no mode when the arbiter's stale record matches the step's mode",
+          "severity": "low",
+          "claim": "When the mode select changes while the supply reads off (the pump's own reset, a person) and the arbiter's record still holds the step's mode, the switch-on of a partial step lands with the hot-water mode in force; Heating follows one tick later.",
+          "mechanism": "`_lead_mode` (#3420) calls `_write`, which returns early when `held.written['mode']` equals the target; `hold()`, which drops a record the entity no longer reads, never runs while the switch reads off (`_arbitrate` returns at `_pump_off`), so the record is stale exactly when the lead is needed.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --phases 1",
+            "harness_path": "dev/audit/rounds/round11/D16/s2/timing.py",
+            "value": 1,
+            "unit": "switch-on with the wrong mode in force (cell3530_record_wrong_mode_at_on)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+            "cpu_or_wall": "count",
+            "contention_note": "counts only",
+            "tolerance": "exact",
+            "load1": 1.8,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_lead_mode (through write_supply from supply_tick)",
+          "perturbation": {
+            "change": "hold(coord, now) before the _write in _lead_mode (--perturb lead-hold)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "mode select state in force at the supply switch-on of a heating step, against the step's mode from the plan (Heating where only space is booked)",
+          "phenomenon_property": "A write skipped because the arbiter's record already holds it is skipped only when the entity reads that value.",
+          "seam_rule": "grep -n 'recorded and not _differs' custom_components/heatpump_optimizer/pump_arbiter.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --phases 1",
+            "value": 0,
+            "note": "same scenario with no change while off: the mode in force at switch-on is Heating (null arm 0)"
+          },
+          "reproduction_steps": [
+            "partial (mode Heating recorded), idle (switch off), the select moved to DHW (Hot Water) at minute 35, partial at 45: switch_on at 45 with DHW in force, Heating written at 46"
+          ],
+          "proposed_fix_scope": "pump_arbiter._lead_mode: compare against the entity's reading (or run hold) before trusting the record.",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D16-s2-04",
+          "scope": "D16-s2",
+          "step": "D16.M4",
+          "title": "Floor-level space steps short-cycle where the floor lift exceeds min lift plus stop hysteresis",
+          "severity": "medium",
+          "claim": "Under a pump with an integrating speed loop and a 2 K stop hysteresis, a step booked at the modulation floor (min-cold-tank, 1.0 kW) runs 30 starts in 2.5 h at 0.60 kW on a plant lifting 8 K/kW (38 starts, 0.50 kW at 10 K/kW) against the plan's one run at 1.0 kW; the power-feedback loop never corrects it.",
+          "mechanism": "The floor writes inlet + flow_min_lift_k (5 K); a pump whose water at its floor sits higher than that plus its stop hysteresis stops and restarts. `_feedback` resets its run on every stop and folds only running samples, so its windowed error is 0 (running at the floor = the booked floor) and `_nudged` stays in the deadband; the duty-cycle shortfall is never seen.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+            "harness_path": "dev/audit/rounds/round11/D16/s2/effect.py",
+            "value": 30,
+            "unit": "compressor starts over 2.5 h of floor steps (plan: 1), k_lift 8",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+            "cpu_or_wall": "count",
+            "contention_note": "counts only",
+            "tolerance": "exact",
+            "load1": 1.44,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_flow_target and _feedback (via pump_arbiter.apply on the one-minute tick)",
+          "perturbation": {
+            "change": "config flow_min_lift_k = 8 (--cfg flow_min_lift_k=8)",
+            "expected_direction": "down",
+            "observed_value": "1 start at k_lift 8 (1.0 kW), 4 at 10 (0.98 kW)"
+          },
+          "metric_definition": "pump-model compressor starts and mean draw over steps 3..10 of a floor-level stretch, against the plan's one run at power_schedule[k]",
+          "phenomenon_property": "A step the plan books at the modulation floor is realized as one continuous run at the floor on any plant the loop can hold there: the set-point loop sees a duty-cycle shortfall, not only running samples.",
+          "seam_rule": "grep -nE 'def (_feedback|_nudged|_flow_target)|modulation_floor_flow_c|start_flow_min_lift_k' custom_components/heatpump_optimizer/pump_arbiter.py custom_components/heatpump_optimizer/thermal_model.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+            "value": 1,
+            "note": "k_lift 2.0-6.5: 1 start at 1.0 kW each (the null plant k 5: power_error 0)"
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 0.0,
+            "max": 0.5,
+            "drop_most_favourable": 0.0797
+          },
+          "reproduction_steps": [
+            "effect.py: RESULT min-cold-tank_k8.0_starts=30 measured_kw=0.602; k10.0_starts=38 measured_kw=0.5; k2.0-6.5 starts=1",
+            "--cfg flow_min_lift_k=8: k8.0 starts=1"
+          ],
+          "proposed_fix_scope": "pump_arbiter feedback: count a stopped minute inside a booked heating step as a zero sample (or keep the run across a short stop) so the loop lifts the floor target; or learn the floor lift from the supply-temperature reading.",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/thermal_model.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Supply, mode and flow class are the step's own command >=1 min after each boundary (M3), and P1 turns them red",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py ; PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --perturb P1",
+          "value": "stale 0/1434, 0/906, 0/906; under P1 0.4561, 0.3510, 0.6364; cell3478_step_k_off_row 0 -> 13/13"
+        },
+        {
+          "claim": "The arbiter's docstring edited alone moves no cell (null control)",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --perturb null-docstring",
+          "value": "identical RESULT lines to the unperturbed run"
+        },
+        {
+          "claim": "Cell 3530: partial entered from idle writes the mode before the switch-on",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py",
+          "value": "cell3530_mode_led=1; switch_on_with_wrong_mode=0 of 60"
+        },
+        {
+          "claim": "Cell 3512: minimum run and pause held across re-solves",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py",
+          "value": "transitions on 30, off 40, on 50: runs [10], pauses [10], short 0/0"
+        },
+        {
+          "claim": "Both steps: hot water asked first, then the house, inside the step",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+          "value": "mode sequences [DHW, Heating] x2"
+        },
+        {
+          "claim": "Boost-partial: the space target is the band top for the whole boost",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+          "value": "boost_flow_minutes_below_top=0, top 60 C"
+        },
+        {
+          "claim": "Unavailable written entity: no write made or recorded; partial's row on return",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+          "value": "calls 0, recorded 0, m3_stale 0/22"
+        },
+        {
+          "claim": "Observe and off duty modes write nothing through the arbiter",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+          "value": "arbiter_writes 0 and 0"
+        },
+        {
+          "claim": "Baseline row lands within the tick after the plan ends",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+          "value": "first Heating + DHW at minute 47 (end 45); dhw 50 configured every minute after"
+        },
+        {
+          "claim": "Restart and upgrade (v10.0.1 store) return partial's row at the first solve",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/cells.py",
+          "value": "m3_stale 2/42 and 2/38, both the scenario's one-minute solve delay"
+        },
+        {
+          "claim": "Partial effect: measured power within the feedback deadband on plants 2-8 K/kW, one run",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+          "value": "|power_error| max 0.0873 (k 2-8), null k 5: 0.0000; k 10: -0.1848, ceiling-limited (55 C)"
+        },
+        {
+          "claim": "Dhw-only on a tank above set-point less hysteresis: the write is its row (configured 50); nothing starts",
+          "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/effect.py",
+          "value": "delivered_share 0.0000, starts 0; ledger not-startable with the hysteresis entity, idle-instead without"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D16/s2/rig.py",
+        "dev/audit/rounds/round11/D16/s2/timing.py",
+        "dev/audit/rounds/round11/D16/s2/disinfect.py",
+        "dev/audit/rounds/round11/D16/s2/effect.py",
+        "dev/audit/rounds/round11/D16/s2/cells.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D16-s1",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer.get_current_action",
+          "what": "With the clock past the last step the loop's else-branch returns the last step's action (heat_pump_on included); cycle_supply falls back to it where step_supply gives None, so the baseline state's supply value is the last step's, not a handed-back pump (M2 value of the baseline row)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+          "symbol": "start mask (dhw_start_below_c)",
+          "what": "Without dhw_hysteresis_entity the plan books hot-water charges on a tank inside the pump's start band; the arbiter writes the configured set-point and 0 kWh is delivered (effect.py dhw_only_tank47_ent0), the ledger reading idle-instead rather than not-startable."
+        },
+        {
+          "owner_seat": "D16-s3",
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "release / off_restore on unload",
+          "what": "Every reload writes the baseline row (Heating + DHW) and restores the space set-point baseline (35 C), then the new instance rewrites the plan's row at its first solve (cells.py restart: writes at minutes 34-36): a restore per reload, M6's once-rule to check."
+        }
+      ]
+    },
+    "D16-s3": {
+      "dimension": "D16",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D16/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D16.M5",
+          "enumerator": "python3 tools/audit/enumerate.py d16-writes | grep '^hold'",
+          "universe": 30,
+          "examined": 30,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "All 30 hold lines examined by m5_holds.py (one section per latch key, entered through production, then released by the plant alone): coordinator.py:2148/2153 _await_off_loop -> writes_again_off_loop_timeout_jobs=1; 2322/2340 _await_optimize -> writes_again_process_worker_timeout_plans=1; 703/6457 solve_failure, 7169 solar_location, 7185 solar_coordinate, 7234 no_prices, 7250 prices_uncovered, 7312 no_weather_forecast -> gates no write: 5 latches held at once (no_prices entered then cleared by its own next call) and a fresh-plan cycle still makes gates_no_write_cycle_writes=9 calls; the write gate behind them is plan staleness, which the next solve clears (D1's cycle); 7747 valve_flow_needs_two_zone -> a configuration both option flows refuse (flow_target_needs_two_zone), valve_flow_needs_two_zone_writes=0 at runtime, release only by an option change: rowed config-refused; 7763 valve_write -> writes_again_valve_write=1; heat_curve.py:366/368 -> writes_again_heat_curve_entity=1; 369 and 531 saturated -> gates no write (1 call each); 376 -> writes_again_heat_curve_not_held=1 on the plan's next target (null same target 0); 383 -> writes_again_heat_curve_write_cap=1 a day later (0 while capped); 399/401 -> writes_again_heat_curve_write=1; 504 -> writes_again_heat_curve_entity_persistent=1; 551 -> writes_again_heat_curve_not_held_persistent=1 (null 0); inputs.py:1070 future stamp -> released by the clock (future_stamp_released_by_clock=1; an input gate, no write of its own); off_restore.py:190 -> latch entered, writes_again_off_restore_baseline=2; off_restore.py:220 -> D16-s3-04 (writes_again_off_restore_failed_while_off=0); 253/256 -> D16-s3-04's neutral path (writes_again_off_restore_neutral_failed_while_off=0); pump_arbiter.py:630/642 space_target_flow_declared -> latch entered, 0 writes held, 1 write once the entity's declared minimum admits the room target: a guard on a misdeclared unit, released only by the entity's range or the unit option."
+        },
+        {
+          "step": "D16.M6",
+          "enumerator": "python3 dev/audit/rounds/round11/D16/s3/enum_m6.py",
+          "universe": 32,
+          "examined": 32,
+          "not_reached": [],
+          "redispatched": [],
+          "evidence": "All 32 site x trigger cells examined by m6_restore.py on coord_all_features plus every actuator slot (Tuya and Modbus selects, tank and flow set-points, power switch, frequency number, valve target, hot-water circulation pump, heat-curve offset entity, both ECL110 MQTT topics, disinfection switch): coordinator.py:10870 (frequency) x off/unload/remove/duty-mode-change -> unrestored 1 in each (D16-s3-02); coordinator.py:3432 (disinfection switch) -> switch.dis returned to off in off/unload/remove/duty-change *_disinfecting arms (0 each); coordinator.py:4560 (circulation pump) -> unrestored 1 in each (D16-s3-02); heat_curve.py:234 and 252 (MQTT set and legacy topics) -> restored once on off/unload/remove (0), re-published by the observe-mode reload on duty-change (1, lead to D16-s1); inputs.py:722 (set-points) -> space set-point restored once in every arm (0), heat-curve offset restored on off/unload/remove (0), tank set-point unrestored at off on Modbus (D16-s3-01) and at every trigger while disinfection is held (D16-s3-03), valve unrestored (D16-s3-02); pump_arbiter.py:1610 (mode) -> unrestored at off (D16-s3-01), restored by release() on unload/remove/duty-change (0); pump_arbiter.py:1967 (power switch) -> unrestored 1 in each (D16-s3-02). restored_more_than_once_*=0 in every arm. Null arm (plan two hours ahead, commands equal to baselines): null_unrestored_*=0 in all nine arms."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D16.M6",
+          "what": "pump_arbiter.py:1610's silent-switch and night-mode slots (written only with a capacity-limited switch and silent rows, or a Modbus night-mode package) were not driven; the site's four cells were examined through its mode and tank slots. The module docstring says the silent switch is not restored on Off; a next round drives heat_pump_capacity_limited_entity with silent rows through the four triggers. coordinator._async_set_pump's space circulation pump (_space_pump_to_drive) was not configured; its hot-water twin was."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D16-s3-01",
+          "scope": "D16-s3",
+          "step": "D16.M6",
+          "title": "Entering Off leaves the arbiter's mode and tank set-point at the optimizer's last write",
+          "severity": "high",
+          "claim": "After the optimizer is set to Off, the pump-mode select stays on the last step's duty (Tuya: 'DHW (Hot Water)') and a Modbus pump's tank set-point stays on the space-step gate (40 against the configured 50), through three later cycles, where the brief's off row owes each written entity its baseline once (both circuits allowed, the configured tank set-point).",
+          "mechanism": "pump_arbiter._arbitrate's MODE_OFF branch only _forget()s the record; the baseline row (desired(coord, inp, None, now)) is written by pump_arbiter.release on unload alone, and off_restore.async_mode_change restores only registered consumers (the space set-point, the heat curve, MQTT). The module docstring states 'The mode, the hot-water set-point and the silent switch are not restored' and tests/features.py pins 'switching the optimizer off writes the space set-point's baseline back, once, and nothing else', so the fix changes a pinned rule against the D16 owner ruling of 2026-11-15.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "harness_path": "dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "value": 1,
+            "unit": "entity (RESULT unrestored_off__select.pump_mode; unrestored_off_modbus__number.dhw_set is 1 too)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (shared, up to three compute seats)",
+            "cpu_or_wall": "count",
+            "contention_note": "two other compute seats may share B11; the number is a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.87,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "pump_arbiter:_arbitrate (via coordinator:HeatPumpOptimizerCoordinator.async_set_mode and off_restore:async_mode_change)",
+          "perturbation": {
+            "change": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py --perturb arbiter: off_restore.async_mode_change, on the change into Off, also writes release()'s baseline row (desired(...None...) with space_setpoint=None) through pump_arbiter._command",
+            "expected_direction": "to_zero",
+            "observed_value": "unrestored_off__select.pump_mode=0, unrestored_off_modbus__number.dhw_set=0"
+          },
+          "metric_definition": "Per arm and entity: 1 when the entity's state, after Off and three cycles, differs from its pre-write baseline (mode Heating + DHW, tank 50); key = state the delivered service calls left.",
+          "phenomenon_property": "Every arbiter slot written under Control (mode, tank set-point, and the silent and night-mode slots) is returned to its baseline once on the change into Off, as unload's release() already does, not only the space set-point.",
+          "seam_rule": "python3 dev/audit/rounds/round11/D16/s3/enum_m6.py | grep 'pump_arbiter.py:1610 _write' | grep '| off$'",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "value": "null_unrestored_off=0, null_unrestored_off_modbus=0",
+            "note": "the same plant and trigger with a plan starting two hours ahead: the arbiter served its baseline row, so nothing is owed and nothing is counted"
+          },
+          "reproduction_steps": [
+            "run the command; read RESULT unrestored_off__select.pump_mode and unrestored_off_modbus__number.dhw_set",
+            "re-run with --perturb arbiter: both read 0"
+          ],
+          "proposed_fix_scope": "pump_arbiter: on the transition into MODE_OFF under Control, write the baseline row's mode and tank set-point (the unload release's row, space excluded) once before forgetting the record; re-pin the features.py check that asserts Off writes nothing else.",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/off_restore.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D16-s3-02",
+          "scope": "D16-s3",
+          "step": "D16.M6",
+          "title": "Supply switch, frequency, valve and circulation pump have no restore owner on off, unload or remove",
+          "severity": "high",
+          "claim": "Four written entities -- the heat-pump power switch (left off after an idle step), the compressor frequency number (45 against 70), the mixing-valve target (18 against 22) and the hot-water circulation pump (left off) -- stay at the optimizer's last value after Off, after unload and after the entry is removed, because none of their writers registers with off_restore.",
+          "mechanism": "off_restore restores only consumers registered at import (heat_curve, heat_curve_mqtt, pump_arbiter_space). pump_arbiter.switch_supply, coordinator._command_frequency, coordinator._command_valve_target and coordinator._async_set_pump only stop writing in MODE_OFF ('off writes nothing') and on unload; nothing writes their baseline back. After async_remove_entry no later setup can either, so a pump switched off on an idle step stays off.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "harness_path": "dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "value": 4,
+            "unit": "entities (RESULT unrestored_unload_unregistered; off 4, remove 4)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (shared, up to three compute seats)",
+            "cpu_or_wall": "count",
+            "contention_note": "two other compute seats may share B11; the number is a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.87,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "pump_arbiter:switch_supply, coordinator:HeatPumpOptimizerCoordinator._command_frequency/_command_valve_target/_async_set_pump, off_restore:async_restore (via heatpump_optimizer:async_unload_entry/async_remove_entry)",
+          "perturbation": {
+            "change": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py --perturb consumers: register off_restore consumers for the supply switch (neutral on), the frequency and the valve (pre-write reading) and the circulation pump (neutral on), armed before each write",
+            "expected_direction": "to_zero",
+            "observed_value": "unrestored_off_unregistered=0, unrestored_unload_unregistered=0, unrestored_remove_unregistered=0"
+          },
+          "metric_definition": "Per trigger: count of written entities outside the arbiter's slots whose final state differs from the pre-write state; key = state the delivered service calls left.",
+          "phenomenon_property": "Every entity any write site of enumerate.py d16-writes commands is returned to its baseline once on Off, unload and remove; a writer outside off_restore's consumers is the defect.",
+          "seam_rule": "python3 tools/audit/enumerate.py d16-writes | grep '^write' (each site whose entity no off_restore.register_consumer covers)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "value": "null_unrestored_off=0, null_unrestored_unload=0, null_unrestored_remove=0",
+            "note": "commands equal to each baseline: nothing to restore, nothing counted"
+          },
+          "reproduction_steps": [
+            "run the command; read RESULT unrestored_<trigger>_unregistered and the per-entity lines for switch.hp, number.freq, number.valve, switch.vvc",
+            "re-run with --perturb consumers: the unregistered counts read 0"
+          ],
+          "proposed_fix_scope": "Register the power switch, the frequency number, the valve write entity and the circulation pumps with off_restore (arm before each write), or give each writer an equivalent restore on Off, unload and remove.",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/off_restore.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D16-s3-03",
+          "scope": "D16-s3",
+          "step": "D16.M6",
+          "title": "Unload during a held disinfection run leaves the tank set-point at the disinfection target",
+          "severity": "high",
+          "claim": "When the entry unloads (or is removed) while the integration holds the pump's disinfection program on, the tank set-point stays at the cycle target 60 instead of the configured 50, because release() computes its baseline row while the disinfection hold is still live.",
+          "mechanism": "coordinator.async_shutdown calls LegionellaGuard.async_release_switch (DisinfectionSwitch.release_blind turns the switch off but leaves memo True) and then pump_arbiter.release, whose desired(coord, inp, None) reads inp.disinfecting (the memo) in _dhw_target and so writes, or finds already written, the cycle temperature. The same row reads the action's dhw_reason legionella, so a plan-booked cycle step unloaded has the same seam.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "harness_path": "dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "value": 1,
+            "unit": "entity (RESULT unrestored_unload_disinfecting__number.dhw_set: reads 60 against 50)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (shared, up to three compute seats)",
+            "cpu_or_wall": "count",
+            "contention_note": "two other compute seats may share B11; the number is a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.87,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "pump_arbiter:release (pump_arbiter:_dhw_target via desired) after legionella:LegionellaGuard.async_release_switch, from heatpump_optimizer:async_unload_entry",
+          "perturbation": {
+            "change": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py --perturb memo: LegionellaGuard.async_release_switch also sets disinfect.memo = None before pump_arbiter.release runs",
+            "expected_direction": "to_zero",
+            "observed_value": "unrestored_unload_disinfecting__number.dhw_set=0"
+          },
+          "metric_definition": "1 when the tank set-point after unload differs from the configured dhw_setpoint (50) in the arm where the disinfection program was held on; key = state the delivered calls left.",
+          "phenomenon_property": "The baseline row written when the optimizer lets go (unload, and Off once D16-s3-01 writes one) carries the configured tank set-point, never the live step's cycle target, whatever the disinfection hold or the action's dhw_reason says.",
+          "seam_rule": "grep -n 'disinfecting\\|REASON_LEGIONELLA' custom_components/heatpump_optimizer/pump_arbiter.py (each read reachable from release()/desired(..., None, ...))",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+            "value": "unrestored_unload__number.dhw_set=0 (same arm without the disinfection hold); null_unrestored_unload_disinfecting=0",
+            "note": "without the hold the release writes 50"
+          },
+          "reproduction_steps": [
+            "run the command; read RESULT unrestored_unload_disinfecting__number.dhw_set",
+            "re-run with --perturb memo: it reads 0"
+          ],
+          "proposed_fix_scope": "pump_arbiter.release (and the Off baseline write) builds the baseline row with the cycle flags cleared, or the unload clears the disinfection hold before the arbiter's release.",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/legionella.py",
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "N-order-coupling"
+        },
+        {
+          "id": "D16-s3-04",
+          "scope": "D16-s3",
+          "step": "D16.M5",
+          "title": "A space set-point restore that fails on entering Off is never retried while Off",
+          "severity": "medium",
+          "claim": "If an off_restore write fails at the change into Off (a device briefly unreachable), it is not sent again over six hours of arbiter ticks and cycles after the device answers: the space set-point keeps the optimizer's gate (25, not the captured 45) and the heat-curve offset keeps +3 K (not the neutral 0), until a person toggles the optimizer or the entry unloads.",
+          "mechanism": "off_restore.async_restore runs only from async_mode_change (the transition into MODE_OFF) and async_unload_entry; a failure is latched (off_restore_<key>) and left armed 'so the next off or unload tries again'. pump_arbiter._arbitrate returns at MODE_OFF without consulting the armed record, so no state reachable without a person leads to the write.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+            "harness_path": "dev/audit/rounds/round11/D16/s3/m5_holds.py",
+            "value": 0,
+            "unit": "writes (RESULT writes_again_off_restore_failed_while_off; space_setpoint_final_while_off=25; writes_again_off_restore_neutral_failed_while_off=0, heat_curve_offset_final_while_off=3)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (shared, up to three compute seats)",
+            "cpu_or_wall": "count",
+            "contention_note": "two other compute seats may share B11; the number is a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.96,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "off_restore:_restore_baseline and off_restore:async_restore (latch off_restore_<key>, lines 220/253/256) via coordinator:HeatPumpOptimizerCoordinator.async_set_mode, then pump_arbiter:apply/_arbitrate ticks",
+          "perturbation": {
+            "change": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py --perturb retry_off_restore: an Off pass of pump_arbiter._arbitrate calls off_restore.async_restore first",
+            "expected_direction": "up",
+            "observed_value": "writes_again_off_restore_failed_while_off=1 (final 45), writes_again_off_restore_neutral_failed_while_off=1 (final 0)"
+          },
+          "metric_definition": "Restore writes to the space set-point between the device recovering and six hours later, Off held, no person acting; key = entity_id of delivered service calls.",
+          "phenomenon_property": "An armed off_restore entry whose restore failed is retried automatically while the optimizer stays Off (and while unloaded nothing can, so the unload path is the remainder), until it lands once.",
+          "seam_rule": "grep -n 'async_restore\\|async_mode_change' custom_components/heatpump_optimizer/*.py (every caller; none runs per pass while Off)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+            "value": "null_space_final=45, null_restore_without_failure_later_writes=0",
+            "note": "without the failure the restore lands at Off and nothing more is written: the harness sees a restore when one happens"
+          },
+          "reproduction_steps": [
+            "run the command; read writes_again_off_restore_failed_while_off and space_setpoint_final_while_off",
+            "person_toggle_restores=1 shows the only release is a person's Auto->Off toggle",
+            "re-run with --perturb retry_off_restore"
+          ],
+          "proposed_fix_scope": "Retry an armed, failed off_restore entry from the arbiter's one-minute tick (or a timer off_restore owns) while MODE_OFF, bounded, until it lands.",
+          "files": [
+            "custom_components/heatpump_optimizer/off_restore.py",
+            "custom_components/heatpump_optimizer/pump_arbiter.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The space set-point (pump_arbiter_space consumer) is returned to its captured baseline once on off, unload, remove and the duty-mode reload, on Tuya and Modbus, with or without a disinfection hold",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+          "value": "unrestored_<arm>__number.water_set=0 in all nine arms; restored_more_than_once_*=0"
+        },
+        {
+          "claim": "The heat-curve offset entity and both ECL110 MQTT topics are returned to the neutral 0 once on off, unload and remove",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+          "value": "unrestored_{off,unload,remove}__number.offset=0, __mqtt:ecl110/displace/set=0, __mqtt:ecl110/command=0"
+        },
+        {
+          "claim": "The disinfection switch the integration turned on is turned off on off (the next cycle's follower), unload and remove (release_blind)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+          "value": "unrestored_{off,unload,remove,duty_change}_disinfecting__switch.dis=0"
+        },
+        {
+          "claim": "Unload, remove and the duty-mode reload write the arbiter's baseline row (Heating + DHW, configured tank) through pump_arbiter.release",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+          "value": "unrestored_{unload,remove,duty_change}__select.pump_mode=0, unrestored_unload__number.dhw_set=0"
+        },
+        {
+          "claim": "Every log_held hold in heat_curve.py releases without a person: an entity back, a write that lands, the plan's next target, the 24 h window",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+          "value": "writes_again_heat_curve_{entity,write,not_held,write_cap,entity_persistent,not_held_persistent}=1 each; null same-target 0, while capped 0"
+        },
+        {
+          "claim": "The process-worker and off-loop timeouts release on the next job: a fresh worker carries it",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+          "value": "writes_again_process_worker_timeout_plans=1, writes_again_off_loop_timeout_jobs=1"
+        },
+        {
+          "claim": "The price, weather, solar and solve-failure latches gate no actuator write: held on, a fresh-plan cycle still writes",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+          "value": "gates_no_write_latches_held=5, gates_no_write_cycle_writes=9"
+        },
+        {
+          "claim": "An unreadable space baseline refuses the write only until the controller reports again (off_restore.py:190)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+          "value": "off_restore_baseline_latch_entered=1, refused 0 calls, writes_again_off_restore_baseline=2"
+        },
+        {
+          "claim": "A failed valve write is retried on the next cycle (coordinator.py:7763); the flow-kind-without-two-zones state (7747) is refused by both option flows, so it is reachable only by a hand-edited store",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+          "value": "writes_again_valve_write=1; valve_flow_needs_two_zone_writes=0"
+        },
+        {
+          "claim": "An input stamped ahead of the clock reads stale only until the clock passes the stamp (inputs.py:1070)",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+          "value": "future_stamp_released_by_clock=1"
+        },
+        {
+          "claim": "The misdeclared-indoor guard (pump_arbiter.py:630/642) refuses the write and writes once the entity's declared range admits the room target; its release is the entity's range or the unit option, by design a correction of configuration",
+          "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m5_holds.py",
+          "value": "space_target_flow_declared_latch_entered=1, held 0, writes_after_entity_range_fixed=1"
+        },
+        {
+          "claim": "enumerate.py d16-writes misses no writer: no hass.states.async_set, mqtt.async_publish or other .async_call receiver writes an actuator",
+          "command": "grep -n 'async_publish(\\|states.async_set\\|\\.async_call(' custom_components/heatpump_optimizer/*.py | grep -v services.async_call",
+          "value": "0 lines"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D16/s3/m6_restore.py",
+        "dev/audit/rounds/round11/D16/s3/m5_holds.py",
+        "dev/audit/rounds/round11/D16/s3/enum_m6.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D16-s1",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._apply_action/_write_supply, _command_frequency, _command_valve_target, _async_drive_pumps, async_publish_current_action (heat_curve.publish)",
+          "what": "Under pump_duty_mode observe (and off) these writers are not gated by the duty mode: in m6_restore.py's duty_change arm the reloaded observe-mode coordinator writes the power switch, the frequency, the valve, the circulation pump, the heat-curve entity and both MQTT topics again (writes after trigger 1-2 each), against the observe/off row 'no write'. Whether those writers belong to the duty mode at all is M2's to grade."
+        },
+        {
+          "owner_seat": "D1-s3",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "_await_optimize (WORKER_FALLBACK_CAP, _bump_worker_fallback)",
+          "what": "After WORKER_FALLBACK_CAP=3 consecutive ProcessWorkerUnavailable the in-process solve is never tried again until the process route carries a job; a deterministic fault (a job that cannot be pickled, a child that cannot load it) leaves the plan stale and every actuator write stopped with no automatic release; a restart buys three solves. Not measured here: the guard is D1.M5's."
+        },
+        {
+          "owner_seat": "D16-s1",
+          "file": "tools/audit/enumerate.py",
+          "symbol": "d16 (hold lines)",
+          "what": "The hold universe is log_held calls only; write-gating latches without log_held are not lines: coordinator._freq_fallback (person-only re-arm, by its docstring), pump_arbiter ArbiterState.retry/misses, supply_hold.hold_supply, early_cutoff's hold, DisinfectionSwitch.memo. M5 ranged over the enumerator's 30; those latches were not tabled."
+        },
+        {
+          "owner_seat": "D16-s2",
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_dhw_target via desired(..., None, ...)",
+          "what": "The baseline row's tank target reads the live action's dhw_reason legionella and the disinfection memo (D16-s3-03); any other caller of desired(None) (a stale plan, the lease end) carries the cycle target the same way: worth a timing/value check on the baseline row during a cycle step."
+        }
+      ]
+    },
+    "D5-s4": {
+      "dimension": "D5",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D5/s4/REPORT.md",
+      "exposure": "Read COMMON.md, D5.md, D5-criteria.md, D6.md (step 3), dev/audit/README.md, finding.schema.json, scopes.json, objective.json. Comment units in the cells cite earlier finding ids (D2-01, D2-07, D7-01, D4-01, D4-s1-03, R9-*, R10-*, P9-rca*) and dev/programme/register/audit-2026-09.md surfaced in one grep output (two rows, D2-01 and D5-01/D5-03 titles); none was used as a to-do. git tag archive/handoff/audit-r9-alt was listed only to resolve a path a card comment cites. No docs/ prose was read beyond grep hits.",
+      "coverage": [
+        {
+          "step": "D5.M1",
+          "enumerator": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py outline --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$2==\"document\"'",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "not_reached"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "outline prints no document row for any of the 51 cell files (.py/.js), so 3 reader paths x 0 documents = 0. C4 examined: the code/JS cells hold no reader path by the enumerator. C2 (two-tank, ECL110, capacity-tariff paths through docs/) is outside D5-s4's cells (README.md/docs/** M1 is D5-s1's); handed on as a lead, not measured here."
+        },
+        {
+          "step": "D5.M2",
+          "enumerator": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py outline --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$2==\"heading\"||$2==\"link\"'",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "0 heading and 0 link rows over the cells. C5 examined: structure over code/JS cells is empty by the enumerator; the comment units cite 0 URLs (grep of the cells' comments) and every path they cite resolves (comments.py C2, triaged)."
+        },
+        {
+          "step": "D5.M3",
+          "enumerator": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py units --dim D6 --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | grep -E '^[^#\\t]*\\.(md|mdc|html?)#'",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C6",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "The step ranges over D6 units of the documents outline prints; the cells hold none, so the denominator is 0 (C1: the step now has a stated denominator). C3 (how-it-works.md, configuration.md mechanism paragraphs) is outside the cells (D5-s2's docs M3); lead. C6: every docstring is rowed under M4 with the mechanical checks, but a mechanism paragraph was traced to its code path by an executed check only in 13 docstrings (semantic.py); the rest stays not_reached."
+        },
+        {
+          "step": "D5.M4",
+          "enumerator": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "universe": 3367,
+          "examined": 3367,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C7",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s4/ledger.tsv --plant --seat D5-s4 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692: units=3367 rows=3367 claims=3200 true=33 false=2 stale=0 unverifiable=3165 unrowed=0 orphan=0 malformed=0 plant_refused=1. Every unit ran comments.py (C2 names vs code tokens, C5 length, C7 cited number vs adjacent constant, C4/C3 heuristics): 18 raw C2 flags -> 2 false after triage; 42 raw C7 flags, 21 driven by py_numbers.py (11 checks) and card_numbers.mjs (10 checks), 0 failed; 558 C5 units (D5-s4-01). C7 answered: the number check is automated and www/*.js comments are scanned for symbols. The README/docs half of C7 is D5-s2's cell."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D5.M4",
+          "what": "Behavioural truth (C1) was driven by an executed check for 35 of 3200 claim units (semantic.py 16 checks, py_numbers.py 11, card_numbers.mjs 10); 3165 rows are 'unverifiable: mechanical checks only'. Remaining by file: the card (892 units), optimizer.py (424), thermal_model.py (366), sensor.py (223), pump_arbiter.py (159), sysid.py (143) and every other cell file's docstrings and comments."
+        },
+        {
+          "step": "D5.M4",
+          "what": "C4 (history over half) and C3 (restatement) ran as pattern heuristics only: 43 C4 flags and 8 C3 flags were read and judged to carry a reason or to be section banners; no executed criterion check exists for either."
+        },
+        {
+          "step": "D5.M3",
+          "what": "C6: docstring mechanism paragraphs traced to code paths only in log_latch, plan_step, silent_mode, pump_schedule and plan_slots."
+        },
+        {
+          "step": "D5.M1",
+          "what": "C2 (feature reader paths in docs/) and C3 (docs mechanism paragraphs) are outside D5-s4's cells; routed as leads to D5-s1 and D5-s2."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D5-s4-01",
+          "scope": "D5-s4",
+          "step": "D5.M4",
+          "title": "558 comment units in the s4 cells carry a sentence over 40 words (C5)",
+          "severity": "low",
+          "claim": "Of the 3367 D5 comment units in custom_components/heatpump_optimizer/{j..z}*.py and www/*.js, 558 (16.6 %, in 45 of 51 files) hold at least one sentence over 40 words, 716 such sentences in all, the longest 156 words.",
+          "mechanism": "Comments and docstrings grow by appended clauses (dashes, semicolons, parentheticals) rather than new sentences; nothing in the gate measures sentence length, so criterion C5 has no detector.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s4/comments.py",
+            "value": 558,
+            "unit": "units with a >40-word sentence",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (4 vCPU container)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out; a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 2.57,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the production comment text of custom_components/heatpump_optimizer (e.g. pump_mode.py module docstring)",
+          "perturbation": {
+            "change": "one-line production edit: pump_mode.py line 6 'the mode \u2014 reads its answer from here, so there is' -> 'the mode. All read their answer from here, so there is' (comments.py --file custom_components/heatpump_optimizer/pump_mode.py --edit 'custom_components/heatpump_optimizer/pump_mode.py|the mode \u2014 reads its answer from here, so there is|the mode. All read their answer from here, so there is')",
+            "expected_direction": "down",
+            "observed_value": "pump_mode.py long_units 3 -> 2"
+          },
+          "metric_definition": "Count of D5 units (text_ledger units --dim D5, seat D5-s4) with a text_ledger.sentences() sentence of more than 40 whitespace words, comment markers stripped.",
+          "phenomenon_property": "Every comment and docstring sentence in the seat's cells is at most 40 words (D5-criteria C5).",
+          "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --tsv OUT  (column 'long' non-empty)",
+          "leave_one_out": {
+            "cells": 51,
+            "min": 0.0,
+            "max": 0.417,
+            "drop_most_favourable": 403
+          },
+          "reproduction_steps": [
+            "cd export root",
+            "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py | grep long_units"
+          ],
+          "proposed_fix_scope": "Split the 716 sentences (253 docstring units, 305 comment units; the card holds 155 units); optionally add the 40-word check to a lint lane so C5 stays measured.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+            "custom_components/heatpump_optimizer/optimizer.py",
+            "custom_components/heatpump_optimizer/thermal_model.py",
+            "custom_components/heatpump_optimizer/sysid.py",
+            "custom_components/heatpump_optimizer/sensor.py",
+            "custom_components/heatpump_optimizer/pump_arbiter.py"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new"
+        },
+        {
+          "id": "D5-s4-02",
+          "scope": "D5-s4",
+          "step": "D5.M4",
+          "title": "sysid.py comments name code variables that exist nowhere (prior_w, data_w, T_prev)",
+          "severity": "low",
+          "claim": "Two comment units in sysid.py cite names no tracked code defines: '``T_prev`` sits on BOTH sides of the regression' (line 1983) and 'prior_rel = prior_w / data_w' (line 2071), while the code beneath computes prior_rel = s_noise / prior_sd and reads the previous sample as usable[i - 1].room_temp.",
+          "mechanism": "The comments describe the estimator in notation from an earlier formulation; the variables were renamed or never existed, and the formula line reads as code next to a real assignment to prior_rel.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s4/comments.py",
+            "value": 2,
+            "unit": "units with an unresolvable cited name",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (4 vCPU container)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out; a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 2.57,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify (comment units at lines 1983 and 2071, against every tracked file's code tokens)",
+          "perturbation": {
+            "change": "one-line production edit: sysid.py line 2073 'through prior_rel = prior_w / data_w.' -> 'through prior_rel = s_noise / prior_sd.' (comments.py --file custom_components/heatpump_optimizer/sysid.py --edit 'custom_components/heatpump_optimizer/sysid.py|through prior_rel = prior_w / data_w.|through prior_rel = s_noise / prior_sd.')",
+            "expected_direction": "down",
+            "observed_value": "unresolved_units 2 -> 1, unresolved_tokens 3 -> 1"
+          },
+          "metric_definition": "Comment units in sysid.py citing a name (backticked, snake_case, name(), dotted) found in no code token of any tracked file, after hand triage of notation.",
+          "phenomenon_property": "Every identifier a comment in sysid.py names exists in the code at the ref (D5-criteria C2).",
+          "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py --tsv OUT  (column 'unresolved')",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py --tsv /dev/stdout | awk -F'\\t' '$4!=\"\"'"
+          ],
+          "proposed_fix_scope": "Rewrite the two comments in sysid.py against the names the code uses (s_noise, prior_sd, usable[i - 1].room_temp).",
+          "files": [
+            "custom_components/heatpump_optimizer/sysid.py"
+          ],
+          "stop_rule_class": "hygiene",
+          "class_guess": "new"
+        },
+        {
+          "id": "D5-s4-03",
+          "scope": "D5-s4",
+          "step": "D5.M4",
+          "title": "text_ledger.py reports wrong line numbers for 737 of 892 card comment units",
+          "severity": "low",
+          "claim": "tools/audit/text_ledger.py:scan_c_like drops one line from its counter each time a JavaScript quote is cut off at a newline, so 737 of the card's 892 D5 units carry a line up to 11 lines away from where the unit sits.",
+          "mechanism": "In the string branch, an unterminated ' or \" (an apostrophe inside a regex literal or a comment-adjacent token) breaks at the newline and sets i = j + 1, consuming the newline without line += 1; the drift accumulates down the file. Unit ids hash the text and are unaffected, but every ledger 'line' column and any harness locating code beside a unit by that line reads the wrong place (this seat's own adjacent-constant check did until it relocated units).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+            "value": 737,
+            "unit": "units whose reported line is not their file line",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 (4 vCPU container)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during the fan-out; a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 2.57,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/text_ledger.py:scan_c_like",
+          "perturbation": {
+            "change": "one-line instrument edit, applied in memory by ledger_lines.py --patched: in scan_c_like's string loop, 'break' -> 'line += 1; break' for an unterminated non-template quote",
+            "expected_direction": "down",
+            "observed_value": "misplaced_units 737 -> 1, max_offset 11 -> 1 (the residual 1 is a locator tie)"
+          },
+          "metric_definition": "Card D5 units whose text_ledger line differs from the file line where the unit's first text line is found, searching forward from the previous unit.",
+          "phenomenon_property": "text_ledger.py's line column is the file line of the unit it names, for every C-like file it scans.",
+          "seam_rule": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py --patched",
+            "value": 1,
+            "note": "the same locator with the one-line fix; Python units (tokenize) are not affected"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+            "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/ledger_lines.py --patched"
+          ],
+          "proposed_fix_scope": "tools/audit/text_ledger.py:scan_c_like count the newline an unterminated quote stops at (and an escaped newline); add a self-test arm with an apostrophe in a regex literal. The file sits in D5-s6's cells; the defect was met measuring D5-s4's card.",
+          "files": [
+            "tools/audit/text_ledger.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Numbers Python comments in the cells cite agree with the constants they sit on (_DAY_BITS, _MAX_PLAUSIBLE_GHI, _COMFORT_PULL_*, FEEDBACK_STOP_MARGIN_K, ECHO_GRACE_S, QUICK_SETUP_BUFFER_VOLUME, SLAB_SEED_MAX_ABOVE_ROOM_K, ABSURD, _PROFILE_CHI2_95, _Z_975, window_minutes)",
+          "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/py_numbers.py",
+          "value": "checks=11 failed=0; --perturb failed=1"
+        },
+        {
+          "claim": "Numbers card comments cite agree with the card's constants and its setupTextW (CARD_CHROME_PX, the 164-in-152 chip label, badge, compact font cap, 900x380, 48 h/12 h, plan staleness 3/90, SV_MAG_ALPHA window, radius-m)",
+          "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D5/s4/card_numbers.mjs",
+          "value": "checks=10 failed=0; --perturb failed=1"
+        },
+        {
+          "claim": "Behaviour claimed by docstrings of log_latch, plan_step, silent_mode, pump_schedule and plan_slots holds when driven",
+          "command": "PYTHONPATH=tests/hastub /root/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s4/semantic.py",
+          "value": "checks=16 failed=0; --perturb failed=1"
+        },
+        {
+          "claim": "The card's mirror of the plan-staleness rule matches coordinator.py (PLAN_STALE_INTERVALS=3, floor 90 min)",
+          "command": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D5/s4/card_numbers.mjs",
+          "value": "3/90 both sides"
+        },
+        {
+          "claim": "Paths and names the card's comments cite resolve (dev/archive/plans/plan-card-decomposition.md in tree; DESIGN.md and ux/DESIGN-UX.md on tag archive/handoff/audit-r9-alt as the comment says; getComputedTextLength is a DOM API)",
+          "command": "git -C /home/user/heatpump_optimizer ls-tree -r --name-only archive/handoff/audit-r9-alt | grep DESIGN",
+          "value": "2 paths found"
+        },
+        {
+          "claim": "Comment units in the cells cite no external URL, so no external link check is owed",
+          "command": "grep -ohE \"(#|//|\\*).*https?://\" custom_components/heatpump_optimizer/[j-z]*.py custom_components/heatpump_optimizer/www/*.js | wc -l",
+          "value": "0"
+        },
+        {
+          "claim": "Sensor rename comments (hot_water_energy/hot_water_cost/mixed_hot_water moved in #174) are consistent with entity._pin_identity: unique id keys on the key argument, translation key sets the suggested object id",
+          "command": "grep -n '_attr_unique_id' custom_components/heatpump_optimizer/entity.py",
+          "value": "unique_id = f\"{entry_id}_{key}\""
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D5/s4/comments.py",
+        "dev/audit/rounds/round11/D5/s4/ledger_lines.py",
+        "dev/audit/rounds/round11/D5/s4/py_numbers.py",
+        "dev/audit/rounds/round11/D5/s4/card_numbers.mjs",
+        "dev/audit/rounds/round11/D5/s4/semantic.py",
+        "dev/audit/rounds/round11/D5/s4/build_ledger.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/plan_slots.py",
+          "symbol": "plan_slots.plan_slots (slot['reason'] = max(set(codes), key=codes.count))",
+          "what": "On a tie between reason codes the published slot 'reason' follows set iteration order, which depends on PYTHONHASHSEED: the same 4-step plan ['cheap','cheap','preheat','preheat'] published 'cheap' under seeds 1,2,6 and 'preheat' under 3,4,5, so the attribute can change across Home Assistant restarts for an identical plan (executed with PYTHONHASHSEED=1..6)."
+        },
+        {
+          "owner_seat": "D5-s1",
+          "file": "docs/*.md",
+          "symbol": "reader paths: two-tank storage, ECL110, capacity tariff",
+          "what": "Round-10 carry C2 (paragraph-by-paragraph walk of the feature reader paths for dead ends and forward references) was handed to D5-s4 but lies in README.md/docs/** M1, D5-s1's cell; not measured here."
+        },
+        {
+          "owner_seat": "D5-s2",
+          "file": "docs/how-it-works.md, docs/configuration.md, README.md",
+          "symbol": "mechanism paragraphs (M3); README/docs M4 cell",
+          "what": "Round-10 carries C3 (trace each mechanism paragraph to its code path) and the README/docs half of C7 were handed to D5-s4 but lie in D5-s2's cells; not measured here."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/*",
+          "symbol": "3165 comment claim units",
+          "what": "For D6 (code comments, owner's item 3): the M4 ledger rows these units 'unverifiable: behaviour not driven'; the ledger at dev/audit/rounds/round11/D5/s4/ledger.tsv lists them by id."
+        }
+      ]
+    },
+    "D5-s5": {
+      "dimension": "D5",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D5/s5/REPORT.json (REPORT.md not written: this harness refuses report .md files from a subagent; its content is in the returned report)",
+      "exposure": "Read COMMON.md, D5.md, D6.md step 3, D5-criteria.md, dev/audit/README.md, tests/layout.json and the 74 cell files, whose comments cite earlier finding/RCA ids (R9-*, R10-*, #NNNN) as context; git log subject lines of two commits touching HEARTBEAT_SECONDS. No docs/ page, GitHub or earlier report read.",
+      "coverage": [
+        {
+          "step": "D5.M1",
+          "enumerator": "python3 dev/audit/rounds/round11/D5/s5/step_universe.py M1",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "not_reached"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "text_ledger.py outline over the 74 cells prints no document row (Python and shell only), so reader paths x documents is empty. C4 (reader paths over code cells): examined, universe 0 here. C2 (feature reader paths in docs): outside these cells, D5-s1 holds README.md and docs/** for M1; lead filed."
+        },
+        {
+          "step": "D5.M2",
+          "enumerator": "python3 dev/audit/rounds/round11/D5/s5/step_universe.py M2",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "outline prints no heading or link row for these cells. C5 (structure over code cells): examined, universe 0 here."
+        },
+        {
+          "step": "D5.M3",
+          "enumerator": "python3 dev/audit/rounds/round11/D5/s5/step_universe.py M3",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C6",
+              "state": "examined"
+            }
+          ],
+          "evidence": "M3's universe is the D6 units of the outline's documents; there are none in these cells, so the denominator is 0 (C1: stated, examined). C3 (how-it-works.md, configuration.md mechanism paragraphs): outside these cells, D5-s2's; lead filed. C6 (docstring mechanism paragraphs): all 733 docstrings of these cells are rowed in M4's ledger with every executable token checked; their untokenised prose is in M4's not_reached."
+        },
+        {
+          "step": "D5.M4",
+          "enumerator": "python3 dev/audit/rounds/round11/D5/s5/step_universe.py M4",
+          "universe": 3631,
+          "examined": 1385,
+          "not_reached": [
+            "tools/audit/seat/a1_dispatch_arms.sh (3 of 5 units: C1 prose truth not executed)",
+            "tools/audit/seat/autofix_statuses.sh (1 of 3 units: C1 prose truth not executed)",
+            "tools/audit/seat/bare_array.py (14 of 18 units: C1 prose truth not executed)",
+            "tools/audit/seat/beat_jobs.py (45 of 55 units: C1 prose truth not executed)",
+            "tools/audit/seat/beat_jobs_selftest.py (23 of 45 units: C1 prose truth not executed)",
+            "tools/audit/seat/beatd.py (46 of 59 units: C1 prose truth not executed)",
+            "tools/audit/seat/body_patch.sh (30 of 59 units: C1 prose truth not executed)",
+            "tools/audit/seat/body_push.sh (21 of 36 units: C1 prose truth not executed)",
+            "tools/audit/seat/bottleneck_check.py (12 of 20 units: C1 prose truth not executed)",
+            "tools/audit/seat/bus.sh (166 of 241 units: C1 prose truth not executed)",
+            "tools/audit/seat/carry_fold.py (3 of 7 units: C1 prose truth not executed)",
+            "tools/audit/seat/ci-watch.sh (17 of 28 units: C1 prose truth not executed)",
+            "tools/audit/seat/ci_critpath.py (6 of 8 units: C1 prose truth not executed)",
+            "tools/audit/seat/ci_pause.py (10 of 20 units: C1 prose truth not executed)",
+            "tools/audit/seat/ci_predict_replay.sh (2 of 3 units: C1 prose truth not executed)",
+            "tools/audit/seat/ci_priority.py (9 of 15 units: C1 prose truth not executed)",
+            "tools/audit/seat/ci_probe.py (13 of 19 units: C1 prose truth not executed)",
+            "tools/audit/seat/closeout.py (27 of 36 units: C1 prose truth not executed)",
+            "tools/audit/seat/cloud-setup.sh (15 of 21 units: C1 prose truth not executed)",
+            "tools/audit/seat/cloud_dispatch.py (61 of 94 units: C1 prose truth not executed)",
+            "tools/audit/seat/cloud_relay.sh (179 of 241 units: C1 prose truth not executed)",
+            "tools/audit/seat/codeql-triage-poll.sh (2 of 2 units: C1 prose truth not executed)",
+            "tools/audit/seat/daemonize.py (8 of 13 units: C1 prose truth not executed)",
+            "tools/audit/seat/delivery_row.sh (8 of 11 units: C1 prose truth not executed)",
+            "tools/audit/seat/failure_logs.sh (6 of 10 units: C1 prose truth not executed)",
+            "tools/audit/seat/features_block.py (1 of 5 units: C1 prose truth not executed)",
+            "tools/audit/seat/finder_overlap.py (6 of 7 units: C1 prose truth not executed)",
+            "tools/audit/seat/flow_metrics.py (3 of 7 units: C1 prose truth not executed)",
+            "tools/audit/seat/gantt_drift.py (5 of 10 units: C1 prose truth not executed)",
+            "tools/audit/seat/gh_calls.py (31 of 43 units: C1 prose truth not executed)",
+            "tools/audit/seat/gh_read.py (24 of 39 units: C1 prose truth not executed)",
+            "tools/audit/seat/gh_read_run.py (2 of 4 units: C1 prose truth not executed)",
+            "tools/audit/seat/handoff_push.sh (16 of 23 units: C1 prose truth not executed)",
+            "tools/audit/seat/handover_prompt.py (9 of 13 units: C1 prose truth not executed)",
+            "tools/audit/seat/heartbeat.sh (1 of 4 units: C1 prose truth not executed)",
+            "tools/audit/seat/hooks/liveness.py (7 of 9 units: C1 prose truth not executed)",
+            "tools/audit/seat/hooks_setup.py (18 of 33 units: C1 prose truth not executed)",
+            "tools/audit/seat/ledger.py (40 of 62 units: C1 prose truth not executed)",
+            "tools/audit/seat/loop_ledger.py (10 of 16 units: C1 prose truth not executed)",
+            "tools/audit/seat/merge_pr.sh (32 of 54 units: C1 prose truth not executed)",
+            "tools/audit/seat/merge_train.py (382 of 689 units: C1 prose truth not executed)",
+            "tools/audit/seat/moved_paths.py (3 of 5 units: C1 prose truth not executed)",
+            "tools/audit/seat/mutant_run.py (30 of 57 units: C1 prose truth not executed)",
+            "tools/audit/seat/offline_spy.py (5 of 9 units: C1 prose truth not executed)",
+            "tools/audit/seat/open_driver.py (18 of 21 units: C1 prose truth not executed)",
+            "tools/audit/seat/open_driver_selftest.py (22 of 27 units: C1 prose truth not executed)",
+            "tools/audit/seat/open_pr.sh (19 of 42 units: C1 prose truth not executed)",
+            "tools/audit/seat/orchestrator_tick.py (186 of 277 units: C1 prose truth not executed)",
+            "tools/audit/seat/outside_intake.py (7 of 14 units: C1 prose truth not executed)",
+            "tools/audit/seat/outside_intake_selftest.py (7 of 11 units: C1 prose truth not executed)",
+            "tools/audit/seat/owed_unactioned.py (22 of 24 units: C1 prose truth not executed)",
+            "tools/audit/seat/owed_watch.py (18 of 36 units: C1 prose truth not executed)",
+            "tools/pr/app_approve.sh (89 of 114 units: C1 prose truth not executed)",
+            "tools/pr/app_comment.sh (6 of 10 units: C1 prose truth not executed)",
+            "tools/pr/app_mint.sh (3 of 4 units: C1 prose truth not executed)",
+            "tools/pr/app_push.sh (55 of 75 units: C1 prose truth not executed)",
+            "tools/pr/approve_held_runs.sh (19 of 23 units: C1 prose truth not executed)",
+            "tools/pr/cancel_superseded.py (27 of 40 units: C1 prose truth not executed)",
+            "tools/pr/ci_predict.py (52 of 113 units: C1 prose truth not executed)",
+            "tools/pr/codeql_scope.py (16 of 26 units: C1 prose truth not executed)",
+            "tools/pr/dependabot_merge.py (1 of 2 units: C1 prose truth not executed)",
+            "tools/pr/depgraph.py (5 of 6 units: C1 prose truth not executed)",
+            "tools/pr/figure_block.py (5 of 8 units: C1 prose truth not executed)",
+            "tools/pr/gate_priority.py (10 of 18 units: C1 prose truth not executed)",
+            "tools/pr/gh_comment.py (29 of 36 units: C1 prose truth not executed)",
+            "tools/pr/head_note.py (1 of 2 units: C1 prose truth not executed)",
+            "tools/pr/local_alerts.py (2 of 4 units: C1 prose truth not executed)",
+            "tools/pr/merge_main_bot.py (18 of 32 units: C1 prose truth not executed)",
+            "tools/pr/outside.py (25 of 53 units: C1 prose truth not executed)",
+            "tools/pr/preflight.sh (6 of 12 units: C1 prose truth not executed)",
+            "tools/pr/prepr.sh (203 of 390 units: C1 prose truth not executed)",
+            "tools/pr/push.sh (23 of 51 units: C1 prose truth not executed)"
+          ],
+          "redispatched": [
+            {
+              "item": "C7",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py: units_total=3631, units_examined=1385 (1032 claim rows true, 8 false/stale, 345 no-claim), check_unrowed=0 orphan=0 malformed=0 plant_refused=1; ledger.tsv. C7: the cited-number-vs-adjacent-constant check is automated in m4_ledger.py for these cells (18 hits, reviewed); its www/*.js and README/docs halves are D5-s4's and D5-s2's (leads)."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D5.M4",
+          "what": "2246 units with no path, identifier, flag or adjacent constant to execute against: their C1 prose truth and C3/C4 judgement not reached (by file in not_reached; largest merge_train.py, prepr.sh, orchestrator_tick.py, cloud_relay.sh, bus.sh)."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D5-s5-01",
+          "scope": "D5-s5",
+          "step": "D5.M4",
+          "title": "prepr.sh: three comment units name a path or branch the tree does not hold",
+          "severity": "low",
+          "claim": "Three D5 units of tools/pr/prepr.sh name things absent at the baseline: the usage line `tools/audit/prepr.sh --self-test` (the file is tools/pr/prepr.sh), `attr-only` as the self-test's null-control branch (the branch the code defines is `attronly`), and `tools/audit/briefs/fixer.md` step 7 (moved to dev/governance/roles/fixer.md).",
+          "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The RO moves and a branch rename left the comments on the old names; a reader following the usage line or the pointer reaches nothing.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/prepr.sh",
+            "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+            "value": 3,
+            "unit": "units",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+            "tolerance": "exact",
+            "load1": 2.55,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/pr/prepr.sh: the header usage block, the self-test's `pr attronly` branch (THE BLINDED PAIR comment) and step 7's intended-issues comment",
+          "perturbation": {
+            "change": "--edit 'tools/pr/prepr.sh|#   tools/audit/prepr.sh --self-test|#   tools/pr/prepr.sh --self-test' --edit 'tools/pr/prepr.sh|`attr-only` is their|`attronly` is their' --edit 'tools/pr/prepr.sh|`tools/audit/briefs/fixer.md` step 7|`dev/governance/roles/fixer.md` step 7' (the attr-only edit alone moves 3 to 2)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+          "phenomenon_property": "Every path, script and self-test branch a comment of tools/pr/prepr.sh names exists at the ref, or the comment marks it as history or a fallback.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/pr/prepr.sh"
+          ],
+          "proposed_fix_scope": "Edit three comment lines of tools/pr/prepr.sh: lines 25, 2604 and 4760.",
+          "reproduction_steps": [
+            "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/prepr.sh",
+            "read the `false` line(s) it prints",
+            "perturb: --edit 'tools/pr/prepr.sh|#   tools/audit/prepr.sh --self-test|#   tools/pr/prepr.sh --self-test' --edit 'tools/pr/prepr.sh|`attr-only` is their|`attronly` is their' --edit 'tools/pr/prepr.sh|`tools/audit/briefs/fixer.md` step 7|`dev/governance/roles/fixer.md` step 7' (the attr-only edit alone moves 3 to 2)"
+          ]
+        },
+        {
+          "id": "D5-s5-02",
+          "scope": "D5-s5",
+          "step": "D5.M4",
+          "title": "gh_comment.in_shared_root docstring points at tools/audit/prepr.sh, which is not in the tree",
+          "severity": "low",
+          "claim": "The docstring of tools/pr/gh_comment.py:in_shared_root says `tools/audit/prepr.sh`'s `shared_root` is the same predicate; at the baseline tools/audit/prepr.sh does not exist and shared_root() is defined in tools/pr/prepr.sh.",
+          "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). A move (tests/layout.json: tools/audit/prepr.sh -> tools/pr/prepr.sh) left the twin-predicate pointer on the old path.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/gh_comment.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+            "value": 1,
+            "unit": "units",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+            "tolerance": "exact",
+            "load1": 2.55,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/pr/gh_comment.py:in_shared_root.__doc__",
+          "perturbation": {
+            "change": "--edit 'tools/pr/gh_comment.py|`tools/audit/prepr.sh`|`tools/pr/prepr.sh`'",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+          "phenomenon_property": "A comment naming a twin predicate names the file and function that define it at the ref.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/pr/gh_comment.py"
+          ],
+          "proposed_fix_scope": "One docstring line of tools/pr/gh_comment.py (line 117).",
+          "reproduction_steps": [
+            "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/gh_comment.py",
+            "read the `false` line(s) it prints",
+            "perturb: --edit 'tools/pr/gh_comment.py|`tools/audit/prepr.sh`|`tools/pr/prepr.sh`'"
+          ]
+        },
+        {
+          "id": "D5-s5-03",
+          "scope": "D5-s5",
+          "step": "D5.M4",
+          "title": "preflight.sh step 5 names the moved tools/audit/briefs/fix-review.md as the precondition's second home",
+          "severity": "low",
+          "claim": "The step-5 comment block of tools/pr/preflight.sh (from line 141) says the review seat's precondition is carried in `tools/audit/briefs/fix-review.md`, the paragraph under the detached-worktree preamble; that path is absent at the baseline (the brief is dev/governance/roles/fix-review.md).",
+          "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The history mention at line 145 is true and is dispositioned; the present-tense pointer at line 191 is the false occurrence.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/preflight.sh",
+            "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+            "value": 1,
+            "unit": "units",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+            "tolerance": "exact",
+            "load1": 2.55,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/pr/preflight.sh: the `# 5. A STALE POLICY CORPUS` comment block",
+          "perturbation": {
+            "change": "--edit 'tools/pr/preflight.sh|#    tools/audit/briefs/fix-review.md, the paragraph|#    dev/governance/roles/fix-review.md, the paragraph'",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+          "phenomenon_property": "A comment pointing a reader to where a rule now lives names a path that exists at the ref.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/pr/preflight.sh"
+          ],
+          "proposed_fix_scope": "One comment line of tools/pr/preflight.sh (line 191).",
+          "reproduction_steps": [
+            "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/pr/preflight.sh",
+            "read the `false` line(s) it prints",
+            "perturb: --edit 'tools/pr/preflight.sh|#    tools/audit/briefs/fix-review.md, the paragraph|#    dev/governance/roles/fix-review.md, the paragraph'"
+          ]
+        },
+        {
+          "id": "D5-s5-04",
+          "scope": "D5-s5",
+          "step": "D5.M4",
+          "title": "open_pr.sh's usage line names openpr.sh, a script that does not exist",
+          "severity": "low",
+          "claim": "The first comment line of tools/audit/seat/open_pr.sh documents its usage as `openpr.sh [--over-cap <reason>] <topic> ...`; no openpr.sh exists in tools/audit/seat/ (or anywhere in the tree), so the documented command fails.",
+          "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The usage line kept a name the script no longer has.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/open_pr.sh",
+            "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+            "value": 1,
+            "unit": "units",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+            "tolerance": "exact",
+            "load1": 2.55,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/seat/open_pr.sh: the header usage comment (line 2)",
+          "perturbation": {
+            "change": "--edit 'tools/audit/seat/open_pr.sh|# openpr.sh [|# open_pr.sh ['",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+          "phenomenon_property": "A script's usage comment names the script by the file name it has at the ref.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/open_pr.sh"
+          ],
+          "proposed_fix_scope": "One comment line of tools/audit/seat/open_pr.sh (line 2).",
+          "reproduction_steps": [
+            "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/open_pr.sh",
+            "read the `false` line(s) it prints",
+            "perturb: --edit 'tools/audit/seat/open_pr.sh|# openpr.sh [|# open_pr.sh ['"
+          ]
+        },
+        {
+          "id": "D5-s5-05",
+          "scope": "D5-s5",
+          "step": "D5.M4",
+          "title": "merge_train self-test comment names _outside_self_test, which no code defines",
+          "severity": "low",
+          "claim": "The _self_test comment above `real_fork_head, Train.fork_head = ...` in tools/audit/seat/merge_train.py says `_outside_self_test` puts the real reader back; merge_train has no attribute _outside_self_test, and the real fork_head is restored inline at the two `real_fork_head` assignments (lines 5275 and 6305).",
+          "mechanism": "Fails D5-criteria.md C2 (precise: resolvable) and C1 (precise: true). The comment names a helper that was never added or was folded inline.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/merge_train.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+            "value": 1,
+            "unit": "units",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+            "tolerance": "exact",
+            "load1": 2.55,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/seat/merge_train.py:_outside_self_test (hasattr on the imported module)",
+          "perturbation": {
+            "change": "--edit 'tools/audit/seat/merge_train.py|# `_outside_self_test` puts the real reader back|# the `real_fork_head` restores put the real reader back'",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+          "phenomenon_property": "Every function a comment of merge_train.py names is defined at the ref.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/merge_train.py"
+          ],
+          "proposed_fix_scope": "One comment line of tools/audit/seat/merge_train.py (line 5063).",
+          "reproduction_steps": [
+            "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/merge_train.py",
+            "read the `false` line(s) it prints",
+            "perturb: --edit 'tools/audit/seat/merge_train.py|# `_outside_self_test` puts the real reader back|# the `real_fork_head` restores put the real reader back'"
+          ]
+        },
+        {
+          "id": "D5-s5-06",
+          "scope": "D5-s5",
+          "step": "D5.M4",
+          "title": "orchestrator_tick: HEARTBEAT_SECONDS called the train's heartbeat is 480 s; the train beats every 240 s",
+          "severity": "low",
+          "claim": "The comment on orchestrator_tick.HEARTBEAT_SECONDS calls 480 the watcher heartbeat the tick assumes and flags a train beat older than 2x it; merge_train.HEARTBEAT_SECONDS, the train's actual beat interval, is 240, so the stale threshold (960 s) is 4 train beats, not 2.",
+          "mechanism": "Fails D5-criteria.md C1 (precise: true). Two definitions of one interval disagree; the comment states the 2x rule on the wrong base, so either the comment or the constant is stale.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/orchestrator_tick.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+            "value": 1,
+            "unit": "units",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+            "tolerance": "exact",
+            "load1": 2.55,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "orchestrator_tick.HEARTBEAT_SECONDS vs merge_train.HEARTBEAT_SECONDS (imported modules)",
+          "perturbation": {
+            "change": "--set orchestrator_tick.HEARTBEAT_SECONDS=240",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "count of the file's D5 units (text_ledger.py units --dim D5) an executed check of the code contradicts (RESULT false_units_total with --file)",
+          "phenomenon_property": "A comment describing a constant as another component's interval matches that component's constant at the ref.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # the `false` lines: every D5 unit of the cells whose named path, script, identifier, flag or described constant an executed check contradicts",
+          "stop_rule_class": "bug",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/orchestrator_tick.py"
+          ],
+          "proposed_fix_scope": "Either derive the tick's assumed heartbeat from merge_train.HEARTBEAT_SECONDS (threshold 2x240) or reword the comment to state 960 s as four beats; owner of the monitoring threshold decides.",
+          "reproduction_steps": [
+            "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/orchestrator_tick.py",
+            "read the `false` line(s) it prints",
+            "perturb: --set orchestrator_tick.HEARTBEAT_SECONDS=240"
+          ]
+        },
+        {
+          "id": "D5-s5-07",
+          "scope": "D5-s5",
+          "step": "D5.M4",
+          "title": "483 comment sentences over 40 words across 60 of 74 tooling files",
+          "severity": "low",
+          "claim": "Counting prose paragraphs only (usage, code, list and table lines excluded), the D5 units of the D5-s5 cells hold 483 sentences over 40 words, in 60 of the 74 files.",
+          "mechanism": "Fails D5-criteria.md C5 (easy to understand: no sentence over 40 words). The instruments' WHY blocks chain clauses with dashes, parentheses and semicolons into one sentence. A hand sample of 10 strict hits (taken before the table-row and `$`-split refinement, which only removed hits) read 9 as genuine prose sentences over 40 words, the tenth a threshold table; the raw splitter count is 743. Worst files: prepr.sh 111, merge_train.py 64, bus.sh 42, app_approve.sh 41, cloud_relay.sh 27.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # RESULT long_sentences_strict",
+            "harness_path": "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+            "value": 483,
+            "unit": "sentences",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "B11 container, 4 cpu, Python 3.14 venv-ci",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box, finder fan-out running; a count is contention-immune",
+            "tolerance": "exact",
+            "load1": 2.55,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "the comment and docstring units of tools/audit/seat/{a..o}*, tools/audit/seat/hooks/** and tools/pr/** via text_ledger.units_of",
+          "perturbation": {
+            "change": "--edit 'tools/pr/push.sh|push rather than after it, and the QUERY arm refuses the same way.|push rather than after it. The QUERY arm refuses the same way.' (one 42-word sentence split; the count moves down by one)",
+            "expected_direction": "down",
+            "observed_value": "14 (the --file tools/pr/push.sh arm, from 15)"
+          },
+          "metric_definition": "count of comment/docstring sentences over 40 words in the cells' D5 units, prose paragraphs only (RESULT long_sentences_strict)",
+          "phenomenon_property": "No comment or docstring sentence in the cells exceeds 40 words.",
+          "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py  # long_sentences.tsv rows",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "tools/audit/seat/",
+            "tools/pr/"
+          ],
+          "proposed_fix_scope": "Split long sentences in the WHY blocks, worst files first (prepr.sh, merge_train.py, bus.sh, app_approve.sh); no code change.",
+          "reproduction_steps": [
+            "cd <export root>; PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+            "read the `false` line(s) it prints",
+            "perturb: --edit 'tools/pr/push.sh|push rather than after it, and the QUERY arm refuses the same way.|push rather than after it. The QUERY arm refuses the same way.' (one 42-word sentence split; the count moves down by one)"
+          ],
+          "leave_one_out": {
+            "cells": 74,
+            "min": 0,
+            "max": 111,
+            "drop_most_favourable": 372
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/hooks/git_identity.py",
+            "value": 0,
+            "note": "a docstring whose 54-word raw hit is two sentences joined at `$HPO_STATE_DIR` counts 0 strict: the splitter artefact is not counted"
+          }
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every --flag on a header usage line of the 74 cell files is handled by that script's code",
+          "command": "usage-flag scan (quoted-flag search in each script's comment-stripped code), the same corpus m4_ledger.py builds",
+          "value": "0 misses"
+        },
+        {
+          "claim": "beat_jobs.ROSTER_PASS_BUDGET_S=450 is at most half roster-drain's timeout_s, DARWIN_PASS_BUDGET_S=900 at most half darwin-selftest's",
+          "command": "python3 -c \"import json;[print(j['name'],j['timeout_s']) for j in json.load(open('tools/audit/seat/beatd.jobs.json'))['jobs']]\"",
+          "value": "roster-drain 900, darwin-selftest 3600"
+        },
+        {
+          "claim": "beat_jobs.py cites gate.py's ATTEMPT_CAP as 45",
+          "command": "grep -n 'ATTEMPT_CAP =' tools/ci/gate.py",
+          "value": "ATTEMPT_CAP = 45"
+        },
+        {
+          "claim": "merge_train.POLL_SECONDS: 24 reads wait two hours; orchestrator_tick: 2x480 s flags at minute 16",
+          "command": "PYTHONPATH=tests/hastub:tools/audit/seat python3 -c 'import merge_train as m,orchestrator_tick as o;print(24*m.POLL_SECONDS,2*o.HEARTBEAT_SECONDS//60)'",
+          "value": "7200 s, 16 min"
+        },
+        {
+          "claim": "handoff_push.sh: tools/audit/handoff is a transport root prepr.sh still reads",
+          "command": "grep -n '^TRANSPORT_ROOTS' tools/pr/prepr.sh",
+          "value": "TRANSPORT_ROOTS=(tools/audit/handoff/ handoff/)"
+        },
+        {
+          "claim": "prepr.sh: CI may restore the base copy at tools/audit/prepr.sh",
+          "command": "grep -n 'test -f tools/audit/prepr.sh' .github/workflows/governance.yml .github/workflows/pr-contract.yml",
+          "value": "2 hits (governance.yml:428, pr-contract.yml:461)"
+        },
+        {
+          "claim": "app_approve.sh's `git patch-id --verbatim` names a real git option",
+          "command": "git patch-id --verbatim </dev/null; echo $?",
+          "value": "0 (git 2.43.0)"
+        },
+        {
+          "claim": "The C5 strict count does not count a splitter artefact (null control)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py --file tools/audit/seat/hooks/git_identity.py",
+          "value": "raw 1, strict 0"
+        },
+        {
+          "claim": "The ledger refuses an omitted unit (text_ledger plant control)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+          "value": "check_plant_refused=1"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D5/s5/m4_ledger.py",
+        "dev/audit/rounds/round11/D5/s5/step_universe.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D5-s1",
+          "file": "docs/**, README.md",
+          "symbol": "feature reader paths (two-tank storage, ECL110, capacity tariff)",
+          "what": "Redispatched C2: the paragraph-by-paragraph walk for dead ends and forward references was not recorded; D5-s5's cells hold no document."
+        },
+        {
+          "owner_seat": "D5-s2",
+          "file": "docs/how-it-works.md, docs/configuration.md",
+          "symbol": "mechanism paragraphs",
+          "what": "Redispatched C3: trace each mechanism paragraph against its code path; also C7's README/docs M4 cell."
+        },
+        {
+          "owner_seat": "D5-s4",
+          "file": "custom_components/heatpump_optimizer/www/*.js",
+          "symbol": "comments",
+          "what": "Redispatched C7: www/*.js comments not scanned for symbols; m4_ledger.py's path/identifier/adjacent-constant checks can be pointed at those cells."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tools/policy/fixtures/figures/good.md, tools/policy/fixtures/policy-rot/prepr/red-answered.md",
+          "symbol": "tools/audit/prepr.sh",
+          "what": "Fixtures cite `bash tools/audit/prepr.sh --self-test`, a path absent at the baseline (moved to tools/pr/prepr.sh); check whether they are meant as historical inputs. Markdown is outside D5's classify (py/sh/js/mjs); likely a D6 or tools/policy owner."
+        }
+      ]
+    },
+    "D5-s6": {
+      "dimension": "D5",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D5/s6/REPORT.md",
+      "exposure": "Read dev/governance/roles/COMMON.md, dimensions/D5.md, D6.md, criteria/D5-criteria.md, dev/audit/README.md and dev/audit/config/*. No docs/ read (none in cells). Comments in the cells cite earlier finding and issue ids (e.g. D11-s1-72, D13-04, R9-RO-PC1, R10-REPLAY-COST-BUDGET, #1241, #2469, #3508); read as context only. Read tools/policy/policy_lint.mjs lines 2405-2425 and tests/replay.py:COST_DRAWS to check comments in the cells.",
+      "coverage": [
+        {
+          "step": "D5.M1",
+          "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"'  # x 3 reader paths",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "not_reached"
+            },
+            {
+              "item": "C4",
+              "state": "examined"
+            }
+          ],
+          "evidence": "outline prints 0 rows over the 258 files of D5-s6's cells (240 .py, 15 .sh, 3 .mjs: no Markdown/HTML), so no reader path passes through these cells: 0 dead ends. C4 examined: the code/JS cells yield no document row to walk. C2 (feature reader paths in docs/) is outside D5-s6's cells (docs/*.md are D5-s1's M1 cells); sent as a lead."
+        },
+        {
+          "step": "D5.M2",
+          "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"heading\"||$3==\"link\"'",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "outline prints 0 heading and 0 link rows for the cells; C5 examined: structure over the code cells is the empty set by the enumerator (0 broken links, 0 duplicated paragraphs)."
+        },
+        {
+          "step": "D5.M3",
+          "enumerator": "python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 | awk -F'\\t' '$3==\"document\"{print $1}' | xargs -r python3 tools/audit/text_ledger.py units --dim D6",
+          "universe": 0,
+          "examined": 0,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C6",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "C1: the denominator round 10 lacked is recorded: D5-s6's cells hold no document, so M3's universe here is 0 of 0. C3 (how-it-works.md, configuration.md mechanism paragraphs) is D5-s2's M3 cells: lead. C6: in these cells every docstring is an M4 unit (1336 docstrings rowed by D5.M4's executed checks; 4 docstring defects confirmed: D5-s6-02/03/04/06) but no paragraph-by-paragraph mechanism trace was run."
+        },
+        {
+          "step": "D5.M4",
+          "enumerator": "python3 tools/audit/text_ledger.py units --dim D5 --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "universe": 3781,
+          "examined": 3781,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C7",
+              "state": "examined"
+            }
+          ],
+          "evidence": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -> units=3781 claim_rows=840 false_rows=263 (C1-flag 1, C1-count 1, C2-path 9, C5-len 404); python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s6/LEDGER.tsv --plant --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -> unrowed=0 orphan=0 malformed=0 plant_refused=1. C7: the cited-number-vs-adjacent-constant check is automated (C1-count: 44 comment/literal pairs checked, 1 confirmed false, 28 flags dismissed by reading); www/*.js and README/docs are not in these cells (leads to D5-s4, D5-s2)."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D5.M4",
+          "what": "All 3781 units are rowed by executed checks (paths, file:symbol citations, name() calls, usage-line flags, count-vs-adjacent-literal, sentence length), but 2941 are `no-claim` only in the sense that those checks extracted nothing: behavioural statements inside them (what a function does) were not executed against the code (C1), and C3 restatement and C4 history-share were not judged for any of the 3781. Issue numbers (#NNNN) were not resolved (no GitHub for D5)."
+        },
+        {
+          "step": "D5.M3",
+          "what": "C6: mechanism paragraphs in this seat's 1336 docstrings were not traced one by one against their code paths (they sit under M4 here)."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D5-s6-01",
+          "scope": "D5-s6",
+          "step": "D5.M4",
+          "title": "stamp.py record-class comment counts three regexes over six and cites two moved paths",
+          "severity": "low",
+          "claim": "The comment above tools/release/stamp.py:RECORD_CLASS_RES says the node copy carries 'the same three regexes' and lives at .claude/workflows/policy_lint.mjs, and register_argv's docstring cites tools/audit/README.md's section 'A harness at the evidence tag may measure the tag, not your tree'; at the baseline RECORD_CLASS_RES holds 6 regexes, .claude/workflows/policy_lint.mjs does not exist (the copy is tools/policy/policy_lint.mjs), and no tools/audit/README.md exists.",
+          "mechanism": "The record classes gained a second (dev/programme/) layout per class and the lint and README moved out of .claude/workflows/ and tools/audit/; the comments kept the pre-move count and paths. Fails D5-criteria C1 (count), C2 (two paths).",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "value": 3,
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 container (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/release/stamp.py:RECORD_CLASS_RES, tools/release/stamp.py:register_argv",
+          "perturbation": {
+            "change": "--perturb stamp: stamp RECORD_CLASS_RES cut to its first three regexes in memory, the cited policy_lint.mjs and README section planted at the cited paths in a temp tree",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Comment claims in stamp.py contradicted by the executed module: stated regex count vs len(RECORD_CLASS_RES), cited copy path exists and holds RECORD_CLASS_RES, cited README section exists.",
+          "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/release/stamp.py"
+          ],
+          "proposed_fix_scope": "Comment edits in tools/release/stamp.py only: 'six regexes, two per class', tools/policy/policy_lint.mjs, and the README section by its current home or dropped.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb stamp"
+          ],
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "value": "roster_edit.py's BRIEF_LINT_OLD/.claude/workflows/brief_lint.mjs is flagged by the same path scan and dismissed: it is a deliberate old-layout fallback in code",
+            "note": "a moved path the code itself still reads is not counted"
+          }
+        },
+        {
+          "id": "D5-s6-02",
+          "scope": "D5-s6",
+          "step": "D5.M4",
+          "title": "replay_draws.py docstring names tests/replay_draws.tsv; the table it fills is tests/replay_cost_draws.tsv",
+          "severity": "low",
+          "claim": "tools/audit/seat/replay_draws.py's module docstring says the harvested rows are what 'tests/replay_draws.tsv holds', but tests/replay.py:COST_DRAWS, the table the same module grades and shifts (replay.COST_DRAWS at lines 166/193/303), is tests/replay_cost_draws.tsv and no tests/replay_draws.tsv is tracked.",
+          "mechanism": "The docstring names a file that never existed under that name; the module's own code (and its later docstring paragraph, line 25) use COST_DRAWS. Fails D5-criteria C1, C2.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "value": 1,
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 container (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tests/replay.py:COST_DRAWS",
+          "perturbation": {
+            "change": "--perturb replay: replay COST_DRAWS repointed in memory at ROOT/tests/replay_draws.tsv (the docstring's name)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "1 when the path the replay_draws.py docstring names differs from tests/replay.py:COST_DRAWS as the imported module delivers it, else 0.",
+          "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/replay_draws.py"
+          ],
+          "proposed_fix_scope": "One word in the docstring: tests/replay_cost_draws.tsv.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb replay"
+          ]
+        },
+        {
+          "id": "D5-s6-03",
+          "scope": "D5-s6",
+          "step": "D5.M4",
+          "title": "row_position.py usage line runs a path that does not exist (exit 2)",
+          "severity": "low",
+          "claim": "tools/audit/seat/row_position.py's docstring gives its command as 'python3 dev/audit/harnesses/row_position.py', which exits 2 with 'No such file or directory' from the export root; the script lives at tools/audit/seat/row_position.py.",
+          "mechanism": "The script moved from dev/audit/harnesses/ to tools/audit/seat/ and its usage line kept the old path. Fails D5-criteria C1, C2.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "value": 1,
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 container (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/seat/row_position.py (module docstring, run as written with --help)",
+          "perturbation": {
+            "change": "--perturb row_position: the usage line run in a temp tree holding the script at the cited path",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Exit status != 0 of the usage line exactly as the docstring writes it, run with --help from the repository root (1 = fails).",
+          "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/row_position.py"
+          ],
+          "proposed_fix_scope": "Docstring usage line: python3 tools/audit/seat/row_position.py.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb row_position"
+          ]
+        },
+        {
+          "id": "D5-s6-04",
+          "scope": "D5-s6",
+          "step": "D5.M4",
+          "title": "plan_audit.py documents end-to-end --target 22.7; its parser refuses it",
+          "severity": "low",
+          "claim": "tools/audit/seat/plan_audit.py's usage line 'plan_audit.py end-to-end --fork SHA [--head REF] [--target 22.7]' fed to plan_audit.main's own argparse parser exits 2 'unrecognized arguments: --target 22.7': the end-to-end subparser defines only --fork and --head and the target is the constant TARGET_DS.",
+          "mechanism": "The option was documented (or removed) without the other side following; a reader who passes it gets an argparse error, not a different target. Fails D5-criteria C1.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "value": 1,
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 container (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/seat/plan_audit.py:main",
+          "perturbation": {
+            "change": "--perturb plan_audit: plan_audit.main's end-to-end subparser given a --target option (argparse add_parser patched in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "1 when plan_audit.main(argv from the docstring's end-to-end usage line) exits 2 (argparse refusal), run_end_to_end stubbed so only parsing is measured.",
+          "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/plan_audit.py"
+          ],
+          "proposed_fix_scope": "Docstring line drops [--target 22.7] (or the subparser gains it and main reads it instead of TARGET_DS: then it is a behaviour change).",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb plan_audit"
+          ]
+        },
+        {
+          "id": "D5-s6-05",
+          "scope": "D5-s6",
+          "step": "D5.M4",
+          "title": "update_pr.sh header names the script updatepr.sh",
+          "severity": "low",
+          "claim": "Line 2 of tools/audit/seat/update_pr.sh introduces the script as 'updatepr.sh <branch> <code-sha|-> <body-file> [issues...]', but the script's $0 basename is update_pr.sh and no updatepr.sh is tracked anywhere at the ref.",
+          "mechanism": "A rename (updatepr.sh -> update_pr.sh) left the header's self-name behind. Fails D5-criteria C2.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "value": 1,
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 container (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/seat/update_pr.sh (bash $0 basename)",
+          "perturbation": {
+            "change": "--perturb update_pr: the script copied and run under the header's name in a temp dir, and that name added to the tracked set",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "1 when the name the header gives differs from the basename bash reports for the script, or is not a tracked file name.",
+          "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/update_pr.sh"
+          ],
+          "proposed_fix_scope": "Header: update_pr.sh.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb update_pr"
+          ]
+        },
+        {
+          "id": "D5-s6-06",
+          "scope": "D5-s6",
+          "step": "D5.M4",
+          "title": "roster_lib.py attributes its open set and wave recurrence to gen_table_rev3.py, absent from the tree",
+          "severity": "low",
+          "claim": "Three comment units of tools/audit/seat/roster_lib.py (module docstring, the comment above the closed-stage set, depth_of's docstring) define behaviour by reference to 'gen_table_rev3.py', a script no tracked path at the ref holds and that no unit qualifies with a ref.",
+          "mechanism": "The script is a design-revision prototype on another branch; the comments point a code reader at it as the definition instead of stating the rule. Fails D5-criteria C2.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "value": 3,
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 container (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/seat/roster_lib.py:depth_of",
+          "perturbation": {
+            "change": "--perturb gen_table: gen_table_rev3.py added to the tracked file list",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Number of mentions of gen_table_rev3.py in the file while no tracked path at the ref ends in gen_table_rev3.py.",
+          "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/roster_lib.py"
+          ],
+          "proposed_fix_scope": "State the recurrence and open set in the comments (they are short), or cite the script with its ref.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb gen_table"
+          ]
+        },
+        {
+          "id": "D5-s6-07",
+          "scope": "D5-s6",
+          "step": "D5.M4",
+          "title": "plan_table.py self-test comment cites gen_table_rev3.py, absent from the tree",
+          "severity": "low",
+          "claim": "tools/audit/seat/plan_table.py line 205 justifies its wave assertions as 'gen_table_rev3.py's recurrence', a script no tracked path at the ref holds.",
+          "mechanism": "Same unresolvable citation as roster_lib.py, in the self-test that pins it. Fails D5-criteria C2.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "value": 1,
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 container (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/seat/roster_lib.py:depth_of (called by plan_table.py's self-test)",
+          "perturbation": {
+            "change": "--perturb gen_table: gen_table_rev3.py added to the tracked file list",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Number of mentions of gen_table_rev3.py in the file while no tracked path at the ref ends in gen_table_rev3.py.",
+          "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+          "stop_rule_class": "hygiene",
+          "class_guess": "I5",
+          "files": [
+            "tools/audit/seat/plan_table.py"
+          ],
+          "proposed_fix_scope": "Cite roster_lib.depth_of, which is what the check calls.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb gen_table"
+          ]
+        },
+        {
+          "id": "D5-s6-08",
+          "scope": "D5-s6",
+          "step": "D5.M4",
+          "title": "404 comment sentences over 40 words in 99 files of the seat's cells",
+          "severity": "low",
+          "claim": "Run over all 3781 D5 comment units of the seat's cells, 404 prose sentences (usage/code lines excluded, text_ledger's own sentence splitter) exceed criteria C5's 40-word bound, in 99 of 258 files; the longest is 166 words (tools/replay/export.py's module docstring).",
+          "mechanism": "Long WHY paragraphs are written as one sentence chained by colons, semicolons and dashes; nothing checks length. Fails D5-criteria C5.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "harness_path": "dev/audit/rounds/round11/D5/s6/m4_ledger.py",
+            "value": 404,
+            "unit": "count",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B11 container (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count is contention-immune",
+            "tolerance": "exact",
+            "load1": 3.59,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tools/audit/text_ledger.py:units_of (the D5 unit enumerator) over the cells' comments",
+          "perturbation": {
+            "change": "m4_ledger.py --c5-split tools/audit/seat/pr_args.sh (that file's units re-broken in memory every 30 words, as a fix would)",
+            "expected_direction": "down",
+            "observed_value": 372
+          },
+          "metric_definition": "Count of sentences over 40 words in D5 comment units of D5-s6's cells (comment markers stripped, indented/command lines dropped, a backtick span one word).",
+          "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+          "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C5-len; C5_BY_FILE.tsv",
+          "stop_rule_class": "hygiene",
+          "class_guess": "new",
+          "files": [
+            "see dev/audit/rounds/round11/D5/s6/C5_BY_FILE.tsv (99 files)"
+          ],
+          "proposed_fix_scope": "Sentence splits in the comments only; no code change.",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --out $(mktemp -d) --c5-split tools/audit/seat/pr_args.sh"
+          ],
+          "leave_one_out": {
+            "cells": 99,
+            "min": 1,
+            "max": 35,
+            "drop_most_favourable": 369
+          },
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "value": "C2-call=0 C2-cite=0 over the same 3781 units",
+            "note": "the same scan reports zero where the comments are sound; C5 is grouped as one phenomenon, the per-file split is C5_BY_FILE.tsv"
+          }
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every file:symbol citation in the cells' comments names a symbol the cited file defines",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "value": "C2-cite=0 false of 3 citations checked"
+        },
+        {
+          "claim": "Every name() a comment calls exists as a code token in the tree",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "value": "C2-call=0 false of >=150 checked"
+        },
+        {
+          "claim": "Repository paths named in comments resolve, apart from the 9 confirmed",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "value": ">=1605 path checks; 178 unresolved tokens read and dismissed (runtime artefacts such as plan.json/VERDICT.md, f-string fragments such as dev/programme/rosters/wave-r, self-test fixtures, roster_edit.py's deliberate BRIEF_LINT_OLD fallback, scripts cited at another ref such as dbg_ingest_smoke.py at eae236d66)"
+        },
+        {
+          "claim": "Usage-line options exist in the script's parser, apart from plan_audit.py --target",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "value": ">=186 flag checks; 9 dismissed (sweep_gantt.py, roster_queue.py and build_docs.mjs build their options in a loop or generically)"
+        },
+        {
+          "claim": "Comment-stated item counts match the display beneath, apart from stamp.py RECORD_CLASS_RES",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "value": "44 comment/literal pairs; 28 flags dismissed (the number counts something other than the literal's items)"
+        },
+        {
+          "claim": "The D5 ledger rows every unit and refuses an omission",
+          "command": "python3 tools/audit/text_ledger.py check --dim D5 dev/audit/rounds/round11/D5/s6/LEDGER.tsv --plant --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "value": "unrowed=0 orphan=0 malformed=0 plant_refused=1"
+        },
+        {
+          "claim": "M1-M3 over the cells: no reader path, heading, link or document unit",
+          "command": "python3 tools/audit/text_ledger.py outline --seat D5-s6 --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+          "value": "0 rows"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D5/s6/m4_ledger.py",
+        "dev/audit/rounds/round11/D5/s6/truth_checks.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D5-s8",
+          "file": "tools/policy/policy_lint.mjs",
+          "symbol": "RECORD_CLASS_RES",
+          "what": "Comment at line 2410 calls the copy 'the same three regexes' and line 2423 'one of the three record classes above'; the array holds 6 regexes (same defect as D5-s6-01's stamp.py comment)."
+        },
+        {
+          "owner_seat": "D5-s1",
+          "file": "docs/ecl110.md, docs/configuration.md, docs/how-it-works.md",
+          "symbol": "M1 feature reader paths",
+          "what": "Redispatched C2 (two-tank storage, ECL110, capacity tariff paragraph-by-paragraph walk) is outside D5-s6's cells."
+        },
+        {
+          "owner_seat": "D5-s2",
+          "file": "docs/how-it-works.md, docs/configuration.md",
+          "symbol": "M3 mechanism paragraphs",
+          "what": "Redispatched C3 (trace each mechanism paragraph against code) and the README/docs part of C7 are outside D5-s6's cells."
+        },
+        {
+          "owner_seat": "D5-s4",
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "comments",
+          "what": "Redispatched C7's www/*.js symbol scan; m4_ledger.py's path/call/flag checks can be pointed at those cells with --seat D5-s4."
+        }
+      ]
+    }
+  }
+}

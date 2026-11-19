@@ -1,0 +1,47 @@
+{
+ "id": "D17-s1-03",
+ "scope": "D17-s1",
+ "step": "D17.M3",
+ "title": "Thermal-model page offers house thermal mass on a two-zone house, where no model reads it",
+ "severity": "medium",
+ "claim": "On a two-zone entry (the default install: two_zone_mode auto resolves on), the thermal_model options page renders and saves house_thermal_mass, but changing it to 40 kWh/K moves no planned step, while the same change on a single-zone entry moves the plan: 1 of the 8 fields the two-zone page renders is inert there and effective on one zone.",
+ "mechanism": "house_thermal_mass maps to ThermalParameters.room_thermal_mass, read only by the single-zone dynamics (thermal_model.py simulate single-zone branch and envelope_thermal_mass's else-branch); two zones read upper/lower_floor_thermal_mass. Its sibling house_heat_loss_coefficient is gated when=_single_zone (R10-TWO-ZONE-HHL); this row has no gate, and its description ('In a floor-heated house the heavy floor and heated slab are counted separately ...') tells a floor-heated two-zone user it applies.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_zone.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s1/h_zone.py",
+  "value": 1,
+  "unit": "thermal_model page fields rendered on a two-zone entry that move no plan there while moving it on a single-zone entry",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 (vm, 4 cpu, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts; immune to load",
+  "tolerance": "exact",
+  "load1": 1.69,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.config_flow:async_step_thermal_model; heatpump_optimizer.thermal_model:ThermalParameters.room_thermal_mass",
+ "perturbation": {
+  "change": "--perturb-gate: give the house_thermal_mass _F row when=_single_zone in config_flow._OPTION_FIELDS",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "count of thermal_model fields rendered for two_zone_mode=on whose change leaves the plan byte-identical there but moves it for two_zone_mode=off (RESULT two_zone_only_no_effect)",
+ "phenomenon_property": "An options-page field is rendered only in the topologies whose model reads it; on any other it is hidden (or made to take effect).",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s1/h_zone.py (every field the thermal_model page renders, per zone mode)",
+ "null_control": {
+  "command": "same harness, single-zone arm (RESULT single_zone_rendered_no_effect)",
+  "value": "1 (compressor_modulation only; house_thermal_mass moves the plan)",
+  "note": "the field works where the single-zone model reads it"
+ },
+ "reproduction_steps": [
+  "fresh entry (two-zone by default); Options > Advanced > Thermal model; set House thermal mass 40; save",
+  "plan identical to before"
+ ],
+ "proposed_fix_scope": "config_flow._OPTION_FIELDS: gate CONF_HOUSE_THERMAL_MASS when=_single_zone like the heat-loss row, and say in its strings.json description that a two-zone house sets the zone masses on the Two-zone model page (or make the two-zone model read it).",
+ "files": [
+  "custom_components/heatpump_optimizer/config_flow.py",
+  "custom_components/heatpump_optimizer/strings.json"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P6"
+}

@@ -1,0 +1,545 @@
+.claude/skills/steward/SKILL.md	0	document	.claude/skills/steward/SKILL.md
+.claude/skills/steward/SKILL.md	6	heading	h1 Stewarding a pull request here
+.claude/skills/steward/SKILL.md	12	heading	h2 S1 A red claim, closure or pin check is a bot's job, not yours
+.claude/skills/steward/SKILL.md	33	heading	h2 S2 A conflicted pull request is not red — it cannot run
+.claude/skills/steward/SKILL.md	50	heading	h2 S3 Key on the mode line, never the count
+.claude/skills/steward/SKILL.md	57	heading	h2 S4 Never move a version
+.claude/skills/steward/SKILL.md	63	heading	h2 S5 Leave the claim files alone unless you are claiming
+.claude/skills/steward/SKILL.md	70	heading	h2 S6 Take no lease by hand for a gate run
+.claude/skills/steward/SKILL.md	77	heading	h2 S7 Merge, never rebase, and never force-push
+.claude/skills/steward/SKILL.md	82	heading	h2 S8 A red check owes an answer in the body
+.claude/skills/steward/SKILL.md	92	heading	h2 S9 Never re-gate an unchanged head
+.claude/skills/steward/SKILL.md	98	heading	h2 S10 Create the commit, then write the body, then push, then confirm
+.claude/workflows/web-fragments.md	0	document	.claude/workflows/web-fragments.md
+.claude/workflows/web-fragments.md	1	heading	h1 The shared prompt fragments for the `web-*.js` workflows
+.claude/workflows/web-fragments.md	131	heading	h2 Substitutions for a session running outside the original container
+.github/PULL_REQUEST_TEMPLATE.md	0	document	.github/PULL_REQUEST_TEMPLATE.md
+.github/PULL_REQUEST_TEMPLATE.md	7	heading	h2 Head
+.github/PULL_REQUEST_TEMPLATE.md	11	heading	h2 Mutation proof
+.github/PULL_REQUEST_TEMPLATE.md	15	heading	h2 Null control
+.github/PULL_REQUEST_TEMPLATE.md	19	heading	h2 Figures
+.github/PULL_REQUEST_TEMPLATE.md	26	heading	h2 Red checks
+.github/PULL_REQUEST_TEMPLATE.md	32	heading	h2 Forward-carry
+.github/PULL_REQUEST_TEMPLATE.md	36	heading	h2 Friction
+AGENTS.md	0	document	AGENTS.md
+AGENTS.md	1	heading	h1 AGENTS.md
+CLAUDE.md	0	document	CLAUDE.md
+CLAUDE.md	1	heading	h1 Working on this repository
+CLAUDE.md	9	heading	h2 Four rules that will refuse your pull request
+CLAUDE.md	57	heading	h2 Identity — who authors, approves, runs and stamps (decision 0011)
+CLAUDE.md	65	heading	h2 Where the policy is — the whole set, and who each part binds
+CLAUDE.md	74	heading	h3 The project policies, loaded when they bind
+CLAUDE.md	96	heading	h3 Loaded when a pull-request event arrives
+CLAUDE.md	106	heading	h3 Role contracts — open the one you are
+CLAUDE.md	134	heading	h3 Dimension briefs — the audit rounds
+CLAUDE.md	160	heading	h3 Instruments
+CLAUDE.md	169	heading	h3 The suite, the register, the rulings, the handover
+CLAUDE.md	179	heading	h2 Fix it; if you cannot, verify it independently; only then file it
+CLAUDE.md	209	heading	h2 What the repository may carry
+SECURITY.md	0	document	SECURITY.md
+SECURITY.md	1	heading	h1 Security
+dev/README.md	0	document	dev/README.md
+dev/README.md	1	heading	h1 Development in this repository
+dev/README.md	23	heading	h2 Reading the figures
+dev/README.md	35	heading	h2 The `dev/` layout
+dev/README.md	70	heading	h2 Governing documents
+dev/README.md	91	heading	h2 The work, in order
+dev/README.md	128	heading	h2 Requirements before you push
+dev/README.md	158	heading	h2 The CI shape
+dev/README.md	160	heading	h3 The job graph
+dev/README.md	198	heading	h3 The workflow files
+dev/README.md	237	heading	h3 The order a change is refused in
+dev/README.md	257	heading	h2 The orchestration machinery
+dev/README.md	259	heading	h3 Its components
+dev/README.md	512	heading	h3 One handoff's path
+dev/README.md	558	heading	h3 Who decides
+dev/README.md	571	heading	h2 Harnesses
+dev/audit/README.md	0	document	dev/audit/README.md
+dev/audit/README.md	1	heading	h1 The audit toolkit
+dev/audit/README.md	19	heading	h2 Running a round: the playbook
+dev/audit/README.md	146	heading	h2 Round start
+dev/audit/README.md	170	heading	h2 The harness contract
+dev/audit/README.md	219	heading	h2 What to reuse, and what will trip you
+dev/audit/README.md	266	heading	h2 Harnesses that read moved paths are retired
+dev/audit/README.md	273	heading	h2 A defect in an instrument is a finding
+dev/audit/README.md	284	heading	h2 Rounds 1-3 are at a SHA
+dev/audit/README.md	299	heading	h2 The four that stayed
+dev/governance/rules/brief-citations.md	0	document	dev/governance/rules/brief-citations.md
+dev/governance/rules/brief-citations.md	9	heading	h1 Brief-linter citations
+dev/governance/rules/ci-autofix.md	0	document	dev/governance/rules/ci-autofix.md
+dev/governance/rules/ci-autofix.md	11	heading	h1 Mechanical CI autofix (do not re-implement)
+dev/governance/rules/ci-autofix.md	84	heading	h2 A driver-file conflict: one bot merges it, none autofixes it
+dev/governance/rules/claim-files.md	0	document	dev/governance/rules/claim-files.md
+dev/governance/rules/claim-files.md	6	heading	h1 The two claim files
+dev/governance/rules/comment-readback.md	0	document	dev/governance/rules/comment-readback.md
+dev/governance/rules/comment-readback.md	9	heading	h1 Posting a comment, and proving it landed
+dev/governance/rules/comment-readback.md	26	heading	h2 Why this prescribes rather than prohibits
+dev/governance/rules/comment-readback.md	46	heading	h2 What a read-back is
+dev/governance/rules/comment-readback.md	60	heading	h2 What it does not cover
+dev/governance/rules/defect-root-cause.md	0	document	dev/governance/rules/defect-root-cause.md
+dev/governance/rules/defect-root-cause.md	9	heading	h1 Root-cause remediation
+dev/governance/rules/defect-root-cause.md	14	heading	h2 When this applies
+dev/governance/rules/defect-root-cause.md	36	heading	h2 What is owed
+dev/governance/rules/defect-root-cause.md	50	heading	h2 The process root cause
+dev/governance/rules/defect-root-cause.md	73	heading	h2 The cost test
+dev/governance/rules/defect-root-cause.md	97	heading	h2 The bound
+dev/governance/rules/defect-root-cause.md	104	heading	h2 A detector must be shown to detect
+dev/governance/rules/defect-root-cause.md	119	heading	h2 Where it is recorded
+dev/governance/rules/defect-root-cause.md	127	heading	h2 Enforcement
+dev/governance/rules/delivery-status-tracking.md	0	document	dev/governance/rules/delivery-status-tracking.md
+dev/governance/rules/delivery-status-tracking.md	9	heading	h1 Programme tracking discipline
+dev/governance/rules/delivery-status-tracking.md	19	heading	h2 Status stays true, not just present
+dev/governance/rules/finding-propagation.md	0	document	dev/governance/rules/finding-propagation.md
+dev/governance/rules/finding-propagation.md	9	heading	h1 Forward-carrying a finding
+dev/governance/rules/finding-propagation.md	14	heading	h2 When it applies
+dev/governance/rules/finding-propagation.md	33	heading	h2 A comment is not propagation
+dev/governance/rules/finding-propagation.md	42	heading	h2 What to write
+dev/governance/rules/finding-propagation.md	54	heading	h2 Where it goes
+dev/governance/rules/finding-propagation.md	81	heading	h2 Enforcement
+dev/governance/rules/gate-scoping.md	0	document	dev/governance/rules/gate-scoping.md
+dev/governance/rules/gate-scoping.md	7	heading	h1 Running the gate
+dev/governance/rules/gate-scoping.md	38	heading	h2 `prepr.sh` is not CI
+dev/governance/rules/gate-scoping.md	46	heading	h2 Never run a full `tests/derive_closures.sh` off Linux
+dev/governance/rules/ratchet-budgets.md	0	document	dev/governance/rules/ratchet-budgets.md
+dev/governance/rules/ratchet-budgets.md	11	heading	h1 Three caps, because one of them can be gamed by moving a file
+dev/governance/rules/ratchet-budgets.md	42	heading	h2 The working band on the five aggregates
+dev/governance/rules/ratchet-budgets.md	61	heading	h2 Re-recording a cap
+dev/governance/rules/ratchet-budgets.md	93	heading	h2 The machinery caps
+dev/governance/rules/writing-for-agents.md	0	document	dev/governance/rules/writing-for-agents.md
+dev/governance/rules/writing-for-agents.md	10	heading	h1 Every sentence earns its place
+dev/governance/rules/writing-for-agents.md	43	heading	h2 One living handover
+dev/programme/HANDOVER.md	0	document	dev/programme/HANDOVER.md
+dev/programme/HANDOVER.md	1	heading	h1 Handover — the open-issues programme
+dev/programme/HANDOVER.md	27	heading	h2 Round 10 — the outcome
+dev/programme/HANDOVER.md	41	heading	h3 What closure meant, and which ruling outranks which
+dev/programme/HANDOVER.md	79	heading	h3 What merged to form the gating set
+dev/programme/HANDOVER.md	150	heading	h3 The docs pass nobody had dispatched
+dev/programme/HANDOVER.md	168	heading	h3 Delivered, and the stamp
+dev/programme/HANDOVER.md	255	heading	h3 What round 10 did not deliver
+dev/programme/HANDOVER.md	302	heading	h3 The closing night, 2026-11-14 to 15
+dev/programme/HANDOVER.md	344	heading	h2 Round 11 — what it starts from
+dev/programme/HANDOVER.md	346	heading	h3 The start gate and the order the pre-finder work must land in
+dev/programme/HANDOVER.md	498	heading	h3 R11-INTAKE-R10-RESIDUE and the carries
+dev/programme/HANDOVER.md	520	heading	h3 What the intake group also holds from closure
+dev/programme/HANDOVER.md	575	heading	h3 Re-routed groups and pull requests, with the next step
+dev/programme/HANDOVER.md	623	heading	h3 Outside contributions
+dev/programme/HANDOVER.md	661	heading	h3 The pipeline design group
+dev/programme/HANDOVER.md	701	heading	h3 Rulings that bind round 11
+dev/programme/HANDOVER.md	767	heading	h3 Loop-study rulings L1 to L9
+dev/programme/HANDOVER.md	813	heading	h3 The delta re-read owed for `#3451` and `#3491`
+dev/programme/HANDOVER.md	828	heading	h3 Local prototype inventory
+dev/programme/HANDOVER.md	858	heading	h3 The issue set at closure
+dev/programme/HANDOVER.md	877	heading	h2 The seats and who may do what
+dev/programme/HANDOVER.md	926	heading	h2 The instruments in daily use
+dev/programme/HANDOVER.md	965	heading	h2 The mandate
+dev/programme/HANDOVER.md	1006	heading	h2 Merge, train and stamp
+dev/programme/HANDOVER.md	1070	heading	h2 Decisions taken — do not relitigate
+dev/programme/HANDOVER.md	1157	heading	h2 Corrections to the record
+dev/programme/HANDOVER.md	1190	heading	h2 Traps that cost a session
+dev/programme/HANDOVER.md	1544	heading	h2 Owed
+dev/programme/HANDOVER.md	1604	heading	h2 Proposals filed, not built
+dev/programme/HANDOVER.md	1637	heading	h2 Figures
+dev/programme/HANDOVER.md	1652	heading	h2 The machine this runs on — measure it, do not read it
+dev/programme/RULINGS.md	0	document	dev/programme/RULINGS.md
+dev/programme/RULINGS.md	1	heading	h1 The owner's standing rulings
+dev/programme/RULINGS.md	25	heading	h2 Authority and the mandate
+dev/programme/RULINGS.md	54	heading	h2 Decisions put to him
+dev/programme/RULINGS.md	84	heading	h2 Round scope and the objective
+dev/programme/RULINGS.md	106	heading	h2 The instrument freeze, proposals and root cause
+dev/programme/RULINGS.md	141	heading	h2 Process changes ruled 2026-11-13 and 2026-11-14
+dev/programme/RULINGS.md	169	heading	h2 Priority, caps and the critical path
+dev/programme/RULINGS.md	210	heading	h2 Merges, CI and reds
+dev/programme/RULINGS.md	243	heading	h2 Reviews
+dev/programme/RULINGS.md	257	heading	h2 Outside contributions
+dev/programme/RULINGS.md	272	heading	h2 Seats and models
+dev/programme/RULINGS.md	304	heading	h2 Record, handover and identity
+dev/programme/RULINGS.md	330	heading	h2 Releases
+dev/programme/RULINGS.md	345	heading	h2 Superseded, spent or expired
+tests/README.md	0	document	tests/README.md
+tests/README.md	1	heading	h1 Tests
+tests/README.md	26	heading	h2 The scoped gate
+tests/README.md	43	heading	h3 The gate lock on a shared box
+tests/README.md	67	heading	h3 How a closure is derived
+tests/README.md	99	heading	h3 What it actually saves
+tests/README.md	122	heading	h3 When it refuses to scope
+tests/README.md	138	heading	h3 Adding a test script
+tests/README.md	151	heading	h3 What you see when something is skipped
+tests/README.md	167	heading	h3 What the post-merge gate guarantees
+tests/README.md	212	heading	h2 The Home Assistant stub
+tests/README.md	220	heading	h3 When your change depends on how a Home Assistant API behaves
+tests/README.md	239	heading	h2 A test must never re-implement what it is testing
+tests/README.md	267	heading	h2 A knife-edge optimizer comparison must be measured across BLAS kernels
+tests/README.md	280	heading	h2 The two guards
+tests/README.md	339	heading	h2 Running one script at a time
+tests/README.md	370	heading	h2 What each script is for
+tests/README.md	450	heading	h2 Note on browser checks
+tools/audit/archscore/ABOUT.md	0	document	tools/audit/archscore/ABOUT.md
+tools/audit/archscore/ABOUT.md	1	heading	h1 The architecture score
+tools/audit/archscore/ABOUT.md	22	heading	h2 What it measures
+tools/audit/archscore/ABOUT.md	35	heading	h2 The counters
+tools/audit/archscore/ABOUT.md	75	heading	h2 The calibration
+tools/audit/archscore/ABOUT.md	89	heading	h3 What R9-EG-A4 moved
+tools/audit/archscore/ABOUT.md	99	heading	h3 What R10-ARCHSCORE-COVERAGE moved (ARCH-s3's three holes)
+tools/audit/archscore/ABOUT.md	111	heading	h3 What R10-FLY-ARCHSCORE-STMT-PACKING moved (C25)
+tools/audit/archscore/ABOUT.md	151	heading	h3 What R10-STRUCTURE-BLIND moved (D7-s1-01, D7-s3-01)
+tools/audit/archscore/ABOUT.md	164	heading	h3 What R10-ARCHSCORE-COVERAGE part 2 moved (the hub census: C15, C16)
+tools/audit/archscore/ABOUT.md	188	heading	h3 What R10-ARCHSCORE-COVERAGE part 3 moved (layering: `layer_violations`, `private_cross_module`)
+tools/audit/archscore/ABOUT.md	293	heading	h3 What R10-ARCHSCORE-COVERAGE part 4 moved (the card, and literal specs)
+tools/audit/archscore/ABOUT.md	337	heading	h3 What R10-ARCHSCORE-COVERAGE part 5 moved (the shape census, item 6)
+tools/audit/archscore/ABOUT.md	362	heading	h3 Where it differs from the pre-study's calibration (PRE-STUDY section 6)
+tools/audit/archscore/ABOUT.md	382	heading	h2 Changing it
+tools/audit/archscore/ABOUT.md	387	heading	h3 Interleaved junk: closed by the window, not by a list
+tools/audit/seat/INSTRUMENTS.md	0	document	tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/INSTRUMENTS.md	1	heading	h1 Instruments — the operator's guide to tools/audit/ and tools/audit/seat/
+tools/audit/seat/INSTRUMENTS.md	20	heading	h2 tools/audit/
+tools/audit/seat/INSTRUMENTS.md	22	link	instruments/app_approve.sh.md
+tools/audit/seat/INSTRUMENTS.md	23	link	instruments/app_comment.sh.md
+tools/audit/seat/INSTRUMENTS.md	24	link	instruments/app_push.sh.md
+tools/audit/seat/INSTRUMENTS.md	25	link	instruments/depgraph.py.md
+tools/audit/seat/INSTRUMENTS.md	26	link	instruments/figure_block.py.md
+tools/audit/seat/INSTRUMENTS.md	27	link	instruments/head_note.py.md
+tools/audit/seat/INSTRUMENTS.md	28	link	instruments/outside.py.md
+tools/audit/seat/INSTRUMENTS.md	29	link	instruments/role_pack.py.md
+tools/audit/seat/INSTRUMENTS.md	30	link	instruments/approve_held_runs.sh.md
+tools/audit/seat/INSTRUMENTS.md	31	link	instruments/check_scopes.py.md
+tools/audit/seat/INSTRUMENTS.md	32	link	instruments/enumerate.py.md
+tools/audit/seat/INSTRUMENTS.md	33	link	instruments/text_ledger.py.md
+tools/audit/seat/INSTRUMENTS.md	34	link	instruments/fold_ledger.py.md
+tools/audit/seat/INSTRUMENTS.md	35	link	instruments/judge_batch.py.md
+tools/audit/seat/INSTRUMENTS.md	36	link	instruments/machinery_ratchet.py.md
+tools/audit/seat/INSTRUMENTS.md	37	link	instruments/merge_fastpath.py.md
+tools/audit/seat/INSTRUMENTS.md	38	link	instruments/merge_throughput.py.md
+tools/audit/seat/INSTRUMENTS.md	39	link	instruments/preflight.sh.md
+tools/audit/seat/INSTRUMENTS.md	40	link	instruments/prepare_baseline.sh.md
+tools/audit/seat/INSTRUMENTS.md	41	link	instruments/prepr.sh.md
+tools/audit/seat/INSTRUMENTS.md	42	link	instruments/push.sh.md
+tools/audit/seat/INSTRUMENTS.md	43	link	instruments/worktree_gc.sh.md
+tools/audit/seat/INSTRUMENTS.md	45	heading	h2 tools/audit/seat/
+tools/audit/seat/INSTRUMENTS.md	54	link	instruments/features_block.py.md
+tools/audit/seat/INSTRUMENTS.md	55	link	instruments/mutant_run.py.md
+tools/audit/seat/INSTRUMENTS.md	56	link	instruments/body_push.sh.md
+tools/audit/seat/INSTRUMENTS.md	57	link	instruments/body_patch.sh.md
+tools/audit/seat/INSTRUMENTS.md	58	link	instruments/autofix_statuses.sh.md
+tools/audit/seat/INSTRUMENTS.md	59	link	instruments/bus.sh.md
+tools/audit/seat/INSTRUMENTS.md	60	link	instruments/review_packet.py.md
+tools/audit/seat/INSTRUMENTS.md	61	link	instruments/ci-watch.sh.md
+tools/audit/seat/INSTRUMENTS.md	62	link	instruments/ci_critpath.py.md
+tools/audit/seat/INSTRUMENTS.md	63	link	instruments/probe_bridge.py.md
+tools/audit/seat/INSTRUMENTS.md	64	link	instruments/cloud-setup.sh.md
+tools/audit/seat/INSTRUMENTS.md	65	link	instruments/cloud_dispatch.py.md
+tools/audit/seat/INSTRUMENTS.md	66	link	instruments/cloud_relay.sh.md
+tools/audit/seat/INSTRUMENTS.md	67	link	instruments/codeql-triage-poll.sh.md
+tools/audit/seat/INSTRUMENTS.md	68	link	instruments/daemonize.py.md
+tools/audit/seat/INSTRUMENTS.md	69	link	instruments/delivery_row.sh.md
+tools/audit/seat/INSTRUMENTS.md	70	link	instruments/failure_logs.sh.md
+tools/audit/seat/INSTRUMENTS.md	71	link	instruments/flow_metrics.py.md
+tools/audit/seat/INSTRUMENTS.md	72	link	instruments/gantt_drift.py.md
+tools/audit/seat/INSTRUMENTS.md	73	link	instruments/gh_read.py.md
+tools/audit/seat/INSTRUMENTS.md	74	link	instruments/gh_read_run.py.md
+tools/audit/seat/INSTRUMENTS.md	75	link	instruments/handoff_push.sh.md
+tools/audit/seat/INSTRUMENTS.md	76	link	instruments/handover_prompt.py.md
+tools/audit/seat/INSTRUMENTS.md	77	link	instruments/merge_pr.sh.md
+tools/audit/seat/INSTRUMENTS.md	78	link	instruments/merge_train.py.md
+tools/audit/seat/INSTRUMENTS.md	79	link	instruments/ledger.py.md
+tools/audit/seat/INSTRUMENTS.md	80	link	instruments/moved_paths.py.md
+tools/audit/seat/INSTRUMENTS.md	81	link	instruments/offline_spy.py.md
+tools/audit/seat/INSTRUMENTS.md	82	link	instruments/open_driver.py.md
+tools/audit/seat/INSTRUMENTS.md	83	link	instruments/seat_gen.py.md
+tools/audit/seat/INSTRUMENTS.md	84	link	instruments/open_pr.sh.md
+tools/audit/seat/INSTRUMENTS.md	85	link	instruments/orchestrator_tick.py.md
+tools/audit/seat/INSTRUMENTS.md	86	link	instruments/owed_unactioned.py.md
+tools/audit/seat/INSTRUMENTS.md	87	link	instruments/plan_audit.py.md
+tools/audit/seat/INSTRUMENTS.md	88	link	instruments/plan_page.py.md
+tools/audit/seat/INSTRUMENTS.md	89	link	instruments/plan_table.py.md
+tools/audit/seat/INSTRUMENTS.md	90	link	instruments/policy_reread_check.py.md
+tools/audit/seat/INSTRUMENTS.md	91	link	instruments/pr_args.sh.md
+tools/audit/seat/INSTRUMENTS.md	92	link	instruments/pr_cap.py.md
+tools/audit/seat/INSTRUMENTS.md	93	link	instruments/proof_watch.py.md
+tools/audit/seat/INSTRUMENTS.md	94	link	instruments/ci_probe.py.md
+tools/audit/seat/INSTRUMENTS.md	95	link	instruments/ci_priority.py.md
+tools/audit/seat/INSTRUMENTS.md	96	link	instruments/ci_pause.py.md
+tools/audit/seat/INSTRUMENTS.md	97	link	instruments/closeout.py.md
+tools/audit/seat/INSTRUMENTS.md	98	link	instruments/prune_refs.py.md
+tools/audit/seat/INSTRUMENTS.md	99	link	instruments/pulse.py.md
+tools/audit/seat/INSTRUMENTS.md	100	link	instruments/queue_pre_flight.py.md
+tools/audit/seat/INSTRUMENTS.md	101	link	instruments/record_row.py.md
+tools/audit/seat/INSTRUMENTS.md	102	link	instruments/ref_privacy.py.md
+tools/audit/seat/INSTRUMENTS.md	103	link	instruments/remerge_main.sh.md
+tools/audit/seat/INSTRUMENTS.md	104	link	instruments/cancel_superseded.py.md
+tools/audit/seat/INSTRUMENTS.md	105	link	instruments/run_twins.py.md
+tools/audit/seat/INSTRUMENTS.md	106	link	instruments/resume_doc.py.md
+tools/audit/seat/INSTRUMENTS.md	107	link	instruments/review_carry.py.md
+tools/audit/seat/INSTRUMENTS.md	108	link	instruments/review_strength.py.md
+tools/audit/seat/INSTRUMENTS.md	109	link	instruments/roster_edit.py.md
+tools/audit/seat/INSTRUMENTS.md	110	link	instruments/roster_lib.py.md
+tools/audit/seat/INSTRUMENTS.md	111	link	instruments/carry_fold.py.md
+tools/audit/seat/INSTRUMENTS.md	112	link	instruments/roster_sync.py.md
+tools/audit/seat/INSTRUMENTS.md	113	link	instruments/roster_queue.py.md
+tools/audit/seat/INSTRUMENTS.md	114	link	instruments/seat_venv.sh.md
+tools/audit/seat/INSTRUMENTS.md	115	link	instruments/selftest_wiring.py.md
+tools/audit/seat/INSTRUMENTS.md	116	link	instruments/tick_loop.sh.md
+tools/audit/seat/INSTRUMENTS.md	117	link	instruments/heartbeat.sh.md
+tools/audit/seat/INSTRUMENTS.md	118	link	instruments/beatd.py.md
+tools/audit/seat/INSTRUMENTS.md	119	link	instruments/beat_jobs.py.md
+tools/audit/seat/INSTRUMENTS.md	120	link	instruments/beatd_shims_git.md
+tools/audit/seat/INSTRUMENTS.md	121	link	instruments/train.sh.md
+tools/audit/seat/INSTRUMENTS.md	122	link	instruments/state_docs.py.md
+tools/audit/seat/INSTRUMENTS.md	123	link	instruments/plan_public.py.md
+tools/audit/seat/INSTRUMENTS.md	124	link	instruments/bottleneck_check.py.md
+tools/audit/seat/INSTRUMENTS.md	125	link	instruments/scorecard.py.md
+tools/audit/seat/INSTRUMENTS.md	126	link	instruments/round_metrics.py.md
+tools/audit/seat/INSTRUMENTS.md	127	link	instruments/plant_recall.py.md
+tools/audit/seat/INSTRUMENTS.md	128	link	instruments/finder_overlap.py.md
+tools/audit/seat/INSTRUMENTS.md	129	link	instruments/loop_ledger.py.md
+tools/audit/seat/INSTRUMENTS.md	130	link	instruments/outside_intake.py.md
+tools/audit/seat/INSTRUMENTS.md	131	link	instruments/postmerge.py.md
+tools/audit/seat/INSTRUMENTS.md	132	link	instruments/record_beat.py.md
+tools/audit/seat/INSTRUMENTS.md	133	link	instruments/sweep_driver.py.md
+tools/audit/seat/INSTRUMENTS.md	134	link	instruments/sweep_render.py.md
+tools/audit/seat/INSTRUMENTS.md	135	link	instruments/sweep_template.md.md
+tools/audit/seat/INSTRUMENTS.md	136	link	instruments/sweep_gantt.py.md
+tools/audit/seat/INSTRUMENTS.md	137	link	instruments/verdict_audit.py.md
+tools/audit/seat/INSTRUMENTS.md	138	link	instruments/survivor_list.py.md
+tools/audit/seat/INSTRUMENTS.md	139	link	instruments/bare_array.py.md
+tools/audit/seat/INSTRUMENTS.md	140	link	instruments/tmp_paths.py.md
+tools/audit/seat/INSTRUMENTS.md	141	link	instruments/update_pr.sh.md
+tools/audit/seat/INSTRUMENTS.md	142	link	instruments/wt_sync.sh.md
+tools/audit/seat/INSTRUMENTS.md	143	link	instruments/shims_seat-python.md
+tools/audit/seat/INSTRUMENTS.md	144	link	instruments/shims_seat-gh.md
+tools/audit/seat/INSTRUMENTS.md	145	link	instruments/gh_calls.py.md
+tools/audit/seat/INSTRUMENTS.md	146	link	instruments/hooks_setup.py.md
+tools/audit/seat/instruments/app_approve.sh.md	0	document	tools/audit/seat/instruments/app_approve.sh.md
+tools/audit/seat/instruments/app_approve.sh.md	1	heading	h1 `app_approve.sh`
+tools/audit/seat/instruments/app_comment.sh.md	0	document	tools/audit/seat/instruments/app_comment.sh.md
+tools/audit/seat/instruments/app_comment.sh.md	1	heading	h1 `app_comment.sh`
+tools/audit/seat/instruments/app_push.sh.md	0	document	tools/audit/seat/instruments/app_push.sh.md
+tools/audit/seat/instruments/app_push.sh.md	1	heading	h1 `app_push.sh`
+tools/audit/seat/instruments/approve_held_runs.sh.md	0	document	tools/audit/seat/instruments/approve_held_runs.sh.md
+tools/audit/seat/instruments/approve_held_runs.sh.md	1	heading	h1 `approve_held_runs.sh`
+tools/audit/seat/instruments/autofix_statuses.sh.md	0	document	tools/audit/seat/instruments/autofix_statuses.sh.md
+tools/audit/seat/instruments/autofix_statuses.sh.md	1	heading	h1 `autofix_statuses.sh`
+tools/audit/seat/instruments/bare_array.py.md	0	document	tools/audit/seat/instruments/bare_array.py.md
+tools/audit/seat/instruments/bare_array.py.md	1	heading	h1 `bare_array.py`
+tools/audit/seat/instruments/beat_jobs.py.md	0	document	tools/audit/seat/instruments/beat_jobs.py.md
+tools/audit/seat/instruments/beat_jobs.py.md	1	heading	h1 `beat_jobs.py`
+tools/audit/seat/instruments/beatd.py.md	0	document	tools/audit/seat/instruments/beatd.py.md
+tools/audit/seat/instruments/beatd.py.md	1	heading	h1 `beatd.py`
+tools/audit/seat/instruments/beatd_shims_git.md	0	document	tools/audit/seat/instruments/beatd_shims_git.md
+tools/audit/seat/instruments/beatd_shims_git.md	1	heading	h1 `beatd_shims/git`
+tools/audit/seat/instruments/body_patch.sh.md	0	document	tools/audit/seat/instruments/body_patch.sh.md
+tools/audit/seat/instruments/body_patch.sh.md	1	heading	h1 `body_patch.sh`
+tools/audit/seat/instruments/body_push.sh.md	0	document	tools/audit/seat/instruments/body_push.sh.md
+tools/audit/seat/instruments/body_push.sh.md	1	heading	h1 `body_push.sh`
+tools/audit/seat/instruments/bottleneck_check.py.md	0	document	tools/audit/seat/instruments/bottleneck_check.py.md
+tools/audit/seat/instruments/bottleneck_check.py.md	1	heading	h1 `bottleneck_check.py`
+tools/audit/seat/instruments/bus.sh.md	0	document	tools/audit/seat/instruments/bus.sh.md
+tools/audit/seat/instruments/bus.sh.md	1	heading	h1 `bus.sh`
+tools/audit/seat/instruments/cancel_superseded.py.md	0	document	tools/audit/seat/instruments/cancel_superseded.py.md
+tools/audit/seat/instruments/cancel_superseded.py.md	1	heading	h1 `cancel_superseded.py sweep`
+tools/audit/seat/instruments/carry_fold.py.md	0	document	tools/audit/seat/instruments/carry_fold.py.md
+tools/audit/seat/instruments/carry_fold.py.md	1	heading	h1 `carry_fold.py`
+tools/audit/seat/instruments/check_scopes.py.md	0	document	tools/audit/seat/instruments/check_scopes.py.md
+tools/audit/seat/instruments/check_scopes.py.md	1	heading	h1 `check_scopes.py`
+tools/audit/seat/instruments/ci-watch.sh.md	0	document	tools/audit/seat/instruments/ci-watch.sh.md
+tools/audit/seat/instruments/ci-watch.sh.md	1	heading	h1 `ci-watch.sh`
+tools/audit/seat/instruments/ci_critpath.py.md	0	document	tools/audit/seat/instruments/ci_critpath.py.md
+tools/audit/seat/instruments/ci_critpath.py.md	1	heading	h1 `ci_critpath.py`
+tools/audit/seat/instruments/ci_pause.py.md	0	document	tools/audit/seat/instruments/ci_pause.py.md
+tools/audit/seat/instruments/ci_pause.py.md	1	heading	h1 `ci_pause.py`
+tools/audit/seat/instruments/ci_priority.py.md	0	document	tools/audit/seat/instruments/ci_priority.py.md
+tools/audit/seat/instruments/ci_priority.py.md	1	heading	h1 `ci_priority.py`
+tools/audit/seat/instruments/ci_probe.py.md	0	document	tools/audit/seat/instruments/ci_probe.py.md
+tools/audit/seat/instruments/ci_probe.py.md	1	heading	h1 `ci_probe.py`
+tools/audit/seat/instruments/closeout.py.md	0	document	tools/audit/seat/instruments/closeout.py.md
+tools/audit/seat/instruments/closeout.py.md	1	heading	h1 `closeout.py`
+tools/audit/seat/instruments/cloud-setup.sh.md	0	document	tools/audit/seat/instruments/cloud-setup.sh.md
+tools/audit/seat/instruments/cloud-setup.sh.md	1	heading	h1 `cloud-setup.sh`
+tools/audit/seat/instruments/cloud_dispatch.py.md	0	document	tools/audit/seat/instruments/cloud_dispatch.py.md
+tools/audit/seat/instruments/cloud_dispatch.py.md	1	heading	h1 `cloud_dispatch.py`
+tools/audit/seat/instruments/cloud_relay.sh.md	0	document	tools/audit/seat/instruments/cloud_relay.sh.md
+tools/audit/seat/instruments/cloud_relay.sh.md	1	heading	h1 `cloud_relay.sh`
+tools/audit/seat/instruments/codeql-triage-poll.sh.md	0	document	tools/audit/seat/instruments/codeql-triage-poll.sh.md
+tools/audit/seat/instruments/codeql-triage-poll.sh.md	1	heading	h1 `codeql-triage-poll.sh`
+tools/audit/seat/instruments/daemonize.py.md	0	document	tools/audit/seat/instruments/daemonize.py.md
+tools/audit/seat/instruments/daemonize.py.md	1	heading	h1 `daemonize.py`
+tools/audit/seat/instruments/delivery_row.sh.md	0	document	tools/audit/seat/instruments/delivery_row.sh.md
+tools/audit/seat/instruments/delivery_row.sh.md	1	heading	h1 `delivery_row.sh`
+tools/audit/seat/instruments/depgraph.py.md	0	document	tools/audit/seat/instruments/depgraph.py.md
+tools/audit/seat/instruments/depgraph.py.md	1	heading	h1 `depgraph.py`
+tools/audit/seat/instruments/enumerate.py.md	0	document	tools/audit/seat/instruments/enumerate.py.md
+tools/audit/seat/instruments/enumerate.py.md	1	heading	h1 `enumerate.py`
+tools/audit/seat/instruments/failure_logs.sh.md	0	document	tools/audit/seat/instruments/failure_logs.sh.md
+tools/audit/seat/instruments/failure_logs.sh.md	1	heading	h1 `failure_logs.sh`
+tools/audit/seat/instruments/features_block.py.md	0	document	tools/audit/seat/instruments/features_block.py.md
+tools/audit/seat/instruments/features_block.py.md	1	heading	h1 `features_block.py`
+tools/audit/seat/instruments/figure_block.py.md	0	document	tools/audit/seat/instruments/figure_block.py.md
+tools/audit/seat/instruments/figure_block.py.md	1	heading	h1 `figure_block.py`
+tools/audit/seat/instruments/finder_overlap.py.md	0	document	tools/audit/seat/instruments/finder_overlap.py.md
+tools/audit/seat/instruments/finder_overlap.py.md	1	heading	h1 `finder_overlap.py`
+tools/audit/seat/instruments/flow_metrics.py.md	0	document	tools/audit/seat/instruments/flow_metrics.py.md
+tools/audit/seat/instruments/flow_metrics.py.md	1	heading	h1 `flow_metrics.py`
+tools/audit/seat/instruments/fold_ledger.py.md	0	document	tools/audit/seat/instruments/fold_ledger.py.md
+tools/audit/seat/instruments/fold_ledger.py.md	1	heading	h1 `fold_ledger.py`
+tools/audit/seat/instruments/gantt_drift.py.md	0	document	tools/audit/seat/instruments/gantt_drift.py.md
+tools/audit/seat/instruments/gantt_drift.py.md	1	heading	h1 `gantt_drift.py`
+tools/audit/seat/instruments/gh_calls.py.md	0	document	tools/audit/seat/instruments/gh_calls.py.md
+tools/audit/seat/instruments/gh_calls.py.md	1	heading	h1 `gh_calls.py`
+tools/audit/seat/instruments/gh_read.py.md	0	document	tools/audit/seat/instruments/gh_read.py.md
+tools/audit/seat/instruments/gh_read.py.md	1	heading	h1 `gh_read.py`
+tools/audit/seat/instruments/gh_read_run.py.md	0	document	tools/audit/seat/instruments/gh_read_run.py.md
+tools/audit/seat/instruments/gh_read_run.py.md	1	heading	h1 `gh_read_run.py`
+tools/audit/seat/instruments/handoff_push.sh.md	0	document	tools/audit/seat/instruments/handoff_push.sh.md
+tools/audit/seat/instruments/handoff_push.sh.md	1	heading	h1 `handoff_push.sh`
+tools/audit/seat/instruments/handover_prompt.py.md	0	document	tools/audit/seat/instruments/handover_prompt.py.md
+tools/audit/seat/instruments/handover_prompt.py.md	1	heading	h1 `handover_prompt.py`
+tools/audit/seat/instruments/head_note.py.md	0	document	tools/audit/seat/instruments/head_note.py.md
+tools/audit/seat/instruments/head_note.py.md	1	heading	h1 `head_note.py`
+tools/audit/seat/instruments/heartbeat.sh.md	0	document	tools/audit/seat/instruments/heartbeat.sh.md
+tools/audit/seat/instruments/heartbeat.sh.md	1	heading	h1 `heartbeat.sh`
+tools/audit/seat/instruments/hooks_setup.py.md	0	document	tools/audit/seat/instruments/hooks_setup.py.md
+tools/audit/seat/instruments/hooks_setup.py.md	1	heading	h1 `hooks_setup.py`
+tools/audit/seat/instruments/judge_batch.py.md	0	document	tools/audit/seat/instruments/judge_batch.py.md
+tools/audit/seat/instruments/judge_batch.py.md	1	heading	h1 `judge_batch.py`
+tools/audit/seat/instruments/ledger.py.md	0	document	tools/audit/seat/instruments/ledger.py.md
+tools/audit/seat/instruments/ledger.py.md	1	heading	h1 `ledger.py`
+tools/audit/seat/instruments/loop_ledger.py.md	0	document	tools/audit/seat/instruments/loop_ledger.py.md
+tools/audit/seat/instruments/loop_ledger.py.md	1	heading	h1 `loop_ledger.py`
+tools/audit/seat/instruments/machinery_ratchet.py.md	0	document	tools/audit/seat/instruments/machinery_ratchet.py.md
+tools/audit/seat/instruments/machinery_ratchet.py.md	1	heading	h1 `machinery_ratchet.py`
+tools/audit/seat/instruments/merge_fastpath.py.md	0	document	tools/audit/seat/instruments/merge_fastpath.py.md
+tools/audit/seat/instruments/merge_fastpath.py.md	1	heading	h1 `merge_fastpath.py`
+tools/audit/seat/instruments/merge_pr.sh.md	0	document	tools/audit/seat/instruments/merge_pr.sh.md
+tools/audit/seat/instruments/merge_pr.sh.md	1	heading	h1 `merge_pr.sh`
+tools/audit/seat/instruments/merge_throughput.py.md	0	document	tools/audit/seat/instruments/merge_throughput.py.md
+tools/audit/seat/instruments/merge_throughput.py.md	1	heading	h1 `merge_throughput.py`
+tools/audit/seat/instruments/merge_train.py.md	0	document	tools/audit/seat/instruments/merge_train.py.md
+tools/audit/seat/instruments/merge_train.py.md	1	heading	h1 `merge_train.py`
+tools/audit/seat/instruments/moved_paths.py.md	0	document	tools/audit/seat/instruments/moved_paths.py.md
+tools/audit/seat/instruments/moved_paths.py.md	1	heading	h1 `moved_paths.py`
+tools/audit/seat/instruments/mutant_run.py.md	0	document	tools/audit/seat/instruments/mutant_run.py.md
+tools/audit/seat/instruments/mutant_run.py.md	1	heading	h1 `mutant_run.py`
+tools/audit/seat/instruments/offline_spy.py.md	0	document	tools/audit/seat/instruments/offline_spy.py.md
+tools/audit/seat/instruments/offline_spy.py.md	1	heading	h1 `offline_spy.py`
+tools/audit/seat/instruments/open_driver.py.md	0	document	tools/audit/seat/instruments/open_driver.py.md
+tools/audit/seat/instruments/open_driver.py.md	1	heading	h1 `open_driver.py`
+tools/audit/seat/instruments/open_pr.sh.md	0	document	tools/audit/seat/instruments/open_pr.sh.md
+tools/audit/seat/instruments/open_pr.sh.md	1	heading	h1 `open_pr.sh`
+tools/audit/seat/instruments/orchestrator_tick.py.md	0	document	tools/audit/seat/instruments/orchestrator_tick.py.md
+tools/audit/seat/instruments/orchestrator_tick.py.md	1	heading	h1 `orchestrator_tick.py`
+tools/audit/seat/instruments/outside.py.md	0	document	tools/audit/seat/instruments/outside.py.md
+tools/audit/seat/instruments/outside.py.md	1	heading	h1 `outside.py`
+tools/audit/seat/instruments/outside_intake.py.md	0	document	tools/audit/seat/instruments/outside_intake.py.md
+tools/audit/seat/instruments/outside_intake.py.md	1	heading	h1 `outside_intake.py`
+tools/audit/seat/instruments/owed_unactioned.py.md	0	document	tools/audit/seat/instruments/owed_unactioned.py.md
+tools/audit/seat/instruments/owed_unactioned.py.md	1	heading	h1 `owed_unactioned.py`
+tools/audit/seat/instruments/plan_audit.py.md	0	document	tools/audit/seat/instruments/plan_audit.py.md
+tools/audit/seat/instruments/plan_audit.py.md	1	heading	h1 `plan_audit.py`
+tools/audit/seat/instruments/plan_page.py.md	0	document	tools/audit/seat/instruments/plan_page.py.md
+tools/audit/seat/instruments/plan_page.py.md	1	heading	h1 `plan_page.py`
+tools/audit/seat/instruments/plan_public.py.md	0	document	tools/audit/seat/instruments/plan_public.py.md
+tools/audit/seat/instruments/plan_public.py.md	1	heading	h1 `plan_public.py`
+tools/audit/seat/instruments/plan_table.py.md	0	document	tools/audit/seat/instruments/plan_table.py.md
+tools/audit/seat/instruments/plan_table.py.md	1	heading	h1 `plan_table.py`
+tools/audit/seat/instruments/plant_recall.py.md	0	document	tools/audit/seat/instruments/plant_recall.py.md
+tools/audit/seat/instruments/plant_recall.py.md	1	heading	h1 `plant_recall.py`
+tools/audit/seat/instruments/policy_reread_check.py.md	0	document	tools/audit/seat/instruments/policy_reread_check.py.md
+tools/audit/seat/instruments/policy_reread_check.py.md	1	heading	h1 `policy_reread_check.py`
+tools/audit/seat/instruments/postmerge.py.md	0	document	tools/audit/seat/instruments/postmerge.py.md
+tools/audit/seat/instruments/postmerge.py.md	1	heading	h1 `postmerge.py`
+tools/audit/seat/instruments/pr_args.sh.md	0	document	tools/audit/seat/instruments/pr_args.sh.md
+tools/audit/seat/instruments/pr_args.sh.md	1	heading	h1 `pr_args.sh`
+tools/audit/seat/instruments/pr_cap.py.md	0	document	tools/audit/seat/instruments/pr_cap.py.md
+tools/audit/seat/instruments/pr_cap.py.md	1	heading	h1 `pr_cap.py`
+tools/audit/seat/instruments/preflight.sh.md	0	document	tools/audit/seat/instruments/preflight.sh.md
+tools/audit/seat/instruments/preflight.sh.md	1	heading	h1 `preflight.sh`
+tools/audit/seat/instruments/prepare_baseline.sh.md	0	document	tools/audit/seat/instruments/prepare_baseline.sh.md
+tools/audit/seat/instruments/prepare_baseline.sh.md	1	heading	h1 `prepare_baseline.sh`
+tools/audit/seat/instruments/prepr.sh.md	0	document	tools/audit/seat/instruments/prepr.sh.md
+tools/audit/seat/instruments/prepr.sh.md	1	heading	h1 `prepr.sh`
+tools/audit/seat/instruments/probe_bridge.py.md	0	document	tools/audit/seat/instruments/probe_bridge.py.md
+tools/audit/seat/instruments/probe_bridge.py.md	1	heading	h1 `probe_bridge.py`
+tools/audit/seat/instruments/proof_watch.py.md	0	document	tools/audit/seat/instruments/proof_watch.py.md
+tools/audit/seat/instruments/proof_watch.py.md	1	heading	h1 `proof_watch.py`
+tools/audit/seat/instruments/prune_refs.py.md	0	document	tools/audit/seat/instruments/prune_refs.py.md
+tools/audit/seat/instruments/prune_refs.py.md	1	heading	h1 `prune_refs.py`
+tools/audit/seat/instruments/pulse.py.md	0	document	tools/audit/seat/instruments/pulse.py.md
+tools/audit/seat/instruments/pulse.py.md	1	heading	h1 `pulse.py`
+tools/audit/seat/instruments/push.sh.md	0	document	tools/audit/seat/instruments/push.sh.md
+tools/audit/seat/instruments/push.sh.md	1	heading	h1 `push.sh`
+tools/audit/seat/instruments/queue_pre_flight.py.md	0	document	tools/audit/seat/instruments/queue_pre_flight.py.md
+tools/audit/seat/instruments/queue_pre_flight.py.md	1	heading	h1 `queue_pre_flight.py`
+tools/audit/seat/instruments/record_beat.py.md	0	document	tools/audit/seat/instruments/record_beat.py.md
+tools/audit/seat/instruments/record_beat.py.md	1	heading	h1 `record_beat.py`
+tools/audit/seat/instruments/record_row.py.md	0	document	tools/audit/seat/instruments/record_row.py.md
+tools/audit/seat/instruments/record_row.py.md	1	heading	h1 `record_row.py`
+tools/audit/seat/instruments/ref_privacy.py.md	0	document	tools/audit/seat/instruments/ref_privacy.py.md
+tools/audit/seat/instruments/ref_privacy.py.md	1	heading	h1 `ref_privacy.py`
+tools/audit/seat/instruments/remerge_main.sh.md	0	document	tools/audit/seat/instruments/remerge_main.sh.md
+tools/audit/seat/instruments/remerge_main.sh.md	1	heading	h1 `remerge_main.sh`
+tools/audit/seat/instruments/resume_doc.py.md	0	document	tools/audit/seat/instruments/resume_doc.py.md
+tools/audit/seat/instruments/resume_doc.py.md	1	heading	h1 `resume_doc.py`
+tools/audit/seat/instruments/review_carry.py.md	0	document	tools/audit/seat/instruments/review_carry.py.md
+tools/audit/seat/instruments/review_carry.py.md	1	heading	h1 `review_carry.py`
+tools/audit/seat/instruments/review_packet.py.md	0	document	tools/audit/seat/instruments/review_packet.py.md
+tools/audit/seat/instruments/review_packet.py.md	1	heading	h1 `review_packet.py`
+tools/audit/seat/instruments/review_strength.py.md	0	document	tools/audit/seat/instruments/review_strength.py.md
+tools/audit/seat/instruments/review_strength.py.md	1	heading	h1 `review_strength.py`
+tools/audit/seat/instruments/role_pack.py.md	0	document	tools/audit/seat/instruments/role_pack.py.md
+tools/audit/seat/instruments/role_pack.py.md	1	heading	h1 `role_pack.py`
+tools/audit/seat/instruments/roster_edit.py.md	0	document	tools/audit/seat/instruments/roster_edit.py.md
+tools/audit/seat/instruments/roster_edit.py.md	1	heading	h1 `roster_edit.py`
+tools/audit/seat/instruments/roster_lib.py.md	0	document	tools/audit/seat/instruments/roster_lib.py.md
+tools/audit/seat/instruments/roster_lib.py.md	1	heading	h1 `roster_lib.py`
+tools/audit/seat/instruments/roster_queue.py.md	0	document	tools/audit/seat/instruments/roster_queue.py.md
+tools/audit/seat/instruments/roster_queue.py.md	1	heading	h1 `roster_queue.py`
+tools/audit/seat/instruments/roster_sync.py.md	0	document	tools/audit/seat/instruments/roster_sync.py.md
+tools/audit/seat/instruments/roster_sync.py.md	1	heading	h1 `roster_sync.py`
+tools/audit/seat/instruments/round_metrics.py.md	0	document	tools/audit/seat/instruments/round_metrics.py.md
+tools/audit/seat/instruments/round_metrics.py.md	1	heading	h1 `round_metrics.py`
+tools/audit/seat/instruments/run_twins.py.md	0	document	tools/audit/seat/instruments/run_twins.py.md
+tools/audit/seat/instruments/run_twins.py.md	1	heading	h1 `run_twins.py`
+tools/audit/seat/instruments/scorecard.py.md	0	document	tools/audit/seat/instruments/scorecard.py.md
+tools/audit/seat/instruments/scorecard.py.md	1	heading	h1 `scorecard.py`
+tools/audit/seat/instruments/seat_gen.py.md	0	document	tools/audit/seat/instruments/seat_gen.py.md
+tools/audit/seat/instruments/seat_gen.py.md	1	heading	h1 `seat_gen.py`
+tools/audit/seat/instruments/seat_venv.sh.md	0	document	tools/audit/seat/instruments/seat_venv.sh.md
+tools/audit/seat/instruments/seat_venv.sh.md	1	heading	h1 `seat_venv.sh`
+tools/audit/seat/instruments/selftest_wiring.py.md	0	document	tools/audit/seat/instruments/selftest_wiring.py.md
+tools/audit/seat/instruments/selftest_wiring.py.md	1	heading	h1 `selftest_wiring.py`
+tools/audit/seat/instruments/shims_seat-gh.md	0	document	tools/audit/seat/instruments/shims_seat-gh.md
+tools/audit/seat/instruments/shims_seat-gh.md	1	heading	h1 `shims/seat-gh`
+tools/audit/seat/instruments/shims_seat-python.md	0	document	tools/audit/seat/instruments/shims_seat-python.md
+tools/audit/seat/instruments/shims_seat-python.md	1	heading	h1 `shims/seat-python`, `shims/seat-python3`
+tools/audit/seat/instruments/state_docs.py.md	0	document	tools/audit/seat/instruments/state_docs.py.md
+tools/audit/seat/instruments/state_docs.py.md	1	heading	h1 `state_docs.py`
+tools/audit/seat/instruments/survivor_list.py.md	0	document	tools/audit/seat/instruments/survivor_list.py.md
+tools/audit/seat/instruments/survivor_list.py.md	1	heading	h1 `survivor_list.py`
+tools/audit/seat/instruments/sweep_driver.py.md	0	document	tools/audit/seat/instruments/sweep_driver.py.md
+tools/audit/seat/instruments/sweep_driver.py.md	1	heading	h1 `sweep_driver.py`
+tools/audit/seat/instruments/sweep_gantt.py.md	0	document	tools/audit/seat/instruments/sweep_gantt.py.md
+tools/audit/seat/instruments/sweep_gantt.py.md	1	heading	h1 `sweep_gantt.py`
+tools/audit/seat/instruments/sweep_render.py.md	0	document	tools/audit/seat/instruments/sweep_render.py.md
+tools/audit/seat/instruments/sweep_render.py.md	1	heading	h1 `sweep_render.py`
+tools/audit/seat/instruments/sweep_template.md.md	0	document	tools/audit/seat/instruments/sweep_template.md.md
+tools/audit/seat/instruments/sweep_template.md.md	1	heading	h1 `sweep_template.md`
+tools/audit/seat/instruments/text_ledger.py.md	0	document	tools/audit/seat/instruments/text_ledger.py.md
+tools/audit/seat/instruments/text_ledger.py.md	1	heading	h1 `text_ledger.py`
+tools/audit/seat/instruments/tick_loop.sh.md	0	document	tools/audit/seat/instruments/tick_loop.sh.md
+tools/audit/seat/instruments/tick_loop.sh.md	1	heading	h1 `tick_loop.sh`
+tools/audit/seat/instruments/tmp_paths.py.md	0	document	tools/audit/seat/instruments/tmp_paths.py.md
+tools/audit/seat/instruments/tmp_paths.py.md	1	heading	h1 `tmp_paths.py`
+tools/audit/seat/instruments/train.sh.md	0	document	tools/audit/seat/instruments/train.sh.md
+tools/audit/seat/instruments/train.sh.md	1	heading	h1 `train.sh`
+tools/audit/seat/instruments/update_pr.sh.md	0	document	tools/audit/seat/instruments/update_pr.sh.md
+tools/audit/seat/instruments/update_pr.sh.md	1	heading	h1 `update_pr.sh`
+tools/audit/seat/instruments/verdict_audit.py.md	0	document	tools/audit/seat/instruments/verdict_audit.py.md
+tools/audit/seat/instruments/verdict_audit.py.md	1	heading	h1 `verdict_audit.py`
+tools/audit/seat/instruments/worktree_gc.sh.md	0	document	tools/audit/seat/instruments/worktree_gc.sh.md
+tools/audit/seat/instruments/worktree_gc.sh.md	1	heading	h1 `worktree_gc.sh`
+tools/audit/seat/instruments/wt_sync.sh.md	0	document	tools/audit/seat/instruments/wt_sync.sh.md
+tools/audit/seat/instruments/wt_sync.sh.md	1	heading	h1 `wt_sync.sh`
+tools/audit/seat/sweep_template.md	0	document	tools/audit/seat/sweep_template.md
+tools/audit/seat/sweep_template.md	1	heading	h1 The orchestrator sweep, as a template
+tools/audit/seat/sweep_template.md	25	heading	h2 Placeholders
+tools/pr/README.md	0	document	tools/pr/README.md
+tools/pr/README.md	1	heading	h1 Pull-request instruments

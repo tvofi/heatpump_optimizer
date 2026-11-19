@@ -1,0 +1,52 @@
+{
+ "id": "D17-s3-01",
+ "scope": "D17-s3",
+ "step": "D17.M3",
+ "title": "run_optimization re-solves without fetching inputs or publishing the plan; Optimize Now does both",
+ "severity": "medium",
+ "claim": "After the entry's price feed rises 0.5 -> 2.0 /kWh, a heatpump_optimizer.run_optimization call leaves the published plan priced at 0.5 with its last_optimization stamp unmoved, while the Optimize Now button, documented as doing the same thing, publishes 2.0 and a new stamp.",
+ "mechanism": "services.handle_run_optimization awaits coordinator.async_run_optimization only, which solves from the cached price/forecast arrays (_forecast_arrays) and stores the result privately; nothing rebuilds coordinator.data. ForceOptimizationButton.async_press runs the same solve and then requests a coordinator refresh, which fetches and republishes. The plan sensors and the card keep showing the previous plan until the next scheduled update interval.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/f01_run_optimization.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s3/f01_run_optimization.py",
+  "value": 0.5,
+  "unit": "SEK/kWh published first-step price after the call (documented 2.0)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 (shared, three compute seats)",
+  "cpu_or_wall": "count",
+  "contention_note": "two other finder seats on the box; the number is a published value, contention-immune",
+  "tolerance": "exact",
+  "load1": 3.52,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/services.py:handle_run_optimization",
+ "perturbation": {
+  "change": "handle_run_optimization followed by coord.async_request_refresh() for each loaded coordinator (the button's tail), swapped in memory: f01_run_optimization.py --perturb",
+  "expected_direction": "up",
+  "observed_value": 2.0
+ },
+ "metric_definition": "coordinator.data['schedule'][0]['price'] (and whether data['last_optimization'] moved) after the price feed rises to 2.0 and the action is called",
+ "null_control": {
+  "command": "same harness, button arm (button.heat_pump_optimizer_optimize_now.async_press)",
+  "value": 2.0,
+  "note": "the documented twin of the action publishes the new price and a new stamp (button_plan_republished=1)"
+ },
+ "phenomenon_property": "A user-facing 'run the optimization now' entry point (action or button) ends with the fetched inputs solved and the resulting plan published to coordinator.data, the same for every entry point.",
+ "seam_rule": "grep -n 'async_run_optimization()' custom_components/heatpump_optimizer/services.py custom_components/heatpump_optimizer/button.py",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/services.py",
+  "custom_components/heatpump_optimizer/button.py",
+  "custom_components/heatpump_optimizer/strings.json",
+  "README.md",
+  "docs/configuration.md"
+ ],
+ "reproduction_steps": [
+  "Set up an entry with an entity price feed at 0.5",
+  "Raise the feed to 2.0",
+  "Call heatpump_optimizer.run_optimization",
+  "Read sensor.heat_pump_optimizer_cost_current_electricity_price / the plan sensors: still 0.5 and the old plan; press Optimize Now: 2.0"
+ ],
+ "proposed_fix_scope": "services.handle_run_optimization: after a run that returned None, request (or await) the coordinator refresh as the button does, so the action fetches and publishes; reconcile strings.json's 'does not fetch new ones' with README/configuration.md in the same change."
+}

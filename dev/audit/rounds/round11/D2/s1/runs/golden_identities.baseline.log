@@ -1,0 +1,75 @@
+winter_single_dhw            econ[space=2.09e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.106K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.30e-14 mono=0]
+winter_two_zone_dhw          econ[space=1.82e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.967 max|4x15-1h|=0.151K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=1.91e-14 mono=0]
+winter_single_no_dhw         econ[space=2.49e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.967 max|4x15-1h|=0.105K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.56e-14 mono=0]
+winter_two_zone_no_dhw       econ[space=1.93e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.974 max|4x15-1h|=0.155K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.04e-14 mono=0]
+summer_dhw_only              econ[space=2.65e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.973 max|4x15-1h|=0.0173K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.35e-14 mono=0]
+shoulder                     econ[space=2.79e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.968 max|4x15-1h|=0.0295K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.46e-14 mono=0]
+shoulder_two_zone            econ[space=2.04e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.971 max|4x15-1h|=0.117K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=1.87e-14 mono=0]
+extreme_prices               econ[space=2.36e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.105K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.28e-14 mono=0]
+negative_prices              econ[space=2.65e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.973 max|4x15-1h|=0.0173K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.35e-14 mono=0]
+flat_prices                  econ[space=2.80e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.974 max|4x15-1h|=0.055K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.56e-14 mono=0]
+mild_windy_rain              econ[space=2.44e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=1.003 max|4x15-1h|=0.181K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.41e-14 mono=0]
+cool_rainy_summer            econ[space=2.25e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.971 max|4x15-1h|=0.0151K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.58e-14 mono=0]
+legionella_due               econ[space=2.09e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.106K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.30e-14 mono=0]
+legionella_off               econ[space=2.32e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.984 max|4x15-1h|=0.106K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.51e-14 mono=0]
+legionella_due_low_setpoint  econ[space=2.49e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.967 max|4x15-1h|=0.102K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.50e-14 mono=0]
+dhw_schedule_off             econ[space=2.44e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.0944K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.50e-14 mono=0]
+dhw_learned_windows          econ[space=2.07e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.102K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.65e-14 mono=0]
+dhw_cold_tank                econ[space=2.31e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.978 max|4x15-1h|=0.103K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.45e-14 mono=0]
+dhw_large_tank               econ[space=2.35e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.983 max|4x15-1h|=0.0992K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.46e-14 mono=0]
+start_below_band             econ[space=2.40e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.970 max|4x15-1h|=0.092K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.35e-14 mono=0]
+start_above_band             econ[space=2.44e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.969 max|4x15-1h|=0.108K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.35e-14 mono=0]
+narrow_band                  econ[space=2.26e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.968 max|4x15-1h|=0.0836K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.51e-14 mono=0]
+wide_band                    econ[space=2.24e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.998 max|4x15-1h|=0.115K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.13e-14 mono=0]
+horizon_48h                  econ[space=2.53e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=48 worst_ratio=0.966 max|4x15-1h|=0.106K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.57e-14 mono=0]
+horizon_6h                   econ[space=1.95e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=6 worst_ratio=0.967 max|4x15-1h|=0.0564K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.51e-14 mono=0]
+capacity_tariff              econ[space=2.19e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.971 max|4x15-1h|=0.0754K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.23e-14 mono=0]
+capacity_tariff_15min        econ[space=2.38e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.982 max|4x15-1h|=0.0739K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.40e-14 mono=0]
+cycling_cost                 econ[space=2.49e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.0987K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.60e-14 mono=0]
+external_heat_active         econ[space=2.28e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.108K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.51e-14 mono=0]
+cop_scale_learned            econ[space=2.31e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.968 max|4x15-1h|=0.146K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.54e-14 mono=0]
+away_setback                 econ[space=2.14e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.969 max|4x15-1h|=0.0508K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.38e-14 mono=0]
+building_preset              econ[space=4.22e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.973 max|4x15-1h|=0.111K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=4.83e-14 mono=0]
+valve_storage                econ[space=1.91e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=1.146 max|4x15-1h|=0.593K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=40/192(6.1kWh) lift>1=36/192 mh[econ=1.94e-14 mono=0]
+valve_storage_low_target     econ[space=1.91e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=1.746 max|4x15-1h|=1.33K nonconv=2] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=21/192(2.21kWh) lift>1=86/192 mh[econ=1.94e-14 mono=0]
+valve_storage_flat_prices    econ[space=1.75e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=1.114 max|4x15-1h|=0.66K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=20/192(0.604kWh) lift>1=0/192 mh[econ=1.64e-14 mono=0]
+valve_storage_small_tank     econ[space=1.97e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=1.000 max|4x15-1h|=0.0131K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=289/1728(57.3kWh) lift>1=452/1728 mh[econ=2.09e-14 mono=0]
+valve_storage_smart_write    econ[space=1.80e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.978 max|4x15-1h|=0.557K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=27/192(5.36kWh) lift>1=126/192 mh[econ=1.89e-14 mono=0]
+wood_two_tank                econ[space=1.65e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=1.942 max|4x15-1h|=0.626K nonconv=1] mono[space=6381(0.00363K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=18/192(1.72kWh) lift>1=70/192 mh[econ=1.91e-14 mono=0]
+wood_two_tank_smart_write    econ[space=1.91e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=1.013 max|4x15-1h|=0.749K nonconv=0] mono[space=3750(0.00444K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=28/192(6.31kWh) lift>1=140/192 mh[econ=2.07e-14 mono=0]
+wood_coil                    econ[space=1.87e-14 dhw=1.33e-15 coil=1.03e-15] dt[blocks=24 worst_ratio=1.902 max|4x15-1h|=0.646K nonconv=2] mono[space=3654(0.0049K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=15/192(2.41kWh) lift>1=166/288 mh[econ=1.93e-14 mono=0]
+valve_upper_direct_slab      econ[space=1.78e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.956 max|4x15-1h|=0.624K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=38/192(5.46kWh) lift>1=0/192 mh[econ=1.75e-14 mono=0]
+tariff_plus_two_zone         econ[space=2.00e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.117K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=1.69e-14 mono=0]
+everything_on                econ[space=1.73e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.964 max|4x15-1h|=0.173K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=1.94e-14 mono=0]
+peak_masked                  econ[space=2.46e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.967 max|4x15-1h|=0.105K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.42e-14 mono=0]
+price_risk                   econ[space=2.24e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.966 max|4x15-1h|=0.0816K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.76e-14 mono=0]
+fuse_guard                   econ[space=2.58e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.968 max|4x15-1h|=0.0566K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.83e-14 mono=0]
+capacity_curve               econ[space=2.33e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.967 max|4x15-1h|=0.0816K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.51e-14 mono=0]
+precip_snow                  econ[space=2.35e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.998 max|4x15-1h|=0.181K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.47e-14 mono=0]
+confidence_margins           econ[space=2.29e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.969 max|4x15-1h|=0.0775K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=0/0 mh[econ=2.33e-14 mono=0]
+direct_flow_carnot           econ[space=2.31e-14 dhw=0.00e+00 coil=0.00e+00] dt[blocks=24 worst_ratio=0.971 max|4x15-1h|=0.0772K nonconv=0] mono[space=0(0K) dhw=0(0K)] bounds[rep=0 cap=0 fix=0 worst=0K ] valve_reverse=0/0(0kWh) lift>1=192/192 mh[econ=2.40e-14 mono=0]
+RESULT scenarios=50
+RESULT published_calls_found=50
+RESULT econ_space_max_residual=4.219e-14 kWh
+RESULT econ_dhw_max_residual=1.332e-15 kWh
+RESULT econ_coil_max_residual=1.027e-15 kWh
+RESULT econ_scenarios_failing_1e-9=0 scenarios
+RESULT dt_nonconvergent_cells=5 cells
+RESULT dt_worst_error_ratio_normalised=1.9423
+RESULT dt_worst_abs_4x15_vs_1h=1.328 K
+RESULT power_monotone_space_violations=13785 cells
+RESULT power_monotone_space_worst=0.004904 K
+RESULT power_monotone_dhw_violations=0 cells
+RESULT store_bounds_violations_replay=0 samples
+RESULT store_bounds_violations_capture=0 samples
+RESULT store_bounds_violations_fixture=0 samples
+RESULT store_bounds_worst_excursion=0 K
+RESULT valve_reverse_deliveries=496 calls
+RESULT valve_reverse_kwh=87.52 kWh
+RESULT flow_lift_factor_gt1_calls=1268 calls
+RESULT measured_heat_econ_max_residual=4.829e-14 kWh
+RESULT measured_heat_monotone_violations=0 cells
+RESULT thread_factor=1.0
+RESULT load1=3.48
+RESULT swapins=0
+done

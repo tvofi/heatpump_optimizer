@@ -1,0 +1,54 @@
+{
+ "id": "D9-s3-01",
+ "scope": "D9-s3",
+ "step": "D9.M2",
+ "title": "Stress memory channel probes 6 of 54 scenarios: a 2x retained-bytes regression in any of the other 48 passes",
+ "severity": "medium",
+ "claim": "With a ballast equal to each scenario's recorded traced peak retained inside HeatPumpOptimizer.optimize (a 2x traced regression), the gate's own thresholds flag 54/54 probe readings, but the memory pass only probes the 6 labels _memory_probe_labels selects, so a 2x confined to any of the other 48 scenarios passes green, while the pass's detection check ('budgets tight enough to see a 2x') reports green on multiples computed over all recorded rows.",
+ "mechanism": "tests/stress.py's memory pass (check mode) probes MEMORY_TOP_N=6 labels chosen from the committed table (3 by traced_peak_mb, 3 by rss_peak_mb); the other rows of stress_budgets.json are never measured in a gate run. The detection-sizing check computes rss/traced threshold multiples (1.5x) over every recorded row and prints them 'over the 6 scenario(s) this pass probes', so it holds the thresholds to DETECTION_TARGET but never the sampling. Corollary from the null arm: on this box's clean tree 9 of the 48 unprobed rows already read 1.6-2.3x their record (their records are never re-read), so the table's unprobed half is unverified.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --jobs 2",
+  "harness_path": "dev/audit/rounds/round11/D9/s3/mem_confined.py",
+  "value": 48,
+  "unit": "scenarios where an injected 2x traced regression is flagged by the gate's thresholds but never probed (blind_confined); detected_confined=6 of 54",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "cloud box B3, Linux x86_64 4 vCPU shared by up to 3 compute seats, Python 3.14.7, numpy 2.5.4",
+  "cpu_or_wall": "count",
+  "contention_note": "two other compute seats on the box, load1 11.3; the count is of bytes-based verdicts and does not depend on timing",
+  "tolerance": "exact (probe set is a pure function of the committed table)",
+  "load1": 11.33,
+  "thread_factor": 1.034
+ },
+ "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (ballast retained there, read through stress._run_memory_probe / traced_fail_threshold / rss_attrib_fail_threshold and the gate's _memory_probe_labels exec'd from tests/stress.py)",
+ "perturbation": {
+  "change": "--top-n 108 (the gate's STRESS_MEMORY_TOP_N raised past the scenario count, so the pass probes every scenario)",
+  "expected_direction": "down",
+  "observed_value": "--top-n 108: probed_by_gate=54, detected_confined=54, blind_confined=0 (out_mem_topn108.txt)"
+ },
+ "metric_definition": "Per sweep scenario: detected = in the gate's memory probe set AND the gate's own traced/RSS thresholds fire on the probe reading with a retained ballast of 1x the recorded traced peak.",
+ "phenomenon_property": "Every scenario whose memory peak is recorded in tests/stress_budgets.json must be re-measured by a gate run (or the detection check must count only the rows it re-measures), so that a 2x memory regression confined to any recorded scenario fails the gate.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --ballast-factor 1.0  (BLIND line lists every recorded scenario the pass does not probe)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/mem_confined.py --jobs 2 --ballast-factor 0",
+  "value": "detected_confined=0, flagged_if_probed=9 (all 9 unprobed)",
+  "note": "No injection: the 6 probed scenarios read inside 1.5x (no false positive); the injection is what moves the probed set to flagged. 9 unprobed rows read 1.6-2.3x their record clean on this box, so 39 of the 48 blind scenarios are blind to the injection alone."
+ },
+ "leave_one_out": {
+  "cells": 54,
+  "min": 1.538,
+  "max": 3.29,
+  "drop_most_favourable": 1.538
+ },
+ "reproduction_steps": [
+  "Run the harness with default args: RESULT detected_confined=6, blind_confined=48.",
+  "Run with --ballast-factor 0: detected_confined=0 (null).",
+  "Run with --top-n 108: detected_confined rises to the scenarios flagged."
+ ],
+ "proposed_fix_scope": "tests/stress.py memory pass: probe every recorded scenario in check mode (or rotate a deterministic subset with a per-run budget and make the detection check judge only the probed rows); re-record the memory half on the CI platform after.",
+ "files": [
+  "tests/stress.py",
+  "tests/stress_budgets.json"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I1"
+}

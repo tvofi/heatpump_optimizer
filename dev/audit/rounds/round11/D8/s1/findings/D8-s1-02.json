@@ -1,0 +1,44 @@
+{
+  "id": "D8-s1-02",
+  "scope": "D8-s1",
+  "step": "D8.M2",
+  "title": "Plan Monthly Savings publishes the open month extrapolated from one settled interval (x2688 to x2976)",
+  "severity": "high",
+  "claim": "Through the production cycle, the first numeric state Plan Monthly Savings publishes in a new month is one settled 15-minute interval's saving multiplied by the coverage factor 2688 (Feb) / 2976 (Jan, install month), and the state swings by over 1700 in currency within the first hour (-1728.39, -1232.94, -1398.17, then 18.44).",
+  "mechanism": "ledger.MonthlyLedger.savings_months scales every open-month figure by ledger.coverage_factor = month_hours / settled_hours with no floor on settled hours; MonthlySavingsSensor._waiting_for only asks for a row to exist, so the sensor publishes the estimate from the first booked interval. The sensor is enabled by default and is the card's savings headline (statEntity(\"_plan_monthly_savings\")).",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py -v",
+    "harness_path": "dev/audit/rounds/round11/D8/s1/monthly.py",
+    "value": 2688.0,
+    "unit": "coverage factor applied to the first numeric state of the new month (ratio); swing over the first four numeric states 1728.39 currency",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "B4 orchestrator macOS (darwin), ~/.local/state/hpo/venv-ci python3",
+    "cpu_or_wall": "ratio",
+    "contention_note": "shared box with other finder seats running; deterministic (frozen clock, injected prices and inputs, no network)",
+    "tolerance": "exact",
+    "load1": 212.99,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.sensor:MonthlySavingsSensor (native_value, available, _waiting_for); heatpump_optimizer.ledger:MonthlyLedger.savings_months and coverage_factor",
+  "perturbation": {
+    "change": "--min-hours 24: MonthlySavingsSensor._waiting_for also waits until the open month has 24 settled hours (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0
+  },
+  "metric_definition": "ledger.coverage_factor of the open month on the first cycle of the month whose MonthlySavingsSensor state is a number",
+  "phenomenon_property": "A published open-month money estimate is not extrapolated from a settled span too short to bound it: the multiplier applied to the settled figures stays bounded (no estimate before a minimum settled coverage).",
+  "seam_rule": "dev/audit/rounds/round11/D8/s1/monthly.py -v (every published reader of ledger.coverage_factor-scaled open-month figures: grep -n coverage_factor custom_components/heatpump_optimizer/*.py)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s1/monthly.py --gate-waiting",
+    "value": "first_scale=2688.0, swing=1728.39",
+    "note": "the availability-only gate (finding D8-s1-03's fix) leaves the extrapolation unchanged; only the coverage floor moves it"
+  },
+  "reproduction_steps": [
+    "run the command: 2026-01-31T22:15 state -2040.75 at factor 2976.0; 2026-02-01T00:15 state -1728.39 at factor 2688.0; 01:00 state 18.44",
+    "run with --min-hours 24: no numeric state in the window, first_scale=0.0"
+  ],
+  "proposed_fix_scope": "a minimum settled coverage before the open month's estimate is published (sensor-side waiting_for or ledger-side), so the published multiplier is bounded",
+  "files": ["custom_components/heatpump_optimizer/sensor.py", "custom_components/heatpump_optimizer/ledger.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "new"
+}

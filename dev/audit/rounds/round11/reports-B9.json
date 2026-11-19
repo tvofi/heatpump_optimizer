@@ -1,0 +1,307 @@
+{
+  "box": "B9",
+  "missing": [],
+  "reports": {
+    "D4-s1": {
+      "dimension": "D4",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D4/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D4.M1",
+          "enumerator": "REPO=<git repo holding the baseline> node dev/audit/rounds/round11/D4/s1/enumerate_m1.mjs",
+          "universe": 135,
+          "examined": 132,
+          "not_reached": [
+            "editor_schema\tde",
+            "editor_schema\ten",
+            "editor_schema\tsv"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C2",
+              "state": "examined"
+            }
+          ],
+          "evidence": "m1_browser.mjs drove all 135 items (45 card_drift states x de,en,sv) at 375x812, 768x1024, 1280x800 x light/dark x reduce/no-preference x fine/coarse = 3240 renders, 0 threw, 0 missed steps, on the lock's Chromium (playwright 1.65.0, rev 1254, 158.0.8127.18): contrast 0, overflow 0, overlap 0, console errors 0, options 0, tab_unreached 0 of 73472 tabbables, focus_no_indicator 0, focus_invisible 0, CLS on hover 0.0000 (m1_full_results.txt, m1_full_renders.jsonl.gz); tab order re-run TABONLY=1 over 810 renders (m1_tab_renders.jsonl.gz); screenshots in screens/ (en/light/reduce/fine at all 3 viewports, 135 JPEGs). The 3 editor_schema items rendered without error but their content is HA's <ha-form>, undefined without a Home Assistant frontend, so no geometry was measurable: not_reached. Cells: of the 15 files in D4-s1's cells, M1 drives www/heatpump-optimizer-card.js (its strings are its own in-card dictionaries); config_flow.py, quick_setup.py, prefill_offer.py, strings.json, translations/*.json, services.yaml, icons.json and blueprints/* have no browser surface outside HA's frontend, which M1's Limits name. C1: the step now has a denominator (135) and 132 examined. C2: keyboard tab order through every focusable (reached 73472/73472, plus order check), console-error sweep (0), layout shift on hover (76752 hovered targets), reduced-motion-off arm (no-preference: 1620 renders), screenshots, and the lock's own Chromium rev 1254 (the lock is now playwright 1.65.0, not rev 1194)."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D4.M1",
+          "what": "The released build's card in a real Home Assistant frontend (brief, Limits): no recorded render and no HA instance on box B9; editor_schema x de,en,sv (the card editor's <ha-form>) needs that frontend to measure."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D4-s1-01",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Layout editor: the pipe a user clicks to remove is a 2.75-5.75 px hit band, under F1's 24/44 px floor in every cell",
+          "severity": "medium",
+          "claim": "In the card's layout editor (setup page, editing on), every drawn pipe -- the target the card says is clicked to remove a connection -- takes the pointer only within a band of at most 2.75 px at 375 px, 3.25 px at 768 px and 5.75 px at 1280 px normal to the pipe, so 576 of 576 pipe targets over the 144 renders of layout_editing_dragged/tidy x de,en,sv x 3 viewports x light/dark x motion x pointer are under D4-criteria F1's 24 px (44 px coarse) floor.",
+          "mechanism": "cardStyleBlock widens pipes in editing mode only to `stroke-width: 3.5` viewBox units and relies on the painted stroke (pointer-events visiblePainted) as the hit area; there is no transparent wide hit path as the slots (`.slot-hit`) and ports (`.layout-port-hit`, 30.5 px median by the same scan) have. The SVG scales down with the card, so the band shrinks to 2.75 px on a phone.",
+          "evidence": {
+            "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_pipes.mjs",
+            "harness_path": "dev/audit/rounds/round11/D4/s1/m1_pipes.mjs",
+            "value": 576,
+            "unit": "pipe targets (of 576) whose elementFromPoint band normal to the pipe at its midpoint is under 24 px (44 px coarse)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B9, 4 vCPU, Chromium 158.0.8127.18 (playwright 1.65.0 lock, rev 1254), headless shell",
+            "cpu_or_wall": "count",
+            "contention_note": "the seat's own full M1 grid run (m1_browser.mjs, 8 workers) ran beside it; a count, contention-immune",
+            "tolerance": "exact",
+            "load1": 3.45,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (rule `.setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }`) through the rendered heatpump-optimizer-card",
+          "perturbation": {
+            "change": "m1_pipes.mjs PERTURB=1: in memory, `.setup-svg.editing .setup-pipe { stroke-width: 3.5;` -> `stroke-width: 60;`",
+            "expected_direction": "down",
+            "observed_value": 296
+          },
+          "metric_definition": "Per editing pipe: px along the normal through its midpoint where shadowRoot.elementFromPoint returns the pipe (0.25 px steps); counted when under 24 px (44 px coarse).",
+          "phenomenon_property": "Every pointer target the card's layout editor draws takes the pointer over at least 24 px (44 px under a coarse pointer) across its narrow axis, whatever the card's rendered width.",
+          "seam_rule": "dev/audit/rounds/round11/D4/s1/m1_browser.mjs (RESULT strict_small; m1_summarize.py <renders.jsonl> --check strictSmall lists each element class under the floor)",
+          "null_control": {
+            "command": "same run, RESULT port_hit_median_px",
+            "value": "30.5 px",
+            "note": "The same elementFromPoint scan on the editor's .layout-port-hit targets, which the card sizes with a transparent hit circle, reads 30.5 px median in the same renders: the scan measures a sized target as sized."
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 2.75,
+            "max": 5.75,
+            "drop_most_favourable": 5.75
+          },
+          "reproduction_steps": [
+            "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+            "run the command above; read RESULT pipe_hit_under_floor and the per viewport/pointer band lines",
+            "re-run with PERTURB=1: the count falls to 296"
+          ],
+          "proposed_fix_scope": "Draw a transparent wide hit path (stroke-width sized from _targetMinPx() in viewBox units, pointer-events: stroke) beside each editing pipe, as .slot-hit and .layout-port-hit do; keep the visible stroke as is.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P9"
+        },
+        {
+          "id": "D4-s1-02",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Chart tooltip with a shared-step line runs 20.6 px past the bottom of its chart at 375 px: fitWhy trims only the idle explanation",
+          "severity": "low",
+          "claim": "Hovering a shared heating/hot-water step in the expanded chart at 375x812 under a fine pointer shows a 201.9 px tooltip in a chart whose box ends 20.6 px above the tooltip's bottom, in 12 of 12 such renders (de, en, sv x light/dark x reduce/no-preference), while no tooltip_hover render spills (0 of 72).",
+          "mechanism": "fitWhy(tt, chartHeight - 16) keeps the tooltip inside its chart only by removing `.tt-why` items; a shared-step tooltip carries `.tt-shared` and `.tt-reason` prose and no `.tt-why`, so fitWhy returns at `if (!why) return;` with the box still taller than the chart, and the box (z-index 5, chartwrap overflow visible) paints over what sits under the chart.",
+          "evidence": {
+            "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_tooltip.mjs",
+            "harness_path": "dev/audit/rounds/round11/D4/s1/m1_tooltip.mjs",
+            "value": 12,
+            "unit": "shared_steps_hover renders (of 72) whose visible tooltip ends >0.5 px past its chartwrap (max 20.6 px)",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B9, 4 vCPU, Chromium 158.0.8127.18 (playwright 1.65.0 lock, rev 1254), headless shell",
+            "cpu_or_wall": "count",
+            "contention_note": "the seat's full M1 grid run ran beside it; a count of geometry, contention-immune",
+            "tolerance": "exact",
+            "load1": 10.3,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:fitWhy (with tooltipHtml, from the chart pointer-move handler that calls fitWhy(tt, rect.height - 16))",
+          "perturbation": {
+            "change": "m1_tooltip.mjs PERTURB=1: in memory, fitWhy's `const why = tt.querySelector(\".tt-why\");` -> `... || tt.querySelector(\".tt-reason\");`",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Renders where the visible .tooltip's box extends >0.5 px above or below its .chartwrap box after the hover step (getBoundingClientRect).",
+          "phenomenon_property": "Whatever lines a chart tooltip carries, the box fits inside its chart's height: every prose block it may hold is trimmed or dropped before the box leaves the chart.",
+          "seam_rule": "dev/audit/rounds/round11/D4/s1/m1_browser.mjs (RESULT popups; m1_summarize.py <renders.jsonl> --check popups lists every pop-up past its chart or the viewport)",
+          "null_control": {
+            "command": "same run, RESULT tip_spill_renders_null",
+            "value": 0,
+            "note": "tooltip_hover (a tooltip with a .tt-why block fitWhy can trim) spills in 0 of 72 renders in the same grid."
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 0,
+            "max": 20.6,
+            "drop_most_favourable": 0
+          },
+          "reproduction_steps": [
+            "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+            "run the command above; read RESULT tip_spill_renders and the per vp/pointer line ({\"375/fine\":20.6})",
+            "re-run with PERTURB=1: 0"
+          ],
+          "proposed_fix_scope": "fitWhy: after the idle explanation, shorten or drop the remaining prose blocks (.tt-reason, then .tt-shared's wording) until the box fits; value rows untouched.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P9"
+        },
+        {
+          "id": "D4-s1-03",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Headline fold headers (.hl-fold-head) stay 32/39 px tall under a coarse pointer: not on the card's 44 px floor list",
+          "severity": "low",
+          "claim": "With the headline stats published (score_open), both `.hl-fold-head` buttons lay out 39 px and 32 px tall under a coarse pointer in all 36 coarse renders (de, en, sv x 375/768/1280 x light/dark x reduce/no-preference), 72 targets under D4-criteria F1's 44 px coarse floor, while every other HTML control of the state clears it.",
+          "mechanism": "cardStyleBlock's htmlTargetFloor selector list applies `min-height: ${targetFloorPx}px` (44 px when _coarsePointer()) to the card's HTML controls; `.hl-fold-head` (R10-CARD-COLLAPSE's fold header, a <button>) was added later with its own fixed `min-height: 32px` and never joined that list.",
+          "evidence": {
+            "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> STATES=score_open node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+            "harness_path": "dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+            "value": 72,
+            "unit": "interactive targets under 24 px (44 px coarse), RESULT strict_small, all button.hl-fold-head in the coarse arm",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B9, 4 vCPU, Chromium 158.0.8127.18 (playwright 1.65.0 lock, rev 1254), headless shell",
+            "cpu_or_wall": "count",
+            "contention_note": "the seat's full M1 grid run ran beside it; a count of geometry, contention-immune",
+            "tolerance": "exact",
+            "load1": 4.88,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (htmlTargetFloor selector list) through the rendered heatpump-optimizer-card",
+          "perturbation": {
+            "change": "HPO_PERTURB='[[\"        .sp-filter, .sp-select,\\n\",\"        .sp-filter, .sp-select, .hl-fold-head,\\n\"]]' (adds the fold header to the floor list in memory)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Interactive elements (button, [role=button], tabindex, cursor:pointer roots) in the card's active scope whose border box is under 24 px (44 px coarse) on either axis.",
+          "phenomenon_property": "Every HTML control the card renders meets the card's own pointer-keyed target floor (24 px, 44 px coarse): a control is on the floor list or carries a size at least as large.",
+          "seam_rule": "dev/audit/rounds/round11/D4/s1/m1_browser.mjs (RESULT strict_small; m1_summarize.py <renders.jsonl> --check strictSmall groups it by element)",
+          "null_control": {
+            "command": "same command, fine-pointer arm of the same renders",
+            "value": 0,
+            "note": "Under a fine pointer the same buttons (32/39 px) clear the 24 px floor: 0 of the 36 fine renders count; the count is the coarse floor's alone."
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 32,
+            "max": 39,
+            "drop_most_favourable": 39
+          },
+          "reproduction_steps": [
+            "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+            "run the command above; RESULT strict_small=72; python3 dev/audit/rounds/round11/D4/s1/m1_summarize.py <OUT>/renders.jsonl --check strictSmall --detail 4",
+            "re-run with the HPO_PERTURB above: RESULT strict_small=0"
+          ],
+          "proposed_fix_scope": "Add .hl-fold-head to cardStyleBlock's htmlTargetFloor selector list (or key its min-height on targetFloorPx).",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P9"
+        },
+        {
+          "id": "D4-s1-04",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Plan editor slot targets at 375 px: 147 slot-hit rects under F1's floor (min 17.7 px), 99 failing WCAG 2.5.8's spacing exception too",
+          "severity": "medium",
+          "claim": "In the expanded plan editor at 375x812, slotHitExtents leaves 147 of the `.slot-hit` targets rendered across the 810 light/reduce renders of all 45 card_drift states x de,en,sv x 3 viewports x fine/coarse under D4-criteria F1's floor (24 px, 44 px coarse; minimum 17.7 px) in 15 states, and 99 of them have another slot target within 12 px of their centre, so WCAG 2.5.8's spacing exception does not rescue them either; 768 and 1280 px count 0.",
+          "mechanism": "slotHitExtents grows each target to minTargetX (= _targetMinPx() in viewBox units) and then resolves residual overlap by putting the shared edge between the two inks, shrinking both below the floor ('the boxed-in case'); a slot at the plot edge cannot grow outward either (history_unavailable: 19.9 px against plotR). The card accepts this as WCAG's spacing exception, but an undersized target abutting another target fails that exception's 24 px circle test, and F1 as the owner wrote it has no exception.",
+          "evidence": {
+            "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> THEMES=light MOTION=reduce node dev/audit/rounds/round11/D4/s1/m1_slots.mjs",
+            "harness_path": "dev/audit/rounds/round11/D4/s1/m1_slots.mjs",
+            "value": 147,
+            "unit": "slot-hit rects (of 2700) under 24 px (44 px coarse) on either axis; 99 also fail the WCAG 2.5.8 spacing circle",
+            "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+            "machine": "box B9, 4 vCPU, Chromium 158.0.8127.18 (playwright 1.65.0 lock, rev 1254), headless shell",
+            "cpu_or_wall": "count",
+            "contention_note": "the seat's full M1 grid run ran beside it; a count of geometry, contention-immune",
+            "tolerance": "exact",
+            "load1": 11.51,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:slotHitExtents",
+          "perturbation": {
+            "change": "m1_slots.mjs PERTURB=1: in memory, slotHitExtents' final resolution `if (t[p].r <= t[p + 1].l) continue;` -> `continue;` (targets keep the floor they were grown to)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Rendered .slot-hit rects whose border box is under 24 px (44 px when the render's pointer is coarse) on either axis.",
+          "phenomenon_property": "Every slot target the plan editor renders is at least the card's pointer-keyed floor wide, or, where the axis cannot give it that, is reachable another way that is (zoom-to-fit, a list) -- never a sub-floor target abutting another.",
+          "seam_rule": "dev/audit/rounds/round11/D4/s1/m1_slots.mjs (per vp/pointer and state lines), with m1_browser.mjs RESULT strict_small for every other target class",
+          "null_control": {
+            "command": "same run, per vp/pointer line: 768 and 1280 cells",
+            "value": 0,
+            "note": "At 768 and 1280 px the same states, slots and plan give 0 targets under the floor: the count is the narrow axis's, and the perturbation (no boxed-in shrink) takes 375 px to 0 as well."
+          },
+          "leave_one_out": {
+            "cells": 6,
+            "min": 0,
+            "max": 99,
+            "drop_most_favourable": 48
+          },
+          "reproduction_steps": [
+            "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+            "run the command above: RESULT slot_under_floor=147, slot_wcag_fail=99, per vp/pointer {375/fine:48, 375/coarse:99}",
+            "re-run with PERTURB=1: 0"
+          ],
+          "proposed_fix_scope": "Design-level in slotHitExtents and the lane editor: on a narrow chart either widen the editable window (auto-zoom when slots are denser than the floor allows) or let a tap on a boxed-in cluster open a chooser; at the plot edge let the target extend into the plot margin. Needs a design seat (it trades against the no-overlap rule P9-rca4).",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P9"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "No text run below WCAG AA contrast in any of the 3240 renders (both themes)",
+          "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+          "value": "RESULT contrast=0 over 191959 measured text runs"
+        },
+        {
+          "claim": "No text clipped by its own box or an ancestor, and no two text runs sharing ink",
+          "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+          "value": "RESULT overflow=0, overlap=0"
+        },
+        {
+          "claim": "No console error or uncaught exception in any render (D4-criteria P4)",
+          "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+          "value": "RESULT console_errors=0 over 3240 renders"
+        },
+        {
+          "claim": "Tab reaches every tabbable element, each stop shows a focus change and is visible (F2 reach and ring)",
+          "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+          "value": "tab_unreached=0 of 73472, focus_no_indicator=0, focus_invisible=0"
+        },
+        {
+          "claim": "Tab order follows reading order; the 289 backward steps TABONLY=1 counts are column transitions (setup diagram columns, 2 per setup render at every viewport; what-if panel columns at 768/1280) and the slot menu that opens beside its slot, not out-of-order stops within a column",
+          "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> TABONLY=1 THEMES=light MOTION=reduce node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+          "value": "RESULT tab_backward=289 (810 renders), all at column changes or into the open slot menu; judged held, the check counts column-major order as backward"
+        },
+        {
+          "claim": "Hovering a target never shifts layout",
+          "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+          "value": "hover_shift_sum=0.0000 CLS; the 668 rect moves are all draft_mid_drag under the coarse arm, where the state holds a drag open, so moving the pointer moves the dragged slot by design (harness artefact, 0 in every other state)"
+        },
+        {
+          "claim": "The popups RESULT's viewport half at 375 px (slot menu 23.5 px de/coarse, tooltip 4.5/8.5 px de/coarse) is the chart itself sitting past the viewport bottom where the harness scrolled it, not a placement defect",
+          "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> STATES=tooltip_hover,shared_steps_hover,draft_dirty_menu_open VPS=375 PROBE=<rect probe> node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+          "value": "chartwrap bottom 835.9 > innerHeight 812 in those renders; horizontal extents inside the chart in all"
+        },
+        {
+          "claim": "Listbox options are distinguishable (no two showing the same prefix)",
+          "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+          "value": "RESULT options=0"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D4/s1/enumerate_m1.mjs",
+        "dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+        "dev/audit/rounds/round11/D4/s1/m1_summarize.py",
+        "dev/audit/rounds/round11/D4/s1/m1_pipes.mjs",
+        "dev/audit/rounds/round11/D4/s1/m1_tooltip.mjs",
+        "dev/audit/rounds/round11/D4/s1/m1_slots.mjs"
+      ],
+      "leads": []
+    }
+  }
+}

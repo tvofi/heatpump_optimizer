@@ -1,0 +1,45 @@
+{
+ "id": "D16-s2-03",
+ "scope": "D16-s2",
+ "step": "D16.M3",
+ "title": "A switch-on leads no mode when the arbiter's stale record matches the step's mode",
+ "severity": "low",
+ "claim": "When the mode select changes while the supply reads off (the pump's own reset, a person) and the arbiter's record still holds the step's mode, the switch-on of a partial step lands with the hot-water mode in force; Heating follows one tick later.",
+ "mechanism": "`_lead_mode` (#3420) calls `_write`, which returns early when `held.written['mode']` equals the target; `hold()`, which drops a record the entity no longer reads, never runs while the switch reads off (`_arbitrate` returns at `_pump_off`), so the record is stale exactly when the lead is needed.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --phases 1",
+  "harness_path": "dev/audit/rounds/round11/D16/s2/timing.py",
+  "value": 1,
+  "unit": "switch-on with the wrong mode in force (cell3530_record_wrong_mode_at_on)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 (shared container, Linux 6.18, ~/venv-ci Python 3.14.7, hastub)",
+  "cpu_or_wall": "count",
+  "contention_note": "counts only",
+  "tolerance": "exact",
+  "load1": 1.8,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_lead_mode (through write_supply from supply_tick)",
+ "perturbation": {
+  "change": "hold(coord, now) before the _write in _lead_mode (--perturb lead-hold)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "mode select state in force at the supply switch-on of a heating step, against the step's mode from the plan (Heating where only space is booked)",
+ "phenomenon_property": "A write skipped because the arbiter's record already holds it is skipped only when the entity reads that value.",
+ "seam_rule": "grep -n 'recorded and not _differs' custom_components/heatpump_optimizer/pump_arbiter.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub ~/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py --phases 1",
+  "value": 0,
+  "note": "same scenario with no change while off: the mode in force at switch-on is Heating (null arm 0)"
+ },
+ "reproduction_steps": [
+  "partial (mode Heating recorded), idle (switch off), the select moved to DHW (Hot Water) at minute 35, partial at 45: switch_on at 45 with DHW in force, Heating written at 46"
+ ],
+ "proposed_fix_scope": "pump_arbiter._lead_mode: compare against the entity's reading (or run hold) before trusting the record.",
+ "files": [
+  "custom_components/heatpump_optimizer/pump_arbiter.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

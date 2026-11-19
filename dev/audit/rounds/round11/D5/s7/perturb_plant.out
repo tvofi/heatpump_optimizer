@@ -1,0 +1,3 @@
+RESULT total:c2_fail=4 count
+RESULT total:c5_fail=467 count
+RESULT total:false_rows=472 count

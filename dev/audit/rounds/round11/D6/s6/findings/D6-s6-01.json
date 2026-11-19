@@ -1,0 +1,49 @@
+{
+ "id": "D6-s6-01",
+ "scope": "D6-s6",
+ "step": "D6.M3",
+ "title": "de.json: 18 false/stale rows (English or renamed UI labels, ECL110-only heat-curve page, 2 numbers code contradicts)",
+ "severity": "medium",
+ "claim": "18 of the 2300 text_ledger D6 units of custom_components/heatpump_optimizer/translations/de.json contradict the value the production seam delivers (text_ledger check over the ledger: false=2, stale=16).",
+ "mechanism": "Three mechanisms. (1) 13 stale rows quote a UI object by a name the German UI never renders: the English entity/service names („Optimizer active“ x2, „Model Restart Advisor“, \"Restore learned snapshot\", „Mold Floor Breach“, „Wood Cheaper Than Heat Pump“, „Lower floor temperature sensor“), the card's English series label „Lower floor (modelled)“ where its STRINGS.de reads „Untergeschoss (modelliert)“, and German paraphrases no label carries („Gelernte Momentaufnahme wiederherstellen“ x2 vs service name „Gelernten Snapshot wiederherstellen“; „Anhebung der Vorlauftemperatur bepreisen“ vs „Vorlauftemperaturanhebung bepreisen (kein Mischventil)“; „Vorbelegung aus einem Wärmepumpengerät“ vs menu „Aus einem Wärmepumpengerät vorbefüllen“; „günstiger als Pumpe“ vs „Holz günstiger als Wärmepumpe“). (2) 3 stale rows (advanced menu label and heat_curve title „Heizkurvensteuerung (ECL110)“, description „Für Danfoss-ECL110-Regler, die über MQTT angesteuert werden.“) restrict the page to MQTT ECL110 while config_flow._OPTION_FIELDS renders six non-MQTT rows (heat_curve_displace_entity, heat_curve_target_kind, offset/persistent bands, writes/day, dwell). (3) 2 false rows state numbers the code contradicts: combi_potable_volume_l '0 für eine Frischwasserstation' while config_flow._combi_preset_fill writes 150.0 L for external_station (the const.py comment above the table itself says 0 l); wood_packing 'lose ... mit 0,60 des gepackten Volumens' while wood_fuel.useful_kwh_m3 gives loose/packed = 1.667 for birch (0.600 for pine and mixed: birch's two entries are swapped).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+  "harness_path": "dev/audit/rounds/round11/D6/s6/ledger.py",
+  "value": 18,
+  "unit": "rows",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13, 4-vCPU Linux container, CPython 3.14.7 (venv-ci), node 22",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during the fan-out (load1 5.5); a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 5.5,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.config_flow:_combi_preset_fill (with wood_fuel:useful_kwh_m3, config_flow:_OPTION_FIELDS, each platform's async_setup_entry, services:async_register_services and the card's STRINGS.de, all driven by dev/audit/rounds/round11/D6/s6/facts.py:collect)",
+ "perturbation": {
+  "change": "In memory, const.COMBI_TANK_PRESETS['external_station'] = CombiTankPreset(0.75, 0.0) (ledger.py --perturb combi_station); likewise --perturb wood_birch swaps wood_fuel.WOOD_KWH_M3['birch'] to packed 1900/loose 1140, and --perturb card_de sets the card's STRINGS.de series.lower_floor_modelled to the quoted English: each moves the count 18 -> 17",
+  "expected_direction": "down",
+  "observed_value": 17
+ },
+ "metric_definition": "Count of de.json text_ledger D6 units whose ledger verdict is false or stale, each verdict decided by an executed check on a production symbol (text_ledger check RESULT false + stale).",
+ "phenomenon_property": "Every sentence of translations/de.json that names a UI object, a default or a behaviour states what the German UI renders and what the code does: a quoted UI reference equals a label the German UI shows (a de.json string or the card's STRINGS.de), a page's described scope matches the rows config_flow renders on it, and every number equals the value the production symbol deciding it delivers.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py  (prints one FALSE/STALE line per contradicted unit, with the truth)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+  "value": "842 label rows (entity/field/menu/selector/service/issue names) 842 true; plant_refused=1",
+  "note": "The same harness's existence checks pass every label row, so the count is not an artefact of the checker refusing labels; the --plant arm shows an unrowed unit is refused."
+ },
+ "reproduction_steps": [
+  "cd <export root>",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s6/ledger.py",
+  "grep -E '^   (FALSE|STALE)' on its output lists the 18 units with the production value"
+ ],
+ "proposed_fix_scope": "translations/de.json: quote the German labels the UI shows (or drop the quotes), retitle and re-describe the heat_curve page for both arms (ECL110 MQTT and a number entity), and correct the two numbers once the owners of const.COMBI_TANK_PRESETS['external_station'] (150.0 vs the commented 0 l) and wood_fuel.WOOD_KWH_M3['birch'] (swapped) rule on the code; the same three sentences in en.json/strings.json/sv.json are leads, not measured here.",
+ "files": [
+  "custom_components/heatpump_optimizer/translations/de.json",
+  "custom_components/heatpump_optimizer/const.py",
+  "custom_components/heatpump_optimizer/wood_fuel.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I5"
+}

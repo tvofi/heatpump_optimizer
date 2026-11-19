@@ -43,8 +43,8 @@ name.
 ### The gate lock on a shared box
 
 `tests/stress.py` measures this machine while it solves, so only one agent on
-a box may run it at a time. `run.sh` takes the lease for each `stress.py` run
-alone and releases it after; every other script runs unleased. By hand, to
+a box may run it at a time. `run.sh` takes the lease or slot
+`tests/gate_lock.py needs-lease` names, or none (`gate-scoping.md`). By hand, to
 measure across commands, use `tests/gate_lock.py` — not `mkdir /tmp/hpo-gate.lock`
 and a shell pid:
 

@@ -1,0 +1,46 @@
+{
+  "id": "D7-s1-02",
+  "scope": "D7-s1",
+  "step": "D7.M7",
+  "title": "The clone censuses key a window by its owning function: a rule written twice in one function is not a copy",
+  "severity": "low",
+  "claim": "duplication_copies -- the score's heaviest metric (weight 8.93, counters.gapped_clones) and the ratchet's row (structure.duplicate_clones) -- counts a window only when two different functions own it, so a window written twice inside one function reads 0 in every one of the 95 package files, and folding two clone functions' bodies, both still written out, under one def reads IMPROVES.",
+  "mechanism": "Both censuses file each window under `windows[digest].add((rel, fn.name, fn.lineno))` and form a class only from a digest with two or more owners. Two places of one function are one owner. Today's tree holds 6 such in-function copies under the ratchet's adjacent window (m1_ratchet_census.py COPY lines: climate.extra_state_attributes 4 places, thermal_model.simulate_trajectory_batch 4, optimizer._comfort_terms_batch 3, optimizer._analyze_forecast_trajectory 2, tariff._smooth_topk_sum 2, tariff._smooth_topk_sum_batch 2) and 15 under the score's gapped window (duplication_copies 18 -> 33 with the owner keyed by place), none priced. The same rule is a game: prototype `fold` moves ledger.add's and ledger.observe_meta_mean's bodies verbatim into the two branches of one `_fold`, shares nothing, and reads dS +0.6964 IMPROVES, admissible (duplication_copies 18 -> 17). No red-team attempt under tools/audit/archscore/planted/redteam/ plants it.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_floor_plants.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s1/m7_floor_plants.py",
+    "value": 95,
+    "unit": "holes_clone1: package files (of 95) in which a planted in-function copy is absent from the score's duplication_copies sites; the two-function control holes_clone2=0",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "darwin arm64, 8 cores (box B5)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out in progress, load1 about 289; static counts and a deterministic score",
+    "tolerance": "exact",
+    "load1": 288.96,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/audit/archscore/counters.py:gapped_clones",
+  "perturbation": {
+    "change": "--fold-owner: in memory, counters.gapped_clones' owner carries the window's place (two disjoint places of one function are two owners). holes_clone1 falls 95 -> 0 with every other plant kind still at 0 holes; the same switch on m7_prototypes.py --score --only fold takes the game's dS from +0.6964 to +0.0000.",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Files (of the 95) whose planted window, written twice in ONE function, is missing from gapped_clones' classes. Key: the probe function's name in the census's own site list.",
+  "phenomenon_property": "A statement window written at two disjoint places is a copy wherever the places are -- in two functions or in one -- in both the ratchet's clone census and the score's; merging the functions that hold two copies does not lower either count while both copies remain.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py | grep '^COPY'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_floor_plants.py   (the clone2 column); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb clone-two-fns",
+    "value": 0,
+    "note": "the same window in two functions is seen in all 95 files (holes_clone2=0, duplication_copies 18 -> 113) and moves the ratchet's row 8 -> 9; in one function (--perturb clone-same-fn) the row stays 8"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_floor_plants.py -> RESULT holes_clone1=95, holes_clone2=0.",
+    "The same with --fold-owner -> RESULT holes_clone1=0.",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_prototypes.py --score --only fold -> dS_fold=+0.6964 IMPROVES; with --fold-owner -> +0.0000.",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb clone-same-fn -> ratchet_duplication_copies=8, in_function_copies=7."
+  ],
+  "proposed_fix_scope": "tests/structure.py duplicate_clones and tools/audit/archscore/counters.py gapped_clones: key a window's owner by place, so two disjoint places of one function form a class (overlapping windows of one run must not); one planted BAD case and one red-team attempt (the fold) with the counter's ablation; re-record duplication_copies with the reason (the ratchet's row rises by today's in-function copies) or pay them. The stored corpus vectors re-measure for duplication_copies.",
+  "files": ["tests/structure.py", "tools/audit/archscore/counters.py", "tools/audit/archscore/planted/redteam", "tests/structure_budgets.json"],
+  "stop_rule_class": "bug",
+  "class_guess": "N-structure-blind"
+}

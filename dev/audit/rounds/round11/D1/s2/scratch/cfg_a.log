@@ -1,0 +1,50 @@
+CTRL v1: {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+RESULT v1_mutants=200 count
+RESULT v1_migrate_fail=0 count
+RESULT v1_build_fail=8 count
+RESULT v1_permanent_cycle_fail=17 count
+RESULT v1_one_cycle_fail=0 count
+  EX v1/permanent_cycle_fail: op=list key=dhw_tank_volume {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'"}
+  EX v1/permanent_cycle_fail: op=dict key=outdoor_temp_entity {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')", 'c2': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')"}
+  EX v1/permanent_cycle_fail: op=dict key=indoor_temp_entity {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')", 'c2': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')"}
+  EX v1/permanent_cycle_fail: op=none key=dhw_tank_volume {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'NoneType' and 'float'", 'c2': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'NoneType' and 'float'"}
+  EX v1/permanent_cycle_fail: op=list key=min_temperature {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'"}
+  EX v1/permanent_cycle_fail: op=str_word key=min_temperature {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: could not convert string to float: 'abc'"}
+  EX v1/build_fail: op=empty key=max_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: ''", 'c1': None, 'c2': None}
+  EX v1/build_fail: op=list key=target_temperature {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+  EX v1/build_fail: op=dict key=max_temperature {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'dict'", 'c1': None, 'c2': None}
+  EX v1/build_fail: op=str_word key=max_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+  EX v1/build_fail: op=str_word key=target_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+CTRL v2: {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+RESULT v2_mutants=200 count
+RESULT v2_migrate_fail=0 count
+RESULT v2_build_fail=11 count
+RESULT v2_permanent_cycle_fail=14 count
+RESULT v2_one_cycle_fail=0 count
+  EX v2/permanent_cycle_fail: op=str_word key=dhw_tank_volume {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'"}
+  EX v2/permanent_cycle_fail: op=empty key=min_temperature {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: ''", 'c2': "UpdateFailed: Error updating data: could not convert string to float: ''"}
+  EX v2/permanent_cycle_fail: op=none key=min_temperature {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'"}
+  EX v2/permanent_cycle_fail: op=dict key=outdoor_temp_entity {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')", 'c2': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')"}
+  EX v2/build_fail: op=str_word key=target_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+  EX v2/build_fail: op=list key=target_temperature {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+  EX v2/build_fail: op=list key=max_temperature {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+  EX v2/build_fail: op=str_word key=max_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+CTRL v3: {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+RESULT v3_mutants=200 count
+RESULT v3_migrate_fail=0 count
+RESULT v3_build_fail=10 count
+RESULT v3_permanent_cycle_fail=16 count
+RESULT v3_one_cycle_fail=0 count
+  EX v3/build_fail: op=str_word key=target_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+  EX v3/build_fail: op=str_word key=max_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+  EX v3/build_fail: op=list key=max_temperature {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+  EX v3/build_fail: op=dict key=target_temperature {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'dict'", 'c1': None, 'c2': None}
+  EX v3/build_fail: op=empty key=target_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: ''", 'c1': None, 'c2': None}
+  EX v3/permanent_cycle_fail: op=list key=dhw_tank_volume {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'"}
+  EX v3/permanent_cycle_fail: op=empty key=min_temperature {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: ''", 'c2': "UpdateFailed: Error updating data: could not convert string to float: ''"}
+  EX v3/permanent_cycle_fail: op=list key=outdoor_temp_entity {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cannot use 'list' as a dict key (unhashable type: 'list')", 'c2': "UpdateFailed: Error updating data: cannot use 'list' as a dict key (unhashable type: 'list')"}
+  EX v3/permanent_cycle_fail: op=dict key=indoor_temp_entity {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')", 'c2': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')"}
+  EX v3/permanent_cycle_fail: op=none key=min_temperature {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'"}
+RESULT thread_factor=1.000
+RESULT load1=170.16
+RESULT swapins=5
