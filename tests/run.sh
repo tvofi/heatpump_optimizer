@@ -453,6 +453,7 @@ for f in tests/*.py tests/*.mjs; do
     # The throwaway-repository helper (R9-RCA-stamp-race): a library; its
     # --check and --self-test run in governance's instrument-self-tests.
     throwaway_git.py) continue ;;
+    comment_ratchet.py) continue ;;  # an arm of doc_claims.py, which imports and runs it
     # The shared DOM stub (#101) and the rig around it: imported by
     # card.mjs, setup_qa_render.mjs and card_drift.mjs, never run on
     # their own. node_fs_trace.mjs is the Darwin --import recorder.

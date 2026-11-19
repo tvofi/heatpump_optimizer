@@ -434,6 +434,10 @@ about itself.
   topology's setup SVG comes out empty, so a dormant renderer cannot drift
   unnoticed. It shares `card_rig.mjs` — and through it `dom_stub.mjs` — with
   `card.mjs`, and is skipped alongside them when `node` is absent.
+- **comment_ratchet.py** is the 40-word comment rule (C5 in `dev/governance/dimensions/D5.md`) over `tests/`,
+  and the package's scope joins it later. It runs as an arm of `doc_claims.py`
+  rather than as a script of its own. A new script would add one recording to
+  every full-case run, and `tests/ci_budgets.json` caps those counts.
 
 Some files in `tests/` are not tests at all and are excluded from the "every
 script must be wired into `run.sh`" accounting. The exclusion list lives in

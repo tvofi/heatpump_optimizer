@@ -24,7 +24,7 @@ Usage:
 
 tests/doc_claims.py runs `gate` as one arm, so the ratchet adds no selectable script.
 """
-import argparse, ast, difflib, inspect, subprocess, sys
+import argparse, ast, difflib, inspect, os, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -184,10 +184,11 @@ def decide(base, head):
     """Refusal lines for the head's long units against the base's; empty when the ratchet holds."""
     out = []
     for f in sorted(head):
-        if f in base and len(head[f]) > len(base[f]):
-            was = {q for _l, q in base[f]}
+        old = base.get(f)
+        if old is not None and len(head[f]) > len(old):
+            was = {q for _l, q in old}
             new = [q for _l, q in head[f] if q not in was] or [head[f][-1][1]]
-            out.append(f"REFUSE {f}: long units {len(base[f])} -> {len(head[f])}; new: "
+            out.append(f"REFUSE {f}: long units {len(old)} -> {len(head[f])}; new: "
                        + " | ".join(f'"{q} ..."' for q in new))
     tb, th = sum(map(len, base.values())), sum(map(len, head.values()))
     if th > tb:
@@ -340,6 +341,14 @@ def self_test(out=print):
         and code_of("x.sh", "echo a\n") != code_of("x.sh", "echo b\n"))
     arm("a line-neutral rewrite reads 0 shifted hunks, an added line 1",
         shifted_hunks("a\nb\nc\n", "a\nB\nc\n") == 0 and shifted_hunks("a\nb\nc\n", "a\nb\nb2\nc\n") == 1)
+    saved = os.environ.pop("GOLDEN_REF", None)   # gate_ref reads it before the base argument
+    try:
+        gone = measure("refs/heads/no-such-branch-for-the-ratchet")
+    finally:
+        if saved is not None:
+            os.environ["GOLDEN_REF"] = saved
+    arm("a base the checkout cannot resolve refuses (a shallow clone fails closed)",
+        gone[0] is None and any("REFUSE" in r for r in gone[1]))
     out("comment_ratchet self-test: " + ("FAIL" if fails else "OK"))
     return 1 if fails else 0
 
