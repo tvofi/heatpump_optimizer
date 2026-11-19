@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.1.0
+# claims-for: 10.1.1
 #
-# v10.1.0: learned pump minimum, clamped start price, self-setting pump test, valve reference, generic heat-curve text. The stamp empties the list; the
+# v10.1.1: single-zone plan rows, savings coverage, currency, self-setting-pump pair, valve bias. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25

@@ -1,3 +1,39 @@
+## v10.1.1
+
+**Patch stamp: 23 merges since v10.1.0 (`git log --first-parent --merges --format=%h v10.1.0..HEAD | wc -l`): a single-zone plan no longer publishes floor rows, and `set_thermal_parameters` refuses the whole-house fields on a two-zone model; the Monthly Savings figure waits for a day of data and counts a month's real hours; money fields in the options take the price sensor's currency; the self-setting-pump test keeps its pair across a skipped cycle; a single-zone house behind a throttling mixing valve learns no flow-curve bias; the rest is tooling and records.**
+
+### Action needed
+
+Only if an automation or script calls `set_thermal_parameters` with `house_thermal_mass` or `house_heat_loss_coefficient` on a two-zone model: that call is now refused before anything is written, so set the floor masses and losses a two-zone house uses instead (#3731, below). Nothing else asks anything of you: no store needs a migration, no option is added, no entity id changes and no option default changes. Two changes you may notice without acting: the Monthly Savings sensor is unavailable for the first 24 hours of each month (#3726), and on a single-zone install the plan's upper and lower floor rows are now empty (#3731).
+
+### #3731 One answer per plant question (R11-SEAM-plant-model)
+
+A single-zone plan no longer publishes upper and lower floor rows built from the room's own trajectory; the two-zone plan is unchanged. The options page no longer offers the whole-house mass on a two-zone model, and its help says where a two-zone house sets its floor masses. `set_thermal_parameters` refuses `house_thermal_mass` and `house_heat_loss_coefficient` on a two-zone model, with a translated message, and the action's field help says both apply to one zone only. The sensor-gap advisor no longer prices a hot-water coast on an install without hot water. The quick-setup descriptions of a wood furnace and a wood buffer tank now state when the plan uses them: only with a throttling mixing valve set in Options, and the pump stands down only with the external-heat detection switch on.
+
+### #3726 Monthly savings and one currency for money figures (R11-SEAM-money)
+
+The Monthly Savings sensor is now unavailable for the first 24 hours of each month (`waiting_for: open_month_coverage`) instead of showing an estimate extrapolated from minutes of data, and a month's estimate counts its real hours across a daylight-saving change. A closed month is unchanged. On an install priced by a price sensor whose unit declares a currency other than Home Assistant's, the options dialog's money fields and the grid-fee page are now labelled, bounded and validated in the sensor's currency, as the sensors already were. No published capacity charge changes.
+
+### #3722 The self-setting-pump test survives a skipped cycle (R11-OUTSIDE-SELF-SETTING-PUMP, part 2)
+
+The test from v10.1.0 (#3662) that decides whether a pump that sets its own power follows the plan no longer voids a pair of readings because one read cycle admitted no row: the missed slot is asked again, and the pair voids only after the hold horizon passes. After three probes in a row end with no pair read, the next probe waits on its first reading for the hold horizon. Frozen and unread cycles still void.
+
+### #3715 No flow-curve bias behind a single-zone mixing valve (R11-VALVE-REFERENCE, part 2)
+
+On a single-zone house behind a throttling mixing valve, the learner no longer takes flow-curve bias samples, because the measured supply there follows the tank charge the valve mixes down, not the space curve. A bias learned before the valve was configured is kept as it was. Two-zone houses and installs without a throttling valve are unchanged.
+
+### #3803 Room lift: the documented peak (R11-CARRY-ROOM-LIFT)
+
+The "Let a cold room raise the planned minimum" row in `docs/configuration.md` now says that the lifted minimum may raise the plan's peak above the comfort target, which it can; the lift itself, its 1.0 K cap and its default (off) are unchanged.
+
+### #3724 Kernel layering (R11-SEAM-kernel-layering)
+
+Modules that need no Home Assistant now import without it, which makes the grid-fee and topology modules' own statements to that effect true. No behaviour changes.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3714 (outside pull request 3529 by Bankaifan, metered floor part 2: a store-declaration check; thanks), #3717 (Bankaifan's #3529 rebased onto main, a design-note wording change; thanks), #3720 (honest starts and runs, part 3 carries), #3725 (replay cost budget after the second solver pass), #3718 (self-test table re-record), #3696 (no-read builders), #3721 (security-dimension grader), #3719 (handoff bookkeeping, part 3), #3727 (governance text), #3732 (instrument triage phase), #3740 (objective builder re-point), #3723 (round-11 audit register), #3733 (rulings), #3730 (round-11 phases), #3608 (round-10 records), #3741 and #3802 (delivery rows, autofix).
+
 ## v10.1.0
 
 **Minor stamp: 18 merges since v10.0.3 (`git log --first-parent --merges --format=%h v10.0.3..HEAD | wc -l`): the plan learns the pump's real minimum power from the meter and publishes it; an install that cannot run below its minimum power prices a compressor start by default; the COP learner tests whether a pump that sets its own power follows the plan before learning from it; the savings reference behind a single-zone mixing valve reaches its setpoint; heat-curve control is described generically; two service fields are corrected; the rest is tooling and records.**
