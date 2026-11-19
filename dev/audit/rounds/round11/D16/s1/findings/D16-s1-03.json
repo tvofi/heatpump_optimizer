@@ -1,0 +1,46 @@
+{
+ "id": "D16-s1-03",
+ "scope": "D16-s1",
+ "step": "D16.M2",
+ "title": "A space boost on an indoor set-point entity holds the plan's partial set-point, not the band top",
+ "severity": "high",
+ "claim": "With Boost Space Heating live on a partial step and an indoor space set-point entity, the pump holds optimal_setpoints[K] = 21.0 C while the boost's own action asks max_temperature 23.0 C, on 2 of 2 indoor rigs; the water rigs write the top (55 C).",
+ "mechanism": "pump_arbiter.desired passes boosted only for a water unit ('The boost fact is read for a water set-point only'); _space_target's indoor branch reads _planned_room(result, now), the plan's step, while boost.overlay replaced the action's setpoint with max_temp. The boost lifts the supply switch and mode but never the indoor set-point, so the pump's own thermostat stops at the plan's partial target.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+  "harness_path": "dev/audit/rounds/round11/D16/s1/cells.py",
+  "value": 2,
+  "unit": "rigs (fork-indoor, gchv-indoor) whose boost-partial set-point lies between floor and top",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11, Linux 6.18.44 x86_64, venv-ci CPython 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (two other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.1,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/pump_arbiter.py:desired (_space_target indoor branch)",
+ "perturbation": {
+  "change": "--perturb boost_indoor: desired maps an indoor set-point under a live space boost to max_temperature",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Rigs whose indoor space entity, after the boost-partial step's writes, reads other than max_temperature (the boost overlay's setpoint).",
+ "phenomenon_property": "Under a live space boost the space channel's target is the top of its band on every space set-point unit, never the plan's partial level.",
+ "seam_rule": "grep -n 'boosted' custom_components/heatpump_optimizer/pump_arbiter.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates",
+  "value": 0,
+  "note": "the flow rigs' boost-partial rows hold 55 C = the band top (rows ok); the indoor partial rows without a boost hold optimal_setpoints[K] (rows ok)"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates | grep boost-partial",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates --perturb boost_indoor | grep boost_indoor_between  # 0"
+ ],
+ "proposed_fix_scope": "pump_arbiter.desired/_space_target: an indoor unit under a live space boost (or MODE_BOOST) writes the boost's setpoint (max_temperature on the entity grid).",
+ "files": [
+  "custom_components/heatpump_optimizer/pump_arbiter.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "P2"
+}

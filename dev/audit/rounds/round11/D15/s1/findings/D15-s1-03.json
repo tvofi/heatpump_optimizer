@@ -1,0 +1,33 @@
+{
+  "id": "D15-s1-03",
+  "scope": "D15-s1",
+  "step": "D15.M3",
+  "title": "debug_ingest.py's verdict line misstates what it judged: a fixed /12 denominator and a vacuous replay-clean pass",
+  "severity": "low",
+  "claim": "tools/replay/debug_ingest.py prints stages_ok=12/12 when 11 checks ran, 10/12 when 8 of 10 checks passed (stores emptied), and passes replay-clean with smoke_verdict=pass on a bundle whose replay half is empty.",
+  "mechanism": "main() prints 12 - len(fails) over a constant 12 while ingest() runs accuracy-loaded XOR corruption-refused and skips both when no accuracy store exists; replay-clean is not(export.violations({})) and carries no item count, so D15.md M3's 'a check passing on an empty section is vacuous' is left to the reader.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B [--synthetic S] [--empty replay|stores]",
+    "harness_path": "dev/audit/rounds/round11/D15/s1/ingest_checks.py",
+    "value": "checks_ok=11/11 vs tool_stages_ok=12/12 (both bundles); --empty stores: checks_ok=8/10 vs tool_stages_ok=10/12; --empty replay: vacuous_passes=1 with all checks ok",
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, box B8 (shared), CI venv python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 21.91,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/replay/debug_ingest.py:ingest",
+  "perturbation": {"change": "--empty replay (the replay half emptied, as a download from an install without the recorder carries it)", "expected_direction": "up", "observed_value": "vacuous_passes 0 -> 1, verdict still 12/12 pass"},
+  "null_control": {"command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B", "value": "vacuous_passes=0 on both filled bundles", "note": "the overstatement of the denominator persists (12 vs 11) even here"},
+  "metric_definition": "Per bundle: checks ingest() ran and passed, against the stages_ok line main() prints; passes whose section read holds 0 items.",
+  "phenomenon_property": "debug_ingest.py's verdict counts the checks it ran and names a pass on an empty section as not judged.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/ingest_checks.py --bundle B --empty replay|cycle_rows|stores (each check with section_items=0 and value 1 is a seam)",
+  "stop_rule_class": "hygiene",
+  "class_guess": "N-silent-zero",
+  "files": ["tools/replay/debug_ingest.py"],
+  "proposed_fix_scope": "main() prints passed/ran from Results (count checks, not fails); replay-clean reports the replay row count and reads 'skipped: replay half empty (manifest.replay names why)' when it is 0; gate_checks gains the empty-replay arm.",
+  "reproduction_steps": ["PYTHONPATH=tests/hastub python3 tools/replay/debug_ingest.py --bundle S (11 ok lines, stages_ok=12/12)"]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "D11-s3-02",
+  "scope": "D11-s3",
+  "step": "D11.M4",
+  "title": "brief_lint's CI run never lints the live rosters in dev/programme/rosters/ (66 live groups; 3 rotted citations)",
+  "severity": "medium",
+  "claim": "The no-argument run of tools/policy/brief_lint.mjs (tests.yml `briefs`) lints 1 roster file, .claude/workflows/wave-3l-groups.json (1 live group), and not dev/programme/rosters/wave-r10-groups.json (52 live groups) or wave-r9-groups.json (14): an unresolvable path appended to a live brief there leaves TOTAL at 0, the same edit in wave-3l moves it to 1, and the r10 roster already carries 3 path:line errors that only a named-file run prints.",
+  "mechanism": "main() takes `files = workflowFiles(ROSTER_FILE_RE)`, which lists .claude/workflows/ and dev/programme/carries/ only; ROSTERS_DIR is read by rosterIssues (the issue index) but never linted. roster_edit.py's write gate lints the roster by name but demotes every error the base already has to `WARN pre-existing, re-pin owed`, so a citation that rots after its write is refused by nothing.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/brief_arms.py",
+    "harness_path": "dev/audit/rounds/round11/D11/s3/brief_arms.py",
+    "value": 2,
+    "unit": "live roster files in ROSTERS_DIR the CI run does not lint (gap_arms_unmoved=2 of 2; named_wave_r10_groups_errors=3; controls_fired=3 of 3)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU container",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, other seats running; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 6.83,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/policy/brief_lint.mjs:main (workflowFiles roster list)",
+  "perturbation": {
+    "change": "brief_lint.mjs main(): `? workflowFiles(ROSTER_FILE_RE)` -> also list ROSTERS_DIR's wave-*-groups.json (harness --perturb)",
+    "expected_direction": "up",
+    "observed_value": "rosters_linted 1 -> 3; null TOTAL 0 -> 3; gap_r10_path 0 -> 4, gap_r9_path 0 -> 4; live_rosters_in_rosters_dir_unlinted 2 -> 0"
+  },
+  "metric_definition": "Per arm, the TOTAL error count of brief_lint.mjs's no-argument run in a worktree of the baseline, and the roster files whose `== file ==` header that run prints.",
+  "phenomenon_property": "Every roster file holding a live (non-done) group is linted by the required no-argument brief_lint run, so a citation that stops resolving in any live brief turns `briefs` red.",
+  "seam_rule": "git ls-files '*wave-*-groups.json' | grep -v fixtures (each file not printed under `== ... ==` by `node tools/policy/brief_lint.mjs`)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/brief_arms.py",
+    "value": "null 0; control_3l_path 1, control_3l_count 1, control_playbook_path 1",
+    "note": "the same probe edit in the one roster the run reads, and a playbook rename, each turn the run red, so the unmoved gap arms are the input list, not a dead linter"
+  },
+  "reproduction_steps": [
+    "node tools/policy/brief_lint.mjs  (in a full checkout: TOTAL 0 across 40 files; no dev/programme/rosters header)",
+    "node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json  (TOTAL 3: R10-RELAY-NOBODY-STALL path:line anchors moved)"
+  ],
+  "proposed_fix_scope": "brief_lint.mjs main() lints ROSTERS_DIR rosters on the no-argument run (one line; a named r10 run measured about 5 s here, provisional), the 3 rotted R10-RELAY-NOBODY-STALL anchors re-pinned in the same pull request, and brief-citations.md's first sentence names the roster directory. Mechanisation (D11.M5): this replaces the manual 're-pin owed' WARN that roster_edit.py prints with a refusal; cost one line of code, no policy line.",
+  "files": [
+    "tools/policy/brief_lint.mjs",
+    "dev/programme/rosters/wave-r10-groups.json",
+    "dev/governance/rules/brief-citations.md",
+    "tools/audit/seat/roster_edit.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "I3"
+}
