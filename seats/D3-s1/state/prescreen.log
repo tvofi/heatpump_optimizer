@@ -564,3 +564,13 @@
 2026-11-19T05:02:10Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost GUARD_OFF 7f918304 L1627 by=- ran=16 wall=1653.5s
 2026-11-19T05:06:37Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_power_fraction CMP_BOUND 1608f006 L2170 by=- ran=17 wall=1875.9s
 2026-11-19T05:10:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP eef19624 L4702 by=- ran=12 wall=1552.0s
+2026-11-19T05:21:23Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:metering_windows GUARD_OFF c58ef9ab L573 by=- ran=17 wall=1937.5s
+2026-11-19T05:31:03Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch GUARD_OFF f644eb41 L4774 by=tests/features.py ran=14 wall=1732.3s
+2026-11-19T05:33:41Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 1c5445b4 L2223 by=- ran=12 wall=1624.1s
+2026-11-19T05:37:52Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_diagnose_interval GUARD_OFF 45fc694e L10678 by=- ran=13 wall=1614.7s
+2026-11-19T05:47:42Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum GUARD_OFF 65785e02 L744 by=- ran=12 wall=1579.1s
+2026-11-19T05:57:31Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.baseline_load_array GUARD_OFF 43e0c376 L2823 by=- ran=12 wall=1588.8s
+2026-11-19T06:05:40Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._settlement_caps GUARD_OFF 495d6b24 L6038 by=- ran=17 wall=1918.7s
+2026-11-19T06:09:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/tariff.py:window_factors CMP_BOUND fcbb72fb L674 by=- ran=17 wall=1924.2s
+2026-11-19T06:09:57Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:_bucket_index CMP_BOUND 94663f39 L167 by=tests/features.py ran=13 wall=1334.7s
+2026-11-19T06:23:57Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._indoor_humidity_value GUARD_OFF 84888766 L9170 by=- ran=13 wall=1585.5s
