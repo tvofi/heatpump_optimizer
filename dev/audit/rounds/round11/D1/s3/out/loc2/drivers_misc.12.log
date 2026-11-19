@@ -1,0 +1,81 @@
+CALL pw._bootstrap: ok
+CALL pw._describe: ok
+CALL pw._describe ok: ok
+CALL pw._dump unpicklable: ok
+CALL pw._dump ok: ok
+CALL pw.run_worker: ok
+CALL cmod._run_in_process: ok
+CALL cmod._shutdown_process_pool: ok
+CALL cmod._run_in_process 2: ok
+CALL cmod._shutdown_process_pool at_exit: TypeError
+CALL cmod._await_off_loop: ok
+CALL cmod._thermal_param_changes: TypeError
+CALL AccuracyTracker(): ok
+CALL AccuracyTracker.as_dict: ok
+CALL AccuracyTracker.from_dict: ok
+CALL AccuracyTracker.from_dict garbage: ok
+CALL DrawStats(): ok
+CALL DrawStats.as_dict: ok
+CALL DrawStats.from_dict: ok
+CALL DrawStats.from_dict garbage: ok
+CALL DrawRange(): ok
+CALL DrawRange.as_dict: ok
+CALL DrawRange.from_dict: ok
+CALL DrawRange.from_dict garbage: ok
+CALL FrequencyMap(): ok
+CALL FrequencyMap.as_dict: ok
+CALL FrequencyMap.from_dict: ok
+CALL FrequencyMap.from_dict garbage: ok
+CALL PeakTracker(): ok
+CALL PeakTracker.as_dict: ok
+CALL PeakTracker.from_dict: ok
+CALL PeakTracker.from_dict garbage: ok
+CALL StartCounter(): ok
+CALL StartCounter.as_dict: ok
+CALL StartCounter.from_dict: ok
+CALL StartCounter.from_dict garbage: ok
+CALL SnapshotRing(): ok
+CALL SnapshotRing.as_dict: ok
+CALL SnapshotRing.from_dict: ok
+CALL SnapshotRing.from_dict garbage: ok
+CALL DutySwitchLearner.from_record: ok
+CALL ManualOverride.from_dict: ok
+CALL manual_plan._parse_dt: ok
+CALL tariff._stored_peaks: ok
+CALL draw_range._stored_ceiling: ok
+CALL draw_range._command_cells: ok
+CALL drift._positive_definite: ok
+CALL drift._positive_definite bad: ok
+CALL price_tiles._aware: ok
+CALL boost._due_inside_horizon: ok
+CALL boost._window_open: ok
+CALL dhw_schedule._parse_day_selector: ok
+CALL dhw_schedule._parse_day_selector 2: ok
+CALL quiet_windows.silent_cap_kw: ok
+CALL quiet_windows._parse_spec_pair: ok
+CALL quiet_windows.overlap_problem: ok
+CALL store.in_domain: ok
+CALL integ._take_fresh_handover: ok
+CALL integ._take_fresh_handover stamped: ok
+CALL wood_fuel._as_dt: ok
+CALL wood_fuel.wood_fuel_ready: ok
+CALL wood_fuel.wood_slots_to_kw: TypeError
+CALL wood_fuel._wood_slots_error: ok
+CALL whatif.scratch_copies: ok
+CALL Coordinator(): ok
+CALL coord._solar_location: ok
+CALL coord._check_pump_mode_expired: ok
+CALL coord._raise_cop_issue: TypeError
+CALL coord._async_load_thermal_learning: ok
+CALL coord._async_load_manual_plan: ok
+CALL coord._command_frequency: ok
+CALL coord.async_simulate: ok
+CALL coord._async_setup_ecl110_state_subscription: ok
+CALL coord._fetch_weather_forecast: ok
+CALL coord._fetch_tibber_prices: UpdateFailed
+CALLS 75
+STATUS finished
+RESULT fired=0 handlers
+RESULT load1=266.72
+RESULT thread_factor=1.0 (no timing RESULT; not measured)
+RESULT swapins=0

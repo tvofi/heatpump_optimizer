@@ -1,0 +1,46 @@
+{
+ "id": "D2-s3-09",
+ "scope": "D2-s3",
+ "step": "D2.M5",
+ "title": "Ceiling-probe intervals metered at the pump's floor become the solve's learned top: the planned max drops 6.0 -> 1.5 kW",
+ "severity": "medium",
+ "claim": "draw_range.DrawRange.takes_ceiling accepts any experiment interval written at the ceiling whose draw clears idle, so 14 ceiling-probe intervals in which the load sat under the pump's minimum (drawn 1.5 kW, the floor) make draw_range.solve_band book max_kw 1.5 kW ('measured_below_configured') for a pump configured and truly able to draw 5.6-6.0 kW: a 4.10 kW narrowing below a draw the store never observed, while the uncensored arm keeps 6.0 and still learns a genuine 4.0 kW top.",
+ "mechanism": "The store's median (learned_max_kw) is read as the pump's top with no test that the probe's draw was capacity-limited rather than load-limited; censoring at the modulation floor is indistinguishable from a small pump. solve_band then clamps every solve's max_electrical_power to it (for CEILING_LAPSE_DAYS, until CEILING_OVERDRAWS ordinary ceiling-written overdraws clear the store).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_drawrange.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m5_drawrange.py",
+  "value": 4.1,
+  "unit": "kW",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "n/a",
+  "contention_note": "fan-out, up to three seats on the box; a power figure, contention-immune",
+  "tolerance": "exact (\u00b11e-6 kW)",
+  "load1": 7.9,
+  "thread_factor": 0.9999
+ },
+ "instrumented_symbol": "heatpump_optimizer.draw_range:solve_band (via draw_range.fold -> DrawRange.takes_ceiling / observe_ceiling / learned_max_kw)",
+ "perturbation": {
+  "change": "--perturb-floor: takes_ceiling refuses a draw within AGREE_TOLERANCE of the window's metered running floor (DrawRange.observed()[0])",
+  "expected_direction": "to_zero",
+  "observed_value": 0.0
+ },
+ "metric_definition": "narrowing_kw = true pump top - solve_band(...).max_kw after the probe; identity 0 where the top was never observed",
+ "phenomenon_property": "The draw range a solve books never falls below a draw the samples could not observe: a probe interval whose draw sits at the metered running floor (load-limited, censored) is no evidence of the pump's top.",
+ "seam_rule": "grep -n 'def takes_ceiling\\|def learned_max_kw\\|def solve_band\\|observe_ceiling' custom_components/heatpump_optimizer/draw_range.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_drawrange.py",
+  "value": 0.0,
+  "note": "samples=uncensored, true top 5.6: solve_max 6.0 (not_below_configured), narrowing <= 0; true top 4.0: learned 4.0, the honest narrowing the store exists for, kept under the perturbation"
+ },
+ "reproduction_steps": [
+  "Run the harness; read samples=censored_at_minimum_power solve_max and narrowing_kw",
+  "Re-run with --perturb-floor: narrowing goes to 0, the uncensored top-4.0 cell still learns 4.0"
+ ],
+ "proposed_fix_scope": "draw_range: refuse (or mark censored) ceiling-store samples at the metered running floor / when the probe's delivered heat did not reach the commanded level; require evidence the draw was capacity-limited before solve_band lowers the top",
+ "files": [
+  "custom_components/heatpump_optimizer/draw_range.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-confounded-learner"
+}

@@ -35,8 +35,8 @@ from typing import Any, Callable
 
 import numpy as np
 
-from .accuracy import HISTORY_LENGTH
 from .batchmath import row_sums
+from .const import HISTORY_LENGTH
 from .dhw_schedule import Window, hour_in_windows
 from .payload import PeakTariff
 
@@ -188,7 +188,7 @@ class PeakTracker:
     closed_month: str = ""
     closed_peaks: list[float] = field(default_factory=list)
     #: The measured whole-house readings behind ``peaks``, newest last, one
-    #: per CYCLE and bounded at `accuracy.HISTORY_LENGTH` like the pump's own
+    #: per CYCLE and bounded at `const.HISTORY_LENGTH` like the pump's own
     #: window -- the payload's ``house_power_series`` (#1460). A live
     #: fingerprint, not persisted state: a restart carries none of it.
     #: The meter-event path (#7) samples at 10-second spacing, where a

@@ -1,0 +1,53 @@
+{
+ "id": "D2-s3-11",
+ "scope": "D2-s3",
+ "step": "D2.M5",
+ "title": "A genuine internal gain is learned at 54-57 % of its size; the heat-loss scale absorbs the rest (-2.75 %)",
+ "severity": "medium",
+ "claim": "Driven together on a converged house with a genuine +0.6 kW evening gain (17-22 h) and zero-mean sensor noise, coordinator._fold_internal_gains settles the profile at 0.540-0.569 of the genuine gain over 15 noise x seed cells, while learner_newton_step moves house_heat_loss_scale to 0.9725 (truth 1.0) because both learners fold the same residual; with no genuine gain the profile stays within 0.009 kW of the prior and the scale within 1e-4.",
+ "mechanism": "_fold_internal_gains steps g += INTERNAL_GAINS_ALPHA*y - INTERNAL_GAINS_RIDGE*(g - g0) on the residual power y left after the live model (which carries the profile through _model_corrections), so its own fixed point is only alpha/(alpha+ridge) = 0.714 of the gain; the share it leaves unexplained is folded into the heat-loss scale on the same interval, which reads extra evening heat as a tighter house and, by lowering UA, explains part of the gain away from the profile (scale and a near-uniform gain offset are near-collinear under a 6 K diurnal swing).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_crosscov.py",
+  "harness_path": "dev/audit/rounds/round11/D2/s3/m5_crosscov.py",
+  "value": 0.5573,
+  "unit": "ratio (learned gain / genuine gain, mean over 3 noise arms x 5 seeds)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+  "cpu_or_wall": "ratio",
+  "contention_note": "fan-out, three seats on the box; seeded arithmetic, contention-immune",
+  "tolerance": "exact (seeded rng 0-4, 120 days of 30-min intervals)",
+  "load1": 6.8,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_internal_gains (with thermal_model:learner_newton_step and HeatPumpOptimizerCoordinator._apply_house_heat_loss_scale, gated by coordinator:internal_gains_gate_open)",
+ "perturbation": {
+  "change": "--perturb-ridge0: coordinator.INTERNAL_GAINS_RIDGE = 0",
+  "expected_direction": "up",
+  "observed_value": 0.7748
+ },
+ "metric_definition": "gain_recovery = mean over the gain hours of (learned profile g_h - prior g0) / (genuine gain), after 120 days of accepted dark intervals; identity 1",
+ "phenomenon_property": "On a converged heat-loss level, the internal-gains profile converges to a genuine hour-correlated gain and the heat-loss scale stays at the true UA: no learner settles on a fraction of a covariate the other learner absorbs.",
+ "seam_rule": "grep -n 'INTERNAL_GAINS_RIDGE\\|INTERNAL_GAINS_ALPHA\\|def _fold_internal_gains\\|self._fold_internal_gains\\|learner_newton_step(' custom_components/heatpump_optimizer/coordinator.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_crosscov.py",
+  "value": "no-gain arm: gain_spurious_max 0.0092 kW (white), 0.0046 kW (quantised); scale_bias_nogain_mean +0.0001 (white, quantised)",
+  "note": "with no genuine gain neither learner moves under zero-mean noise; the shortfall and the scale bias appear only with a genuine gain"
+ },
+ "leave_one_out": {
+  "cells": 15,
+  "min": 0.5401,
+  "max": 0.5687,
+  "drop_most_favourable": 0.5585
+ },
+ "reproduction_steps": [
+  "Run the harness (about 1 min); read the CELL lines' gain_recovery_mean and scale_bias_genuine_mean per noise arm",
+  "Re-run with --perturb-ridge0: gain_recovery_mean rises 0.557 -> 0.775 (the ridge share); the rest is the scale's",
+  "The drifting arm's +0.06 scale under a +1.5 K outdoor drift is the scale reading a biased covariate (expected) and is not the claim"
+ ],
+ "proposed_fix_scope": "coordinator: fold the gains profile as a zero-mean shape about the level the heat-loss scale owns (or fold the scale on the residual after the profile's hour term), and drop the ridge's bias at the fixed point (shrink the step, not the target)",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-confounded-learner"
+}

@@ -1,0 +1,13 @@
+{
+ "class": "N-unbudgeted-background",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/background/enumerate.py  (static: 17 background submit seams, primitives _await_optimize/_await_process/_await_off_loop/async_simulate/async_add_executor_job/run_in_executor)  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/background/probe_burst.py --seam {diagnose,whatif} --k 4 [--guard]  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py --cycles 4 --arms default,tiles_fuse  (runtime)",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py --cycles 4 --arms default,tiles_fuse  # tiles_fuse: fuse_advisor 1 + steady 2 worker jobs stacked after main in the cycle (D9-s1-02)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._maybe_refresh_price_tile", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py --cycles 4 --arms default,tiles_fuse  # tiles_fuse: price_tile 4 jobs / 7 msm entries over 4 cycles, 5.43 s CPU vs main 4.40 s (D9-s1-02)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator.async_simulate", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/background/probe_burst.py --seam whatif --k 4  # 12 worker jobs, scheduled solve 11.10x solo; --guard 3 jobs 3.80x (D9-s1-03)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator.async_simulate._held_solve", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/background/probe_burst.py --seam whatif --k 4  # 2 of the 3 jobs per what-if (steady pair) (D9-s1-03)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/services.py", "symbol": "handle_simulate_plan", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/background/probe_burst.py --seam whatif --k 4  # the service entry of D9-s1-03; no guard beyond limited_answer's start interval", "beyond_finding": false}
+ ]
+}

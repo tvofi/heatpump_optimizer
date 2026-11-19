@@ -1,0 +1,14 @@
+{
+  "class": "P10",
+  "instances": 0,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P10/p10_loop_reach.py (controls: --null 0, --perturb 1, --seam optimizer.py:_compute_baseline_power exits 1; --through-hops names each seam's guard)",
+  "instance_list": [
+    {
+      "file": "custom_components/heatpump_optimizer/optimizer.py",
+      "symbol": "HeatPumpOptimizer._compute_baseline_power (via coordinator.async_simulate -> whatif.schedule_days -> HeatPumpOptimizer.reference_day; also thermal_model.valve_top_equilibrium's solve on the same route)",
+      "probe": "python3 dev/audit/rounds/round11/D14/sweep-P10/p10_loop_reach.py --seam optimizer.py:_compute_baseline_power (exit 1); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_whatif_loop_block.py (loop_simulate_step_calls=384 per steady what-if at register head, 960 weekend; null steady=False 0; perturbed_offloop 0)",
+      "beyond_finding": false
+    }
+  ]
+}

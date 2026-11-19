@@ -1,0 +1,49 @@
+{
+ "id": "D3-s2-02",
+ "scope": "D3-s2",
+ "step": "D3.M4",
+ "title": "No check feeds NaN to score_lead_predictions; dropping its guard poisons lead sigma permanently",
+ "severity": "medium",
+ "claim": "Disabling accuracy.py:261 (`if not np.isfinite(actual_temp): return` -> `if False:`) survives all 20 drivers of accuracy.py's measured closure (12 run, 8 reach-skipped; env_drift.py --all against the baseline included), yet on one NaN reading it turns AccuracyTracker.sigma(3.0) from 0.5 to nan and keeps it nan after a later finite scoring.",
+ "mechanism": "lead_sigma is an EWMA: (1-a)*prev + a*err, so one NaN err makes every later value NaN; the guard is the only barrier inside the tracker, and no test drives a non-finite actual_temp into it.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s2/m4_nonequiv.py",
+  "value": 1,
+  "unit": "RESULT distinct_score_lead_nan_actual (baseline sigma 0.5, mutant nan)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B2, 4 cores, shared",
+  "cpu_or_wall": "count",
+  "contention_note": "deterministic; survivor verdict from drive_resumable.py (tally.py: accuracy.py:261 GUARD_OFF LIVES), box shared with D0-s2 and D9-s2 at load ~7",
+  "tolerance": "exact",
+  "load1": 7.1,
+  "thread_factor": 0.93
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/accuracy.py:AccuracyTracker.score_lead_predictions (and AccuracyTracker.sigma)",
+ "perturbation": {
+  "change": "m4_nonequiv.py --identity (the null mutant old->old)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/m4_nonequiv.py --identity",
+  "value": 0,
+  "note": "null mutant: baseline and mutant sigma both 0.5; the sibling guard accuracy.py:238 (non-finite predicted) reads 0 too: it is shadowed by the loop's own isfinite(predicted) filter, an equivalent survivor"
+ },
+ "metric_definition": "1 when AccuracyTracker.sigma(3.0) after a NaN then a finite scoring differs between the baseline module and the in-memory mutant, else 0",
+ "phenomenon_property": "Every non-finite guard at a learner's state boundary in the cells has a check that feeds it a non-finite value and asserts the learned state stays finite.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s2/tally.py dev/audit/rounds/round11/D3/s2/drive dev/audit/rounds/round11/D3/s2/run | grep -E 'GUARD_OFF.*LIVES'",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/accuracy.py",
+  "tests/features.py"
+ ],
+ "proposed_fix_scope": "Test only: one check (features.py or a unit block) scoring a NaN actual_temp after a finite one and asserting sigma stays finite and lead_counts unchanged; then pin the site killed_by.",
+ "reproduction_steps": [
+  "drive_resumable.py over accuracy.py:261 (verdict LIVES, tally.py)",
+  "m4_nonequiv.py: distinct_score_lead_nan_actual=1",
+  "m4_nonequiv.py --identity: 0"
+ ],
+ "expected_golden_drift": []
+}

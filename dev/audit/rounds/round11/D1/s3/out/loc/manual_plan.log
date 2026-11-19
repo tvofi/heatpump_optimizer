@@ -1,0 +1,11 @@
+
+=== Manual plan override ===
+
+-- Slot parsing and validation
+  ok   omitted channel stays None (fully automatic)
+  ok   explicit empty list stays [] (off for the whole period)
+STATUS aborted: ManualPlanError: could not parse datetime '2026-01-15T06:00:00': D1S3-INJECTED
+RESULT fired=5 handlers
+RESULT load1=179.62
+RESULT thread_factor=1.0 (no timing RESULT; not measured)
+RESULT swapins=0
