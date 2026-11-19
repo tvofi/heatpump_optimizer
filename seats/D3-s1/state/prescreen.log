@@ -668,3 +668,4 @@
 2026-11-19T11:56:27Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_snow_memory CLAMP_DROP 7b17a55a L7549 by=- ran=13 wall=1786.3s
 2026-11-19T11:56:51Z COMPLETE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostObservation.any_defrost BOOLOP 1299c7b8 L683 by=tests/features.py ran=13 wall=2001.2s
 2026-11-19T12:00:33Z COMPLETE KILLED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_space_power_caps GUARD_OFF 934404a3 L4828 by=tests/features.py ran=12 wall=1648.0s
+2026-11-19T12:04:55Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 3e0642e4 L1942 by=- ran=12 wall=1743.2s
