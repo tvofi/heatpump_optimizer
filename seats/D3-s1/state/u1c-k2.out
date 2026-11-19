@@ -236,3 +236,4 @@
 2026-11-19T13:59:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling CMP_BOUND cf0ef9fc L6093 by=- ran=12 wall=1790.6s
 2026-11-19T14:04:03Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._normalise_pins CLAMP_DROP c634563f L5016 by=- ran=14 wall=1916.3s
 2026-11-19T14:18:24Z COMPLETE KILLED custom_components/heatpump_optimizer/tariff.py:_window_means_batch CMP_BOUND c58ef9ab L1109 by=tests/entities.py ran=12 wall=1687.0s
+2026-11-19T14:32:01Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 11808d14 L2573 by=- ran=12 wall=1677.8s
