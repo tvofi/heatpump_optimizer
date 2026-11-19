@@ -660,3 +660,4 @@
 2026-11-19T10:54:17Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_update_data RETURN_DEL 35c20d2b L6091 by=tests/features.py ran=13 wall=1746.4s
 2026-11-19T11:00:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met GUARD_OFF 442ad6d1 L1545 by=- ran=12 wall=1741.7s
 2026-11-19T11:03:45Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._confidence_margins CMP_BOUND 789d92ca L9153 by=- ran=13 wall=1747.4s
+2026-11-19T11:05:59Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._interval_space_power GUARD_OFF 1dc80a7a L5049 by=- ran=14 wall=1976.0s
