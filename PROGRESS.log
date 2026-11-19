@@ -226,3 +226,4 @@
 1795097481 CKPT D3-s1 712 file(s)
 1795097497 SEAT D3-s1 refused
 1795097502 SEAT D3-s1 running
+1795097506 HB D3-s1 refused by check_report (missing M1/M4/M5 rows; C1,C4,C7,C8,C9 unanswered); re-run once: the seat is resumed with the checker's lines
