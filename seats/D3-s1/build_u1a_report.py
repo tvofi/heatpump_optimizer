@@ -74,6 +74,17 @@ def main() -> int:
     timeouts = {k: [s for s, r in comp[k]["runs"].items() if r.get("timed_out")]
                 for k in k1_surv if k in comp and comp[k]["verdict"] == "TIMEOUT"}
 
+    redrive = {k: json.loads((RES / "redrive" / f"{k}.json").read_text())
+               for k in timeouts if (RES / "redrive" / f"{k}.json").exists()}
+    redrive_md = [f"Timeout re-drive (redrive_timeout.py): {k} {site(comp[k]['mutant'])}, {v['script']} "
+                  f"alone with a {v['limit_s']} s limit: killed={v['killed']}, rc={v['run']['rc']}, "
+                  f"failed={v['run']['failed']}, timed_out={v['run']['timed_out']}, "
+                  f"{v['run']['seconds']:.0f} s against a {v['baseline_seconds']:.0f} s baseline (provisional)."
+                  for k, v in redrive.items()]
+    # A full-net TIMEOUT whose re-drive with a longer limit kills it is a kill, not a survivor.
+    redrive_killed = [k for k in redrive if redrive[k]["killed"]]
+    k2_surv = [k for k in k2_surv if k not in redrive_killed]
+
     # ---- step-4 answers ----
     ans: dict[str, dict] = {}
     for p in sorted(HERE.glob("m4_u1a_part*.json"), key=lambda p: int(p.stem.split("part")[1])):
@@ -103,7 +114,8 @@ def main() -> int:
     m2["not_reached"] = (by_file(in_range_rest, f"in box {BOX}'s key range not driven")
                          + by_file(out_range_rest,
                                    f"not pre-screened: outside box {BOX}'s key range "
-                                   f"[{lo}, {hi}), assigned to box D3-u1b/D3-u1c/D3-u1d"))
+                                   f"[{lo}, {hi}), assigned by the dispatch's key split to the "
+                                   f"other D3 boxes (D3-u1b, D3-u1c, D3-u1d)"))
     m2["evidence"] = list(cov_c["D3.M2"]["evidence"]) + [{
         "command": f"PYTHONPATH=tests/hastub python3 {REL}/build_u1a_report.py",
         "value": (f"box {BOX} K1 (fast net = fast closure scripts + env_drift --all, "
@@ -167,6 +179,9 @@ def main() -> int:
             "ran": sorted(r["runs"]), "reach_skipped": sorted(r["skipped"]),
             "verdict_fast": pre[k]["verdict"], "verdict_full": r["verdict"],
             "timed_out": timeouts.get(k, []),
+            "redrive": ({"script": redrive[k]["script"], "limit_s": redrive[k]["limit_s"],
+                         "killed": redrive[k]["killed"], "seconds": redrive[k]["run"]["seconds"],
+                         "timed_out": redrive[k]["run"]["timed_out"]} if k in redrive else None),
             "step4": ans.get(k, {}).get("answer", ""), "reading": ans.get(k, {}).get("kind", ""),
         })
     order = {"gap": 0, "boundary": 1, "equivalent": 2, "": 3}
@@ -181,9 +196,16 @@ def main() -> int:
          "command": f"cat {REL}/state/results/complete/<key>.json for the K2 kills",
          "value": "; ".join(f"{site(comp[k]['mutant'])} by {','.join(comp[k]['killed_by'])}"
                             for k in k1_surv if k in comp and comp[k]["verdict"] == "KILLED")},
+    ] + [
+        {"claim": f"box {BOX}: full-net TIMEOUT {site(comp[k]['mutant'])} is pinned (killed when its script is allowed to finish)",
+         "command": f"PYTHONPATH=tests/hastub python3 {REL}/redrive_timeout.py {k} {redrive[k]['script']} {redrive[k]['limit_s']}",
+         "value": (f"KILLED by {redrive[k]['script']} (rc {redrive[k]['run']['rc']}); the mutant also runs it "
+                   f"{redrive[k]['run']['seconds']:.0f} s against a {redrive[k]['baseline_seconds']:.0f} s baseline "
+                   f"(provisional, nproc 4)")}
+        for k in redrive_killed
     ]
     harnesses = list(dict.fromkeys(list(carried["harnesses"]) + [
-        f"{REL}/build_u1a_report.py", f"{REL}/m4_pending.py"]))
+        f"{REL}/build_u1a_report.py", f"{REL}/m4_pending.py", f"{REL}/redrive_timeout.py"]))
 
     unfinished = []
     if undriven:
@@ -221,9 +243,16 @@ def main() -> int:
           + ", ".join(f"{s} {n}" for s, n in k2_by.most_common()) + f"), {k2['SURVIVED']} survived, "
           f"{k2['TIMEOUT']} timeout" + "".join(f" ({k}: {','.join(v)})" for k, v in timeouts.items()) + ".",
           "- Step-4 readings of the full-net survivors: " + ", ".join(f"{n} {s}" for s, n in kinds.most_common()), "",
-          "Incidents: three container restarts; the second killed K2 mid-drive and left four worker trees "
-          "mutated, which were discarded and re-added before resuming (the in-flight mutants were re-driven); "
-          "a comms lock left by the first restart silently failed checkpoints between 21:12Z and 00:27Z until cleared.", "",
+          "Incidents: three container restarts; the second (about 00:20Z) killed K2 mid-drive and left four "
+          "worker trees mutated, which were discarded and re-added before resuming (the in-flight mutants were "
+          "re-driven; a result file is written only after the tree is restored, so no recorded verdict ran on a "
+          "stale mutation). box_comms.sh repeatedly exited with its lock directory left behind (first at 21:12Z, "
+          "then about every 12 minutes from 13:48Z), after which heartbeats and checkpoints failed 'lock stuck' "
+          "and the heartbeat loop died; checkpoints were re-taken by hand, and from 13:59Z an out-of-tree watchdog "
+          "($HOME/comms-watchdog.sh) cleared a lock older than 300 s while no box_comms.sh process was alive and "
+          "restarted the loop. No result was lost: results live on the box disk and every milestone was "
+          "checkpointed after the lock cleared.", "",
+          *redrive_md, "",
           "## Coverage", ""]
     for c in coverage:
         md.append(f"- {c['step']}: universe {c['universe']}, examined {c['examined']}, "
@@ -252,7 +281,10 @@ if __name__ == "__main__":
         u = sorted({k for d in (pre, c2, c3c6) for k, r in d.items() if r["verdict"] in ("SURVIVED", "TIMEOUT")})
         if "--m4-universe" in sys.argv:
             carried_ans = json.loads((HERE / "m4_answers.json").read_text())
+            rd = {Path(p).stem for p in glob.glob(str(RES / "redrive" / "*.json"))
+                  if json.loads(Path(p).read_text())["killed"]}
             u = sorted(set(carried_ans) | {k for k in u if k in comp and comp[k]["verdict"] != "KILLED"
+                                           and k not in rd
                                            and k in set(lines(STATE / "keys-D3-u1a-surv.txt"))})
         for k in u:
             print(k, site(src[k]["mutant"]) if k in src else "")

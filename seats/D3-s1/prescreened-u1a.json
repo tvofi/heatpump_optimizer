@@ -56,6 +56,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:10504 _roll_month: the ledger save after a month closes is skipped. Should fail: a month-rollover test that closes a month and asserts the ledger store was scheduled/saved (or the receipt survives a reload); the next periodic save probably masks it.",
   "reading": "gap"
  },
@@ -115,6 +116,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:1624 BUFFER_COOLING_MIN_DELTA 4.0 -> 8.0. Should fail: a buffer-cooling learner test with a buffer-to-ambient delta between 4 and 8 K asserting the sample is accepted; the constant is not in guard_pins and no fixture drives a cooling sample in that band.",
   "reading": "gap"
  },
@@ -174,6 +176,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:1651 HOUSE_LOSS_MAX_STEP 0.05 -> 0.1. Should fail: a re-anchor test (_reanchor_house_heat_loss_scale) asserting the per-re-anchor move is capped at 5 % of the scale; the constant is unpinned by guard_pins and no learner test drives a step past 5 %.",
   "reading": "gap"
  },
@@ -233,6 +236,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:1796 COP_LEARNING_MAX_STEP 0.05 -> 0.1. Should fail: a COP learner test with one outlier power ratio asserting the per-sample move is capped at 5 %; the constant is unpinned.",
   "reading": "gap"
  },
@@ -293,6 +297,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:4396 _dhw_mixed_water: flow > 0 -> >= 0, so a zero shower flow divides by zero (inf/ZeroDivisionError). Should fail: a DHW mixed-water sensor test with shower_flow_lpm = 0 asserting shower_minutes is absent; config validation may forbid 0.",
   "reading": "gap"
  },
@@ -353,6 +358,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:4508 _async_drive_pumps: dhw_enabled and dhw_windows_active -> or, so DHW windows are driven with DHW disabled (or with windows inactive). Should fail: a pump-driving test with dhw_enabled False and windows configured, asserting no DHW window is commanded.",
   "reading": "gap"
  },
@@ -413,6 +419,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:4831 _build_plan_views: the empty-result early return is disabled. Should fail: _build_plan_views on an OptimizationResult with no timestamps asserting {'space_plan': {}, 'dhw_plan': {}}; the general path may produce the same empty views, so possibly equivalent.",
   "reading": "gap"
  },
@@ -473,6 +480,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:490 _learned_pair: value > 0 -> >= 0, so a stored zero fold is installed instead of dropped. Should fail: a store-restore test with a learned pair [0.0, n] asserting it is rejected (ValueError, the entry dropped).",
   "reading": "gap"
  },
@@ -533,6 +541,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5104 _max_pump_rise: tank == 'dhw' branch disabled (same line pair as the 5108 survivor): the DHW tank's rise is computed from the buffer mass. Should fail: _max_pump_rise('dhw') asserting thermal_kw / dhw_store.capacity_kwh_per_c.",
   "reading": "gap"
  },
@@ -593,6 +602,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5108 _max_pump_rise: the DHW branch is disabled, so the DHW tank's rise uses the buffer mass. Should fail: a _max_pump_rise('dhw') test asserting thermal_kw / dhw_store.capacity_kwh_per_c; no test reads the DHW pump-rise bound.",
   "reading": "gap"
  },
@@ -653,6 +663,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5176 _external_heat_override: the 'not_numeric' discrimination is disabled, so not_configured / missing / unavailable probes fall through to the not-numeric (on/off) handling. Should fail: an external-heat test with the entity unconfigured or unavailable asserting None (no override); unpinned.",
   "reading": "gap"
  },
@@ -713,6 +724,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5248 _external_heat_forecast: the not-suppressing early return is disabled, so a free-heat forecast is built even when no external heat source is suppressing. Should fail: a coordinator cycle with external heat configured but idle asserting no external-heat forecast reaches the optimizer.",
   "reading": "gap"
  },
@@ -773,6 +785,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5671 _async_learn_buffer_cooling: the non-finite observed guard is disabled. Should fail: a buffer-cooling sample with end_delta <= 0 (log of a non-positive ratio) asserting the rate is unchanged; earlier delta gates may already exclude it.",
   "reading": "gap"
  },
@@ -833,6 +846,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5800 _async_learn_house_heat_loss: the non-finite residual guard is disabled, so a NaN residual reaches the learner. Should fail: a heat-loss learning test with a NaN predicted/observed room temperature asserting the scale is unchanged; the learner may reject NaN itself, so possibly masked.",
   "reading": "gap"
  },
@@ -893,6 +907,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5940 _async_learn_lower_floor_loss: the non-finite residual guard is disabled. Should fail: a lower-floor loss learning test with a NaN lower-floor prediction asserting the scale is unchanged; _loss_residual_rejected may reject NaN itself (NaN comparisons are False), so possibly masked.",
   "reading": "gap"
  },
@@ -953,6 +968,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:6747 _update_current_state: the stale-wood-probe fallback branch (warn and fall back to the last value) is disabled. Should fail: a wood-tank test where the probe goes unavailable after a good reading, asserting the fallback temperature and the single warning; no test makes the wood probe go stale.",
   "reading": "gap"
  },
@@ -1013,6 +1029,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:7130 _weather_fetch_recovered: the outage-recovery branch (log, reset outage count and staleness) is disabled. Should fail: a weather-outage test that fails N fetches, then succeeds, asserting the outage counter and stale flag clear; no test drives a weather recovery.",
   "reading": "gap"
  },
@@ -1073,6 +1090,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:7419 _apply_open_meteo: i < len(solar) -> <=, so i == len(solar) reads past the end (IndexError). Should fail: an Open-Meteo alignment test where the weather horizon is longer than Open-Meteo's solar array, asserting the tail keeps the weather entity's value.",
   "reading": "gap"
  },
@@ -1133,6 +1151,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:7693 async_publish_ecl110_command: the [displace_min, displace_max] clip of the published ECL110 displacement is dropped, so curve-learner bias can push the MQTT command out of the controller's range. Should fail: an ECL110 publish test with a large learned bias asserting the published displacement is clipped; tests/ecl110 paths do not combine curve learning with a near-limit command.",
   "reading": "gap"
  },
@@ -1193,6 +1212,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:7861 _thermal_view: the two-tank attribute block is never published. Should fail: a payload/attribute test on a two-tank configuration asserting two_tank_modelled and its siblings in the thermal view; entities.py does not configure a two-tank topology.",
   "reading": "gap"
  },
@@ -1253,6 +1273,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:8419 _async_load_energy_totals: isinstance(since, str) and since -> or. A truthy non-string 'since' (a corrupt store) would now be adopted. Should fail: an energy-totals restore with since = 12345 asserting it is ignored; no corrupt-store fixture for this key.",
   "reading": "gap"
  },
@@ -1313,6 +1334,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:8966 _maybe_run_fuse_advisor: the no-fuse early return is disabled; amps/fuse None then reach the advisor. Should fail: a coordinator cycle with no main fuse configured asserting the fuse advisor does not run or raise; any exception may be swallowed by the advisor's own guard.",
   "reading": "gap"
  },
@@ -1373,6 +1395,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9273 _track_curve_comfort: bias < 0.0 -> <= 0.0, so a miss is recorded with zero bias as well. Should fail: a curve-comfort test with an untrained curve learner (bias 0) and a negative margin asserting no miss is recorded.",
   "reading": "gap"
  },
@@ -1433,6 +1456,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9402 _fold_solar_aperture: n >= MIN and var > 1e-6 -> or, so the aperture scale is adopted before enough samples. Should fail: a solar-aperture learner test with fewer than SOLAR_APERTURE_MIN_SAMPLES samples asserting the scale stays at its prior; unpinned.",
   "reading": "gap"
  },
@@ -1493,6 +1517,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9622 _apply_learner_payloads: the comfort learner restore is skipped (if False), so a restored/snapshot comfort payload is ignored. Should fail: a store/snapshot round-trip test that saves a trained ComfortLearner and asserts its state after restore; the snapshot restore path for 'comfort' is unpinned.",
   "reading": "gap"
  },
@@ -1553,6 +1578,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9628 _apply_learner_payloads: the defrost learner restore is skipped. Should fail: a snapshot/restore round-trip asserting the restored DefrostDerate state (same untested restore path as the comfort survivor at 9622).",
   "reading": "gap"
  },
@@ -1613,6 +1639,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9685 _async_watch_learning_drift: the counted-day branch (reset the accumulator, issue the day verdict) is disabled. Should fail: a learning-drift test advancing past a day boundary asserting the drift verdict/accumulator reset; no test spans a snapshot day.",
   "reading": "gap"
  },
@@ -1673,6 +1700,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9827 _pv_forecast: the measured-inverter override of production[0] is disabled (if False). Should fail: a coordinator cycle test with a PV production meter entity configured whose plan/payload pv_forecast[0] must equal min(meter, peak_kw) rather than the irradiance model. No test configures a PV meter and reads step 0.",
   "reading": "gap"
  },
@@ -1733,6 +1761,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9836 _pv_forecast: measured_production_kw is no longer added to the PV summary. Should fail: a coordinator test with a PV meter asserting the summary/payload carries measured_production_kw; same untested path as the 9827 survivor.",
   "reading": "gap"
  },
@@ -1793,6 +1822,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9849 _entity_state: the missing-state guard is disabled, so a configured entity absent from hass.states proceeds on None. Should fail: a coordinator test with a configured but unavailable/removed entity asserting (None, {}) and no exception; getattr(None, 'attributes', None) masks it until state.state is read.",
   "reading": "gap"
  },
@@ -1852,6 +1882,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "defrost.py:124 DERATE_ALPHA 0.05 -> 0.1. Should fail: a DefrostDerate unit asserting the EWMA move after one duty sample in a confident bucket; the rate is unpinned.",
   "reading": "gap"
  },
@@ -1912,6 +1943,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "defrost.py:434 observe_duty: counts[t][h] > 0 -> >= 0 (counts are non-negative, so the guard becomes always true). Should fail: an observe_duty unit where the duty count reaches DERATE_CONFIDENCE_SAMPLES in a cell with no inferred samples, asserting no handover blend.",
   "reading": "gap"
  },
@@ -1972,6 +2004,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "defrost.py:642 summary(): duty_counts > 0 -> >= 0, so every bucket reports a measured duty, even with no duty samples. Should fail: a DefrostDerate.summary() test on a fresh learner asserting no measured-duty field in uncounted buckets (the diagnostics/attribute it feeds).",
   "reading": "gap"
  },
@@ -2036,6 +2069,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:1608 _plan_dhw_min_cost: the LP-failure fallback (return the greedy plan) is disabled, so an unsuccessful LP result is used. Should fail: a DHW planner test where linprog reports success=False (e.g. an infeasible deadline) asserting the greedy plan is returned.",
   "reading": "gap"
  },
@@ -2100,6 +2134,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:1613 _plan_dhw_min_cost: return best after an unsuccessful LP is deleted (same seam as the 1608 survivor), so a failed LP's result.x is used. Should fail: a DHW planner test forcing linprog success=False asserting the greedy plan.",
   "reading": "gap"
  },
@@ -2164,6 +2199,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:2075 _apply_dhw_min_run: the jointly-raised shortcut is disabled, so the per-step min-run path always runs. Should fail: an _apply_dhw_min_run unit where raising every short run jointly stays under the ceiling, asserting the joint result; the fallback may give the same plan, so possibly equivalent in outcome.",
   "reading": "gap"
  },
@@ -2228,6 +2264,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:2106 _apply_dhw_min_run: the final [0, p_dhw_max] clip on the repaired plan is dropped. Should fail: an _apply_dhw_min_run unit where the min-run repair raises a step above p_dhw_max asserting the cap; the repair may already respect the cap, so possibly equivalent.",
   "reading": "gap"
  },
@@ -2292,6 +2329,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:680 _dhw_legionella_due: the known-price mask is skipped, so the legionella cycle may be placed on estimated (unpublished) prices. Should fail: a legionella placement test with prices known for only part of the horizon asserting the cycle lands inside the published part.",
   "reading": "gap"
  },
@@ -2356,6 +2394,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "flow_lift.py:188 observe: samples < FLOW_BIAS_MIN_SAMPLES -> <=, so one more sample uses the running mean instead of the EMA. Should fail: a FlowLift unit feeding MIN+1 residuals asserting bias_k after the switch to the EMA.",
   "reading": "gap"
  },
@@ -2419,6 +2458,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "flow_lift.py:51 FLOW_BIAS_MIN_SAMPLES 5 -> 10. Should fail: a FlowCurveBias unit feeding 6 residuals asserting the switch from plain mean to EWMA; unpinned (the same seam as the flow_lift.py:188 survivor).",
   "reading": "gap"
  },
@@ -2479,6 +2519,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "grid_fee.py:219 parse_rules: the empty-spec early return is disabled; str(None) becomes 'None', which then fails to parse. Should fail: parse_rules(None) / parse_rules('') asserting []; no test passes an empty grid-fee spec.",
   "reading": "gap"
  },
@@ -2538,6 +2579,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "grid_fee.py:445 CATALOG_VERSION 1 -> 2. Should fail: a test pinning the catalogue version a stored config is migrated against (or that a v1 store is re-read unchanged); no test reads CATALOG_VERSION.",
   "reading": "gap"
  },
@@ -2602,6 +2644,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2111 _better_objective: the right-wins branch is disabled, so a better second start is never chosen. Should fail: a _better_objective unit (right finite and lower) or an optimality check where the price-ranked start beats the primary; the multi-start selection is unpinned and optimality.py's tolerance did not move.",
   "reading": "gap"
  },
@@ -2665,6 +2708,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2156 _MIN_MODULATION_BAND_KW 0.1 -> 0.2. Should fail: a _power_fraction / step-grading unit with a modulation band between 0.1 and 0.2 kW asserting it is graded as modulating; no fixture has such a narrow band.",
   "reading": "gap"
  },
@@ -2729,6 +2773,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2786 _comfort_pair: the holiday day_end_hour override is ignored. Should fail: a holiday comfort test with holiday_day_end_hour set asserting the band ends at that hour; unpinned.",
   "reading": "gap"
  },
@@ -2793,6 +2838,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2794 _comfort_pair: the weekend day_start_hour override is ignored. Should fail: a comfort schedule test with day_start_hour_weekend set asserting the weekend comfort band starts at that hour; no test configures a weekend start hour.",
   "reading": "gap"
  },
@@ -2857,6 +2903,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:4067 _window_offset_steps: the phase == 0 early return is disabled, so an aligned start returns a whole window (per_window steps) instead of 0. Should fail: an _window_offset_steps unit at an aligned start asserting 0, or a peak-fee test whose plan starts on the window boundary; a one-window head may partition identically, so possibly equivalent downstream.",
   "reading": "gap"
  },
@@ -2921,6 +2968,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:4532 _solve: released DHW pins are no longer cleared when the retry releases infeasible pins. Should fail: a manual_plan test where a DHW pin is infeasible and must be released on the retry, asserting the plan solves and the pin is reported released; manual_plan.py only pins space heat infeasibly.",
   "reading": "gap"
  },
@@ -2985,6 +3033,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:4560 _solve (pin release): not free and value < 0.5 -> or, so free (NaN) pins and on-pins are also released. Should fail: a manual_plan retry test with an infeasible off-pin plus a satisfiable on-pin asserting only the off-pin is released.",
   "reading": "gap"
  },
@@ -3049,6 +3098,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:5074 _derive_hold_schedule: the no-hold early return is removed, so an all-False hold mask yields a schedule object instead of None. Should fail: a _derive_hold_schedule unit (or plan payload check) asserting None / no hold block when no step is after-charge-before-peak; likely benign downstream if consumers treat an all-False schedule as no hold.",
   "reading": "gap"
  },
@@ -3113,6 +3163,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:6509 _power_to_displace_schedule: the [d_min, d_max] clip on the filtered displacement is dropped. An EWMA of in-range commands stays in range unless the raw commands exceed it. Should fail: a displacement-schedule unit with a raw command outside [d_min, d_max] asserting the published value is clipped.",
   "reading": "gap"
  },
@@ -3177,6 +3228,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:6550 get_current_action: the empty-result early return is removed. Should fail: get_current_action(OptimizationResult with no timestamps) asserting the idle action (without the guard the index lookup raises or returns a wrong action). No test passes an empty result.",
   "reading": "gap"
  },
@@ -3241,6 +3293,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:6655 get_current_action: dhw_target_temperature is no longer copied into the current action. Should fail: a get_current_action test with predictive_info carrying dhw_target_temperature asserting the action (and the sensor attribute it feeds) carries it.",
   "reading": "gap"
  },
@@ -3305,6 +3358,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:6661 get_current_action: the predictive-info block (solar_reduction_factor and siblings) is no longer added to the action. Should fail: a get_current_action test with predictive_info set asserting action['solar_reduction_factor'] (and the sensor attributes fed from it).",
   "reading": "gap"
  },
@@ -3365,6 +3419,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:155 _profile_index: weekday() >= 5 -> > 5, so Saturday is learned and predicted on the weekday profile. Should fail: a PriceShapeModel unit observing a Saturday asserting it updates the weekend profile; no test observes a weekend day.",
   "reading": "gap"
  },
@@ -3425,6 +3480,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:219 observe_day: the first-day residual-variance seed is skipped, so day 1 blends into the zero prior. Should fail: a PriceShapeModel unit asserting residual_var after one observed day equals the squared residuals (and the confidence that follows from it).",
   "reading": "gap"
  },
@@ -3485,6 +3541,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:269 observe_day_quarters: the first-day seed of the quarter factors is skipped, so day 1 blends into the flat prior. Should fail: a quarter-shape unit asserting quarter_factors after one observed day equal the observed factors.",
   "reading": "gap"
  },
@@ -3545,6 +3602,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:417 summary(): weekday_sigma becomes sqrt(0) = 0 for every hour. Should fail: a PriceShapeModel.summary() test after observed days asserting weekday_sigma matches sqrt(residual_var); the published price prior's sigma is unpinned.",
   "reading": "gap"
  },
@@ -3605,6 +3663,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:544 extend_price_series: confidence <= 0 -> < 0, so a model with zero confidence is used instead of the flat repeat. Should fail: extend_price_series with a fresh (zero-confidence) model asserting the flat-repeat tail; may be equivalent if a zero-confidence blend reduces to the flat repeat.",
   "reading": "gap"
  },
@@ -3664,6 +3723,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:66 SHAPE_ALPHA 0.12 -> 0.24. Should fail: a PriceShapeModel unit asserting the EWMA update after a second observed day (shape = (1-a)*old + a*new); the rate is unpinned and no golden learns a price shape.",
   "reading": "gap"
  },
@@ -3723,6 +3783,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:69 SHAPE_CONFIDENCE_DAYS 5 -> 10. Should fail: a PriceShapeModel unit asserting the shape confidence (blend toward flat) after 5 observed days; unpinned.",
   "reading": "gap"
  },
@@ -3783,6 +3844,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:1546 conditions_met: a non-wrapping window becomes end-inclusive (hour <= end_hour). Should fail: conditions_met at hour == end_hour of a same-day window asserting False. Tests only use the default wrap-midnight window.",
   "reading": "gap"
  },
@@ -3843,6 +3905,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:1549 conditions_met: the midnight-wrapping window becomes end-inclusive (hour <= end_hour). Should fail: conditions_met at hour == end_hour of the default night window asserting 'outside the night window'.",
   "reading": "gap"
  },
@@ -3903,6 +3966,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:1606: the bisection's fits(q) branch is disabled, so lo never rises and best keeps its initial value; the experiment's step power is undersized. Should fail: a sysid sizing test asserting the chosen step power against _predict_step_excursion's bound.",
   "reading": "gap"
  },
@@ -3963,6 +4027,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:1705 _unadoptable: len(rows) > 1 -> >= 1, so with one settling row rows[-2] is rows[-1] and dt is 0 h instead of the 0.25 h default. Should fail: _unadoptable with exactly one settling sample asserting the default-cadence decision; no test reaches it.",
   "reading": "gap"
  },
@@ -4023,6 +4088,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:1752 step(): the 'not active' early return is disabled, so an idle experiment runs its phase logic. Should fail: a sysid step() on an inactive experiment asserting None and no command; no test calls step() when inactive.",
   "reading": "gap"
  },
@@ -4083,6 +4149,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:1792 SysId step(): after abort() on over-excursion the return None is removed, so the phase dispatch continues on an aborted run. Should fail: a sysid step test driving room temperature beyond the excursion and asserting step() returns None and no further phase action; abort() probably resets phase to idle, making the fall-through mostly inert.",
   "reading": "gap"
  },
@@ -4143,6 +4210,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:1853 _finish: the completed-branch (log and adopt the result) is disabled. Should fail: a sysid end-to-end test asserting a completed experiment adopts tau/UA into the model; no test runs an experiment to completion.",
   "reading": "gap"
  },
@@ -4203,6 +4271,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:2018 identify(): the zero-interval skip in the curvature loop is disabled, so a duplicate timestamp divides by ~0. Should fail: identify() on a sample series with two rows at the same instant asserting a finite fit; no fixture has duplicate timestamps.",
   "reading": "gap"
  },
@@ -4263,6 +4332,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:2114 identify(): the rank < 2 (collinear regressors) rejection is disabled. Should fail: identify() on a step response where heating power and outdoor delta move together, asserting completed=False with the ambiguity reason.",
   "reading": "gap"
  },
@@ -4323,6 +4393,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:2126 identify(): the implausible-sign rejection is disabled. Should fail: an identify() test feeding a step response that fits a negative/zero ua_over_c or one_over_c and asserting completed=False 'fit gave implausible signs'. No sysid fixture yields such a fit.",
   "reading": "gap"
  },
@@ -4383,6 +4454,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:2141 identify(): solution.shape[0] >= 3 -> > 3, so a 3-coefficient fit no longer extracts the free heat (gains) from the intercept. Should fail: an identify() test with the gains column (3 regressors, no drift) asserting gains_kw; no test reads gains_kw.",
   "reading": "gap"
  },
@@ -4443,6 +4515,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:842 _lm_solve: the per-step clip of the bounded parameter is dropped, so the LM iterate may leave its band. Should fail: an identify_slab fit whose unconstrained optimum lies outside the clip band asserting the fitted value stays in the band; no test drives the LM fit.",
   "reading": "gap"
  },
@@ -4503,6 +4576,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:846 _lm_solve: accept a step when finite and lower -> finite or lower, so any finite worse step is accepted. Should fail: an identify_slab / _lm_solve test asserting the fitted parameters (or a monotone cost) on a known synthetic slab response; no test drives the LM fit to convergence.",
   "reading": "gap"
  },
@@ -4567,6 +4641,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:1225 realised_peak: the empty-series guard is disabled, so np.max on an empty array raises. Should fail: realised_peak with empty power arrays asserting 0.0; reachable only with an empty horizon.",
   "reading": "gap"
  },
@@ -4631,6 +4706,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:489 _one_per_day: the undated branch is disabled, so undated peaks are grouped under the '' day and only the largest is kept. Should fail: a capacity-tariff peak ranking test with two undated peaks asserting both are kept.",
   "reading": "gap"
  },
@@ -4695,6 +4771,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:2554 _valve_two_zone_delivery: floor_temp = min(T_upper, T_slab) -> T_upper. When the slab is colder than the upper zone, the buffer may then be drawn only down to T_upper, not to the slab temperature. Should fail: a valve two-zone delivery unit with T_slab < T_upper and an emptying buffer, asserting the available energy uses the slab floor; no fixture exercises this topology.",
   "reading": "gap"
  },
@@ -4759,6 +4836,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:2583 _valve_two_zone_delivery: the proportional starvation branch is disabled, so emitters draw more than the tanks can deliver. Should fail: a valve two-zone unit with an underpowered heat pump and a cold buffer asserting the delivered heat is scaled down (energy conservation).",
   "reading": "gap"
  },
@@ -4823,6 +4901,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:2851 mold_safe_room_floor: the 0.3 lower clamp on fRsi is dropped. Should fail: a mold_safe_room_floor unit with fRsi < 0.3 (very cold outdoor) asserting the floor stays at the 0.3 value. No test drives fRsi below 0.3.",
   "reading": "gap"
  },
@@ -4887,6 +4966,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:3483 effective_heat_loss_coefficient: rain_intensity cap at 1.0 dropped. Should fail: a unit with precipitation > 2 mm/h asserting the rain multiplier saturates at rain_heat_loss_multiplier. No golden or test has heavy rain.",
   "reading": "gap"
  },
@@ -4951,6 +5031,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:3576 update_ecl110_displace_state: the [displace_min, displace_max] clip on the effective displacement is dropped. An EWMA of in-range commands stays in range. Should fail: an ECL110 state unit with an out-of-range command asserting the effective displacement is clipped.",
   "reading": "gap"
  },
@@ -5015,6 +5096,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:3654 dhw_coast_hours: the [0,168] clip is dropped. Should fail: a dhw_coast_hours unit with hot > cold and a tiny ua (coast > 168 h) or hot < cold (negative log) asserting the 168 h cap / 0 floor. No test drives those regimes.",
   "reading": "gap"
  },
@@ -5079,6 +5161,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:677 buffer_tank_heat_loss_coefficient: the upper clamp (high) is dropped. Should fail: a unit with a configured buffer loss rate above the high bound asserting the coefficient is capped; no fixture configures one.",
   "reading": "gap"
  },
@@ -5143,6 +5226,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:852 dhw_draw_power: the [0, 0.9] clip on greywater_recovery is dropped. Should fail: a dhw_draw_power unit with greywater_recovery > 0.9 (or < 0) asserting the clamp; config validation may bound it, so a gap only for stored/legacy values.",
   "reading": "gap"
  },
@@ -5203,6 +5287,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:10192 _file_dhw_lead_predictions: 0 < idx -> 0 <= idx, so a lead that rounds to step 0 files the initial tank temperature as a prediction. Should fail: a DHW accuracy test with a lead bucket shorter than half a step asserting no lead-0 prediction is filed; LEAD_BUCKETS may never round to 0 at the default step, so possibly unreachable.",
   "reading": "boundary"
  },
@@ -5263,6 +5348,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:10561 _close_score_day: kwh < 0.2 -> <= 0.2. Only exactly 0.2 kWh differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -5323,6 +5409,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:11000 _record_quiet_comfort_period: mean_price <= 1e-6 -> < 1e-6. Boundary-only (mean exactly 1e-6); near-equivalent.",
   "reading": "boundary"
  },
@@ -5383,6 +5470,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:11008 _record_quiet_comfort_period: heating_kwh < 1.0 -> <=. Only exactly 1.0 kWh differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -5443,6 +5531,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:4471 _dhw_setpoint_sweep: cost < best -> <=, so on a cost tie the later (higher) setpoint wins. Should fail: a DHW advisor test with two setpoints at equal cost per day asserting the lower one; ties are unlikely on floats, so near-equivalent.",
   "reading": "boundary"
  },
@@ -5503,6 +5592,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5156 _external_heat_override: probe > 30.0 -> >=. Only exactly 30.0 differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -5563,6 +5653,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5665 _async_learn_buffer_cooling: end_delta < MIN_DELTA -> <=. Only exactly 4.0 K differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -5623,6 +5714,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5782 _async_learn_house_heat_loss: delta_t < MIN_DELTA -> <=. Only exactly the minimum delta differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -5683,6 +5775,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:8785 _on_power_event: 0 < spacing -> 0 <=, so two power events at the same instant fold with dt_h = 0. Should fail: a power-guard test with duplicate-timestamp events asserting no zero-length fold; boundary.",
   "reading": "boundary"
  },
@@ -5743,6 +5836,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:8806 _on_power_event: factor > 0.0 -> >= 0.0, so a zero factor adds a (0, threshold) candidate to the guard. Should fail: a power-event test with a zero projection factor asserting no capacity candidate; boundary.",
   "reading": "boundary"
  },
@@ -5803,6 +5897,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9030 _maybe_run_fuse_advisor: feasible = breach <= 0.05 -> < 0.05. Only a breach of exactly 0.05 K differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -5863,6 +5958,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9383 _fold_solar_aperture: irradiance < MIN -> <=. Only exactly the minimum differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -5923,6 +6019,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9386 _fold_solar_aperture: dt_h <= 1e-6 -> <. Only exactly 1e-6 h differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -5983,6 +6080,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9390 _fold_solar_aperture: x <= 1e-6 -> <. Only a solar gain of exactly 1e-6 kW differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -6043,6 +6141,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9486 _observe_cop_health: count >= COP_BASELINE_MIN_SAMPLES -> >, so the COP-health CUSUM starts one sample later. Should fail: a COP-health test feeding exactly MIN samples then a shortfall asserting the CUSUM updates; boundary on a count, so a real but narrow gap.",
   "reading": "boundary"
  },
@@ -6103,6 +6202,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9819 _pv_forecast: peak_kw <= 0 -> < 0, so an enabled PV with zero peak runs the model. Should fail: a PV config with peak_kw = 0 asserting an empty PV summary; config validation may forbid 0.",
   "reading": "boundary"
  },
@@ -6163,6 +6263,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9980 _settle_defrost: window.seconds <= 3*interval -> <. Only a window exactly three intervals long differs. Boundary; should fail: _settle_defrost with window.seconds == 3*interval_s asserting observe_duty is called.",
   "reading": "boundary"
  },
@@ -6223,6 +6324,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "defrost.py:537 _unit (restore validation): duty <= 1.0 -> < 1.0, so a stored duty of exactly 1.0 is rejected on restore. Should fail: a DefrostDerate round-trip with a cell at duty 1.0 asserting it survives from_dict; boundary.",
   "reading": "boundary"
  },
@@ -6287,6 +6389,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:1645 _apply_dhw_pins: min(len(out), len(dhw_pins)) -> len(out). Differs only for a pins array shorter than the plan (IndexError); callers pass equal lengths. Should fail: _apply_dhw_pins with short pins; near-equivalent.",
   "reading": "boundary"
  },
@@ -6351,6 +6454,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:1870 _repair_dhw_floor: new_level < min_run - 1e-9 -> <=. Only a level exactly 1e-9 below min_run differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -6415,6 +6519,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:626 _dhw_legionella_due: ramp >= T - 1e-6 -> >. Differs only at exactly T - 1e-6. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -6479,6 +6584,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:1567 _fd_steps: sign(x0 >= 0) -> sign(x0 > 0), so at x0 == 0 the fallback step is negative. Only on the dx_probe == 0 fallback path; a negative step at a 0 lower bound is then flipped by the violated/fitting logic. Should fail: an _fd_steps unit at x0 = 0 with lb = 0 asserting a positive in-bounds step; near-equivalent.",
   "reading": "boundary"
  },
@@ -6543,6 +6649,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:1571 _fd_steps: the zero-probe fallback step drops the max(1, |x0|) scale. Only reached when (x0+h)-x0 == 0 (very large |x0|); should fail: an _fd_steps unit with |x0| ~ 1e17. Unreachable on power schedules; near-equivalent.",
   "reading": "boundary"
  },
@@ -6607,6 +6714,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:1578 _fd_steps: |h| <= max(dist) -> <. Boundary-only (a step exactly equal to the larger bound distance); near-equivalent on floats. Should fail: an _fd_steps unit at x0 with h exactly the bound distance.",
   "reading": "boundary"
  },
@@ -6671,6 +6779,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:1871 _lbfgsb_restart: (prior - score) > KEEP_REL*scale -> >=. Only an improvement of exactly the threshold differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -6735,6 +6844,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2126 _price_ranked_start: dt <= 0 -> dt < 0. Only dt == 0 differs; callers never pass dt == 0 (the horizon step is positive), and remaining-energy division would then be guarded downstream. Should fail: a _price_ranked_start unit with dt=0 asserting a zero schedule.",
   "reading": "boundary"
  },
@@ -6799,6 +6909,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2172 _power_fraction: elif p_max > 0 -> >= 0. Only p_max == 0 differs (band 0 then a zero division instead of the else branch). Should fail: _power_fraction with max_electrical_power = 0; config validation forbids it, so near-equivalent.",
   "reading": "boundary"
  },
@@ -6863,6 +6974,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2294 classify_space_steps: power <= threshold -> <. Only power exactly at the threshold (0 kW when the threshold is 0) differs. Should fail: classify_space_steps with an exactly-off step at a zero threshold asserting the idle reason; boundary.",
   "reading": "boundary"
  },
@@ -6927,6 +7039,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2303 classify_space_steps: surplus > 1e-6 -> >=. Only exactly 1e-6 kW differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -6991,6 +7104,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2309 classify_space_steps: heat_loss_factors[i] > 1.1 -> >= 1.1. Boundary-only (a factor exactly 1.1); the check that should fail is a classify_space_steps unit pinning REASON_PREHEAT_WEATHER off at factor == 1.1 and on just above. No such pin; near-equivalent on float inputs.",
   "reading": "boundary"
  },
@@ -7055,6 +7169,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2357 classify_dhw_steps: power <= threshold -> <. Only power exactly at the threshold differs (the 0 kW case if the threshold is 0). Should fail: classify_dhw_steps at power == threshold asserting the idle reason; boundary.",
   "reading": "boundary"
  },
@@ -7119,6 +7234,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2492 _mark_manual_reasons: min(len(out), len(pins)) -> len(out). Differs only when pins is shorter than reasons (IndexError). Should fail: a _mark_manual_reasons unit with a pins array shorter than the horizon; callers always pass equal lengths.",
   "reading": "boundary"
  },
@@ -7183,6 +7299,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:3408 _anticipatory_weights: future_loss > 1.1 -> >=. Only a mean of exactly 1.1 differs, and then the weight multiplier min(1.5, 1.1) = 1.1 would apply. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -7247,6 +7364,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:3969 _co_optimize: space_power >= headroom - 1e-3 -> >. Only a step exactly at the tolerance edge differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -7311,6 +7429,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:4249 _analyze_forecast_trajectory: typical_heat_loss > 0 -> >= 0. At 0 the max(..., 0.1) guard keeps the division finite and solar_fraction = min(x/0.1, 1). Should fail: a forecast-analysis unit at target == mean outdoor asserting the else-branch fraction; boundary.",
   "reading": "boundary"
  },
@@ -7375,6 +7494,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:4913 _publish_breach_reports: planned.size > req.size -> >=. At equal sizes the mutant drops index 0, shifting the DHW trajectory by one step against the requirement. Should fail: a breach-report test where the DHW trajectory has no initial-state element (size == req.size), asserting the reported breach step; the trajectory always carries n+1 entries, so near-equivalent.",
   "reading": "boundary"
  },
@@ -7439,6 +7559,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:5235 (pinned-off breach test) temp <= floor+0.15 -> <. Boundary-only (temp exactly floor+0.15). Should fail: a unit placing a pinned-off step at exactly floor+0.15; near-equivalent on solver floats.",
   "reading": "boundary"
  },
@@ -7503,6 +7624,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:5237: temp < floor - 0.25 -> <=. Boundary-only (temp exactly floor - 0.25); near-equivalent.",
   "reading": "boundary"
  },
@@ -7567,6 +7689,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:5699 _pv_self_consumed: surplus > 1e-6 -> >=. Only a surplus of exactly 1e-6 kW differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -7631,6 +7754,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:6651 get_current_action: dhw_heating_active = dhw_power > 0.1 -> >= 0.1. Only exactly 0.1 kW differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -7691,6 +7815,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:400 PriceShapeModel.from_dict: stored variance <= RESIDUAL_VAR_MAX -> <. Only a stored variance exactly at the cap differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -7751,6 +7876,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:532 extend_price_series: min(known_count, len(step_start_times)) -> known_count. Differs only when known_count exceeds the step times (IndexError). Callers pass known_count <= len. Boundary.",
   "reading": "boundary"
  },
@@ -7811,6 +7937,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:129 _predict_step_excursion: ua <= 1e-9 -> < 1e-9. Only ua exactly 1e-9 differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -7871,6 +7998,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:129 _predict_step_excursion: capacity <= 1e-9 -> <. Only exactly 1e-9 differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -7931,6 +8059,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:1979 identify(): max(len(rows) - n_cols, 1) -> len(rows) - n_cols. Differs only when rows <= columns (a zero or negative dof); earlier sample-count gates likely exclude that. Boundary.",
   "reading": "boundary"
  },
@@ -7991,6 +8120,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:2154 identify(): gains_kw <= 2.0 -> < 2.0. Only exactly 2.0 kW differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -8051,6 +8181,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:2187 identify(): drift correction 'and' -> 'or'. With drift None and a 4-column design it would multiply None and raise; with drift set the shape is always >= 4. Should fail: identify() with drift estimation off and a 4-column regressor; that combination appears unreachable, so near-equivalent.",
   "reading": "boundary"
  },
@@ -8111,6 +8242,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:2325 identify_slab cadence-gap guard dts <= 1e-3 -> < 1e-3. Boundary-only (a dt of exactly 1e-3 h); should fail: identify_slab unit with a 3.6 s sample gap; near-equivalent.",
   "reading": "boundary"
  },
@@ -8171,6 +8303,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:2325 identify_slab: dts > 2.0 -> >= 2.0. Only a gap of exactly 2 h differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -8231,6 +8364,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:890 _slab_refusal: room_cap <= 1e-6 -> < 1e-6. Only room_cap exactly 1e-6 differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -8291,6 +8425,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "sysid.py:897 _slab_refusal: ua <= 5.0 -> < 5.0. Only ua exactly 5.0 differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -8355,6 +8490,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:128 marginal_price_per_kw: peaks_averaged <= 0 -> < 0, so peaks_averaged == 0 divides by zero. Should fail: an enabled capacity tariff with peaks_averaged = 0 asserting 0.0; validation may require >= 1.",
   "reading": "boundary"
  },
@@ -8419,6 +8555,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:2594 _valve_two_zone_delivery: available > 0.0 -> >= 0.0. At available == 0 the mutant scales the draw to zero instead of leaving it; boundary on a float sum. Should fail: a valve two-zone unit with an exactly empty buffer; near-equivalent.",
   "reading": "boundary"
  },
@@ -8483,6 +8620,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:2854 mold_safe_room_floor: e <= 1e-9 -> < 1e-9. Only e exactly 1e-9 differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -8547,6 +8685,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:4475 _batch_cop: the max(..., 1.0) lift floor in carnot_ref is dropped. It differs only when outdoor is within 1 K of the reference flow temperature, which no heating fixture reaches. Should fail: a _batch_cop unit at t_out ~ ref; near-equivalent.",
   "reading": "boundary"
  },
@@ -8611,6 +8750,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:940 _windowed_draw_pattern: total <= 1e-6 -> <. Only exactly 1e-6 differs. Boundary; near-equivalent.",
   "reading": "boundary"
  },
@@ -8671,6 +8811,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:10262 _predicted_next_room_temp: max(time_step_minutes, 1.0) -> time_step_minutes. The step is validated >= 5 min. Equivalent on reachable inputs.",
   "reading": "equivalent"
  },
@@ -8731,6 +8872,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:5174 _external_heat_override: return None after the stale-probe warning is deleted, so a stale probe falls through to the not_numeric discrimination (which then returns None for problem != not_numeric). Likely equivalent; should fail only if a stale probe reports problem == 'not_numeric'.",
   "reading": "equivalent"
  },
@@ -8791,6 +8933,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9155 _confidence_margins: max(time_step_minutes, 1.0) -> time_step_minutes. The step is validated >= 5 min. Equivalent on reachable inputs.",
   "reading": "equivalent"
  },
@@ -8851,6 +8994,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "coordinator.py:9810 _pv_measured_production: the no-entity early return is disabled; hass.states.get(None) returns None, which state_power_kw maps to None. Equivalent.",
   "reading": "equivalent"
  },
@@ -8911,6 +9055,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "defrost.py:204 derate_from_duty: the 0.0 lower clamp is dropped. A negative duty then gives 1 + |duty|*m, which the outer min(DERATE_MAX, ...) caps. Equivalent while DERATE_MAX <= 1; should fail only on a derate_from_duty(-x) unit if DERATE_MAX > 1.",
   "reading": "equivalent"
  },
@@ -8975,6 +9120,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:1535: max(dt, 1e-6) -> dt. dt is the positive step. Equivalent on reachable inputs.",
   "reading": "equivalent"
  },
@@ -9039,6 +9185,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:1649 _apply_dhw_pins: pin >= 0.5 -> > 0.5. Pins are 0, 1 or NaN, so 0.5 never occurs. Equivalent on reachable inputs.",
   "reading": "equivalent"
  },
@@ -9103,6 +9250,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:2076 _apply_dhw_min_run: the [0, p_dhw_max] clip on the jointly raised plan is dropped. Should fail: an _apply_dhw_min_run unit where the joint raise exceeds p_dhw_max; joint is built from capped values, so likely equivalent.",
   "reading": "equivalent"
  },
@@ -9167,6 +9315,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:2285: 0 < plan[j] < min_run_power -> <=. At equality it assigns plan[j] = min_run_power, the value it already has. Equivalent.",
   "reading": "equivalent"
  },
@@ -9231,6 +9380,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:692 _dhw_legionella_due: min(reach_step, n_steps) -> reach_step. Equivalent: numpy slicing past the end clamps to n_steps, so known_mask[:reach_step] is identical for reach_step > n_steps. No check can fail.",
   "reading": "equivalent"
  },
@@ -9295,6 +9445,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:740: np.zeros(max(n_steps, 0)) -> np.zeros(n_steps). n_steps is never negative here. Equivalent on reachable inputs.",
   "reading": "equivalent"
  },
@@ -9359,6 +9510,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "dhw_planner.py:790 _dhw_legionella_ceilings: need > everyday -> >=. At equality max_temp[m] = min(boost_top, everyday), the value it holds anyway. Equivalent.",
   "reading": "equivalent"
  },
@@ -9423,6 +9575,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "flow_lift.py:232 FlowCurveBias.from_dict: samples < 0 -> <= 0, so a stored zero-sample state returns a fresh learner, which the following comment says is the same inert state. Equivalent.",
   "reading": "equivalent"
  },
@@ -9487,6 +9640,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:1957 (multi-start loop): the between-starts timing branch is disabled; the comment says it is timing only. Equivalent in plan output; should fail only on a timing/yield test.",
   "reading": "equivalent"
  },
@@ -9551,6 +9705,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2126 _price_ranked_start: the degenerate-input early return is disabled; with energy <= 0 the loop breaks at once, and p_max <= 0 gives take <= 0. dt <= 0 divides by zero but is unreachable. Equivalent on reachable inputs.",
   "reading": "equivalent"
  },
@@ -9615,6 +9770,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:2130 _price_ranked_start: the remaining <= 0 break is disabled; then take = min(p_max, 0/dt) = 0 for every later index, so the schedule is unchanged. Equivalent.",
   "reading": "equivalent"
  },
@@ -9679,6 +9835,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:3402 _anticipatory_weights: end <= i skip disabled; end = min(i+lookahead, n) > i whenever lookahead >= 1, so only lookahead 0 (dt > 8 h) reaches it. Equivalent on reachable steps.",
   "reading": "equivalent"
  },
@@ -9743,6 +9900,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:4235 _analyze_forecast_trajectory: min(int(12/dt), n) -> int(12/dt). Slicing past the end clamps, so the sum is identical. Equivalent.",
   "reading": "equivalent"
  },
@@ -9807,6 +9965,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:4766 _build_comfort_bounds: min_temp_floors padding f.size < n_steps -> <=. At f.size == n_steps it concatenates an empty array, which is a no-op. Equivalent.",
   "reading": "equivalent"
  },
@@ -9871,6 +10030,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:4943 _solve_space: the [0, p_max] clip on the warm-start guess is dropped (the headroom min stays). Should fail: a _solve_space warm start carrying a negative or above-p_max value asserting a feasible start; L-BFGS-B projects the start onto its bounds itself, so likely equivalent.",
   "reading": "equivalent"
  },
@@ -9935,6 +10095,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "optimizer.py:5478 _optimize_space_only: the [p_min, p_max] clip on the initial guess is dropped. L-BFGS-B projects x0 onto its bounds. Likely equivalent; should fail only on a test inspecting the raw initial guess.",
   "reading": "equivalent"
  },
@@ -9995,6 +10156,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "price_model.py:510 extend_price_series: the fully-known early return is disabled; with known_count >= n_steps the extension loop has nothing to fill, so the same prices (with a zero sigma) come back. Likely equivalent; should fail only if the general path rescales known prices.",
   "reading": "equivalent"
  },
@@ -10059,6 +10221,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:570 metering_windows: the empty-series early return is disabled; the partition code then runs on a zero-length array and very likely returns an empty result too. Likely equivalent; should fail only if _window_partition or the reshape raises on size 0 (a metering_windows([]) unit).",
   "reading": "equivalent"
  },
@@ -10123,6 +10286,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:573 metering_windows: per_window <= 1 -> < 1. At per_window == 1 (metering window equals the step) the partition runs on one-step windows, an identity aggregation. Likely equivalent; should fail only if the one-step partition differs from the raw house series (a metering_windows unit with window_minutes == step minutes).",
   "reading": "equivalent"
  },
@@ -10187,6 +10351,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:588 metering_windows: the empty-pieces fallback is disabled. For a non-empty series the head/full/tail pieces cover it, so pieces is never empty here. Equivalent on reachable inputs.",
   "reading": "equivalent"
  },
@@ -10251,6 +10416,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:747 _smooth_topk_sum: no x > 0 -> no x >= 0. Only an all-zero series differs, and the following smooth top-k of zeros is ~0 anyway. Near-equivalent.",
   "reading": "equivalent"
  },
@@ -10315,6 +10481,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:828 _smooth_topk_sum_batch: count >= k -> > k in the bisection. Moves which half the exact-k midpoint goes to; the bisection converges to the same threshold within its tolerance. Near-equivalent; should fail only on a tight smooth-top-k unit at an exact tie.",
   "reading": "equivalent"
  },
@@ -10379,6 +10546,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "tariff.py:832 _smooth_topk_sum_batch: the [-60, 60] clip on the logistic argument is dropped. exp overflow only past |z| ~ 709, where 1/(1+inf) = 0 is still the right weight (with a RuntimeWarning). Equivalent in value; should fail only under warnings-as-errors.",
   "reading": "equivalent"
  },
@@ -10443,6 +10611,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:2587 _valve_two_zone_delivery: delivered <= 0.0 -> < 0.0. At delivered == 0 the mutant takes the elif's alternative, whose scale (delivered/drawn = 0) also zeroes both draws. Equivalent.",
   "reading": "equivalent"
  },
@@ -10507,6 +10676,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:2594 _valve_two_zone_delivery: drawn > available -> >=. At equality the scale is available/drawn = 1. Equivalent.",
   "reading": "equivalent"
  },
@@ -10571,6 +10741,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:270 clamp(): value < THERMAL_MASS_FLOOR -> <=. At equality it assigns the floor it already holds. Equivalent.",
   "reading": "equivalent"
  },
@@ -10635,6 +10806,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:2852 mold_safe_room_floor: the 0 % lower clamp on indoor RH is dropped; a negative RH then gives e < 0 <= 1e-9 and the same 'no floor' return. Equivalent.",
   "reading": "equivalent"
  },
@@ -10699,6 +10871,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:3003 dhw_coil_draw_reduction: the t_in <= dhw_setpoint cap is dropped; the next use is max(0, setpoint - t_in), which is 0 either way when t_in exceeds the setpoint. Equivalent.",
   "reading": "equivalent"
  },
@@ -10763,6 +10936,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:3389 flow_lift_factor: the carnot_ref <= 1e-9 guard is disabled; carnot_ref is a ratio of absolute temperatures and is >= 1 here. Equivalent.",
   "reading": "equivalent"
  },
@@ -10827,6 +11001,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:4476 _batch_cop: carnot_ref > 1e-9 -> >= 1e-9. carnot_ref is a ratio of absolute temperatures, >= 1 here. Equivalent.",
   "reading": "equivalent"
  },
@@ -10891,6 +11066,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:4696 simulate_trajectory_batch: max(dt, 1e-6) -> dt. dt is the positive step length. Equivalent on reachable inputs.",
   "reading": "equivalent"
  },
@@ -10955,6 +11131,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:4722 simulate_trajectory_batch: drawn > delivered -> >=. At equality the scale is delivered/drawn = 1.0, the same as the else arm. Equivalent.",
   "reading": "equivalent"
  },
@@ -11019,6 +11196,7 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:4723 simulate_trajectory_batch: drawn_safe where drawn > 0 -> >= 0. At drawn == 0 the divisor becomes 0, but cond_scale is then False (0 > delivered fails for delivered > 0), so np.where picks 1.0; only a RuntimeWarning differs. Equivalent in value.",
   "reading": "equivalent"
  },
@@ -11083,73 +11261,8 @@
   "verdict_fast": "SURVIVED",
   "verdict_full": "SURVIVED",
   "timed_out": [],
+  "redrive": null,
   "step4": "thermal_model.py:668 buffer_tank_heat_loss_coefficient: the cache hit is disabled, so the value is recomputed every call: identical value, only CPU cost (the comment notes millions of calls per solve). Equivalent in value; a D9 cost, not a D3 gap.",
   "reading": "equivalent"
- },
- {
-  "key": "0275af9776ae709e",
-  "site": "custom_components/heatpump_optimizer/optimizer.py:4802 GUARD_OFF",
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_space_power_caps GUARD_OFF 74342329",
-  "patch": {
-   "file": "custom_components/heatpump_optimizer/optimizer.py",
-   "line": 4802,
-   "old": "        if space_blocked:",
-   "new": "        if False:"
-  },
-  "closure_scripts": [
-   "tests/arch_score_head.py",
-   "tests/block_duty.py",
-   "tests/boost_drift_replay.py",
-   "tests/config_flow_steps.py",
-   "tests/deployment_shape.py",
-   "tests/doc_claims.py",
-   "tests/entities.py",
-   "tests/env_drift.py",
-   "tests/features.py",
-   "tests/finite_boundary.py",
-   "tests/harness_headers.py",
-   "tests/manual_plan.py",
-   "tests/optimality.py",
-   "tests/plan_view.py",
-   "tests/structure.py",
-   "tests/typing_ruler.py",
-   "tests/validate.py",
-   "tests/debug_collect.py",
-   "tests/guard_pins.py",
-   "tests/solar_alignment.py",
-   "tests/wood_advisor.py"
-  ],
-  "ran": [
-   "tests/arch_score_head.py",
-   "tests/block_duty.py",
-   "tests/boost_drift_replay.py",
-   "tests/config_flow_steps.py",
-   "tests/deployment_shape.py",
-   "tests/doc_claims.py",
-   "tests/entities.py",
-   "tests/env_drift.py",
-   "tests/features.py",
-   "tests/finite_boundary.py",
-   "tests/harness_headers.py",
-   "tests/manual_plan.py",
-   "tests/optimality.py",
-   "tests/plan_view.py",
-   "tests/structure.py",
-   "tests/typing_ruler.py",
-   "tests/validate.py"
-  ],
-  "reach_skipped": [
-   "tests/debug_collect.py",
-   "tests/guard_pins.py",
-   "tests/solar_alignment.py",
-   "tests/wood_advisor.py"
-  ],
-  "verdict_fast": "SURVIVED",
-  "verdict_full": "TIMEOUT",
-  "timed_out": [
-   "tests/features.py"
-  ],
-  "step4": "",
-  "reading": ""
  }
 ]

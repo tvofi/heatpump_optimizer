@@ -11,14 +11,16 @@ No findings from this slice: D3.md step 3 makes survivors candidates; the GATE_S
 - K2 full net on the 236 survivors: 56 killed (tests/features.py 50, tests/entities.py,tests/features.py 3, tests/harness_headers.py,tests/features.py 2, tests/entities.py 1), 179 survived, 1 timeout (0275af9776ae709e: tests/features.py).
 - Step-4 readings of the full-net survivors: 84 gap, 56 boundary, 39 equivalent
 
-Incidents: three container restarts; the second killed K2 mid-drive and left four worker trees mutated, which were discarded and re-added before resuming (the in-flight mutants were re-driven); a comms lock left by the first restart silently failed checkpoints between 21:12Z and 00:27Z until cleared.
+Incidents: three container restarts; the second (about 00:20Z) killed K2 mid-drive and left four worker trees mutated, which were discarded and re-added before resuming (the in-flight mutants were re-driven; a result file is written only after the tree is restored, so no recorded verdict ran on a stale mutation). box_comms.sh repeatedly exited with its lock directory left behind (first at 21:12Z, then about every 12 minutes from 13:48Z), after which heartbeats and checkpoints failed 'lock stuck' and the heartbeat loop died; checkpoints were re-taken by hand, and from 13:59Z an out-of-tree watchdog ($HOME/comms-watchdog.sh) cleared a lock older than 300 s while no box_comms.sh process was alive and restarted the loop. No result was lost: results live on the box disk and every milestone was checkpointed after the lock cleared.
+
+Timeout re-drive (redrive_timeout.py): 0275af9776ae709e custom_components/heatpump_optimizer/optimizer.py:4802 GUARD_OFF, tests/features.py alone with a 7200 s limit: killed=True, rc=1, failed=8, timed_out=False, 2151 s against a 850 s baseline (provisional).
 
 ## Coverage
 
 - D3.M1: universe 1260, examined 1260, not reached 0 line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned`
 - D3.M2: universe 1260, examined 333, not reached 10 line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned`
 - D3.M3: universe 271, examined 238, not reached 33 line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/build_u1a_report.py --m3-universe`
-- D3.M4: universe 215, examined 214, not reached 1 line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/build_u1a_report.py --m4-universe`
+- D3.M4: universe 214, examined 214, not reached 0 line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/build_u1a_report.py --m4-universe`
 - D3.M5: universe 27, examined 23, not reached 4 line(s). Enumerator: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts`
 
 ## Prescreened survivors (full net), for the D3-top6 full gate
@@ -204,4 +206,3 @@ Ordered gap, boundary, equivalent. Each: site, key, the step-4 answer.
 - [equivalent] `custom_components/heatpump_optimizer/thermal_model.py:4722 CMP_BOUND` 140cd06a7d92f278: thermal_model.py:4722 simulate_trajectory_batch: drawn > delivered -> >=. At equality the scale is delivered/drawn = 1.0, the same as the else arm. Equivalent.
 - [equivalent] `custom_components/heatpump_optimizer/thermal_model.py:4723 CMP_BOUND` 33f34d42b3bd2d73: thermal_model.py:4723 simulate_trajectory_batch: drawn_safe where drawn > 0 -> >= 0. At drawn == 0 the divisor becomes 0, but cond_scale is then False (0 > delivered fails for delivered > 0), so np.where picks 1.0; only a RuntimeWarning differs. Equivalent in value.
 - [equivalent] `custom_components/heatpump_optimizer/thermal_model.py:668 GUARD_OFF` 3d468643db7d9ee4: thermal_model.py:668 buffer_tank_heat_loss_coefficient: the cache hit is disabled, so the value is recomputed every call: identical value, only CPU cost (the comment notes millions of calls per solve). Equivalent in value; a D9 cost, not a D3 gap.
-- [] `custom_components/heatpump_optimizer/optimizer.py:4802 GUARD_OFF` 0275af9776ae709e: 
