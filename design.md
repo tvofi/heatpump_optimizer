@@ -19,7 +19,7 @@ carries 2-3 are not (§7, a stop for that part).
 
 ## 2. Owning seam
 
-Learners (`COMPONENTS.md`: "parameters fitted from observed intervals, and which
+Learners (the plan's components table, the components table on `plan/r11`: "parameters fitted from observed intervals, and which
 intervals count"; its two-owner row "may a learner ingest this interval" names
 this group). Owner of the predicate: a new pure learners-seam module, the freeze
 module (no `homeassistant` import; reads `const.py` only). It owns the closed set
@@ -43,22 +43,22 @@ In the freeze module, all values, no handles (ADR-005):
   `dataclasses.replace`: charge open on a heated sample (dhw_learning), probe
   draw at the running floor (draw_range), tank rose in an unobserved span
   (heat_energy), pump does not follow the ask (accuracy's scale verdict);
-- an enum of sample kinds: PLANT (today's `room_air=False`), ROOM_AIR (today's
-  default), OCCUPANCY (room air carried by occupants: internal gains, DHW draw
-  statistics, comfort quiet evidence), COMFORT (OCCUPANCY plus the recovery
-  window: the curve learner), SPACE_HEAT, CEILING, TANK_DRAW, DELIVERED_RATIO;
+- an enum of sample kinds: plant (today's `room_air=False`), room-air (today's
+  default), occupancy (room air carried by occupants: internal gains, DHW draw
+  statistics, comfort quiet evidence), comfort (occupancy plus the recovery
+  window: the curve learner), space-heat, ceiling, tank-draw, delivered-ratio;
 - one function, facts + keys + sample kind -> reason string or None.
 
 Reasons and order: today's eight in today's order and strings (external heat,
-pump reason, defrosting, unusable key, ventilation for ROOM_AIR and wider, boost,
-tail), then `away` (OCCUPANCY, COMFORT), `away_recovery` (COMFORT only, the curve
-learner's private check at `coordinator.py:9222` moved, not widened),
-`unplanned_charge` (SPACE_HEAT), `load_limited_probe` (CEILING),
-`charge_start_dip` (TANK_DRAW), `ask_not_followed` (DELIVERED_RATIO).
+pump reason, defrosting, unusable key, ventilation for room-air and wider, boost,
+tail), then away (occupancy, comfort), away recovery (comfort only: the curve
+learner's private check at `coordinator.py:9222`, `recovery_active`, moved, not
+widened), unplanned charge (space-heat), load-limited probe (ceiling),
+charge-start dip (tank-draw), ask not followed (delivered-ratio).
 
 `HeatPumpOptimizerCoordinator._learning_frozen` keeps its name and `*keys`; its
 body becomes "build the facts, call the function". `room_air: bool` becomes the
-sample-kind keyword (default ROOM_AIR); `room_air=False` callers pass PLANT.
+sample-kind keyword (default room-air); `room_air=False` callers pass plant.
 The body's reasons leave the class, so `coord_footprint` falls or holds; the
 comments explaining each reason move with it (fixer note 4).
 
@@ -71,13 +71,13 @@ learner module -> replace(facts, <own evidence>) -> freeze.reason -> skip | inge
 
 | site | today | after |
 |---|---|---|
-| `_fold_internal_gains` (inside the house fold) | the house fold's ROOM_AIR answer | its own OCCUPANCY ask before the step (D7-s2-01) |
-| `_record_quiet_comfort_period` | ROOM_AIR | OCCUPANCY (D7-s2-01) |
-| `_track_curve_comfort` | private away/recovery test + ROOM_AIR | COMFORT; lines 9222-9223 deleted |
-| DHW draw statistics (`DhwProfileLearner.async_fold_draw_stats`) | external heat only | the injected freeze callable with OCCUPANCY, and TANK_DRAW with charge evidence (D7-s2-01, D2-s3-08); standby dynamics keep PLANT so the tank keeps learning while away |
-| house and lower-floor folds via `_replay_gate` | ROOM_AIR | SPACE_HEAT evidence from the span (D12-s3-03), then as today |
-| `draw_range.fold` ceiling store | `frozen=` bool | CEILING with floor evidence before `observe_ceiling` (D2-s3-09) |
-| `_settle_defrost` with `accuracy.delivered_ratio` | power freeze | DELIVERED_RATIO with the scale verdict (carries 0-1) |
+| `_fold_internal_gains` (inside the house fold) | the house fold's room-air answer | its own occupancy ask before the step (D7-s2-01) |
+| `_record_quiet_comfort_period` | room-air | occupancy (D7-s2-01) |
+| `_track_curve_comfort` | private away/recovery test + room-air | comfort; lines 9222-9223 deleted |
+| DHW draw statistics (`DhwProfileLearner.async_fold_draw_stats`) | external heat only | the injected freeze callable with occupancy, and tank-draw with charge evidence (D7-s2-01, D2-s3-08); standby dynamics keep plant so the tank keeps learning while away |
+| house and lower-floor folds via `_replay_gate` | room-air | space-heat evidence from the span (D12-s3-03), then as today |
+| `draw_range.fold` ceiling store | `frozen=` bool | ceiling with floor evidence before `observe_ceiling` (D2-s3-09) |
+| `_settle_defrost` with `accuracy.delivered_ratio` | power freeze | delivered-ratio with the scale verdict (carries 0-1) |
 
 Local evidence, each computed by its owner:
 - D12-s3-03: heat_energy gains a pure function, the span's unobserved charge:
@@ -91,18 +91,18 @@ Local evidence, each computed by its owner:
 - D2-s3-09: draw_range sets floor evidence when the draw is within
   `AGREE_TOLERANCE` of `DrawRange.observed()[0]`, the metered running floor.
 - Carries 0-1: accuracy's `MeasuredCop.scale_response` verdict reads
-  `does_not_follow`; while pending the fold is as today (fixer note 3).
+  `ASK_IGNORED`; while `ASK_PENDING` the fold is as today (fixer note 3).
 
 ### 3.3 sysid
 
 - ADR-003 part 2: `SystemIdentification.arm` takes the switch as a keyword-only
   argument; `arm_from_config` passes `config.system_identification_enabled`;
   `sysid.py:2475`, the copy onto the collaborator, is deleted and `sysid.py:1458`
-  reads the argument. `prototypes.py --only sysid` is the shape.
+  reads the argument. The plan's prototype arm sysid (on `plan/r11`) is the shape.
 - `fdjac` (ADR-001): one private forward-difference helper (residual, x, value
   -> Jacobian, step `1e-6 * max(|x_i|, 1)`), read by `_lm_solve`
   (`sysid.py:811-817`) and `_slab_ua_profile_halfwidth` (`sysid.py:1040-1045`).
-  `prototypes.py --only fdjac` is the shape.
+  The same prototype file's arm fdjac is the shape.
 - D7-s2-02: the intercept prior carries its own width. When arm seeds the prior
   from the learned night profile (`night_gains_prior_kw`) the width stays
   `SLAB_INTERCEPT_PRIOR_SD_KW`; when it is the configured constant the width is a
@@ -115,14 +115,15 @@ Local evidence, each computed by its owner:
   attenuation of UA (variance over the room-temperature regressor's variance) is
   added to the quadrature width linearly, being a bias; the profile width is
   inflated by `sqrt((1+r)/(1-r))`, `r` the residuals' lag-1 autocorrelation.
-- D5-s4-02: the comments at `sysid.py:1984` and `sysid.py:2073` are rewritten on
-  `s_noise`, `prior_sd` and `usable[i - 1].room_temp`.
+- D5-s4-02: the comments at `sysid.py:1984` "sits on BOTH sides" and
+  `sysid.py:2073` "against the data through" are rewritten on the names the code
+  uses (`s_noise`, `prior_sd`, the previous usable sample's room temperature).
 
 ### 3.4 D2-s3-11, the gains fold (point fix, coordinator)
 
 `coordinator.py:9431` pulls the target toward `g0` (`INTERNAL_GAINS_RIDGE`), so the
 fixed point is `alpha/(alpha+ridge)` of the gain. The ridge moves onto the step:
-`g += alpha_n * y` with `alpha_n` shrunk by the hour's sample count, so the
+the gain step taken on the residual alone, its rate shrunk by the hour's sample count, so the
 expected step is zero only at a zero residual; with no ridge on the target the
 joint fixed point of the profile and the scale is the truth (both folds zero their
 mean residual; day-to-day spread in the driving difference separates them).
@@ -130,14 +131,14 @@ mean residual; day-to-day spread in the driving difference separates them).
 **Invariants.** Every reason today's predicate returns is returned for the same
 inputs, same string, same rank (`tests/features.py` freeze checks unedited).
 Store keys and `store.DOMAINS` unchanged. The new reasons are additive and scoped:
-a PLANT or ROOM_AIR caller gets none of them.
+a plant or room-air caller gets none of them.
 
 ## 4. Alternatives (lost on the code)
 
 - A freeze test per learner kept equal by a test: the state D7-s2-01 measures
   (three learners, three answers).
 - The predicate as a coordinator method with an `away` branch only (D7-s2-01's
-  proposal): keeps the two-owner row of `COMPONENTS.md`, adds statements to the
+  proposal): keeps the two-owner row of the plan's components table, adds statements to the
   class that ADR-007 must then pay, and leaves the four local reasons in four
   modules with no shared order.
 - The local evidence computed by the coordinator: it would read draw-range,
@@ -155,7 +156,7 @@ and `grep -n 'frozen\|_external_heat_active' custom_components/heatpump_optimize
 Covered: every `_learning_frozen` caller (by the keyword map of §3.1), the rows
 of §3.2. `coordinator.py:6307` (`rooms.gate(..., away=...)`) is a planner gate on
 room lift, not an ingest: out of scope. `comfort_learning.py` quiet evidence is
-reached through `_record_quiet_comfort_period`. The learners `COMPONENTS.md`
+reached through `_record_quiet_comfort_period`. The learners the components table
 lists and §3.2 does not (`slab_seed`, `wear`, `learner_progress`, `external_heat`)
 fold no interval sample or already ask `_learning_frozen`; the fixer re-runs the
 command at the merge base and covers any new caller.
@@ -183,7 +184,7 @@ at the genuine gain.
 | D2-s3-11 | `dev/audit/rounds/round11/D2/s3/m5_crosscov.py` gain_recovery up from its base, scale bias toward 0 | the no-gain arm unchanged |
 | D5-s4-02 | `dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py` unresolved 2 -> 0 | the other units unchanged |
 | carries 0-1 | `dev/audit/harnesses/cop_duty_floor.py` `defrost_inferred_*` toward 1.000 | the draw-equals-ask control stays 1.000; `selfset_2.2_swing*` unchanged |
-| fdjac, ADR-003 | `prototypes.py --only fdjac`, `--only sysid`; `score.py --diff` | `tests/features.py` arming checks unchanged |
+| fdjac, ADR-003 | the plan's prototype arms `fdjac` and `sysid`; `score.py --diff` | `tests/features.py` arming checks unchanged |
 
 Goldens: none expected to move (the gains fold runs only with internal-gains
 learning on; the freezes add refusals no golden trace contains). Any that moves is
@@ -201,7 +202,7 @@ Hot files as the roster: `sysid.py`, `accuracy.py`, `dhw_learning.py`,
 `tests/features.py`; plus the new module, a measured closure in
 `tests/closure.py` in the same pull request (`tests/entities.py` otherwise
 refuses it). After `R11-SEAM-plant-model` (merged in the base); before
-`R11-ARCH-fabric-learner`, whose fixer waits on this group. No p1/p2 split: no
+R11-ARCH-fabric-learner, whose fixer waits on this group. No p1/p2 split: no
 pinned grader changes.
 
 Carries received: 0-1 (designed, §3.2). Carries 2-3 (the heat-ask dither (c1)
@@ -217,8 +218,8 @@ no failing test can be stated. Carry: R11-SEAM-learners (items c25b53cc, 4a5e147
   its revalidation stops on it after this merge. Carry: R11-ARCH-fabric-learner (item 9b3d1e01)
 - Keep today's reason strings: `learner_progress.py` and the freeze notes
   display them. Carry: R11-SEAM-learners (item 9b3d1e02)
-- Carries 0-1: read the verdict names at `accuracy.py:1278` before keying on
-  `does_not_follow`; if the pending arm still learns below 1.000, report it, do
+- Carries 0-1: key on `ASK_IGNORED` (`accuracy.py:1278` "verdict"), the
+  harness's does_not_follow row; if the pending arm still learns below 1.000, report it, do
   not widen the freeze to pending (ADR-008 T8). Carry: R11-SEAM-learners (item 9b3d1e03)
 - Move each reason's explanatory comment with it out of `_learning_frozen`.
   Carry: R11-SEAM-learners (item 9b3d1e04)
