@@ -10,32 +10,18 @@
  },
  "gate_rc": 1,
  "failed_scripts": [
-  "python3 tests/closure.py selftest",
-  "python3 tests/entities.py",
-  "python3 tests/features.py",
-  "python3 tests/harness_headers.py",
-  "python3 tests/optimality.py",
-  "python3 tests/stress.py"
+  "python3 tests/features.py"
  ],
- "fail_lines": {
-  "python3 tests/closure.py selftest": 2,
-  "python3 tests/features.py": 1,
-  "python3 tests/entities.py": 2,
-  "python3 tests/optimality.py": 1,
-  "python3 tests/stress.py": 2,
-  "python3 tests/harness_headers.py": 4
- },
  "summary": [
-  "6 TEST SCRIPT(S) FAILED"
+  "1 TEST SCRIPT(S) FAILED"
  ],
- "wall_s": 13388.1,
- "child_cpu_s": 8724.2,
- "load1_start": 3.95,
- "load1_end": 7.15,
+ "wall_s": 3463.4,
+ "child_cpu_s": 4784.8,
+ "load1_start": 0.09,
+ "load1_end": 0.04,
  "provisional": true,
  "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
- "more_fails_than_null": [],
  "killed_by": [
   "python3 tests/features.py"
  ],
