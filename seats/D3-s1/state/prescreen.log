@@ -629,3 +629,4 @@
 2026-11-19T07:03:05Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_identifiability CMP_BOUND 72abb7dd L643 by=- ran=12 wall=1664.7s
 2026-11-19T07:06:58Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP f0477740 L1538 by=- ran=16 wall=1663.3s
 2026-11-19T07:09:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/price_model.py:<module> CONST 90ecade5 L72 by=- ran=19 wall=1768.5s
+2026-11-19T07:25:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action GUARD_OFF f6fcebcb L6604 by=- ran=12 wall=1709.1s
