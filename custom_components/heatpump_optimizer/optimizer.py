@@ -2147,8 +2147,12 @@ def _space_only_starts(
 
     The seeds scale with the share of the reference the wood tank covers,
     so a tank covering it whole collapses them onto zero (D0-s2-01): the
-    price-ranked seeds are then also drawn at the reference's own energy,
-    and the all-off start brackets the set from below (D0-s3-02).
+    price-ranked seeds are therefore also drawn at the reference's own
+    energy, and the all-off start brackets the set from below (D0-s3-02).
+    Byte-identical starts are kept once: with no wood cover the
+    reference-energy seeds are the scaled ones, and with whole cover the
+    scaled seeds and the all-off start are one zero schedule, each copy of
+    which would pay a full descent and polish to reach the same plan.
     """
     reference_kwh = float(np.sum(reference_power) * dt)
     covered = _wood_covered_share(model, state, reference_kwh, target)
@@ -2163,15 +2167,11 @@ def _space_only_starts(
         seed_power,  # inside the bounds: the reference never passes the pump
         *(_price_ranked_start(prices, energy * f, p_max, dt) for f in fractions),
     ]
-    if covered > 0.0:
-        starts.extend(
-            _price_ranked_start(prices, reference_kwh * f, p_max, dt)
-            for f in (1.0, *fractions)
-        )
+    starts.extend(
+        _price_ranked_start(prices, reference_kwh * f, p_max, dt)
+        for f in (1.0, *fractions)
+    )
     starts.append(_lower_bound_start(bounds))
-    # A tank covering the reference whole collapses the scaled seeds and the
-    # all-off start onto one zero schedule: each copy would pay a full descent
-    # and polish to reach the same plan, so only the first is kept.
     unique: dict[bytes, np.ndarray] = {}
     for start in starts:
         unique.setdefault(np.asarray(start, dtype=float).tobytes(), start)
