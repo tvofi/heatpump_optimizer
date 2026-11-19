@@ -6120,7 +6120,9 @@
    "class": "production",
    "severity": "low",
    "size": "L",
-   "issues": [],
+   "issues": [
+    3746
+   ],
    "fixes": [],
    "findings": [
     "D10-s1-05",
