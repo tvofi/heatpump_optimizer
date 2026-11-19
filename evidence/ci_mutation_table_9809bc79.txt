@@ -1,0 +1,27 @@
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:6148 BOOLOP: if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._ent
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:11199 GUARD_OFF: if not admitted:  # D9-s1-03: a newer ask overtook this one while it wai
+    ADDED UNPINNED custom_components/heatpump_optimizer/solve_gate.py:76 GUARD_OFF: if gate.solving:
+    ADDED UNPINNED custom_components/heatpump_optimizer/solve_gate.py:78 RETURN_DEL: return True
+    ADDED UNPINNED custom_components/heatpump_optimizer/solve_gate.py:90 GUARD_OFF: if absorb_request(gate, False):
+    ADDED UNPINNED custom_components/heatpump_optimizer/solve_gate.py:129 GUARD_OFF: if not user:
+MUTATION TABLE REFUSED -- 2009 unpinned site(s) against 2007 at the ratchet base 99436a082c67ad5dbb4afc293506af010d6ee8df, 6 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+    custom_components/heatpump_optimizer/__init__.py:55 GUARD_OFF: if TYPE_CHECKING:
+    custom_components/heatpump_optimizer/__init__.py:90 RETURN_DEL: return importlib.import_module(f".{module}", __package__)
+    custom_components/heatpump_optimizer/__init__.py:116 GUARD_OFF: if module is None:
+    custom_components/heatpump_optimizer/__init__.py:188 GUARD_OFF: if payload is None or stamped_at is None:
+    custom_components/heatpump_optimizer/__init__.py:197 CMP_BOUND: if age_min > interval_minutes:
+    custom_components/heatpump_optimizer/__init__.py:199 RETURN_DEL: return payload
+    custom_components/heatpump_optimizer/__init__.py:210 GUARD_OFF: if entry.version > CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:218 RETURN_DEL: return False
+    custom_components/heatpump_optimizer/__init__.py:220 CMP_BOUND: if entry.version < CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:220 GUARD_OFF: if entry.version < CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/accuracy.py:124 GUARD_OFF: if not raw:
+    custom_components/heatpump_optimizer/accuracy.py:161 CONST: LEAD_SIGMA_ALPHA = 0.05
+    custom_components/heatpump_optimizer/accuracy.py:251 GUARD_OFF: if not np.isfinite(predicted_temp):
+    custom_components/heatpump_optimizer/accuracy.py:274 GUARD_OFF: if not np.isfinite(actual_temp):
+    custom_components/heatpump_optimizer/accuracy.py:282 GUARD_OFF: if not np.isfinite(predicted):
+    custom_components/heatpump_optimizer/accuracy.py:285 CMP_BOUND: if age_h < 0.0:
+    custom_components/heatpump_optimizer/accuracy.py:288 CMP_BOUND: if age_h <= window:
+    custom_components/heatpump_optimizer/accuracy.py:342 CMP_BOUND: or distance < best[0] - 1e-12
+    custom_components/heatpump_optimizer/accuracy.py:343 CMP_BOUND: or (abs(distance - best[0]) <= 1e-12 and lead > best[2])
+    custom_components/heatpump_optimizer/accuracy.py:343 CMP_BOUND: or (abs(distance - best[0]) <= 1e-12 and lead > best[2])
