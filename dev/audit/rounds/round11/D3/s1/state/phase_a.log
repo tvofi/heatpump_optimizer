@@ -1,0 +1,2 @@
+2026-11-18T09:50:52Z baselines done; load1 4.43
+2026-11-18T09:54:39Z controls: RESULT null_verdict=LIVES RESULT null_drivers_run=16 RESULT load1=2.86 RESULT thread_factor=1.00  | 2 of 2 posctl KILLED
