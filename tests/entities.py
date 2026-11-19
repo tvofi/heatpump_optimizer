@@ -42823,10 +42823,12 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
              "from logging import DEBUG\n"
              "def f():\n    _LOGGER.warning('x')\n    _LOGGER.isEnabledFor(logging.DEBUG)\n"
-             "    _LOGGER.log(level=DEBUG, msg='see logging')\n"
-             # R11 #3729 round 3: a sibling module, re.compile and text that
-             # only mentions _LOGGER or warnings are not refused
-             "from . import coordinator\nimport re\nPAT = re.compile('_LOGGER warnings')\n",
+             "    _LOGGER.log(level=DEBUG, msg='see the log')\n"
+             # R11 #3729 round 3: a sibling module and re.compile are not refused
+             "from . import coordinator\nimport re\nPAT = re.compile('x+')\n",
+    # R11 #3729 round 6: text naming a logger is refused wherever it sits,
+    # a pattern or a message included (round 3 let these two through)
+    "mention.py": "import re\nPAT = re.compile('_LOGGER warnings')\nM = 'see logging'\n",
     "alias.py": "_LOGGER = logging.getLogger(__name__)\ndef f():\n    log = _LOGGER\n    log.warning('x')\n",
     "child.py": "_LOG = logging.getLogger(__name__)\nCHILD = _LOGGER.getChild('c')\n",
     "mod.py": "import logging as lg\n",
@@ -42868,7 +42870,8 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     # imported module, refused unless vetted (marshal, code, runpy are not).
     "bltn.py": "import builtins\ndef f():\n    builtins.exec(\"_LOGGER.error('x')\")\n",
     "bgetattr.py": "def f(b):\n    getattr(b, 'exec')(\"_LOGGER.error('x')\")\n",
-    "bfrom.py": "from builtins import exec as run\nfrom os import compile as c\n",
+    "bfrom.py": "from builtins import exec as run\nfrom os import compile as c\n"
+                "def f():\n    run(\"_LOGGER.error('x')\")\n",
     "bdunder.py": "def f():\n    __builtins__['eval'](\"_LOGGER.error('x')\")\n"
                   "    f.__builtins__\n",
     "bbytes.py": "import pickle\nP = b'cbuiltins\\nexec\\n'\n",
@@ -42882,6 +42885,35 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "bimp.py": "import builtins as bi\nimport importlib as il\n",
     "rebound.py": "import re\ndef f(re):\n    return re.compile('x')\n"
                   "def g(o):\n    return o.compile('x')\n",
+    # R11 #3729 round 5: vetted roots that run the text they are handed
+    "hints.py": "import typing\ndef g(x: \"_LOGGER.error('x')\"): pass\n"
+                "def f():\n    typing.get_type_hints(g)\n",
+    "evalstr.py": "import inspect\ndef g(x: \"_LOGGER.warning('x')\"): pass\n"
+                  "def f():\n    inspect.get_annotations(g, eval_str=True)\n",
+    "fwdref.py": "import typing\ndef f():\n    typing.ForwardRef(\"_LOGGER.critical('x')\")"
+                 "._evaluate(globals(), None, recursive_guard=frozenset())\n",
+    "pickled.py": "import pickle\ndef f():\n"
+                  "    pickle.loads(\"cbuiltins\\nexec\\n(S\\\"_LOGGER.error(x)\\\"\\ntR.\".encode())\n",
+    # R11 #3729 round 6, the class: the payload is read, not the evaluator.
+    # Text is read as written, in NFKC form, and through each evaluator's own
+    # front end: an escape inside evaluated text, a fullwidth identifier, a
+    # coding cookie and adjacent literals are each refused
+    "escaped.py": "def f():\n    eval(\"globals()['_\\\\x4cOGGER'].error('x')\")\n",
+    "fullwidth.py": "def f():\n    exec('_\\uff2c\\uff2f\\uff27\\uff27\\uff25\\uff32.error(1)')\n",
+    "cookie.py": "def f():\n    exec(b'# coding: utf-7\\n+AF8ATABPAEcARwBFAFI-.error(1)')\n",
+    "joined.py": "def f():\n    exec(\"globals()['_LOG' 'GER'].error(1)\")\n",
+    # an identifier turns into text at run time: a keyword, a parameter, a
+    # definition, an import's module
+    "idents.py": "from homeassistant.util.logging import catch_log_exception\n"
+                 "def f(logger):\n    globals()[next(iter(dict(_LOGGER=0)))].error('x')\n"
+                 "class MyLogger:\n    pass\n",
+    # Declared out of scope, pinned as no finding: text derived at run time,
+    # and an evaluator handed no text naming a logger (bfrom.py, bbytes.py,
+    # door.py, bimp.py and rebound.py above refuse nothing either)
+    "derived.py": "import base64\ndef f(x):\n    exec('_LOG' + 'GER.error(1)')\n"
+                  "    exec(base64.b64decode('X0xPR0dFUi5lcnJvcigxKQ=='))\n"
+                  "    exec(f'{x}GER.error(1)')\n    exec(''.join(map(chr, (95, 76))))\n",
+    "prose.py": "def f():\n    '''Return the plan; a refusal is logged.'''\n",
 })}
 # Every callable of a Logger, called at ERROR on _LOGGER, and every name the
 # logging module exports: what neither check reads is exactly the quiet
@@ -42921,54 +42953,56 @@ R.check(
     "``_LOGGER = logging.getLogger(...)``, the one name the barrier reads",
     not _r11_alias_verdict(_r11_aliases_found)
     # null control: the canonical binding and its method calls are not
-    # refused; perturbation: an alias, another getLogger name, a getChild, a
-    # logging alias, a bare-callee getLogger, an inline getLogger, a root
-    # logging call, a from-import of _LOGGER, a logger handed to a parameter
-    # or returned, and a bound method each are; so are another module's
-    # _LOGGER as an attribute, '_LOGGER' or 'logger' as text, exec/eval/compile
-    # and the warnings module (ok.py's re.compile and sibling import are not);
-    # and code run from text at each of its doors: builtins and exec, eval or
-    # compile in any static spelling, an unvetted module or importlib member,
-    # and re.compile through an re that is not the module
-    and _r11_aliases_planted == {("alias.py", "log"), ("child.py", "_LOG"),
-                                 ("child.py", "CHILD"), ("mod.py", "lg"),
-                                 ("bare.py", "getLogger"), ("bare.py", "LOG"),
-                                 ("inline.py", "logging.getLogger"),
-                                 ("root.py", "logging.warning"), ("root.py", "logging.root"),
-                                 ("fromimp.py", "log"), ("param.py", "_LOGGER -> f"),
-                                 ("param.py", "_LOGGER -> Return"),
-                                 ("method.py", "_LOGGER -> _LOGGER.error"),
-                                 ("rebind.py", "logging -> Assign"),
-                                 ("rebind.py", "logging -> NamedExpr"),
-                                 ("record.py", "_LOGGER -> _LOGGER._log"),
-                                 ("record.py", "_LOGGER -> _LOGGER.handle"),
-                                 ("reflect.py", "logging -> getattr"), ("reflect.py", "'logging'"),
-                                 ("surface.py", "makeLogRecord"), ("surface.py", "hl"),
-                                 ("surface.py", "logging.Logger"), ("surface.py", "self.logger"),
-                                 ("star.py", "*"), ("getref.py", "logging.getLogger"),
-                                 ("child.py", "_LOGGER -> _LOGGER.getChild"),
-                                 ("sibling.py", "c._LOGGER"),
-                                 ("sibling.py", "sys.modules[__name__]._LOGGER"),
-                                 ("bytext.py", "'_LOGGER'"), ("bytext.py", "'logger'"),
-                                 ("fromtext.py", "exec"), ("fromtext.py", "eval"),
-                                 ("fromtext.py", "compile"), ("fromtext.py", "'exec'"),
-                                 ("warnimp.py", "warnings"),
-                                 ("warn.py", "warnings"),
-                                 ("warn.py", "w"), ("warn.py", "o.warnings"),
-                                 ("warn.py", "'warnings'"),
-                                 ("bltn.py", "builtins"), ("bltn.py", "builtins.exec"),
-                                 ("bgetattr.py", "'exec'"),
-                                 ("bfrom.py", "run"), ("bfrom.py", "c"),
-                                 ("bdunder.py", "__builtins__"), ("bdunder.py", "'eval'"),
-                                 ("bdunder.py", "f.__builtins__"),
-                                 ("bbytes.py", "b'cbuiltins\\nexec\\n'"),
-                                 ("door.py", "import marshal"), ("door.py", "import code"),
-                                 ("door.py", "import runpy"), ("door.py", "import importlib.util"),
-                                 ("door.py", "machinery"), ("door.py", "importlib.util"),
-                                 ("door.py", "import ctypes"), ("door.py", "FunctionType"),
-                                 ("door.py", "types.CodeType"),
-                                 ("rebound.py", "re.compile"), ("rebound.py", "o.compile"),
-                                 ("bimp.py", "bi"), ("bimp.py", "il")}
+    # refused, nor a sibling import, re.compile, a field, text derived at run
+    # time (derived.py), an evaluator handed no text naming a logger
+    # (bbytes.py, door.py, bimp.py, rebound.py) or prose (prose.py);
+    # perturbation: an alias, another getLogger name, a getChild, a logging
+    # alias, a bare-callee getLogger, an inline getLogger, a root logging call,
+    # a from-import of _LOGGER, a logger handed to a parameter or returned, a
+    # bound method, another module's _LOGGER as an attribute, the warnings
+    # module, an identifier naming a logger, and text naming one whatever runs
+    # it (round 4's builtins spellings, round 5's typing, inspect and pickle)
+    # and in each spelling an evaluator's front end decodes
+    and _r11_aliases_planted == {('mention.py', "'_LOGGER warnings'"),
+                                 ('mention.py', "'see logging'"), ('alias.py', 'log'),
+                                 ('child.py', 'CHILD'), ('child.py', '_LOG'),
+                                 ('child.py', '_LOGGER -> _LOGGER.getChild'), ('mod.py', 'lg'),
+                                 ('bare.py', 'LOG'), ('bare.py', 'Name getLogger'),
+                                 ('bare.py', 'alias getLogger'), ('bare.py', 'getLogger'),
+                                 ('inline.py', 'logging.getLogger'), ('root.py', 'logging.root'),
+                                 ('root.py', 'logging.warning'), ('fromimp.py', 'alias _LOGGER'),
+                                 ('fromimp.py', 'log'), ('param.py', '_LOGGER -> Return'),
+                                 ('param.py', '_LOGGER -> f'),
+                                 ('method.py', '_LOGGER -> _LOGGER.error'),
+                                 ('rebind.py', 'logging -> Assign'),
+                                 ('rebind.py', 'logging -> NamedExpr'),
+                                 ('record.py', '_LOGGER -> _LOGGER._log'),
+                                 ('record.py', '_LOGGER -> _LOGGER.handle'),
+                                 ('reflect.py', "'logging'"), ('reflect.py', 'logging -> getattr'),
+                                 ('surface.py', 'hl'), ('surface.py', 'logging.Logger'),
+                                 ('surface.py', 'makeLogRecord'), ('surface.py', 'self.logger'),
+                                 ('star.py', '*'), ('getref.py', 'logging.getLogger'),
+                                 ('sibling.py', 'c._LOGGER'),
+                                 ('sibling.py', 'sys.modules[__name__]._LOGGER'),
+                                 ('bytext.py', "'_LOGGER'"), ('bytext.py', "'logger'"),
+                                 ('fromtext.py', '"_LOGGER.error(\'x\')"'),
+                                 ('warnimp.py', 'warnings'), ('warn.py', "'warnings'"),
+                                 ('warn.py', 'o.warnings'), ('warn.py', 'w'),
+                                 ('warn.py', 'warnings'), ('bltn.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bgetattr.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bfrom.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bdunder.py', '"_LOGGER.error(\'x\')"'),
+                                 ('hints.py', '"_LOGGER.error(\'x\')"'),
+                                 ('evalstr.py', '"_LOGGER.warning(\'x\')"'),
+                                 ('fwdref.py', '"_LOGGER.critical(\'x\')"'),
+                                 ('pickled.py', '\'cbuiltins\\nexec\\n(S"_LOGGER.error(x)"\\ntR.\''),
+                                 ('escaped.py', '"globals()[\'_\\\\x4cOGGER\'].error(\'x\')"'),
+                                 ('fullwidth.py', "'_\uff2c\uff2f\uff27\uff27\uff25\uff32.error(1)'"),
+                                 ('cookie.py', 'text sha256:e5560473c6647532'),
+                                 ('joined.py', '"globals()[\'_LOG\' \'GER\'].error(1)"'),
+                                 ('idents.py', 'ClassDef MyLogger'),
+                                 ('idents.py', 'ImportFrom homeassistant.util.logging'),
+                                 ('idents.py', 'arg logger'), ('idents.py', 'keyword _LOGGER')}
     and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
     | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
                                 "CRITICAL", "FATAL")}
