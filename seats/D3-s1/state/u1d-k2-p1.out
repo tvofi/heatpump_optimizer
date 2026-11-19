@@ -25,3 +25,9 @@
 2026-11-19T11:48:44Z COMPLETE KILLED custom_components/heatpump_optimizer/thermal_model.py:planned_draw_runs CMP_BOUND d42ada6d L1298 by=tests/features.py ran=14 wall=1808.0s
 2026-11-19T12:15:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.flow_lift_factor CMP_BOUND b66e49cc L3389 by=- ran=17 wall=1590.4s
 2026-11-19T12:40:28Z COMPLETE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CMP_BOUND 5bd31264 L4722 by=- ran=13 wall=1514.2s
+2026-11-19T13:07:46Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather_forecast BOOLOP 9b791856 L7069 by=- ran=13 wall=1637.4s
+2026-11-19T13:38:14Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._stash_price_horizon BOOLOP 99240c85 L4717 by=- ran=17 wall=1828.8s
+2026-11-19T14:05:16Z COMPLETE SURVIVED custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met BOOLOP 3e47f3cc L1557 by=- ran=12 wall=1621.9s
+2026-11-19T14:32:50Z COMPLETE KILLED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._power_headroom CLAMP_DROP f2758963 L8951 by=tests/features.py ran=13 wall=1653.5s
+2026-11-19T14:59:04Z COMPLETE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due CLAMP_DROP a586f6d3 L658 by=- ran=13 wall=1574.6s
+2026-11-19T15:30:13Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_savings_percentage CLAMP_DROP 6d06f326 L2146 by=- ran=17 wall=1868.3s
