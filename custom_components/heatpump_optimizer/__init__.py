@@ -29,10 +29,11 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DOMAIN,
 )
-from .entry_config import EntryConfig, number_repairs, repaired_numbers
+from .entry_config import EntryConfig, number_repairs, placed, repaired_numbers
 
 # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
 # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
@@ -203,10 +204,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
     """Migrate a config entry created by an older version of the integration.
 
     Every option the integration reads is looked up with a default, so older
-    entries need their version stamped forward and any numeric option stored
-    as a non-number repaired: numeric text stored as its number, anything else
-    dropped for its default (``entry_config.number_repairs``). Without this
-    handler Home Assistant refuses to load entries created before the current
+    entries need their version stamped forward, any numeric option stored as a
+    non-number repaired -- numeric text stored as its number, anything else
+    dropped for its default (``entry_config.number_repairs``) -- and their keys
+    placed (7.2). Without this handler Home Assistant refuses to load entries
+    created before the current
     ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
     """
     if entry.version > CONFIG_ENTRY_VERSION:
@@ -219,24 +221,33 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
         )
         return False
 
-    if entry.version < CONFIG_ENTRY_VERSION:
+    minor = getattr(entry, "minor_version", 1)
+    if entry.version < CONFIG_ENTRY_VERSION or minor < CONFIG_ENTRY_MINOR_VERSION:
         _LOGGER.info(
-            "Migrating Heat Pump Optimizer config entry from version %s to %s",
+            "Migrating Heat Pump Optimizer config entry from version %s.%s to %s.%s",
             entry.version,
+            minor,
             CONFIG_ENTRY_VERSION,
+            CONFIG_ENTRY_MINOR_VERSION,
         )
-        repairs = number_repairs({**entry.data, **entry.options})
+        effective = {**entry.data, **entry.options}
+        repairs = number_repairs(effective)
         if repairs:
             _LOGGER.warning(
                 "Stored options that are not numbers: %s; text is stored as its number, "
                 "anything else is dropped and its default applies",
                 ", ".join(sorted(repairs)),
             )
+        # 7.2 stores each key in its one place. Placing only moves keys, and
+        # on a key in both sides keeps the options value, the one in force,
+        # so the effective mapping every reader takes is unchanged.
+        data, options = placed(repaired_numbers(effective, repairs))
         hass.config_entries.async_update_entry(
             entry,
-            data=repaired_numbers(entry.data, repairs),
-            options=repaired_numbers(entry.options, repairs),
+            data=data,
+            options=options,
             version=CONFIG_ENTRY_VERSION,
+            minor_version=CONFIG_ENTRY_MINOR_VERSION,
         )
 
     return True
