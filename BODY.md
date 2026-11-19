@@ -3,15 +3,18 @@ R11-SEAM-ratchets (ADR-009; D7-s1-02, D7-s1-03, D14-s2-03): two `tests/structure
 - `in_function_copies` (D7-s1-02): a statement window written at two or more non-overlapping places of ONE function and in no other function. The row counts places past the first, the rule `duplication_copies` uses for members ("a third copy costs one more"). `duplicate_clones` joins functions, so such a copy moved no row. Both rows read one window enumerator, `function_windows`, which was cut out of `duplicate_clones`' body. `duplicate_clones`' window and output are unchanged (Null control). ADR-009 part 3's list of functions the score reads is therefore untouched in behaviour.
 - `unloaded_package_imports` (D7-s1-03; `unused_package_imports` until ebb5b253, see Red checks): a `from .<module> import N [as A]` binding that the importing module never loads, that no module re-imports from it, and that no string in it names. The re-export arm reads `import_bindings`' own symbol bindings. Under ADR-009 part 1 this PR deletes nothing; `R11-SEAM-dead-state`'s deletions re-record this row downward.
 - N-log-flood barrier (D14-s2-03): `_r10_unlatched_logs` counts every `_LOGGER` call at WARNING or above. Before, it counted only `.warning` and `.error`; it now also counts `.warn` (the WARNING alias), `.exception`, `.critical`, `.fatal` (the CRITICAL alias), and `.log` at an int level of at least 30 or at any level other than `logging.DEBUG`, `INFO` or `NOTSET`. The level is the first positional or the `level=` keyword; a level behind `*args` or `**kwargs` is unknown and counted. The level test is nested inside the function because `logflood_shape.py` execs that function alone.
-- The barrier reads the text `_LOGGER`, so a second check, `_r11_logger_aliases`, refuses every way a package line can log through anything else. It reads both logging surfaces by allow-list, so a spelling nobody listed is refused, not missed. It refuses:
+- The barrier reads the text `_LOGGER`, so a second check, `_r11_logger_aliases`, refuses the ways a package line can log through anything else. A use of the module `logging` or of the name `_LOGGER` is read by allow-list, so a use of either nobody listed is refused, not missed. The routes to a logger under another spelling are a named set, not an allow-list: the names `logging`, `logger`, `_LOGGER` and `warnings` as an attribute or as text, the module `warnings`, and `exec`/`eval`/`compile`. It refuses:
   - a name bound to `_LOGGER` or to a `getLogger`/`getChild` result, and `import logging as x`;
   - any other `getLogger` or `getChild` call, bound or inline, with an Attribute or a bare-Name callee;
   - an import of `_LOGGER` or of a module named `logging` from anywhere, and an import from `logging` of anything but its level numbers (`*` included);
   - the name `logging` used other than as `logging.<level number>` or a `logging.getLogger(...)` call: `logging.warning`, `logging.root`, `logging.Logger`, `logging.makeLogRecord`, an uncalled `logging.getLogger`, `lg = logging`, `(lg := logging)`, `getattr(logging, ...)`;
   - the text `'logging'` (`__import__`, `importlib.import_module`, `sys.modules`), and an attribute named `logging` or `logger` (Home Assistant's coordinator exposes the handed-over `_LOGGER` as `self.logger`);
+  - an attribute named `_LOGGER` (another module's logger, `coordinator._LOGGER`, or this one's as `sys.modules[__name__]._LOGGER`), and the text `'_LOGGER'` or `'logger'` (`globals()['_LOGGER']`, `getattr(m, 'logger')`);
+  - the module `warnings`, imported, imported from, named, as an attribute or as the text `'warnings'`: Home Assistant turns on `logging.captureWarnings(True)`, so `warnings.warn` lands as a WARNING record on `py.warnings`;
+  - `exec`, `eval` and `compile`, whose code is text this check cannot parse;
   - `_LOGGER.<method>(...)` for any method but the level calls and `isEnabledFor` (`_log`, `handle`, `makeRecord`, `getChild`);
-  - any other use of `_LOGGER`: passed as an argument, returned, put in a container, or a bound method taken. That is the only way a logger reaches a parameter, because every other source of one is refused above.
-- Not read, stated in the docstring: a module name computed at run time (`import_module('log' + 'ging')`). No syntactic rule names it; the string-constant arm is the bound.
+  - any other use of `_LOGGER`: passed as an argument, returned, put in a container, or a bound method taken. That is how the package's own logger reaches a parameter; the other sources of one named above are refused at their source.
+- Not read, stated in the docstring: a name computed at run time (`import_module('log' + 'ging')`, `globals()['_LOG' + 'GER']`), which no syntactic rule names, the string-constant arm being the bound; and a route to Home Assistant's log through one of its services (`system_log.write`), a service call this check does not read.
 - One live escape is listed with its reason and exact count in `_R11_LOGGER_HANDOVERS`: `coordinator.py` hands `_LOGGER` to Home Assistant's `DataUpdateCoordinator.__init__`. That class logs a failed refresh at ERROR only on the success-to-failure transition (its `last_update_success` latch), so it cannot flood. A stale or extra entry fails the check, as the R10 lists do. The one live site the barrier was blind to, `sysid.py` `_finish`, joins the once-per-event group: the raising fit sets the phase done and publishes a refusal in the same call.
 
 Design choices a later seat should not read as bugs:
@@ -37,7 +40,14 @@ Round 2 at 5fe13702 (class-open): `_LOGGER.log(level=...)`, the `logging` module
 - The reach check also asserts the package is flat (`rglob('*.py')` reads as many modules as the glob), the glob's precondition: a `sub/x.py` added to a copy of the package fails it, the unperturbed copy passes (Mutation proof).
 - The reviewer's probe `ev/probe_shapes.py` (verdict/3729 8ebf85a6), run at d983acca: every row it printed unread at 5fe13702 is now seen: `log_kw_level barrier=1`, `private_log ['_LOGGER -> _LOGGER._log']`, `handle_record ['_LOGGER -> _LOGGER.handle', 'logging.makeLogRecord']`, `module_assign_alias ['logging -> Assign']`, `walrus_alias ['logging -> NamedExpr']`, `getattr_root ['logging -> getattr']`, `importlib` and `dunder_import ["'logging'"]`. Its controls are unchanged (`ctl_info barrier=0 alias=[]`, `ctl_warning barrier=1`).
 
+Round 3 at b950a390 (class-open, verdict/3729 on review/3729 fbaf77c4): d983acca's docstring and this body claimed the reach check read both surfaces by allow-list, but neither check saw `coordinator._LOGGER.error(...)` (or `c._LOGGER` under `from . import coordinator as c`), `sys.modules[__name__]._LOGGER.error(...)`, `globals()['_LOGGER'].error(...)`, `warnings.warn(...)` or `exec("_LOGGER.error(...)")`. Repaired at 935610a4, and the claim is narrowed to what the code does (description above, and the docstring):
+- Failing test first: 4eb8a9bd plants every reviewed shape in the existing reach check. The planted files are `sibling.py`, `bytext.py`, `fromtext.py`, `warnimp.py` and `warn.py`, adding `getattr(m, 'logger')`, `eval`, `compile`, `from warnings import warn as w` and `o.warnings`. With the planted set as at 935610a4 and b950a390's `_r11_logger_aliases` put back, the reach check prints `FAIL R11 N-log-flood barrier reach` and the R10 barrier check stays `ok`.
+- Repair: `_r11_logger_aliases` refuses `_LOGGER`, `logger`, `logging` and `warnings` as an attribute or as a string constant, any import of or from `warnings`, the name `warnings`, and the names `exec`, `eval`, `compile`. The live package carries none of them. `grep` over `custom_components/heatpump_optimizer/*.py` finds `warnings` only in two comments, `.compile(` only as `re.compile`, and no `._LOGGER`, `'_LOGGER'` or `'logger'`. The check's live verdict is still the one listed handover.
+- The reviewer's probe `ev/probe_delta.py`, run unchanged against this head's `tests/entities.py`: `sibling_module_logger alias=['coordinator._LOGGER']`, `sibling_as alias=['c._LOGGER']`, `sys_modules_self alias=['sys.modules[__name__]._LOGGER']`, `globals_lookup alias=["'_LOGGER'"]`, `exec_string alias=['exec']`, `warnings_warn alias=['warnings', 'warnings']`, control `ctl_warning barrier=1 alias=[]`. Against b950a390's file every one of those six reads `barrier=0 alias=[]`, with the same control. The round-2 probe `ev/probe_shapes.py` prints the same rows at this head as at b950a390.
+
 ## Head
+
+`935610a4dd393e2718305d4691128fc36c728d1f`, two commits on b950a3904dea576c702020b905a68bb574a00f36 (the round-2 head): `4eb8a9bd4d32e156029140635b17a23a3cdd0537` (the failing planted shapes) and `935610a4dd393e2718305d4691128fc36c728d1f` (the repair). Both edit only `tests/entities.py`. Merge base with origin/main: 9aa29bd52382d0fcd25c43aaa31adb70ef49ff5a, unchanged.
 
 ff9cfca087a80c1a40c65a962781aba33690b8c0, a merge of `origin/main` 9aa29bd52382d0fcd25c43aaa31adb70ef49ff5a (now the merge base) into ebb5b253, at 2026-11-19T07:00:23Z. ebb5b253 renames one row on d983acca. Every figure it can reach was re-run at ebb5b253 or at this merge, as each line says; the rest carry from d983acca, measured on base ae0ed64af898.
 
@@ -72,6 +82,18 @@ The repair at d983acca adds ten mutants, run by `ev/mutants.py` (in scratch): it
 - K3 any `_LOGGER` method admitted, K4 the `logging` attribute allow-list back to a level denylist, K5 the name `logging` as a value admitted, K6 the text `'logging'` admitted, K7 `.logger`/`.logging` admitted, K8 the from-`logging` allow-list back to a denylist, K9 an uncalled `getLogger` admitted: `R11 N-log-flood barrier reach`.
 - K10 the flat-package precondition dropped: no check fails on the live package, which is flat; the precondition's own control is a package copy with `sub/x.py`, which fails `R11 N-log-flood barrier reach` while the unperturbed copy fails nothing.
 
+The round-3 repair at 935610a4 adds eight mutants, run by a scratch driver that execs `tests/entities.py`'s barrier block verbatim under each edit and reads the reach check's line. Unmutated, both N-log-flood checks print `ok`. Each mutant below fails `R11 N-log-flood barrier reach`:
+- T1 `_LOGGER` dropped from the attribute/text name set.
+- T2 the text arm back to `'logging'` only.
+- T3 the `exec`/`eval`/`compile` names admitted.
+- T4 the name `warnings` admitted.
+- T5 `import warnings` admitted.
+- T6 `from warnings import ...` admitted.
+- T7 `warnings` dropped from the attribute/text name set.
+- T8 `logger` dropped from that set.
+
+T4 and T5 survived the first planted set, where one file both imported and named `warnings`. The import was then split into its own planted file, `warnimp.py`, and both mutants now fail the check.
+
 `prepr.sh`'s `MUTANT_CMD` draws only added `.py` lines outside `tests/` and `dev/`, and this diff has none.
 
 ## Null control
@@ -83,6 +105,7 @@ The repair at d983acca adds ten mutants, run by `ev/mutants.py` (in scratch): it
   - `tests/structure.py`: of the five planted bindings, the loaded, string-named and re-exported ones are not rows.
   - `tests/entities.py`: `_LOGGER.log(logging.DEBUG, ...)` and `_LOGGER.info` are not sites.
   - `tests/entities.py`: the canonical module-level `_LOGGER = logging.getLogger(__name__)`, calls of its methods (`.warning`, `.isEnabledFor(logging.DEBUG)`) and an annotated class field are not refused.
+- Round 3: `ok.py` gains `from . import coordinator`, `import re` and `re.compile('_LOGGER warnings')`, none of them refused: a sibling import alone, an attribute named `compile`, and text that only mentions `_LOGGER` or `warnings`.
 - Package reading at head: `_r11_logger_aliases` finds exactly the one listed handover, `coordinator.py:3541` (check `R11 N-log-flood barrier reach` passes).
 
 ## Figures
@@ -113,7 +136,9 @@ Harnesses are run from `git archive 819aa2e354b4e5baaf824b8568fd72bea8168a75 dev
   - main's `field_coverage.mjs` is byte-identical to the copy run above (`cmp` exit 0), and its `LIVENESS_ROW` and `CENSUSES` gates, replayed over the merged `tests/structure_budgets.json` and `tests/ci_budgets.json`, leave no ungated liveness row.
   - `tests/closure.py select` against the new merge base: `MODE: SCOPED -- 8 script(s) run, 25 scoped out`.
 
-<!-- figure-block: scope-line mb=9aa29bd52382d0fcd25c43aaa31adb70ef49ff5a head=ff9cfca087a80c1a40c65a962781aba33690b8c0 -->
+- Round 3 at 935610a4: the barrier block of `tests/entities.py`, exec'd verbatim against the live package, prints `ok` for both N-log-flood checks. The full `PYTHONPATH=tests/hastub python3 tests/entities.py` at 935610a4, under the gate lease, printed `1 of 2732 ENTITY CHECKS FAILED` with both N-log-flood checks `ok`. The one failure is `a measured script's late-writing descendant is waited for, not recorded as nodata`. That check, run alone, fails the same way at b950a390 and at origin/main cb8edb65 on this host. This diff touches neither the check nor the `coverage_tree.sh` stage it drives. CI's scoped gate is the record for this head.
+
+<!-- figure-block: scope-line mb=9aa29bd52382d0fcd25c43aaa31adb70ef49ff5a head=935610a4dd393e2718305d4691128fc36c728d1f -->
 ~~~text
 MODE: SCOPED -- 8 script(s) run, 25 scoped out.
 ~~~
@@ -132,6 +157,7 @@ MODE: SCOPED -- 8 script(s) run, 25 scoped out.
   - Countermeasure: not built here; this group may not change `prepr.sh` or the grader. Owed to the root-cause seat with the carry below.
   - Carry: dismissed: owed to R11-CLOSEOUT-CLEANUP (round-end instrument triage: widen `field_coverage.mjs` `LIVENESS_ROW` so the registry reads `unloaded_package_imports`, or replace the name test with a census-required flag on the row; green once this PR's census is on main)
   - Carry: dismissed: owed to R11-CLOSEOUT-CLEANUP (round-end instrument triage: a liveness-named budget row cannot land green, because the pinned census registry refuses both a row without its census and a census without its row; let a census land one merge ahead of its row, or have `ci_predict` run the base copy's census registry so prepr predicts the red)
+- `tests / fast (3.14)` at b950a390 (job 135446716075, run on the merge with origin/main 99436a08): `FAILED python3 tests/features.py`. One check fails, `the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the target past the ramp` (`peak none=20.241 zeros=20.241 lift=20.453`). The check is not this pull request's: it is not in this branch's tree, and it arrives with main's #3803 (99436a08). Main's own push run at cb8edb65 fails it the same way (job 135486106404: `1 of 5933 FEATURE CHECKS FAILED`, the same line and figures). This diff edits only `tests/entities.py`, `tests/structure.py`, `tests/structure_budgets.json`, `tools/policy/field_coverage.mjs` and its delivery row, none in `tests/features.py`'s solver path. The red is inherited from main. Cheaper detector: none on this side; it is main's red, and main's push run named it first.
 - `tests / nightly-status`: not a required check (not in `merge_train.py owed-reds`); it grades main's nightly, inherited, not this pull request's.
 - `code-scanning alert 57 (py/overly-permissive-file)`, `code-scanning alert 58 (py/overly-permissive-file)`, `code-scanning alert 59 (js/insecure-temporary-file)`, `code-scanning alert 60 (js/file-system-race)`, `code-scanning alert 61 (py/insecure-temporary-file)`, `code-scanning alert 62 (py/insecure-temporary-file)`, `code-scanning alert 63 (py/insecure-temporary-file)`, `code-scanning alert 64 (py/incomplete-url-substring-sanitization)`, `code-scanning alert 65 (py/incomplete-url-substring-sanitization)`, `code-scanning alert 66 (py/overly-permissive-file)` and `code-scanning alert 67 (py/overly-permissive-file)`: each is open on main, in `tools/audit/seat/postmerge.py`, `tools/audit/seat/roster_lib.py` or a round-11 harness under `dev/audit/rounds/round11/`. This diff touches no file any of them names (`git diff --name-only` at the merge base: five files, none of those). Inherited, not this pull request's; no cheaper detector applies to a red this diff did not cause.
 
@@ -144,3 +170,4 @@ none
 dispatch-brief-inline: contradiction: on this fire the hook refused a read of the `tests/entities.py` run log at its sixth inline op; one `frugal:scout` read that log, the route the hook names. Carry: dismissed: the orchestrator's ruling below covers it, pending owner confirmation
 
 dispatch-brief-inline: contradiction: (first fire) the brief's "Do your work inline, with no subagents" met the frugal PreToolUse hook's per-prompt inline-read cap, and the first fire stopped (BLOCKED.md at b430bc7e); the orchestrator's inbox ruling (mandate 6893738184) corrected the brief for this seat. Carry: dismissed: corrected by that ruling before this run, pending owner confirmation as the ruling states
+
