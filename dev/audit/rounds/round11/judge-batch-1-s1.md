@@ -1,0 +1,22 @@
+| id | metric | expected | got | reproduced | direction | perturbed | perturbation | void | null_value | load1 | thread_factor | flags |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D0-s2-01 |  |  |  | by-hand | down |  | by-hand |  | by-hand | 0.97 | 1.000 | tree edited by run: dev/audit/rounds/round11/D0/s2/__pycache__/cells.cpython-314.pyc, dev/audit/rounds/round11/D0/s2/__pycache__/race.cpython-314.pyc; restored |
+| D1-s2-05 | v1_mutants |  | 200 | by-hand | to_zero |  | by-hand |  | by-hand | 0.99 | 1.000 |  |
+| D10-s1-01 | cases |  | 6 | by-hand | to_zero |  | by-hand |  | by-hand | 0.99 | 1.000 |  |
+| D11-s1-02 | unmonitored | 1 | 2 | no | down |  | by-hand |  | by-hand | 0.99 | 1.000 |  |
+| D11-s3-04 | null_passed |  | 570 | by-hand | up |  | by-hand |  | by-hand | 2.82 | 1.397 | re-take: thread_factor > 1.05 |
+| D14-s2-01 | quiet_stale_flags | 6, | 6 | no | to_zero |  | by-hand |  | by-hand | 2.82 | 1.000 |  |
+| D15-s2-05 |  |  |  | by-hand | to_zero |  | by-hand |  | by-hand | 2.82 |  | rc=1; load1 from batch; no thread_factor |
+| D16-s2-02 | on_in_window |  | 0 | by-hand | up |  | by-hand |  | by-hand | 2.67 | 1.000 | tree edited by run: dev/audit/rounds/round11/D16/s2/__pycache__/cells.cpython-314.pyc, dev/audit/rounds/round11/D16/s2/__pycache__/effect.cpython-314.pyc, dev/audit/rounds/round11/D16/s2/__pycache__/rig.cpython-314.pyc, dev/audit/rounds/round11/D16/s2/__pycache__/timing.cpython-314.pyc; restored |
+| D17-s2-02 | step0_outdoor_spread_K | 0.0 | 0.000 | by-hand | up |  | by-hand |  | by-hand | 2.54 | 1.00 | tree edited by run: dev/audit/rounds/round11/D17/s2/__pycache__/rig.cpython-314.pyc; restored |
+| D2-s2-02 | duty_law_mismatch |  | 0 | by-hand | to_zero |  | by-hand |  | by-hand | 2.53955078125 | 1.0 | tree edited by run: dev/audit/rounds/round11/D2/s2/__pycache__/_common.cpython-314.pyc; restored |
+| D2-s3-11 | gain_recovery_mean |  | 0.5573 | by-hand | up |  | by-hand |  | by-hand | 2.42 | 1.0000 | tree edited by run: dev/audit/rounds/round11/D2/s3/__pycache__/_common.cpython-314.pyc; restored |
+| D4-s3-05 | cells |  | 180 | by-hand | down |  | by-hand |  | by-hand | 1.58 | 1.00 |  |
+| D5-s2-03 | lower_floor_ratio |  | 1.4 | by-hand | up |  | by-hand |  | by-hand | 1.58 | 1.000 |  |
+| D5-s3-03 | units | 2855, | 2862 | no | down |  | by-hand |  | by-hand | 1.53 | 1.000 |  |
+| D5-s6-02 | stamp_record_class_res_len |  | 6 | by-hand | to_zero |  | by-hand |  | by-hand | 1.53 | 1.00 |  |
+| D5-s8-02 | units | 3628, |  | by-hand | to_zero |  | by-hand |  | by-hand | 1.53 |  | rc=1; load1 from batch; no thread_factor |
+| D6-s1-02 |  |  |  | by-hand | down |  | by-hand |  | by-hand | 1.53 |  | rc=1; load1 from batch; no thread_factor |
+| D6-s5-05 |  |  |  | by-hand | to_zero |  | by-hand |  | by-hand | 1.53 |  | rc=1; load1 from batch; no thread_factor |
+| D7-s1-05 | counters_ablated |  | none | by-hand | to_zero |  | by-hand |  | by-hand | 1.18 | 1.00 |  |
+| D8-s1-02 | avail_none_cycles |  | 1 | by-hand | to_zero |  | by-hand |  | by-hand | 1.15 | 1.000 |  |

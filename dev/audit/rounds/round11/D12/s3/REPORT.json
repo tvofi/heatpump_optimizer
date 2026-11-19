@@ -1,0 +1,242 @@
+{
+ "dimension": "D12",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D12/s3/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D12.M3",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D12-s3 | cut -f3",
+   "universe": 95,
+   "examined": 93,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/prefill_offer.py",
+    "custom_components/heatpump_optimizer/quick_setup.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C2",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Examined = production files whose functions ran (parent and process-worker child, sys.monitoring PY_START) while the M3 harnesses drove the heat-pump axis cells: PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/filecov.py surfaces --entry --setup (32 cells: switch x3 domains, space set-point x4, DHW set-point x4, Tuya and Modbus mode selects, ECL110 set/legacy MQTT and three curve-entity arms, on_off/modulating/auto, frequency none/observe/control/control_evidenced, counter DHW spans, short boost, circulation x2, silent switch, disinfection switch, mixing valve; files_driven=92), duties (120 arbiter commands), counter_spans, modulation (10-cell grid), repairs_surfaces (12 cells); union 93/95 (out/filecov_*.txt). C1: the whole step now has the 95-file denominator and the 32-cell axis list (surfaces.py --list). C2: switch, ECL110 MQTT, Tuya and the frequency surfaces each driven through a real cycle and through async_setup_entry; pump_arbiter._bounded reads climate/water_heater min_temp/max_temp (duties.py bad_commands=0 of 120, 12 under --perturb range-keys). Not reached: quick_setup.py and prefill_offer.py carry no heat-pump-axis write path (installation-axis wizard answers and the Tuya/Modbus pre-fill offer); no M3 harness drives them."
+  },
+  {
+   "step": "D12.M5",
+   "enumerator": "python3 tools/audit/check_scopes.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D12-s3 | cut -f3",
+   "universe": 95,
+   "examined": 92,
+   "not_reached": [
+    "custom_components/heatpump_optimizer/prefill_offer.py",
+    "custom_components/heatpump_optimizer/quick_setup.py",
+    "custom_components/heatpump_optimizer/repairs.py"
+   ],
+   "redispatched": [],
+   "evidence": "Null arm on the fully-mapped coord_all_features plant: PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/filecov.py surfaces --entry --setup --reference (32 cells, files_driven=92) and filecov.py duties --reference (bad_commands=0 of 120). Every axis cell passes on the reference plant except modulation:on_off (D12-s3-01: the on_off axis value fails on any plant; the undeclared reference passes) and two curve-offset cells that are a harness gap (the entity already reads the displace -3, so write_displace owes no write). repairs.py has no reference-arm drive."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D12-s3-01",
+   "scope": "D12-s3",
+   "step": "D12.M3",
+   "title": "Declared on/off compressor (compressor_modulation=on_off) is planned as modulating; switch+setpoint loses its clamp",
+   "severity": "high",
+   "claim": "With compressor_modulation=on_off, thermal_model.declared_modulation returns True (modulating), so the plan one real cycle publishes is never projected onto {0} U [p_min, p_max]: 0 of 10 grid cells clamp (10 of 10 under the documented mapping), 8-9 of 10 publish steps in (0, p_min), and on an unmetered switch+setpoint plant the declaration switches the install probe's clamp off (10/10 -> 0/10).",
+   "mechanism": "declared_modulation maps COMPRESSOR_MODULATION_ON_OFF to True, the value its docstring and the modulating branch reserve for 'modulating'; duty_cycle_realizable then short-circuits to True, levels_clamped to False, and OptimizationConfig.from_mapping solves with clamp_planned_levels=False; probe_install.on_off (declared_modulation(cfg) is False) is also never set.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/modulation.py",
+    "harness_path": "dev/audit/rounds/round11/D12/s3/modulation.py",
+    "value": 0,
+    "unit": "grid cells (of 10) whose on_off-declared plan is clamped onto {0} U [p_min,p_max] (RESULT on_off_clamped_cells); switch_setpoint_on_off_clamped_cells=0 vs switch_setpoint_absent_clamped_cells=10",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6, Linux x86_64, python 3.14.7, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute seats on B6 plus this seat's own background runs (load1 5-13); counts are contention-immune",
+    "tolerance": "exact for the clamped-cell counts; on_off_sub_min_total / on_off_cells_failing depend on the hour the harness starts (prices are laid from dt_util.now, unfrozen): observed 132/8 and 92/9 on two runs, always 0/0 under the perturbation",
+    "load1": 5.28,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:declared_modulation (driven through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data and optimizer:OptimizationConfig.from_mapping)",
+   "perturbation": {
+    "change": "--perturb doc-modulation: mock.patch.object(thermal_model, 'declared_modulation', the docstring's map, on_off -> False); one-line production equivalent: 'False if mode == const.COMPRESSOR_MODULATION_ON_OFF' in declared_modulation",
+    "expected_direction": "to_zero",
+    "observed_value": "on_off_clamped_cells 0 -> 10; switch_setpoint_on_off_clamped_cells 0 -> 10; on_off_sub_min_total 132 -> 0; on_off_cells_failing 8 -> 0; surfaces.py fail_count 1 -> 0"
+   },
+   "metric_definition": "Per price x weather cell, plan steps whose total electrical level (space+DHW) lies in (0, p_min) in the plan one real cycle publishes for a plant declaring compressor_modulation=on_off.",
+   "phenomenon_property": "A compressor mode the user declares (on_off / modulating) is the mode the plan obeys on every write surface: on_off always projects planned levels onto {0} U [p_min, p_max], and no declaration makes the plan less constrained than the undeclared probe.",
+   "seam_rule": "grep -n 'declared_modulation(\\|COMPRESSOR_MODULATION_ON_OFF\\|\\.on_off\\b' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/modulation.py ; ... surfaces.py --reference --setup",
+    "value": "modulation.py: modulating and absent arms 92 sub-min steps / 0 clamped (legitimate for a modulating compressor); switch_setpoint_absent 0 sub-min / 10 clamped (the probe's own clamp). surfaces.py --reference (coord_all_features, fully mapped, M5): the undeclared auto and the modulating cells pass; modulation:on_off fails there as well (1 sub-min step, clamp off), so the defect is the on_off axis value on any plant -- the reference plant itself, undeclared, passes.",
+    "note": "Not a cost claim; --flat still shows on_off 35 sub-min steps, switch_setpoint_on_off 35 vs switch_setpoint_absent 0."
+   },
+   "leave_one_out": {
+    "cells": 10,
+    "min": 0,
+    "max": 23,
+    "drop_most_favourable": 69
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 -c \"import sys;sys.path[:0]=['tests','custom_components'];from heatpump_optimizer import thermal_model as t;print(t.declared_modulation({'compressor_modulation':'on_off'}))\"  -> True (docstring: False)",
+    "run modulation.py; read RESULT on_off_clamped_cells=0 and switch_setpoint_on_off_clamped_cells=0 vs switch_setpoint_absent_clamped_cells=10",
+    "run modulation.py --perturb doc-modulation; every on_off count goes to 0 / clamped 10",
+    "surfaces.py (M3, 32 cells): fail_count=1 (modulation:on_off); --perturb doc-modulation -> fail_count=0; --entry (real async_setup_entry) reproduces it"
+   ],
+   "proposed_fix_scope": "thermal_model.declared_modulation: map COMPRESSOR_MODULATION_ON_OFF to False; tests/features.py's #3289 block already states that expectation",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D12-s3-02",
+   "scope": "D12-s3",
+   "step": "D12.M3",
+   "title": "DHW set-point Fix writes the disinfection floor above the entity's own max on a pump capped below it",
+   "severity": "medium",
+   "claim": "On a plant whose DHW set-point entity's declared maximum (55 degC) is below the notice's floor (60 degC while a legionella cycle is active), the confirmed dhw_setpoint_below_disinfection Fix sends 60 to the entity on every one of the four DHW set-point domains, with or without an immersion disinfection switch: 8 of 12 Fix writes fall outside the entity's own range, 0 under an entity-capped quantisation.",
+   "mechanism": "setpoint_check._dhw quantises the floor with quantise_setpoint_c(..., rounding='up', hi_c=params.dhw_hard_max_temp) and never with the entity's own max (inputs.setpoint_range_c); repairs.DhwSetpointRepairFlow writes that value through inputs.write_setpoint. The arbiter's own writes are bounded by the entity range (pump_arbiter._bounded, duties.py 0 bad of 120), so only the Fix path skips it; the notice can then never clear on that plant, and Home Assistant refuses an out-of-range number/climate/water_heater value.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/repairs_surfaces.py",
+    "harness_path": "dev/audit/rounds/round11/D12/s3/repairs_surfaces.py",
+    "value": 8,
+    "unit": "Fix writes (of 12) outside the target entity's own declared range (RESULT bad_fix_writes)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6, Linux x86_64, python 3.14.7, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute seats on B6 and this seat's two entry-mode runs (load1 9-10); a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 10.25,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.repairs:DhwSetpointRepairFlow.async_step_confirm (with heatpump_optimizer.setpoint_check:_dhw raising the issue inside heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data)",
+   "perturbation": {
+    "change": "--perturb entity-cap: setpoint_check.quantise_setpoint_c called with hi_c = min(hi_c, inputs.setpoint_range_c(entity)[1]) (one-line production edit in setpoint_check._dhw)",
+    "expected_direction": "to_zero",
+    "observed_value": "bad_fix_writes 8 -> 0 (the capped cells write 55)"
+   },
+   "metric_definition": "Per (DHW set-point domain x entity range) cell, confirmed-Fix service calls whose value is outside the entity's own declared range (min_temp/max_temp or min/max).",
+   "phenomenon_property": "Every set-point write the integration sends -- arbiter, Fix flow, or any other writer -- lands inside the target entity's own declared range, on every set-point domain the tree accepts.",
+   "seam_rule": "grep -n 'write_setpoint(\\|quantise_setpoint_c(\\|write_setpoint_c(' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/repairs_surfaces.py  (the 'holds' cells)",
+    "value": "0 of 4 bad on the entity range [40,65] that holds the floor; duties.py (arbiter writes) 0 of 120 bad on both arms",
+    "note": "Not a cost claim; the in-range arm is the null."
+   },
+   "reproduction_steps": [
+    "run repairs_surfaces.py: CELL *:capped and *:capped_immersion print BAD value 60 outside [30,55]; RESULT bad_fix_writes=8",
+    "run with --perturb entity-cap: RESULT bad_fix_writes=0"
+   ],
+   "proposed_fix_scope": "setpoint_check._dhw: cap the Fix value at the entity's own max (and say in the notice that the entity cannot hold the floor, or do not raise it where a disinfection switch runs the cycle)",
+   "files": [
+    "custom_components/heatpump_optimizer/setpoint_check.py",
+    "custom_components/heatpump_optimizer/repairs.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D12-s3-03",
+   "scope": "D12-s3",
+   "step": "D12.M3",
+   "title": "Mode-less counter-metered pump: an unplanned hot-water charge folds into the house learner as space heat",
+   "severity": "medium",
+   "claim": "On a plant with an electric and a heat counter (heat meter declared to see DHW), a DHW tank thermometer and no operating-mode entity, a heat-counter span holding a 3.75 kWh hot-water charge the plan had not scheduled is read as 4.54 kW of space heat against 0.79 kW true and folds into a fabric learner (1 of 3 charge-holding spans); with the mode select mapped, or with the pump following the plan, the count is 0.",
+   "mechanism": "With no mode entity the ModeDwell observes nothing, so heat_energy.attribution falls back to the plan's split and space_heat_kw applies the whole-unit rule (the whole span is space heat when the plan put no DHW in it); the configured tank thermometer, which rose 4 K per charging cycle, is not consulted, so the charge reaches close_span's interval and the house/lower learners.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/counter_spans.py --sees-dhw --no-mode",
+    "harness_path": "dev/audit/rounds/round11/D12/s3/counter_spans.py",
+    "value": 1,
+    "unit": "closed heat-counter spans (of 7; 3 hold a real charge) whose space figure exceeds the plant's true space heat by >0.05 kW and that fold into a fabric learner (RESULT inflated_spans_folded)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6, Linux x86_64, python 3.14.7, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute seats on B6 (load1 4-11); a count, contention-immune",
+    "tolerance": "exact (clock frozen per cycle; prices laid from the start hour -- the span's index can shift with the start hour, the count held on 3 runs)",
+    "load1": 4.21,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.heat_energy:close_span (span_heat / space_heat_kw on the evidence heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data folds)",
+   "perturbation": {
+    "change": "--perturb unobserved-no-space: heat_energy.space_heat_kw returns None for an integrated span the dwell did not observe (one-line production edit)",
+    "expected_direction": "to_zero",
+    "observed_value": "inflated_spans_folded 1 -> 0 (space_spans_folded 2 -> 0)"
+   },
+   "metric_definition": "Closed heat-counter spans holding a real DHW charge whose space figure exceeds true space heat/hours by >0.05 kW and that reach the house or lower learner.",
+   "phenomenon_property": "A heat-counter span that held a hot-water charge never reaches a space-heat learner as space heat, whether the charge was observed through a mode entity or only through the configured tank thermometer.",
+   "seam_rule": "grep -n 'space_heat_kw(\\|def attribution\\|ran_hot_water(' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "counter_spans.py --sees-dhw (mode select mapped); counter_spans.py --sees-dhw --no-mode --plan-only (pump follows the plan)",
+    "value": "0 and 0 inflated spans (2 charge-holding spans each)",
+    "note": "The same plant with the mode entity mapped subtracts the charge exactly (bad_spans=0); with the pump following the plan the whole-unit rule holds. The defect is the mode-less cell."
+   },
+   "reproduction_steps": [
+    "counter_spans.py --sees-dhw --no-mode: INFLATED span ... space 4.540 kW vs true 0.789 kW; RESULT inflated_spans_folded=1",
+    "counter_spans.py --sees-dhw: inflated_spans_folded=0",
+    "counter_spans.py --sees-dhw --no-mode --perturb unobserved-no-space: 0"
+   ],
+   "proposed_fix_scope": "heat_energy / the span's evidence: on an unobserved span, treat a configured tank thermometer's rise as a hot-water charge (refuse the span's space figure), rather than trusting the plan split alone",
+   "files": [
+    "custom_components/heatpump_optimizer/heat_energy.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "C2: pump_arbiter._bounded bounds every space/DHW set-point command by the entity's own range, reading climate/water_heater min_temp/max_temp (not min/max), on 120 commands over mode vocabulary x set-point domain x unit x duty",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/duties.py ; duties.py --reference ; duties.py --perturb range-keys",
+   "value": "bad_commands=0 of 120 both arms; 12 under the decoy-key perturbation"
+  },
+  {
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/surfaces.py --entry --setup -v",
+   "claim": "Every heat-pump control surface the tree implements (switch/input_boolean/climate switch, number/input_number/climate/flow space set-point, number/input_number/climate/water_heater DHW set-point, Tuya and Modbus mode selects, ECL110 /set and legacy JSON topics, curve offset/persistent entities, frequency observe/control, silent, circulation, disinfection and mixing-valve switches/numbers) completes async_setup_entry, publishes a plan, writes only configured entities through their own domain, in range, with offered options; run_optimization, simulate_plan and diagnose_interval do not raise",
+   "value": "31 of 32 cells usable (fail_count=1: modulation:on_off, D12-s3-01)"
+  },
+  {
+   "claim": "A counter-metered pump with the mode select mapped subtracts each hot-water charge from the span's space heat exactly",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/counter_spans.py ; counter_spans.py --perturb no-subtract",
+   "value": "bad_spans=0, inflated_space_spans=0 over 2 charge-holding spans; 1 under the perturbation"
+  },
+  {
+   "claim": "A heat meter not declared to see the DHW circuit records no DHW COP sample",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/counter_spans.py",
+   "value": "dhw_cop_records_unseen=0"
+  },
+  {
+   "claim": "A short (10 min) space boost and an evidenced kW-per-Hz map both actuate their surfaces; the frequency write lands inside the number's own range",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/surfaces.py --cell boost:short_space --cell frequency:control_evidenced -v",
+   "value": "both usable; number.hz written 86.5 within [20,90]"
+  },
+  {
+   "claim": "Dropping PV, away and the peak tariff from the reference plant does not move the axis fail-count: the on_off failure does not come from those features",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/surfaces.py --reference --perturb drop-pv",
+   "value": "fail_count=1 (modulation:on_off) with and without them"
+  },
+  {
+   "claim": "Disproved lead (harness gap): heat_curve:number_offset/input_number_offset 'never actuated' on the reference entry arm",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D12/s3/surfaces.py --entry --setup --reference -v",
+   "value": "the entity already reads -3 = the cycle's displace; heat_curve.write_displace -> _decide owes no write. Gap: the harness's owed-write rule only exempts the persistent arm"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D12/s3/surfaces.py",
+  "dev/audit/rounds/round11/D12/s3/duties.py",
+  "dev/audit/rounds/round11/D12/s3/counter_spans.py",
+  "dev/audit/rounds/round11/D12/s3/modulation.py",
+  "dev/audit/rounds/round11/D12/s3/repairs_surfaces.py",
+  "dev/audit/rounds/round11/D12/s3/filecov.py"
+ ],
+ "leads": []
+}
