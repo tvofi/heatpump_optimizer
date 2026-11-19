@@ -569,3 +569,4 @@
 2026-11-19T03:09:30Z COMPLETE SURVIVED custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_open_meteo GUARD_OFF dad3676f L7422 by=- ran=14 wall=1456.0s
 2026-11-19T03:11:35Z COMPLETE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:min_component CMP_BOUND ead59e4c L388 by=- ran=12 wall=1474.7s
 2026-11-19T03:12:56Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action CMP_BOUND 42c879d9 L6559 by=- ran=12 wall=1465.5s
+2026-11-19T03:16:17Z COMPLETE SURVIVED custom_components/heatpump_optimizer/optimizer.py:<module> CONST 16060c16 L2385 by=- ran=21 wall=1665.7s
