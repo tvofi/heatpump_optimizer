@@ -42370,9 +42370,14 @@ import logging  # noqa: E402
 
 _r10_pkg = Path("custom_components/heatpump_optimizer")
 _r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
-# the package's other shipped files: text a module can read and hand to an evaluator
-_r11_files = {p.relative_to(_r10_pkg).as_posix(): p.read_bytes() for p in sorted(_r10_pkg.rglob("*"))
-              if p.is_file() and p.suffix not in (".py", ".pyc") and "__pycache__" not in p.parts}
+def _r11_shipped_files(pkg):
+    """The package's shipped files that are not modules, by path: text a
+    module can read, import or hand to an evaluator."""
+    return {p.relative_to(pkg).as_posix(): p.read_bytes() for p in sorted(pkg.rglob("*"))
+            if p.is_file() and p.suffix not in (".py", ".pyc") and "__pycache__" not in p.parts}
+
+
+_r11_files = _r11_shipped_files(_r10_pkg)
 
 
 def _r10_functions(source):
@@ -42800,11 +42805,28 @@ _r10_log_planted = _r10_unlatched_logs({
                  "def at_kwargs(self, k):\n    _LOGGER.log(**k)\n",
 })
 _r11_aliases_found = _r11_logger_aliases(_r10_sources, _r11_files)
-# a shipped file that is not a module is read as text, a pickle by its opcodes;
-# a binary one with no logger name in it is not refused
+# a shipped file that is not a module is read as text, a pickle by its opcodes,
+# compiled code by the names marshal writes raw; a binary one with no logger
+# name in it is not refused
 _r11_files_plant = {"strings.json": b'{"x": "_LOGGER.error(1)"}', "icon.png": b"\x89PNG\r\n",
-                    "p.pickle": b"\x80\x04\x95\x0b\x00\x8c\x07logging\x94."}
-_r11_files_planted = {(m, b) for m, _l, b in _r11_logger_aliases({}, _r11_files_plant)}
+                    "p.pickle": b"\x80\x04\x95\x0b\x00\x8c\x07logging\x94.",
+                    "x.pyc": __import__("marshal").dumps(compile("_LOGGER.error(1)", "x", "exec"))}
+_r11_files_planted = {m for m, _l, _b in _r11_logger_aliases({}, _r11_files_plant)}
+
+
+def _r11_shipped_planted():
+    # Python runs a .pyc beside a package's modules, or an unchecked-hash one
+    # in __pycache__, without reading its source: a tracked one is shipped
+    # text; a cache nobody tracked is not
+    with tempfile.TemporaryDirectory() as d:
+        pkg = Path(d) / "pkg"
+        for k in ("a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc", "__pycache__/d.pyc"):
+            (pkg / k).parent.mkdir(parents=True, exist_ok=True)
+            (pkg / k).write_bytes(b"x")
+        for args in (["init", "-q"], ["add", "-f", *(f"pkg/{k}" for k in (
+                "a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc"))]):
+            subprocess.run(["git", "-C", d, *args], check=True, capture_output=True)
+        return set(_r11_shipped_files(pkg))
 _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
              "from logging import DEBUG\n"
@@ -42997,7 +43019,10 @@ R.check(
                                 "CRITICAL", "FATAL")}
     # precondition: the package is flat, so the glob read every module
     and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources)
-    and _r11_files_planted == {(k, repr(v)) for k, v in _r11_files_plant.items() if k != "icon.png"}
+    and _r11_files_planted == set(_r11_files_plant) - {"icon.png"}
+    # a tracked file is read whatever its suffix or folder, a module or an
+    # untracked cache is not
+    and _r11_shipped_planted() == {"a.json", "b.pyc", "__pycache__/c.cpython-314.pyc"}
     # precondition: the shipped files that are not modules were read
     and len(_r11_files) >= 10,
     f"refused {_r11_alias_verdict(_r11_aliases_found)}; planted read {sorted(_r11_aliases_planted)}; "
