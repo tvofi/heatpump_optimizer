@@ -8441,6 +8441,9 @@ async def seam_config_one_place():
           f"errors={cleared.get('errors')} "
           f"fraction={suggested_value(cleared, const.CONF_SILENT_MODE_FRACTION)!r} "
           f"windows={suggested_value(cleared, const.CONF_SILENT_MODE_WINDOWS)!r}")
+    await recover(cleared_flow, "device_prefill", {
+        const.CONF_SILENT_MODE_WINDOWS: "06:00-10:00", const.CONF_SILENT_MODE_FRACTION: 0.6},
+        (("finish_now", {}), ("setup_overview", {})))
     check("device_prefill", "happy",
           "the setup pre-fill page posts no after_save: its navigation is always finish_setup",
           const.CONF_AFTER_SAVE not in schema_keys(refused),
@@ -8454,6 +8457,7 @@ async def seam_config_one_place():
           and flow._data.get(const.CONF_SILENT_MODE_FRACTION) == 0.6
           and const.CONF_AFTER_SAVE not in flow._data,
           f"result={accepted.get('type')}/{accepted.get('step_id')} data={flow._data}")
+    await recover(flow, "finish_now", {}, (("setup_overview", {}),))
 
 
 async def main() -> int:
