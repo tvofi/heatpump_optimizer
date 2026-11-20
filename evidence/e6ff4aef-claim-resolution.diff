@@ -1,0 +1,13 @@
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 8ab11ad487..a7e22d5d3e 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -68,7 +68,7 @@
+ # next branch restates its own footprint, claims included.
+ #
+ cycling_cost  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 14 -> 0, combined draw 11 -> 0, charges 9 -> 3, starts 4 -> 3, energy 40.97 -> 42.45 kWh, predicted_cost 32.07 -> 33.76 (up: the committed charges buy what the trickles under the floor did not), worst gap under the hot-water requirement 0.557 -> 0.439 K
+-everything_on  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 10 -> 0, combined draw 4 -> 0, charges 5 -> 3, starts 5 -> 3, energy 68.83 -> 68.64 kWh, predicted_cost 61.48 -> 61.83 (up), worst gap under the hot-water requirement 0.550 -> 0.438 K
++everything_on  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 10 -> 0, combined draw 4 -> 0, charges 5 -> 3, starts 4 -> 3, energy 67.09 -> 66.48 kWh, predicted_cost 60.71 -> 60.39 (down), worst gap under the hot-water requirement 0.550 -> 0.438 K
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the

@@ -1,5 +1,0 @@
-Same check fails, same figures, on other PRs' merge refs against main 99436a082c:
-#3729 run 44487291333 job 135446716075: 1 of 5922 FEATURE CHECKS FAILED, FAIL the lift may raise the plan's peak ... [peak none=20.241 zeros=20.241 lift=20.453 ...]
-#3738 run 44484978564 job 135447271434: 1 of 5937 FEATURE CHECKS FAILED, same check, same figures
-main push run 44474729461 at 99436a082c: tests / fast (3.14) success
-Block mode on this box (rl.sh, from the ThermalState import of the #3616 section): ALL 2 FEATURES BLOCK PASSED at both the merge 37cac2a4a8 (tree efb4c3e121) and origin/main 99436a082c

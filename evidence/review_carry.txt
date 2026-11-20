@@ -1,0 +1,11 @@
+review_carry: b77df3f88 -> c1ad2ede5  main=origin/main
+  branch-only commits: 7
+  why: e6ff4aef80a2befdc0a10862a665262ffa1ed662 resolves tests/golden/claimed_drift.txt to something other than the union of its parents or main's driver output on them
+  13a156cf1  Merge remote-tracking branch 'origin/main' into HEAD
+  b03acd42b  Merge commit '13a156cf10612d363ccc0ae09ef6d59455fa759b' into repair2
+  75cac35ee  R11-OUTSIDE-HONEST-DHW-RUNS: the descents check reads the commit stage, where the lower ships
+  8d57c94a8  Merge remote-tracking branch 'origin/main' into repair2
+  e6ff4aef8  Merge commit '8d57c94a8d' into r3805
+  9334f4572  record: the delivery row for #3805, the pull request that carries R11-OUTSIDE-HONEST-DHW-RUNS
+  c1ad2ede5  Merge commit '9334f45721d5a4fa54496755eee613c65e698a92' into fix/r11-outside-honest-dhw-runs-pr
+review_carry: FRESH-REVIEW
