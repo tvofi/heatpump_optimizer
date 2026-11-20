@@ -34,7 +34,7 @@ class SelectSelector(_Selector):
     """Mirrors the one validation rule of the real selector that bites.
 
     Home Assistant coerces the incoming value with ``vol.Schema(str)`` before
-    matching it against the options, so a non-string default — an int number of
+    matching it against the options. So a non-string default — an int number of
     minutes against string options, say — fails with "expected str" the moment
     the user leaves that field untouched. The stub used to accept anything,
     which let exactly that bug reach a release.

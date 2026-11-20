@@ -1,0 +1,19 @@
+coordinator.py:11245  _held_solve -> _await_off_loop(optimize_in_process)  own_guard=[]  roots=[]  path_guards=[]
+coordinator.py:10709  _maybe_refresh_price_tile -> async_simulate(dict(overrides))  own_guard=[]  roots=['async_run_optimization']  path_guards=['async_run_optimization:_running']
+coordinator.py:9004  _maybe_run_fuse_advisor -> async_simulate({'power_cap_kw': cap_kw})  own_guard=[]  roots=['async_run_optimization']  path_guards=['async_run_optimization:_running']
+coordinator.py:1080  _replay_interval -> _await_off_loop(_replay_step)  own_guard=[]  roots=['_async_learn_heat_span(no root)', '_async_learn_interval(no root)', '_async_update_data', '_async_update_data(no root)']  path_guards=[]
+coordinator.py:1959  _stop -> async_add_executor_job(_shutdown_process_pool)  own_guard=[]  roots=[]  path_guards=[]
+coordinator.py:2166  _sysid_step_off_loop -> _await_off_loop(step_detached)  own_guard=[]  roots=['async_run_optimization']  path_guards=['async_run_optimization:_running']
+coordinator.py:2206  _with_sensor_advisor -> _await_off_loop(topology.rank_sensor_advisor)  own_guard=[]  roots=['_async_update_data']  path_guards=[]
+coordinator.py:10675  async_diagnose_interval -> _await_process(diagnosis.diagnose_record)  own_guard=[]  roots=['handle_diagnose_interval']  path_guards=[]
+coordinator.py:6430  async_run_optimization -> _await_optimize(self.hass)  own_guard=['_running']  roots=['async_run_optimization']  path_guards=[]
+coordinator.py:11239  async_simulate -> _await_optimize(self.hass)  own_guard=['last_at', 'limited_answer']  roots=['_async_first_refresh_light(no root)', '_async_learn_interval(no root)', '_async_learn_price_shape(no root)', '_async_update_data(no root)', '_c
+coordinator.py:2184  estimate -> _await_off_loop(away_mode.estimate_recovery_hours)  own_guard=[]  roots=[]  path_guards=[]
+debugger.py:672  _async_replay -> async_add_executor_job(bundle)  own_guard=[]  roots=['async_get_config_entry_diagnostics(no root)']  path_guards=[]
+debugger.py:664  _async_replay -> async_add_executor_job(partial(recorder_history.get_significant_states, self._hass,)  own_guard=[]  roots=['async_get_config_entry_diagnostics(no root)']  path_guards=[]
+debugger.py:595  _read -> async_add_executor_job(Path(self._hass.config.path('.storage')))  own_guard=[]  roots=['async_get_config_entry_diagnostics(no root)', 'read_stores(no root)']  path_guards=[]
+debugger.py:325  _solver_smoke -> async_simulate({})  own_guard=[]  roots=['_apply_action(no root)', '_async_first_refresh_light(no root)', '_async_learn_interval(no root)', '_async_load_ledger(no root)', '_async_load_price_model(no root)', '_async_update_data
+frontend.py:193  async_register_frontend -> async_add_executor_job(_www_dir)  own_guard=[]  roots=['async_setup_entry']  path_guards=[]
+services.py:775  handle_simulate_plan -> async_simulate(overrides)  own_guard=[]  roots=['handle_simulate_plan']  path_guards=[]
+RESULT seams=17 count
+RESULT unguarded=15 count
