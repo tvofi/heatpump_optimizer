@@ -125,7 +125,7 @@ LEDGER = "dev/audit/config/bugclasses.json"
 SCHEMA = "dev/audit/config/finding.schema.json"
 FIND_WORKFLOW = ".claude/workflows/audit-find.js"
 SCOPES = "dev/audit/config/scopes.json"
-DIM_OF = re.compile(r"^(D[0-9]+)(?:[-.]|$)")
+DIM_OF = re.compile(r"^(D(?:[0-9]+|X0))(?:[-.]|$)")
 BLOCK_BEGIN = "// FINDING-SCHEMA:BEGIN"
 BLOCK_END = "// FINDING-SCHEMA:END"
 RULES_DIR = "dev/governance/rules"
@@ -624,6 +624,11 @@ def self_test():
                 rc = check(t)
             return rc, buf.getvalue()
 
+    briefs = sorted(os.path.basename(p)[:-3] for p in glob.glob(os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "..", "dev", "governance", "dimensions", "*.md")))
+    expect(f"DIM_OF reads the dimension of every brief's finding id, seat and step ({len(briefs)} briefs), and no near-miss",
+           len(briefs) > 1 and all(owner_only_dim(x, {d}) == d for d in briefs for x in (f"{d}-s1-01", f"{d}-s1", f"{d}.M1"))
+           and not any(owner_only_dim(x, {"DX0"}) for x in ("DX01-s1-01", "DXO-s1", "xDX0-01")))
     J = {"round": 2, "verdicts": [{"id": "D1-01", "verdict": "verified", "class": "P1"}, {"id": "D1-02", "verdict": "refuted"}]}
     clean = _settle({"P1": _entry(["R2 D1-01"]), "P2": _entry(["R1 D2-01"]), "_rca": {}, "_unclassified": [], "_excluded": []})
     rc, out = run_check(clean, J)
