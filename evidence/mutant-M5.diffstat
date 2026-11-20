@@ -1,2 +1,0 @@
- custom_components/heatpump_optimizer/optimizer.py | 4 ----
- 1 file changed, 4 deletions(-)

@@ -1,6 +1,6 @@
 
 === features block ===
-  FAIL a plan slot's reason tie reads the slot's first code, whatever the hash seed (D1-s1-51)  [['cheap_price', 'cheap_price']]
+  FAIL a plan slot's reason tie reads the slot's first code, whatever the hash seed (D1-s1-51)  [('boost', 'eco'): ['boost', 'boost']]
   ok   lambda=1 books no premium as money: the published prices are the input's, the reference's cost is lambda=0's, the plan's cost is its draw on the input prices, and every settlement price is the input's (D2-s3-01)
   ok   the premium still prices the objective: lambda=1 moves the plan (the D2-s3-01 fix's null control)
   ok   the first multi-start of each solve path starts one run at the lower bound, the all-off plan (D0-s3-02)

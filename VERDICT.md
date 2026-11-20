@@ -1,60 +1,31 @@
-Fix review: blocked ee9bfa8ac5c2c5cc5454f3c636cb627bcb29d565 mutation-vacuous: custom_components/heatpump_optimizer/plan_slots.py:89 lives: M1 (dict.fromkeys back to set) passes the D1-s1-51 tie check under some hash seeds, so the check's "whatever the hash seed" is not what it tests
+Fix review: merge fe23416d408624f59f3d36dbbcea049d138ec764
 
-bus-nonce: 660d8f04cbd4468a25be894b27de8a28
-
-## Block
-
-- M1, `plan_slots.py:89` `max(dict.fromkeys(codes), key=codes.count)` back to `max(set(codes), key=codes.count)`, run in a worktree at the head against the PR's features block (`features_block.py`, marker `# --- R11-SEAM-solver: the start set brackets`): ALL 9 FEATURES BLOCK PASSED under a random hash seed, rc=0 (ev/block-mutant-M1.log). Under fixed seeds: PYTHONHASHSEED=0 rc=1 (killed), 23 rc=0, 76 rc=0 (ev/M1-seeds.txt). The unmutated head passes at 23 and 76 too.
-- The cause: for a two-element set the iteration order is insertion order when both strings land in the same table slot, which happens under some seeds. In that case `set` also returns the slot's first code for both spellings of the tie, so the check cannot tell the mutant from the fix. Over seeds 16-120, `max(set(...))` returned the first code for both orders at seeds 23, 24, 76 and 84. The body's M1 "FAIL" was one draw.
-- Repair: make the check independent of the process's seed. For example, run the two tie spellings in subprocesses over a fixed seed list that includes a colliding seed (23) and a non-colliding one (0). Or check the order-preserving property directly, with a tie whose set order disagrees with its first code under the running seed. Re-run M1 at seeds 0, 23 and 76.
-- The production fix is sound: `dict.fromkeys` keeps first-seen order, so a tie goes to the slot's first code under every seed. This block is on the pin only.
+bus-nonce: 6068650e80c94ba2ab0f756086a413aa
 
 ## Previous findings
 
-- At bdf09624 the block was tests/doc_claims.py (2 of 411). Resolved: at this head `tests/doc_claims.py` reads ALL 439 checks PASSED (ev/local-doc_claims.log), and 61f2f4bbb2 rewords how-it-works.md to the five starts.
-- Owed from the previous round, the other mutants (M1, M3-M6) and the other three `tests / fast` failures. The mutants are re-run here (ev/mutants.txt). M3, M4, M5 and M6 are killed; M1 is above. The fast failures are named in the body (`env_drift.py` confidence_margins, claimed at db6f2a664b, and `stress.py`), and `tests / fast (3.14)` is green at this head.
+- At ee9bfa8ac5 the block was mutation-vacuous on `plan_slots.py:89`: M1 (`max(dict.fromkeys(codes), ...)` back to `max(set(codes), ...)`) passed the D1-s1-51 tie check under PYTHONHASHSEED 23 and 76. Resolved by de8181b0a0. The check now picks, under the running seed, the first pair of action codes whose two-element set iterates the same whichever code is inserted first, so a `set` returns one winner for both spellings of the tie while the expected first codes differ.
+  - M1 applied in this worktree, the PR's features block (`features_block.py`, marker `# --- R11-SEAM-solver: the start set brackets`, prelude from `--emit-prelude`): rc=1 under PYTHONHASHSEED 0, 23, 24, 76, 84 and unset, each failing `a plan slot's reason tie reads the slot's first code, whatever the hash seed (D1-s1-51)`. The unmutated head reads ALL 9 FEATURES BLOCK PASSED under the same six seeds (ev/M1-seeds.txt).
+  - The selection itself, swept in one subprocess per seed over PYTHONHASHSEED 0-1000, with `HEAT_PUMP_ACTION_STATES` copied from `const.py` at this head: a pair is always found, and the `set` pick fails it at 1001 of 1001 seeds (ev/seedsweep.txt, ev/seedsweep.py).
 
 ## Delta reviewed
 
-`git diff bdf09624...ee9bfa8ac5`. The branch's own commits since bdf09624 are 61f2f4bbb2, 320c063489, bc33f25c50, d1e3701d13, 6a09ed087a, d63daa072e, f769d50c7f, a2236e189f and db6f2a664b. The rest are main merges (a7f9c27aee: the one `tests/features.py` end-of-file conflict, both blocks kept).
-
-- Production delta, `optimizer.py` `_space_only_starts` (d1e3701d13, f769d50c7f). Byte-identical starts are kept once, first occurrence first. The reference-energy seeds are drawn unconditionally.
-  - For covered == 0.0, `reference_power * (1.0 - 0.0)` is exact, so `energy == reference_kwh` bitwise and the filter drops the copies. The removed guard was dead.
-  - `_wood_covered_share` returns a value in [0, 1], so no negative share adds a non-duplicate set.
-  - Mutants: M7 (filter removed) is killed by `a space-only solve no wood covers hands the multi-start no duplicate start` [7 starts, 5 distinct]. M5 (reference-energy extend deleted) is killed by the whole-cover check.
-  - Widened to `_space_only_starts`' callers only; nothing else in the delta touches the solve.
-- `tests/stress.py` simulate allowance, with `tests/stress_budgets.json` `simulate_allowance` and the ratio 2.2 -> 7.46 (6a09ed087a, d63daa072e). The allowance applies to one scenario on one channel and expires once the baseline reads at or above 68093. `budget_table_problems` validates it. It carries four self-checks, whose mutants MA-MD the body reports (not re-run here). The body's `## Raise justification` names six payments and an `Architecture score:` line. `budget-raise-gate` is green at this head.
-- `tests/features.py`, 320c063489 and bc33f25c50: the commit-stage checks now read candidate 1 as the descent's plan. Test only.
-- Mutation pins (a2236e189f): three RETURN_DEL sites, killed per the ledger. Two ledger files are deleted for sites the diff removed. CI `tests / mutation` is green.
+`git diff ee9bfa8ac5 fe23416d40`. The branch's own commit is de8181b0a0 (`tests/features.py` only, +23/-7). The rest is a5300ee8cd, a `ci: merge main` of b36742b17b. Its one resolved conflict is `tests/structure_budgets.json` `class_excess_loc`: main's value less this branch's unchanged -22 (17344 -> 17322, against 17356 -> 17334 at ee9bfa8ac5). Outside `tests/features.py`, the PR's own diff lines against its merge base are identical at both heads except that line. No production delta, so the review does not widen.
 
 ## Evidence
 
-- Head: ee9bfa8ac5c2c5cc5454f3c636cb627bcb29d565 (ev/HEAD.txt). The live PR head was re-read before posting and is the same.
-- Round: second (delta over bdf09624).
-- `merge_train.py classify --pr 3736 ee9bfa8ac5`: `GREEN ... pending: none red: none` (ev/classify.txt). The packet's digest reads every required check success.
-- `git merge-tree --write-tree origin/main ee9bfa8ac5` at origin/main e4a6cc6041: rc=0, no conflict (ev/merge-tree.txt).
+- Head: fe23416d408624f59f3d36dbbcea049d138ec764 (ev/HEAD.txt). The live PR head was re-read before posting and is the same.
+- Round: third (delta over ee9bfa8ac5). `review_carry.py ee9bfa8ac5 fe23416d40`: FRESH-REVIEW, the branch's own commit de8181b0a0.
+- `git merge-tree --write-tree origin/main fe23416d40` at origin/main 698eeeb2ab (32 commits ahead of this head): rc=0, no conflict (ev/merge-tree.txt).
 - VERSION, manifest.json and RELEASE_NOTES.md: untouched in the three-dot diff.
-- Local at the head: doc_claims.py ALL 439 PASSED; `env_drift.py --claims-only` rc=0; structure.py rc=0; the PR block ALL 9 PASSED.
-- Finder's harness, D0-s2-01 `wood_seeds.py --race` over the finding's 7 cells from the plan/r11 export 819aa2e3 (sha1 1b03dd54), per-tree copies, on this arm64 host (numpy on Accelerate, not OpenBLAS). Summer_cool gap_abs, base cb8edb65 vs head:
-  - winter_narrow 2.0292 -> 0.0022
-  - winter_extreme 1.6782 -> 0.1210
-  - winter_typical 1.6310 -> 0.0093
-  - winter_moderate 1.3572 -> 0.0000
-  - flat 1.6782 -> 0.1292
+- Claim files: `claims-for: 10.1.1` in both `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` at this head, at origin/main and at the merge base, against VERSION 10.1.1 at all three. The branch's three-dot claim diff adds only the three claims reviewed earlier (`price_risk`, `start_below_band`, `confidence_margins`); the merged tree's claim files differ from main's by exactly those lines. `env_drift.py --claims-only`: rc=0, `claims hygiene: origin/main ok` (ev/env_drift-claims.log).
+- `merge_train.py classify fe23416d40 --pr 3736`: rc=4, APPROVAL-OWED, 3 budget raises, first `tests/stress_budgets.json` `summer/2z/space/wood-two-tank.ratio` 2.2 -> 7.46; tvofi's approval is on ee9bfa8ac5, not this head (ev/classify.txt).
+- Live check runs at this head (ev/checks.txt): 33 success, 18 skipped, 4 failure. The failures are `budget-raise-gate / budget-raise-gate` (2 runs) and `gate` (2 runs), and the packet's advisory reads `gate` red only on that owed approval. `tests / fast (3.14)`, `tests / mutation`, `tests / replay`, `tests / closures` and `pr-contract / pr-contract` are success.
+- Review packet (ev/packet.md): refusals none; carry_audit 3 routed, 0 unrouted; `Finder's harness: none named`.
+- The finder's race harness was not re-run: the delta touches no production line. Its readings at ee9bfa8ac5 stand as recorded in that verdict.
 
-  At the head every summer_cool cell ships 3.0-3.8 kWh instead of 0, so the seed collapse is closed (ev/race-base.log, ev/race-head.log).
-
-Note: figures-not-reproduced: the body's head race figures (0.0000, 0.0000, 0.0004, 0.0077, 0.0000) and its base shoulder figures (winter_typical 1.7251, flat 0.0001) do not reproduce on this host. Here winter_typical/shoulder reads 1.9945 at base and 1.7870 at head; flat/shoulder 1.3426 at base and 0.0002 at head.
-  - A two-cell rerun at the head read flat/summer_cool 0.0043 where the seven-cell run read 0.1292 (ev/race-head-rerun.log). The race is order-dependent within one process, so its sub-0.13 residues are not a stable measurement on this host.
-  - The previous head bdf09624 reads 0.1210 and 0.1292 on those two cells (ev/race-prev-bdf09624.log).
-  - Bearing on the raise: the body rejects variant A for leaving 0.1287 and 0.1292 on winter_extreme and flat. This head reads 0.1210 and 0.1292 on those cells in one ordering here. The rejection rests on the fixer's host's figures, which this seat could not re-derive. Not re-derived: variant A itself, the stress counts (54/38 evaluations, 122592 simulate steps), MA-MD, and the `start_below_band` four-kernel claim.
-
-Note: harness-unnamed: the review packet reports `Finder's harness: none named`. The body names the finder's scripts only through `$EXPORT` paths, which figure_lint cannot resolve.
+Note: approval-owed: the three `tests/stress_budgets.json` raises (`ratio` 2.2 -> 7.46, and the new `simulate_allowance` factor 3.25 and `baseline_below` 68093) are byte-identical to ee9bfa8ac5, where tvofi approved them. This head needs that approval again for `budget-raise-gate` and `gate` to go green. The raises are recorded at measured values: 7.46 is the body's `--record-budgets` row, 3.25 covers the measured 122592/37824 = 3.2411, and 68093 is within 2 of the counts' geometric mean, 68094.9. Their necessity rests on the first fixer's race figures, which do not reproduce on arm64. The body also lists one payment, the one-seed start set d4d1b7ef7d, that fits the unraised budgets. Its arm64 race reads 0.1383 on winter_typical against this head's 0.0093, and 0.0000 against this head's 0.1210 and 0.1292 on winter_extreme and flat. x86_64 is unmeasured for both. That is a product trade-off, not a missed payment that improves the code, so this is not metric-gamed. The approver chooses it. Carry: dismissed: the approval and the trade-off are the approver's at merge; the body records both
 
 ## Red checks
 
-None at this head: the classify read is GREEN, and every check in the packet digest is success or skipped. The body's `## Red checks` answers the reds at earlier heads and the cancelled jobs at this head, which have since been rerun green.
-
-## Carry
-
-Carry: dismissed: evidence, not a finding
+`budget-raise-gate / budget-raise-gate` and the required aggregate `gate`: red only on the owed approval above (classify APPROVAL-OWED). The body's `## Red checks` names `budget-raise-gate` as red by construction. No other check is red at this head.

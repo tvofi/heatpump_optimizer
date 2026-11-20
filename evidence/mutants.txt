@@ -1,9 +1,0 @@
-Mutants run by this seat at ee9bfa8ac5 (worktree rv3736-mut), each against
-features_block.py "# --- R11-SEAM-solver: the start set brackets" with the prelude from --emit-prelude.
-Unmutated head: ALL 9 FEATURES BLOCK PASSED (block-head.log), also under PYTHONHASHSEED=23 and 76.
-M7 filter removed (return starts)            rc=1 killed: no-duplicate-start check [7 starts, 5 distinct]
-M5 reference-energy extend deleted           rc=1 killed: whole-cover nonzero start check
-M4 _space_only_starts lower-bound append del rc=1 killed: lower-bound start check
-M3 _solve_space lower-bound append -> pass   rc=1 killed: lower-bound start check
-M6 commit stage drops _lower_bound_start     rc=1 killed: commit-stage check
-M1 plan_slots.py:89 dict.fromkeys -> set     rc=0 SURVIVED (random hash seed); seed 0 rc=1, seed 23 rc=0, seed 76 rc=0 (M1-seeds.txt)
