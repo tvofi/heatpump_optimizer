@@ -1,0 +1,9 @@
+head bd7eb6b2cd0336a66c5f96751565c92357385cf2
+artifact: selftest-closures of run 44677469341 at main 698eeeb2ab94249ddf2c4c6e218556dc4e06c366
+head 1 refusal(s)
+   UNDER-SCOPED step roster-library: dirs misses ['dev/governance/dimensions']
+main 4 refusal(s)
+   UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round11/D0/.gitattributes', 'dev/audit/rounds/round11/D0/s1/.gitattributes', 'dev/audit/rounds/round11/D0/s1/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s1/out/.gitattributes', 'dev/audit/rounds/round11/D0/s2/.gitattr
+   UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/rou
+   UNDER-SCOPED step roster-library: dirs misses ['dev/governance/dimensions']
+   UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 

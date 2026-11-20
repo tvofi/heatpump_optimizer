@@ -1,18 +1,17 @@
-Fix review: merge 00d07210bd41a89c38f477f60490b3be091d4f72
-bus-nonce: 50386d57bb47156502b6b1bb38871acb
+Fix review: blocked bd7eb6b2cd0336a66c5f96751565c92357385cf2 class-open: roster-library dirs misses dev/governance/dimensions; merged, main keeps 1 drift refusal
+bus-nonce: 4bfc1aa85837065119377ad3ad58596c
 
-Round 1, full scope (first round). Merge base fe6f06c337. Role contracts unchanged on main since that base.
+Delta review, round 2 (prior verdict: merge 00d07210bd41a89c38f477f60490b3be091d4f72).
 
-RESULT step1 mutation: the fix is data, so the mutant is the base table. `selftest_scope.drift` against main's measurement (the selftest-closures artifact from run 44451107719, byte-identical to the head table) gives 5 refusals on the base table, the same five UNDER-SCOPED steps the body names, and 0 at the head (127 gated steps both times). Not vacuous.
-RESULT step2/9 harness: no finder harness. The finder is the CI drift step, and it is green at the head: governance / instrument-self-tests succeeded in job 135360674833. My replay, which I built, is in evidence/drift-replay.txt.
-RESULT step3 null: `select --change M:docs/x.md` at the head prints MODE: SCOPED -- 22 step(s) run, so the table is not stale.
-RESULT step4 claims: no claim file or fixture is touched.
-RESULT step5 version: VERSION, the manifest and RELEASE_NOTES.md are untouched.
-RESULT step6 class: `git ls-tree -r -d` finds no directory new on origin/main (8ab5dc566f) since the merge base, so no further miss is pending at merge. P-R11-87 already covers the general class (a new data directory reddens drift); it is out-of-tree and rides round-end triage.
-RESULT step8 figures: the body's 5 to 0 refusals and 127 gated steps re-derive exactly.
-RESULT step11 reds: gate 135369725903 fails with "run(s) [44464951527] at this head are still being judged". That is a wait, not a code red. env-matrix was cancelled, not failed, and the body answers that. instrument-self-tests is green at the head, so nothing is INTRODUCED.
-RESULT prepr: PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 prepr rc=0 at the head; CI predict shows no instrument red against 8ab5dc566f.
-RESULT step13 conflict: `git merge-tree --write-tree origin/main head` exits 0.
-RESULT step14 earned: removing the added entries brings back exactly the 5 refusals. The added entries are a verbatim copy of the instrument's own artifact. No budget moves.
+RESULT delta: `review_carry.py 00d07210 bd7eb6b2` prints FRESH-REVIEW only because #3801 landed the four `survivor_triage/currency.py` entries on main; the own diff at bd7eb6b2 is the 00d07210 diff less those four lines, and `tools/ci/selftest_closures.json` is the same blob (6ac03a263c) at both heads. Both main merges (dc00fe13, bd7eb6b2) have an empty remerge-diff. The reviewed change itself is unchanged and still correct for what it covers.
 
-Note: instrument-duplicates: the head table carries 13 duplicate list entries across 6 steps' probes (base: 0), e.g. tools/audit/round4/** twice. Cause: selftest_scope.compact_probes concatenates collapse(keep), which can emit a D/** entry, with the D/** entries already in probes, and never dedups. Every reader (covers, drift, select) builds sets, so selection and drift are unaffected. A copy only reaches 2 because the next union re-reads probes as a set. Carry: dismissed: no behaviour effect and tooling freeze; the orchestrator folds it into P-R11-87's round-end proposal (out-of-tree)
+RESULT base red: `governance / instrument-self-tests` is failure at merge base e893cd3d (job 135716032632) and at main 698eeeb2 (job 136092952034), both on step "Refuse a self-test read set the committed table misses", both `selftest_scope check: 127 gated step(s), 4 refusal(s)`: policy-lint-mutants, dependency-graph-census, prepr (round11 dirs) and roster-library (`dirs misses ['dev/governance/dimensions']`).
+
+RESULT head green is vacuous: `merge_train.py introduced bd7eb6b2` prints `introduced: 0 ... head governance / instrument-self-tests: success`, but at the head (job 135729405064) the drift step is `skipped` (`if: env.SELFTEST_TRACE != ''`; a pull request runs only `static_check`). The head's success does not measure the drift check.
+
+RESULT drift emulation (evidence `drift_emulate.py`, `selftest_scope.drift(table, steps-of-artifact, workflow_steps)` against main 698eeeb2's `selftest-closures` artifact, run 44677469341): main's table gives 4 refusals, the same four lines CI printed (null control: the emulation reproduces CI exactly). This head's table gives 1 refusal: `UNDER-SCOPED step roster-library: dirs misses ['dev/governance/dimensions']`.
+
+Block: the PR's purpose is to turn main's `instrument-self-tests` green, and merged it leaves the step red. The roster-library miss entered with #3739 (6b230c6dd0 adds `dev/governance/dimensions/DX0.md`; merged at e893cd3d, this PR's merge base), after the 7ae05284d5 artifact the table was taken from. Remedy: re-take the table from main's latest `selftest-closures` artifact (run 44677469341 or newer), which adds `dev/governance/dimensions` to roster-library's `dirs`, and re-run the emulation to 0 refusals. Carry: dismissed: this PR's own remedy, owed at its next head
+
+Note: body-stale: `## Mutation proof` and `## Figures` state 0 refusals at this head; against main 698eeeb2's measurement it is 1. Carry: dismissed: the fixer re-takes the body with the next head
+Note: instrument: a pull request touching only `tools/ci/selftest_closures.json` cannot show its drift check green before merge (drift step is main-only), so a table re-record's only pre-merge evidence is an emulation like this one. Carry: dismissed: by design per `static_check`'s docstring ("the drift check is main's"); an emulation against main's newest artifact is the control
