@@ -1,0 +1,11 @@
+head 06d9220eb710f9fb2d4452c106776ddad9f588fd (delta from review/3818 a625c2ee9a, merge at c5795f202c761b4fb2367bcb723985137e52dddd)
+review_carry.py c5795f20 -> 06d9220eb710f9fb2d4452c106776ddad9f588fd: CARRY (0 of 1 branch-only commits non-merge)
+own three-dot diff c5795f20 vs 06d9220eb710f9fb2d4452c106776ddad9f588fd: identical but one hunk header offset in tests/closures.json (@@ -5088 -> @@ -5090)
+7869c7869
+< @@ -5088,6 +5088,24 @@
+---
+> @@ -5090,6 +5090,24 @@
+merge_train.py classify --pr 3818 06d9220eb710f9fb2d4452c106776ddad9f588fd: GREEN pending: none red: none
+git merge-tree --write-tree origin/main(698eeeb2ab) 06d9220eb710f9fb2d4452c106776ddad9f588fd: rc 0
+ref_privacy.py guard --commits 06d9220eb710f9fb2d4452c106776ddad9f588fd --over 9d65fe80b0: rc 0
+git diff 9d65fe80b0...origin/main -- dev/governance/roles/: empty
