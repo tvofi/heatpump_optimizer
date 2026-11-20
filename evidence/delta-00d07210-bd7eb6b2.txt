@@ -1,0 +1,94 @@
+review_carry: 00d07210b -> bd7eb6b2c  main=origin/main
+  branch-only commits: 2
+  why: the branch's own diff differs: fe6f06c337b624d2e6695c513994697a84f0b52a..00d07210bd41a89c38f477f60490b3be091d4f72 against e893cd3d1ebd1ec3bb56756ce902144a370fe821..bd7eb6b2cd0336a66c5f96751565c92357385cf2
+  dc00fe134  Merge remote-tracking branch 'origin/main' into fix/r11-hotfix-main-selftests
+  bd7eb6b2c  Merge remote-tracking branch 'origin/main' into fix/r11-hotfix-main-selftests
+review_carry: FRESH-REVIEW
+9c9
+< index 60664b6467..6ac03a263c 100644
+---
+> index 56afe93787..6ac03a263c 100644
+215,223c215
+< @@ -4017,6 +4213,7 @@
+<      "tests/mutation_ledger/survivor_triage/boost.py",
+<      "tests/mutation_ledger/survivor_triage/config_flow.py",
+<      "tests/mutation_ledger/survivor_triage/coordinator.py",
+< +    "tests/mutation_ledger/survivor_triage/currency.py",
+<      "tests/mutation_ledger/survivor_triage/debugger.py",
+<      "tests/mutation_ledger/survivor_triage/dhw_planner.py",
+<      "tests/mutation_ledger/survivor_triage/dhw_schedule.py",
+< @@ -5780,6 +5977,7 @@
+---
+> @@ -5781,6 +5977,7 @@
+231c223
+< @@ -6607,6 +6805,7 @@
+---
+> @@ -6608,6 +6805,7 @@
+239c231
+< @@ -6624,6 +6823,7 @@
+---
+> @@ -6625,6 +6823,7 @@
+247c239
+< @@ -6801,6 +7001,202 @@
+---
+> @@ -6802,6 +7001,202 @@
+450c442
+< @@ -6863,6 +7259,7 @@
+---
+> @@ -6864,6 +7259,7 @@
+458c450
+< @@ -6884,9 +7281,12 @@
+---
+> @@ -6885,9 +7281,12 @@
+471c463
+< @@ -6909,6 +7309,7 @@
+---
+> @@ -6910,6 +7309,7 @@
+479c471
+< @@ -6926,6 +7327,7 @@
+---
+> @@ -6927,6 +7327,7 @@
+487c479
+< @@ -7463,6 +7865,7 @@
+---
+> @@ -7464,6 +7865,7 @@
+495c487
+< @@ -7834,6 +8237,202 @@
+---
+> @@ -7835,6 +8237,202 @@
+698,706c690
+< @@ -8248,6 +8847,7 @@
+<      "tests/mutation_ledger/survivor_triage/boost.py",
+<      "tests/mutation_ledger/survivor_triage/config_flow.py",
+<      "tests/mutation_ledger/survivor_triage/coordinator.py",
+< +    "tests/mutation_ledger/survivor_triage/currency.py",
+<      "tests/mutation_ledger/survivor_triage/debugger.py",
+<      "tests/mutation_ledger/survivor_triage/dhw_planner.py",
+<      "tests/mutation_ledger/survivor_triage/dhw_schedule.py",
+< @@ -8463,6 +9063,7 @@
+---
+> @@ -8465,6 +9063,7 @@
+714,730c698
+< @@ -9508,6 +10109,7 @@
+<      "tests/mutation_ledger/survivor_triage/boost.py",
+<      "tests/mutation_ledger/survivor_triage/config_flow.py",
+<      "tests/mutation_ledger/survivor_triage/coordinator.py",
+< +    "tests/mutation_ledger/survivor_triage/currency.py",
+<      "tests/mutation_ledger/survivor_triage/debugger.py",
+<      "tests/mutation_ledger/survivor_triage/dhw_planner.py",
+<      "tests/mutation_ledger/survivor_triage/dhw_schedule.py",
+< @@ -10207,6 +10809,7 @@
+<      "tests/mutation_ledger/survivor_triage/boost.py/.gitattributes",
+<      "tests/mutation_ledger/survivor_triage/config_flow.py/.gitattributes",
+<      "tests/mutation_ledger/survivor_triage/coordinator.py/.gitattributes",
+< +    "tests/mutation_ledger/survivor_triage/currency.py/.gitattributes",
+<      "tests/mutation_ledger/survivor_triage/debugger.py/.gitattributes",
+<      "tests/mutation_ledger/survivor_triage/dhw_planner.py/.gitattributes",
+<      "tests/mutation_ledger/survivor_triage/dhw_schedule.py/.gitattributes",
+< @@ -10252,6 +10855,7 @@
+---
+> @@ -10256,6 +10855,7 @@
+738c706
+< @@ -10667,6 +11271,7 @@
+---
+> @@ -10671,6 +11271,7 @@
