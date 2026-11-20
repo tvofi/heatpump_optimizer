@@ -81,6 +81,12 @@ scope_mutant "check --write writes the bare measurement" 'write_table(write, uni
 scope_mutant "the union drops a committed list entry" 'sorted(set(old.get(k, ())) | set(new.get(k, ())))' 'sorted(set(new.get(k, ())))'
 scope_mutant "the union drops a committed flag" 'bool(old.get(k)) or bool(new.get(k))' 'bool(new.get(k))'
 scope_mutant "drift refuses a probe the run's own listed dir answers" 'a in dirs or a in set(m["dirs"])' 'a in dirs'
+scope_mutant "drift refuses a miss select never reads" '        ruled = dominated(e)' '        ruled = frozenset()'
+scope_mutant "an index flag excuses a file miss" 'return frozenset({"probes", "dirs"}) if entry.get("index")' 'return frozenset({"files", "probes", "dirs"}) if entry.get("index")'
+scope_mutant "an objects flag excuses no list" '    if entry.get("objects"):
+        return frozenset({"files", "probes", "dirs"})' '    if False:
+        return frozenset({"files", "probes", "dirs"})'
+scope_mutant "a step with no flag excuses its list misses" 'return frozenset({"probes", "dirs"}) if entry.get("index") else frozenset()' 'return frozenset({"probes", "dirs"})'
 workflow_mutant "CI never settles the index" 'python3 -I tools/ci/selftest_scope.py settle' 'true'
 workflow_mutant "CI swallows a failed settle" 'python3 -I tools/ci/selftest_scope.py settle' 'python3 -I tools/ci/selftest_scope.py settle || true'
 wrapper_mutant "only launch untraced (the incident's wrapper)" 'case "$UNTRACED" in *" ${GITHUB_ACTION:-} "*)' 'case " launch " in *" ${GITHUB_ACTION:-} "*)'

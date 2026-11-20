@@ -7730,5 +7730,40 @@
       "barriered_any": false,
       "class_rca_on_record": true
     }
+  },
+  "R11-SELFTEST-DOMINATED-DRIFT": {
+    "kind": "instrument",
+    "mechanism": "main's self-test drift step refused every read the committed table missed, including a miss in a list selftest_scope.select never reads for that entry (every list under objects, probes and dirs under index), so each data landing that adds directories reddened main through the whole-tree walkers prepr and dependency-graph-census (dirs) and policy-lint-mutants (one .gitattributes probe per directory), and the seat re-take of main's absorbed table raced the next landing: from 11-18T20:58Z to 11-19T16:35Z all 21 failed drift runs refused only such misses",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 -I tools/ci/selftest_scope.py check, governance.yml's drift step on a push to main: a `dominated step` note for each excused list, an UNDER-SCOPED line for every miss that can change a selection; replay over a main run's selftest-closures artifact: python3 dev/audit/harnesses/r11_selftest_dominated_drift.py REV ARTIFACT",
+    "detector_idea": null,
+    "barrier": "selftest_scope.dominated, read by selftest_scope.drift: a miss in a list the entry's objects or index flag dominates is a note, never a refusal, pinned by four mutants in tools/ci/selftest_scope_mutants.sh",
+    "status": "barriered",
+    "nearest_existing": "R10-SELFTEST-TABLE-SHRINK",
+    "mechanism_difference": "R10-SELFTEST-TABLE-SHRINK is a re-record dropping reads the table held; here no read is dropped: the table lacks reads that cannot change any selection, and the drift step refuses them anyway",
+    "aliases": [
+      "a data landing's new directories redden main's self-test drift step"
+    ],
+    "non_round_note": "Process defect from R11-RCA-SELFTEST-DOMINATED-DRIFT, not an audit finding, not counted in total.",
+    "non_round_instances": [
+      "8fa10e00ce #3723: 196 directories under dev/audit/rounds",
+      "18a60ea5f6 #3809: 2 directories",
+      "053c33bcc6 #3810: 34 directories"
+    ],
+    "rca": [
+      "R11-RCA-SELFTEST-DOMINATED-DRIFT"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
   }
 }

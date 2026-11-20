@@ -50,7 +50,10 @@ THE DRIFT CHECK, `check`, runs on every push to main over the traces that
 run took: it fails naming every step whose committed entry misses a file,
 probe, directory or flag the run measured, and every gated step with no
 entry. Over-approximation (an entry naming a file no longer read) is safe
-and is reported, not refused. `--write` saves the table to commit, which
+and is reported, not refused. So is a miss in a list `select` never reads
+for that entry (`dominated`: every list under `objects`, probes and dirs
+under `index`): a note, since adding it changes no selection. A whole-tree
+walker otherwise drifts on every directory a data landing adds. `--write` saves the table to commit, which
 main uploads as the `selftest-closures` artifact: the committed table unioned
 with this run's measurement, per step (lists unioned, flags OR'd, run_sha the
 run's; `union_entries`), because one run measures one environment and a read
@@ -634,6 +637,16 @@ def _under_scoped(sid: str, kind: str, miss: list[str]) -> str:
     return f"UNDER-SCOPED step {sid}: {kind} misses {miss[:8]}{more}"
 
 
+def dominated(entry: dict) -> frozenset[str]:
+    """The read lists `select` never consults for this entry: every list
+    under `objects` (any change selects the step), `probes` and `dirs` under
+    `index` (they are read only for an add or delete, which `index` selects
+    on). A miss in one cannot change any selection (R11-RCA-SELFTEST-DOMINATED-DRIFT)."""
+    if entry.get("objects"):
+        return frozenset({"files", "probes", "dirs"})
+    return frozenset({"probes", "dirs"}) if entry.get("index") else frozenset()
+
+
 def drift(table: dict | None, measured: dict[str, dict], steps: list[Step],
           only: set[str] | None = None) -> tuple[list[str], list[str]]:
     """(refusals, notes): what the committed table misses, and what it
@@ -665,7 +678,10 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step],
             "probes": [p for p in m["probes"] if not covers(probes, p)
                        and not any(a in dirs or a in set(m["dirs"]) for a in _ancestors(p))],
             "dirs": sorted(set(m["dirs"]) - dirs)}
-        refuse += [_under_scoped(sid, k, sorted(v)) for k, v in misses.items() if v]
+        ruled = dominated(e)
+        refuse += [_under_scoped(sid, k, sorted(v)) for k, v in misses.items() if v and k not in ruled]
+        notes += [f"dominated step {sid}: {len(v)} {k} the entry's {'objects' if e.get('objects') else 'index'}"
+                  " flag already selects on" for k, v in misses.items() if v and k in ruled]
         gone = {"files": [f for f in have if f not in set(m["files"]) and not (
                     f.endswith("/**") and any(x.startswith(f[:-2]) for x in m["files"]))],
                 "dirs": sorted(dirs - set(m["dirs"]))}
@@ -1364,12 +1380,38 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         r8 = drift(full_table, many, st2)[0]
         ck("drift: nine misses name eight and count the ninth, eight name all eight",
            len(r9) == 1 and r9[0].endswith("(+1 more)") and len(r8) == 1 and "more)" not in r8[0])
+        # Step a read the index, so its probes and dirs are dominated (below):
+        # the probe and directory rules are graded on an entry without it.
+        noix = json.loads(json.dumps(full_table))
+        noix["steps"]["a"]["index"] = False
         pm = json.loads(json.dumps(measured))
+        pm["a"]["index"] = False
         pm["a"]["probes"] += ["tools/x/gone.json", "dev/governance/rules/new.md"]
         pm["a"]["dirs"] += ["docs"]
         ck("drift: a new probe and a new listed directory are refused; a probe under a listed dir is not",
-           drift(full_table, pm, st2)[0] == ["UNDER-SCOPED step a: probes misses ['tools/x/gone.json']",
-                                             "UNDER-SCOPED step a: dirs misses ['docs']"])
+           drift(noix, pm, st2)[0] == ["UNDER-SCOPED step a: probes misses ['tools/x/gone.json']",
+                                       "UNDER-SCOPED step a: dirs misses ['docs']"])
+        pm["a"]["index"] = True
+        ck("drift: under an index flag a new probe and directory are notes, a new file is still refused",
+           drift(full_table, {**pm, "a": {**pm["a"], "files": pm["a"]["files"] + ["tools/x/n.py"]}}, st2)
+           == (["UNDER-SCOPED step a: files misses ['tools/x/n.py']"],
+               ["dominated step a: 1 probes the entry's index flag already selects on",
+                "dominated step a: 1 dirs the entry's index flag already selects on"]))
+        ob = json.loads(json.dumps(full_table))
+        ob["steps"]["b"]["objects"] = True
+        om2 = {**measured, "b": entry(st2[4], files=["tools/x/n.py"], probes=["tools/x/q.json"],
+                                      dirs=["docs"], objects=True)}
+        ck("drift: under an objects flag every list miss is a note; the same misses without it are refused",
+           drift(ob, om2, st2)[0] == []
+           and len(drift(full_table, {**om2, "b": {**om2["b"], "objects": False}}, st2)[0]) == 3)
+        # Without the reads `select` picks the same steps or, where an added
+        # tools/ path is no longer a known read, every step: never fewer.
+        ck("dominated: the reads it excuses never narrow a selection",
+           all(set(select([(c, p)], ob, st2)["ids"]) >= set(select(
+               [(c, p)], {"steps": {**ob["steps"], "b": {**ob["steps"]["b"], **{
+                   k: om2["b"][k] for k in dominated(ob["steps"]["b"])}}}}, st2)["ids"]) >= {"b"}
+               for c in "ADM" for p in ("tools/x/n.py", "tools/x/q.json", "docs/z.md", "else/y"))
+           and dominated({"index": True}) == {"probes", "dirs"} and dominated({}) == frozenset())
         od = json.loads(json.dumps(full_table))
         od["steps"]["a"]["dirs"] += ["docs"]
         od["steps"]["a"]["files"] += ["ab/**"]
@@ -1394,6 +1436,7 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         # over the live measurement must refuse the same lines (the 33 against
         # 34 gap of #3557's review).
         dm = json.loads(json.dumps(measured))
+        dm["a"]["index"] = False
         dm["a"]["dirs"] += ["docs"]
         dm["a"]["probes"] += ["docs/new.md"]
         compacted = json.loads(json.dumps(dm))
@@ -1401,7 +1444,7 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("drift: a probe under a directory the run listed is refused once, as the dirs miss, "
            "live and compacted alike (null control: the compaction dropped it)",
            "docs/new.md" not in compacted["a"]["probes"]
-           and drift(full_table, dm, st2)[0] == drift(full_table, compacted, st2)[0]
+           and drift(noix, dm, st2)[0] == drift(noix, compacted, st2)[0]
            == ["UNDER-SCOPED step a: dirs misses ['docs']"])
         # `check --write`'s table is the union: a planted committed read this
         # run did not measure survives, and the run's own reads are added.
