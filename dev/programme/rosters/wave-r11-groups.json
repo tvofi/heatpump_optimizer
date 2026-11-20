@@ -4765,8 +4765,7 @@
    "severity": "low",
    "size": "S",
    "issues": [
-    3746,
-    3789
+    3746
    ],
    "fixes": [],
    "findings": [
@@ -4923,9 +4922,7 @@
    "class": "production",
    "severity": "critical",
    "size": "L",
-   "issues": [
-    3713
-   ],
+   "issues": [],
    "fixes": [],
    "findings": [
     "D2-s1-01",
@@ -5093,7 +5090,8 @@
     3748,
     3757,
     3762,
-    3774
+    3774,
+    3789
    ],
    "fixes": [],
    "findings": [
@@ -5152,7 +5150,9 @@
     "docs/configuration.md"
    ],
    "brief": "Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and the measured outdoor value joining the forecast series. The end rule is the kernel's step owner, hence the edge from R11-SEAM-kernel-step. 7 findings (0 merged in), size M; class tags N-dead-input, N-no-expiry, N-staleness, P1, P2. Plan: it also carries the reader arm of D7-s1-05 (ADR-001) and the reader's clock of ADR-002 part 2, which leaves inputs.py with no Home Assistant import, and D1-s3-02, a guard finding of this seam whose one edit is in coordinator.py. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "Issue 3789 (class N-leaf-imports-solver, finding D7-s1-06) re-homed from R11-SEAM-kernel-layering by the orchestrator, 2026-11-20: kernel-layering merged ADR-002 parts 1 and 3 and its brief names this group the carrier of the reader's clock, ADR-002 part 2. Measured at origin/main 698eeeb2ab with the finding's harness, `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m7_layer_edges.py`: 6 CARRIER lines (13 at the finding's baseline), with TARGET inputs carrying 4 violation edges, quiet_windows 2, issues 1 and store 1. Re-measure at your own merge base; the issue closes when the lines left are only the modules ADR-002 keeps (setpoint_check and snapshots), each named in the body. The issue body's per-module sweep probe does not exist at any ref of the repository, so the finding's harness above is the instrument."
+   ],
    "source": "audit",
    "resume": {
     "stage": "not-started",
@@ -5257,8 +5257,7 @@
    "issues": [
     3744,
     3747,
-    3751,
-    3786
+    3751
    ],
    "fixes": [],
    "findings": [
