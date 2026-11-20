@@ -1,0 +1,48 @@
+{
+ "id": "D3-s1-02",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "No suite check pins the k <= 0 guard of tariff._smooth_topk_sum; the scalar and batch top-k disagree at k = 0 unseen",
+ "severity": "low",
+ "claim": "Mutating tariff.py:744 `if x.size == 0 or k <= 0:` to `k < 0` (R10 C2 M31) survives the full gate: no check fails beyond the null control, although _smooth_topk_sum(x, 0) then returns 1.473806 instead of 0.0, while _smooth_topk_sum_batch still returns 0.0.",
+ "mechanism": "The guard is reached only by a direct call: both production callers clamp k with max(1, min(int(bill.peaks_averaged), ...)) (tariff.py L982, L1204) before the call, so no gate script ever drives k = 0. The scalar/batch parity checks in the suite run at k >= 1 only. Behaviour in production is unchanged today; the contract stated in the function body (0 for k <= 0, matching the batch twin) is unpinned, so a caller dropping the clamp would go unnoticed.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key d931ab195b940b0c",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "value": 0,
+  "unit": "gate scripts failing more checks under the mutant than under the null control (killed_by count)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "local Apple M1, 8 cores, 8 GB, macOS (Darwin), venv-ci CPython 3.14.7, numpy 2.5.4, scipy 1.18.1, Accelerate BLAS",
+  "cpu_or_wall": "count",
+  "contention_note": "Count is contention-immune. The gate's wall time was 6820.6 s at load1 8.08..246.46, on a shared host with other seats running (provisional). The null control's red scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py', 'python3 tests/optimality.py', 'python3 tests/stress.py'] and their failed-check counts {'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 2, 'python3 tests/optimality.py': 1, 'python3 tests/stress.py': 2, 'python3 tests/harness_headers.py': 4} are host artefacts; the mutant's profile was identical: {'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 2, 'python3 tests/optimality.py': 1, 'python3 tests/stress.py': 2, 'python3 tests/harness_headers.py': 4}.",
+  "tolerance": "exact",
+  "load1": 246.46,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:_smooth_topk_sum",
+ "perturbation": {
+  "change": "d931_probe.py --mutant: the same one-line edit applied in memory. scalar_k0 moves 0.000000 -> 1.473806 and mismatch 0 -> 1. Adding a check that pins _smooth_topk_sum(x, 0) == 0.0 moves the gate's killed_by count 0 -> 1.",
+  "expected_direction": "up",
+  "observed_value": 1.473806
+ },
+ "metric_definition": "killed_by count of the full gate on the mutant: scripts failing more checks than the null control; 0 = no check reads the line",
+ "phenomenon_property": "Every early-return guard of a tariff reduction (top-k, smooth top-k, batch twin) is exercised by at least one check at its boundary value",
+ "seam_rule": "grep -n 'k <= 0\\|m == 0 or k' custom_components/heatpump_optimizer/tariff.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null",
+  "value": "gate_rc=1, red 5 scripts (host artefacts), identical to the mutant's",
+  "note": "batch_k0 is the probe's null arm: 0.0 under both arms"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/d931_probe.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/d931_probe.py --mutant",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key d931ab195b940b0c"
+ ],
+ "proposed_fix_scope": "tests only: a features.py check that _smooth_topk_sum(x, 0) and _smooth_topk_sum_batch(x[None], 0) both return 0.0",
+ "files": [
+  "custom_components/heatpump_optimizer/tariff.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}
