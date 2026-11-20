@@ -1,0 +1,14 @@
+{
+ "class": "N-unbounded-retention",
+ "instances": 2,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/retention/enumerate.py [--unbounded]  (static, Python + card JS: 74 grown containers, 43 with a named bound, 31 with none in scope)  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/retention/probe_price_days.py [--perturb|--null]  +  node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  (runtime)",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/price_model.py", "symbol": "PriceShapeLearner.days_seen", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/retention/probe_price_days.py  # 800 keys at day 400 (window holds 180), slope 2.00 keys/day; --perturb and --null 0.00", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/price_model.py", "symbol": "PriceShapeLearner.quarter_days_seen", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/retention/probe_price_days.py  # counted with days_seen: 1 key/day each, payload trims to 90 but memory never does", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js", "symbol": "HistorySource.log", "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  # log_rows_slope=476.0 rows/day", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js", "symbol": "HistorySource.actionLog", "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  # action_rows_slope=152.0 rows/day", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js", "symbol": "HistorySource.seen", "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  # seen_keys_slope=628.0 keys/day", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js", "symbol": "HistorySource.covered", "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  # covered_chunks=60 after 30 days (48 h span = 4-5)", "beyond_finding": false}
+ ]
+}
