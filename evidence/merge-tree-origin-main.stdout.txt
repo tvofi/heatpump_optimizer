@@ -1,0 +1,10 @@
+origin/main 053c33bcc68292b4331986a3c2b538e89fe17e42
+74aed52d7b01ae82ccf2c1ada2da0fb0cfbb58f5
+
+Auto-merging custom_components/heatpump_optimizer/optimizer.py
+Auto-merging tests/closures.json
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/golden/claimed_drift.txt
+CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt
+Auto-merging tests/structure_budgets.json

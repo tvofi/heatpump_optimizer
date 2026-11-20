@@ -1,5 +1,5 @@
 
-=== features block ===
+=== Feature modules ===
 
 -- R10-DUTY-SWITCH-PLANNER-PRICE: the planner prices a duty switch that stops the compressor (pull request 3420, Bankaifan)
   ok   a hot-water step into a heating step at equal draw costs the start term nothing at the boundary and weighs p x draw / p_max as a switch
@@ -38,7 +38,7 @@
   ok   null control: a stopping switch with no measured off time on an install that prices no cycle moves nothing either
   ok   and the nulls have something to detect: with the contributor's pair the plan moves on every install class
   ok   acceptance: priced on the contributor's table the duty-cycle plan carries no higher a switch weight in starts and a lower one at the combined draw, and the unpriced plan of both installs carries a switch to price
-  FAIL acceptance: on both installs every candidate stage of the priced solve returns a plan that scores no higher under the priced objective of the scope it ships in than the projection of the relaxed plan it was handed, and strictly lower in at least one call; the plan that publishes is one a stage returned, at that score  [{'duty-cycle': [(31.590201582066815, 31.7867281309058, True), (31.73892512051311, 31.465715966805192, False)], 'modulating clamped': [(28.163893056188247, 28.40746225339322, False), (27.82550847169485, 27.825773350385855, True)]} {'duty-cycle': 31.590201582066815, 'modulating clamped': 27.82550847169485}]
+  ok   acceptance: on both installs every candidate stage of the priced solve returns a plan that scores no higher under the priced objective of the scope it ships in than the projection of the relaxed plan it was handed, and strictly lower in at least one call; the plan that publishes is one a stage returned, at that score
   ok   at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
   ok   the published objective of a priced plan is its closure's value on the arrays that ship, with the vector the solve scored with
   ok   on the duty-cycle install the solved heating in every charged step is at most avail x p_max - dhw, and a charged step exists
@@ -99,12 +99,7 @@
   ok   a latched direction reads its own p and median off time in its own slot, hot water to heating first, and no off time while every stop's was censored
   ok   null controls from learner state: an empty learner, one under its on-threshold and an install whose every switch was kept each read a plan identical to today's on all three install classes
   ok   and that arm has something to detect: the latched learner's read returns the priced plan on every install class
-  FAIL a solve that prices a stop commits both descents and ships the lower: on the duty-cycle days at 2 and -1 degC every commit call scores one committed plan per descent and ships the one that scores lowest  [[[24.471349, 24.46469], [24.311061, 24.311061], [29.70709, 29.755027], [29.671778, 29.66495]]]
+  FAIL a solve that prices a stop commits both descents and ships the lower: on the duty-cycle days at 2 and -1 degC every commit call scores one committed plan per descent and ships the one that scores lowest  [[[24.471349, 24.46469], [24.311061, 24.311061], [29.70709, 29.755027], [29.123383, 29.123377]]]
   ok   and the choice is live: on some commit call the unpriced descent's committed plan scores below the operand's, so shipping the first descent's plan would ship the higher
-  FAIL the relaxed descent still leaves a priced switch: with the switch operand taken out of the relaxed closure the cold day's plan scores higher on the true objective  [{'both': 29.67177784217107, 'operand': 29.123382522499526, 'unpriced': 29.66494958414801, 'no operand': 29.66494958414801}]
-  ok   null control: with no pair, an empty learner or no priced cycle every space solve descends once, and the empty learner's plan is the plan of a config that never heard of the pair; with the contributor's pair it descends twice
-  ok   a space solve that descends twice hands both multi-starts the same iteration cap
-  ok   the plan a space solve adopts publishes with the vector of the scope it was scored in
-  ok   beside a hot-water charge, at a zero price on an install that prices no start, every candidate of the stage is the realizable relaxed plan itself; at a flat price the same plans get another
 
-4 of 104 FEATURES BLOCK FAILED
+2 of 99 REV3805 DSP FAILED

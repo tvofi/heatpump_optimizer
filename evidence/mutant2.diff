@@ -1,0 +1,19 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index e6ba64230f..45c8c7c8a4 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -702,12 +702,12 @@ def _commit_runs(
+     _, hi, _, cycled = _stage_box(opt, scope[0], dhw)
+     first = _projection(opt, relaxed[0], dhw, hi, cycled)
+     try:
+-        return min((
++        return [
+             _best_runs(
+                 opt, h, scope, space, dhw,
+                 first if space is relaxed[0] else _projection(opt, space, dhw, hi, cycled), maxiter, rescope)
+             for space in relaxed
+-        ), key=lambda c: c[0])[1:]
++        ][0][1:]
+     except Exception as err:  # noqa: BLE001 - the stage is optional: the projection ships
+         _LOGGER.debug("Committing runs failed, the projection ships: %s", err)
+         return first, scope

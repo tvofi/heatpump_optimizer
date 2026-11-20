@@ -1,5 +1,5 @@
 
-=== features block ===
+=== Feature modules ===
 
 -- R10-DUTY-SWITCH-PLANNER-PRICE: the planner prices a duty switch that stops the compressor (pull request 3420, Bankaifan)
   ok   a hot-water step into a heating step at equal draw costs the start term nothing at the boundary and weighs p x draw / p_max as a switch
@@ -48,7 +48,7 @@
   ok   fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max
   ok   fixed-speed: the published start count is runs.edge_count on the shipped total, unchanged by the pairs on the same arrays
   ok   fixed-speed null control: with a zero pair the simulation is fed the shipped schedule and no vector exists
-  ok   a priced plan with a priced switch tries exactly one more hot-water plan, the first build's own arguments plus the ban, and no unpriced solve builds one
+  FAIL a priced plan with a priced switch tries exactly one more hot-water plan, the first build's own arguments plus the ban, and no unpriced solve builds one  [[('duty-cycle', 1, 2, 2), ('modulating clamped', 1, 3, 2), ('fixed-speed', 1, 2, 2)]]
   ok   one leg rule in the leaf: a hot-water-to-heating pair alone serves space first (leg_rule), so its ban is only the step before heating, a two-leg step's inside switch is heating to hot water and weighs nothing, and the step is not charged; control, the default rule bans the heating step too, weighs and charges it
   ok   the ban is the steps heating runs in or runs in next, for hot water to heating, and mirrors onto the previous step for the other direction
   ok   the ban holds: the candidate's schedule is zero on every banned step, on builds whose min-run stage rewrote the plan
@@ -99,12 +99,7 @@
   ok   a latched direction reads its own p and median off time in its own slot, hot water to heating first, and no off time while every stop's was censored
   ok   null controls from learner state: an empty learner, one under its on-threshold and an install whose every switch was kept each read a plan identical to today's on all three install classes
   ok   and that arm has something to detect: the latched learner's read returns the priced plan on every install class
-  ok   a solve that prices a stop commits both descents and ships the lower: on the duty-cycle days at 2 and -1 degC every commit call scores one committed plan per descent and ships the one that scores lowest
-  ok   and the choice is live: on some commit call the unpriced descent's committed plan scores below the operand's, so shipping the first descent's plan would ship the higher
-  ok   the relaxed descent still leaves a priced switch: with the switch operand taken out of the relaxed closure the cold day's plan scores higher on the true objective
-  ok   null control: with no pair, an empty learner or no priced cycle every space solve descends once, and the empty learner's plan is the plan of a config that never heard of the pair; with the contributor's pair it descends twice
-  ok   a space solve that descends twice hands both multi-starts the same iteration cap
-  ok   the plan a space solve adopts publishes with the vector of the scope it was scored in
-  ok   beside a hot-water charge, at a zero price on an install that prices no start, every candidate of the stage is the realizable relaxed plan itself; at a flat price the same plans get another
+  FAIL a solve that prices a stop commits both descents and ships the lower: on the duty-cycle days at 2 and -1 degC every commit call scores one committed plan per descent and ships the one that scores lowest  [[[24.471349], [24.311061], [29.70709], [29.123383]]]
+  FAIL and the choice is live: on some commit call the unpriced descent's committed plan scores below the operand's, so shipping the first descent's plan would ship the higher  [[[24.471349], [24.311061], [29.70709], [29.123383]]]
 
-ALL 104 FEATURES BLOCK PASSED
+3 of 99 REV3805 DSP FAILED
