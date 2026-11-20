@@ -42811,7 +42811,7 @@ _r11_aliases_found = _r11_logger_aliases(_r10_sources, _r11_files)
 # a shipped file that is not a module is read as text, a pickle by its opcodes,
 # compiled code by the names marshal writes raw; a binary one with no logger
 # name in it is not refused
-_r11_files_plant = {"strings.json": b'{"x": "_LOGGER.error(1)"}', "icon.png": b"\x89PNG\r\n",
+_r11_files_plant = {"strings.json": b'{"x": "_LOGGER.error(1)"}', "pixel.png": b"\x89PNG\r\n",
                     "p.pickle": b"\x80\x04\x95\x0b\x00\x8c\x07logging\x94.",
                     "x.pyc": __import__("marshal").dumps(compile("_LOGGER.error(1)", "x", "exec"))}
 _r11_files_planted = {m for m, _l, _b in _r11_logger_aliases({}, _r11_files_plant)}
@@ -43022,7 +43022,7 @@ R.check(
                                 "CRITICAL", "FATAL")}
     # precondition: the package is flat, so the glob read every module
     and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources)
-    and _r11_files_planted == set(_r11_files_plant) - {"icon.png"}
+    and _r11_files_planted == set(_r11_files_plant) - {"pixel.png"}
     # a tracked file is read whatever its suffix or folder, a module or an
     # untracked cache is not
     and _r11_shipped_planted() == {"a.json", "b.pyc", "__pycache__/c.cpython-314.pyc"}
