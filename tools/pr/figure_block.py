@@ -96,6 +96,30 @@ def render_text(name: str, attrs: dict, output: str) -> list[str]:
     return [f"<!-- figure-block: {name}{a} -->", FENCE, *output.rstrip("\n").split("\n"), FENCE_END, CLOSE]
 
 
+def overlay_program(wt: str, base: str, head: str, files: list[str], exclude: str) -> dict:
+    """Lay the base's copy of ``files`` over the head's worktree ``wt``; the environment the run needs.
+
+    The overlay is the program the run executes, never the head's change, and an
+    instrument that asks git what the branch changed (`tests/closure.py`'s
+    `changed_files`: tracked changes against HEAD, then untracked files) must not
+    be handed it: a branch forked before main changed `tests/closure.py` read as
+    having edited a gate file and rendered `MODE: FULL`. The index goes back to
+    the head's; a file the head tracks is marked skip-worktree, and one only the
+    base has is named in an excludes file the returned environment points git at.
+    """
+    if not files:
+        return {}
+    for f in files:
+        _git(wt, "checkout", base, "--", f)  # the base's program, not the head's
+    _git(wt, "reset", "-q", head, "--", *files)
+    tracked = [f for f in _git(wt, "ls-files", "--", *files).split("\n") if f]
+    if tracked:
+        _git(wt, "update-index", "--skip-worktree", "--", *tracked)
+    with open(exclude, "w", encoding="utf-8") as fh:
+        fh.write("".join(f"/{f}\n" for f in files if f not in tracked))
+    return {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.excludesFile", "GIT_CONFIG_VALUE_0": exclude}
+
+
 def run_instrument(root: str, base: str, head: str, mb: str, name: str, reg: dict) -> str:
     """Run one registered instrument over the head's tree with the base's program."""
     if name not in reg:
@@ -108,11 +132,10 @@ def run_instrument(root: str, base: str, head: str, mb: str, name: str, reg: dic
     os.mkdir(workdir)
     try:
         _git(root, "worktree", "add", "--detach", "-q", wt, head)
-        for f in ent.get("files", []):
-            _git(wt, "checkout", base, "--", f)  # the base's program, not the head's
+        env = {k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "LANG", "TMPDIR", "VIRTUAL_ENV")}
+        env.update(overlay_program(wt, base, head, ent.get("files", []), os.path.join(tmp, "overlay-exclude")))
         sub = dict(mb=mb, head=head, base=base, workdir=workdir)
         argv = [a.format(**sub) for a in ent["argv"]]
-        env = {k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "LANG", "TMPDIR", "VIRTUAL_ENV")}
         env["PYTHONPATH"] = "tests/hastub"
         p = subprocess.run(argv, cwd=wt, env=env, capture_output=True, text=True, timeout=ent.get("timeout_s", 300), check=False)
         if p.returncode not in ent.get("ok_rc", [0]):
@@ -260,6 +283,36 @@ def _self_test() -> int:
         check("an unclosed block is refused", refused(lambda: parse("<!-- figure-block: mb -->\nx\n")))
         check("a malformed marker is refused", refused(lambda: parse("<!-- figure-block: Mb -->\n")))
         check("a body with no block is untouched (null control)", verify_text("## Figures\nnone\n", tmp, "main", "HEAD") == [])
+        # The overlay is the program, never the head's diff: what `tests/closure.py`'s
+        # `changed_files` adds to a branch's diff (tracked changes against HEAD,
+        # untracked files) is empty inside the run, for a program main changed
+        # after the branch forked and for one main added.
+        g("checkout", "-q", "main")
+        seen = "git diff --no-renames --name-only HEAD; git ls-files --others --exclude-standard; echo ran:$(cat ver)\n"
+        reg["instruments"].pop("evil")
+        reg["instruments"]["seen"] = {"argv": ["sh", "prog.sh"], "files": ["prog.sh", "ver", "late"]}
+        open(os.path.join(tmp, REGISTRY), "w").write(json.dumps(reg))
+        open(os.path.join(tmp, "prog.sh"), "w").write(seen)
+        open(os.path.join(tmp, "ver"), "w").write("1")
+        g("add", "-A"); g("commit", "-qm", "main registers a program")
+        g("checkout", "-qb", "old")
+        open(os.path.join(tmp, "f"), "w").write("3")
+        g("commit", "-qam", "a branch that touches no program")
+        g("checkout", "-q", "main")
+        open(os.path.join(tmp, "ver"), "w").write("2")
+        open(os.path.join(tmp, "late"), "w").write("added after the fork")
+        g("add", "-A"); g("commit", "-qm", "main changes the program and adds a file to it")
+        g("checkout", "-q", "old")
+        old_sha, old_mb = context(tmp, "main", "HEAD")
+        check("a program main changed or added after the fork runs as the base's and is not the head's diff",
+              run_instrument(tmp, "main", old_sha, old_mb, "seen", load_registry(tmp, "main")) == "ran:2")
+        open(os.path.join(tmp, "ver"), "w").write("mine")
+        g("commit", "-qam", "the branch edits the program itself")
+        own_sha, own_mb = context(tmp, "main", "HEAD")
+        check("null: a file the instrument's run leaves changed in the head's tree is still listed",
+              run_instrument(tmp, "main", own_sha, own_mb, "seen",
+                             {**load_registry(tmp, "main"), "seen": {"argv": ["sh", "-e", "-c", "echo x > f; " + seen.strip()], "files": []}})
+              == "f\nran:mine")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     failed = results.count(False)
