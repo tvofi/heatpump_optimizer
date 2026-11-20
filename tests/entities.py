@@ -42372,9 +42372,12 @@ _r10_pkg = Path("custom_components/heatpump_optimizer")
 _r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
 def _r11_shipped_files(pkg):
     """The package's shipped files that are not modules, by path: text a
-    module can read, import or hand to an evaluator."""
-    return {p.relative_to(pkg).as_posix(): p.read_bytes() for p in sorted(pkg.rglob("*"))
-            if p.is_file() and p.suffix not in (".py", ".pyc") and "__pycache__" not in p.parts}
+    module can read, import or hand to an evaluator. Shipped is tracked, so a
+    local cache is not read and a forced-in ``.pyc`` is."""
+    tracked = subprocess.run(["git", "ls-files", "-z", "--", "."], cwd=pkg, check=True,
+                             capture_output=True, text=True).stdout.split("\0")
+    return {p: (pkg / p).read_bytes() for p in sorted(tracked)
+            if p and not p.endswith(".py") and (pkg / p).is_file()}
 
 
 _r11_files = _r11_shipped_files(_r10_pkg)
@@ -42537,8 +42540,8 @@ def _r11_logger_aliases(sources, files=None):
     a logger (``LOGGER``, ``logger``, ``logging``, ``warnings`` inside it) in
     any other place, a keyword, a parameter, a definition, an import alias or
     module (``dict(_LOGGER=0)`` turns a name into text); and a str or bytes
-    constant, a docstring included, or a file of the package that is not a
-    module, that names one. The constant is read as written and through each
+    constant, a docstring included, or a tracked file of the package that is
+    not a module (a ``.pyc`` included), that names one. The constant is read as written and through each
     evaluator's own front end: ``ast.parse`` (a coding cookie, escapes,
     adjacent literals, NFKC identifiers) and
     ``pickletools.genops`` (a pickle's literal opcodes), each result read
