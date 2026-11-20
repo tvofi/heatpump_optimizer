@@ -6940,6 +6940,59 @@
     "branch": null,
     "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner): thermal_model.py is the slab model's other half; the series term is a law edit in the two-zone path, which no not-started group's scope touches"
    }
+  },
+  {
+   "group": "R11-SEAM-wallclock-dst",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    3786
+   ],
+   "fixes": [
+    3786
+   ],
+   "findings": [
+    "D15-s2-04"
+   ],
+   "classes": [
+    "P7"
+   ],
+   "seam": "wall-clock arithmetic across a DST transition",
+   "hot_files": [
+    "dhw_schedule.py",
+    "thermal_model.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R11-SEAM-kernel-step"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "tests/features.py"
+   ],
+   "source": "audit",
+   "brief": "Class P7 residual (issue 3786), re-homed from R11-SEAM-money, which closed the class's verified finding D2-s3-07: ledger.month_hours counts the zone's real hours (743 for the spring-forward March) at origin/main 698eeeb2ab. Open: the sweep instances beyond the findings, dhw_schedule.hours_until_next_window and ThermalModel.simulate_trajectory and simulate_trajectory_batch, each reported by the issue body as exiting 1 on the spring and autumn transition days and 0 on a plain day, plus D15-s2-04 (unreproduced). The sweep probe the issue body names does not exist at any ref of the repository: the fixer's first step is a probe per instance that fails on the transition days and passes on a plain day, measured at its merge base, and an instance that does not reproduce is pinned and recorded, not edited. Each fix reads the one naive-instant zone definition R11-SEAM-kernel-step puts in const, hence the edge. Size S; class tag P7.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner, R11-SEAM-two-zone-slab): thermal_model.py: the edit is the trajectory's wall-clock step arithmetic only, which no not-started group's scope touches"
+   }
   }
  ]
 }
