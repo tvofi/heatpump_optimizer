@@ -169,7 +169,7 @@ gantt
 | R11-SEAM-docs | DOCS | 4 | not-started | #3746, #3778, #3792 | opus/opus | - | Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. |  |
 | R11-SEAM-governance-text | IN | 1 | done | #3746, #3747, #3777 | opus/opus | yes: policy | Policy and programme prose with a false or unresolvable sentence. |  |
 | R11-SEAM-comments-production | CORE | 3 | in-progress | #3746, #3778 | opus/opus | - | Criterion C5 over production comments (921 units in two seats' cells, 155 of them in the card's script) and one false docstring. |  |
-| R11-SEAM-comments-tests | CORE | 1 | in-progress | #3746, #3777, #3778 | opus/opus | - | Text in the test suite: criterion C5 over tests/ with the dead names and false count D5-s7-01 lists, and the paths a test comment cites that do not resolve (... |  |
+| R11-SEAM-comments-tests | CORE | 1 | carries-open | #3746, #3777, #3778 | opus/opus | - | Text in the test suite: criterion C5 over tests/ with the dead names and false count D5-s7-01 lists, and the paths a test comment cites that do not resolve (... |  |
 | R11-ARCH-cycle-surface | CORE | 1 | not-started | - | opus/opus | - | Refactor group with no finding (ADR-005, its approved design). |  |
 | R11-ARCH-fabric-learner | CORE | 2 | not-started | - | opus/opus | - | Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. |  |
 | R11-READS-RESIDUE | IN | 1 | done | - | opus/opus | - | Round 11. |  |
