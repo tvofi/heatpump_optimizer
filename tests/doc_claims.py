@@ -5433,6 +5433,14 @@ def check_ha_free_imports():
     )
 
 
+def check_comment_length() -> None:
+    """The comment ratchet (tests/comment_ratchet.py): no test comment gains a sentence over 40 words."""
+    import comment_ratchet
+
+    for name, passed, detail in comment_ratchet.gate("origin/main"):
+        R.check(name, passed, detail)
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -5483,6 +5491,7 @@ def main() -> int:
     check_stateless()
     check_combi_dhw_split()
     check_ha_free_imports()
+    check_comment_length()
     return R.close("checks")
 
 
