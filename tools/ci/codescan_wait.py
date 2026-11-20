@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import io
 import os
 import sys
@@ -58,8 +59,22 @@ def _get(get, path, what):
     return doc
 
 
-def _jobs(get, repo, run_id):
-    return ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)
+def _jobs(get, repo, run):
+    """The latest attempt's jobs, a carried-over codeql job's step rows read from the attempt that ran it.
+    A re-run attempt lists each job it carries over with `steps: []` (run 44500968744, attempts 3-11), so
+    the row is looked up by (name, started_at) in the earlier attempts; a job this attempt ran has no such
+    copy and stays step-less, so `settled` keeps polling it."""
+    jobs = ghapi.paginate(f"repos/{repo}/actions/runs/{run['id']}/jobs", {"filter": "latest"}, get=get)
+    bare = {(j["name"], j.get("started_at")): j for j in jobs
+            if j["name"] in CODEQL and not j.get("steps")}
+    for a in range(1, int(run.get("run_attempt") or 1)):
+        if not bare:
+            break
+        for e in ghapi.paginate(f"repos/{repo}/actions/runs/{run['id']}/attempts/{a}/jobs", get=get):
+            j = bare.pop((e["name"], e.get("started_at")), None)
+            if j is not None:                      # the earliest attempt listing a job is the one that ran it
+                j["steps"] = e.get("steps")
+    return jobs
 
 
 def owns_codeql(run, pr):
@@ -72,7 +87,7 @@ def source(get, repo, run_id, pr, base, stop, sleep=time.sleep, now=time.monoton
     me = _get(get, f"repos/{repo}/actions/runs/{run_id}", "this run")
     if owns_codeql(me, pr):
         while True:                                # a listing under load lags: poll it settled, as the other path does
-            jobs = _jobs(get, repo, me["id"])
+            jobs = _jobs(get, repo, me)
             if settled(jobs):
                 return me, jobs
             if now() + POLL_S > stop:
@@ -86,7 +101,7 @@ def source(get, repo, run_id, pr, base, stop, sleep=time.sleep, now=time.monoton
             t = parse_title(r.get("display_title") or "")
             if r["id"] == me["id"] or r["status"] == "action_required" or t is None or t[2] != base or not owns_codeql(r, pr):
                 continue
-            jobs = _jobs(get, repo, r["id"])
+            jobs = _jobs(get, repo, r)
             done = {j["name"]: j["status"] for j in jobs}
             if all(done.get(n) == "completed" for n in CODEQL):
                 return r, jobs
@@ -95,17 +110,9 @@ def source(get, repo, run_id, pr, base, stop, sleep=time.sleep, now=time.monoton
         sleep(POLL_S)
 
 
-def carried_over(j):
-    """A job a partial re-run lists from the earlier attempt: completed `success` and no `steps` key at all.
-    Its analysis ran and uploaded then, and the listing no longer carries the step row; an empty or
-    lagging `steps` list is not this (the row is there, or the leg is mid-write)."""
-    return j.get("status") == "completed" and j.get("conclusion") == "success" and "steps" not in j
-
-
 def analysis(j):
-    """The conclusion of a job's analysis step: its row's, `success` for a carried-over job, else None."""
-    if carried_over(j):
-        return "success"
+    """The conclusion of a job's analysis step row, else None. A step-less job is never read as uploaded:
+    its leg may have stood down, and a stand-down uploads main's analysis as a stand-in."""
     return next((s.get("conclusion") for s in j.get("steps") or [] if s["name"] == STEP), None)
 
 
@@ -192,16 +199,20 @@ def self_test() -> int:
     def jobs(skip=()):
         return [{"name": n, "status": "completed", "steps": steps(n.split("(")[1][:-1] not in skip)} for n in CODEQL]
 
-    def world(analyses, sarifs, alerts, runs=None, run_jobs=None, at=A.R, **kw):
+    def world(analyses, sarifs, alerts, runs=None, run_jobs=None, at=A.R, attempts=None, **kw):
         inner = A.world(analyses, sarifs, alerts, **kw)
         runs = {100: code, 200: edit, **(runs or {})}
         run_jobs = run_jobs or {100: jobs()}
 
         def get(path, params=None, headers=None):
             tail = path.removeprefix(f"repos/{repo}/")
+            if "/attempts/" in tail:
+                attempt_reads.append(tail)
+                key = (int(tail.split("/")[2]), int(tail.split("/")[4]))
+                return (200, {}, {"jobs": copy.deepcopy(attempts[key])}) if key in (attempts or {}) else (404, {}, None)
             if tail.startswith("actions/runs/") and tail.endswith("/jobs"):
                 rid = int(tail.split("/")[2])
-                return (200, {}, {"jobs": run_jobs[rid]}) if rid in run_jobs else (404, {}, None)
+                return (200, {}, {"jobs": copy.deepcopy(run_jobs[rid])}) if rid in run_jobs else (404, {}, None)
             if tail.startswith("actions/runs/"):
                 r = runs.get(int(tail.rsplit("/", 1)[1]))
                 return (200, {}, r) if r else (404, {}, None)
@@ -215,6 +226,7 @@ def self_test() -> int:
         return get
 
     n = bad = 0
+    attempt_reads = []
 
     def check(label, good, detail=""):
         nonlocal n, bad
@@ -335,20 +347,50 @@ def self_test() -> int:
     reads.clear()
     check("20 null: a settled stand-down (step skipped) is not waited for",
           go(world(A.THREE[1:], A.EMPTY, [], run_jobs={100: jobs(skip=("python",))})) == [])
-    # 21-24: a partial re-run lists the carried-over jobs without `steps` (R10-GH-READ-RESIDUE, d678abfc)
-    bare = [{"name": nm, "status": "completed", "conclusion": "success"} for nm in CODEQL]
-    check("21 carried-over step-less success jobs are settled and all legs uploaded",
-          settled(bare) and legs_uploaded(bare) == legs_uploaded(jobs()) != [])
-    check("22 null: a step-less job that did not succeed is neither settled nor an uploaded leg",
-          not settled([dict(j, conclusion="failure") for j in bare]) and legs_uploaded([dict(j, conclusion="failure") for j in bare]) == [])
+    # 21-24: a re-run attempt lists its carried-over codeql jobs `steps: []`; the rows are in the attempt that
+    # ran them. Reduced from run 44500968744 (#3810): attempt 2 ran the legs, attempts 3-11 list them bare.
+    began = {"python": "2026-11-19T10:00:31Z", "javascript-typescript": "2026-11-19T10:01:18Z", "actions": "2026-11-19T10:01:04Z"}
+
+    def listed(rows, **kw):
+        return [dict({"name": nm, "status": "completed", "conclusion": "success", "started_at": began[nm[nm.index("(") + 1:-1]],
+                      "steps": rows(nm)}, **kw) for nm in CODEQL]
+
+    ran = lambda c: listed(lambda nm: [{"name": "Set up job", "conclusion": "success"}, {"name": STEP, "conclusion": c}])  # noqa: E731
+    rerun = dict(code, run_attempt=11)
+
+    def rerun_of(first, latest=None, run_attempt=11, ran_in=2):
+        latest = (latest or listed(lambda nm: [])) + [dict(name="prelude", status="completed", conclusion="success",
+                                                           started_at="2026-11-19T09:56:49Z", steps=[])]
+        return dict(runs={100: dict(rerun, run_attempt=run_attempt)}, run_jobs={100: latest},
+                    attempts={**{(100, a): [] for a in range(1, ran_in)}, (100, ran_in): first,
+                              **{(100, a): listed(lambda nm: []) for a in range(ran_in + 1, 12)}})
+
+    def bounded(get):
+        try:
+            return run(get, repo, 100, pr, "main", False, **nosleep, now=iter(range(0, 10_000, 100)).__next__)
+        except Fail as e:
+            return f"FAIL {e}"
+
+    attempt_reads.clear()
+    check("21 run 44500968744: carried-over `steps: []` jobs read attempt 2's rows; every leg stood down there, so"
+          " nothing is waited for, the stand-in's alert is not listed, and no attempt past 2 is read",
+          go(world(A.THREE, plant, live, **rerun_of(ran("skipped")))) == [] and len(attempt_reads) == 2, f" (read {attempt_reads})")
+    check("21b the same shape where the legs analysed, in the first, second or last earlier attempt: every leg uploaded, the plant listed",
+          all(go(world(A.THREE, plant, live, **rerun_of(ran("success"), ran_in=a))) == one for a in (1, 2, 10)))
+    nokey = [{k: v for k, v in j.items() if k != "steps"} for j in listed(lambda nm: [])]
+    check("21c a carried-over job listed with no `steps` key is read from its attempt alike",
+          go(world(A.THREE, plant, live, **rerun_of(ran("success"), latest=nokey))) == one)
+    check("22 null: a step-less completed job no earlier attempt carries (this attempt ran it) stays unsettled and FAILs at the bound",
+          all(str(bounded(world(A.THREE, plant, live, **w))).startswith("FAIL this run's codeql")
+              for w in (rerun_of(ran("success"), run_attempt=1),
+                        rerun_of(listed(lambda nm: ran("success")[0]["steps"], started_at="2026-11-20T21:04:00Z")))))
     check("23 null: a lagging step row (steps present, no conclusion) is still unsettled",
           not settled(lag()) and legs_uploaded(lag()) == [])
-    done_lag = lambda st: [{"name": nm, "status": "completed", "conclusion": "success", "steps": st} for nm in CODEQL]   # noqa: E731
-    check("23b null: a completed success job with a lagging or empty `steps` list is not carried over: unsettled, not uploaded",
-          all(not settled(done_lag(st)) and legs_uploaded(done_lag(st)) == []
-              for st in ([], [{"name": STEP, "conclusion": None}])))
-    check("24 null: a step-less job still in progress is unsettled",
-          not settled([dict(j, status="in_progress") for j in bare]))
+    check("23b null: a completed success job with an empty or no `steps` list, unread, is unsettled and not uploaded",
+          all(not settled(js) and legs_uploaded(js) == [] for js in (listed(lambda nm: []), nokey)))
+    check("24 null: a job still in progress is never given an earlier attempt's row: unsettled, FAILs at the bound",
+          str(bounded(world(A.THREE, plant, live, **rerun_of(ran("success"), latest=listed(lambda nm: [], status="in_progress"))))
+              ).startswith("FAIL this run's codeql"))
     print(f"codescan_wait self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
 
