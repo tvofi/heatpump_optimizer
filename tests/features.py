@@ -82411,10 +82411,11 @@ R.check(
 # A baseline that cannot be read never parks the write until a person acts:
 # the entity is written and arms a restore of nothing, kept while armed so the
 # optimizer's own write is never captured as the baseline; the next arm after
-# that restore drops it captures the entity's reading. Driven from "no
+# that restore drops it captures the entity's reading, not before it, when
+# the entity reads the optimizer's own write. Driven from "no
 # baseline" to the first write that lands, for the valve on a climate that is
 # off with no target and the frequency entity with no readable state.
-def _nb_drive(key, entity, first, second, entry_data):
+def _nb_drive(key, entity, first, written, second, entry_data):
     from heatpump_optimizer import off_restore as _nb_or
     hass = FakeHass({entity: first})
     coord = Coord(hass, _DfEntry(data={
@@ -82426,6 +82427,9 @@ def _nb_drive(key, entity, first, second, entry_data):
     cfg = coord._ctx._config
     armed_blind = [_df_aio.run(_nb_or.async_arm(hass, coord.entry, cfg, key)) for _ in range(3)]
     entry_blind = _df_aio.run(_nb_or.async_armed_entry(hass, coord.entry, key))
+    hass.states.set(entity, written)
+    armed_blind.append(_df_aio.run(_nb_or.async_arm(hass, coord.entry, cfg, key)))
+    entry_blind = (entry_blind, _df_aio.run(_nb_or.async_armed_entry(hass, coord.entry, key)))
     calls_before = len(hass.services.calls)
     restored = _df_aio.run(_nb_or.async_restore(hass, coord.entry, cfg, "mode_off"))
     restore_calls = len(hass.services.calls) - calls_before
@@ -82438,23 +82442,25 @@ def _nb_drive(key, entity, first, second, entry_data):
 _nb = {
     "valve, climate off with no target": _nb_drive(
         "mixing_valve_target", "climate.valve", FakeState("off"),
+        FakeState("heat", attributes={"temperature": 23.5}),
         FakeState("heat", attributes={"temperature": 20.0}),
         {"mixing_valve_mode": "smart_write", "mixing_valve_write_entity": "climate.valve"}),
     "frequency, no readable state": _nb_drive(
         "compressor_frequency", "number.hp_freq", FakeState("unavailable"),
-        FakeState("40", unit="Hz"),
+        FakeState("55", unit="Hz"), FakeState("40", unit="Hz"),
         {"compressor_freq_entity": "number.hp_freq"}),
 }
 _nb_want = {
     "valve, climate off with no target": (
-        [True, True, True], None, 0, 0, True, {"entity_id": "climate.valve", "value": 20.0}),
+        [True, True, True, True], (None, None), 0, 0, True, {"entity_id": "climate.valve", "value": 20.0}),
     "frequency, no readable state": (
-        [True, True, True], None, 0, 0, True, {"entity_id": "number.hp_freq", "value": 40.0}),
+        [True, True, True, True], (None, None), 0, 0, True, {"entity_id": "number.hp_freq", "value": 40.0}),
 }
 R.check(
     "an entity whose baseline is unreadable is still written and restores nothing; "
-    "the restore that drops it writes nothing, and the next arm captures the "
-    "reading (the valve on an off climate, the frequency with no state)",
+    "an arm after its own write lands keeps that, the restore that drops it writes "
+    "nothing, and the next arm captures the reading (the valve on an off climate, "
+    "the frequency with no state)",
     _nb == _nb_want,
     f"{_nb}",
 )
