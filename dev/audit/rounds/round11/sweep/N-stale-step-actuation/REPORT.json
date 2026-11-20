@@ -1,0 +1,32 @@
+{
+ "class": "N-stale-step-actuation",
+ "instances": 1,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-N-stale-step-actuation/enumerate.py (controls: --controls)",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._command_frequency (via _commanded_power -> _commanded_split -> _current_action)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s2/timing.py (stale_share_frequency=0.4480; null --interval 15 --phases 0 -> 0)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_publish_current_action -> async_publish_ecl110_command (ECL110 MQTT displace and heat-curve offset, from _apply_action)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s2/timing.py (stale_share_mqtt_displace=0.5732, curve_offset=0.4644)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "symbol": "LegionellaGuard.async_track_cycle (commanded from self._action(), the previous solve's cut)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s2/disinfect.py (on_in_window=0 of 30)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_peak_guard_transition (engage and release publish the cut action's displace_value, no step lookup)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-N-stale-step-actuation/probe_peak_guard.py (rc=1: published 4, step's own 6; --at 5 and --recut rc=0)",
+   "beyond_finding": true
+  }
+ ]
+}

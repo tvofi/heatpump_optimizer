@@ -3391,7 +3391,7 @@ async def _walk_flow_untouched():
         result = await flow.async_step_user(None)
         for _ in range(20):
             if result.get("type") == "create_entry":
-                return dict(result["data"])
+                return {**result["data"], **result.get("options", {})}
             if result.get("type") == "menu":
                 # An untouched menu is its first option — except the finish
                 # menu, whose first option is now the quick-setup shortcut:
@@ -3883,13 +3883,9 @@ def _p2_proxies(sources):
         return {c for x in ast.walk(node) if (c := _p2_conf(x))}
     out = {"two_zone_enabled": set(), "dhw_enabled": set(), "wood_furnace_on": set()}
     for n in ast.walk(ast.parse(sources["thermal_model.py"])):
-        if isinstance(n, ast.If):
-            txt = ast.unparse(n)
-            if "values['two_zone_enabled']" in txt and "CONF_TWO_ZONE_MODE" not in txt:
-                out["two_zone_enabled"] |= names(n)
-        if isinstance(n, ast.Assign) and "two_zone_mode" in ast.unparse(n.targets[0]):
-            out["two_zone_enabled"] |= names(n.value)
-        if isinstance(n, ast.FunctionDef) and n.name == "_dhw_enabled_from_config":
+        if isinstance(n, ast.FunctionDef) and n.name == "two_zone_from_config":
+            out["two_zone_enabled"] |= names(n)
+        if isinstance(n, ast.FunctionDef) and n.name == "dhw_enabled_from_config":
             out["dhw_enabled"] |= names(n)
     for n in ast.walk(ast.parse(sources["wood_fuel.py"])):
         if isinstance(n, ast.FunctionDef) and n.name in ("wood_furnace_on", "wood_furnace_inferred"):
@@ -3910,7 +3906,7 @@ def _p2_registry(sources):
     return [
         dict(fact="two_zone_enabled", finding="D14-s2-01",
              match=_p2_match_proxy(px["two_zone_enabled"]),
-             owners=["thermal_model.py::ThermalParameters.from_config"], dispositions={}),
+             owners=["thermal_model.py::two_zone_from_config"], dispositions={}),
         dict(fact="wood_furnace_on", finding="D14-s2-01",
              match=_p2_match_proxy(px["wood_furnace_on"]),
              owners=["wood_fuel.py::wood_furnace_on", "wood_fuel.py::wood_furnace_inferred",
@@ -3926,7 +3922,7 @@ def _p2_registry(sources):
              }),
         dict(fact="dhw_enabled", finding="D14-s2-01",
              match=_p2_match_proxy(px["dhw_enabled"]),
-             owners=["thermal_model.py::_dhw_enabled_from_config"],
+             owners=["thermal_model.py::dhw_enabled_from_config"],
              dispositions={
                  "legionella.py::LegionellaGuard._has_probe":
                      "probe presence, not the hot-water fact",
@@ -3948,7 +3944,7 @@ def _p2_registry(sources):
                  "config_flow.py::_omit_unstored_defaults":
                      answer + " and canonical predicate: it asks only whether "
                      "the explicit answer is stored and takes its verdict from "
-                     "_dhw_enabled_from_config",
+                     "dhw_enabled_from_config",
              }),
         # D1-s5-01: a state's age. inputs.state_stamp owns the stamp rule
         # (last_reported first, #775); age_of re-derived it.
@@ -4040,6 +4036,27 @@ def _p2_registry(sources):
         # scalar and batch twins are both owners: the batch must equal the
         # scalar bit for bit (fixer.md step 15), and the scalar keeps its own
         # bisection for the per-day cost (ARCH2-s3 patch 01b).
+        # D10-s1-03, D10-s2-01 (R11-SEAM-config): where an entry stores a key
+        # is decided by entry_config.placed; every entry write passing data=
+        # writes a pair placed by it, so reconfigure, reauth, setup, the reset
+        # and the migration agree with the reader, {**data, **options}.
+        dict(fact="entry_key_placement", finding="D10-s1-03",
+             match=_p2_match_node(
+                 (ast.Call,), r"async_(update|create)_entry\(",
+                 lambda n: getattr(n.func, "attr", None) in (
+                     "async_update_entry", "async_create_entry")
+                 and any(k.arg == "data" for k in n.keywords)),
+             owners=["__init__.py::async_migrate_entry",
+                     "config_flow.py::HeatPumpOptimizerConfigFlow._async_save_reconfigure",
+                     "config_flow.py::HeatPumpOptimizerConfigFlow._create_setup_entry",
+                     "config_flow.py::HeatPumpOptimizerConfigFlow.async_step_reauth_confirm",
+                     "coordinator.py::_async_rewrite_entry"],
+             dispositions={
+                 "config_flow.py::HeatPumpOptimizerOptionsFlow._save":
+                     "an options flow's result data is the entry's options, never its data",
+                 "repairs.py::DhwSetpointRepairFlow.async_step_confirm":
+                     "a repair flow's result, not an entry write",
+             }),
         dict(fact="peak_tie_rule", finding="D7-s3-8x-tariff",
              match=_p2_match_node(
                  (ast.Name,), r"^_PEAK_TIE_BAND$",
@@ -4218,7 +4235,7 @@ def _p2_registry(sources):
              match=_p2_match_node(
                  ast.BoolOp, r"two_zone\w* and [\w.]*upper_temp_trajectory",
                  lambda n: isinstance(n.op, ast.And)),
-             owners=["optimizer.py::OptimizationResult.sensor_trajectory"],
+             owners=["optimizer.py::OptimizationResult.zone_trajectories"],
              dispositions={}),
         dict(fact="billed_window_pad", finding="R10-CLONE-2238",
              match=_p2_match_node(
@@ -8505,9 +8522,13 @@ _gap_load_data = {
     },
     "current_price": 1.5,
 }
-# A user who has the house meter but neither probe: the two probe rows are
-# the whole ranking, and both must be priced.
-_gap_probe_cfg = {const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power"}
+# A user who has the house meter and a hot-water tank but neither probe: the
+# two probe rows are the whole ranking, and both must be priced. The tank is
+# declared: an install with no hot water prices no coast (D8-s1-01).
+_gap_probe_cfg = {
+    const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power",
+    const.CONF_DHW_ENABLED: True,
+}
 
 
 def _gap_production_rows(data, config):
@@ -14606,9 +14627,9 @@ try:
         R.check(
             "confirming the overview creates the entry",
             _early_entry.get("type") == "create_entry"
-            and _early_entry.get("data", {}).get(const.CONF_TIBBER_TOKEN)
+            and {**_early_entry.get("data", {}), **_early_entry.get("options", {})}.get(const.CONF_TIBBER_TOKEN)
             == _first_credentials[const.CONF_TIBBER_TOKEN]
-            and const.CONF_TARGET_TEMP not in _early_entry.get("data", {}),
+            and const.CONF_TARGET_TEMP not in {**_early_entry.get("data", {}), **_early_entry.get("options", {})},
             str(_early_entry)[:160],
         )
     # What the flow manager does when that flow finishes: an entry that holds
@@ -15555,6 +15576,7 @@ R.section("Config entry migration")
 _mig_hass = FakeHass()
 _mig = FakeEntry()
 _mig.version = const.CONFIG_ENTRY_VERSION
+_mig.minor_version = const.CONFIG_ENTRY_MINOR_VERSION
 R.check(
     "the current version is a no-op that reports success",
     asyncio.run(integration.async_migrate_entry(_mig_hass, _mig)) is True
@@ -15575,6 +15597,52 @@ _new.version = const.CONFIG_ENTRY_VERSION + 1
 R.check(
     "a downgrade is refused rather than mangled",
     asyncio.run(integration.async_migrate_entry(_mig_hass, _new)) is False,
+)
+
+# R11-SEAM-config: 7.2 stores each key in its one place (entry_config.placed).
+from heatpump_optimizer import entry_config as _mig_ec  # noqa: E402
+
+_m71 = FakeEntry(
+    data={"name": "Annex", const.CONF_TIBBER_TOKEN: "t", const.CONF_TARGET_TEMP: 21.0},
+    options={const.CONF_TARGET_TEMP: 22.0},
+)
+_m71.version = const.CONFIG_ENTRY_VERSION
+_m71_effective = {**_m71.data, **_m71.options}
+R.check(
+    "a 7.1 entry migrates to 7.2: data holds DATA_ONLY alone, the effective mapping is "
+    "unchanged and a key in both sides keeps the options value in force",
+    asyncio.run(integration.async_migrate_entry(_mig_hass, _m71)) is True
+    and (_m71.version, _m71.minor_version)
+    == (const.CONFIG_ENTRY_VERSION, const.CONFIG_ENTRY_MINOR_VERSION)
+    and set(_m71.data) <= _mig_ec.DATA_ONLY
+    and {**_m71.data, **_m71.options} == _m71_effective
+    and _m71.options[const.CONF_TARGET_TEMP] == 22.0,
+    f"data={_m71.data} options={_m71.options} minor={_m71.minor_version}",
+)
+# Null control: an entry already at the minor version is not rewritten, so a
+# 7.2 written under a downgraded release's reconfigure is left as it stands.
+_m72 = FakeEntry(data={"name": "Annex", const.CONF_TARGET_TEMP: 21.0})
+_m72.version = const.CONFIG_ENTRY_VERSION
+_m72.minor_version = const.CONFIG_ENTRY_MINOR_VERSION
+_m72_updates = len(_mig_hass.config_entries.updated)
+R.check(
+    "an entry at the current minor version is not rewritten",
+    asyncio.run(integration.async_migrate_entry(_mig_hass, _m72)) is True
+    and len(_mig_hass.config_entries.updated) == _m72_updates
+    and _m72.data == {"name": "Annex", const.CONF_TARGET_TEMP: 21.0},
+    f"data={_m72.data} updates={_mig_hass.config_entries.updated[_m72_updates:]}",
+)
+# An undo record written before the migration holds its settings in data:
+# undoing it stores each key where the entry now keeps it.
+_undo_rec = _mig_ec.undo_point(
+    const.FACTORY_RESET_SCOPES[0], {"name": "Annex", const.CONF_TARGET_TEMP: 21.0}, {})
+_undone = _mig_ec.undone_settings({"name": "Annex"}, {}, _undo_rec)
+R.check(
+    "undoing a reset recorded before 7.2 places the restored settings in options",
+    _undone is not None
+    and set(_undone[0]) <= _mig_ec.DATA_ONLY
+    and _undone[1].get(const.CONF_TARGET_TEMP) == 21.0,
+    f"record={_undo_rec} undone={_undone}",
 )
 
 
@@ -19172,13 +19240,13 @@ from heatpump_optimizer import thermal_model as _hb_tm  # noqa: E402
 R.check(
     "the heartbeat boot is two-zone + DHW by the model's own reading; the A3-A13 seed has no DHW",
     _hb_tm.ThermalParameters.from_config(_hb_eff).two_zone_enabled
-    and _hb_tm._dhw_enabled_from_config(_hb_eff)
+    and _hb_tm.dhw_enabled_from_config(_hb_eff)
     and _hb_eff.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_ON
     and _hb_eff.get("lower_floor_temp_entity") == _nightly.HB_LOWER_FLOOR_ENTITY
-    and not _hb_tm._dhw_enabled_from_config(_hb_base_eff),
+    and not _hb_tm.dhw_enabled_from_config(_hb_base_eff),
     f"hb two_zone={_hb_tm.ThermalParameters.from_config(_hb_eff).two_zone_enabled} "
-    f"dhw={_hb_tm._dhw_enabled_from_config(_hb_eff)}; "
-    f"base dhw={_hb_tm._dhw_enabled_from_config(_hb_base_eff)}",
+    f"dhw={_hb_tm.dhw_enabled_from_config(_hb_eff)}; "
+    f"base dhw={_hb_tm.dhw_enabled_from_config(_hb_base_eff)}",
 )
 _hb_payload = _nightly.heartbeat_payload(
     _nightly.HB_PAGE, _hb_eff, _nightly.HB_KEY, 21.5, const.AFTER_SAVE_MENU
@@ -22765,11 +22833,13 @@ R.check(
 # child, never every closure (R9-F10.9; this pinned `full` until then).
 # tests/entities.py is the third entry: countermeasure B's pin reads every
 # non-INERT .py under tests/ and tools/, so every such edit re-derives it.
+# tests/doc_claims.py is the fourth: its comment ratchet reads every tests/ script.
 _A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
     "a change to a subprocess-driven script re-derives its driver and itself",
     _A_DRIVEN["case"] == "scoped"
-    and _A_DRIVEN["rederive"] == ["tests/entities.py", "tests/features.py", "tests/dst_checks.py"],
+    and _A_DRIVEN["rederive"] == ["tests/doc_claims.py", "tests/entities.py", "tests/features.py",
+                                  "tests/dst_checks.py"],
     f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
 )
 # A tests/closures.json change runs the scripts whose entry moved, measured
@@ -26003,7 +26073,8 @@ R.check(
     "a valid token is written through and the entry reloads",
     _ra_out.get("reason") == "reauth_successful"
     and _ra_updates
-    and _ra_updates[0]["data"][_CONF_TOKEN] == "new-token"
+    and {**_ra_updates[0]["data"], **_ra_updates[0].get("options", {})}[_CONF_TOKEN] == "new-token"
+    and set(_ra_updates[0]["data"]) <= {"name"}
     and _ra_reloads == ["reauth-1"],
     f"result {_ra_out}, updates {_ra_updates}, reloads {_ra_reloads}",
 )
@@ -26213,7 +26284,8 @@ R.check(
     _rc_out_same.get("type") == "abort"
     and _rc_out_same.get("reason") == "reconfigure_successful"
     and _rc_updates
-    and _rc_updates[-1]["data"]["target_temp"] == 21.5,
+    and {**_rc_updates[-1]["data"], **_rc_updates[-1].get("options", {})}["target_temp"] == 21.5
+    and set(_rc_updates[-1]["data"]) <= {"name"},
     f"result {_rc_out_same}, updates {[k for k in _rc_updates]}",
 )
 R.check(
@@ -26228,7 +26300,7 @@ R.check(
         {**_rc_submit_same, _CONF_NAME: "Annex (renamed)"}
     ).get("reason")
     == "reconfigure_successful"
-    and _rc_updates[-1]["data"][_CONF_NAME] == "Annex (renamed)"
+    and {**_rc_updates[-1]["data"], **_rc_updates[-1].get("options", {})}[_CONF_NAME] == "Annex (renamed)"
     and _rc_updates[-1].get("title") == "Annex (renamed)",
     f"update kwargs keys {sorted(_rc_updates[-1]) if _rc_updates else []}",
 )
@@ -26239,9 +26311,10 @@ R.check(
     "a slot the user cleared is dropped, not silently kept",
     bool(_rc_updates)
     and _drive_reconfigure(_rc_cleared).get("reason") == "reconfigure_successful"
-    and const.CONF_INDOOR_TEMP_ENTITY not in _rc_updates[-1]["data"],
+    and const.CONF_INDOOR_TEMP_ENTITY not in {**_rc_updates[-1]["data"], **_rc_updates[-1].get("options", {})}
+    and set(_rc_updates[-1]["data"]) <= {"name"},
     f"cleared slot still in data: "
-    f"{_rc_updates[-1]['data'].get(const.CONF_INDOOR_TEMP_ENTITY) if _rc_updates else None!r}",
+    f"{({**_rc_updates[-1]['data'], **_rc_updates[-1].get('options', {})}).get(const.CONF_INDOOR_TEMP_ENTITY) if _rc_updates else None!r}",
 )
 R.check(
     "and the entry's unique id follows the picks, as a delete-and-recreate would",

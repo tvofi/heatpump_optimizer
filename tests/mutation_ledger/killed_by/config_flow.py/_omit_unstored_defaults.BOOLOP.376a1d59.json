@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_omit_unstored_defaults BOOLOP 376a1d59",
+  "killed_by": "tests/features.py",
+  "old": "        CONF_DHW_ENABLED not in current and not dhw_enabled_from_config(current)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`CONF_DHW_ENABLED not in current or not dhw_enabled_from_config(current)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
