@@ -11,3 +11,7 @@
   ok   the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the target past the ramp; null control, an all-zero margin array plans the unlifted plan
 
 ALL 9 FEATURES BLOCK PASSED
+
+real	0m10.899s
+user	0m6.469s
+sys	0m0.370s
