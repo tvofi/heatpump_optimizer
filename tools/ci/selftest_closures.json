@@ -10184,12 +10184,18 @@
     ".github",
     ".github/workflows",
     "HEAD",
+    "config",
+    "l.txt",
+    "m.txt",
+    "objects",
+    "refs",
     "tests",
     "tools",
     "tools/ci"
    ],
    "dirs": [
-    "tests"
+    "tests",
+    "tools/ci"
    ],
    "index": true,
    "objects": true,
@@ -10214,13 +10220,20 @@
     ".",
     ".github",
     ".github/workflows",
+    "<unknown>",
+    "config",
+    "l.txt",
+    "m.txt",
+    "objects",
+    "refs",
     "strace",
     "tests",
     "tools",
     "tools/ci"
    ],
    "dirs": [
-    "tests"
+    "tests",
+    "tools/ci"
    ],
    "index": true,
    "objects": false,
