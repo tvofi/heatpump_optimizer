@@ -1048,9 +1048,9 @@
     "From r11-pre-shared-files, body item f25ed2c6: fixer.md: cost: one `prepr.sh` run on a diff that changes `tools/pr/prepr.sh` traces that script's self-test under strace at the head and at the merge base, about 20 minutes each on a 4-processor seat, beside the untraced run of step 6's own self-test and the step replay. Carry: R11-PRE-SHARED-FILES (part 3, with the `touched_steps` carry above) (items f25ed2c6)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-pre-shared-files",
-    "commit": null,
+    "commit": "6d7d52709f803516e65be8d3fd101e26772c7e85",
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run",
