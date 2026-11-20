@@ -9606,9 +9606,6 @@
    "probes": [
     ".",
     "dev/audit/rca/R10-N-log-flood.md",
-    "dev/governance/dimensions/D12.md",
-    "dev/governance/dimensions/D3.md",
-    "dev/governance/dimensions/D99.md",
     "tests",
     "tools",
     "tools/audit",
@@ -9617,6 +9614,7 @@
     "tools/release"
    ],
    "dirs": [
+    "dev/governance/dimensions",
     "tests",
     "tools/audit/seat",
     "tools/release"
