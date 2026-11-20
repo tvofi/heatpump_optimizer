@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:_set_away_requires_a_field BOOLOP 3a4204ff",
+  "killed_by": "tests/features.py",
+  "old": "    if \"active\" not in data and \"return_time\" not in data:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if \"active\" not in data or \"return_time\" not in data:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
