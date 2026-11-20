@@ -4993,7 +4993,7 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-seam-plant-model",
     "commit": "1850e2e0da8c24886e4cc5f4d69601e834fb5023",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
