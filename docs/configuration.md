@@ -922,7 +922,8 @@ writes, at every 15-minute plan step:
   hot-water set-point back to the one you configured, switches the heat pump's
   power switch and the circulation pumps back on, and writes the compressor
   frequency and the mixing-valve target back to what they read before the
-  optimizer's first write. Only what the optimizer wrote is written back, once;
+  optimizer's first write; one that read nothing then is still written, and is
+  left as the optimizer set it. Only what the optimizer wrote is written back, once;
   a write-back that fails is tried again every cycle while the optimizer stays
   off. When the plan goes stale and the optimizer stops actuating, the power
   switch, the frequency, the valve target and the space circulation pump are

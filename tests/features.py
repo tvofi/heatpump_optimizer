@@ -13355,8 +13355,7 @@ _WC_IDS = __import__("itertools").count()
 
 def _write_coord(**extra):
     # The valve entity reads a value before the first write: the optimizer
-    # captures it as the baseline it restores on Off (ADR-004), and refuses
-    # a write it could not restore.
+    # captures it as the baseline it restores on Off (ADR-004).
     seen = {**_BASE, "number.valve": FakeState("21"),
             "climate.valve": FakeState("heat", attributes={"temperature": 21.0})}
     coord = _zone_coord(seen, max_temperature=23.5, **extra)
