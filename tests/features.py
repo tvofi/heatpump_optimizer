@@ -90261,12 +90261,13 @@ R.check(
     f"{_wn_why}",
 )
 R.check(
-    "R10-WHY-NOW-WIDGET: one weight per step per code, magnitudes summing to 100 or all 0",
-    set(_wn_res.space_drivers) == set(_wn_sd.DRIVER_CODES)
+    "R10-WHY-NOW-WIDGET: one weight per step per code, magnitudes summing to 100 or all 0; a solve with no "
+    "room lift publishes every code but room_lift (R11-OUTSIDE-ROOMS-3B)",
+    set(_wn_res.space_drivers) == set(_wn_sd.DRIVER_CODES) - {"room_lift"}
     and all(len(v) == len(_wn_res.timestamps) for v in _wn_res.space_drivers.values())
     and all(
-        abs(sum(abs(_wn_res.space_drivers[c][i]) for c in _wn_sd.DRIVER_CODES) - 100.0) < 0.3
-        or all(_wn_res.space_drivers[c][i] == 0.0 for c in _wn_sd.DRIVER_CODES)
+        abs(sum(abs(_wn_res.space_drivers[c][i]) for c in _wn_res.space_drivers) - 100.0) < 0.3
+        or all(_wn_res.space_drivers[c][i] == 0.0 for c in _wn_res.space_drivers)
         for i in range(len(_wn_res.timestamps))
     ),
     f"{ {c: v[:3] for c, v in _wn_res.space_drivers.items()} }",
