@@ -41,7 +41,7 @@ from .const import (
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .inputs import plausible_c
 from .thermal_model import TANK_ROOM_AMBIENT_TEMP, ThermalParameters
-from .learning_freeze import Sample
+from .learning_freeze import Evidence, Sample
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -468,10 +468,15 @@ class DhwProfileLearner:
             await self.async_learn_usage(
                 previous_temp, temp_drop, dt_h, now.hour, heated_interval, weekend=weekend
             )
-        await self.async_fold_draw_stats(
-            now, previous_temp, temp_drop, dt_h,
-            charge=started_heated or settling, recovered_k=recovered_k,
-        )
+        # D2-s3-08: an interval starting or ending on a heated sample holds
+        # the charge-start dip, which the reading climbs out of while still
+        # heated, so no unheated rise ever takes it back: it is no draw sample.
+        if self._frozen(CONF_DHW_TEMP_ENTITY, sample=Sample.TANK_DRAW,
+                        evidence=Evidence(charge_open=heated_interval)) is None:
+            await self.async_fold_draw_stats(
+                now, previous_temp, temp_drop, dt_h,
+                charge=started_heated or settling, recovered_k=recovered_k,
+            )
         return None
 
     def _standby_rate(self, previous_temp: float) -> float:
