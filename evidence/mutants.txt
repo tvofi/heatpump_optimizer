@@ -1,6 +1,0 @@
-M1_const_arm_off FAIL
-M2_file_arm_off FAIL
-M3_no_recursion FAIL
-M4_regex_narrow FAIL
-M5_genops_off FAIL
-M6_shipped_untracked FAIL

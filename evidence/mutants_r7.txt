@@ -1,0 +1,10 @@
+UNMUTATED
+ok   R10 N-no-expiry barrier: every 'entry covering now' lookup g 
+ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on 
+ok   R11 N-log-flood barrier reach: every package logger is a mod 
+N1_handlers_not_reached FAIL
+N2_regex_no_handlers FAIL
+N3_only_call_handler FAIL
+N4_residue_extra ok  
+N5_residue_drop FAIL
+N6_census_blind FAIL
