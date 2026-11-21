@@ -66436,6 +66436,200 @@ R.check(
 )
 
 
+# ---- the survivors CI measured at b3f0f7d676, and the repair's sites: the write tails, the row's
+# release, an unreadable baseline, the valve's log ----
+async def _r11ar_tail_scn(kind, last, target):
+    """One write tail from ``last`` to ``target``: (its answer, the values sent)."""
+    from heatpump_optimizer.freq_control import FrequencyWatchdog
+    from heatpump_optimizer.mixing_valve import ValveTarget
+    sent = []
+
+    async def arm():
+        return True
+
+    async def send(value):
+        sent.append(value)  # the valve's send answers None: written
+    if kind == "freq":
+        tail = FrequencyWatchdog()
+        tail.commanded = last
+    else:
+        tail = ValveTarget(epsilon_k=0.5, commanded_c=last)
+    return await tail.command(target, arm, send), sent
+
+
+_r11ar_tails = {
+    (kind, target): _r11ar_try(_r11ar_aio.run, _r11ar_tail_scn(kind, last, target))
+    for kind, last, targets in (("freq", 50.0, (51.0, 50.5)), ("valve", 22.0, (22.5, 22.25)))
+    for target in targets
+}
+R.check(
+    "a frequency one FREQ_WRITE_EPSILON_HZ (1 Hz) from the last command, and a valve target one epsilon_k "
+    "from the last write, are each written, and the write's tail answers True",
+    _r11ar_tails[("freq", 51.0)] == (True, [51.0]) and _r11ar_tails[("valve", 22.5)] == (True, [22.5]),
+    f"{_r11ar_tails!r}",
+)
+R.check(
+    "null control: a move of half that is not written, and the tail answers False",
+    _r11ar_tails[("freq", 50.5)] == (False, []) and _r11ar_tails[("valve", 22.25)] == (False, []),
+    f"{_r11ar_tails!r}",
+)
+
+
+async def _r11ar_row_owed_scn(fail):
+    """Off with the mode select refusing its write: (select calls tried, armed keys, the stored record's slots
+    after, and before)."""
+    from homeassistant.helpers import storage as _st
+    hass, entry, c, _written = await _r11ar_plant()
+    real, tried = hass.services.async_call, []
+    before = sorted(_r11ar_json.loads(_st._DISK[_r11ar_pa._store(c)._key])["written"])
+
+    async def select(domain, service, data=None, **kw):
+        if service == "select_option" and _r11ar_key(data) == "select.pump_mode":
+            tried.append(data["option"])
+            if fail:
+                raise RuntimeError("select unavailable")
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = select
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    _r11ar_settle(hass)
+    await _r11ar_cycle(c, 32)  # the supply switch reads on again: the row's restore runs
+    _r11ar_settle(hass)
+    stored = _r11ar_json.loads(_st._DISK[_r11ar_pa._store(c)._key])
+    return tried, _r11ar_or.diagnostics(entry)["armed"], sorted(stored["written"]), before
+
+
+_r11ar_owed = _r11ar_try(_r11ar_aio.run, _r11ar_row_owed_scn(True))
+_r11ar_owed0 = _r11ar_try(_r11ar_aio.run, _r11ar_row_owed_scn(False))
+R.check(
+    "Off with the pump's mode select refusing the baseline row's write: the row's restore stays armed, "
+    "so the next cycle writes it again",
+    _r11ar_ok(_r11ar_owed, lambda r: r[0] and _r11ar_pa.ROW in r[1]),
+    f"(select writes tried, armed, stored slots) {_r11ar_owed!r}",
+)
+R.check(
+    "null control: the same Off with the select taking the write disarms the row",
+    _r11ar_ok(_r11ar_owed0, lambda r: r[0] and _r11ar_pa.ROW not in r[1]),
+    f"{_r11ar_owed0!r}",
+)
+R.check(
+    "the row's restore that landed leaves the arbiter's stored record holding the space set-point slot alone",
+    _r11ar_ok(_r11ar_owed0, lambda r: set(r[2]) <= {"space_setpoint"}),
+    f"{_r11ar_owed0!r}",
+)
+R.check(
+    "null control: before that Off the stored record held the mode and tank set-point slots",
+    _r11ar_ok(_r11ar_owed0, lambda r: {"mode", "dhw_setpoint"} <= set(r[3])),
+    f"{_r11ar_owed0!r}",
+)
+
+
+async def _r11ar_unread_arm_scn(write_unread, reading):
+    """A first arm of a baseline restorer whose entity reads ``reading``: (the arm's answer, the armed entry)."""
+    async def write(_hass, _entity_id, _value):
+        return True
+    _r11ar_or.register_consumer("_r11ar_unread", lambda _cfg: _r11ar_or.Restorer(
+        "number.unread", write, baseline_of=lambda _h, _e: reading, write_unread=write_unread))
+    hass, entry = FakeHass(), _r11ar_Entry(data={}, entry_id=f"r11ar_unread_{next(_R11AR_IDS)}")
+    armed = await _r11ar_or.async_arm(hass, entry, {}, "_r11ar_unread")
+    held = await _r11ar_or._armed_record(hass, entry)
+    return armed, held.armed.get("_r11ar_unread", "absent")
+
+
+try:
+    _r11ar_ua = {(wu, rd): _r11ar_try(_r11ar_aio.run, _r11ar_unread_arm_scn(wu, rd))
+                 for wu, rd in ((False, None), (True, None), (False, 40.0))}
+finally:
+    _r11ar_unregister("_r11ar_unread")
+R.check(
+    "a baseline restorer that is not write_unread refuses the write when its entity reads no baseline, "
+    "and arms nothing",
+    _r11ar_ua[(False, None)] == (False, "absent"),
+    f"{_r11ar_ua!r}",
+)
+R.check(
+    "null control: the same unreadable entity under a write_unread restorer arms a restore of nothing, "
+    "and a readable one arms its reading",
+    _r11ar_ua[(True, None)] == (True, None)
+    and _r11ar_ua[(False, 40.0)] == (True, {"entity_id": "number.unread", "value": 40.0}),
+    f"{_r11ar_ua!r}",
+)
+
+
+async def _r11ar_release_bare_scn(key):
+    """Release ``key`` on an entry with no coordinator: (restores, armed keys, warnings)."""
+    hass, entry = FakeHass(), _r11ar_Entry(data={}, entry_id=f"r11ar_bare_{next(_R11AR_IDS)}")
+    await _r11ar_or.async_arm(hass, entry, {}, key)
+    handler, logger = _R11arLogs(), _r11ar_log.getLogger("heatpump_optimizer")
+    logger.addHandler(handler)
+    try:
+        sent = await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    finally:
+        logger.removeHandler(handler)
+    return sent, _r11ar_or.diagnostics(entry)["armed"], handler.messages
+
+
+async def _r11ar_raising_release(_hass, entry, _config, _reason):
+    return entry.runtime_data.arbiter_inputs() is None  # no coordinator: raises
+
+
+_r11ar_or.register_release("_r11ar_bare", _r11ar_raising_release)
+try:
+    _r11ar_bare = _r11ar_try(_r11ar_aio.run, _r11ar_release_bare_scn(_r11ar_pa.ROW))
+    _r11ar_bare0 = _r11ar_try(_r11ar_aio.run, _r11ar_release_bare_scn("_r11ar_bare"))
+finally:
+    _r11ar_unregister("_r11ar_bare")
+R.check(
+    "the row's release on an entry whose coordinator is gone answers not done without raising: "
+    "the row stays armed and nothing is logged as failed",
+    _r11ar_ok(_r11ar_bare, lambda r: r == (0, [_r11ar_pa.ROW], [])),
+    f"(restores, armed, warnings) {_r11ar_bare!r}",
+)
+R.check(
+    "null control: a release that reads the missing coordinator and raises stays armed and logs one warning",
+    _r11ar_ok(_r11ar_bare0, lambda r: r[:2] == (0, ["_r11ar_bare"]) and len(r[2]) == 1),
+    f"{_r11ar_bare0!r}",
+)
+
+
+async def _r11ar_valve_log_scn(fail):
+    """A valve target write after the first: (warnings, the INFO lines naming a commanded valve target)."""
+    hass, _entry, c, _written = await _r11ar_plant(idle=False)
+    real = hass.services.async_call
+
+    async def valve(domain, service, data=None, **kw):
+        if fail and _r11ar_key(data) == "number.valve":
+            raise RuntimeError("valve unavailable")
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = valve
+    c._current_action = {**c._current_action, "valve_target": 18.0}
+    handler, logger = _R11arLogs(), _r11ar_log.getLogger("heatpump_optimizer")
+    level = logger.level
+    handler.setLevel(_r11ar_log.INFO)
+    logger.addHandler(handler)
+    logger.setLevel(_r11ar_log.INFO)
+    try:
+        await c._command_valve_target()
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(level)
+    return ([m for m in handler.messages if "Valve write entity" in m],
+            [m for m in handler.messages if m.startswith("Commanded mixing valve target")])
+
+
+_r11ar_vlog = _r11ar_try(_r11ar_aio.run, _r11ar_valve_log_scn(True))
+_r11ar_vlog0 = _r11ar_try(_r11ar_aio.run, _r11ar_valve_log_scn(False))
+R.check(
+    "a valve target write that raised logs why, and no line that the target was commanded",
+    _r11ar_ok(_r11ar_vlog, lambda r: len(r[0]) == 1 and r[1] == []),
+    f"{_r11ar_vlog!r}",
+)
+R.check(
+    "null control: the same write landing logs the commanded target once",
+    _r11ar_ok(_r11ar_vlog0, lambda r: r[0] == [] and len(r[1]) == 1),
+    f"{_r11ar_vlog0!r}",
+)
+
+
 # ---- B14 (D7-s1-05): the two day-count notices share one raiser ----
 def _r11ar_guard(probe=False):
     """A coordinator whose guard is overdue: hot water and the cycle on, 20 days since the last one, a 7-day interval."""
