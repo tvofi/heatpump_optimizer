@@ -13,7 +13,7 @@ Issues: none drafted or closed.
 
 ## Head
 
-`5680abbb85c5053520ff8c4019e0f3f4a6184763`: the authored head, on origin/main `78d3b40221`. It is one commit: the copy and the repo_root fix.
+`0a0e6d0d375b8e1bc7712ab17d1a5eacaa91790e`: the authored head, on origin/main `78d3b40221`. It is two commits: the copy with the repo_root fix, and `p1_seams.py`'s scratch-directory root taken as `d.parent.parent` where it read `d.parents[1]`, which the depth-seam scan flags and which changes no behaviour.
 
 ## Mutation proof
 
