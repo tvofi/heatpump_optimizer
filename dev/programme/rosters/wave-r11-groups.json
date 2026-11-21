@@ -6170,7 +6170,9 @@
     "blueprints/automation/economy_mode_on_price_peak.yaml"
    ],
    "brief": "User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. Verified against the text ledger. 7 findings (1 merged in), size M; class tags I4, I5, N-copy-style. Plan: ADR-010. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "Left behind (carry census 2026-11-21): R11-INTAKE-R10-RESIDUE carry 82 (0-based, round-11 roster on handoff/audit-r10-roster) is marked moved to R11-OWNER-GENERIC-CONTROL-TEXT, which merged without it. From r10-user-text-verify-strings, body item ce7e3bb7: the dashboard card custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js still carries the two narrative labels for the hot-water reasons, \"Hot water needed now\" and \"Charging the tank while electricity is cheap\", and their sv and de forms, while `classify_dhw_steps` in custom_components/heatpump_optimizer/optimizer.py reads neither the clock nor the price. Make each label say what the classifier decides, in all three languages, or make the classifier decide what the label says. Control: a step the classifier labels without a window or a price signal must not be described as one; null control: a label that states only what the classifier reads is not a finding. Re-measure at your merge base. Carry: R11-SEAM-product-text (items ce7e3bb7)"
+   ],
    "source": "audit",
    "resume": {
     "stage": "not-started",
