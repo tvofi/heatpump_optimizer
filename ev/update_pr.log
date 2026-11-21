@@ -1,0 +1,5 @@
+CMD 2026-11-20T23:57:08Z update_pr.sh (overlay figbase-wt)
+REKEY: 0 re-keyed, 0 kept
+app_push: REUSE: full prepr RUNS: handoff-body/r11-seam-ratchets's tip 55794e22 carries no one `Prepr: <sha> <tree>` trailer, so no receipt
+HEAD=78c209b92f645894dc28ff09f6ce6537084ff4d0
+rc=0

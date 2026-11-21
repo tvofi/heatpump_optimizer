@@ -1,0 +1,13 @@
+fill-red: the diff adds no unpinned mutation site; nothing written
+figure_block: refreshed 1 block(s) at 0cc057aaccca
+ancestry reds ok: the body answers every red this branch pushed (governance / policy-docs tests / fast (3.14) tests / nightly-status code-scanning alert 57 (py/overly-permissive-file) code-scanning alert 58 (py/overly-permissive-file))
+pr-body ok: PR-BODY: 0 error(s) in $HOME/hpo-seats/r11/fix3729-r6/BODY.md -- no budget leaf raised over 053c33bcc6...0cc057aacc
+carry ok: CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster ba0d1f96ba
+preflight ok
+REFUSE figures: A figure whose command cannot run states the same number whatever the world holds. Repair the command, or state the figure without one and say what it rests on.
+figure blocks ok: figure_block verify: 1 block(s), 0 refused
+ref_privacy ok: ref_privacy --check at HEAD: 32 file(s) with a push site, 12 guarded, 566 line(s) added since 053c33bcc682 judged, 0 refused
+ref_privacy (body) ok: no host identity in the body
+body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again
+body_push: REFUSED BODY-LINT
+body_push: refused body kept at handoff-wip/r11-seam-ratchets-body 6304a914465aefc9a54721ae23a580295c5c28e8

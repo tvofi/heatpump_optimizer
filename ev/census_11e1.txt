@@ -1,0 +1,6 @@
+modules 96 str/bytes constants 12519 shipped non-module files 19
+refused ('coordinator.py', 670, 'text sha256:1bae1cedbbbd1464')
+refused ('coordinator.py', 3518, '_LOGGER -> super().__init__')
+refused ('learner_progress.py', 181, 'text sha256:559299c54c5ae71d')
+refused ('log_latch.py', 32, 'text sha256:82178ac44c5d08e8')
+refused ('setpoint_check.py', 39, 'text sha256:4271bd2a011ac6e7')

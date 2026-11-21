@@ -1,0 +1,27 @@
+diff --git a/tools/audit/seat/body_push.sh b/tools/audit/seat/body_push.sh
+index 0c3bcb76a7..a5ca2265b2 100644
+--- a/tools/audit/seat/body_push.sh
++++ b/tools/audit/seat/body_push.sh
+@@ -240,6 +240,7 @@ if [ -n "$HREF" ]; then
+       FB=$(pr_recorded_base tvofi/heatpump_optimizer "$PRN") || { echo "body_push: REFUSE: the recorded base.sha of #$PRN could not be read, the base pr-contract verifies the figure block against" >&2; keep_refused; exit 1; }  # mut:bpbase
+     fi
+   fi
++  FB=origin/main  # local overlay, P-R11-91: render against the base prepr --body-check verifies with
+   (cd "$ROOT" && python3 -I "$HERE/../../pr/figure_block.py" refresh "$ABS" --base "$FB") # mut:keep
+   # shellcheck disable=SC2086 # PRB is empty or exactly two words
+   if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" $PRB 2>&1); then
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 30f0672032..b299850805 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -102,8 +102,8 @@ M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
+ # before either. A body with no block is untouched; a failed refresh refuses, pushing and patching nothing.
+ upd_figures() { # <where>
+   grep -q '^<!-- figure-block: ' "$B" || return 0
+-  local fb=origin/main
+-  fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
++  local fb=origin/main  # LOCAL OVERLAY update_pr-figbase: prepr verifies against origin/main
++  [ "$1" = "at the head to push" ] || fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
+   python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
+   pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
+ $(tail -n 20 $WT.fig.log)"

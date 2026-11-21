@@ -1,0 +1,14 @@
+M1-constant-arm: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {('lo
+M2-ast-front-end: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {}; p
+M3-pickle-front-end: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {}; p
+M4-files-arm: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {}; p
+M5-ident-arm: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {}; p
+M6-raw-text: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {('lo
+M7-inner-idents: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {}; p
+M8-inner-constants: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {}; p
+M9-regex-narrowed: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {('lo
+M10-allowance-dropped: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {('lo
+M11-round5-function: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {('le
+M12-pyc-skipped: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {}; p
+M13-pycache-skipped: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {}; p
+M14-untracked-read: FAIL R11 N-log-flood barrier reach: every package logger is a module-level  [refused {('__

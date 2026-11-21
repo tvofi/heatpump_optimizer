@@ -1,0 +1,7 @@
+fill-red: the diff adds no unpinned mutation site; nothing written
+figure_block: refreshed 1 block(s) at 0cc057aaccca
+ref_privacy (body) ok: no host identity in the body
+review-packet handoff: R11-SEAM-ratchets at 0cc057aaccca, 0 live, 0 dispatched carries, 0 refused
+CARRY-LANDED: 0 missing
+body_push: no Prepr: trailer -- no receipt of a passing full prepr.sh run at 0cc057aaccca in this checkout, so the open runs the full prepr
+handoff-body/r11-seam-ratchets 55794e22836d6d1b19a6d83be760c68203115c3e

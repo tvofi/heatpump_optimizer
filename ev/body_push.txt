@@ -1,0 +1,19 @@
+fill-red: the diff adds no unpinned mutation site; nothing written
+figure_block: refreshed 1 block(s) at 11e11664b99a
+REFUSE ancestry reds: RED UNANSWERED (governance / policy-docs tests / fast (3.14) tests / nightly-status code-scanning alert 57 (py/overly-permissive-file) code-scanning alert 58 (py/overly-permissive-file)): ERROR   [pr-body] $HOME/hpo-seats/r11/fix3729-r6/BODY.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists. (1 error line(s) in all)
+pr-body ok: PR-BODY: 0 error(s) in $HOME/hpo-seats/r11/fix3729-r6/BODY.md -- no budget leaf raised over b36742b17b...11e11664b9
+carry ok: CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster ba0d1f96ba
+preflight ok
+REFUSE figures: A figure whose command cannot run states the same number whatever the world holds. Repair the command, or state the figure without one and say what it rests on.
+  ERROR   [figure-block] line 87: block `scope-line` is not what the registered instrument printed at 11e11664b99a; a figure block is rendered, never typed -- run `figure_block.py refresh <body>`
+figure_block verify: 1 block(s), 1 refused
+REFUSE figure blocks: figure_block verify: 1 block(s), 1 refused
+ref_privacy ok: ref_privacy --check at HEAD: 32 file(s) with a push site, 12 guarded, 566 line(s) added since b36742b17b7e judged, 0 refused
+ref_privacy (body) ok: no host identity in the body
+body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again
+body_push: REFUSED BODY-LINT
+remote: 
+remote: Create a pull request for 'handoff-wip/r11-seam-ratchets-body' on GitHub by visiting:        
+remote:      https://github.com/tvofi/heatpump_optimizer/pull/new/handoff-wip/r11-seam-ratchets-body        
+remote: 
+body_push: refused body kept at handoff-wip/r11-seam-ratchets-body 40362669ef5ec83ab506c7e798905ee7caccdafa
