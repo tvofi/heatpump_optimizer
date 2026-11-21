@@ -1988,19 +1988,18 @@ class SystemIdentification:
         except np.linalg.LinAlgError:
             return SysIdResult(completed=False, reason="fit failed")
         # --- D2-01: errors-in-variables correction -------------------------
-        # The previous room reading (``usable[i - 1].room_temp``) sits on
-        # BOTH sides of the regression -- in the rate (divided by dt) and in
-        # the delta column -- so sensor noise covaries
-        # the two and biases the UA/C slope UPWARD (the audit measured +44 %
-        # at 0.05 °C noise, +108 % at 0.10 °C, and biased fits cleared the
-        # 0.3 adoption gate). The noise variance is estimated from the room
-        # series itself and the KNOWN bias terms are subtracted from the
-        # normal equations: the delta column's own noise deflates X'X by
-        # n*sigma^2, and the rate/regressor noise covariance shifts X'y by
-        # sigma^2 * sum(1/dt). Clean data estimates sigma^2 ~ 0 and the
-        # correction vanishes; a window whose noise exceeds a third of the
-        # delta column's spread is refused outright -- there is no honest
-        # fit to be had there.
+        # The previous room reading (``usable[i - 1].room_temp``) sits on BOTH
+        # sides of the regression -- in the rate (divided by dt) and in the
+        # delta column -- so sensor noise covaries the two and biases the UA/C
+        # slope UPWARD (the audit measured +44 % at 0.05 °C noise, +108 % at
+        # 0.10 °C, and biased fits cleared the 0.3 adoption gate). The noise
+        # variance is estimated from the room series itself and the KNOWN bias
+        # terms are subtracted from the normal equations: the delta column's
+        # own noise deflates X'X by n*sigma^2, and the rate/regressor noise
+        # covariance shifts X'y by sigma^2 * sum(1/dt). Clean data estimates
+        # sigma^2 ~ 0 and the correction vanishes; a window whose noise exceeds
+        # a third of the delta column's spread is refused outright -- there is
+        # no honest fit to be had there.
         #
         # sigma^2 from second differences WITHIN a phase only: the step->
         # relax transition is a genuine kink in the signal (power drops to
