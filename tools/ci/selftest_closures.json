@@ -2844,6 +2844,7 @@
     "dev/governance/config/policy_budgets.json",
     "tests/ci_budgets.json",
     "tests/coverage_budgets.json",
+    "tests/cycle_budgets.json",
     "tests/layout.json",
     "tests/layout.py",
     "tests/mutation_budgets.json",

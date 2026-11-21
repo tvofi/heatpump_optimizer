@@ -202,6 +202,16 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("*", "rss_attrib_mb"), MAX),
         (("*", "traced_peak_mb"), MAX),
     ],
+    # The coordinator-cycle lane (tests/cycle_lane.py): four ceilings and
+    # one floor, the yields, which may only rise.
+    "tests/cycle_budgets.json": [
+        (("recorded_at",), FREE),
+        (("*", "solves"), MAX),
+        (("*", "payload_b"), MAX),
+        (("*", "retained_b_per_cycle"), MAX),
+        (("*", "loop_calls"), MAX),
+        (("*", "yields"), MIN),
+    ],
     "tests/typing_budgets.json": [
         (("_comment",), FREE),
         (("recorded_at",), FREE),
@@ -819,6 +829,19 @@ def self_test() -> int:
     check("coverage: a floor down is a raise", raised(C, c0, {**c0, "package_percent_floor": 95.9}), True)
     check("coverage: the ceiling down is a raise", raised(C, c0, {**c0, "package_percent_ceiling": 95.0}), True)
     check("coverage: a pragma added is a raise", raised(C, c0, {**c0, "pragmas": 13}), True)
+
+    Y = "tests/cycle_budgets.json"
+    y0 = {"recorded_at": "t", "winter/cycle": {"solves": 1, "payload_b": 89621,
+                                               "retained_b_per_cycle": 1901, "yields": 517,
+                                               "loop_calls": 2444}}
+    check("cycle: null control", raised(Y, y0, y0), False)
+    check("cycle: the file new at the head is routine", raised(Y, None, y0), False)
+    check("cycle: fewer solves, more yields is routine",
+          raised(Y, y0, {**y0, "winter/cycle": {**y0["winter/cycle"], "solves": 0, "yields": 600}}), False)
+    check("cycle: a solve ceiling up is a raise",
+          raised(Y, y0, {**y0, "winter/cycle": {**y0["winter/cycle"], "solves": 2}}), True)
+    check("cycle: the yields floor down is a raise",
+          raised(Y, y0, {**y0, "winter/cycle": {**y0["winter/cycle"], "yields": 400}}), True)
 
     T = "tests/stress_budgets.json"
     t0 = {"coverage_floor_override": {"cites": "ruling", "floor": 38},
