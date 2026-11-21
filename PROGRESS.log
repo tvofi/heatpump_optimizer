@@ -13,3 +13,4 @@
 1795284579 HB alive
 1795284721 CKPT delta since ef62eaec comment-only; full diff mutants killed; waiting CI and env_drift snapshot a310aad3dd50
 1795285182 HB alive
+1795285979 DONE returned: Fix review: merge ece47e3a pending-ci: gate at probe/rev-3737-9dd52a4d 2a02b9703a
