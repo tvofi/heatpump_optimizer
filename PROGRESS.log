@@ -15,3 +15,4 @@
 1795291717 CKPT verdict drafted; waiting on CI classify snapshot 817c61ab9bbd
 1795292318 HB alive
 1795292913 HB alive
+1795293069 DONE verdict merge db727d36e0 pushed to probe/rev-3825-3a5161b9 (ce756cbe00), pending-ci: gate, instrument-self-tests
