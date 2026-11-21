@@ -6,3 +6,4 @@
 1795284019 HB alive
 1795284622 HB alive
 1795284979 CKPT verdict pushed probe/rev-3832-53e5d81b 81514163 snapshot 79931c6e27f1
+1795284985 DONE Fix review: merge 35bb34b2 (pending-ci: governance / instrument-self-tests, cancelled at 30m timeout); verdict 81514163 on probe/rev-3832-53e5d81b
