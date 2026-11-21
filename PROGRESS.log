@@ -26,3 +26,4 @@
 1795272980 CKPT prepr.sh running at aaf25e5b4e; heartbeat loop ended at its 2 h limit, beats now at each step snapshot 18e47555a06e
 1795276548 CKPT prepr.sh restarted detached at 67980916e4 (prepr.sh restored to base to cut the trace) snapshot 19dc42ce6726
 1795283889 CKPT prepr.sh third run at 5054ecec27: Approval section, render lines unrolled, carries routed snapshot a70f6658a98d
+1795290906 CKPT prepr.sh step 6d grading its traces (about 2 h in); code and body ready for hand-off on a clean result snapshot 700e2c53e6ad
