@@ -1,0 +1,27 @@
+{"arm": "base", "plan_view_rc": 0, "payload_sha256": "f769f5bd7cd3f673ef56ec02c13464db3ab480c5226fa0c1c74e7a71d8d5091f", "card_drift_rc": 0, "moved": 0, "identical": 45, "card_mjs_rc": 0, "moved_states": [], "card_drift_head": " heatpump-optimizer-card  v10.0.2 \n heatpump-optimizer-card  v10.0.2 \ncard_drift: HEAD^1 = 2c84a85c8cb3, tree = 92d38ecb640b, 45 states\n  identical  no_plan\n  identical  no_plan_expanded\n  identical  plan_inline\n  identical  plan_inline_sv\n  identical  plan_short_window\n  identical  custom_title_currency\n  identical  hidden_series\n  identical  score_open\n  identical  expanded_plan\n  identical  wha", "card_mjs_failed": 0, "wall_s": 92.7, "payload_changed": 0}
+RESULT base_moved=0
+RESULT base_payload_changed=0
+RESULT base_card_drift_rc=0
+RESULT base_card_mjs_failed=0
+{"arm": "prod_small", "plan_view_rc": 0, "payload_sha256": "8cee8f3f5f8011f1f42500cb5fbd48e5e6792046efeaa91c56ec3fbb61195d21", "card_drift_rc": 0, "moved": 0, "identical": 45, "card_mjs_rc": 0, "moved_states": [], "card_drift_head": " heatpump-optimizer-card  v10.0.2 \n heatpump-optimizer-card  v10.0.2 \ncard_drift: HEAD^1 = 2c84a85c8cb3, tree = 92d38ecb640b, 45 states\n  identical  no_plan\n  identical  no_plan_expanded\n  identical  plan_inline\n  identical  plan_inline_sv\n  identical  plan_short_window\n  identical  custom_title_currency\n  identical  hidden_series\n  identical  score_open\n  identical  expanded_plan\n  identical  wha", "card_mjs_failed": 0, "wall_s": 89.2, "payload_changed": 1}
+RESULT prod_small_moved=0
+RESULT prod_small_payload_changed=1
+RESULT prod_small_card_drift_rc=0
+RESULT prod_small_card_mjs_failed=0
+{"arm": "prod_large", "plan_view_rc": 0, "payload_sha256": "df892bf5dd63ffd83922bdb9202df48351bf8238ad0bb145e6f695ceedb29e64", "card_drift_rc": 0, "moved": 0, "identical": 45, "card_mjs_rc": 0, "moved_states": [], "card_drift_head": " heatpump-optimizer-card  v10.0.2 \n heatpump-optimizer-card  v10.0.2 \ncard_drift: HEAD^1 = 2c84a85c8cb3, tree = 92d38ecb640b, 45 states\n  identical  no_plan\n  identical  no_plan_expanded\n  identical  plan_inline\n  identical  plan_inline_sv\n  identical  plan_short_window\n  identical  custom_title_currency\n  identical  hidden_series\n  identical  score_open\n  identical  expanded_plan\n  identical  wha", "card_mjs_failed": 0, "wall_s": 88.8, "payload_changed": 1}
+RESULT prod_large_moved=0
+RESULT prod_large_payload_changed=1
+RESULT prod_large_card_drift_rc=0
+RESULT prod_large_card_mjs_failed=0
+{"arm": "card", "plan_view_rc": 0, "payload_sha256": "f769f5bd7cd3f673ef56ec02c13464db3ab480c5226fa0c1c74e7a71d8d5091f", "card_drift_rc": 1, "moved": 44, "identical": 1, "card_mjs_rc": 0, "moved_states": ["no_plan", "no_plan_expanded", "plan_inline", "plan_inline_sv", "plan_short_window", "custom_title_currency"], "card_drift_head": " heatpump-optimizer-card  v10.0.2 \n heatpump-optimizer-card  v10.0.2 \ncard_drift: HEAD^1 = 2c84a85c8cb3, tree = 92d38ecb640b, 45 states\n  DRIFT      no_plan (unclaimed)\n        --- /tmp/hpo-card-drift-PJ78JK/no_plan.HEAD_1\t2026-11-18 10:13:44.535582777 +0000\n        +++ /tmp/hpo-card-drift-PJ78JK/no_plan.tree\t2026-11-18 10:13:44.535582777 +0000\n        @@ -1,8 +1,8 @@\n         <SHADOW-ROOT>\n      ", "card_mjs_failed": 0, "wall_s": 94.9, "payload_changed": 0}
+RESULT card_moved=44
+RESULT card_payload_changed=0
+RESULT card_card_drift_rc=1
+RESULT card_card_mjs_failed=0
+RESULT card_drift_cell_closure_edges=11
+RESULT load1=1.20
+RESULT thread_factor=1.00
+RESULT card_drift_cell_closure_edges=11
+RESULT cell_diffs_selecting_card_drift=11
+RESULT load1=0.73
+RESULT thread_factor=1.00

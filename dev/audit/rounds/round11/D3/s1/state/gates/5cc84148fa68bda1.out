@@ -1,0 +1,7 @@
+RESULT gate_rc=1 code
+RESULT failed_scripts=3 count
+RESULT wall=3123 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.92
+RESULT killed=0 count
+VERDICT 5cc84148fa68bda1 RED-AS-NULL 
