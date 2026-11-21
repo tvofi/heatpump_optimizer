@@ -458,11 +458,14 @@ jobs:
           if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi
 
       # The registered figures are rendered here instead, at the head this run
-      # grades: each instrument the BASE's tools/pr/figure_registry.json names,
-      # run by the base's restored program over the head's tree, read-only, into
-      # the job summary. A render that fails is printed there with its exit
-      # status and fails nothing: this step states figures, it grades none.
-      # Written inside codeowners_gap.py's allowlist, so the program stays pinned.
+      # grades, by the base's restored program over the head's tree, read-only,
+      # into the job summary. One line per instrument of
+      # tools/pr/figure_registry.json, named: tools/pr/ci_predict.py replays each
+      # pinned run line and maps no loop variable, and the program itself refuses
+      # a name the BASE's registry lacks. A render that fails is printed there
+      # with its exit status and fails nothing: this step states figures, it
+      # grades none. Written inside codeowners_gap.py's allowlist, so the
+      # program stays pinned.
       - name: Render the registered figures at this head
         if: always()
         env:
@@ -470,13 +473,10 @@ jobs:
           PR_BASE: ${{ steps.pr.outputs.base }}
         run: |
           set -uo pipefail
-          git cat-file -p "$PR_BASE:tools/pr/figure_registry.json" > "$RUNNER_TEMP/figure_registry.json"
           echo "### Registered figures at $PR_HEAD" >> "$GITHUB_STEP_SUMMARY"
-          jq -r '.instruments | keys[]' "$RUNNER_TEMP/figure_registry.json" > "$RUNNER_TEMP/figure_names.txt"
-          while read -r name; do
-            printf '\n**%s**\n\n' "$name" >> "$GITHUB_STEP_SUMMARY"
-            python3 -I tools/pr/figure_block.py render "$name" --base "$PR_BASE" --head "$PR_HEAD" >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "(not rendered: exit status $?)" >> "$GITHUB_STEP_SUMMARY"
-          done < "$RUNNER_TEMP/figure_names.txt"
+          python3 -I tools/pr/figure_block.py render merge-base --base "$PR_BASE" --head "$PR_HEAD" >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "(merge-base not rendered: exit status $?)" >> "$GITHUB_STEP_SUMMARY"
+          python3 -I tools/pr/figure_block.py render scope-line --base "$PR_BASE" --head "$PR_HEAD" >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "(scope-line not rendered: exit status $?)" >> "$GITHUB_STEP_SUMMARY"
+          python3 -I tools/pr/figure_block.py render structure-ratchet --base "$PR_BASE" --head "$PR_HEAD" >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "(structure-ratchet not rendered: exit status $?)" >> "$GITHUB_STEP_SUMMARY"
 
       # finding-propagation.md's `Carry:` marker, refused where a body is
       # written: every `## Friction` and `## Forward-carry` item, and every
