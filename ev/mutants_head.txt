@@ -1,0 +1,36 @@
+M0: rc=0 tail='ALL 9 FEATURES BLOCK PASSED'
+M0w: rc=0 tail='ALL 26 wood-advisor checks PASSED'
+R1 covering_index end rule: rc=1 tail='4 of 9 FEATURES BLOCK FAILED'
+      FAIL D7-s3-03: plan_step_index, covering_index and both _planned_room copies agree on every probe -- inside the plan a step covers now, at and past its end none does  [{'before': (False, False, False, False), 'first': (True, True, True, True), 'mid': (True, True, True, True), 'last': (True, True, 
+      FAIL D7-s3-03: a plan's last step is one PLAN_STEP wide after a shorter gap (covered at half a step, not at a step), and the arbiter's planned room reads it; null control, the series lookup with no grid width ends it one gap after its stamp  [(1, 1, 21.0, 1)]
+      FAIL #2229: a price list that stopped updating publishes no current price past its last entry's hour; a covered hour (the null control) still reads its entry  [{0.5: (1.0, 1.0, 1.0), 3.5: (1.3, 1.3, 1.3), 4.0: (1.3, 1.3, 1.3), 5.0: (1.3, 1.3, 1.3), 50.0: (1.3, 1.3, 1.3)}]
+      FAIL #2229: the forecast's outdoor 'now' and the open-loop plan seed end with their series (the sweep's two siblings); inside it they read the covering entry  [{'fc_before': -3.0, 'fc_cover': -2.0, 'fc_last': 0.0, 'fc_past': 0.0, 'plan_cover': 49.5, 'plan_last': 44.5, 'plan_past': 44.5}]
+    4 of 9 FEATURES BLOCK FAILED
+R2 plan_step_index last_span dropped: rc=1 tail='1 of 9 FEATURES BLOCK FAILED'
+      FAIL D7-s3-03: a plan's last step is one PLAN_STEP wide after a shorter gap (covered at half a step, not at a step), and the arbiter's planned room reads it; null control, the series lookup with no grid width ends it one gap after its stamp  [(None, None, None, None)]
+    1 of 9 FEATURES BLOCK FAILED
+R3 utc_instant naive branch: rc=1 tail="IndentationError: expected an indented block after 'if' statement on line 47"
+R4 payload_number finite guard: rc=1 tail='1 of 9 FEATURES BLOCK FAILED'
+      FAIL D7-s3-04 finite: payload_number refuses NaN and infinity, and agrees with finite_float on every probe but text  [payload [True, True, False, False, False, True, True, True, True, True, True] / finite_float less text [True, True, False, False, False, False, False, False, False, True, True]]
+    1 of 9 FEATURES BLOCK FAILED
+R5 EVIDENCE_KEEP 7: rc=1 tail='1 of 9 FEATURES BLOCK FAILED'
+      FAIL D7-s1-05 note: GuardState, Cusum and the immersion log write evidence through EvidenceNotes.note, the newest EVIDENCE_KEEP lines kept, the same line for the same note  [['2026-01-15T10:02:00+00:00: n2', '2026-01-15T10:03:00+00:00: n3', '2026-01-15T10:04:00+00:00: n4', '2026-01-15T10:05:00+00:
+    1 of 9 FEATURES BLOCK FAILED
+R6 sensor water literal: rc=1 tail='1 of 9 FEATURES BLOCK FAILED'
+      FAIL D7-s3-04 water: the tank model, the flow meter and the gap advisor read one heat capacity, const.WATER_SPECIFIC_HEAT (kWh per litre per K)  [{'const': 0.00116, 'tank model': 0.00116, 'flow meter': 0.00116, 'gap advisor': 0.0011630555555555558}]
+    1 of 9 FEATURES BLOCK FAILED
+R7 manual_plan._instant timestamp: rc=1 tail='1 of 9 FEATURES BLOCK FAILED'
+      FAIL D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a Tokyo host; open_meteo and manual_plan (its instant and its naive-reference coercion) read it there  [{'drift': True, 'open_meteo': True, 'manual_plan': False, 'manual_plan coerce': True, 'aware kept': True}]
+    1 of 9 FEATURES BLOCK FAILED
+R8 _in_zone without utc_instant: rc=1 tail='1 of 26 wood-advisor checks FAILED'
+      FAIL a naive plan stamp is UTC under a non-UTC host zone: the windows and the lighting window equal the aware build's  [host zone took True, None (None, None)]
+    1 of 26 wood-advisor checks FAILED
+R9 replay_doc.numeric bool guard: rc=1 tail='1 of 164 DEBUG COLLECT CHECKS FAILED'
+      FAIL replay_doc.numeric answers exactly as const.finite_float on every probe, refusing a bool, NaN and infinity in any spelling  [[(True, True, False), (False, True, False)]]
+      FAIL a16:debug_inline  [the download 861B against the 40000B cap; 0 row(s) inline]
+      FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12571B]
+      FAIL a16:debug_inline  [TypeError('not serializable')]
+      FAIL a16:debug_capped  [bundle 268264B against the 40000B cap; the download -1B]
+      FAIL a16:debug_inline  [the download 12571B against the 100B cap; 1 row(s) inline]
+restored-clean: True ''
+done
