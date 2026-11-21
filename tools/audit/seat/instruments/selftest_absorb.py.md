@@ -19,5 +19,6 @@
   (`dev/governance/roles/fix-review.md`): the head changes the table alone, a
   re-run at the head's parent over its commit message's `--run` ids is
   byte-identical, and the parent's `selftest_scope.py grows` finds no read
-  dropped. `--self-test`: the root cause's runs (defect, fixed, null) over a
-  faked GitHub and git, and one mutant per branch.
+  dropped. A TERM or HUP TERMs the tool it is running (`pr_args.sh`'s pusher
+  census, `runner-py`). `--self-test`: the root cause's runs (defect, fixed,
+  null) over a faked GitHub and git, one mutant per branch, and the stop.

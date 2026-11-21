@@ -428,6 +428,7 @@ tools/audit/seat/update_pr.sh runner
 tools/audit/seat/remerge_main.sh runner
 tools/pr/app_push.sh runner
 tools/audit/seat/merge_train.py runner-py
+tools/audit/seat/selftest_absorb.py runner-py
 tools/pr/push.sh retired
 tools/audit/seat/pr_args.sh mention: this census and its self-test stubs
 tools/audit/seat/handover_prompt.py mention: a prompt string naming the author path

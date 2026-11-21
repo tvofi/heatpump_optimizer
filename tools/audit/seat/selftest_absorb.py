@@ -39,6 +39,14 @@ ONE PASS:
   rc 2: `SELFTEST-ABSORB UNREADABLE <why>` (gh, a run, an artifact, the clone
   or absorb).
 
+A STOP ENDS THE TOOL IT RUNS (tools/audit/seat/pr_args.sh's pusher census,
+`runner-py`). The pass runs app_push.sh, so a TERM or HUP unwinds like Ctrl-C
+(`stop_on_signal`) and `sh` TERMs the running tool, whose own EXIT trap reaps
+its tree, then waits for it; subprocess.run's own handler SIGKILLs, which runs
+no trap, and an untrapped TERM orphans the push. The scratch clone carries
+`maintenance.auto=false` (tests/throwaway_git.py's local layer), so no detached
+repack outlives the pass in --work.
+
 THE REVIEW of the standing pull request is mechanical
 (dev/governance/roles/fix-review.md), and `verify` is it: the head changes
 only the table; the commit message's `--at` is the head's parent; a pass
@@ -52,6 +60,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -72,12 +81,35 @@ class Unreadable(Exception):
     pass
 
 
+TOOL_STOP_SECONDS = 10  # app_push.sh's reap grants its tree 2 s (pr_args.sh's PR_REAP_TENTHS)
+
+
+def stop_on_signal() -> None:
+    """TERM and HUP raise SystemExit(128 + signal), so a stop unwinds through `sh`."""
+    def unwind(signum, _frame):
+        raise SystemExit(128 + signum)
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, unwind)
+
+
 def sh(argv: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
     try:
-        p = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, timeout=900)
-    except (OSError, subprocess.TimeoutExpired) as e:
+        p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    except OSError as e:
         return 127, "", f"{e.__class__.__name__}: {e}"
-    return p.returncode, p.stdout, p.stderr
+    try:
+        out, err = p.communicate(timeout=900)
+    except BaseException as e:  # a stop (stop_on_signal) or the timeout: TERM the tool, never orphan it
+        p.terminate()
+        try:
+            p.wait(TOOL_STOP_SECONDS)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            p.wait()
+        if isinstance(e, subprocess.TimeoutExpired):
+            return 127, "", f"{e.__class__.__name__}: {e}"
+        raise
+    return p.returncode, out, err
 
 
 def last(err: str) -> str:
@@ -143,8 +175,9 @@ def absorb(p: Pass, take: list, tip: str) -> tuple[int, int, int | None, Path, P
             arts.append(d / "selftest_closures.json")
     if not arts:
         raise Unreadable(f"no {MEASURED} artifact in run(s) {','.join(str(r) for r, _, _ in take)}")
-    clone, out = p.work / "clone", p.work / "selftest_closures.json"
-    for argv, cwd in ((["clone", "-q", "--shared", "--no-checkout", str(p.repo_dir), str(clone)], None),
+    clone = p.work / "clone"
+    out = p.work / "selftest_closures.json"
+    for argv, cwd in ((["clone", "-c", "maintenance.auto=false", "-c", "gc.auto=0", "-q", "--shared", "--no-checkout", str(p.repo_dir), str(clone)], None),
                       (["checkout", "-q", "--detach", tip], clone)):
         rc, _, err = p.git(*argv, cwd=cwd)
         if rc != 0:
@@ -278,6 +311,7 @@ def main(argv: list[str]) -> int:
     if not opt["--repo-dir"]:
         print("selftest_absorb: --repo-dir is required", file=sys.stderr)
         return 2
+    stop_on_signal()
     repo_dir = Path(opt["--repo-dir"]).resolve()
     work = Path(opt["--work"] or repo_dir.parent / "selftest-absorb-work").resolve()
     if argv[0] == "verify":
@@ -547,6 +581,48 @@ MUTANTS = {
 }
 
 
+def stop_survivor(src: str, install: bool) -> bool | None:
+    """Drive `src`'s `sh` over a tool that records its pid and sleeps, TERM the
+    driver once the tool runs, and say whether the tool outlived it (None: the
+    driver never started the tool). `install` calls stop_on_signal first, as
+    `main` does; without it a TERM ends the driver at the default action."""
+    import os
+    import time
+    d = Path(tempfile.mkdtemp())
+    (d / "absorb_stop.py").write_text(src)
+    pidf = d / "tool.pid"
+    drv = ("import sys; sys.path.insert(0, sys.argv[1]); import absorb_stop as m; "
+           + ("m.stop_on_signal(); " if install else "")
+           + "m.sh(['bash', '-c', 'echo $$ > ' + sys.argv[2] + '; exec sleep 30'])")
+    p = subprocess.Popen([sys.executable, "-I", "-c", drv, str(d), str(pidf)])
+    pid = None
+    try:
+        for _ in range(100):
+            if pidf.is_file() and pidf.read_text().strip():
+                pid = int(pidf.read_text())
+                break
+            time.sleep(0.05)
+        if pid is None:
+            return None
+        p.terminate()
+        p.wait(TOOL_STOP_SECONDS + 5)
+        time.sleep(0.2)
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        os.kill(pid, signal.SIGKILL)
+        return True
+    finally:
+        if p.poll() is None:
+            p.kill()
+        shutil.rmtree(d, ignore_errors=True)
+
+
+#: (old, new) narrowing `sh`'s reap to the timeout: a stop must then leave the tool running.
+STOP_MUTANT = ("    except BaseException as e:  # a stop", "    except subprocess.TimeoutExpired as e:  # a stop")
+
+
 def self_test() -> int:
     import importlib.util
     path = Path(__file__).resolve()
@@ -580,6 +656,15 @@ def self_test() -> int:
             killed = False
         print(f"  {'ok  ' if killed else 'FAIL'} mutant {mname} killed by: {case}")
         failed += not killed
+    stops = {"a TERM to the pass TERMs the tool `sh` runs, and none of it survives": stop_survivor(src, True) is False,
+             "  null control: without stop_on_signal the TERM ends the pass and its tool survives":
+                 stop_survivor(src, False) is True,
+             "  mutant stop_orphans_tool (sh reaps on the timeout only): the stopped pass leaves its tool running":
+                 body.count(STOP_MUTANT[0]) == 1 and stop_survivor(src.replace(*STOP_MUTANT, 1), True) is True}
+    for name, ok in stops.items():
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}")
+        failed += not ok
+    total += len(stops)
     print(f"selftest_absorb self-test: {total} checks, {failed} failed")
     return 1 if failed else 0
 
