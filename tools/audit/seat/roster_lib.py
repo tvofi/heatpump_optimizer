@@ -904,7 +904,7 @@ CAUSES = ("external", "original")
 #: `cm_kind`, the countermeasure's kind (card L1's closed vocabulary).
 CM_KINDS = ("delete", "self-heal", "narrow", "widen", "new-refusal", "policy-text")
 _ROOT = Path(__file__).resolve().parents[3]
-_DIM = re.compile(r"\AD\d{1,2}\Z")
+_DIM = re.compile(r"\AD(?:\d{1,2}|X0)\Z")
 _PR = re.compile(r"\A#[1-9]\d*\Z")
 _RCA_ID = re.compile(r"\A[A-Za-z0-9][\w-]*(?:\.[\w-]+)*\Z")  # a file stem, never a path
 
@@ -1163,7 +1163,7 @@ def writer_lease(state_dir, wait_s: float, sleep=None, clock=None):
     import time
     sleep, clock = sleep or time.sleep, clock or time.monotonic
     Path(state_dir).mkdir(parents=True, exist_ok=True)
-    fd = os.open(Path(state_dir) / WRITER_LEASE, os.O_RDWR | os.O_CREAT, 0o644)
+    fd = os.open(Path(state_dir) / WRITER_LEASE, os.O_RDWR | os.O_CREAT, 0o600)
     end = clock() + wait_s
     while True:
         try:
@@ -1192,6 +1192,11 @@ def _self_test() -> int:
         n[0] += 1
         if not ok:
             fails.append(f"{name} (got: {got})")
+
+    briefs = sorted(p.stem for p in (_ROOT / "dev/governance/dimensions").glob("*.md"))
+    check("every brief of the tree is a finder dimension, DX0 included; a near-miss is none",
+          len(briefs) > 1 and all(_dimension(d, _ROOT) for d in briefs) and not any(_dimension(d, _ROOT) for d in ("DX01", "DXO", "dX0")),
+          [d for d in briefs if not _dimension(d, _ROOT)])
 
     def refuses(call) -> str:
         """The refusal's text; "" when the call returned, and the crash
@@ -1678,7 +1683,13 @@ def _self_test() -> int:
               "cannot read" in why and "is not a file" not in why, why)
     import os
     with tempfile.TemporaryDirectory() as st:
-        held = writer_lease(st, 0)
+        old_umask = os.umask(0o022)
+        try:
+            held = writer_lease(st, 0)
+        finally:
+            os.umask(old_umask)
+        mode = os.stat(Path(st) / WRITER_LEASE).st_mode & 0o777
+        check("writer_lease: the lease file is owner-only under umask 022", mode == 0o600, oct(mode))
         other = writer_lease(st, 0)
         waits = []
         late = writer_lease(st, 3, sleep=waits.append, clock=lambda t=iter(range(0, 99)): next(t))

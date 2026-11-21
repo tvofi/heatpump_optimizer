@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/power_guard.py:<module> CONST 2cd48c67",
+  "killed_by": "tests/features.py",
+  "old": "HYSTERESIS_SAMPLES = 2",
+  "reason": "Recorded by `mutation_table.py --drain`: CONST (`HYSTERESIS_SAMPLES = 4`) took tests/features.py from rc=0 failed=0 to rc=1 failed=14."
+}
