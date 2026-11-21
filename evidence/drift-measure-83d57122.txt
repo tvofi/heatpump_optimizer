@@ -1,0 +1,21 @@
+merged tree: origin/main 78d3b40221 + 83d5712253910edaa4a6c75cf61988eed4207b9c = 75c754ca6f7df093273eab803e011475c4ec2dd0
+merged table == head table
+tree gated steps: 127; artifact steps: 127
+head-83d57122: 0 refusal(s), 2 note(s)
+main-78d3b402: 4 refusal(s), 0 note(s)
+    UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round11/D0/.gitattributes', 'dev/audit/rounds/round11/D0/s1/.gitattributes', 'dev/audit/rounds/round11/D0/s1/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s1/out/.gitattributes', 'dev/audit/rounds/round11/D0/s2/.gitattributes', 'dev/audit/rounds/round11/D0/s2/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s2/l
+    UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+224 more)
+    UNDER-SCOPED step roster-library: dirs misses ['dev/governance/dimensions']
+    UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+224 more)
+dirs on the merged tree absent at 0ae95e4c9b: ['dev/audit/rounds/round11/D3/s1/state/gates', 'dev/audit/rounds/round11/D3/s1/state/gates/carried-D3-top6', 'dev/audit/rounds/round11/D3/s1/state/gates/cloud']
+steps naming round11 (artifact): ['dependency-graph-census', 'policy-lint-mutants', 'prepr']
+head-83d57122 vs synthetic: 0 refusal(s)
+main-78d3b402 vs synthetic: 4 refusal(s)
+   UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round11/D0/.gitattributes', 'dev/audit/rounds/round11/D0/s1/.gitattributes', 'dev/audit/rounds/round11/D0/s1/findings/.gitattrib
+   UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out'
+   UNDER-SCOPED step roster-library: dirs misses ['dev/governance/dimensions']
+   UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/round
+dependency-graph-census tracked round11 dirs 238 missing []
+prepr tracked round11 dirs 238 missing []
+policy-lint-mutants .gitattributes uncovered: []
+selftest_scope static: 127 gated step(s), 0 problem(s)

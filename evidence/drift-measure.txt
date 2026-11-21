@@ -1,0 +1,20 @@
+=== tree: 0ae95e4c9b + head (merge 1eb38a9a6140368361e71d06e58c677c11157a89)
+merged table == head table
+tree gated steps: 127; artifact steps: 127
+merged-head: 0 refusal(s), 0 note(s)
+main: 4 refusal(s), 0 note(s)
+    UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round11/D0/.gitattributes', 'dev/audit/rounds/round11/D0/s1/.gitattributes', 'dev/audit/rounds/round11/D0/s1/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s1/out/.gitattributes', 'dev/audit/rounds/round11/D0/s2/.gitattributes', 'dev/audit/rounds/round11/D0/s2/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s2/l
+    UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+224 more)
+    UNDER-SCOPED step roster-library: dirs misses ['dev/governance/dimensions']
+    UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+224 more)
+=== tree: 78d3b40221 + head (merge 9d3c08aeaee6c6ec5ef6a31d3907e2405c40e731)
+merged table == head table
+tree gated steps: 127; artifact steps: 127
+merged-head: 0 refusal(s), 0 note(s)
+main: 4 refusal(s), 0 note(s)
+    UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round11/D0/.gitattributes', 'dev/audit/rounds/round11/D0/s1/.gitattributes', 'dev/audit/rounds/round11/D0/s1/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s1/out/.gitattributes', 'dev/audit/rounds/round11/D0/s2/.gitattributes', 'dev/audit/rounds/round11/D0/s2/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s2/l
+    UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+224 more)
+    UNDER-SCOPED step roster-library: dirs misses ['dev/governance/dimensions']
+    UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+224 more)
+selftest_scope absorb: 0 read(s) added to 0 step(s)
+cmp: /Users/timmalmstrom/hpo-seats/r11/rev-3806-r4/absorbed-check.json: No such file or directory
