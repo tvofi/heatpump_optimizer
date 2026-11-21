@@ -17,3 +17,4 @@
 1795019639 HB alive
 1795019958 DONE handed off r11-seam-cycle-solve at 8d5e340f5ee7; body ef0cbb0abad5
 1795260306 HB alive
+1795260412 CKPT verified features.py merge keeps all checks; structure passes at merge-tree snapshot 625535f54c46
