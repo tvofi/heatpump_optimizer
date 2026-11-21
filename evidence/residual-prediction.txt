@@ -1,0 +1,4 @@
+origin/main 78d3b40221 dirs added since artifact run 44868101509 (0ae95e4c9b): ['dev/audit/rounds/round11/D3/s1/state/gates', 'dev/audit/rounds/round11/D3/s1/state/gates/carried-D3-top6', 'dev/audit/rounds/round11/D3/s1/state/gates/cloud']
+dependency-graph-census dirs not in head table: ['dev/audit/rounds/round11/D3/s1/state/gates', 'dev/audit/rounds/round11/D3/s1/state/gates/carried-D3-top6', 'dev/audit/rounds/round11/D3/s1/state/gates/cloud']
+prepr dirs not in head table: ['dev/audit/rounds/round11/D3/s1/state/gates', 'dev/audit/rounds/round11/D3/s1/state/gates/carried-D3-top6', 'dev/audit/rounds/round11/D3/s1/state/gates/cloud']
+policy-lint-mutants .gitattributes probes not covered: ['dev/audit/rounds/round11/D3/s1/state/gates/.gitattributes', 'dev/audit/rounds/round11/D3/s1/state/gates/carried-D3-top6/.gitattributes', 'dev/audit/rounds/round11/D3/s1/state/gates/cloud/.gitattributes']
