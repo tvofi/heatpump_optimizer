@@ -10,3 +10,4 @@
 1795270520 DONE blocked b1ee994a mutation-vacuous: card.js:7344 :11424 :5257; verdict 483f6845 on probe/rev-3821-81fb1f19
 1795281499 HB alive
 1795281550 CKPT role pack and packet rendered snapshot cdea02656c41
+1795281585 CKPT prior verdict read; delta scoped snapshot ac9eabe6e587
