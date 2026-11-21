@@ -259,7 +259,7 @@ def verify(p: Pass, head: str) -> tuple[int, list[str]]:
     """The standing pull request's mechanical review at `head`: regeneration and growth."""
     git = lambda *a: p.git("-C", str(p.repo_dir), *a)  # noqa: E731
     rc, parent, err = git("rev-parse", f"{head}^")
-    rc2, paths, _ = git("diff", "--name-only", f"{head}^", head)
+    rc2, paths, _ = git("diff", "--no-renames", "--name-only", f"{head}^", head)  # a rename onto the table lists both sides
     rc3, msg, _ = git("log", "-1", "--format=%B", head)
     rc4, want, _ = git("show", f"{head}:{TABLE}")
     if rc or rc2 or rc3 or rc4:
