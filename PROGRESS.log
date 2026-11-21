@@ -1,3 +1,4 @@
 1795304402 INIT r11-rev-3840
 1795304489 HB alive
 1795304550 CKPT packet read, worktree at head, starting mutation/harness snapshot b436b6fd6048
+1795304855 CKPT mutation, harness both ends, class enum done; waiting CI snapshot cb3ce5a774bd
