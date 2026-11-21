@@ -81551,7 +81551,9 @@ from heatpump_optimizer import sensor as _k11_sensor  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalParameters as _k11_TP  # noqa: E402
 
 _k11_tp = _k11_TP()
-_k11_terms = _k11_sensor._gap_probe_terms({}, [1.0], [1.0], 1.0)
+_k11_terms = _k11_sensor._gap_probe_terms(
+    {_k11_const.CONF_DHW_ENABLED: True}, [1.0], [1.0], 1.0
+)
 _k11_band = float(_k11_const.DEFAULT_DHW_SETPOINT) - float(_k11_const.DEFAULT_DHW_MIN_TEMP)
 _k11_vol = EntryConfig.from_mapping({}).dhw_tank_volume
 _k11_water = {
