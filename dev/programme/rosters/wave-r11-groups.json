@@ -3716,9 +3716,9 @@
     "Left behind (carry census 2026-11-21): R11-INTAKE-R10-RESIDUE carries 120 and 121 (0-based, round-11 roster on handoff/audit-r10-roster) are marked moved to R10-DRAW-MAP-EVIDENCE, which was already done and holds no copy; this group owns issue 3106 now. From r10-cop-learner-draw-floor, body item f2abf2d0: the band measurement stays open on named owner data, a diagnostics download with the debug week on from a set-point install whose pump ran across the band (several distinct written flow set-points strictly between gate and ceiling, each held in heat mode with a power reading inside the interval). Decision rule fixed by the design: a fit residual above `AGREE_TOLERANCE` (custom_components/heatpump_optimizer/draw_range.py) times the fitted draw at the ceiling is non-linear and goes to a new design; at or below it, a recorded refusal with the number. Flat-price null: a flat-price bundle prints no fit. Instrument: dev/audit/harnesses/r10_cop_gate_band.py. Body item e97e01d8: at origin/main `diagnostics_view` in draw_range.py publishes the summary and the ranges but no running-draw window rows, so the band fit cannot run from a download without the debug week or a change that publishes those rows; say at this group's merge whether its stored rows answer that. Neither is a build owed by this pull request if its design excludes it: record the disposition. Carry: R11-CARRY-DRAWMAP (items f2abf2d0, e97e01d8)"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "fix/r11-carry-drawmap",
-    "commit": null,
+    "commit": "35402f78175090abecbac8859c50d4d816ccd95b",
     "last_step": null,
     "next_step": "dispatch the fixer; re-measure every carry first",
     "note": "created by the round-11 carry map from R10-DRAW-MAP-EVIDENCE carries 0,1,2,3,4,5,6,7,8,10,13,14,15,16,17; overlap admitted (R11-OUTSIDE-HONEST-DHW-RUNS): carry-map group for audit carries; shared files serialized behind their current owner by after-edge at dispatch",
