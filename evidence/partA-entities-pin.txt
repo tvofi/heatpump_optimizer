@@ -1,0 +1,12 @@
+== head
+  ok   codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45
+  ok   codeql.yml carries the D-5 extracted-files check, on push, after the analysis
+== py75
+  FAIL codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45  [timeout-minutes='${{ matrix.timeout }}'; include caps={'actions': 45, 'javascript-typescript': 45, 'python': 75}; the python leg was capped at 75.1 min on 22 of main's 40 newest push jobs (wors
+  ok   codeql.yml carries the D-5 extracted-files check, on push, after the analysis
+== py76
+  ok   codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45
+  ok   codeql.yml carries the D-5 extracted-files check, on push, after the analysis
+== act120
+  FAIL codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45  [timeout-minutes='${{ matrix.timeout }}'; include caps={'actions': 120, 'javascript-typescript': 45, 'python': 120}; the python leg was capped at 75.1 min on 22 of main's 40 newest push jobs (wo
+  ok   codeql.yml carries the D-5 extracted-files check, on push, after the analysis

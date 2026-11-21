@@ -1,0 +1,13 @@
+# capped job 136736442455 (main 0ae95e4c9b, run 44868101509)
+1082:2026-11-21T04:52:46.4749908Z ##[group]Extracting python
+3781:2026-11-21T05:29:49.9089200Z Running TRAP import for CodeQL database at /home/runner/work/_temp/codeql_databases/python...
+3788:2026-11-21T05:30:05.0232021Z ##[group]Running queries for python
+3934:2026-11-21T06:02:11.6656206Z [34/52 eval 31m35s] Evaluation done; writing results to codeql/python-queries/Security/CWE-326/WeakCryptoKey.bqrs.
+3935:2026-11-21T06:02:16.3051323Z [35/52 eval 31m40s] Evaluation done; writing results to codeql/python-queries/Security/CWE-730/ReDoS.bqrs.
+3936:2026-11-21T06:07:17.7955071Z ##[error]The operation was canceled.
+# uncensored job 135135250847 (run 44398362437, 74.2 min)
+1072:2026-11-18T21:24:00.6864656Z ##[group]Extracting python
+3236:2026-11-18T21:58:26.7924001Z Running TRAP import for CodeQL database at /home/runner/work/_temp/codeql_databases/python...
+3243:2026-11-18T21:58:45.3159969Z ##[group]Running queries for python
+3390:2026-11-18T22:31:04.6984026Z [35/52 eval 31m46s] Evaluation done; writing results to codeql/python-queries/Security/CWE-326/WeakCryptoKey.bqrs.
+3407:2026-11-18T22:37:18.3823678Z [52/52 eval 38m0s] Evaluation done; writing results to codeql/python-queries/Security/CWE-312/CleartextLogging.bqrs.
