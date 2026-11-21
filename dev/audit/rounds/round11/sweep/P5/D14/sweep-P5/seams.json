@@ -1,0 +1,192 @@
+{
+ "self": {
+  "probed": false,
+  "reason": "the instance"
+ },
+ "now": {
+  "probed": false,
+  "reason": "clock"
+ },
+ "room_temp": {
+  "probed": true,
+  "flagged": false,
+  "arms": [
+   {
+    "inject": "white 0.005 C (D2-s3-10)",
+    "cells": 36,
+    "admitted": 20,
+    "biased_admitted": 0,
+    "interval_misses": 0,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   },
+   {
+    "inject": "white 0.01 C (D2-s3-10)",
+    "cells": 36,
+    "admitted": 6,
+    "biased_admitted": 0,
+    "interval_misses": 1,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   },
+   {
+    "inject": "white 0.02 C (D2-s3-10)",
+    "cells": 36,
+    "admitted": 1,
+    "biased_admitted": 0,
+    "interval_misses": 1,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   },
+   {
+    "inject": "quantised 0.1 C (D2-s3-10)",
+    "cells": 3,
+    "admitted": 0,
+    "biased_admitted": 0,
+    "interval_misses": 0,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   }
+  ]
+ },
+ "outdoor_temp": {
+  "probed": true,
+  "flagged": true,
+  "arms": [
+   {
+    "inject": "sensor +1.5 K",
+    "cells": 3,
+    "admitted": 2,
+    "biased_admitted": 0,
+    "interval_misses": 2,
+    "worst_admitted_bias": 0.0,
+    "flagged": true
+   }
+  ]
+ },
+ "price": {
+  "probed": false,
+  "reason": "scheduling only (when to run the test night)"
+ },
+ "price_horizon": {
+  "probed": false,
+  "reason": "scheduling only"
+ },
+ "learner_samples": {
+  "probed": false,
+  "reason": "arming precondition (sample count)"
+ },
+ "max_power_kw": {
+  "probed": false,
+  "reason": "bounds the test override; told equals the plant's own limit"
+ },
+ "cop": {
+  "probed": true,
+  "flagged": true,
+  "arms": [
+   {
+    "inject": "true COP x1.15 of told",
+    "cells": 3,
+    "admitted": 1,
+    "biased_admitted": 1,
+    "interval_misses": 1,
+    "worst_admitted_bias": 0.1285,
+    "flagged": true
+   }
+  ]
+ },
+ "plan_power_kw": {
+  "probed": true,
+  "flagged": false,
+  "arms": [
+   {
+    "inject": "pump delivers 0.9 of the told hold",
+    "cells": 3,
+    "admitted": 2,
+    "biased_admitted": 0,
+    "interval_misses": 1,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   }
+  ]
+ },
+ "house": {
+  "probed": false,
+  "reason": "expanded into its HousePlant fields"
+ },
+ "house.ua": {
+  "probed": true,
+  "flagged": false,
+  "arms": [
+   {
+    "inject": "declared UA x1.3 of true",
+    "cells": 3,
+    "admitted": 2,
+    "biased_admitted": 0,
+    "interval_misses": 0,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   }
+  ]
+ },
+ "house.capacity": {
+  "probed": true,
+  "flagged": false,
+  "arms": [
+   {
+    "inject": "true room capacity x2",
+    "cells": 3,
+    "admitted": 2,
+    "biased_admitted": 0,
+    "interval_misses": 0,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   }
+  ]
+ },
+ "house.gains": {
+  "probed": true,
+  "flagged": true,
+  "arms": [
+   {
+    "inject": "free heat +0.8 kW (D7-s2-02)",
+    "cells": 3,
+    "admitted": 2,
+    "biased_admitted": 2,
+    "interval_misses": 2,
+    "worst_admitted_bias": 0.2111,
+    "flagged": true
+   }
+  ]
+ },
+ "house.slab_mass": {
+  "probed": true,
+  "flagged": false,
+  "arms": [
+   {
+    "inject": "true slab mass x2",
+    "cells": 3,
+    "admitted": 1,
+    "biased_admitted": 0,
+    "interval_misses": 0,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   }
+  ]
+ },
+ "house.slab_transfer": {
+  "probed": true,
+  "flagged": false,
+  "arms": [
+   {
+    "inject": "true slab transfer x2",
+    "cells": 3,
+    "admitted": 1,
+    "biased_admitted": 0,
+    "interval_misses": 0,
+    "worst_admitted_bias": 0.0,
+    "flagged": false
+   }
+  ]
+ }
+}
