@@ -4,3 +4,4 @@
 1795276618 CKPT failing tests written (features 3B block, edge room lift named) snapshot c33bbb1663e0
 1795276923 HB alive
 1795277013 CKPT implementation committed 432e4b99, pushed to handoff-wip snapshot dd8fe31da50d
+1795277255 CKPT post-pass rework 13f8317e pushed; archscore NULL; starting scoped gate snapshot 1fdc06bfc361
