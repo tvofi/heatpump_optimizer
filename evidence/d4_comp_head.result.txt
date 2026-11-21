@@ -1,0 +1,7 @@
+RESULT renders=144 renders
+RESULT pipes=576 pipe targets
+RESULT pipe_hit_under_floor=132 pipes under 24 px (44 coarse) at their best point, pipe or its twin
+RESULT pipe_hit_min_px=10.25 px
+RESULT pipe_hit_max_px=56.25 px
+RESULT port_hit_median_px=30.25 px (null control)
+RESULT load1=8.04

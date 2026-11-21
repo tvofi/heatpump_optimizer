@@ -1,0 +1,40 @@
+  ok    why-now: no why_now attribute renders the no-data line and no rows
+  ok    why-now: every driver neutral renders the one all-neutral line
+  ok    why-now: Swedish words, hover and percent spacing
+  ok    why-now: German words, hover and percent spacing
+  ok    why-now: every en string has its twin in every card language, and every driver code has a label and an explanation
+  ok    collapse: both folds render a header button, collapsed by default
+  ok    collapse: a folded section renders no body
+  ok    collapse: the narrative summary is the rows' kWh and cost total, visible while folded
+  ok    collapse: the why-now summary is its strongest driver, visible while folded
+  ok    collapse: a click opens its own fold and only that one
+  ok    collapse: the toggle does not reach the card's open-on-click
+  ok    collapse: focus returns to the rebuilt header
+  ok    collapse: the why-now fold opens to its rows
+  ok    collapse: a second click folds it again
+  ok    collapse: a hass refresh rebuilds the card and keeps each fold as it was
+  ok    collapse: focus returns to the dialog's copy of the pressed header
+  ok    collapse: the doubly rendered headline mints no id and no aria-controls
+  ok    collapse: the folds sit after the savings figure and before the chart
+  ok    collapse: a rule under the last fold closes the headline off from the chart
+  ok    collapse: the fold summary wraps and never ellipsises
+  ok    collapse: the folded card keeps the visibility the dialog's chips last saved
+  ok    collapse: unpaired lines summarise as the first line; no why_now as the no-data line
+  ok    collapse: the folded card renders no series chip and no legend
+  ok    collapse: the expanded dialog carries the chips and the legend
+  ok    collapse: every fold string has its twin in en, sv and de
+  ok    collapse: the headers speak the card language
+  ok    user text: every setup.page_* and advisor.step_* names the options flow's own menu path, in every card language
+  ok    user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language
+  ok    user text: the invalid-window error names no channel, in every card language
+  ok    user text: Save and Simulate both refuse an invalid quiet window with the channel-neutral error
+  ok    user text: the refit row states the band_percent the refit publishes, in every card language
+  ok    user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language
+  ok    failure text: a translated Home Assistant exception reads in the viewer's language
+  ok    failure text: a rejection with no translation key, or one localize cannot resolve, keeps its message
+  ok    failure text: a layout save failing under sv shows the sv exception and no en.json text
+  ok    failure text: a language switch asks for that language's exceptions once more
+  ok    history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau
+  ok    history: the bound drops nothing the window can show -- every overlay point and the mode at its left edge match an unpruned source
+
+ALL CARD CHECKS PASSED
