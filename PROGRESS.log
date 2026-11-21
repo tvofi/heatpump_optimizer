@@ -1,3 +1,4 @@
 1795260313 INIT r11-seam-tests
 1795260321 HB alive
 1795260339 CKPT worktree at 04001d58 (verified = 7104e5eb + 8b42bf71 change) snapshot 92b3584310eb
+1795260578 CKPT comment ratchet repaired (1625->1622), pushed wip snapshot 395a25d34433
