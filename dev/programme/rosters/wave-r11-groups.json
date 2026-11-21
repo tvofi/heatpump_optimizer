@@ -5734,7 +5734,9 @@
     "docs/configuration.md"
    ],
    "brief": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "Left behind (carry census 2026-11-21): PR 3674's fix review routed this to R11-INTAKE-R10-RESIDUE, which is deferred and never received it; this group owns custom_components/heatpump_optimizer/whatif.py. Follow-up, review item f9a20486: the steady pair's hour scatter is measured only for the asks the item named. A hot-water window, quiet-hours or wood-slot change sent alone also takes the pair branch (`schedule_days` in whatif.py returns None, since no comfort target moves), and its figure is equally one day's, priced from the hour asked; nothing measures it for the same scatter, and the card sentence names only the weight and the floor. Control: the asks arm with those overrides added to the pair asks; precondition: the card still sends them alone. Not owed by the open pull request if its design excludes it: record the disposition at its merge. Carry: R11-SEAM-cycle-solve (items f9a20486)"
+   ],
    "source": "audit",
    "resume": {
     "stage": "in-progress",
