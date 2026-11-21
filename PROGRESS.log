@@ -39,3 +39,4 @@
 1795284729 CKPT pushed 6f9112e1: killing checks for 11197/11210/129; full features head + m129 running snapshot b51ea516e6bc
 1795287599 CKPT merged origin/main a8efe1d1 (6b74444a, 5 count conflicts); pushed 36ab0c0c; post-merge full features + pin drive running snapshot 4a424e0d53f5
 1795292451 CKPT pins committed cd22ae92 (0 added unpinned); post-merge scoped scripts running; body drafting snapshot 3e0074d9ffd0
+1795293513 CKPT entities 2737 pass at 62c9cdbe; body drafted; scoped prepr running snapshot 596de7156e53
