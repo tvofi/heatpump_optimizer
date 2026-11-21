@@ -15,7 +15,7 @@
 //
 // Own CI job, not a run.sh lane: it needs a browser the other lanes do
 // not install, and it is excluded from the closures roster in
-// tests/closure.py's NOT_A_TEST for exactly that reason -- the closures
+// tests/closure.py's NOT_A_TEST for exactly that reason. The closures
 // job would have to install Chromium to record it, which buys nothing:
 // its dependency closure is the card source, the payload and itself.
 //
@@ -41,7 +41,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// createRequire, not a static import: the lane must resolve playwright
+// createRequire, not a static import. The lane must resolve playwright
 // from wherever the CI job or developer put it (a bare `import` would
 // demand node_modules inside the repository, which this repo does not
 // have and should not grow for one lane).
@@ -89,7 +89,7 @@ function check(name, cond, detail = "") {
 // that omits SEK/kWh, one hover row. Round 9 found five more instances at
 // selectors and states none of them named. This block asserts the PROPERTY
 // over every rendered node instead, in every cell of a grid, and a REACH rule
-// that fails when the card styles a colour no cell renders -- so a new status
+// that fails when the card styles a colour no cell renders. So a new status
 // class cannot ship unmeasured by being absent from the grid.
 //
 // Prototype carried from the round-9 P9 RCA seat (handoff/r9-rca-p9) for F6.3.
@@ -412,12 +412,12 @@ const contrastKitScript = { content: hpoContrastKit.toString() };
 
 /** R9-UI-3 review, widened by R10-HOTFIX-CARD-HEALTH-TEXT: the card's text in
  * all four theme/darkMode pairings. The two mismatched ones are what Home
- * Assistant produces but no P9 grid cell renders: HA reports
+ * Assistant produces but no P9 grid cell renders. HA reports
  * hass.themes.darkMode false for any theme without a dark mode, so a community
  * dark theme paints the card with dark variables and the light literals (and
  * the mirror image under a light theme on a dark profile). The two matched
  * ones are HA's default theme, measured in this same unit so the four arms are
- * one check's evidence rather than two lanes' (P662), and so a fix that only
+ * one check's evidence rather than two lanes' (P662). And so a fix that only
  * moves the defect from one pairing to another reads red here.
  *
  * The unit is every element that owns a visible text node, on the dashboard
@@ -523,8 +523,8 @@ async function themeMismatch({ browser, check, plan }) {
       const low = pages.flatMap((p) => p.low);
       const count = (id, key) => (pages.find((p) => p.view === id) || { runs: {} }).runs[key] || 0;
       // The sweep's own controls: it reached every page with text on it,
-      // and the rows of the 906fee95e defect are among what it measured --
-      // a sweep that found the Health or Advisor rows absent would pass for
+      // and the rows of the 906fee95e defect are among what it measured.
+      // A sweep that found the Health or Advisor rows absent would pass for
       // having nothing to measure.
       const reach = { pages: first.tabs.length, empty: pages.filter((p) => p.seen < 5).map((p) => p.view),
         health: count("health", "span.fact-text"), advisor: count("advisor", "span.fact-text") };
@@ -540,10 +540,10 @@ async function themeMismatch({ browser, check, plan }) {
 
 /** R10-CARD-COLLAPSE: the headline's two folds and the dialog-only legend,
  * in a real browser, light and dark. Collapsed by default with no body, no
- * chip and no dashed-line note on the card; Enter and Space on a focused
- * header toggle it and focus stays on the header; the summary text clears
+ * chip and no dashed-line note on the card. Enter and Space on a focused
+ * header toggle it and focus stays on the header. The summary text clears
  * 4.5:1 against the card in both themes and the header the 24 px target
- * floor; the expanded dialog carries the chips and the notes. */
+ * floor. The expanded dialog carries the chips and the notes. */
 async function cardCollapse({ browser, check, plan, out }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
   const st = pageStates(plan);
@@ -642,16 +642,16 @@ async function cardCollapse({ browser, check, plan, out }) {
 
 /** R10-HOTFIX-CARD-HEALTH-TEXT, carry 0: HA's default theme in auto mode,
  * switched live with the Health dialog open, in both directions. The page
- * models HA's themes mixin in its order: on the OS colour-scheme change it
+ * models HA's themes mixin in its order. On the OS colour-scheme change it
  * writes the theme's variables onto the document, and only then hands the
  * card a hass whose themes.darkMode is the new scheme (a separate update,
  * modelled one microtask later). Between the two the card reads the new
- * theme's text against the old darkMode's surface literals -- the mismatched
- * pairing -- so the Health dialog is measured there ("between write and
+ * theme's text against the old darkMode's surface literals: the mismatched
+ * pairing. So the Health dialog is measured there ("between write and
  * hass") and again on the frame after the card's own re-render ("after
  * re-render"), where the two agree again. Reach: the change handler fired
  * while the card still held the old darkMode and the old row surface (so the
- * first measurement IS the mismatched pairing), the dialog is still open on
+ * first measurement IS the mismatched pairing). The dialog is still open on
  * Health after the re-render, the rows' surface changed, and the row labels
  * are among the runs measured at both points. */
 async function themeLiveSwitch({ browser, check, plan }) {
@@ -733,7 +733,7 @@ async function themeLiveSwitch({ browser, check, plan }) {
  * row's left edge with no label: EasyList's `##.adv-text` and `##.adv-label`
  * (easylist_general_hide.txt; AdGuard Base carries both) matched the card's
  * own class names and removed the box (rca r10-card-health-text, third
- * pass). A blocker's `##.x` is `display: none !important`; the cell injects
+ * pass). A blocker's `##.x` is `display: none !important`. The cell injects
  * exactly that, as a stylesheet inside the shadow root after the render, on
  * every page the dialog's tabs offer, and requires every element owning a
  * text node to keep a client rect. The bare arm is the null control: the
@@ -917,8 +917,8 @@ function healthPageStates(st, now) {
 }
 
 /** R10-UX-HEALTH items 2 and 3, measured at a phone's width and a desktop's,
- * in both themes: the input rows span the page in a grid, and the Health
- * page's first row is not drawn under the dialog's head -- on open, and
+ * in both themes. The input rows span the page in a grid, and the Health
+ * page's first row is not drawn under the dialog's head, on open and
  * again after a page switch from a scrolled page. "Under" is read by
  * hit-testing the row's own top edge: whatever the browser paints there must
  * be the row. */
@@ -1571,17 +1571,17 @@ function instrument() {
 }
 
 // ---- the grid's scope ----------------------------------------------------------
-// The grid costs about as long as the rest of this lane together, and what it
+// The grid costs about as long as the rest of this lane together. What it
 // renders is the card source and this lane's own scripts, fed the payload
-// tests/plan_view.py builds by running the integration -- the solver, the
+// tests/plan_view.py builds by running the integration: the solver, the
 // profiles and the stubs included. So the surface is the card files, the grid
 // scripts, and plan_view.py's MEASURED closure from tests/closures.json at
 // HEAD, never a hand list of its inputs: a solver-only or profiles-only diff
 // moves the payload and runs the grid. HPO_BROWSER_SCOPE=auto runs it only
 // when the branch's diff from its merge base with HPO_BROWSER_BASE (default
-// origin/main) touches the surface; unset or any other value runs it, as does
-// a push (GITHUB_EVENT_NAME=push), so main is always measured in full and a
-// closure that misses a file goes red on main within one merge -- the scoped
+// origin/main) touches the surface. Unset or any other value runs it, as does
+// a push (GITHUB_EVENT_NAME=push). So main is always measured in full, and a
+// closure that misses a file goes red on main within one merge: the scoped
 // gate's own bargain (CLAUDE.md rule 1). Any git failure, and a closure file
 // without plan_view.py's entry, runs it. The mode line always prints, and a
 // skip is reported as a skip in the summary, never as a pass.
@@ -1694,8 +1694,8 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "dark" });
   // The card picks its status colours from hass.themes.darkMode, a profile
   // setting the user flips independently of the OS scheme (D4-s1-01, carry
-  // 1652), so each cell sets it in lockstep with its theme variables, and two
-  // cells run HA's theme against the opposite OS scheme: a colour keyed off
+  // 1652). So each cell sets it in lockstep with its theme variables, and two
+  // cells run HA's theme against the opposite OS scheme. A colour keyed off
   // the OS instead of HA fails one of them.
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "dark", os: "light" });
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "light", os: "dark" });
@@ -2000,10 +2000,10 @@ try {
   }
 
   // --- #936 (D4-03): the zoom pair clears SC 2.5.8 under a fine pointer ----
-  // The shipped defect, measured by the audit in this same Chromium: the
+  // The shipped defect, measured by the audit in this same Chromium. The
   // HTML target floor lived only inside @media (pointer: coarse), so under
   // this page's own default fine pointer the zoom pair rendered at
-  // 20.22x20.22 px with 22.22 px between centres -- under the 24 px minimum
+  // 20.22x20.22 px with 22.22 px between centres. That is under the 24 px minimum
   // and inside the spacing exception's 24 px circle at once, which is why
   // the exception rescued nothing. The floor is pointer-independent now
   // (card.mjs pins its emission); this lane is the one that can prove the
@@ -2086,11 +2086,11 @@ try {
   // --- D4-01: the compact chart's text at phone width ----------------------
   // The shipped defect, measured by the audit on a 287 px tile: axis text
   // at 3.19 px glyph height -- outlines gone. The card now floors the
-  // rendered font (the viewBox-unit font grows as the tile narrows), and
+  // rendered font (the viewBox-unit font grows as the tile narrows). And
   // the only honest place to prove it is a real layout engine: shrink the
   // host, re-render, and measure ON-SCREEN sizes. getComputedStyle is
-  // useless here -- it reports the font-size attribute in user units,
-  // with no viewBox scaling -- so the screen size is reconstructed from
+  // useless here. It reports the font-size attribute in user units,
+  // with no viewBox scaling. So the screen size is reconstructed from
   // the svg's own rect, the one transform that actually applies.
   const phoneFont = await page.evaluate(async () => {
     const card = window.__card;
@@ -2208,7 +2208,7 @@ try {
       const vb = (svg.getAttribute("viewBox") || "0 0 900 380").split(/\s+/);
       const scale = r.width / (Number(vb[2]) || 900);
       // The axis and its annotations -- and, since #935 (R4-D4-01), the
-      // lane strip's own labels: they used to be filtered out here because
+      // lane strip's own labels. They used to be filtered out here because
       // they were drawn at 0.8x with no floor of their own, which put them
       // at 6.4 px wherever this floor bound. The card now floors them
       // through the same chartFontUnits pass (0.8 em base), so this check
@@ -2276,7 +2276,7 @@ try {
       : `${dlgFont.length} chart(s) measured`);
 
   // The editable slots are the ones still in the future, and the payload's
-  // day is fixed while the wall clock is not: against the real clock every
+  // day is fixed while the wall clock is not. Against the real clock every
   // slot is already locked, no `.slot-hit` is drawn at all, and a check on
   // slot targets measures an empty set. Freeze six hours into the captured
   // day, as tests/card.mjs does, which always leaves both a locked past and
@@ -2335,9 +2335,9 @@ try {
   coarsePage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
   await coarsePage.goto("about:blank");
   // Headless Chromium is pointer:fine, and nothing here makes it coarse for
-  // CSS: Playwright 1.49's emulateMedia has no `pointer`, and CDP
+  // CSS. Playwright 1.49's emulateMedia has no `pointer`, and CDP
   // Emulation.setEmulatedMedia leaves BOTH matchMedia("(pointer: coarse)")
-  // false and an `@media (pointer: coarse)` block unmatched -- measured on a
+  // false and an `@media (pointer: coarse)` block unmatched. It was measured on a
   // minimal page in this job's own Chromium (R5-D4-03, #1320). What is coarse
   // on this page is the in-page matchMedia stub below, which is the card's
   // own predicate (_coarsePointer()). So the card's HTML floor keys on that
@@ -2419,20 +2419,20 @@ try {
 
   // --- R7 D4-01 / D4-02 (#1454, #1455) ------------------------------------
   // The dialog painted content whose intrinsic width exceeded its own box and
-  // then hid the overflow, so the ink could not be reached by any gesture:
-  // the savings table's `%` column (a `width:100%` table whose min-content
+  // then hid the overflow, so the ink could not be reached by any gesture.
+  // The instances: the savings table's `%` column (a `width:100%` table whose min-content
   // width is wider than `.dlg-body`, right-aligned so the hidden strip is
-  // exactly the digits) and the Swedish tab row (`Rådgivare`). card.mjs
-  // cannot see either -- its stub's getBoundingClientRect is a constant --
-  // and neither could the checks above, which read the chart. What is
+  // exactly the digits) and the Swedish tab row (`Rådgivare`). The card.mjs harness
+  // cannot see either, since its stub's getBoundingClientRect is a constant.
+  // And neither could the checks above, which read the chart. What is
   // measured here is the FINDER's metric, in the lane that runs on every
-  // pull request: the pixels by which a text run's ink extends past the right
+  // pull request. It is the pixels by which a text run's ink extends past the right
   // edge of the nearest clipping ancestor, MINUS what that ancestor (or the
   // document) can scroll to reveal. Anything positive is text a phone user
   // cannot reach at all.
   //
   // The grid is the three phone widths in both languages on both dialog
-  // pages, plus 1280 px as the null control: a wide dialog has no
+  // pages, plus 1280 px as the null control. A wide dialog has no
   // min-content overflow to hide, so a metric that read positive there would
   // be measuring something other than reachability.
   const clipPage = await browser.newPage({ viewport: { width: 375, height: 812 } });
@@ -2741,7 +2741,7 @@ try {
 
   // A target that falls short of the floor has to be BOXED IN, not merely
   // clipped on one side. The first review of this fix found every residual
-  // target sitting next to 84-258 px of empty lane: the deficit was split in
+  // target sitting next to 84-258 px of empty lane. The deficit was split in
   // half and each half clipped at its own constraint, so the half a
   // neighbour refused was thrown away instead of offered to the free side.
   // For each target this measures the span between the two things it may not
@@ -2882,8 +2882,8 @@ try {
   //    the four REQUIRED names. The failing set is a RULE, not a list: every
   //    <text> the chart emits whose fill is var(--secondary-text-color,#888).
   //    Re-derive it. At this head that rule returns the axis tick labels, the
-  //    unit titles, the estimated-prices label AND the .lane-label runs --
-  //    the last of which the three-instance list this line used to carry did
+  //    unit titles, the estimated-prices label AND the .lane-label runs.
+  //    The last of these the three-instance list this line used to carry did
   //    not name. #888 on white is 3.54:1. With the token present it is 4.81:1
   //    light and 6.13:1 dark, so this is a FALLBACK defect, not a token one.
   //
@@ -3146,11 +3146,11 @@ try {
 
   // --- R8 D4-01 (#1522): keyboard reading order ---------------------------
   // The rules above each read a selector list, and a control no list names is
-  // a control no rule measures. Tab reaches every control by construction, so
-  // this arm walks real Tab presses through every view -- the tile and each
-  // dialog page -- at the three required viewports, and refuses a step whose
+  // a control no rule measures. Tab reaches every control by construction.
+  // So this arm walks real Tab presses through every view (the tile and each
+  // dialog page) at the three required viewports. It refuses a step whose
   // target sits more than ROW_TOL of a row ABOVE the previous stop while not
-  // starting to the right of that stop's right edge: a jump back up the
+  // starting to the right of that stop's right edge. That is a jump back up the
   // screen, rather than a wrap to the next row or a move to the top of the
   // next column. Positions are read after the walk, with every scroller
   // reset, so a focus that scrolled the body is not a jump. A positive
@@ -3240,8 +3240,8 @@ try {
     `reversed ${reversed.length}, straight ${straight.length} backward step(s)`);
 
   // Every view the card draws: the tile (and its score breakdown), and each
-  // dialog page -- the plan page twice, the second with every optional
-  // control the what-if panel and the zoom row can add, and the setup page
+  // dialog page. The plan page is drawn twice, the second with every optional
+  // control the what-if panel and the zoom row can add. The setup page is drawn
   // twice, the second with its entity picker open.
   const ORDER_VIEWS = [
     { name: "tile" }, { name: "tile_score", score: true },
