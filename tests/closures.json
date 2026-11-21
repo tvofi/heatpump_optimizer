@@ -4374,6 +4374,7 @@
    "tools/audit/seat/scorecard_selftest.py",
    "tools/audit/seat/seat_gen.py",
    "tools/audit/seat/seat_gen_selftest.py",
+   "tools/audit/seat/selftest_absorb.py",
    "tools/audit/seat/selftest_wiring.py",
    "tools/audit/seat/shell_hazard.py",
    "tools/audit/seat/survivor_list.py",
