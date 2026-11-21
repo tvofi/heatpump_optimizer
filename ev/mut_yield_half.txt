@@ -1,0 +1,11 @@
+-    _time_mod.sleep(0)
++    _gil_yield.n = getattr(_gil_yield, "n", 0) + 1
++    if _gil_yield.n % 2:
++        _time_mod.sleep(0)
+RESULT winter/1z/space yields=299 record=429 limit=286.0 ok
+RESULT winter/1z/dhw yields=287 record=495 limit=330.0 FAIL
+RESULT winter/2z/dhw yields=301 record=380 limit=253.3 ok
+RESULT heavy_old/shoulder yields=270 record=360 limit=240.0 ok
+RESULT winter/cycle yields=301 record=380 limit=253.3 ok
+FAILED 1 of 25 checks
+DONE

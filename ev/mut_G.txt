@@ -1,0 +1,5 @@
+-        (("*", "yields"), MIN),
++        (("*", "yields"), MAX),
+  FAIL cycle: fewer solves, more yields is routine: got True, want False
+  FAIL cycle: the yields floor down is a raise: got False, want True
+budget_raise_gate self-test: 300 checks, 2 failed

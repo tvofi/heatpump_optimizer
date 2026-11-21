@@ -1,0 +1,53 @@
+-    await recover(flow4, "rooms", {key: too_many[:32], **SAVE_CLOSE})
+  FAIL every rendered flow error is recovered on the flow that rendered it  [options/rooms/too_many_rooms]
+RESULT flow_error_triples=56
+RESULT unrecovered_flow_error_triples=1
+UNRECOVERED options/rooms/too_many_rooms
+RESULT flow_checks_covered=580/580 checks
+RESULT step_user happy=7/7 error_branches=11/11
+RESULT step_user_sensors happy=2/2 error_branches=0/0
+RESULT step_finish_setup happy=5/5 error_branches=0/0
+RESULT step_quick_setup happy=4/4 error_branches=0/0
+RESULT step_finish_now happy=1/1 error_branches=0/0
+RESULT step_temperature happy=5/5 error_branches=12/12
+RESULT step_building happy=1/1 error_branches=0/0
+RESULT step_building_describe happy=3/3 error_branches=0/0
+RESULT step_building_extras happy=1/1 error_branches=1/1
+RESULT step_thermal happy=4/4 error_branches=1/1
+RESULT step_zones happy=3/3 error_branches=0/0
+RESULT step_dhw happy=2/2 error_branches=4/4
+RESULT step_weather_sensitivity happy=2/2 error_branches=0/0
+RESULT step_setup_overview happy=6/6 error_branches=0/0
+RESULT step_reauth_confirm happy=3/3 error_branches=2/2
+RESULT step_opt_init happy=5/5 error_branches=3/3
+RESULT step_opt_advanced happy=3/3 error_branches=0/0
+RESULT step_opt_setup_overview happy=4/4 error_branches=0/0
+RESULT step_opt_entities happy=50/50 error_branches=7/7
+RESULT step_opt_entities_metering happy=39/39 error_branches=2/2
+RESULT step_opt_entities_pump happy=34/34 error_branches=0/0
+RESULT step_opt_comfort happy=7/7 error_branches=4/4
+RESULT step_opt_hot_water happy=17/17 error_branches=9/9
+RESULT step_opt_hot_water_tank happy=11/11 error_branches=3/3
+RESULT step_opt_hot_water_pumps happy=6/6 error_branches=0/0
+RESULT step_opt_building happy=36/36 error_branches=7/7
+RESULT step_opt_thermal_model happy=10/10 error_branches=2/2
+RESULT step_opt_thermal_model_zones happy=7/7 error_branches=0/0
+RESULT step_opt_tuning happy=3/3 error_branches=0/0
+RESULT step_opt_heat_curve happy=15/15 error_branches=9/9
+RESULT step_opt_building_preset happy=3/3 error_branches=0/0
+RESULT step_opt_grid happy=6/6 error_branches=5/5
+RESULT step_opt_grid_connection happy=4/4 error_branches=5/5
+RESULT step_opt_grid_fees happy=7/7 error_branches=5/5
+RESULT step_opt_solar_pv happy=10/10 error_branches=0/0
+RESULT step_opt_away happy=11/11 error_branches=0/0
+RESULT step_opt_learning happy=3/3 error_branches=0/0
+RESULT step_opt_learning_features happy=1/1 error_branches=0/0
+RESULT step_opt_modbus_prefill happy=24/24 error_branches=5/5
+RESULT step_opt_quick_setup happy=14/14 error_branches=0/0
+RESULT options_steps_covered=25/25 pages
+RESULT step_reconfigure happy=7/7 error_branches=3/3
+RESULT reauth_round_trips=1
+RESULT reconfigure_round_trips=1
+RESULT options_close_round_trips=1
+RESULT duplicate_aborts=1
+1 of 683 checks FAILED

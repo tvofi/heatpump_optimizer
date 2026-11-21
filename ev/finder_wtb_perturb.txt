@@ -1,0 +1,82 @@
+Invalid per-day DHW window 'x' for dhw_windows_mon (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_tue (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_wed (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_thu (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_fri (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+/root/wtb/tests/harness.py:598: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+SCRIPT tests/config_flow_steps.py exit=0 last=['ALL 609 checks PASSED']
+RESULT perturbed=one recovery walk appended per unrecovered user-step error
+TRIPLE config/building_extras/min_power_above_max shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/device_prefill/dhw_min_too_close shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/device_prefill/prefill_device_unreadable shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/device_prefill/silent_mode_fraction_uncapped shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=1
+TRIPLE config/device_prefill/silent_mode_window_too_short shown_in_flows=2 finished_in_flows=0 stepped_past_in_flows=1
+TRIPLE config/dhw/dhw_min_too_close shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/dhw/dhw_window_too_short shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/dhw/invalid_dhw_windows shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/temperature/comfort_outside_band shown_in_flows=2 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/temperature/day_window_empty shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/temperature/max_below_target shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/temperature/min_above_target shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/temperature/night_above_day shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/thermal/min_power_above_max shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE config/user/cannot_connect shown_in_flows=9 finished_in_flows=3 stepped_past_in_flows=7
+TRIPLE config/user/invalid_tibber_token shown_in_flows=3 finished_in_flows=1 stepped_past_in_flows=1
+TRIPLE config/user/price_entity_required shown_in_flows=2 finished_in_flows=1 stepped_past_in_flows=1
+TRIPLE config/user/tibber_token_required shown_in_flows=2 finished_in_flows=1 stepped_past_in_flows=1
+TRIPLE options/building/combi_needs_store shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/building/flow_curve_needs_direct_plant shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/building/flow_target_needs_two_zone shown_in_flows=4 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/building/heat_curve_entity_in_use shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/comfort/comfort_outside_band shown_in_flows=2 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/comfort/max_below_target shown_in_flows=2 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/comfort/min_above_target shown_in_flows=3 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/entities/cannot_connect shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/entities/invalid_tibber_token shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/entities/price_entity_required shown_in_flows=2 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/entities/tibber_token_required shown_in_flows=3 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/entities_metering/freq_control_needs_number shown_in_flows=2 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/grid/invalid_peak_hours shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/grid/invalid_peak_months shown_in_flows=4 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/grid_connection/invalid_dhw_windows shown_in_flows=4 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/grid_connection/silent_mode_window_too_short shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/grid_fees/grid_fee_rules_negative shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/grid_fees/invalid_grid_fee_rules shown_in_flows=4 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/heat_curve/heat_curve_entity_in_use shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/heat_curve/heat_curve_not_offset shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/heat_curve/heat_curve_out_of_range shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/hot_water/dhw_min_too_close shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/hot_water/dhw_window_too_short shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/hot_water/dhw_windows_day_selector shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/hot_water/invalid_dhw_windows shown_in_flows=6 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/hot_water_tank/disinfection_control_needs_entity shown_in_flows=3 finished_in_flows=0 stepped_past_in_flows=1
+TRIPLE options/modbus_prefill/dhw_min_too_close shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/modbus_prefill/flow_target_needs_two_zone shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/modbus_prefill/invalid_dhw_windows shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/modbus_prefill/min_power_above_max shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/modbus_prefill/prefill_device_unreadable shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/modbus_prefill/silent_mode_window_too_short shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE options/rooms/too_many_rooms shown_in_flows=2 finished_in_flows=0 stepped_past_in_flows=1
+TRIPLE options/thermal_model/min_power_above_max shown_in_flows=2 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE reauth/reauth_confirm/cannot_connect shown_in_flows=1 finished_in_flows=1 stepped_past_in_flows=1
+TRIPLE reauth/reauth_confirm/invalid_tibber_token shown_in_flows=1 finished_in_flows=1 stepped_past_in_flows=1
+TRIPLE reconfigure/user/cannot_connect shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+TRIPLE reconfigure/user/invalid_tibber_token shown_in_flows=1 finished_in_flows=0 stepped_past_in_flows=0
+RESULT never_stepped_past_triples=46 count
+RESULT never_stepped_past_config=12 count
+RESULT never_stepped_past_options=32 count
+RESULT never_stepped_past_reconfigure=2 count
+RESULT flows_tracked=627 count
+RESULT error_triples=56 count
+RESULT unrecovered_triples=50 count
+RESULT unrecovered_config=14 count
+RESULT unrecovered_options=34 count
+RESULT unrecovered_reconfigure=2 count
+RESULT thread_factor=1.000
+RESULT load1=1.81
+RESULT swapins=0
+rc=0

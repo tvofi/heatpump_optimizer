@@ -1,0 +1,10 @@
+== clean
+ALL 6 FEATURES BLOCK PASSED
+            stored_sek = 0.0 if cop is None or actual["kwh"] <= 0 else 1.0 * (
+== M9 (stored scale dropped)
+  FAIL R11-SEAM-tests (carry 0, M9): a calibrated month scales the stored-heat line as it scales the thermostat  [{'month': '2026-01', 'baseline_sek': 2.0, 'actual_sek': 12.0, 'savings_sek': None, 'savings_pct': None, 'old_basis': False, 'below_meter_floor': True, 'estimated': False, 'meter_calibration': 1.0, 'calibration_basis': 'meter', 'stored_heat_sek': -2.0, 'comfort_sek': 1.0} / {'month': '2026-01', 'baseline_sek': 4.0, 'actual_sek': 12.0, 'savings_sek': None, 'savings_pct': None, 'old_basis': False, 'below_meter_floor': True, 'estimated': False, 'meter_calibration': 1.5, 'calibration_basis': 'meter', 'stored_heat_sek': -2.0, 'comfort_sek': 1.5}]
+1 of 6 FEATURES BLOCK FAILED
+            comfort_sek = self.line(key, SAVINGS_COMFORT_LINE)["sek"]
+== M10 (comfort scale dropped)
+  FAIL R11-SEAM-tests (carry 0, M10): a calibrated month scales the comfort line as it scales the thermostat  [{'month': '2026-01', 'baseline_sek': 2.0, 'actual_sek': 12.0, 'savings_sek': None, 'savings_pct': None, 'old_basis': False, 'below_meter_floor': True, 'estimated': False, 'meter_calibration': 1.0, 'calibration_basis': 'meter', 'stored_heat_sek': -2.0, 'comfort_sek': 1.0} / {'month': '2026-01', 'baseline_sek': 3.0, 'actual_sek': 12.0, 'savings_sek': None, 'savings_pct': None, 'old_basis': False, 'below_meter_floor': True, 'estimated': False, 'meter_calibration': 1.5, 'calibration_basis': 'meter', 'stored_heat_sek': -3.0, 'comfort_sek': 1.0}]
+1 of 6 FEATURES BLOCK FAILED
