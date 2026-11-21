@@ -1370,6 +1370,7 @@ await block('the owner-only dimensions', async () => {
   // 1. The declaration and its readers, on the committed tree.
   const briefSet = briefListing().filter(([f, full]) => isBriefFile(f) && /^## Owner-only\s*$/m.test(fs.readFileSync(full, 'utf8'))).map(([f]) => f.slice(0, -3)).sort()
   const verifyLit = /^const OWNER_ONLY = new Set\(\[([^\]]*)\]\)$/m.exec(vs)
+  t('ownerOnlyRecord reads every declared owner-only brief\'s id, seat and dimension, and no near-miss', briefSet.length > 0 && briefSet.every((d) => [{ id: `${d}-s1-01` }, { scope: `${d}-s1` }, { dimension: d }].every((f) => V.ownerOnlyRecord(f, new Set([d])))) && ![{ id: 'DX01-s1-01' }, { scope: 'DXO-s1' }].some((f) => V.ownerOnlyRecord(f, new Set(['DX0']))), J(briefSet))
   const dims = quoted((/const DIMS = \[([^\]]*)\]/.exec(rd) ?? [])[1])
   const setGaps = ({ declared, briefs, verify, dimList, boxes }) => {
     const gaps = []
