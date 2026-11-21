@@ -202,6 +202,10 @@ const VERDICT_CLASSES = [
   // missing "none exists" line). The unsplit word stays taught: fix-review.md
   // step 11 still teaches it, and its count is the residue a D13 round reads.
   'root-cause-detectable', 'root-cause-unrecorded',
+  // fix-review.md's standing absorb bullet (P-R11-SELFTEST-ABSORB): the
+  // mechanical review's `selftest_absorb.py verify` printed a line other than
+  // SELFTEST-ABSORB VERIFIED, so the regenerated table and the head's differ.
+  'absorb-verify',
 ]
 // A class that means the fix is sound but the PROCESS owes an answer. The
 // root-cause seat runs beside a fix and never inside it (root-cause.md), so it
@@ -239,6 +243,7 @@ const VERDICT_CLAUSES = {
   'architecture-unsound': 'fix-review.md step 15',
   'root-cause-detectable': 'fix-review.md step 11',
   'root-cause-unrecorded': 'fix-review.md step 11',
+  'absorb-verify': null,
 }
 
 // The SHA must be the full 40-hex head SHA, not an unconstrained \S+: an

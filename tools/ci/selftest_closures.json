@@ -9565,6 +9565,25 @@
     "show"
    ]
   },
+  "selftest-absorb": {
+   "run_sha": "5da184dd54cb73a918555ff17e77f723cddb3c5332b9deea5d61fd184abf3bef",
+   "files": [
+    ".github/workflows/governance.yml",
+    "tools/audit/seat/selftest_absorb.py",
+    "tools/ci/selftest_scope.py",
+    "tools/pr/app_push.sh"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "selftest-scope": {
    "run_sha": "f5ec792ec3efe1110346aa55286c78476472afa3a83a128272f5e87587085203",
    "files": [

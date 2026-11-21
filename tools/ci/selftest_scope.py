@@ -7,6 +7,7 @@
     python3 -I tools/ci/selftest_scope.py record [--step ID]... [--out PATH]
     python3 -I tools/ci/selftest_scope.py precheck --base REF
     python3 -I tools/ci/selftest_scope.py absorb --from PATH [--from PATH]... [--out PATH]
+    python3 -I tools/ci/selftest_scope.py grows --old PATH --new PATH
     python3 -I tools/ci/selftest_scope.py prune --step ID --drop KIND:ITEM [--drop ...]
     python3 -I tools/ci/selftest_scope.py static
     python3 -I tools/ci/selftest_scope.py check --traces DIR [--write PATH]
@@ -58,10 +59,18 @@ only another measured (a seat's Linux `record`: objects, index) is not stale
 for this run missing it. Commit that file, or re-record with `record` (Linux,
 strace) and union the same way.
 THE BOT'S HALF, `absorb` (R11-PRE-SHARED-FILES part 1, countermeasure A of
-dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md): the record beat hands it the
-newest `selftest-closures` artifact of main's own runs, and it writes the live
-table unioned with each step of it whose run text is this head's, printing
-every read it adds. A table that already holds them is left byte-identical.
+dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md; P-R11-SELFTEST-ABSORB): it writes
+the live table unioned with each step of the source tables whose run text is
+this head's, printing every read it adds and then the refusals `drift` still
+makes of the sources' own steps. A table that already holds them is left
+byte-identical. Two callers run it. Main's drift step, `check --absorb-out`:
+a refusal the absorbed table repairs is a note (`ABSORB OWED`), not a red,
+and the absorbed table is the `selftest-absorbed` artifact. The beatd row
+`selftest-absorb` (tools/audit/seat/selftest_absorb.py), the actor that
+commits it: the `selftest-closures` artifacts of main's red or owed runs,
+absorbed at main's tip, force-pushed as the one standing ref
+handoff/selftest-absorb. `grows` is that pull request's review: the new table
+covers every read of the old (dev/governance/roles/fix-review.md).
 THE SEAT'S HALF, `precheck`: before a handoff, the gated steps whose own
 script the diff changes are traced as `record` traces them and graded by
 `drift`, the check no pull-request run makes (tools/pr/ci_predict.py's
@@ -103,7 +112,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ".github/workflows/governance.yml"
 JOB = "instrument-self-tests"
-BOT_STEP = "absorb"  # the bot's half on main: `absorb` over the drift step's table
+BOT_STEP = "drift"  # the bot's half on main: the drift step absorbs its own table (`--absorb-out`)
 TABLE = "tools/ci/selftest_closures.json"
 WRAPPER = "tools/ci/selftest_step.sh"
 SELF = "tools/ci/selftest_scope.py"
@@ -915,8 +924,9 @@ SKIP_RC = 3     # prepr.sh's convention for a check this host cannot run
 
 def base_drift(root: Path, base: str, refuse: list[str], want: list[str]) -> set[str]:
     """The refusals of `refuse` the merge base's own tree draws too, each
-    printed as a note: main's drift step is red on them already, so they are
-    the record beat's to absorb, never a branch's to pay (the step-replay rule
+    printed as a note: main's drift step reads them already, so they are the
+    selftest-absorb beat row's to absorb (tools/audit/seat/selftest_absorb.py),
+    never a branch's to pay (the step-replay rule
     of tools/pr/ci_predict.py: a red at both ends is not the diff's). Only the
     refused steps are traced again, at the merge base, against its table."""
     def git(*args: str) -> str | None:
@@ -1018,16 +1028,14 @@ def union_entries(table: dict | None, measured: dict[str, dict]) -> dict[str, di
     return {sid: union_entry(old.get(sid), m) for sid, m in measured.items()}
 
 
-def absorb_entries(table: dict, sources: list[dict], steps: list[Step], tracked: set[str],
-                   tracked_dirs: set[str], gone: set[str]) -> tuple[dict[str, dict], list[str]]:
-    """(entries, added): the live table with every read a source table holds
-    for a step whose run text is this head's, by `union_record`; `added` names
-    each new read as `step ID: KIND ITEM`. A source is main's own measurement
-    at an older commit, so a read of it that names nothing at this head (a file
-    since deleted, a path since retired or ignored: `gone`) is not carried, and
-    a step recorded under another run text is not this step's measurement."""
-    live = {s.id: s.run_sha for s in steps if s.gated}
-
+def carried(src: dict, live: dict[str, str], tracked: set[str], tracked_dirs: set[str],
+            gone: set[str]) -> dict[str, dict]:
+    """The steps of one source table whose run text is this head's (`live`:
+    id -> run_sha), each read that names nothing at this head dropped. A source
+    is main's own measurement at an older commit, so a read of it that names
+    nothing here (a file since deleted, a path since retired or ignored:
+    `gone`) is not carried, and a step recorded under another run text is not
+    this step's measurement."""
     def here(kind: str, item: str) -> bool:
         whole = item.endswith("/**")
         name = item[:-3] if whole else item
@@ -1037,14 +1045,22 @@ def absorb_entries(table: dict, sources: list[dict], steps: list[Step], tracked:
             return name in tracked_dirs
         return item in tracked if kind == "files" else probe_path(item, tracked_dirs) and item not in gone
 
+    return {sid: {**got, **{k: [x for x in got.get(k, ()) if here(k, x)] for k in LIST_KINDS},
+                  **{k: bool(got.get(k)) for k in FLAG_KINDS}}  # in got's key order: the written table's bytes
+            for sid, got in sorted(src.get("steps", {}).items()) if live.get(sid) == got.get("run_sha")}
+
+
+def absorb_entries(table: dict, sources: list[dict], steps: list[Step], tracked: set[str],
+                   tracked_dirs: set[str], gone: set[str]) -> tuple[dict[str, dict], list[str]]:
+    """(entries, added): the live table with every read a source table holds
+    for a step whose run text is this head's (`carried`), by `union_record`;
+    `added` names each new read as `step ID: KIND ITEM`."""
+    live = {s.id: s.run_sha for s in steps if s.gated}
     entries = {k: v for k, v in table["steps"].items()}
     added: list[str] = []
     for src in sources:
-        for sid, got in sorted(src.get("steps", {}).items()):
-            if live.get(sid) != got.get("run_sha"):
-                continue
+        for sid, new in carried(src, live, tracked, tracked_dirs, gone).items():
             old = entries.get(sid) or {}
-            new = {**got, **{k: [x for x in got.get(k, ()) if here(k, x)] for k in LIST_KINDS}}
             merged = union_record({"steps": entries}, {sid: new}, set(live))[sid]
             added += [f"step {sid}: {k} {x}" for k in LIST_KINDS
                       for x in merged[k] if x not in old.get(k, ())]
@@ -1053,31 +1069,94 @@ def absorb_entries(table: dict, sources: list[dict], steps: list[Step], tracked:
     return entries, added
 
 
+def absorb_write(table: dict, sources: list[dict], out: Path,
+                 root: Path = ROOT) -> tuple[dict, list[str], set[str], set[str], set[str]]:
+    """Write `out` as `table` unioned with the source tables when that adds a
+    read, printing each one added (the generator's diff). Returns the table
+    graded next (the written one, else `table`), the reads added, and the
+    tracked files, tracked directories and gone probes `carried` was handed."""
+    tracked, tracked_dirs = _tracked(root)
+    probes = {p for t in sources for e in t["steps"].values() for p in e.get("probes", ())}
+    retired = [r.rstrip("/") for r in retired_paths(root)]
+    gone = _ignored(root, probes) | {p for p in probes
+                                     if any(p == r or p.startswith(r + "/") for r in retired)}
+    entries, added = absorb_entries(table, sources, workflow_steps(root), tracked, tracked_dirs, gone)
+    for line in added:
+        print(f"  + {line}")
+    if added:
+        write_table(out, entries, root)
+    return (load_table(out) if added else table), added, tracked, tracked_dirs, gone
+
+
+def absorb_line(added: list[str]) -> str:
+    return f"{len(added)} read(s), {len({a.split(':')[0] for a in added})} step(s)"
+
+
 def absorb_cli(sources: list[Path], out: Path, root: Path = ROOT) -> int:
     """Write `out` as the live table unioned with the source tables, when that
-    adds a read; print each one added (the generator's diff)."""
+    adds a read; print each one added, then the refusals `drift` still makes
+    of each source's own steps against the result: the selftest-absorb beat
+    row (tools/audit/seat/selftest_absorb.py) tells a repair merged since the
+    runs (0 remain) from a step only `record` repairs (some remain)."""
     table = load_table(root / TABLE)
     loaded = [load_table(p) for p in sources]
     if table is None or None in loaded:
         bad = [TABLE] * (table is None) + [str(p) for p, t in zip(sources, loaded) if t is None]
         print(f"selftest_scope absorb: UNREADABLE {bad}, nothing written", file=sys.stderr)
         return 1
-    tracked, tracked_dirs = _tracked(root)
-    probes = {p for t in loaded for e in t["steps"].values() for p in e.get("probes", ())}
-    retired = [r.rstrip("/") for r in retired_paths(root)]
-    gone = _ignored(root, probes) | {p for p in probes
-                                     if any(p == r or p.startswith(r + "/") for r in retired)}
-    entries, added = absorb_entries(table, loaded, workflow_steps(root), tracked, tracked_dirs, gone)
-    for line in added:
-        print(f"  + {line}")
-    if added:
-        write_table(out, entries, root)
+    graded, added, tracked, tracked_dirs, gone = absorb_write(table, loaded, out, root)
+    steps = workflow_steps(root)
+    live = {s.id: s.run_sha for s in steps if s.gated}
+    remain: set[str] = set()
+    for t in loaded:
+        m = carried(t, live, tracked, tracked_dirs, gone)
+        remain |= set(drift(graded, m, steps, set(m))[0])
+    for line in sorted(remain):
+        print(f"  remains: {line}")
     print(f"selftest_scope absorb: {len(added)} read(s) added to "
           f"{len({a.split(':')[0] for a in added})} step(s)")
+    print(f"selftest_scope absorb: {len(remain)} refusal(s) remain over the sources' own steps")
     return 0
 
 
-def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT) -> int:
+def drops(old: dict, new: dict, steps: list[Step]) -> list[str]:
+    """What `new` no longer covers of `old`, by `drift`: each of old's gated
+    steps graded as a measurement at new's run text (so a run_sha absorb moved
+    is no drop), and a step new has no entry for. Coverage, never item
+    equality: `write_table` may collapse files into `D/**`."""
+    gated = set(gated_ids(steps))
+    gone = sorted(f"MISSING step {sid}: the new table has no entry" for sid in old["steps"]
+                  if sid in gated and sid not in new["steps"])
+    m = {sid: {**{k: [] for k in LIST_KINDS}, **{k: False for k in FLAG_KINDS}, **e,
+               "run_sha": new["steps"][sid].get("run_sha")}
+         for sid, e in old["steps"].items() if sid in gated and sid in new["steps"]}
+    return gone + drift(new, m, steps, set(m))[0]
+
+
+def grows_cli(old_path: Path, new_path: Path, root: Path = ROOT) -> int:
+    """rc 0 when the new table covers every read the old one names (the
+    standing absorb pull request's review, fix-review.md), else 1, naming each."""
+    old, new = load_table(old_path), load_table(new_path)
+    if old is None or new is None:
+        print(f"selftest_scope grows: UNREADABLE {[str(p) for p, t in ((old_path, old), (new_path, new)) if t is None]}",
+              file=sys.stderr)
+        return 2
+    lost = drops(old, new, workflow_steps(root))
+    for line in lost:
+        print(f"  {line}")
+    print(f"selftest_scope grows: {len(lost)} read(s) of the old table the new one drops")
+    return 1 if lost else 0
+
+
+def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT,
+              absorb_out: Path | None = None) -> int:
+    """The drift check over a push run's traces. With `--absorb-out` (main's
+    drift step, P-R11-SELFTEST-ABSORB rung 1): when every refusal is one that
+    `absorb` of this run's own `--write` table repairs -- `drift` of the
+    absorbed table over the same measurement refuses nothing -- the absorbed
+    table is written there and the check passes with `ABSORB OWED` on its
+    summary line: a repairable drift is a note, and the selftest-absorb beat
+    row commits it. Red on any refusal the absorbed table still makes."""
     steps = workflow_steps(root)
     gaps = wiring_gaps(steps)
     measured, broken = fold(trace_dir, steps, root)
@@ -1086,10 +1165,23 @@ def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT) -> 
         write_table(write, union_entries(table, measured), root)  # the table to commit
     refuse, notes = drift(table, measured, steps)
     refuse = broken + refuse
+    added: list[str] = []
+    remain = refuse
+    if absorb_out is not None and write is not None and refuse and not gaps and not broken and table is not None:
+        graded, added, _, _, _ = absorb_write(table, [load_table(write) or {"steps": {}}], absorb_out, root)
+        remain = drift(graded, measured, steps)[0]
+    absorbed = bool(added) and not remain
     for line in gaps + refuse:
-        print(f"  {line}")
+        print(f"  {'absorbed: ' if absorbed else ''}{line}")
     for line in notes:
         print(f"  note: {line}")
+    if absorbed:
+        print(f"selftest_scope check: {len(gated_ids(steps))} gated step(s), 0 refusal(s); "
+              f"ABSORB OWED: {absorb_line(added)}")
+        return 0
+    if added:
+        print(f"  absorb adds {absorb_line(added)}; {len(remain)} refusal(s) remain, which only "
+              "`record` repairs")
     print(f"selftest_scope check: {len(gated_ids(steps))} gated step(s), "
           f"{len(gaps) + len(refuse)} refusal(s)")
     return 1 if gaps or refuse else 0
@@ -1977,6 +2069,15 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
        and got_a[6:] == ["step slow: files tools/x/slow.sh", "step slow: objects"])
     again_e, again_a = absorb_entries({"steps": got_e}, [src_t], al, a_tracked, a_dirs, {"tools/x/ignored.json"})
     ck("absorb: a table that holds every read adds nothing (null control)", again_a == [] and again_e == got_e)
+    ck("grows: the absorbed table covers the live one, its run_sha moves included (null control)",
+       drops(live_t, {"steps": got_e}, al) == []
+       and drops({"steps": {**live_t["steps"], "b": {**live_t["steps"]["b"], "run_sha": "old"}}}, live_t, al) == [])
+    ck("grows: a file collapsed into its directory's `D/**` is still covered",
+       drops(live_t, {"steps": {**live_t["steps"], "a": {**live_t["steps"]["a"], "files": ["tools/**"]}}}, al) == [])
+    ck("grows: a dropped file, a dropped flag and a dropped step are each named",
+       drops({"steps": got_e}, live_t, al)[:1] == ["MISSING step slow: the new table has no entry"]
+       and "UNDER-SCOPED step a: files misses ['tests/lane.py', 'tools/**']" in drops({"steps": got_e}, live_t, al)
+       and "UNDER-SCOPED step a: it read the index, the table says not" in drops({"steps": got_e}, live_t, al))
     held_old = {"steps": {**live_t["steps"], "a": ent(["tools/x/a.py", "tools/x/deleted.py"], sha=a_s.run_sha)}}
     ck("absorb: a committed read stays, whatever it names (only `prune` drops one)",
        "tools/x/deleted.py" in absorb_entries(held_old, [src_t], al, a_tracked, a_dirs, set())[0]["a"]["files"])
@@ -2171,18 +2272,31 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         before = (pr / TABLE).read_bytes()
         rc_ab, out_ab = run("absorb", "--from", str(art))
         rc_green, out_green = run("check", "--traces", str(ptr))
+        remain0 = "selftest_scope absorb: 0 refusal(s) remain over the sources' own steps\n"
         ck("the bot: main's drift step is red on an unrecorded read, `absorb` of that run's artifact "
            "adds exactly it, and the drift step is green after",
            rc_red == 1 and "UNDER-SCOPED step a: files misses ['docs/d.md']" in out_red
            and rc_ab == 0 and out_ab == "  + step a: files docs/d.md\nselftest_scope absorb: 1 read(s) "
-                                        "added to 1 step(s)\n"
+                                        "added to 1 step(s)\n" + remain0
            and rc_green == 0 and ", 0 refusal(s)" in out_green and (pr / TABLE).read_bytes() != before)
         after = (pr / TABLE).read_bytes()
         os.utime(pr / TABLE, ns=(1, 1))
         rc_no, out_no = run("absorb", "--from", str(art))
         ck("the bot: a green run's artifact writes nothing (the table is not rewritten)",
-           rc_no == 0 and out_no == "selftest_scope absorb: 0 read(s) added to 0 step(s)\n"
+           rc_no == 0 and out_no == "selftest_scope absorb: 0 read(s) added to 0 step(s)\n" + remain0
            and (pr / TABLE).read_bytes() == after and (pr / TABLE).stat().st_mtime_ns == 1)
+        # A source measuring step b under the live run text, over a table whose
+        # b entry was recorded under another: absorb adds no read, and the
+        # STALE refusal it cannot repair is named (the beat row's RECORD-OWED).
+        stale_t = json.loads(after)
+        stale_t["steps"]["b"]["run_sha"] = "0" * 64
+        (pr / TABLE).write_text(json.dumps(stale_t))
+        rc_st, out_st = run("absorb", "--from", str(art), "--out", str(pr.parent / "st.json"))
+        ck("absorb: a STALE step a source measured, with no new read, remains and is named; nothing written",
+           rc_st == 0 and "  remains: STALE step b: its run text changed since the record\n" in out_st
+           and out_st.endswith("selftest_scope absorb: 1 refusal(s) remain over the sources' own steps\n")
+           and not (pr.parent / "st.json").exists())
+        (pr / TABLE).write_bytes(after)
         art.write_text("{")
         rc_un, out_un = run("absorb", "--from", str(art))
         ck("the bot: an artifact that does not parse is refused (rc 1), the table left as it was",
@@ -2193,47 +2307,69 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
                                                         str(pr.parent / "o.json"))[0] == 0
            and (pr / TABLE).read_bytes() == before
            and "docs/d.md" in load_table(pr.parent / "o.json")["steps"]["a"]["files"])
-        # The step that runs the bot's half on main, BOT_STEP of the live
-        # job: its own run text, executed over the table that red run's drift
-        # step wrote, then over a table holding nothing the checkout's misses.
-        # The fixture's tools/ci/selftest_scope.py is a shim into this module
-        # rooted at the fixture, so the text runs unedited.
+        # The step that runs the bot's half on main, BOT_STEP of the live job
+        # (P-R11-SELFTEST-ABSORB rung 1): its own run text, executed over a
+        # red run's traces. A refusal the absorbed table repairs is a note;
+        # one it still makes is red. The fixture's tools/ci/selftest_scope.py
+        # is a shim into this module rooted at the fixture, so the text runs
+        # unedited.
         live = workflow.read_text()
         bot = [s for s in job_steps(live) if s.id == BOT_STEP]
         (pr / "tools/ci/selftest_scope.py").write_text(
             f"import sys\nfrom pathlib import Path\nsys.path.insert(0, {str(Path(__file__).resolve().parent)!r})\n"
             f"import selftest_scope\nsys.exit(selftest_scope.main(sys.argv[1:], Path({str(pr)!r})))\n")
 
-        def bot_run(artifact: Path) -> tuple[int, str, Path]:
+        def bot_run(table: bytes, drop: str = "") -> tuple[int, str, Path, Path]:
             rt = Path(tempfile.mkdtemp(dir=pr.parent))
-            shutil.copy(artifact, rt / "selftest_closures.json")
+            shutil.copytree(ptr, rt / TRACE_DIR)
+            if drop:
+                (rt / TRACE_DIR / drop).unlink()
+            (pr / TABLE).write_bytes(table)
             p = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", bot[0].run or ""],
                                cwd=pr, env={**os.environ, "RUNNER_TEMP": str(rt),
                                             "GITHUB_STEP_SUMMARY": str(rt / "summary.md")},
                                capture_output=True, text=True)
-            return p.returncode, p.stdout + p.stderr, rt / "absorbed" / "selftest_closures.json"
+            return p.returncode, p.stdout + p.stderr, rt / "absorbed" / "selftest_closures.json", rt / "summary.md"
         if len(bot) != 1:
             ck(f"the bot's step: {JOB} of {WORKFLOW} has exactly one step with id {BOT_STEP}", False)
         else:
-            rc_bj, out_bj, kept = bot_run(art)
-            ck(f"the bot's step: {BOT_STEP} over a red run's drift table prints the read it adds, keeps the "
-               "absorbed table for the commit and leaves the checkout's table as it was",
-               rc_bj == 0 and "  + step a: files docs/d.md" in out_bj and kept.is_file()
+            rc_bj, out_bj, kept, summ = bot_run(before)
+            ck(f"the bot's step: {BOT_STEP} over a run with an unrecorded read is a note, not a red: it passes "
+               "with ABSORB OWED, keeps the absorbed table for the commit and in the job summary, and leaves "
+               "the checkout's table as it was",
+               rc_bj == 0 and "ABSORB OWED: 1 read(s), 1 step(s)" in out_bj
+               and "  absorbed: UNDER-SCOPED step a: files misses ['docs/d.md']" in out_bj and kept.is_file()
                and "docs/d.md" in ((load_table(kept) or {}).get("steps", {}).get("a", {}).get("files", []))
-               and (pr / TABLE).read_bytes() == before)
-            rc_bn, out_bn, kept_n = bot_run(pr / TABLE)
-            ck(f"the bot's step: {BOT_STEP} over a table the checkout's already holds adds nothing, keeps no "
-               "table and is red, naming the re-record (null control)",
-               rc_bn == 1 and "0 read(s) added to 0 step(s)" in out_bn and not kept_n.exists()
-               and "re-record the refused steps" in out_bn and (pr / TABLE).read_bytes() == before)
-        # It runs only where the drift step refused, and its artifact only
-        # where it succeeded: a green push, or a pull request, runs neither.
-        ck(f"the bot's step: {BOT_STEP} runs only where the drift step failed, and its table is kept "
-           "only where it succeeded",
-           re.search(rf"^        id: {BOT_STEP}\n        if: \$\{{\{{ !cancelled\(\) && steps\.drift\.outcome == "
-                     r"'failure' \}\}$", live, re.M) is not None
-           and re.search(rf"^        if: \$\{{\{{ !cancelled\(\) && steps\.{BOT_STEP}\.outcome == 'success' \}}\}}\n"
-                         r"        uses: actions/upload-artifact@", live, re.M) is not None)
+               and summ.is_file() and "ABSORB OWED" in summ.read_text() and (pr / TABLE).read_bytes() == before)
+            rc_bn, out_bn, kept_n, summ_n = bot_run(after)
+            ck(f"the bot's step: {BOT_STEP} over a table that already holds every read passes with no "
+               "ABSORB OWED and keeps no table (null control)",
+               rc_bn == 0 and "ABSORB OWED" not in out_bn and ", 0 refusal(s)\n" in out_bn
+               and not kept_n.exists() and not summ_n.exists())
+            stale_b = json.loads(after)
+            stale_b["steps"]["b"]["run_sha"] = "0" * 64
+            rc_bs, out_bs, kept_s, _ = bot_run(json.dumps(stale_b).encode())
+            ck(f"the bot's step: {BOT_STEP} stays red on a planted STALE step absorb adds no read to, and "
+               "keeps no table",
+               rc_bs == 1 and "  STALE step b: its run text changed since the record" in out_bs
+               and "ABSORB OWED" not in out_bs and not kept_s.exists())
+            rc_bu, out_bu, kept_u, _ = bot_run(before, drop="step-b.trace")
+            ck(f"the bot's step: {BOT_STEP} stays red on an UNMEASURED step beside an absorbable read: the "
+               "absorbed table is kept, the refusal it still makes is named",
+               rc_bu == 1 and "UNMEASURED step b" in out_bu and kept_u.is_file()
+               and "absorb adds 1 read(s), 1 step(s); 1 refusal(s) remain" in out_bu
+               and "ABSORB OWED" not in out_bu)
+            (pr / TABLE).write_bytes(before)
+        # No step absorbs apart from the drift step, and the absorbed table is
+        # kept on every push where it was written, never refused when absent.
+        ck(f"the bot's step: {BOT_STEP} is the only absorber, and the absorbed table is kept on a push "
+           "wherever the drift step wrote one",
+           not any(s.id == "absorb" for s in job_steps(live))
+           and "--absorb-out " in (bot[0].run if len(bot) == 1 else "") and re.search(
+               r"^        if: \$\{\{ !cancelled\(\) && env\.SELFTEST_TRACE != '' \}\}\n"
+               r"        uses: actions/upload-artifact@\S+ # \S+\n        with:\n          name: selftest-absorbed\n"
+               r"          path: \$\{\{ runner\.temp \}\}/absorbed/selftest_closures\.json\n"
+               r"          if-no-files-found: ignore$", live, re.M) is not None)
 
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
@@ -2293,6 +2429,8 @@ def main(argv: list[str], root: Path = ROOT) -> int:
     if argv[:1] == ["absorb"] and "--from" in argv:
         out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else root / TABLE
         return absorb_cli([Path(argv[k + 1]) for k, a in enumerate(argv) if a == "--from"], out.resolve(), root)
+    if argv[:1] == ["grows"] and "--old" in argv and "--new" in argv:
+        return grows_cli(Path(argv[argv.index("--old") + 1]), Path(argv[argv.index("--new") + 1]), root)
     if argv[:1] == ["prune"] and "--step" in argv and "--drop" in argv:
         table = load_table(root / TABLE)
         step = argv[argv.index("--step") + 1]
@@ -2308,7 +2446,8 @@ def main(argv: list[str], root: Path = ROOT) -> int:
         return 0
     if argv[:1] == ["check"] and "--traces" in argv:
         write = Path(argv[argv.index("--write") + 1]) if "--write" in argv else None
-        return check_cli(Path(argv[argv.index("--traces") + 1]), write, root)
+        absorb_out = Path(argv[argv.index("--absorb-out") + 1]) if "--absorb-out" in argv else None
+        return check_cli(Path(argv[argv.index("--traces") + 1]), write, root, absorb_out)
     print(__doc__.split("\n\n")[0], file=sys.stderr)
     return 2
 
