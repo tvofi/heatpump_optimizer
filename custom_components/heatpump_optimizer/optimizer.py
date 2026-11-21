@@ -733,8 +733,9 @@ def _raised_floor(
     if margins is not None:
         low = comfort = low + _padded_nonneg(margins, n_steps)
     if floors is not None:
-        f = np.asarray(floors, dtype=float)
-        mold = np.concatenate([f, np.full(max(0, n_steps - f.size), -np.inf)])[:n_steps]
+        f = np.asarray(floors, dtype=float)[:n_steps]
+        mold = np.full(n_steps, -np.inf)
+        mold[:f.size] = f
         low = np.maximum(low, mold)
     # Whatever raised the floor, the band never squeezes shut: a floor at or
     # above the ceiling makes the solve infeasible and the comfort penalty

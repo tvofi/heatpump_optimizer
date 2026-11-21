@@ -98425,6 +98425,18 @@ R.check(
     f"split={_r3_split} today={_r3_today}",
 )
 
+# Step i reads room_temps[i + 1]. The last step reads the trajectory's last
+# temperature (20.1: room_floor), not the one before it (19.6), and step 0,
+# exactly at the floor plus 0.15 K (19.65), stays comfort_floor.
+_R3_ROOM2 = np.array([19.5, (20.0 - 0.5) + 0.15, 19.95, 19.6, 20.1])
+_r3_edge = _r3_opt._mark_room_floor(["comfort_floor"] * 4, _R3_ROOM2, 19.5 + _R3_LIFT, _R3_LIFT)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the last step is judged on the trajectory's last temperature and a step exactly at "
+    "the floor less the lift plus 0.15 K is not the lift's; null control, step 1 (19.95) is room_floor",
+    _r3_edge == ["comfort_floor", "room_floor", "comfort_floor", "room_floor"],
+    f"{_r3_edge}",
+)
+
 # Invariant (iv): a room_floor step is a step that is comfort_floor today, so
 # the narrative's two groups sum to today's one.
 _r3_ch = lambda reasons: {"powers": [2.0] * 4, "prices": [1.0, 2.0, 3.0, 4.0], "reasons": reasons}  # noqa: E731
@@ -98532,14 +98544,25 @@ _, _r3_cb_mold_min, _, _r3_cb_mold = _cb_opt._build_comfort_bounds(
 _, _r3_cb_clip_min, _, _r3_cb_clip = _cb_opt._build_comfort_bounds(
     _cb_hours, 2, np.array([4.1, 0.5]), None, room_lifts=_r3_cb_lift)
 _, _r3_cb_none_min, _, _r3_cb_none = _cb_opt._build_comfort_bounds(_cb_hours, 2, _r3_cb_lift, None)
+# None for both adjustments is the configured band itself, unclipped: a 22.8
+# floor under a 23.0 ceiling stays 22.8, where a zero margin clips it to 22.5.
+_r3_tight = _MbOpt(ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+                   _MbCfg(horizon_hours=1, min_temp=22.8, max_temp=23.0))
+_r3_tight_none = _r3_tight._build_comfort_bounds(_cb_hours, 2, None, None)[1]
+_r3_tight_zero = _r3_tight._build_comfort_bounds(_cb_hours, 2, np.zeros(2), None)[1]
 R.check(
     "R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor without the lift (0.5 "
     "on the open band), 0 where the mold floor (22.0) or the ceiling clip (19 + 4.1 and 19 + 3.6 both past 22.5) covers the lift, and "
-    "None without the input; null control, the held floor is the same array with and without room_lifts",
+    "None without the input; the held floor is clipped to the ceiling less 0.5 (22.5) and raised to the mold floor, "
+    "and with no adjustment at all is the configured band unclipped (22.8 under 23.0); null control, the held "
+    "floor is the same array with and without room_lifts, and a zero margin clips the 22.8 floor to 22.5",
     np.allclose(_r3_cb_fl[2], [0.5, 0.5]) and np.allclose(_r3_cb_mold[2], [0.0, 0.5])
     and np.allclose(_r3_cb_clip[2], [0.0, 0.5]) and _r3_cb_none[2] is None
-    and np.array_equal(_r3_cb_min, _r3_cb_none_min) and bool(np.all(_r3_cb_mold[2] >= 0.0)),
-    f"{_r3_cb_fl[2]} {_r3_cb_mold[2]} {_r3_cb_clip[2]} {_r3_cb_none[2]}",
+    and np.array_equal(_r3_cb_min, _r3_cb_none_min) and bool(np.all(_r3_cb_mold[2] >= 0.0))
+    and np.allclose(_r3_cb_clip_min, [22.5, 19.0]) and np.allclose(_r3_cb_mold_min, [22.0, 19.0])
+    and np.allclose(_r3_tight_none, [22.8, 22.3]) and np.allclose(_r3_tight_zero, [22.5, 22.3]),
+    f"{_r3_cb_fl[2]} {_r3_cb_mold[2]} {_r3_cb_clip[2]} {_r3_cb_none[2]} clip={_r3_cb_clip_min} "
+    f"tight={_r3_tight_none} {_r3_tight_zero}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
