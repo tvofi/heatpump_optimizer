@@ -14,18 +14,15 @@ R11-SEAM-tests (round 11; findings D10-s1-05, D10-s1-06, D9-s3-01, D9-s3-02; cla
 
 ## Head
 
-7451bd89734efafa66eba084d9b66e9e91e1c6d3
+`db727d36e02f837e587bc049069d586a587fb913` merges the authored code head `ea5ad2a5fdb1ab6e66422a9af9df52cebc8b2331`.
 
-The repair round on top of PR head `7104e5eb78` (the bot's `ci: merge main` over `ebe14f5c4e`), four commits and one merge:
+ea5ad2a5fdb1ab6e66422a9af9df52cebc8b2331
 
-- `04001d585d` merges `8b42bf71c5` (handoff/r11-seam-tests, `config_flow_steps: finish the two setup pre-fill flows ...`) into `7104e5eb78`. `git diff 7104e5eb 04001d58` is exactly `8b42bf71c5`'s own four lines in `tests/config_flow_steps.py` (`diff` of the two patches' `+`/`-` lines empty), because `8b42bf71c5`'s main merge `689f33e265` is already in `7104e5eb78`.
-- `3b87493b88` splits the three new over-40-word sentences in `tests/cycle_lane.py`'s comments and indents the docstring's readings table as the code block it is. Comment text only.
-- `b7ef6835cf` adds `tests/cycle_lane.py` to `tests/doc_claims.py`'s closure, re-derived by `./tests/derive_closures.sh --single tests/doc_claims.py` on Linux.
-- `7451bd8973` adds `tests/cycle_budgets.json` to the `budget-raise-gate` step's self-test closure in `tools/ci/selftest_closures.json`, recorded by `python3 tools/ci/selftest_scope.py record --step budget-raise-gate`, the repair `tools/pr/ci_predict.py`'s SELFTEST SCOPE arm named (`UNDER-SCOPED step budget-raise-gate: files misses ['tests/cycle_budgets.json']`).
+One commit on top of PR head `e1dd8b8462` (reviewed at `816c2a3e11`; since then `e8f9fb3b58` merged main and `144a391879` re-derived `tests/cycle_lane.py`'s closure):
 
-No main merge in this round: `git merge-tree --write-tree origin/main HEAD` reports no conflict against `origin/main` at `78d3b40221` (`date -u` 2026-11-21 11:31 UTC). The merge base is `9e7abae6bb` (`git merge-base origin/main HEAD`).
+- `ea5ad2a5fd` `beatd: install the SIGTERM handler before the first job starts`. `tools/audit/seat/beatd.py`'s `run()` started the job threads and only then installed its SIGTERM handler. On a loaded runner a job journalled `RUNNING` before `signal.signal` ran, so a TERM that found a running job met the default disposition and beatd died with -15, with no `PASS` and no `STOP`. The handler now precedes thread start. The new mutant `m2_sigterm_handler_after_jobs` restores the old order with a 2 s delay, and it must turn `(2) SIGTERM stops the beat ...` red, which pins the ordering. This branch did not cause the race. Its diff selected the `beatd` self-test at a head where the step's parallel mutants loaded the runner.
 
-prepr: passed rc=0 at 7451bd89734efafa66eba084d9b66e9e91e1c6d3
+No main merge: `git merge-tree --write-tree origin/main HEAD` reports no conflict against `origin/main` at `63c6d1cff9`. The merge base is `a8efe1d1c2` (`git merge-base origin/main HEAD`).
 
 ## Mutation proof
 
@@ -45,6 +42,7 @@ prepr: passed rc=0 at 7451bd89734efafa66eba084d9b66e9e91e1c6d3
 - **B, the existing detector.**
   - Coverage file: a local `coverage.json` (sha1 `5960296b5a`) from `tools/coverage/coverage_tree.sh fast` at the merge base. CI's venv has no `coverage`, so it ran in a scratch venv with coverage 7.17.3.
   - The same file with `config_flow.py` trimmed to 917 of 1020 executed lines (sha1 `55c9deda89`) makes `tests/coverage_ratchet.py --coverage` print `FAIL every module >= 95.0 %  (1 below)` and `1 module(s) below the 95.0 % per-module floor: config_flow.py 89.90 %`, and exit 1.
+- **beatd SIGTERM ordering, failing first.** `beatd.py` at `e1dd8b8462` with `time.sleep(2)` inserted after the job threads start (a copy in scratch) makes `python3 -I beatd.py --self-test 2 --no-mutants` print `FAIL (2) SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP` and `9 checks, 1 failed`. That is CI's line. The same delay at the same point over `ea5ad2a5fd` prints `ok` and `14 checks, 0 failed`, mutants included. The mutant `m2_sigterm_handler_after_jobs` turns that check red.
 - **`MUTANT_CMD`.** `python3 -I tools/policy/budget_raise_gate.py --self-test`, over the gate's added lines.
 
 ## Null control
@@ -67,7 +65,7 @@ prepr: passed rc=0 at 7451bd89734efafa66eba084d9b66e9e91e1c6d3
 - `Architecture score: dS +0.0000 NULL`, from `python3 tools/audit/archscore/score.py --diff 9e7abae6bbce9bc971393a5010ae099dfd9e6a90`.
 - Scope: `tests/run.sh` changed, so `python3 tests/closure.py select --diff 9e7abae6bbce9bc971393a5010ae099dfd9e6a90` reads `MODE: FULL`. Run locally at the head (each exit 0): `config_flow_steps.py`, `doc_claims.py`, `cycle_lane.py`, `entities.py`, `structure.py`, `closure.py selftest`, `comment_ratchet.py`. The rest is left to CI.
 
-<!-- figure-block: scope-line mb=9e7abae6bbce9bc971393a5010ae099dfd9e6a90 head=7451bd89734efafa66eba084d9b66e9e91e1c6d3 -->
+<!-- figure-block: scope-line mb=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b head=ea5ad2a5fdb1ab6e66422a9af9df52cebc8b2331 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -94,6 +92,8 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 - `pr-contract / pr-contract` (job 136623136750): the figure block's scope line named `ebe14f5c4ede`. Refreshed at this head by `tools/pr/figure_block.py refresh`. Cheaper detector: none; the block is a function of the head, and `body_push.sh`'s refresh is the step that keeps it current.
 - `budget-raise-gate / budget-raise-gate` (job 136820888171): 27 raises read by the base's gate copy, and `no decisive review by tvofi`; the PR is code-owned. Answered under `## Raise justification`. Cheaper detector: none is owed, since this is a raise and not a defect; `tests/entities.py`'s every-script-once count found the one real raise locally before any push.
 
+- `governance / instrument-self-tests` (job 136950503428) at `e1dd8b8462`: step `Show the supervised beat refusing its own fixtures` printed `FAIL (2) SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP` and `beatd self-test: 157 checks, 1 failed`. The cause was a latent race in `beatd.py`'s `run()`: the handler was installed after the job threads started. `merge_train.py classify` read the failure as INTRODUCED because this branch's diff selected the step at its head. Repaired by `ea5ad2a5fd` (Head, Mutation proof). Cheaper detector: none was built. The new mutant now pins the ordering in the step itself.
+
 ## Forward-carry
 
 - C (D9-s3-01, the memory pass probing every recorded row) is the split part the approved design names (§7). It lands in its own pull request, after a CI-platform clean all-row run decides which rows the owner must confirm re-recording. The base reading is the design's: the finder's memory harness (round 11, D9/s3, `--jobs 2`) reads `blind_confined` 48, and the null flags 9 unprobed rows on a clean tree. Carry: dismissed: the approved design's own split part (§7), dispatched by the orchestrator as its own pull request; `carry_audit.py` reads no lower-case group token, so `R11-SEAM-tests` cannot be named as a destination
@@ -102,3 +102,4 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 ## Friction
 
 none
+
