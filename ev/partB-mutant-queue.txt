@@ -1,0 +1,2 @@
+FAIL the queue enqueue creates is owner-only under umask 022 (got: 0o644)
+postmerge self-test: 34 checks, 1 failed

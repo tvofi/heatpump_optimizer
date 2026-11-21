@@ -1,0 +1,3 @@
+roster_lib self-test: 105 checks, 0 failed
+  ok   mutant queue_world_readable killed by: the queue enqueue creates is owner-only under umask 022
+postmerge self-test: 42 checks, 0 failed
