@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Carry destination for the R11-P5 class (#3767): the three priced terms of design/R11-SEAM-learners section 3.3, routed out of R11-SEAM-learners by the orchestrator's answer (option c) to that group's blocked-stop. Shape: dev/governance/rules/finding-propagation.md; linted by tools/policy/brief_lint.mjs."
+  ],
+  "issue": 3767,
+  "stage": "a design revision of design/R11-SEAM-learners section 3.3 that prices the sysid adoption gate's three new terms (D7-s2-02 unlearned intercept width, D2-s3-10 regressor noise, the told COP and outdoor widths) against liveness, then the fix that builds what it keeps",
+  "carries": [
+    {
+      "from": "R11-SEAM-learners (handoff/r11-seam-learners): the pull request that ships section 3.3's mechanical parts only (the arm switch, the shared forward-difference Jacobian, one ridge spelling taking its width) and leaves the three priced terms unbuilt",
+      "effect": "narrows",
+      "control": "Measured by the R11-SEAM-learners fixer at commit 5ec5f3d9f056f9e3f9021080085fee48af630bd4, which built all three terms as section 3.3 specifies, with the features liveness check's derived-preset noise-free nights (the check requires at least 6 of 8 to adopt) as the driver, each term switched on alone by patching module attributes: none of the three adopts 7 of 8; the 0.3 kW unlearned intercept width alone adopts 0 of 8; the regressor-noise term alone 4 of 8; the told COP 0.03 log and outdoor 0.5 K widths alone 1 of 8; all three 0 of 8. The keep table over the 20 derived presets with the 0.3 kW width and the noise term in place read 0 of 20 at every told-width pair it reached, so P5's widths cannot be priced until the intercept width is settled. The null control is the none-of-three arm (7 of 8 adopt), which is the tree's behaviour at the R11-SEAM-learners head.",
+      "remeasure": "These counts are snapshots at 5ec5f3d9f0. Re-take them at your own merge base: the driver that produced them is the harness sysid_told_keep under dev/audit/harnesses at commit 0c859e0ca4951032c5b76e0c949f4d4a06b76a95 (removed from the tree because it patches symbols the shipped head does not have), and the finders' harnesses dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py (biased_admitted) and dev/audit/rounds/round11/D2/s3/m5_sysid.py (miss share per noisy arm) read flat at both ends of R11-SEAM-learners.",
+      "brief": "Do not build any of the three terms as section 3.3 states them: each alone refuses most noise-free nights the liveness check reads, and the intercept width refuses every install without a learned gains profile, which is every new install. Price each term separately against liveness with its own keep table (adopted nights over the derived presets, and the finder's biased-admitted count, per candidate width), the intercept width first, and put the P5 widths to the owner from their table (decision: owner). The ridge already takes its width as an argument (sysid _ridged), so a per-install width is one value passed at the fit and interval call sites."
+    }
+  ]
+}

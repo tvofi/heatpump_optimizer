@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Carry destination for the R11-N-event-misattribution class (#3769): the residual instance R11-SEAM-learners measured and did not build. Shape: dev/governance/rules/finding-propagation.md; linted by tools/policy/brief_lint.mjs."
+  ],
+  "issue": 3769,
+  "stage": "the fix of the plan-flag-off charge's start dip booked as a hot-water draw (DhwProfileLearner on a charge the plan never flagged), on the self-setting pump's seam",
+  "carries": [
+    {
+      "from": "R11-SEAM-learners (handoff/r11-seam-learners): fixes D2-s3-08 (the planned charge's dip) and measures design section 5's plan-flag-off charge arm without building it",
+      "effect": "invalidates",
+      "control": "dev/audit/rounds/round11/D2/s3/m5_tankfall.py's unplanned arm (booked_kwh_unplanned_max) reads the same booked energy at both ends of R11-SEAM-learners, far past the 0.05 kWh band, while its long arms (booked_kwh_long_max, the planned charge) fall to zero at the head: the planned-charge fix does not reach a charge the plan never flagged. The design's mechanism (open ChargeSettle with its dip credit on an unheated interval whose tank rose past the evidence band, so ChargeSettle.advance takes the dip back) is a no-op on DrawStats.take_back, which takes back charge-folded energy only; widening take_back erases the real draw that starts a self-setting pump's own charge.",
+      "remeasure": "Re-run PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s3/m5_tankfall.py at your merge base and read booked_kwh_unplanned_max against booked_kwh_long_max (the planned-charge control).",
+      "brief": "The assumption that ChargeSettle's dip credit covers an unflagged charge does not hold: DrawStats.take_back only returns charge-folded energy. A fix must tell the start dip of the pump's own unflagged charge from a real draw that triggers it (a self-setting pump charges because someone drew water), so it needs the tank rise evidence (heat_energy.unplanned_charge) and a rule for the triggering draw, measured with the draw-then-charge shape as its null control."
+    }
+  ]
+}
