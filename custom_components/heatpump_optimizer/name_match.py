@@ -7,9 +7,9 @@ model, resolves nothing. That refusal is right and it leaves the pre-fill page
 empty for the owner's own case -- a locally-configured pump, or a brand whose
 definitions this repository has never seen (#1067 owner decision 7).
 
-This module is the fallback, and it guesses, so it is built to be boring:
+This module is the fallback, and it guesses, so it is built to be boring.
 
-* **The hard filter runs first, and it is not a name test.** A candidate must
+* **The hard filter runs first, and it is not a name test**. A candidate must
   already be the role's domain, its device class where the role names one, and
   its unit *family* (degrees Celsius with kelvin, watts with kilowatts) before
   any name is read. Nothing here matches on a name alone, which is why a role
@@ -18,15 +18,15 @@ This module is the fallback, and it guesses, so it is built to be boring:
   :data:`ROLE_FILTERS` at all. A set-point role is in reach because a Home
   Assistant state carrying a unit already reads in engineering units, so the
   role's scale is 1.0.
-* **A name is evidence, not identity.** ``entity_id``, ``original_name`` and
+* **A name is evidence, not identity**. ``entity_id``, ``original_name`` and
   ``translation_key`` are lowercased, split on case, underscore and digit
   boundaries, and stripped of the words every one of the device's entity ids
   starts with -- the device's own name, which the integration prefixes to
   each. Each is scored against the role's synonym phrases as the mean of the
-  phrase's token coverage and a :mod:`difflib` ratio, so a phrase whose words
-  are all present scores high and a name carrying a phrase's words *plus*
+  phrase's token coverage and a :mod:`difflib` ratio. A phrase whose words
+  are all present scores high, and a name carrying a phrase's words *plus*
   others scores lower.
-* **A suggestion needs a winner, not a candidate.** A role is suggested only
+* **A suggestion needs a winner, not a candidate**. A role is suggested only
   when its best score clears :data:`THRESHOLD` and beats the runner-up by
   :data:`MARGIN`; a tie or a near-tie gives nothing, and one entity is
   suggested for at most one role. The trap this exists for is real: on the
@@ -38,7 +38,7 @@ The two constants are **measured, not chosen**: ``tools/devices/measure_prefill_
 sweeps them over the labelled corpus and prints the grid the shipped pair
 comes from, and ``tests/features.py`` asserts the corpus has no wrong
 suggestion at that pair. Raising the threshold buys precision and spends
-recall, which is the right direction to spend it in: a role this misses is one
+recall, which is the right direction to spend it in. A role this misses is one
 the user fills by hand, and a role it fills wrongly is one the plan reads from
 the wrong probe.
 
@@ -121,8 +121,8 @@ class Role(NamedTuple):
 
 
 #: The unit spellings each family accepts. Deliberately narrow: an energy
-#: total is not a power reading and a Fahrenheit probe is not a Celsius one,
-#: so ``kWh`` and ``°F`` belong to no family a role here reads in, and a
+#: total is not a power reading and a Fahrenheit probe is not a Celsius one.
+#: So ``kWh`` and ``°F`` belong to no family a role here reads in, and a
 #: perfect name in the wrong unit suggests nothing.
 _FAMILIES: dict[str, frozenset[str]] = {
     "temperature": frozenset({"c", "k", "degc", "celsius", "kelvin"}),
@@ -172,15 +172,15 @@ ROLE_FILTERS: dict[str, Role] = {
 }
 
 #: Each role's phrases: English and Swedish, plus the words the pinned source
-#: definitions themselves use. The last part is not typed from memory --
+#: definitions themselves use. The last part is not typed from memory.
 #: ``tests/features.py`` derives the distinctive words of the entities the
-#: source tables map out of the generated fixtures and asserts every one of
+#: source tables map out of the generated fixtures. It asserts every one of
 #: them is in the role's own vocabulary here, so a definition's word this list
 #: omits fails the suite rather than silently missing the role.
 #:
 #: A phrase is as long as the role's evidence is: ``outlet water`` rather than
 #: ``outlet water temperature``, because "temperature" is in every temperature
-#: entity's name and a phrase carrying it would match ``Outlet temperature``
+#: entity's name. A phrase carrying it would match ``Outlet temperature``
 #: -- which on the pinned tuya-local config is the plate outlet (dp 106), not
 #: the supply. That near-tie is the reason the rule has a margin at all.
 SYNONYMS: dict[str, tuple[str, ...]] = {
@@ -260,7 +260,7 @@ SYNONYMS: dict[str, tuple[str, ...]] = {
 }
 
 #: ``tests/features.py`` derives the words each pinned definition names its
-#: own mapped entities with and asserts they are all above; the words that
+#: own mapped entities with and asserts they are all above. The words that
 #: identify no reading ("temperature", "water") are excluded there, because a
 #: definition's name is only evidence for the part of it that is distinctive.
 

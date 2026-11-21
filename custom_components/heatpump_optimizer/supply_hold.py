@@ -6,8 +6,8 @@ supply switch bypasses the compressor's own interlocks. So the one gate the
 cycle and the step tick write through (``coordinator._write_supply``) holds a
 write back that would
 
-* end a run younger than :data:`MIN_RUN`;
-* end a pause younger than :data:`MIN_PAUSE`;
+* end a run younger than :data:`MIN_RUN`.
+* end a pause younger than :data:`MIN_PAUSE`.
 * start a run the plan ends within :data:`MIN_RUN`: an on write inside a
   step whose next step is planned off. Not where the step heats the tank
   and the tank needs it now (:func:`tank_reason`): that run starts, and the
@@ -18,7 +18,7 @@ as ``early_cutoff`` measures its minimum run, so a run started by a boost, a
 fixed mode, the user or the cut-off counts like one this gate wrote. A reload
 of the integration leaves the stamp alone. A restart of Home Assistant builds
 a new state machine whose first write stamps the restart
-(``tests/ha_contract.py``, ``StateMachine.async_set``), so a pump found
+(``tests/ha_contract.py``, ``StateMachine.async_set``). So a pump found
 running reads as a run that started then and is held on for at most
 :data:`MIN_RUN`, and a pump found stopped is held off for at most
 :data:`MIN_PAUSE`. A write that leaves the state keeps the stamp. A stamp missing or ahead of the clock is an unknown age and
@@ -28,7 +28,7 @@ holds nothing (#775: unknowable, never 0).
 ``off`` is stopped, any other readable state is running, so a ``climate`` or
 ``input_boolean`` target (``on_off_service``) is held like a switch.
 
-**Only a delay.** The gate never makes a write; it returns ``None`` for one it
+**Only a delay.** The gate never makes a write. It returns ``None`` for one it
 holds and sets :attr:`ArbiterState.supply_held`, and ``pump_arbiter.
 supply_tick`` retries it each minute with the step's own command, or the
 action's where the plan gives none, so it lands once its minimum has passed.
