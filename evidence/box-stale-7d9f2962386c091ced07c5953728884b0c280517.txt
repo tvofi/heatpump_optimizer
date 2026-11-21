@@ -1,0 +1,67 @@
+# handoff/audit-r11-find-D3-u1a on origin: 48b7c2c08adc927fd240136e452b2a3a666c655d	refs/heads/handoff/audit-r11-find-D3-u1a
+# handoff-wip/finder-r11-D3-u1a on origin: 82e6b9a91422d7bcf05124326f42868f154b10a2	refs/heads/handoff-wip/finder-r11-D3-u1a (body names 883585027729)
+48b7c2c08adc927fd240136e452b2a3a666c655d 2026-11-19T17:33:13Z audit(r11): box D3-u1a result
+a7d585328482c89f268c9becc2632d79c0ba1a09 2026-11-19T14:13:08Z audit(r11): box D3-u1a result
+a7d58532 ancestor of 48b7c2c0: yes
+authored head 60cb69de9b committed: 2026-11-19T15:27:10+01:00
+
+## box diff a7d585328482 -> 48b7c2c08a, by status
+  36 A
+ 562 M
+## CHECK.txt at a7d585328482
+gap D3-s1: M1 has 0 coverage row(s), not exactly one
+gap D3-s1: M4 has 0 coverage row(s), not exactly one
+gap D3-s1: M5 has 0 coverage row(s), not exactly one
+gap D3-s1: C1 (M5), handed over from the round before, is not answered under redispatched
+gap D3-s1: C4 (M5), handed over from the round before, is not answered under redispatched
+gap D3-s1: C7 (M5), handed over from the round before, is not answered under redispatched
+gap D3-s1: C8 (M1), handed over from the round before, is not answered under redispatched
+gap D3-s1: C9 (M5), handed over from the round before, is not answered under redispatched
+ok D3-s1
+## CHECK.txt at 48b7c2c08a
+ok D3-s1
+## last PROGRESS-u1a.log lines at 48b7c2c08a
+2026-11-19T00:27:24Z container restart killed K2 at 80/236 complete; 4 worker trees found mutated mid-drive, removed and re-added; in-flight mutants re-driven
+2026-11-19T17:32:52Z K1 309/309, K2 236/236 (56 killed, 179 survived, 1 timeout re-driven: killed by features.py); 179 step-4 answers; REPORT.json built (build_u1a_report.py)
+## headline tally the PR lands (REPORT-D3-u1a.md)
+## Tally
+| net | driven | killed | survived | timeout | skipped by reach | unparseable |
+|---|---|---|---|---|---|---|
+| fast (pre) | 309 | 73 | 236 | 0 | 0 | 0 |
+| full (complete) | 236 | 58 | 178 | 0 | 0 | 0 |
+
+## headline tally at 48b7c2c08a (REPORT-u1a.md)
+## Slice tally
+
+- K1 fast net: 309 keys (lo 000221f3921dd956 <= key < 3daa55123b452546), 309 driven, 73 killed, 236 survived, 0 timeout, 0 unparseable, 0 with every driver reach-skipped (1549 driver runs reach-skipped).
+- First kill by: tests/typing_ruler.py 27, tests/env_drift.py 11, tests/manual_plan.py 9, tests/plan_view.py 6, tests/finite_boundary.py 5, tests/structure.py 5, tests/validate.py 3, tests/solar_alignment.py 2, tests/doc_claims.py 2, tests/config_flow_steps.py 2, tests/block_duty.py 1
+- K2 full net on the 236 survivors: 56 killed (tests/features.py 50, tests/entities.py,tests/features.py 3, tests/harness_headers.py,tests/features.py 2, tests/entities.py 1), 179 survived, 1 timeout (0275af9776ae709e: tests/features.py).
+- Step-4 readings of the full-net survivors: 84 gap, 56 boundary, 39 equivalent
+
+## landing vs the box commit the PR names (a7d585328482)
+box a7d585328482 files 714; head 7d9f2962386c091ced07c5953728884b0c280517 added/changed 594
+  DROPPED: 2
+  identical-on-main: 119
+  main-has-different-bytes(not landed): 1
+  same-path-identical(added): 582
+  same-path-modified: 2
+  suffixed-identical: 6
+  suffixed-modified: 2
+  head-added dev/audit paths not from box: 0
+   DROPPED	CHECK.txt
+
+## landing vs the box ref's tip (48b7c2c08a)
+box 48b7c2c08a files 750; head 7d9f2962386c091ced07c5953728884b0c280517 added/changed 594
+  DROPPED: 38
+  identical-on-main: 120
+  main-has-different-bytes(not landed): 1
+  same-path-identical(added): 29
+  same-path-modified: 555
+  suffixed-identical: 2
+  suffixed-modified: 5
+  head-added dev/audit paths not from box: 1
+    EXTRA dev/audit/rounds/round11/D3/s1/PROGRESS-local-D3-u1a.log
+complete: total 236 {'KILLED': 58, 'SURVIVED': 178}
+posctl-D3-u1a: total 2 {'KILLED': 2}
+posctl-D3-u1a-r2: total 2 {'KILLED': 2}
+pre: total 309 {'KILLED': 73, 'SURVIVED': 236}
