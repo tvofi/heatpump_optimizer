@@ -1,3 +1,4 @@
 1795274788 INIT r11-rev-3737
 1795274797 HB alive
 1795274854 CKPT packet and role read snapshot 51dfee46b628
+1795275070 CKPT mutants: 8/8 killed on delta tests snapshot d1865becaead
