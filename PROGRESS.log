@@ -2,3 +2,4 @@
 1795264343 INIT r11-pre-shared-files
 1795264353 HB alive
 1795264357 INBOX acked through 3
+1795264492 CKPT re-measured at 78d3b40221: carries 0-4 are on main via #3708; writing BLOCKED.md snapshot f65cef7f3090
