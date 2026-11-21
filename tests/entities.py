@@ -104,7 +104,7 @@ def _seed_prices(hass, entity_id="sensor.prices", hours=48, base=0.5):
     )
 
 
-from homeassistant.components.sensor import SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
 import heatpump_optimizer as integration
 from homeassistant import const as ha_const
@@ -4271,6 +4271,47 @@ def _p2_registry(sources):
                  ast.IfExp, r"if \w+ is None else \w+\.astimezone\(timezone\.utc\)$",
                  lambda n: isinstance(n.test, ast.Compare)),
              owners=["tariff.py::_window_starts"], dispositions={}),
+        # D17-s3-51 and the P2 sweep's F14 seams (R11-SEAM-entity-service):
+        # the hot-water window in force at an instant is windows_in_force's,
+        # the planner's per-step day chain for a reader holding a clock. A
+        # read of the flat every-day set elsewhere tests no instant.
+        dict(fact="dhw_window_in_force", finding="D17-s3-51",
+             match=_p2_match_node(
+                 ast.Attribute, r"\.dhw_(demand_)?windows$",
+                 lambda n: n.attr in ("dhw_windows", "dhw_demand_windows")),
+             owners=["dhw_schedule.py::windows_in_force"], dispositions={
+                 # The flat set itself, and whether a schedule is in force.
+                 "thermal_model.py::ThermalParameters.dhw_demand_windows":
+                     "defines the flat every-day set windows_in_force's chain ends in",
+                 "thermal_model.py::ThermalParameters.dhw_windows_active":
+                     "whether a schedule is configured at all; no instant",
+                 # The 24-hour draw profile, a day-agnostic mask.
+                 "thermal_model.py::ThermalParameters.effective_dhw_draw_pattern":
+                     "the draw mask's cache key; no instant",
+                 "thermal_model.py::ThermalParameters._windowed_draw_pattern":
+                     "masks the 24-hour draw profile by each hour's window coverage, "
+                     "the day-agnostic profile the weekday pattern multiplies; no instant",
+                 # The planner's own fallback, which its per-step chain resolves.
+                 "dhw_planner.py::DhwPlanner._effective_dhw_windows":
+                     "the fallback set the planner's per-step windows_for_day chain "
+                     "(_dhw_windows_at) resolves; windows_in_force is that chain for a clock",
+                 # Stats tables keyed by the flat windows' labels.
+                 "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats":
+                     "labels a draw with the flat window, the key the planner reads "
+                     "the stats by; whether it fell in a window is windows_in_force's",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_plan_fields":
+                     "keys the stats table by the flat labels; the clock picks the "
+                     "weekday pattern, and no instant is tested (sweep-P2.md F14)",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep":
+                     "the heaviest window's ready energy over the flat labels' stats; no instant",
+                 # Published text.
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view":
+                     "publishes the spec text and the per-window stats; no instant",
+                 "coordinator.py::HeatPumpOptimizerCoordinator.configured_dhw_windows":
+                     "formats the configured spec for display; no instant",
+                 "optimizer.py::_dhw_resolved_publish":
+                     "formats the resolved day spec for the card; no instant",
+             }),
     ]
 
 
@@ -4306,6 +4347,11 @@ _P2_CENSUSES = {
     # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
     # payload_number's -- every number state driven with a bool and a text
     # payload publishes neither, nor reads either as a number.
+    # D8-s1-03 and the sweep's F18 family (R11-SEAM-entity-service): a
+    # waits-for-evidence sensor is available exactly when it has a value.
+    "waits_for_evidence_value": (
+        "tests/entities.py",
+        "waits_for_evidence census: every waits-for-evidence sensor is available only with a value"),
     "payload_number_published": (
         "tests/finite_boundary.py",
         "every number state publishes None, never the bool or the text, from a "),
@@ -4472,6 +4518,10 @@ _P2_PLANTS["power_state_kw"] = (
 )
 _P2_PLANTS["channel_active_kw"] = (
     "\n\ndef _p2_plant(dhw_power):\n    return dhw_power > CHANNEL_ACTIVE_KW\n"
+)
+_P2_PLANTS["dhw_window_in_force"] = (
+    "\n\ndef _p2_plant(params, hour):\n"
+    "    return hour_in_windows(hour, params.dhw_demand_windows)\n"
 )
 _P2_PLANTS["defrost_standoff"] = (
     "\n\ndef _p2_plant(signals):\n"
@@ -4976,6 +5026,8 @@ P6_UPSTREAM_PROBES = {
     "async_start_reauth", "last_update_success", "async_items",
     "register_static_path", "async_update_item", "last_updated", "last_changed",
     "last_reported", "isoformat", "temperature_unit",
+    # SensorDeviceClass member since 2025.11.0, read above the hacs.json floor (D10-s2-04).
+    "TEMPERATURE_DELTA",
 }
 #: Home Assistant's own climate presets (climate/const.py PRESET_*), which the
 #: climate component translates and icons itself.
@@ -6726,18 +6778,31 @@ R.check(
     "; ".join(_impossible),
 )
 
-# Two the audit brief flagged and this PR deliberately leaves alone, pinned so
-# a future "consistency" pass does not add a device class to either.
-R.check(
-    "Heat-Curve Displace stays bare: it is a parallel shift, not a temperature",
-    getattr(by_name["Heat-Curve Displace"], "_attr_device_class", None) is None
-    and by_name["Heat-Curve Displace"]._attr_native_unit_of_measurement == "°C",
-    "a TEMPERATURE device class would have HA convert a delta as an absolute",
+# A temperature DIFFERENCE never takes TEMPERATURE, which converts a delta as
+# an absolute for a Fahrenheit user; it takes TEMPERATURE_DELTA where the
+# running core has it (2025.11.0, above the hacs.json floor: None there).
+# D10-s2-04 found these readouts left bare after the class existed.
+_DELTA_DC = getattr(SensorDeviceClass, "TEMPERATURE_DELTA", None)
+for _delta_name in ("Heat-Curve Displace", "Heat-Curve Effective Displace", "Prediction Accuracy"):
+    R.check(
+        f"{_delta_name} is a temperature difference: TEMPERATURE_DELTA, never TEMPERATURE (D10-s2-04)",
+        _DELTA_DC is not None
+        and getattr(by_name[_delta_name], "_attr_device_class", None) == _DELTA_DC
+        and by_name[_delta_name]._attr_native_unit_of_measurement == "°C",
+        f"{getattr(by_name[_delta_name], '_attr_device_class', None)!r} -- TEMPERATURE "
+        "would have HA convert a delta as an absolute",
+    )
+# The census the rule needs (D10-s2-04's metric): no sensor publishing in °C
+# or K is left classless where the class exists.
+_delta_bare = sorted(
+    type(_e).__name__ for _e in by_name.values()
+    if getattr(_e, "_attr_native_unit_of_measurement", None) in ("°C", "K")
+    and getattr(_e, "_attr_device_class", None) is None
 )
 R.check(
-    "Prediction Accuracy stays bare for the same reason: it is a mean error",
-    getattr(by_name["Prediction Accuracy"], "_attr_device_class", None) is None
-    and by_name["Prediction Accuracy"]._attr_native_unit_of_measurement == "°C",
+    "no sensor in degC or K is published without a device class (D10-s2-04 census)",
+    len(by_name) > 40 and not _delta_bare,
+    f"bare: {_delta_bare} of {len(by_name)} sensors",
 )
 R.check(
     "a device class with no state class is legal, so the valve target is fine",
@@ -13010,6 +13075,49 @@ R.check(
     == _ATTR_RICH["savings_months"],
     repr(_ready_sav.native_value),
 )
+# D8-s1-03: availability and state read the same row. At a month rollover
+# (only the settled month booked) and on an open row whose saving the ledger
+# withholds (old_basis, below_meter_floor: savings_sek None) the sensor was
+# available with state unknown.
+for _sav_label, _sav_rows in (
+    ("rollover: only the settled month", [{"month": "2026-01", "estimated": False, "savings_sek": 80.0}]),
+    ("open row withheld", [{"month": "2026-01", "estimated": False, "savings_sek": 80.0},
+                           {"month": "2026-02", "estimated": True, "savings_sek": None}]),
+):
+    _sav_w = sensor.MonthlySavingsSensor(FakeCoordinator({**DATA, "savings_months": _sav_rows}), ENTRY)
+    R.check(
+        f"MonthlySavingsSensor is unavailable, never unknown, with no open saving ({_sav_label}; D8-s1-03)",
+        not _sav_w.available and _sav_w.native_value is None
+        and _sav_w.extra_state_attributes.get("waiting_for") == "open_month_coverage",
+        f"available {_sav_w.available} value {_sav_w.native_value!r} "
+        f"waiting_for {_sav_w.extra_state_attributes.get('waiting_for')!r}",
+    )
+
+# The census the fact needs (sweep-P2 F18): every waits-for-evidence sensor
+# the platform builds is available exactly when it has a value, on the empty
+# payload and on the rich one -- the mixin's contract that "not measured yet"
+# is unavailable, never unknown. It asserts its reach: every subclass the
+# module defines is built here.
+_wfe_classes = {
+    _c for _c in vars(sensor).values()
+    if isinstance(_c, type) and issubclass(_c, sensor._WaitsForEvidenceMixin)
+    and _c is not sensor._WaitsForEvidenceMixin
+}
+_wfe_seen, _wfe_bad = set(), []
+_wfe_runtime = getattr(ENTRY, "runtime_data", None)
+for _wfe_data in ({}, DATA, _ATTR_RICH):
+    for _wfe in collect(sensor, _wfe_data):
+        if isinstance(_wfe, sensor._WaitsForEvidenceMixin):
+            _wfe_seen.add(type(_wfe))
+            if _wfe.available and _wfe.native_value is None:
+                _wfe_bad.append(f"{type(_wfe).__name__}@{len(_wfe_data)} keys")
+ENTRY.runtime_data = _wfe_runtime
+R.check(
+    "waits_for_evidence census: every waits-for-evidence sensor is available only with a value",
+    _wfe_classes and _wfe_seen == _wfe_classes and not _wfe_bad,
+    f"available and unknown: {_wfe_bad}; not built: "
+    f"{sorted(c.__name__ for c in _wfe_classes - _wfe_seen)}",
+)
 # R10-SAV-WOOD-HEAT (owner ruling, 2026-11-04): the reference has no wood, so on
 # a house with wood configured the entity's saving says it includes wood's heat
 # and not firewood's cost, by the receipt event's one definition. The null
@@ -13910,13 +14018,43 @@ _bad_ids = sorted(
     e._attr_unique_id
     for _platform, e in _named_entities
     if _platform != "climate"
-    and getattr(e, "entity_id", None)
-    != f"{_platform}.heat_pump_optimizer_{e._attr_translation_key}"
+    and not (
+        str(getattr(e, "entity_id", "")).startswith(f"{_platform}.heat_pump_optimizer_")
+        and str(getattr(e, "entity_id", "")).endswith(f"_{e._attr_translation_key}")
+    )
 )
 R.check(
     "every entity pre-assigns its suggested object id",
     not _bad_ids,
     ", ".join(_bad_ids),
+)
+
+
+# D8-s2-02: a declared family (_fam_token: override, else lead token) is ONE
+# run in each platform's suggested entity-id sort, as it is in each language's
+# name sort above. The four lifetime meters sorted as three id runs while
+# their names led with "Lifetime". The null control sorts the same entities
+# by the bare translation-key id the scheme used before, which must split.
+def _fam_id_splits(_id_of):
+    _out = []
+    for _plat in sorted({_p for _p, _ in _named_entities}):
+        _order = [_fam_token(_e._attr_translation_key) for _, _e in sorted(
+            ((_id_of(_p, _e), _e) for _p, _e in _named_entities if _p == _plat),
+            key=lambda _r: _r[0])]
+        for _fam in sorted(set(_order)):
+            _runs = sum(1 for _i, _f in enumerate(_order) if _f == _fam and (_i == 0 or _order[_i - 1] != _fam))
+            if _runs > 1:
+                _out.append(f"{_plat}:{_fam}:{_runs} runs")
+    return _out
+
+
+_fam_id_split = _fam_id_splits(lambda _p, _e: str(_e.entity_id))
+_fam_id_split_bare = _fam_id_splits(
+    lambda _p, _e: f"{_p}.heat_pump_optimizer_{_e._attr_translation_key}")
+R.check(
+    "every declared family is one run in each platform's entity-id sort (D8-s2-02)",
+    not _fam_id_split and bool(_fam_id_split_bare),
+    f"split: {_fam_id_split}; null control (bare translation-key ids) split: {_fam_id_split_bare}",
 )
 # Spot-pins against the pre-v5.0.0 slugs, written out literally so a renamed
 # translation key cannot silently move the goalposts of the check above.
@@ -14016,7 +14154,8 @@ for _display, _new_id, _uid in (
     ("Cost Monthly Peak Power", "sensor.heat_pump_optimizer_cost_monthly_peak_power", "monthly_peak"),
     ("Cost Power Headroom", "sensor.heat_pump_optimizer_cost_power_headroom", "power_headroom"),
     ("Cost Predicted", "sensor.heat_pump_optimizer_cost_predicted", "predicted_cost"),
-    ("Lifetime Total Heating Cost", "sensor.heat_pump_optimizer_cost_total_heating", "total_cost"),
+    # D8-s2-02 then led the lifetime meters' ids with their declared family.
+    ("Lifetime Total Heating Cost", "sensor.heat_pump_optimizer_lifetime_cost_total_heating", "total_cost"),
     ("Learning Comfort Weight", "sensor.heat_pump_optimizer_learning_comfort_weight", "comfort_weight"),
     ("Learning Estimated COP", "sensor.heat_pump_optimizer_learning_estimated_cop", "current_cop"),
     ("Learning Observed COP", "sensor.heat_pump_optimizer_learning_observed_cop", "observed_cop"),

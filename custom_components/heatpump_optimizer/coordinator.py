@@ -11013,15 +11013,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def system_identification_active(self) -> bool:
         return self._sysid.active
 
-    async def async_arm_system_identification(self) -> str | None:
+    def arm_system_identification(self) -> str | None:
         """Arm a step-response experiment for the next suitable moment; why not, else ``None``."""
         ctx = getattr(self, "_ctx", self)
-        refused = sysid.arm_refusal(
+        return sysid.arm_refusal(
             self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
             self._house_heat_loss_samples, self._accuracy.draw,
         )
-        await self.async_request_refresh()
-        return refused
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
         """Advance sysid and override the plan when the experiment commands heat.

@@ -20347,6 +20347,54 @@ R.check(
     "read as 'no schedule' ran the loop all day",
 )
 
+# D17-s3-51 and the P2 sweep's F14 seams: every reader asking "is a hot-water
+# window open now" resolves the day's windows (dhw_schedule.windows_in_force),
+# as the planner does per step. On "weekdays 06:00-08:30, weekend
+# 08:00-09:30" Saturday 07:00 is outside every window in force; the flat
+# union 06:00-09:30 read it open at the published flag, boost's release and
+# the draw learner. Monday 07:00 is the control: inside, at every reader.
+from unittest import mock as _d17_mock  # noqa: E402
+from harness import FakeEntry as _d17_entry  # noqa: E402
+from heatpump_optimizer import boost as _d17_boost, dhw_schedule as _d17_sched  # noqa: E402
+from homeassistant.util import dt as _d17_dt_util  # noqa: E402
+
+_D17_MON = datetime(2026, 1, 12, 7, 0, tzinfo=UTC)
+_D17_SAT = _D17_MON + timedelta(days=5)
+_d17_c = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True,
+    "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30"}))
+_d17_seen = {}
+for _d17_label, _d17_t in (("mon", _D17_MON), ("sat", _D17_SAT)):
+    _d17_labels = []
+    with _d17_mock.patch.object(_d17_dt_util, "now", lambda _t=_d17_t: _t), \
+            _d17_mock.patch.object(_d17_c._dhw_learner.draw_stats, "fold",
+                                   lambda now, lab, e, charge=False, _l=_d17_labels: _l.append(lab)):
+        _asyncio.run(_d17_c._dhw_learner.async_fold_draw_stats(_d17_t, 50.0, 3.0, 0.25))
+        _d17_seen[_d17_label] = (
+            _d17_c._dhw_in_demand_window(),
+            _d17_boost._window_open(_d17_c.arbiter_inputs(), _d17_t),
+            _d17_labels,
+        )
+R.check(
+    "the hot-water window in force is the day's at every reader: flag, boost, draw learner (D17-s3-51)",
+    _d17_seen["sat"] == (False, False, [""])
+    and _d17_seen["mon"] == (True, True, ["06:00-09:30"]),
+    f"{_d17_seen} -- Saturday 07:00 lies in the flat union 06:00-09:30 and in "
+    "no window that day",
+)
+_d17_params = _d17_c._thermal_params
+_d17_params.dhw_holiday_windows = [(10.0, 11.0)]
+R.check(
+    "windows_in_force takes the holiday tier on a holiday date and the day's own windows otherwise",
+    _d17_sched.windows_in_force(_d17_params, None, _D17_SAT, {_D17_SAT.date()}) == [(10.0, 11.0)]
+    and _d17_sched.windows_in_force(_d17_params, None, _D17_SAT) == [(8.0, 9.5)]
+    and _d17_sched.windows_in_force(_d17_params, None, _D17_MON) == [(6.0, 8.5)],
+    f"{_d17_sched.windows_in_force(_d17_params, None, _D17_SAT, {_D17_SAT.date()})!r}",
+)
+_d17_params.dhw_holiday_windows = None
+
 _SAFE = dict(
     plan_heat_now=False,
     plan_heat_next=False,
@@ -51144,7 +51192,6 @@ _RC2_SETTERS = {
     "async_reset_comfort_weight": "row: the reset button",
     "async_reset_heat_loss_learners": "row: the heat-loss reset button",
     "async_restore_learned_snapshot": "restores from the store it reads",
-    "async_arm_system_identification": "in memory by design: arms tonight's run",
     "async_update_thermal_params": "the call's fields persist into entry "
         "options and reload the entry (D1-s2-53, F1.4); the learner anchors "
         "also persist through the thermal-learning store (#86)",
@@ -51269,6 +51316,66 @@ R.check(
     "every entity action's state survives a restart before any cycle completes",
     not _rc2_lost,
     f"lost at restart: {_rc2_lost}",
+)
+
+
+# D10-s1-02: a refused or failed press raises to the caller, as the action
+# and the optimize-now press do (action-exceptions, Silver). The sysid press
+# with the option off (the default) armed nothing and returned; the diagnose
+# press with the worker down returned while its background task raised.
+from homeassistant.exceptions import ServiceValidationError as _rc2_sve  # noqa: E402
+from heatpump_optimizer.coordinator import ProcessWorkerUnavailable as _rc2_pwu  # noqa: E402
+
+
+async def _rc2_press(cls, setup):
+    entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"rc2_refuse_{cls.__name__}")
+    coord = await _rc2_boot(entry)
+
+    async def _refresh():
+        return None
+
+    coord.async_request_refresh = _refresh
+    setup(coord)
+    ent = cls(coord, entry)
+    ent.hass = _RC2Hass()
+    try:
+        await ent.async_press()
+    except _rc2_hae as err:
+        return type(err).__name__, getattr(err, "translation_key", None), coord
+    return None, None, coord
+
+
+def _rc2_sysid_off(coord):
+    with_config(coord, {"system_identification_enabled": False})
+
+
+def _rc2_sysid_on(coord):
+    with_config(coord, {"system_identification_enabled": True})
+    coord._thermal_params.slab_heat_transfer *= 100.0  # the #942 gate's fast slab
+
+
+def _rc2_worker_down(coord):
+    async def _down():
+        raise _rc2_pwu("the process worker timed out")
+
+    coord.async_diagnose_interval = _down
+
+
+_rc2_off = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_off))
+_rc2_on = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_on))
+_rc2_down = _asyncio.run(_rc2_press(_rc2_button.DiagnoseIntervalButton, _rc2_worker_down))
+R.check(
+    "a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)",
+    _rc2_off[:2] == (_rc2_sve.__name__, "system_identification_disabled")
+    and _rc2_off[2]._sysid.phase == "idle"
+    and _rc2_on[:2] == (None, None) and _rc2_on[2]._sysid.phase == "armed",
+    f"option off -> {_rc2_off[:2]} phase {_rc2_off[2]._sysid.phase!r}; "
+    f"option on -> {_rc2_on[:2]} phase {_rc2_on[2]._sysid.phase!r}",
+)
+R.check(
+    "a diagnose press whose worker is down raises the action's diagnose_interval_failed (D10-s1-02)",
+    _rc2_down[:2] == ("HomeAssistantError", "diagnose_interval_failed"),
+    f"{_rc2_down[:2]} -- the press returned while its background task raised",
 )
 
 
@@ -54684,17 +54791,15 @@ R.check(
 
 # The user-facing route: the item-18 button on a DEFAULT install (no k_s bump).
 _arm1329 = _t4_coord()
-_t4_count_refresh(_arm1329)
 with_config(_arm1329, {"system_identification_enabled": True})
-_t4_drive(_arm1329, "async_arm_system_identification")
+_arm1329_refused = _arm1329.arm_system_identification()
 R.check(
     "#1329: the item-18 button arms on a default install (was inert)",
     _arm1329._sysid.phase == "armed"
     and _arm1329._sysid.active
-    and _arm1329._t4_refreshes == 1
-    and _arm1329._t4_escaped is None,
+    and _arm1329_refused is None,
     f"phase {_arm1329._sysid.phase!r} active {_arm1329._sysid.active} "
-    f"refreshes {_arm1329._t4_refreshes} "
+    f"refused {_arm1329_refused!r} "
     f"reason {_arm1329._sysid.result.reason!r} -- before the fix every "
     "answers-based install refused here with 'slab mode too slow for the "
     "excitation window', so the button reported nothing at any plant the "
@@ -55455,11 +55560,11 @@ _t4_arm_on._thermal_params.slab_heat_transfer *= 100.0
 _t4_count_refresh(_t4_arm_on)
 _t4_arm_on_built = _t4_arm_on._sysid.config.enabled
 with_config(_t4_arm_on, {"system_identification_enabled": True})
-_t4_drive(_t4_arm_on, "async_arm_system_identification")
+_t4_arm_on.arm_system_identification()
 _t4_arm_off = _t4_coord(system_identification_enabled=True)
 _t4_count_refresh(_t4_arm_off)
 with_config(_t4_arm_off, {"system_identification_enabled": False})
-_t4_drive(_t4_arm_off, "async_arm_system_identification")
+_t4_arm_off.arm_system_identification()
 R.check(
     "arming re-reads the option at call time, so an edit needs no reload",
     _t4_arm_on_built is False
@@ -89148,11 +89253,7 @@ def _cp_coord(samples=482, **config):
     c._house_heat_loss_samples = samples
     with_config(c, {"system_identification_enabled": True})
 
-    async def _no_refresh():
-        return None
-
-    c.async_request_refresh = _no_refresh
-    _cp_aio.run(c.async_arm_system_identification())
+    c.arm_system_identification()
     return c
 
 

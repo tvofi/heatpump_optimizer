@@ -1827,7 +1827,7 @@ class SystemIdentification:
         #
         # The one-state branch is HARNESS-ONLY (#1395): production always arms
         # with a declared plant (``HeatPumpOptimizerCoordinator.
-        # async_arm_system_identification`` passes ``_thermal_params``), and a
+        # arm_system_identification`` passes ``_thermal_params``), and a
         # plant that fails the arm-time gate never finishes an experiment — so
         # ``_slab_pair`` is set on every ``_finish`` production reaches, and
         # ``identify()`` is entered zero times by the production call sequence.
@@ -1864,7 +1864,7 @@ class SystemIdentification:
 
     # HARNESS-ONLY (#1395). The production call sequence never enters
     # ``identify`` below: the coordinator always arms with a declared plant
-    # (``async_arm_system_identification`` passes ``_thermal_params``), so
+    # (``arm_system_identification`` passes ``_thermal_params``), so
     # ``_finish`` routes every experiment production can finish to
     # ``identify_slab``, and ``identify`` is entered zero times by that
     # sequence. #1330 removed this method's last production route by refusing

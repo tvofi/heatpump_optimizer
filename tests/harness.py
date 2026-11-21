@@ -481,8 +481,9 @@ class FakeCoordinator:
         self.pressed.append("force_optimization")
         return None
 
-    async def async_arm_system_identification(self):
+    def arm_system_identification(self):
         self.pressed.append("system_identification")
+        return None
 
     async def async_reset_comfort_weight(self):
         self.pressed.append("reset_comfort_weight")

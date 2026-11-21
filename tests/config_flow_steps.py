@@ -4809,6 +4809,59 @@ async def widening_refusals():
         repr(None if widened is None else dict(widened.config)),
     )
 
+    # D14-s1-01: a slider's grid starts at its min. A min widened to a stored
+    # 14.7 on a 0.5 grid put the field's default 21.0 and every nominal value
+    # off the reachable set; the widened bound moves outward onto the grid,
+    # and a step "any" field (no grid) widens to exactly the value.
+    def _on_grid(cfg, value):
+        steps = (value - cfg["min"]) / cfg["step"]
+        return abs(steps - round(steps)) < 1e-9
+
+    slider = selector.NumberSelector(selector.NumberSelectorConfig(
+        min=15.0, max=25.0, step=0.5, mode=selector.NumberSelectorMode.SLIDER))
+    low_w = config_flow._widen_to_fit(slider, [14.7])
+    high_w = config_flow._widen_to_fit(slider, [25.3])
+    any_w = config_flow._widen_to_fit(selector.NumberSelector(selector.NumberSelectorConfig(
+        min=15.0, max=25.0, step="any", mode=selector.NumberSelectorMode.BOX)), [14.7])
+    check(
+        "schema_widening",
+        "happy",
+        "a widened slider keeps its grid: the default and the far bound stay reachable (D14-s1-01)",
+        low_w is not None and low_w.config["min"] == 14.5 and low_w.config["max"] == 25.0
+        and _on_grid(low_w.config, 21.0) and _on_grid(low_w.config, 25.0)
+        and high_w is not None and high_w.config["max"] == 25.5 and high_w.config["min"] == 15.0
+        and any_w is not None and any_w.config["min"] == 14.7,
+        f"low {None if low_w is None else dict(low_w.config)} high "
+        f"{None if high_w is None else dict(high_w.config)} any "
+        f"{None if any_w is None else dict(any_w.config)}",
+    )
+    # The service surface (D14-s1-01's twelve seams): every number selector
+    # services.yaml declares reaches its own max and example, or has no grid.
+    import yaml as _svc_yaml
+    from pathlib import Path
+    _svc = _svc_yaml.safe_load(
+        (Path(config_flow.__file__).parent / "services.yaml").read_text(encoding="utf-8"))
+    _svc_fields, _svc_off = 0, []
+    for _svc_name, _svc_def in (_svc or {}).items():
+        for _f_name, _f in ((_svc_def or {}).get("fields") or {}).items():
+            _num = ((_f or {}).get("selector") or {}).get("number")
+            if not isinstance(_num, dict):
+                continue
+            _svc_fields += 1
+            if not isinstance(_num.get("step", 1), (int, float)) or _num.get("min") is None:
+                continue
+            _grid = {"min": float(_num["min"]), "step": float(_num.get("step", 1))}
+            for _what, _v in (("max", _num.get("max")), ("example", _f.get("example"))):
+                if isinstance(_v, (int, float)) and not _on_grid(_grid, float(_v)):
+                    _svc_off.append(f"{_svc_name}.{_f_name} {_what} {_v}")
+    check(
+        "schema_widening",
+        "error",
+        "every services.yaml number selector reaches its own max and example (D14-s1-01)",
+        _svc_fields > 20 and not _svc_off,
+        f"{_svc_fields} number fields; off grid: {_svc_off}",
+    )
+
     # The whole-schema entry point: nothing to walk is not an error. The
     # mixin applies it to every form result, including the menus and aborts
     # that carry no schema at all.

@@ -2198,4 +2198,16 @@ R.check(
     all(row["null"] for row in _bounded_rows),
     str([row["row"] for row in _bounded_rows if not row["null"]]),
 )
+# D15-s3-01: the not-run publish after a restart carries solve_time_ms 0, an
+# inert value, never a duration; the solver self-test's week spread is over
+# the rows where a solve ran. The real bundle read min 0 ms and n 662 where
+# 652 solves ran. The control row with no recorded time is left out alike.
+_smoke_rows = [{"payload_solve_time_ms": 9806.0}, {"payload_solve_time_ms": 0},
+               {"payload_solve_time_ms": 12000.0}, {"mode": "auto"}]
+_smoke = asyncio.run(debugger._solver_smoke(_SimCoord(data={}), _smoke_rows))["week_solve_ms"]
+R.check(
+    "the solver self-test spreads only rows where a solve ran: a not-run 0 is no duration (D15-s3-01)",
+    _smoke is not None and _smoke["n"] == 2 and _smoke["min"] == 9806.0,
+    str(_smoke),
+)
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

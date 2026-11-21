@@ -159,11 +159,12 @@ class SystemIdentificationButton(_OptimizerButtonBase):
     async def async_press(self) -> None:
         """Arm the experiment, raising when nothing was armed (D10-s1-02).
 
-        Awaited, as the optimize-now press is: the platform holds no
-        parallel-updates slot, and a press the option or the gate refused
-        must not read as done.
+        The arm is a synchronous decision, so the refusal reaches the press;
+        the refresh that publishes the armed phase runs off the action, as
+        the optimize-now press's does.
         """
-        refused = await self.coordinator.async_arm_system_identification()
+        refused = self.coordinator.arm_system_identification()
+        off_the_action(self, self.coordinator.async_request_refresh())
         if refused == sysid.ARM_REFUSED_DISABLED:
             raise ServiceValidationError(
                 f"System identification is turned off for {self._entry.entry_id}",
