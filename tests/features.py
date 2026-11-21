@@ -41857,6 +41857,7 @@ _ET_KEYS = {
     "apply_schedule_comfort_band_violation": {"violations"},
     "apply_schedule_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "manual_plan_invalid_expires_at": {"expires_at"},
+    "away_invalid_return_time": {"return_time"},
     "manual_plan_invalid_slots": {"error"},
     "run_optimization_no_prices": {"entry_ids"},
     "run_optimization_solve_failed": {"entry_ids"},
@@ -42238,6 +42239,11 @@ _et_check(
     "apply_manual_plan with an unparseable expires_at raises a translatable error",
     _et_call(_et_hass, "apply_manual_plan", {"expires_at": "not-a-datetime"}),
     "manual_plan_invalid_expires_at",
+)
+_et_check(
+    "set_away with an unparseable return_time raises a translatable error (D10-s1-01)",
+    _et_call(_et_hass, "set_away", {"active": True, "return_time": "18:00"}),
+    "away_invalid_return_time",
 )
 _et_check(
     "apply_manual_plan with an invalid slot raises a translatable error",

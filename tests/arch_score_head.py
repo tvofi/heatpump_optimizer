@@ -45,11 +45,9 @@ R = Results("architecture score on today's tree (R9-EG-A1)")
 #: wherever in the cycle it sits -- #1887's round-1 review moved one into the
 #: pre-solve step, which the solve-only roots did not reach.
 _C = "coordinator:HeatPumpOptimizerCoordinator."
-CYCLE_HUB_WRITERS = {
-    _C + "_apply_comfort_weight": (
-        {"_opt_config.comfort_weight"},
-        "the quiet-period learner in the solve's tail moved the learned weight"),
-}
+#: Empty since R11-SEAM-cycle-reporting (ADR-003, D7-s2-03): the comfort weight,
+#: the one row this held, is published in a new context, which is no site.
+CYCLE_HUB_WRITERS: dict[str, tuple[set[str], str]] = {}
 LISTED = {(w, f) for w, (fields, _why) in CYCLE_HUB_WRITERS.items() for f in fields}
 #: The planted writes the controls add: one as async_run_optimization's first
 #: statement, one as the pre-solve step's last (#1887's round-1 probe).

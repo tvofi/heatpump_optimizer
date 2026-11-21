@@ -4251,7 +4251,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "violations": comfort_band.describe(found)
                 },
             )
-        ctx.publish_config(self, target_temp=temperature)
+        CoordinatorContext.publish_config(_ctx_of(self), self, target_temp=temperature)
         self.hass.config_entries.async_update_entry(
             self.entry,
             options={**self.entry.options, CONF_TARGET_TEMP: temperature},
