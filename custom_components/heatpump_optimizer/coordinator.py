@@ -5318,9 +5318,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         commanded = self._commanded_power()
         params, measured_heat, priced = ctx._thermal_params, probe_install(ctx._config).measured_heat, self._cop_scale
-        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release``
-        # lets out, then the scale its heat-ask probe owes this cycle (``owed_scale``; owner ruling D4),
-        # which an experiment's cycle reads as no interval: its row is never admitted.
+        # Past the freeze gate (a frozen cycle moves no scale), two things happen. First the held intervals
+        # ``MeasuredCop.release`` lets out. Then the scale its heat-ask probe owes this cycle (``owed_scale``;
+        # owner ruling D4). An experiment's cycle reads as no interval: its row is never admitted.
         experiment = self._current_action.get("mode") == "system_identification"
         for row in self._measured_cop.release(draw, params, dt_util.now(), measured_heat):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
