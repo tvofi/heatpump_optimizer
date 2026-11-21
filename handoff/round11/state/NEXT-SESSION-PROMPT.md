@@ -22,7 +22,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-CARRY-DRAWMAP (stage in-progress, branch `fix/r11-carry-drawmap`): `git fetch origin fix/r11-carry-drawmap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-kernel-step (stage in-progress, branch `handoff/r11-seam-kernel-step`): `git fetch origin handoff/r11-seam-kernel-step && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-inputs-guards (stage in-progress, branch `handoff/r11-seam-inputs-guards`): `git fetch origin handoff/r11-seam-inputs-guards && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-solver (stage carries-open, branch `handoff/r11-seam-solver`): `git fetch origin handoff/r11-seam-solver && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-release (stage in-progress, branch `handoff/r11-seam-actuation-release`): `git fetch origin handoff/r11-seam-actuation-release && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-solve (stage in-progress, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-card (stage in-progress, branch `handoff/r11-seam-card`): `git fetch origin handoff/r11-seam-card && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -33,7 +32,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SEAM-comments-tests (stage carries-open, branch `handoff/r11-seam-comments-tests`): `git fetch origin handoff/r11-seam-comments-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-HOTFIX-CODEQL-PERMS (stage fixing, branch `handoff/fix-codeql-perms`): `git fetch origin handoff/fix-codeql-perms && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R11-ARCH-cycle-surface, R11-CARRY-DRAWMAP, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-CODEQL-PERMS, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-release, R11-SEAM-card, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-entity-service, R11-SEAM-inputs-guards, R11-SEAM-kernel-step, R11-SEAM-learners, R11-SEAM-ratchet-raise, R11-SEAM-ratchets, R11-SEAM-solver, R11-SEAM-store, R11-SEAM-tests, R11-SEAM-two-zone-slab
+Ready next (after-edges satisfied; nothing open constrains them): R11-ARCH-cycle-surface, R11-CARRY-DRAWMAP, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-CODEQL-PERMS, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-release, R11-SEAM-card, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-entity-service, R11-SEAM-inputs-guards, R11-SEAM-kernel-step, R11-SEAM-learners, R11-SEAM-ratchet-raise, R11-SEAM-ratchets, R11-SEAM-store, R11-SEAM-tests, R11-SEAM-two-zone-slab
 
 ## Resume steps
 
