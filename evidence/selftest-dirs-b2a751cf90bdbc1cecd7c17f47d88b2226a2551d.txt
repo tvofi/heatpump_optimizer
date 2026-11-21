@@ -1,0 +1,35 @@
+prepr dirs 696 in-tree-not-in-table 235 table-not-tree 2
+  sample dirs ['.', '.claude', '.claude/hooks'] probes []
+dependency-graph-census dirs 696 in-tree-not-in-table 235 table-not-tree 2
+  sample dirs ['.', '.claude', '.claude/hooks'] probes []
+policy-lint-mutants dirs 7 in-tree-not-in-table 922 table-not-tree 0
+  sample dirs ['.github/workflows', 'dev/governance/dimensions', 'dev/programme/delivery'] probes ['.', '.claude/.gitattributes', '.claude/rules/a-rule.md']
+roster-library dirs 3 in-tree-not-in-table 926 table-not-tree 0
+  sample dirs ['tests', 'tools/audit/seat', 'tools/release'] probes ['.', 'dev/audit/rca/R10-N-log-flood.md', 'dev/governance/dimensions/D12.md']
+[('dev', 465), ('tests', 149), ('tools', 46), ('docs', 15), ('.claude', 6), ('.github', 5), ('custom_components', 5), ('blueprints', 2), ('.cursor', 2), ('.', 1)]
+[('dev/audit/rounds', 235)]
+---- hotfix vs main tree
+main tree dirs missing from hotfix prepr table: 3 ['dev/audit/rounds/round11/D3/s1/state/gates', 'dev/audit/rounds/round11/D3/s1/state/gates/carried-D3-top6', 'dev/audit/rounds/round11/D3/s1/state/gates/cloud']
+hot probes under round11 232 ['dev/audit/rounds/round11/.gitattributes', 'dev/audit/rounds/round11/D0/.gitattributes', 'dev/audit/rounds/round11/D0/s1/.gitattributes', 'dev/audit/rounds/round11/D0/s1/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s1/out/.gitattributes']
+main probes under round11 3
+PR 3814: new dirs 4; not in main prepr table 4; not in hotfix prepr table 4; not in hotfix probes(.gitattributes) 4
+     dev/audit/rounds/round11/D3/s1/state/results/c3c6-redrive
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-top6
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-top6-local
+     dev/audit/rounds/round11/D3/s1/state/superseded/gates-aborted
+PR 3819: new dirs 1; not in main prepr table 1; not in hotfix prepr table 1; not in hotfix probes(.gitattributes) 1
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-u1b
+PR 3822: new dirs 3; not in main prepr table 3; not in hotfix prepr table 3; not in hotfix probes(.gitattributes) 3
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-u1a
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-u1a-r2
+     dev/audit/rounds/round11/D3/s1/state/superseded/dirty-tree-posctl-D3-u1a-r2
+PR 3823: new dirs 7; not in main prepr table 7; not in hotfix prepr table 7; not in hotfix probes(.gitattributes) 7
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-u1d
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-u1d-refire
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-u1d-refire3
+     dev/audit/rounds/round11/D3/s1/state/superseded/u1d-oom
+     dev/audit/rounds/round11/D3/s1/state/superseded/u1d-oom-refire
+     dev/audit/rounds/round11/D3/s1/state/superseded/u1d-oom-wt
+PR 3824: new dirs 2; not in main prepr table 2; not in hotfix prepr table 2; not in hotfix probes(.gitattributes) 2
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-u1c
+     dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-u1c-r2

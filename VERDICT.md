@@ -1,0 +1,14 @@
+Fix review: merge 66489acf3e005391d12a6e9d50003ac21612e425
+bus-nonce: 44c82e0e7bee71773b1db5f5c9d3889c
+
+Delta review over the reviewed head b2a751cf90, whose merge verdict was drafted and never posted. The only commit since is 66489acf3e `ci: merge main` of e698fc8ac3; `review_carry.py b2a751cf90 66489acf3e` prints CARRY, and the PR's own three-dot diff carries the same added and removed lines and the same name-status at both heads (sha256 equal), only `tests/closures.json` hunk context moving with main's new `inert_reads` entries (evidence owndiff). So every number of the b2a751cf90 review holds here; the evidence files named for d27d4c6cf9 and b2a751cf90 are that review's, reused.
+
+- Faithful landing: all 707 box files accounted for (evidence box-accounting): 575 byte-identical at their path, 5 under the `-D3-u1c` suffix, 119 byte-identical on main; the 5 modified change only report paths and write targets, `finalize.py`'s root lookup, or trim `state/prescreen.log` around one marker. Not copied: `CHECK.txt`, one `.pyc`, `state/superseded/baselines-D3R.json`. Box ref `handoff/audit-r11-find-D3-u1c` is still 044e269a09.
+- Counts from the landed per-site results (evidence counts): pre 309: 64 KILLED, 245 SURVIVED; complete 245: 54 KILLED, 190 SURVIVED, 1 TIMEOUT; positive control 2 of 2 in each of two runs. Matches the body.
+- Schema: `reports-D3-u1c.json` validates against `finding.schema.json` with 0 errors at this head (evidence checks; the reviewer's own validator, which reports errors on other files, so not vacuous).
+- At this head: `ref_privacy.py guard --ref HEAD --commits HEAD --over origin/main` rc 0; `git merge-tree --write-tree origin/main` rc 0; roles contract unchanged since the merge base; no production, budget, claim, VERSION, manifest or notes path.
+- Live checks at this head: `gate` success (136899443950, 136898952152), both `tests / closures` runs success, every other check success or skipped, `sweep-self` in progress (evidence live-checks).
+- The b2a751cf90 draft's merge-order note is resolved: #3823 merged, and `state/superseded/baselines-D3R.json` is on main at e698fc8ac3 with blob 16c9187b95, the box's.
+
+Note: selftest-table: the landing adds 2 directories (`state/results/posctl-D3-u1c`, `state/results/posctl-D3-u1c-r2`) that main's `tools/ci/selftest_closures.json` does not list; main's `governance / instrument-self-tests` drift step may report them UNDER-SCOPED, as it did for #3809 and #3810 (evidence selftest-dirs). Carry: dismissed: data a tree-walking step reads, absorbed by the next table re-take (`selftest_scope.py absorb` from main's artifact)
+Note: body-stale: the body says two `__pycache__` .pyc files are not copied; the box holds one, and the third uncopied file is `baselines-D3R.json`. `## Head` names neither b2a751cf90 nor 66489acf3e. Carry: dismissed: body lines the orchestrator resolves at merge (card C5)

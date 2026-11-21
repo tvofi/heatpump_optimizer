@@ -1,0 +1,7 @@
+head 66489acf3e005391d12a6e9d50003ac21612e425
+guard rc=0
+merge-tree origin/main rc=0
+box ref handoff/audit-r11-find-D3-u1c = 044e269a0971c28fd01cb5a5e809beaa450d19c9 (unchanged since b2a751cf90's review)
+state/superseded/baselines-D3R.json on origin/main e698fc8a: 16c9187b950727b3ee6279180b139d9180cbe5a8 (#3823 merged)
+roles diff since merge base:        0 lines
+dev/audit/rounds/round11/reports-D3-u1c.json D3-s1: findings=0 errors=0

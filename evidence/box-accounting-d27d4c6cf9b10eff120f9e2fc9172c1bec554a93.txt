@@ -1,0 +1,16 @@
+box 044e269a0971c28fd01cb5a5e809beaa450d19c9 files 707; head d27d4c6cf9b10eff120f9e2fc9172c1bec554a93 added/changed 586
+  DROPPED: 3
+  identical-on-main: 119
+  same-path-identical(added): 575
+  same-path-modified: 2
+  suffixed-identical: 5
+  suffixed-modified: 3
+  head-added dev/audit paths not from box: 0
+   DROPPED	CHECK.txt
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/REPORT.json
+   DROPPED	dev/audit/rounds/round11/D3/s1/__pycache__/prescreen.cpython-314.pyc
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/finalize.py
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/state/prescreen.log
+   DROPPED	dev/audit/rounds/round11/D3/s1/state/superseded/baselines-D3R.json
+   same-path-modified	dev/audit/rounds/round11/D3/s1/u1c_report.py
+   same-path-modified	dev/audit/rounds/round11/reports-D3-u1c.json

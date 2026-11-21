@@ -1,0 +1,4 @@
+complete: total 245 {'KILLED': 54, 'SURVIVED': 190, 'TIMEOUT': 1}
+posctl-D3-u1c: total 2 {'KILLED': 2}
+posctl-D3-u1c-r2: total 2 {'KILLED': 2}
+pre: total 309 {'KILLED': 64, 'SURVIVED': 245}
