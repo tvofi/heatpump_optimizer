@@ -1,0 +1,4 @@
+19:39:48 rc=3 WAIT 55508355c592dd3fb9734c541f705dd54fc19773 pending: gate red: none
+19:41:05 rc=3 WAIT 55508355c592dd3fb9734c541f705dd54fc19773 pending: gate red: none
+19:42:21 rc=3 WAIT 55508355c592dd3fb9734c541f705dd54fc19773 pending: gate red: none
+19:43:31 rc=(not captured: date's, not classify's) WAIT 55508355c592dd3fb9734c541f705dd54fc19773 pending: gate red: none
