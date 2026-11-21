@@ -97555,9 +97555,9 @@ R.check(
 # --- R10-DRAW-MAP-EVIDENCE part A (design/R10-DRAW-MAP-EVIDENCE at 9aa450f5,
 # approved at design-verdict f10dd418). Each Control pass on a flow set-point
 # is recorded with where its write came from (``pump_arbiter.pass_origin``,
-# the one place that decides it); steady runs of passes become map rows kept
+# the one place that decides it). Steady runs of passes become map rows kept
 # beside the running-draw window and never in it, stored as one string per
-# column; and an experiment's interval is no efficiency reading for the COP
+# column. An experiment's interval is no efficiency reading for the COP
 # learner (``MeasuredCop.judge_floor``). Synthetic fixtures throughout.
 R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")
 import asyncio as _mr_aio  # noqa: E402

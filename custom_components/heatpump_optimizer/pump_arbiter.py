@@ -308,10 +308,11 @@ FEEDBACK_STOP_MARGIN_K = 0.2
 #: so the loop's lowest write is the gate plus one entity step (I2).
 FEEDBACK_GATE_CLEAR_K = 0.01
 #: Where a pass's space write came from (:func:`pass_origin`, the one place
-#: it is decided), the origin column of ``draw_range``'s map rows: the plan's
-#: level mapped open-loop; the feedback loop's start-hold (today's target)
-#: and its moved target; a boost's ceiling; the gate of a step that does not
-#: heat; the baseline's hold; the experiment's fit or ceiling probe.
+#: it is decided), the origin column of ``draw_range``'s map rows. The values
+#: are the plan's level mapped open-loop; the feedback loop's start-hold
+#: (today's target) and its moved target; a boost's ceiling; the gate of a
+#: step that does not heat; the baseline's hold; the experiment's fit or
+#: ceiling probe.
 ORIGIN_PLAN = "plan"
 ORIGIN_FEEDBACK_START = "feedback_start"
 ORIGIN_FEEDBACK = "feedback"
