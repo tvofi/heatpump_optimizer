@@ -1,0 +1,27 @@
+MUT M1 judge_floor experiment refusal deleted: rc=1 6 of 89 FEATURES BLOCK FAILED
+MUT M2 owed_scale read ignored: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M3 coordinator judge_floor experiment=False: rc=1 5 of 89 FEATURES BLOCK FAILED
+MUT M4 coordinator owed_scale read=True: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M5 fold keep=True: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M6 fold commit removed: rc=1 2 of 89 FEATURES BLOCK FAILED
+MUT M7 commit_runs no space filter: rc=1 2 of 89 FEATURES BLOCK FAILED
+MUT M8 take_pass defrost not a stop: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M9 take_pass running floor: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M10 take_pass no max segment: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M11 take_pass one-per-minute dropped: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M12 segment no settle: rc=1 5 of 89 FEATURES BLOCK FAILED
+MUT M13 run_key drops origin: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M14 stored_map unequal lengths kept: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M15 map_cell finite check off: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M16 to_dict map_rows dropped: rc=1 no-summary
+    KeyError: 'map_rows'
+MUT M17 from_dict map not read: rc=1 4 of 89 FEATURES BLOCK FAILED
+MUT M18 coordinator draw not handed to arbiter: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M19 action kind dropped: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M20 pass_origin probe->fit: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M21 pass_origin experiment branch off: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M22 arbitrate note_pass removed: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M23 note_pass not handed to draw: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M24 feedback start hold origin: rc=1 2 of 89 FEATURES BLOCK FAILED
+MUT M25 boost origin: rc=1 1 of 89 FEATURES BLOCK FAILED
+MUT M26 judge_floor heat-counter duty floor: rc=1 2 of 89 FEATURES BLOCK FAILED
