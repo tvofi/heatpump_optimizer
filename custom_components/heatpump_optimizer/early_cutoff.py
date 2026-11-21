@@ -132,10 +132,6 @@ class CutoffInputs:
 
     inputs: Callable[[], ArbiterInputs]
     boosts: BoostState
-    #: The live configuration, read at each reading: a comfort-weight or
-    #: target change publishes a new one (ADR-003), and one handed at the arm
-    #: would judge the rest of the cycle on the old target.
-    opt_config: Callable[[], Any]
 
 
 #: Weak-keyed, so a value must not reach its key: ``wiring.inputs`` is the
@@ -153,7 +149,6 @@ async def arm(
     held: CutoffState,
     inputs: Callable[[], ArbiterInputs],
     boosts: BoostState,
-    opt_config: Callable[[], Any],
     on_unload: Callable[[Callable[[], None]], Any],
     now: datetime | None = None,
 ) -> None:
@@ -168,7 +163,7 @@ async def arm(
         # Once per record, listener or not: the wiring below reaches the
         # coordinator and has to be dropped with the entry.
         on_unload(lambda: detach(held))
-    held.wiring = CutoffInputs(inputs, boosts, opt_config)
+    held.wiring = CutoffInputs(inputs, boosts)
     inp = inputs()
     cfg = EntryConfig.from_mapping(inp.config)
     # In UTC: local wall-clock arithmetic is an hour off across a DST change.
@@ -245,10 +240,15 @@ def _plant_exempt(inp: ArbiterInputs) -> str | None:
     return tank_reason(inp)
 
 
-def threshold(inp: ArbiterInputs, opt_config: Any, now: datetime) -> float:
-    """The room temperature above which the pump is cut, in degC."""
+def threshold(inp: ArbiterInputs, now: datetime) -> float:
+    """The room temperature above which the pump is cut, in degC.
+
+    The comfort target is the configuration ``inp`` carries, read at this
+    reading: never one held since the arm, which a target or comfort-weight
+    change has since replaced (ADR-003).
+    """
     local = dt_util.as_local(now)
-    base = float(opt_config.get_comfort_temp(local.hour + local.minute / 60.0, when=local))
+    base = float(inp.opt_config.get_comfort_temp(local.hour + local.minute / 60.0, when=local))
     return max(base, *_planned_room(inp.plan, now)) + MARGIN_K
 
 
@@ -307,7 +307,7 @@ def on_room_event(held: CutoffState, wiring: CutoffInputs, event: Any) -> None:
         return
     if _exempt(inp, wiring.boosts, now) is not None:
         return
-    limit = threshold(inp, wiring.opt_config(), now)
+    limit = threshold(inp, now)
     if room <= limit:
         return
     reason = _cycle_guard(inp, held, now)

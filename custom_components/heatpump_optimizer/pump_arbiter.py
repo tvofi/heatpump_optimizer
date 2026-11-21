@@ -412,6 +412,10 @@ class ArbiterInputs:
     #: means is ``freq_control.defrost_interval``'s, and ``None`` is no flag
     #: or no evidence.
     defrosting: bool | None = None
+    #: The live optimization config, read at each decision: a target or
+    #: comfort-weight change publishes a new one (ADR-003), so one held across
+    #: passes would judge on the old values. ``None`` only in a harness.
+    opt_config: Any = None
 
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()

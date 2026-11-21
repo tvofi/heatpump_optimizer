@@ -3068,6 +3068,7 @@ async def _stored_fuse_advisor(
             stored["fuse_advisor_at"], dt_util.DEFAULT_TIME_ZONE
         )
     except Exception:  # noqa: BLE001
+        _LOGGER.debug("Stored fuse advice unreadable; not restored", exc_info=True)
         return None
 
 
@@ -4135,6 +4136,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             action=self._current_action,
             measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
             defrosting=self._pump_signals.defrosting,
+            opt_config=ctx._opt_config,
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
@@ -7776,7 +7778,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await _best_effort_cycle_step(
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
-        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), lambda: _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
+        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), self.entry.async_on_unload), "Early cut-off arm skipped: %s")
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -9234,6 +9236,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # dipping under the floor the user actually configured is.
             floor_c = float(ctx._opt_config.get_temp_bounds(hour)[0])
         except Exception:  # noqa: BLE001 - evidence, never operations
+            _LOGGER.debug("Curve comfort not tracked this cycle", exc_info=True)
             return
         margin = worst_zone_margin_k((
             ctx._current_state.room_temperature,
@@ -9506,6 +9509,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # a full month — a rough estimate, honestly labelled "~".
             monthly_kwh = monthly_kwh / max(1, now.day) * 30.0
         except Exception:  # noqa: BLE001 - the estimate is best-effort
+            _LOGGER.debug("Monthly COP-issue estimate unavailable; 0 kWh used", exc_info=True)
             monthly_kwh = 0.0
         mean_price = (
             float(np.mean([p.get("total", 0.0) for p in self._prices]))
@@ -9752,8 +9756,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._snapshot_ring = SnapshotRing.from_dict(stored)
 
     async def _async_save_snapshots(self) -> None:
-        store = self._snapshot_store
-        await save_held(store, "learner snapshots", lambda: store.async_save(self._snapshot_ring.as_dict()))
+        await save_held(self._snapshot_store, "learner snapshots", lambda: self._snapshot_store.async_save(self._snapshot_ring.as_dict()))
 
     def _baseline_house_load(self, n_steps: int) -> np.ndarray:
         """Whole-house load excluding the heat pump, per step, in kW."""

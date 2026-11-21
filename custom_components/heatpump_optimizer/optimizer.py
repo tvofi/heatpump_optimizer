@@ -1941,6 +1941,7 @@ def _multi_start_minimize(
         try:
             score = float(memoized(guess, *args))
         except Exception:
+            _LOGGER.debug("Start candidate skipped: its objective raised", exc_info=True)
             continue
         if np.isfinite(score):
             scored.append((score, guess))
@@ -2948,7 +2949,7 @@ def _solver_status(
         if objective(result.x) <= objective(initial_guess):
             return "optimal"
     except Exception:  # pragma: no cover - defensive
-        pass
+        _LOGGER.debug("Solver status comparison raised", exc_info=True)
     return f"suboptimal ({result.message})"
 
 
