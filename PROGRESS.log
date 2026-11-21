@@ -15,3 +15,4 @@
 1795286806 CKPT migration mutants killed 9/9 snapshot 0a7b602d1a52
 1795286891 CKPT finder harness both ends match body snapshot 5c7a98072aee
 1795286996 HB alive
+1795287465 CKPT 24/24 mutants killed; waiting CI snapshot 51a4ea3629db
