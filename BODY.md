@@ -11,7 +11,9 @@ What the port changes against the tag:
 
 ## Head
 
-d4e133dc1fa5bdf469531533b24f6eb756620760, the code head of this handoff: adf0a38b plus the commit killing the `_flow_target` CLAMP_DROP (Mutation proof, Red checks). The figures predating it were measured at adf0a38ba1347fe376ccd018e146969bdaf89df4, on merge base 9fe63d00b59f100aea67267ddddc95522e164aa1 (origin/main 8751943e17ef4d3ec699e7859ae829b4528d8ce7, 2026-11-18T16:28Z).
+7b9204eb3a6e47b2c8f670d940dbd4952eb05007, the code head of this handoff: one commit on 93cbcecb44b14aabcea3ba833fc1daa3620a03ed, which is the PR head 2b95078fafc902468cc6b09a77faddcd6391c85b merged with origin/main 053c33bcc68292b4331986a3c2b538e89fe17e42, the `tests/features.py` conflict resolved as a union. 93cbcecb is the dead local seat's merge 55aca8584739447c82be8b233e56115f86e6db64 re-authored: same tree, same parents, same message. Its author `hpo-seat <hpo-seat@users.noreply.github.com>` was refused by `body_push.sh`'s ref_privacy guard (`unnumbered-email in the author email of 55aca8584739`). The figures measured "at the head 55aca858" hold for 93cbcecb, whose tree is the same. Resolution check: against the merge base b36742b17b7ea229b859fb86a43e74a562bb847b, every line either side adds to `tests/features.py` is present at the head (0 missing from 2b95078f's side, 0 from 053c33bc's), and the line count is the base's plus both sides' additions exactly (97564 + 593 + 212 = 98369). This head merges with origin/main 78d3b4022154b2cc2792df8ebf4a5d7753e8ed7f with no conflict (`git merge-tree --write-tree`). The one commit after the merge deletes main's stale `killed_by` pin `tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_current_hour.RETURN_DEL.a653dd5d.json`. Main's nightly recorded it (464252a8b3) for the coordinator method that this branch moves to a module function. The module function's own pin, `_dhw_current_hour.RETURN_DEL.a2025997`, matches the line at the head (`    return now.hour + now.minute / 60.0`). `prepr.sh`'s ci predict step refused the stale pin at 55aca858: `STALE PIN ... disposition names no site the inventory generates`. The figures from d4e133dc and adf0a38b below were measured before the merge. The figures marked "at the head 55aca858" were measured at the merge. The commit after it changes only the ledger file.
+
+prepr: passed rc=0 at 7b9204eb3a6e47b2c8f670d940dbd4952eb05007 (`PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, scoped, `PRE-PR: ... rc=0`). After the main merge: `tests/features.py` (`ALL 5975 FEATURE CHECKS PASSED`) and `tests/structure.py` (rc=0) re-run at 55aca858; prepr's `merged structure` step passed on this head merged with origin/main. CI is the authority for the rest of the scoped set.
 
 ## Mutation proof
 
@@ -23,6 +25,12 @@ d4e133dc1fa5bdf469531533b24f6eb756620760, the code head of this handoff: adf0a38
   - `keep=not frozen` (distorted ignored): the same check fails; 1 of 33.
   - `keep=False`: that check and the window null's "rows were kept" fail; 2 of 33.
   - Restored: 33 of 33 pass.
+- At the head 55aca858, the review's three mutants of `draw_range.fold`'s `draw.map.commit_runs(keep=not (frozen or distorted))`, each written into its own `git archive HEAD` copy and run with `PYTHONPATH=tests/hastub python3 tests/features.py`:
+  - `keep=True`: `2 of 5975 FEATURE CHECKS FAILED`. Killed by `FAIL fold commits a closed space run as a row only when the interval is neither frozen nor distorted ...`.
+  - `keep=not distorted`: `2 of 5975`. Killed by the same check.
+  - `keep=not frozen`: `2 of 5975`. Killed by the same check.
+  - The second FAIL in each run is `and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']`. It comes from the copy, which has no git metadata, and not from the mutant (`tools/audit/seat/mutant_run.py`'s docstring: the #363 check fails in a copy on every mutant, baseline included). Null: the unmutated copy reads `1 of 5975 FEATURE CHECKS FAILED`, and that one FAIL is the #363 check.
+  - Head, in place: `ALL 5975 FEATURE CHECKS PASSED`.
 - `pump_arbiter._flow_target`'s `lo=min(m.floor_c, m.heat_c),` -> `lo=(m.floor_c),` (the CLAMP_DROP that `tests / mutation` and `mutation-autofix` left alive at 212e7976): `PYTHONPATH=tests/hastub python3 tests/features.py` with the mutant in place: `FAIL the heating floor is capped by the ceiling before the entity's minimum decides ...`, the only FAIL among 5540 checks; restored, 5540 ok and 0 FAIL. Both runs were stopped at 1500 s by `timeout`, and both had passed the block. CI's `tests / fast` runs the whole script.
 - The mutation draw over the diff's added lines is CI's `tests / mutation`.
 
@@ -42,7 +50,7 @@ d4e133dc1fa5bdf469531533b24f6eb756620760, the code head of this handoff: adf0a38
 - Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` -> MODE line below; every script in `scope.run` run locally with `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`: 28 of 28 exit 0.
 - Sibling seams (`fixer.md` step 8), rule `git grep -n "judge_floor(" -- custom_components`: `coordinator._fold_measured_cop` (closed here, experiment flag); the heat-counter span close in `coordinator.py` (`_async_learn_heat_span`'s caller passes `close.refusal` first, which carries the cycle's `draw_off_ask`: already guarded, tag check "a heat counter span holding an experiment cycle folds no COP" passes). Rule `git grep -n "owed_scale(" -- custom_components`: `MeasuredCop.owed_scale` (closed here), its one caller (closed here).
 
-<!-- figure-block: scope-line mb=9fe63d00b59f100aea67267ddddc95522e164aa1 head=d4e133dc1fa5bdf469531533b24f6eb756620760 -->
+<!-- figure-block: scope-line mb=053c33bcc68292b4331986a3c2b538e89fe17e42 head=7b9204eb3a6e47b2c8f670d940dbd4952eb05007 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
@@ -105,6 +113,11 @@ Every site `tools/pr/ci_predict.py` lists as added and unpinned at this head, ea
 
 - `tests / mutation` and `gate` at 212e7976 (job 135087753389; gate job 135152747325 `FAIL tests / mutation`), with `mutation-autofix` (job 135113511239, `skip-nothing-killed`): `ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:972 CLAMP_DROP`, which no driver killed. Cause: the deleted triage's equivalence claim was wrong (see Figures), and no check covered an entity minimum above the ceiling. Fixed by the new features check. Cheaper detector: `tools/pr/ci_predict.py` lists the site as unpinned, but it cannot tell whether autofix will kill it. Only a local `mutation_table.py --anchor` drive would have told. No countermeasure is built here.
 
+- `governance / wave-script` at 2b95078f (job 136821027746): `295 passed, 1 failed`, `FAIL ownerOnlyRecord reads every declared owner-only brief's id, seat and dimension, and no near-miss []`. Cause: a skew between the check source and the tree. The run was a branch push, so the job restored its check source from `PINNED: origin/main`, then main 9e7abae6bbce9bc971393a5010ae099dfd9e6a90. That source reads the owner-only brief `dev/governance/dimensions/DX0.md`, which main carried but the 2b95078f tree did not. Main itself was not red: main's own checker on main's own tree reads `296 passed, 0 failed`. Reproduction: 9e7abae6's pinned check source (145 paths, 7 differ) restored onto the 2b95078f tree reads `295 passed, 1 failed` with the same FAIL line. Repair: the main merge at this head brings DX0.md in. `node .claude/workflows/check-wave-script.mjs` at the head reads `296 passed, 0 failed`. This diff touches no wave-script or owner-only file. Cheaper detector: `git merge-tree --write-tree origin/main HEAD`, which `prepr.sh` already runs. Its tree conflict made the PR DIRTY, and the merge that cures that conflict also cures this red. No countermeasure is owed.
+- `tests / fast (3.14)` at d726d08e12 (job 135570141109, 2026-11-19), a merge of main cb8edb65a5a9c0940dbe263acee49e02ba5f0b25 into this branch: `1 of 5967 FEATURE CHECKS FAILED`, `FAIL the lift may raise the plan's peak over the unlifted plan's ...`. This red is inherited from main: cb8edb65's own `tests / fast (3.14)` (job 135486106404) fails on the same check, `1 of 5933`. The check comes from R11-CARRY-ROOM-LIFT (338aa528f9), outside this seam. It compared solver trajectories bit for bit, which fails under OpenBLAS's SkylakeX kernel. Main repaired it in 890a05e9cf ("compare the lift-peak plans within 1e-3 K"), which this head contains. Later heads of this PR pass it (2b95078f, job 136821026935), and so does this head locally (`ALL 5975 FEATURE CHECKS PASSED`).
+- `pr-contract / pr-contract` at 2b95078f (job 136667994523): `check governance / wave-script is red and ## Red checks does not name it`. Answered by the entry above.
+- `codeql / Analyze (python)` and `governance / env-matrix` at 2b95078f concluded cancelled. Not a repair: this push re-runs them.
+
 ## Forward-carry
 
 - Carry 0 (D15 scope of the debug week and bundle): part F's, built with its debug week. Carry: R11-CARRY-DRAWMAP
@@ -112,9 +125,16 @@ Every site `tools/pr/ci_predict.py` lists as added and unpinned at this head, ea
 - Carry 2 (rulings S1-S4): confirmed by the owner 2026-11-18 (inbox line 1); B builds S1 and S3, F builds S2 and S4. Carry: R11-CARRY-DRAWMAP
 - Carry 3 (sweep kind to a sweep origin in `pump_arbiter.pass_origin`): part B's; this part's origin check pins the probe and fit kinds. Carry: R11-CARRY-DRAWMAP
 - Carry 4 (run key holds the level kW; the sweep routing invariant in `draw_range.fold`): part B's; the null mutant goes on the sweep exclusion B adds to `fold` (verdict note null-mutant-site). Carry: R11-CARRY-DRAWMAP
+- Carry 5 (r17: compare the row's steady-minute `drawn_mean_kw` with the ceiling store's close-of-interval reading on a synthetic sweep run): part B's. This part builds no sweep. Carry: R11-CARRY-DRAWMAP
+- Carry 6 (r12, r14, r15, r16, r18: sweep comfort bound, ceiling source cell, probe-only clock reader, settle re-check, held set-points on `ArbiterState`, the [CE] 2 gate): part B's. No line of this part reaches them. Carry: R11-CARRY-DRAWMAP
+- Carry 7 (P7 re-measured with the rows as stored; the trace reads `ArbiterState.last_pass`): part F's. Re-measured at the head 7b9204eb with `dev/audit/harnesses/draw_map_rows.py --synthetic`: `RESULT store rows=672 ... added_bytes=58058`, the carried figure, which reproduces. `ArbiterState.last_pass` is a `draw_range.PassRecord` at `pump_arbiter.py:401`. Carry: R11-CARRY-DRAWMAP
+- Carry 8 (the COP gate band harness reads `steps=0` on the diagnostics file and `steps=13 distinct_c=10` on the bundle's replay half): the owner's bundle is not in the tree, so this is unmeasured here. It goes to part B, whose null control runs that harness. Carry: R11-CARRY-DRAWMAP
+- Carry 9 (the trace's pass-record hook): this part publishes the record as `ArbiterState.last_pass`, reached by `pump_arbiter.state_for(coord)` (`pump_arbiter.py:516`), and adds no `pass_record(coord)` function. The approved note (design/R11-CARRY-DRAWMAP a1688d8d, line 34) has F wire `debugger.pass_record` to `pump_arbiter.state_for(coord).last_pass`, so the one-line `getattr` rename falls to part F. Carry: R11-CARRY-DRAWMAP
+- Carry 10 (store wear of the hourly trace rewrite, about 9.4 to 16.7 MB on day 7): part F's, with its trace store. Carry: R11-CARRY-DRAWMAP
+- Carry 11 (`draw_range.last_sweep`, the draw record's `sweep` key and the ceiling row's source cell, read by F's bundle readers and P7): B writes them and F reads them. Neither part is in this pull request. Carry: R11-CARRY-DRAWMAP
+- Carry 13 (the fit's and the probe's published hold outlive the freeze that set it): part B's, which re-derives the hold. Carry: R11-CARRY-DRAWMAP
+- Carry 14 (a reader of sweep rows weighs a level by its steady minutes in `last_sweep`): part F's bundle readers, after B. Carry: R11-CARRY-DRAWMAP
 
 ## Friction
 
 none
-
-
