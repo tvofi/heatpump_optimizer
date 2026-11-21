@@ -1,0 +1,19 @@
+Design review: approve 09049ddbbdd6cdbd144e3de8a65f25e461414252
+
+Reviewed from a detached worktree at 09049ddbbd; code read at base e698fc8ac374a1d72c230b55d938d75b03b7de67.
+
+1. Seam: holds. `rooms.lifted` (rooms.py:280) stays the one lift computation; `_build_comfort_bounds` (optimizer.py:4877-4893) is the one bounds site and the only place mold max and ceiling clip are known, so the attribution belongs there; `slot_drivers`, `narrative`, payload, card and translations only read. It follows the away-setback precedent (`SolveLimits.away_floor_drop_c` -> `_Horizon.away_floor_drops`). No new write path.
+2. Shape vs finding: every moved behaviour (comfort_floor split into room_floor, one sixth driver row, one narrative line, plan_narrative enum options) is the carried precondition e98789a8/e82913fe. Invariants (ii) and (iv) check out against slot_drivers.py:104-118 and optimizer.py:2364-2366.
+3. Sibling sites: re-grepped `comfort_floor|REASON_COMFORT_FLOOR`, a sibling reason code (`preheat_weather`), `price_rank`, and every `space_reasons` reader. All reason/driver registries are named. `_MANUAL_KEEP_REASONS` (optimizer.py:2454) and `_mark_blocked_reasons`/`IDLE_REASONS` are addressed by interface 5 and the out-of-scope list; the gate's `manual_pin=space_pins is not None` (coordinator.py:6307) is the manual-plan pin that `_mark_manual_reasons` reads. No missed registry.
+4. Evidence plan: failing tests are on symbols absent today; no finder harness (owner report) is stated; the null control (room-lifts None, and a zero lift that `lifted` returns as `base`) moves under the perturbation "always emit the room_lift row/label"; goldens and both claim files correctly stay byte-identical (no fixture carries a room list).
+5. D7 and siblings in flight: no other open design claims `_build_comfort_bounds`, `slot_drivers`, `narrative` or `rooms`. R11-SEAM-card, R11-SEAM-cycle-solve and R11-SEAM-comments-production (approved) touch `www/heatpump-optimizer-card.js` on other concerns: a hot-file overlap for ordering only. decision: orchestrator (merge order against R11-SEAM-card on the card file).
+6. Cost: about twelve production files plus three card languages, no golden moves, no added solve; fits L.
+
+Notes for the fixer (carries, not revise points):
+- slot_drivers.py:115-118 builds the result with `zip(DRIVER_CODES, weights)`. With room_lift inserted after comfort_floor in `DRIVER_CODES` and its row present only when `h.room_lifts` is not None, a five-row push zipped against six codes labels the mold row `room_lift` and drops `forecast`. Zip against the codes actually stacked, and make the null-control test assert the code names, not only the count. Carry: R11-OUTSIDE-ROOMS-3B (item dr1)
+- The "five drivers" count is stated in prose the note's grep does not reach: slot_drivers.py:4, slot_drivers.py:6, slot_drivers.py:27 and docs/architecture.md:134; docs/dashboard-card.md:210-211 names the five. Update all with the code. Carry: R11-OUTSIDE-ROOMS-3B (item dr2)
+- The note cites tests/entities.py:745 as the strings parity check; at the base that line is the `modbus_prefill` field loop. Locate the check that covers the `plan_narrative` state keys before relying on it passing once registered. Carry: R11-OUTSIDE-ROOMS-3B (item dr3)
+- Interface 2 says room-lifts is 0 where mold or clip covers the lift and equal to the input elsewhere; a partial cover gives a value between. Test that case too (mold floor between the unlifted and lifted floor). Carry: R11-OUTSIDE-ROOMS-3B (item dr4)
+- docs/configuration.md:975 (the room-lift option) says the lift is visible on Room Temperature Spread's `lift` attribute only; the user text for the new reason and driver row falls under the note's routed wording decision. Carry: R11-OUTSIDE-ROOMS-3B (item dr5)
+
+Seat tokens: the harness reports none.
