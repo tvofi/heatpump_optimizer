@@ -560,13 +560,13 @@ _ROOM_BLOCK = {
 _room_coord = FakeCoordinator({**DATA, "rooms": _ROOM_BLOCK})
 _room_coord._config = {_ROOM_KEY: ["climate.a", "sensor.b", "climate.c"]}
 _room_all = collect(sensor, coordinator=_room_coord)
-_room_keys = ("room_average_temperature", "room_temperature_spread")
+_room_keys = ("room_average_temperature", "room_temperature_spread", "room_separability")
 room_sensors = [e for e in _room_all if e._attr_translation_key in _room_keys]
 _room_by_key = {e._attr_translation_key: e for e in room_sensors}
 R.check(
-    "a configured room list adds exactly the room average and spread sensors; null control, the "
-    "default roster with no list holds neither",
-    len(_room_all) == len(sensors) + 2 and set(_room_by_key) == set(_room_keys)
+    "a configured room list adds exactly the room average, spread and separability sensors; null "
+    "control, the default roster with no list holds none of them",
+    len(_room_all) == len(sensors) + 3 and set(_room_by_key) == set(_room_keys)
     and not any(e._attr_translation_key in _room_keys for e in sensors),
     f"{len(_room_all)} vs {len(sensors)}: {sorted(_room_by_key)}",
 )
@@ -3893,6 +3893,21 @@ def _p2_proxies(sources):
     return out
 
 
+#: Water's heat capacity as a literal, in any unit the package has spelled it:
+#: kJ per kg per K, kJ per litre, kWh per litre per K (D7-s3-04).
+_P2_WATER_HEAT = re.compile(r"^(4\.1[89]\d*|1\.16\d*|0\.0011[56]\d*)$")
+
+
+def _p2_match_water_heat(n, parents):
+    """A float literal that reads as water's heat capacity, outside const.py."""
+    return (isinstance(n, ast.Constant) and isinstance(n.value, float)
+            and not isinstance(n.value, bool)
+            and bool(_P2_WATER_HEAT.match(repr(n.value))))
+
+
+_p2_match_water_heat.live = True
+
+
 def _p2_registry(sources):
     """owners: ``file.py::Qual.name`` where the shape may live. dispositions:
     sites the shape returns that are not the fact's decision, with why."""
@@ -4271,6 +4286,32 @@ def _p2_registry(sources):
                  ast.IfExp, r"if \w+ is None else \w+\.astimezone\(timezone\.utc\)$",
                  lambda n: isinstance(n.test, ast.Compare)),
              owners=["tariff.py::_window_starts"], dispositions={}),
+        # D7-s3-04 (R11-SEAM-kernel-step): the heat that warms a litre of
+        # water by one kelvin is const.WATER_SPECIFIC_HEAT, and the per-kg
+        # form is derived from it there (const.py is not scanned). Any
+        # water-heat literal elsewhere is a second value: the sensor-gap
+        # advisor's 4.187 / 3600 read 0.26 % off the tank model's.
+        dict(fact="water_heat_capacity", finding="D7-s3-04",
+             match=_p2_match_water_heat, owners=[], dispositions={}),
+        # D7-s3-04: a naive instant's zone is UTC, decided by drift.utc_instant;
+        # open_meteo's own reading (astimezone: the host's zone) and
+        # manual_plan's copy read it there now. The shape is the naive-to-UTC
+        # relabel; every other site it returns is dispositioned.
+        dict(fact="naive_instant_zone", finding="D7-s3-04",
+             match=_p2_match_node(
+                 (ast.Call,), r"\.replace\(tzinfo=(timezone\.utc|UTC|dt_timezone\.utc)\)$",
+                 lambda n: getattr(n.func, "attr", None) == "replace"
+                 and any(k.arg == "tzinfo" for k in n.keywords)),
+             owners=["drift.py::utc_instant"], dispositions={}),
+        # D7-s1-05 (the note arm): the evidence line's cap is EVIDENCE_KEEP,
+        # written by EvidenceNotes.note alone; the guard, the CUSUM and the
+        # coordinator's immersion trail each trimmed their own list to a
+        # literal 6 before.
+        dict(fact="evidence_cap", finding="D7-s1-05",
+             match=_p2_match_node(
+                 (ast.Delete,), r"evidence\[:-",
+                 lambda n: True),
+             owners=["drift.py::EvidenceNotes.note"], dispositions={}),
     ]
 
 
@@ -4314,6 +4355,16 @@ _P2_CENSUSES = {
     "finite_float_owner": (
         "tests/finite_boundary.py",
         "every finite-float coercion is const.finite_float or a dispositioned site"),
+    # D7-s3-04 (R11-SEAM-kernel-step): replay_doc.numeric is finite_float's
+    # domain, written out because the export loads that file with no sibling.
+    "replay_numeric_domain": (
+        "tests/debug_collect.py",
+        "replay_doc.numeric answers exactly as const.finite_float on every probe"),
+    # D7-s3-03: every reader of the plan step covering now takes plan_step's
+    # index; the census drives the four on one plan, past its end included.
+    "plan_step_covering": (
+        "tests/features.py",
+        "D7-s3-03: plan_step_index, covering_index and both _planned_room copies agree"),
     # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (
@@ -22721,14 +22772,15 @@ R.check(
     f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
-# pull request. The cap is per leg, read from the matrix's `include` entries
-# (r10-hotfix-codeql-headroom, design note sections 1 and 3): python carries 75
-# because main's python job outgrew the 45-minute cap (extraction of
-# tests/features.py is the critical path; projected uncensored worst case about
-# 51 minutes, so 75 is that plus a deliberate stopgap margin); the two legs that
-# read about 40x under the cap stay at exactly 45, which is the null control
-# (a blanket raise would move them and fails here). The cap is pinned against
-# the YAML, not left as prose in the workflow, because a one-line edit
+# pull request and reddens main's gate. The cap is per leg, read from the
+# matrix's `include` entries: python's 45 became 75 (r10-hotfix-codeql-headroom)
+# and 75 became 120 (R11-HOTFIX-CODEQL-PERMS) when main's push jobs outran it:
+# 22 of the 40 newest were capped at 75.1 minutes, so the measured worst case
+# is censored above 75 and the floor below is the first whole minute past that
+# cap (the workflow's comment carries the job list's enumerator). The two legs
+# that read about 40x under the cap stay at exactly 45, which is the null
+# control (a blanket raise would move them and fails here). The cap is pinned
+# against the YAML, not left as prose in the workflow, because a one-line edit
 # shrinking it back is exactly what no other check reads.
 _CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
 _analyze_job = _CODEQL_JOBS.get("analyze") or {}
@@ -22737,7 +22789,7 @@ _analyze_incl = (((_analyze_job.get("strategy") or {}).get("matrix") or {})
                  .get("include")) or []
 _leg_caps = {e.get("language"): e.get("timeout") for e in _analyze_incl
              if isinstance(e, dict)}
-_PY_WORST_CASE_MIN = 51
+_PY_WORST_CASE_MIN = 76
 R.check(
     "codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45",
     _analyze_cap == "${{ matrix.timeout }}"
@@ -22749,9 +22801,9 @@ R.check(
     and _leg_caps["javascript-typescript"] == 45
     and type(_leg_caps["javascript-typescript"]) is int,
     f"timeout-minutes={_analyze_cap!r}; include caps={_leg_caps!r}; the python "
-    "leg was capped at 45.1 min on main (projected worst case ~51, design "
-    "r10-hotfix-codeql-headroom s1); actions and javascript-typescript read "
-    "p99 <= 2.3 min and stay 45",
+    "leg was capped at 75.1 min on 22 of main's 40 newest push jobs (worst case "
+    "censored above 75, R11-HOTFIX-CODEQL-PERMS); actions and "
+    "javascript-typescript read p99 <= 2.3 min and stay 45",
 )
 # D-5: O17's INERT list is admitted only with the soundness step, which runs
 # on push and reads the leg's extracted source archive; and the `scope` job
@@ -22939,11 +22991,13 @@ R.check(
 # child, never every closure (R9-F10.9; this pinned `full` until then).
 # tests/entities.py is the third entry: countermeasure B's pin reads every
 # non-INERT .py under tests/ and tools/, so every such edit re-derives it.
+# tests/doc_claims.py is the fourth: its comment ratchet reads every tests/ script.
 _A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
     "a change to a subprocess-driven script re-derives its driver and itself",
     _A_DRIVEN["case"] == "scoped"
-    and _A_DRIVEN["rederive"] == ["tests/entities.py", "tests/features.py", "tests/dst_checks.py"],
+    and _A_DRIVEN["rederive"] == ["tests/doc_claims.py", "tests/entities.py", "tests/features.py",
+                                  "tests/dst_checks.py"],
     f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
 )
 # A tests/closures.json change runs the scripts whose entry moved, measured
@@ -42501,17 +42555,15 @@ def _r10_covering_lookups(sources):
     return found
 
 
-#: Every covering lookup that is not ``coordinator._covering_index``'s, and why
-#: it may hold its last entry open (the R10 sweep's dispositions).
+#: Every covering lookup that is not ``plan_step.covering_index``'s, and why
+#: it may hold its last entry open (the R10 sweep's dispositions). The plan's
+#: readers (``pump_arbiter`` and ``early_cutoff``) take their index from
+#: ``plan_step.plan_step_index`` since round 11 (ADR-001 part 2, D7-s3-03), so
+#: none of them bisects on its own.
 _R10_COVERING_ALLOWED = {
-    ("coordinator.py", "_covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
+    ("plan_step.py", "covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
     ("coordinator.py", "_weather_series"): (1, "builds the future horizon; padding past the last "
                                                "entry is documented extrapolation, never published as current"),
-    ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
-    ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
-    ("pump_arbiter.py", "_step_index"): (1, "returns None past the plan's last step; "
-                                             "step_duty and step_supply read it (#2492)"),
-    ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
 }
 
 
@@ -42525,18 +42577,21 @@ _r10_cov_found = _r10_covering_lookups(_r10_sources)
 _r10_cov_planted = _r10_covering_lookups({
     "planted.py": "from bisect import bisect_right\n"
                   "def current(s, now):\n    return s[bisect_right(s, now) - 1]\n",
-    "pump_arbiter.py": _r10_sources["pump_arbiter.py"]
-    + "\ndef _share(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
+    "coordinator.py": _r10_sources["coordinator.py"]
+    + "\ndef _weather_series(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
 })
 R.check(
     "R10 N-no-expiry barrier: every 'entry covering now' lookup goes through "
-    "_covering_index or is on the reasoned list with its exact count",
+    "plan_step.covering_index or is on the reasoned list with its exact count",
     not _r10_covering_verdict(_r10_cov_found)
-    and sum(_r10_cov_found.values()) >= 6 and len(_r10_sources) >= 70
+    # The reach floor is the two lookups left once round 11 (ADR-001 part 2)
+    # moved the plan's four readers onto plan_step.plan_step_index: the owner's
+    # own and _weather_series's padding; six before.
+    and sum(_r10_cov_found.values()) >= 2 and len(_r10_sources) >= 70
     # null control and perturbation: a planted unbounded lookup, and a second
     # lookup inside an allow-listed function, are each refused
     and ("planted.py", "current") in _r10_covering_verdict(_r10_cov_planted)
-    and ("pump_arbiter.py", "_share") in _r10_covering_verdict(_r10_cov_planted),
+    and ("coordinator.py", "_weather_series") in _r10_covering_verdict(_r10_cov_planted),
     f"mismatch {_r10_covering_verdict(_r10_cov_found)}; read {sum(_r10_cov_found.values())} "
     f"lookups in {len(_r10_sources)} modules",
 )

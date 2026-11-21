@@ -281,6 +281,42 @@ R.check(
     == [{"start": "2026-01-15T23:00:00+01:00", "end": "2026-01-16T00:00:00+01:00"}],
     repr(_local.get("cheaper_windows")),
 )
+# PR #3728 review (wood_fuel cheaper_windows/_attach_windows): a naive plan
+# stamp is UTC under any host zone (drift.utc_instant), never the host's. The
+# same 22:00-23:00 UTC cheap steps, naive, built under a Tokyo host, must give
+# the aware build's windows; read with the host zone they land nine hours off.
+import os as _os
+import time as _time
+
+_saved_host_tz = _os.environ.get("TZ")
+_os.environ["TZ"] = "Asia/Tokyo"
+_time.tzset()
+try:
+    _host_took = _time.localtime(1768435200).tm_gmtoff == 9 * 3600  # 2026-01-15
+    _naive_local = build_wood_fuel_view(
+        _WOOD_READY,
+        prices=[4.0 if i in (22, 23) else 1.0 for i in range(30)],
+        cops=[3.0] * 30,
+        runs=[True] * 30,
+        timestamps=[ts.replace(tzinfo=None) for ts in _STAMPS],
+        forecast_kw=[],
+        local_tz=_CET,
+    )
+finally:
+    if _saved_host_tz is None:
+        _os.environ.pop("TZ", None)
+    else:
+        _os.environ["TZ"] = _saved_host_tz
+    _time.tzset()
+R.check(
+    "a naive plan stamp is UTC under a non-UTC host zone: the windows and the "
+    "lighting window equal the aware build's",
+    _host_took
+    and _naive_local.get("cheaper_windows") == _local.get("cheaper_windows")
+    and _lighting(_naive_local) == _lighting(_local),
+    f"host zone took {_host_took}, {_naive_local.get('cheaper_windows')!r} "
+    f"{_lighting(_naive_local)!r}",
+)
 from heatpump_optimizer.wood_fuel import cheaper_windows as _cheaper_windows
 
 _one_step = _cheaper_windows(_STAMPS[:1], [True], _tz.utc)

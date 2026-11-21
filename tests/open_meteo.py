@@ -74,14 +74,17 @@ def _install_ha_stubs() -> None:
 
 
 def _load_module():
-    """Load open_meteo.py with its relative import of .const intact."""
+    """Load open_meteo.py with its relative imports of .const and .drift intact.
+
+    ``drift`` holds the package's one reading of a naive instant (round 11),
+    and imports nothing from the package and no Home Assistant module."""
     _install_ha_stubs()
 
     pkg = types.ModuleType("hpo")
     pkg.__path__ = [SRC]
     sys.modules["hpo"] = pkg
 
-    for name in ("const", "open_meteo"):
+    for name in ("const", "drift", "open_meteo"):
         spec = importlib.util.spec_from_file_location(
             f"hpo.{name}", os.path.join(SRC, f"{name}.py")
         )
