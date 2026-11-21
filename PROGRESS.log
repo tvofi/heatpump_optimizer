@@ -65,3 +65,4 @@
 1795288766 HB alive
 1795289370 HB alive
 1795289551 DONE returned: handoff/r11-seam-learners 7449402c26, body handoff-body 82ed43ec73; carry 2 (second PR) not started
+1795289569 DONE returned: handoff/r11-seam-learners 7449402c26, handoff-body 82ed43ec73; step-ref delete refused by the proxy; carry 2 second PR not started
