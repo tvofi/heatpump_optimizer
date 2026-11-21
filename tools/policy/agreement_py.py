@@ -462,7 +462,7 @@ def figure_block():
     block = f"<!-- figure-block: scope-line mb={sha} head={sha} -->\n~~~text\nMODE: SCOPED\n~~~\n<!-- /figure-block -->\n"
     empty = "<!-- figure-block: scope-line -->\n<!-- /figure-block -->\n"
     bodies += ["## Figures\n\n" + block, "## Figures\n\n" + empty, "## Notes\n" + block + "x\n" + block,
-               "<!-- figure-block: Scope -->\n", "<!-- figure-block: scope-line -->\nnever closed\n",
+               "<!-- figure-block: Scope -->\n", "<!-- figure-block-->\n", "<!-- figure-block\n", "<!-- figure-block: scope-line -->\nnever closed\n",
                "<!-- /figure-block -->\n", empty + "<!-- /figure-block -->\n", " " + empty, "\t" + block,
                "x <!-- figure-block: scope-line -->\n", "`<!-- figure-block: scope-line -->`\n",
                block.replace("\n", "\r\n"), "a\r" + empty, "a\u2028" + empty, "a\x0b" + empty, "a\x0c" + empty, "a\x85" + empty, ""]

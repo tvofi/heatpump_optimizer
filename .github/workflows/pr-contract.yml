@@ -392,29 +392,6 @@ jobs:
         if: always()
         run: python3 -I tools/pr/figure_block.py verify /tmp/pr-body.md
 
-      # The registered figures are rendered here instead, at the head this run
-      # grades: each instrument the BASE's tools/pr/figure_registry.json names,
-      # run by the base's restored program over the head's tree, read-only, into
-      # the job summary. A render that fails is printed there with its exit
-      # status and fails nothing: this step states figures, it grades none.
-      - name: Render the registered figures at this head
-        if: always()
-        env:
-          PR_HEAD: ${{ steps.pr.outputs.head }}
-          PR_BASE: ${{ steps.pr.outputs.base }}
-        run: |
-          set -uo pipefail
-          {
-            echo "### Registered figures at \`${PR_HEAD}\`"
-            echo
-            for name in $(git show "$PR_BASE:tools/pr/figure_registry.json" | jq -r '.instruments | keys[]'); do
-              rc=0; out=$(python3 -I tools/pr/figure_block.py render "$name" --base "$PR_BASE" --head "$PR_HEAD" 2>&1) || rc=$?
-              echo "**${name}**$([ "$rc" = 0 ] || echo " (not rendered: exit status $rc)")"
-              echo
-              printf '%s\n\n' "$out"
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
-
       # preflight.sh refuses a closing keyword whose number is not in the
       # intended list it is given. prepr.sh's step 7 derives it with this
       # program byte for byte (`preflight_body`; its self-test pins that). The
@@ -479,6 +456,27 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi
+
+      # The registered figures are rendered here instead, at the head this run
+      # grades: each instrument the BASE's tools/pr/figure_registry.json names,
+      # run by the base's restored program over the head's tree, read-only, into
+      # the job summary. A render that fails is printed there with its exit
+      # status and fails nothing: this step states figures, it grades none.
+      # Written inside codeowners_gap.py's allowlist, so the program stays pinned.
+      - name: Render the registered figures at this head
+        if: always()
+        env:
+          PR_HEAD: ${{ steps.pr.outputs.head }}
+          PR_BASE: ${{ steps.pr.outputs.base }}
+        run: |
+          set -uo pipefail
+          git cat-file -p "$PR_BASE:tools/pr/figure_registry.json" > "$RUNNER_TEMP/figure_registry.json"
+          echo "### Registered figures at $PR_HEAD" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '.instruments | keys[]' "$RUNNER_TEMP/figure_registry.json" > "$RUNNER_TEMP/figure_names.txt"
+          while read -r name; do
+            printf '\n**%s**\n\n' "$name" >> "$GITHUB_STEP_SUMMARY"
+            python3 -I tools/pr/figure_block.py render "$name" --base "$PR_BASE" --head "$PR_HEAD" >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "(not rendered: exit status $?)" >> "$GITHUB_STEP_SUMMARY"
+          done < "$RUNNER_TEMP/figure_names.txt"
 
       # finding-propagation.md's `Carry:` marker, refused where a body is
       # written: every `## Friction` and `## Forward-carry` item, and every

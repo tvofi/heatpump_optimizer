@@ -278,6 +278,8 @@ def _self_test() -> int:
               and "does not parse" in verify_text("<!-- figure-block: Mb -->\n")[0])
         check("an unclosed block is refused", len(verify_text("<!-- figure-block: mb -->\nx\n")) == 1)
         check("a close marker with no block above it is refused", len(verify_text(free + "<!-- /figure-block -->\n")) == 1)
+        check("a second close marker after a closed block is refused too", len(verify_text(free + "<!-- figure-block: mb -->\n<!-- /figure-block -->\n<!-- /figure-block -->\n")) == 2)
+        check("a marker cut short of its name is refused", len(verify_text("<!-- figure-block-->\n")) == 1)
         # The defect: a stored block named its head, so a head no seat moved (the
         # merge-main bot, a recarry) left the body false. With nothing stored the
         # same body passes at the moved head; cmd_verify reads no head at all.
