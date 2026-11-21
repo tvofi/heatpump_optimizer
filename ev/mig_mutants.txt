@@ -1,0 +1,20 @@
+=== head
+1
+ALL 13 MIGRATION BLOCK CHECKS PASSED
+rc=0
+=== mR: repair dropped from the resolution, placed(effective)
+1
+  FAIL an old entry's non-numbers under numeric options are repaired, with one warning naming them  [data={} options={'min_temperature': [19.0], 'max_temperature': 'abc', 'dhw_tank_volume': '200', 'mixing_valve_target': 'abc', 'target_temperature': None, 'comfort_weight': {'v': 1.0}, 'price_weight': 'nan', 'cop_scale': True, 'silent_mode_power_fraction': 'abc'}]
+1 of 13 MIGRATION BLOCK CHECKS FAILED
+rc=1
+=== mP: placement dropped, old per-side repair
+1
+  FAIL an old entry's non-numbers under numeric options are repaired, with one warning naming them  [data={'dhw_tank_volume': 200.0} options={'silent_mode_power_fraction': 'abc'}]
+  FAIL a 7.1 entry migrates to 7.2: data holds DATA_ONLY alone, the effective mapping is unchanged and a key in both sides keeps the options value in force  [data={'name': 'Annex', 'tibber_token': 't', 'target_temperature': 21.0} options={'target_temperature': 22.0} minor=2]
+2 of 13 MIGRATION BLOCK CHECKS FAILED
+rc=1
+=== mO: data over options in the effective mapping
+1
+  FAIL a 7.1 entry migrates to 7.2: data holds DATA_ONLY alone, the effective mapping is unchanged and a key in both sides keeps the options value in force  [data={'name': 'Annex'} options={'target_temperature': 21.0, 'tibber_token': 't'} minor=2]
+1 of 13 MIGRATION BLOCK CHECKS FAILED
+rc=1

@@ -1,0 +1,248 @@
+diff --git a/custom_components/heatpump_optimizer/__init__.py b/custom_components/heatpump_optimizer/__init__.py
+index f40edd1307..a2a1c55987 100644
+--- a/custom_components/heatpump_optimizer/__init__.py
++++ b/custom_components/heatpump_optimizer/__init__.py
+@@ -33,7 +33,7 @@ from .const import (
+     CONFIG_ENTRY_VERSION,
+     DOMAIN,
+ )
+-from .entry_config import EntryConfig, placed
++from .entry_config import EntryConfig, number_repairs, placed, repaired_numbers
+ 
+ # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
+ # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
+@@ -204,8 +204,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
+     """Migrate a config entry created by an older version of the integration.
+ 
+     Every option the integration reads is looked up with a default, so older
+-    entries need their keys placed (7.2) and their version stamped forward. Without this handler Home
+-    Assistant refuses to load entries created before the current
++    entries need their version stamped forward, any numeric option stored as a
++    non-number repaired -- numeric text stored as its number, anything else
++    dropped for its default (``entry_config.number_repairs``) -- and their keys
++    placed (7.2). Without this handler Home Assistant refuses to load entries
++    created before the current
+     ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
+     """
+     if entry.version > CONFIG_ENTRY_VERSION:
+@@ -227,10 +230,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
+             CONFIG_ENTRY_VERSION,
+             CONFIG_ENTRY_MINOR_VERSION,
+         )
++        effective = {**entry.data, **entry.options}
++        repairs = number_repairs(effective)
++        if repairs:
++            _LOGGER.warning(
++                "Stored options that are not numbers: %s; text is stored as its number, "
++                "anything else is dropped and its default applies",
++                ", ".join(sorted(repairs)),
++            )
+         # 7.2 stores each key in its one place. Placing only moves keys, and
+         # on a key in both sides keeps the options value, the one in force,
+         # so the effective mapping every reader takes is unchanged.
+-        data, options = placed({**entry.data, **entry.options})
++        data, options = placed(repaired_numbers(effective, repairs))
+         hass.config_entries.async_update_entry(
+             entry,
+             data=data,
+diff --git a/custom_components/heatpump_optimizer/entry_config.py b/custom_components/heatpump_optimizer/entry_config.py
+index 4a19640d9a..603d484f6c 100644
+--- a/custom_components/heatpump_optimizer/entry_config.py
++++ b/custom_components/heatpump_optimizer/entry_config.py
+@@ -36,6 +36,37 @@ def _nonzero_number(value: Any, default: float) -> float:
+     return finite_float(value, default) or default
+ 
+ 
++#: The longest span of minutes a plan option may name: past a day the plan
++#: outlives the day-ahead prices it was solved against.
++_MAX_PLAN_MINUTES = 24 * 60.0
++
++
++def _interval_minutes(value: Any, default: float) -> float:
++    """A re-solve interval in minutes inside ``(0, a day]``, else ``default``.
++
++    Zero or a negative interval stamps a cycle's end at or before its start,
++    and 1e12 minutes overflows the datetime it is added to (sweep-P1,
++    ``early_cutoff.arm``): neither is an interval.
++    """
++    minutes = finite_float(value)
++    if minutes is None or not 0.0 < minutes <= _MAX_PLAN_MINUTES:
++        return default
++    return minutes
++
++
++def _lead_minutes(value: Any, default: float) -> float:
++    """A lead in minutes inside ``[0, a day]``, else ``default``.
++
++    A zero lead is "at the window's start"; a negative one names no instant
++    before it, and 1e12 minutes overflows the datetime it is subtracted from (sweep-P1,
++    ``wood_fuel.lighting_window``).
++    """
++    minutes = finite_float(value)
++    if minutes is None or not 0.0 <= minutes <= _MAX_PLAN_MINUTES:
++        return default
++    return minutes
++
++
+ def _whole(value: Any, default: int | None) -> int | None:
+     try:
+         return int(value)
+@@ -186,8 +217,9 @@ class EntryConfig(Mapping[str, Any]):
+     main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, finite_float)
+     max_temperature: float = _key(const.DEFAULT_MAX_TEMP, finite_float)
+     min_temperature: float = _key(const.DEFAULT_MIN_TEMP, finite_float)
++    mixing_valve_target: float = _key(const.DEFAULT_MIXING_VALVE_TARGET, finite_float)
+     mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, finite_float)
+-    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, finite_float)
++    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, _interval_minutes)
+     peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, finite_float)
+     peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, finite_float)
+     peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, finite_float)
+@@ -203,7 +235,7 @@ class EntryConfig(Mapping[str, Any]):
+     target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, finite_float)
+     thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, finite_float)
+     vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, finite_float)
+-    wood_lighting_lead_minutes: float = _key(const.DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, finite_float)
++    wood_lighting_lead_minutes: float = _key(const.DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _lead_minutes)
+     wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, finite_float)
+ 
+     # A fraction this version cannot read caps nothing: None, not the default.
+@@ -293,6 +325,42 @@ class EntryConfig(Mapping[str, Any]):
+         return len(self.raw)
+ 
+ 
++#: The parses that read a value they refuse as the key's default, so a refused
++#: stored value and an absent key parse alike.
++_DEFAULTED_NUMBERS: tuple[Parse, ...] = (
++    finite_float, _nonzero_number, _interval_minutes, _lead_minutes,
++)
++
++
++def number_repairs(stored: Mapping[str, Any]) -> dict[str, float | None]:
++    """Each defaulted numeric key ``stored`` holds a non-number for: its number, or None.
++
++    An earlier release could store text, a list, a dict or ``None`` under a
++    numeric option (D1-s2-05). The parse reads numeric text as its number and
++    anything else as the default, but the thermal table and the comfort band
++    read the stored value and raised on it at setup or on every cycle.
++    Storing the number, and dropping a key mapped to None, changes no parsed
++    field, and every raw reader then reads what the parse does.
++    """
++    return {
++        f.name: finite_float(value)
++        for f in fields(EntryConfig)
++        if f.metadata
++        and f.metadata["parse"] in _DEFAULTED_NUMBERS
++        and f.name in stored
++        and (isinstance(value := stored[f.name], bool) or not isinstance(value, (int, float)))
++    }
++
++
++def repaired_numbers(stored: Mapping[str, Any], repairs: Mapping[str, float | None]) -> dict[str, Any]:
++    """``stored`` with ``repairs`` applied: a number replaces its text, None drops the key."""
++    return {
++        key: repairs.get(key, value)
++        for key, value in stored.items()
++        if key not in repairs or repairs[key] is not None
++    }
++
++
+ def _restore(raw: dict[str, Any], parsed: dict[str, Any]) -> EntryConfig:
+     """``EntryConfig.__reduce__``'s constructor: the stored values and their parse."""
+     return EntryConfig(raw=MappingProxyType(raw), **parsed)
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index 9d85331747..a8aea05a49 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -960,10 +960,10 @@ def parse_bool(raw: Any, *, strict: bool = False) -> bool | None:
+         return True
+     if token in BOOL_FALSE:
+         return False
+-    try:
+-        return float(token) != 0.0
+-    except (TypeError, ValueError):
+-        return None
++    # Only a finite number is a code (D1-s3-01): "nan", "inf" and "1e309" are
++    # no reading, not a fault or a defrost.
++    number = finite_float(token)
++    return None if number is None else number != 0.0
+ 
+ 
+ class InputReader:
+@@ -1029,6 +1029,11 @@ class InputReader:
+         and return it as-is.
+         """
+         entity_id = entity_id if entity_id is not None else self.config.get(key)
++        # A slot an earlier release stored as a list or a dict names no entity
++        # (D1-s2-05): read as unset, it no longer raises out of every cycle as a
++        # state-machine key.
++        if not isinstance(entity_id, str):
++            entity_id = None
+         # `isinstance` rather than `is UNBOUNDED`: identical for a private
+         # sentinel with one instance, and it is what narrows the union so
+         # the `float()` below is checked rather than suppressed.
+diff --git a/custom_components/heatpump_optimizer/open_meteo.py b/custom_components/heatpump_optimizer/open_meteo.py
+index 5032c1bdca..bc85aafacc 100644
+--- a/custom_components/heatpump_optimizer/open_meteo.py
++++ b/custom_components/heatpump_optimizer/open_meteo.py
+@@ -248,8 +248,18 @@ def _parse_block(
+         return _EMPTY
+     resolution = timedelta(seconds=min(gaps, key=lambda gap: (-gaps[gap], gap)))
+ 
++    # A sample covers ``(t - resolution, t]``. A stamp within one resolution
++    # of year 1 has no representable span, and ``mean_over`` raised
++    # OverflowError on it for every plan step, failing every solve (D1-s3-03).
++    floor = datetime.min.replace(tzinfo=timezone.utc) + resolution
++    kept = [i for i, t in enumerate(times) if t >= floor]
++    if len(kept) < 2:
++        return _EMPTY
++
+     return IrradianceSeries(
+-        times=tuple(times), values=tuple(values), resolution=resolution
++        times=tuple(times[i] for i in kept),
++        values=tuple(values[i] for i in kept),
++        resolution=resolution,
+     )
+ 
+ 
+diff --git a/custom_components/heatpump_optimizer/wood_fuel.py b/custom_components/heatpump_optimizer/wood_fuel.py
+index efa00e052e..d061ce27a5 100644
+--- a/custom_components/heatpump_optimizer/wood_fuel.py
++++ b/custom_components/heatpump_optimizer/wood_fuel.py
+@@ -7,20 +7,19 @@ from itertools import zip_longest
+ from typing import Any
+ 
+ from .drift import utc_elapsed_seconds
++from .entry_config import EntryConfig
+ from .const import (
+     CONF_DHW_WOOD_COIL_ENABLED,
+     CONF_EXTERNAL_HEAT_ENABLED,
+     CONF_EXTERNAL_HEAT_ENTITY,
+     CONF_WOOD_FURNACE_EFFICIENCY,
+     CONF_WOOD_FURNACE_ENABLED,
+-    CONF_WOOD_LIGHTING_LEAD_MINUTES,
+     CONF_WOOD_PACKING,
+     CONF_WOOD_PRICE_SEK_M3,
+     CONF_WOOD_TANK_BOTTOM_ENTITY,
+     CONF_WOOD_TANK_TOP_ENTITY,
+     CONF_WOOD_TYPE,
+     DEFAULT_MIN_TEMP,
+-    DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
+     WOOD_TANK_MAX_TEMP,
+ )
+ from .const import finite_float
+@@ -558,13 +557,7 @@ def _attach_windows(
+     windows: list[WoodWindow] = [
+         {"start": iso(start), "end": iso(end)} for start, end in runs
+     ]
+-    lead = max(
+-        0.0,
+-        finite_float(
+-            config.get(CONF_WOOD_LIGHTING_LEAD_MINUTES),
+-            DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
+-        ),
+-    )
++    lead = EntryConfig.from_mapping(config).wood_lighting_lead_minutes
+     light_start, light_end = lighting_window(runs[0][0], timestamps[0], lead)
+     view["cheaper_windows"] = windows
+     view["lighting_start"] = iso(light_start)

@@ -1,0 +1,86 @@
+commit b4091e0b59ac2fc7c33eaf23acf843b01bc654fa
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Thu Nov 19 00:47:23 2026 +0100
+
+    R11-SEAM-inputs-guards: pin the lone year-1 survivor _parse_block refuses
+    
+    Two stamps, one in year 1: the survivor's resolution is inferred from its
+    gap to the dropped stamp, so a lone kept sample spans back to year 1 and
+    mean_over would read it over every earlier window. tests/open_meteo.py
+    now checks that block parses to no samples, with a null control; it kills
+    the < 2 -> < 1 survivor the round-3 review found (M12).
+
+diff --git a/tests/open_meteo.py b/tests/open_meteo.py
+index dc8679ba26..dd9f0ffb0a 100644
+--- a/tests/open_meteo.py
++++ b/tests/open_meteo.py
+@@ -156,6 +156,31 @@ check(
+     len(_y1_two.times) == 2 and _y1_two.values == (100.0, 200.0),
+     f"times={_y1_two.times}",
+ )
++# Two stamps, one of them year 1: the survivor's resolution is inferred from
++# its gap to the dropped stamp, so its span reaches back to year 1 and a lone
++# survivor would claim every window before it. The block parses to nothing.
++_y1_lone_block = {"time": ["0001-01-01T00:00", "2026-08-21T00:00"],
++                  "shortwave_radiation": [1.0, 100.0]}
++_y1_lone = om._parse_block(_y1_lone_block, "shortwave_radiation")
++_y1_lone_at = datetime(2026, 8, 20, 22, 0, tzinfo=UTC)
++check(
++    "a lone sample left after the year-1 drop is no series: mean_over claims no window",
++    _y1_lone.times == () and _y1_lone.mean_over(_y1_lone_at, _y1_lone_at + timedelta(hours=3)) is None,
++    f"times={_y1_lone.times} resolution={_y1_lone.resolution}",
++)
++# Null control: the same survivor beside a second one-hour sample is a series
++# and reads a value over the same window, so the check above is not empty
++# on every block.
++_y1_lone_ctl = om._parse_block(
++    {"time": _y1_lone_block["time"] + ["2026-08-21T01:00"],
++     "shortwave_radiation": [1.0, 100.0, 100.0]},
++    "shortwave_radiation",
++)
++check(
++    "the lone-sample check reads a value once a second sample is kept (null control)",
++    _y1_lone_ctl.mean_over(_y1_lone_at, _y1_lone_at + timedelta(hours=3)) is not None,
++    f"times={_y1_lone_ctl.times}",
++)
+ 
+ hourly = om._parse_block(block(0, [0.0, 0.0, 100.0, 300.0, 500.0]), "shortwave_radiation")
+ check("parses an hourly block", len(hourly.times) == 5)
+
+commit c995a3255c05890423c034c98c87788466df6631
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Thu Nov 19 17:26:53 2026 +0100
+
+    tests: migration repair checks read 7.2 placement
+    
+    After the merge with #3742 the migration places each key in its one side, so
+    the healthy-entry null control compares the effective mapping and the repair
+    check expects both surviving keys in options.
+
+diff --git a/tests/entities.py b/tests/entities.py
+index 4a680b02a7..f3f6d86e51 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -15630,8 +15630,8 @@ _mig_quiet_ok, _mig_quiet_logs = _mig_warnings(_mig_quiet)
+ R.check(
+     "a healthy old entry migrates with no repair warning (null control)",
+     _mig_quiet_ok is True and not _mig_quiet_logs
+-    and _mig_quiet.data == {"min_temperature": 19.0, "dhw_tank_volume": 200.0},
+-    f"{[r.getMessage() for r in _mig_quiet_logs]}",
++    and {**_mig_quiet.data, **_mig_quiet.options} == {"min_temperature": 19.0, "dhw_tank_volume": 200.0},
++    f"{[r.getMessage() for r in _mig_quiet_logs]} data={_mig_quiet.data} options={_mig_quiet.options}",
+ )
+ _mig_bad = FakeEntry(data=dict(_mig_bad_data), options=dict(_mig_bad_options))
+ _mig_before = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+@@ -15641,8 +15641,9 @@ R.check(
+     _mig_bad_ok is True
+     and len(_mig_bad_logs) == 1 and "min_temperature" in _mig_bad_logs[0].getMessage()
+     and _mig_bad.version == const.CONFIG_ENTRY_VERSION
+-    and _mig_bad.data == {"dhw_tank_volume": 200.0}
+-    and _mig_bad.options == {"silent_mode_power_fraction": "abc"},
++    # 7.2 then places each surviving key: neither is DATA_ONLY, so both land in options
++    and _mig_bad.data == {}
++    and _mig_bad.options == {"dhw_tank_volume": 200.0, "silent_mode_power_fraction": "abc"},
+     f"data={_mig_bad.data} options={_mig_bad.options}",
+ )
+ _mig_after = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
