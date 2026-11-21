@@ -19,8 +19,9 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-SECURITY-PRIVACY (stage carries-open, branch `fix/r11-pre-security-privacy-p2`): `git fetch origin fix/r11-pre-security-privacy-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage carries-open, branch `fix/r11-outside-self-setting-pump-p2`): `git fetch origin fix/r11-outside-self-setting-pump-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-CARRY-DRAWMAP (stage carries-open, branch `fix/r11-carry-drawmap`): `git fetch origin fix/r11-carry-drawmap && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-kernel-step (stage in-progress, branch `handoff/r11-seam-kernel-step`): `git fetch origin handoff/r11-seam-kernel-step && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-kernel-step (stage carries-open, branch `handoff/r11-seam-kernel-step`): `git fetch origin handoff/r11-seam-kernel-step && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-inputs-guards (stage in-progress, branch `handoff/r11-seam-inputs-guards`): `git fetch origin handoff/r11-seam-inputs-guards && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-learners (stage in-progress, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-release (stage in-progress, branch `handoff/r11-seam-actuation-release`): `git fetch origin handoff/r11-seam-actuation-release && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-solve (stage in-progress, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-card (stage in-progress, branch `handoff/r11-seam-card`): `git fetch origin handoff/r11-seam-card && git worktree add --detach $SEAT/wt FETCH_HEAD`
