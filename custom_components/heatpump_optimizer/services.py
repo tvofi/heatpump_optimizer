@@ -27,6 +27,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
+from . import away as away_mode
 from . import comfort_band
 from . import debugger
 from . import mixing_valve
@@ -633,7 +634,17 @@ async def handle_set_away(hass: HomeAssistant, call: ServiceCall) -> None:
     if "active" in call.data:
         kwargs["active"] = call.data["active"]
     if "return_time" in call.data:
-        kwargs["return_time"] = call.data["return_time"]
+        raw = call.data["return_time"]
+        # D10-s1-01: a value that neither clears nor parses was stored as
+        # the absent time, wiping a held return; refused before any write.
+        if not away_mode.clears_return_time(raw) and away_mode.parse_return_time(raw) is None:
+            raise ServiceValidationError(
+                f"Invalid return_time {raw!r}: not a date and time",
+                translation_domain=DOMAIN,
+                translation_key="away_invalid_return_time",
+                translation_placeholders={"return_time": str(raw)},
+            )
+        kwargs["return_time"] = raw
     for _entry_id, coord in _loaded_coordinators(hass):
         await coord.async_set_away(**kwargs)
 

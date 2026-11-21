@@ -1862,6 +1862,7 @@ def _lbfgsb_restart(
             bounds, args, maxiter, memo,
         )
     except Exception:  # pragma: no cover - solver blow-up
+        _LOGGER.debug("L-BFGS-B restart failed; the start's own point kept", exc_info=True)
         return best
     score = float(objective(polished.x, *args))
     prior = float(objective(best.x, *args))

@@ -32,7 +32,6 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
-import logging
 import statistics
 import time
 from collections.abc import Callable, Coroutine
@@ -62,9 +61,8 @@ from .store import (
     load_mapping,
     off_domain,
     quarantines,
+    save_held,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 DEBUG_STORE_VERSION = 1
 BUNDLE_SCHEMA = "hpo-debug/1"
@@ -518,10 +516,9 @@ class DebugCollector:
                 "snapshots": list(self.snapshots), **tests}
 
     async def async_save(self) -> None:
-        try:
-            await self._store.async_save(self.as_dict())
-        except Exception as err:  # noqa: BLE001 - a lost save costs at most an hour of rows
-            _LOGGER.debug("Could not persist the debug collection: %s", err)
+        await save_held(
+            self._store, "the debug collection", lambda: self._store.async_save(self.as_dict()),
+        )  # a lost save costs at most an hour of rows
 
     def observe(self, coordinator: Any) -> None:
         """One listener call: time a solve's edges, record a newly published payload."""

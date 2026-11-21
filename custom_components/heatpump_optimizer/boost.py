@@ -17,7 +17,6 @@ applied to a copy of it, and the switches call in.
 from __future__ import annotations
 
 import asyncio
-import logging
 import math
 from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass, field
@@ -25,7 +24,7 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from weakref import WeakKeyDictionary
 
-from .store import QuarantiningStore, load_mapping
+from .store import QuarantiningStore, load_mapping, save_held
 from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
@@ -43,7 +42,6 @@ from .drift import stored_instant
 from .entity import has_hot_water
 from .payload import CurrentAction, REASON_BOOST, REASON_LEGIONELLA
 
-_LOGGER = logging.getLogger(__name__)
 BOOST_STORE_VERSION = 1
 BOOST_HOURS = 2
 #: A block is the opposite of a boost: the same two hours, the duty zeroed.
@@ -569,10 +567,9 @@ def _store_payload(held: BoostState) -> dict[str, Any]:
 
 
 async def persist(coord: _BoostCoord) -> None:
-    try:
-        await _store(coord).async_save(_store_payload(held_for(coord)))
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not persist boost state: %s", err)
+    await save_held(
+        coord, "boost state", lambda: _store(coord).async_save(_store_payload(held_for(coord))),
+    )
 
 
 async def restore(coord: Any) -> None:

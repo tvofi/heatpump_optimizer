@@ -57,7 +57,7 @@ from homeassistant.util import dt as dt_util
 from . import duty_legs, pump_mode, running_signal
 from .const import DOMAIN
 from .drift import stored_instant, utc_elapsed_seconds
-from .store import QuarantiningStore
+from .store import QuarantiningStore, save_held
 from .thermal_model import planned_draw_runs
 
 _LOGGER = logging.getLogger(__name__)
@@ -509,12 +509,10 @@ async def _load(rec: _Record) -> bool:
 
 
 async def _persist(rec: _Record) -> None:
-    try:
-        await rec.store.async_save(rec.learner.stored_record())
-    except Exception as err:  # noqa: BLE001 - still dirty: saved on the next pass
-        _LOGGER.debug("Could not persist the duty-switch record: %s", err)
-        return
-    rec.dirty = False
+    if await save_held(
+        rec.store, "the duty-switch record", lambda: rec.store.async_save(rec.learner.stored_record()),
+    ):
+        rec.dirty = False  # a failed save stays dirty: saved on the next pass
 
 
 def starts_attributes(coord: Any) -> dict[str, float]:

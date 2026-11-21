@@ -66,6 +66,7 @@ self-tests ran.
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from functools import reduce
@@ -89,6 +90,8 @@ from .coordinator import (
     plan_stale_limit_minutes,
 )
 from .payload import LearningView
+
+_LOGGER = logging.getLogger(__name__)
 
 #: Keys whose values never leave the instance, at any depth: the Tibber
 #: credential, the location (``LOCATION_KEYS``), and the entry name, which is
@@ -337,6 +340,7 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     try:
         state: CoordinatorDiagnostics | None = coord.diagnostics_state()
     except Exception:  # noqa: BLE001 -- diagnostics never breaks
+        _LOGGER.debug("Diagnostics state unavailable", exc_info=True)
         state = None
     snap: dict[str, Any] = {
         "mode": getattr(coord, "mode", None),
@@ -367,6 +371,7 @@ def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
     try:
         return view(coord)
     except Exception:  # noqa: BLE001 -- diagnostics never breaks
+        _LOGGER.debug("Diagnostics view %s unavailable", getattr(view, "__qualname__", view), exc_info=True)
         return "unavailable"
 
 

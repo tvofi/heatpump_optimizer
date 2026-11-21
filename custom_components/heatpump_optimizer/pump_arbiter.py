@@ -202,7 +202,7 @@ from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
-from .store import QuarantiningStore, load_mapping
+from .store import QuarantiningStore, load_mapping, save_held
 from .thermal_model import (
     configured_flow_heat_c,
     dhw_start_below_c,
@@ -2190,10 +2190,7 @@ async def _persist(coord: Any) -> None:
         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
         "dropped": dict(held.dropped),
     }
-    try:
-        await _store(coord).async_save(payload)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not persist the pump duty record: %s", err)
+    await save_held(coord, "the pump duty record", lambda: _store(coord).async_save(payload))
 
 
 async def _load(coord: Any) -> None:

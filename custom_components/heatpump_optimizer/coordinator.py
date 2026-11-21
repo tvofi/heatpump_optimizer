@@ -90,7 +90,7 @@ from .payload import (
     SpacePlan,
     ThermalView,
 )
-from .store import LedgerStore, QuarantiningStore, admitted, load_mapping
+from .store import LedgerStore, QuarantiningStore, admitted, load_mapping, save_held
 from .entry_config import EntryConfig, factory_settings, undo_point, undone_settings
 from homeassistant.util import dt as dt_util
 
@@ -2658,6 +2658,14 @@ class CoordinatorContext:
         new = replace(self._current_state if state is None else state, **fields)
         coord._ctx = replace(self, _current_state=new)
 
+    def publish_config(self, coord: Any, /, **fields: Any) -> None:
+        """Publish ``fields`` on ``coord`` in a new optimization config, whole (ADR-003).
+
+        D7-s2-03: the target and comfort-weight writers edited the shared
+        config in place, so every context published since setup saw the edit.
+        """
+        coord._ctx = replace(self, _opt_config=replace(self._opt_config, **fields))
+
 
 @dataclass(frozen=True)
 class CoordinatorDiagnostics:
@@ -2697,6 +2705,7 @@ class CoordinatorDiagnostics:
             try:
                 summaries[name.lstrip("_")] = summary()
             except Exception:  # noqa: BLE001 -- diagnostics never breaks
+                _LOGGER.debug("%s summary unavailable", name, exc_info=True)
                 summaries[name.lstrip("_")] = "summary unavailable"
         return cls(
             tibber_outage_cycles=getattr(coord, "_tibber_outage_cycles", None),
@@ -3478,6 +3487,8 @@ def _tail_freeze(coord: Any) -> str | None:
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     """Coordinator for Heat Pump Cost Optimizer."""
 
+    config_entry: HeatPumpOptimizerConfigEntry  # the typed entry (D10-s3-02)
+
     _config = _hub("_config")
     _thermal_params = _hub("_thermal_params")
     _current_state = _hub("_current_state")
@@ -4238,7 +4249,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "violations": comfort_band.describe(found)
                 },
             )
-        ctx._opt_config.target_temp = temperature
+        ctx.publish_config(self, target_temp=temperature)
         self.hass.config_entries.async_update_entry(
             self.entry,
             options={**self.entry.options, CONF_TARGET_TEMP: temperature},
@@ -4753,14 +4764,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_save_thermal_learning(self) -> None:
         """Persist the learned buffer and building parameters."""
-        try:
+        async def save() -> None:
             # D1-s2-52: wait before the payload; one built in flight is stale.
             await self._thermal_learning_store.async_wait_for_read()
             await self._thermal_learning_store.async_save(
                 self._thermal_learning_payload()
             )
-        except Exception as err:
-            _LOGGER.debug("Could not persist learned thermal parameters: %s", err)
+        await save_held(self._thermal_learning_store, "learned thermal parameters", save)
 
     def _dhw_confidence_band(
         self, dhw_temp: list[float | None], dt_hours: float
@@ -6116,7 +6126,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 minutes=ctx._config.optimization_interval
             ))
 
-            return await _with_sensor_advisor(self, self._build_data_dict())
+            payload = await _with_sensor_advisor(self, self._build_data_dict())
+            log_held(self, _UPDATE_FAILED, False)
+            return payload
         except (UpdateFailed, ConfigEntryAuthFailed):
             # #216 (D10-09): the raiser — the Tibber outage latch — already
             # logged this failure once, at the severity its state machine
@@ -6125,10 +6137,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # day-long outage printed the same ERROR on every cycle.
             raise
         except Exception as err:
-            _LOGGER.error(
-                "Error updating Heat Pump Optimizer: %s", err, exc_info=True
-            )
-            _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
+            _fail_update_held(self, err)
         finally:
             self._refresh_task = None
     async def _async_first_refresh_light(self) -> Payload:
@@ -6164,7 +6173,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "First refresh completed without a solve; the real solve "
                 "follows in the background"
             )
-            return self._build_data_dict()
+            payload = self._build_data_dict()
+            log_held(self, _UPDATE_FAILED, False)
+            return payload
         except (UpdateFailed, ConfigEntryAuthFailed):
             # #216, same as _async_update_data's wrapper: this path also
             # runs _fetch_tibber_prices, whose latch has already logged the
@@ -6172,10 +6183,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # one ERROR, not two.
             raise
         except Exception as err:
-            _LOGGER.error(
-                "Error updating Heat Pump Optimizer: %s", err, exc_info=True
-            )
-            _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
+            _fail_update_held(self, err)
 
     def _solve_hubs(
         self, n_steps: int, *, banded: bool, band: draw_range.SolveBand | None = None
@@ -7768,7 +7776,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await _best_effort_cycle_step(
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
-        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
+        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), lambda: _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -8268,11 +8276,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_save_price_model(self) -> None:
         store = self._price_model_store  # bound once: read twice below (D1-s2-52)
-        try:
+        async def save() -> None:
             await store.async_wait_for_read()
             await store.async_save(self._price_learner.store_payload())
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist price model: %s", err)
+        await save_held(store, "price model", save)
 
     async def _async_load_ledger(self) -> None:
         """Restore the monthly ledger (T1), then the start counter on every exit.
@@ -8323,7 +8330,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._spawn(self._async_save_ledger())
 
     async def _async_save_ledger(self) -> None:
-        try:
+        async def save() -> None:
             await self._ledger_store.async_wait_for_read()  # D1-s2-52
             await self._ledger_store.async_save(
                 {
@@ -8343,8 +8350,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     ),
                 }
             )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist ledger: %s", err)
+        await save_held(self._ledger_store, "ledger", save)
 
     async def _async_load_accuracy(self) -> None:
         ctx = getattr(self, "_ctx", self)
@@ -8366,7 +8372,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         self._apply_comfort_weight()
     async def _async_save_accuracy(self) -> None:
-        try:
+        async def save() -> None:
             await self._accuracy_store.async_wait_for_read()  # D1-s2-52
             await self._accuracy_store.async_save_if_changed(
                 {
@@ -8381,8 +8387,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "mode": self._mode,
                 },
             )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist accuracy history: %s", err)
+        await save_held(self._accuracy_store, "accuracy history", save)
 
     async def _async_load_energy_totals(self) -> None:
         stored = await load_mapping(self._energy_store, "energy totals")
@@ -8405,7 +8410,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
 
     async def _async_save_energy_totals(self) -> None:
-        try:
+        async def save() -> None:
             await self._energy_store.async_wait_for_read()  # D1-s2-52
             await self._energy_store.async_save_if_changed(
                 {
@@ -8423,8 +8428,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "last_tick": dt_util.now().isoformat(),
                 },
             )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist energy totals: %s", err)
+        await save_held(self._energy_store, "energy totals", save)
 
     def month_channel_totals(self, line: str) -> tuple[float, float] | None:
         """This month's (kWh, cost) for one accumulator channel.
@@ -8473,15 +8477,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._manual_override = override
 
     async def _async_save_manual_plan(self) -> None:
-        try:
+        async def save() -> None:
             payload = (
                 self._manual_override.to_dict()
                 if self._manual_override is not None
                 else {}
             )
             await self._manual_plan_store.async_save(payload)
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist manual plan: %s", err)
+        await save_held(self._manual_plan_store, "manual plan", save)
 
     def _horizon_step_starts(self, solve_now: datetime, n_steps: int) -> list[datetime]:
         """The instant each solved step begins, matching the optimizer's own."""
@@ -9749,10 +9752,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._snapshot_ring = SnapshotRing.from_dict(stored)
 
     async def _async_save_snapshots(self) -> None:
-        try:
-            await self._snapshot_store.async_save(self._snapshot_ring.as_dict())
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist learner snapshots: %s", err)
+        store = self._snapshot_store
+        await save_held(store, "learner snapshots", lambda: store.async_save(self._snapshot_ring.as_dict()))
 
     def _baseline_house_load(self, n_steps: int) -> np.ndarray:
         """Whole-house load excluding the heat pump, per step, in kW."""
@@ -9838,7 +9839,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _expire_away_override(self, now: datetime) -> tuple[bool, datetime | None]:
         """The override as of ``now``, written back when it lapsed; no await splits it."""
-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+        parsed = away_mode.parse_return_time(self._away_state.override_return_iso)
         active, ret = away_mode.expire_override(self._away_state.override_active, parsed, now)
         if active != self._away_state.override_active or ret != parsed:
             self._away_state = replace(self._away_state, override_active=active,
@@ -9889,9 +9890,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         on = active if active is not None else self._away_state.override_active
         iso = None if active is False else self._away_state.override_return_iso
         if active is not False and return_time is not away_mode.OMIT:
-            parsed = away_mode._parse_return_time(return_time)
+            parsed = away_mode.parse_return_time(return_time)
             iso = parsed.isoformat() if parsed else None
-        on, ret = away_mode.expire_override(on, away_mode._parse_return_time(iso), dt_util.now())
+        on, ret = away_mode.expire_override(on, away_mode.parse_return_time(iso), dt_util.now())
         self._away_state = replace(self._away_state, override_active=on,
                                    override_return_iso=ret.isoformat() if ret else None)
         await away_mode.persist_override(self, self._away_state)
@@ -10061,6 +10062,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                         pending["when"], sample.outdoor_temp, self._thermal_model
                     )
                 except Exception:  # noqa: BLE001 - tag is best-effort
+                    _LOGGER.debug("COP residual tag skipped", exc_info=True)
                     sample.cop_residual = None
                 # D7-03/D7-05: skip the accuracy sample when ``indoor_frozen``
                 # above is set — open window, external heat, pump fault, or
@@ -10621,11 +10623,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         try:
             state = replace(ctx._current_state)
         except Exception:  # noqa: BLE001 - diagnosis is best-effort evidence
+            _LOGGER.debug("Diagnosis inputs not captured", exc_info=True)
             return None
         now = dt_util.now()
         try:
             planned_wind, _ = self._current_weather()
         except Exception:  # noqa: BLE001 - wind is optional evidence
+            _LOGGER.debug("Diagnosis wind not captured; recorded as 0", exc_info=True)
             planned_wind = 0.0
         return {
             "state": state,
@@ -10918,8 +10922,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return self._comfort_learner.effective_weight
 
     def _apply_comfort_weight(self) -> None:
-        """Push the comfort weight into the configuration when the learner moves."""
-        getattr(self, "_ctx", self)._opt_config.comfort_weight = self._comfort_weight()
+        """Publish the comfort weight in a new configuration when the learner moves."""
+        CoordinatorContext.publish_config(_ctx_of(self), self, comfort_weight=self._comfort_weight())
     def record_setpoint_override(self, requested: float) -> None:
         """Note that the user overrode the plan's setpoint.
 
@@ -11369,6 +11373,21 @@ def _raise_auth_failed(key: str, message: str, **placeholders: str) -> NoReturn:
         translation_key=key,
         translation_placeholders=placeholders,
     )
+
+
+#: The latch key of an unexpected exception in the update cycle (D1-s3-06).
+_UPDATE_FAILED = "update_failed"
+
+
+def _fail_update_held(coord: Any, err: Exception) -> NoReturn:
+    """Fail the update on an unexpected ``err``, logged once per outage (D1-s3-06).
+
+    Both update paths logged ERROR with a traceback on every refresh of a
+    persisting failure, beside #216's latched UpdateFailed arm; now only when
+    it starts or its text changes (``log_held``), each path's success clears it.
+    """
+    log_held(coord, _UPDATE_FAILED, True, "Error updating Heat Pump Optimizer: %s", err, exc_info=err)
+    _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
 
 
 def _raise_update_failed(

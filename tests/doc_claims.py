@@ -1539,6 +1539,27 @@ def bare_entry_annotations(trees: dict[str, ast.Module] | None = None) -> list[s
     return hits
 
 
+def untyped_coordinators(trees: dict[str, ast.Module] | None = None) -> tuple[list[str], list[str]]:
+    """Each DataUpdateCoordinator subclass, and those whose body leaves ``config_entry`` untyped.
+
+    D10-s3-02: the strict-typing rule asks a coordinator that gets the entry to
+    annotate ``config_entry`` with the typed alias; the parameter census above
+    reads no class attribute the base class declares, so it missed this one.
+    """
+    seen: list[str] = []
+    hits: list[str] = []
+    for name, tree in (_PKG_TREES if trees is None else trees).items():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef) or not any(
+                    "DataUpdateCoordinator" in ast.unparse(b) for b in node.bases):
+                continue
+            seen.append(f"{name}:{node.lineno} {node.name}")
+            if not any(isinstance(st, ast.AnnAssign) and ast.unparse(st.target) == "config_entry"
+                       and "HeatPumpOptimizerConfigEntry" in ast.unparse(st.annotation)
+                       for st in node.body):
+                hits.append(seen[-1])
+    return seen, hits
+
 _EXC_FAMILY = {
     "HomeAssistantError", "ServiceValidationError", "IntegrationError",
     "ConfigEntryError", "ConfigEntryNotReady", "ConfigEntryAuthFailed",
@@ -1665,6 +1686,16 @@ _TYPING_CLEAN = """
 def ok(entry: HeatPumpOptimizerConfigEntry, n: int, /, *a: str, k: ConfigEntryX = None) -> HeatPumpOptimizerConfigEntry: ...
 x: "HeatPumpOptimizerConfigEntry | None" = None
 """
+_COORD_TYPING = """
+class Bare(DataUpdateCoordinator[Payload]):
+    config_entry: ConfigEntry
+class Missing(update_coordinator.DataUpdateCoordinator):
+    other: HeatPumpOptimizerConfigEntry
+class Typed(DataUpdateCoordinator[Payload]):
+    config_entry: HeatPumpOptimizerConfigEntry
+class NotACoordinator:
+    pass
+"""
 _RAISE_BAD = """
 def _raise_helper(key, message, cause=None, **ph):
     raise UpdateFailed(message, translation_domain=DOMAIN, translation_key=key) from cause
@@ -1727,6 +1758,13 @@ def check_census_self_test() -> None:
     )
     clean = bare_entry_annotations(_fixture(_TYPING_CLEAN))
     R.check("the typing census passes the alias and look-alike names (null control)", clean == [], repr(clean))
+    seen, untyped = untyped_coordinators(_fixture(_COORD_TYPING))
+    R.check(
+        "the coordinator census finds each coordinator subclass and refuses a bare or missing "
+        "config_entry; the typed one and a non-coordinator class pass (null controls)",
+        (seen, untyped) == (["m.py:2 Bare", "m.py:4 Missing", "m.py:6 Typed"], ["m.py:2 Bare", "m.py:4 Missing"]),
+        f"got {seen} {untyped}",
+    )
     total, missing, keys = exception_raise_census(_fixture(_RAISE_BAD))
     R.check(
         "the exception census counts every site, refuses each untranslated one, and reads each key",
@@ -1755,6 +1793,13 @@ def check_quality_scale() -> None:
         "qs_entry_param_bare in quality_scale.yaml equals the annotation census",
         claimed is not None and int(claimed.group(1)) == len(bare),
         f"claimed {claimed.group(1) if claimed else None}, census {len(bare)}: {bare}",
+    )
+    seen, untyped = untyped_coordinators()
+    R.check(
+        "every DataUpdateCoordinator subclass annotates config_entry with the typed entry "
+        "(D10-s3-02), over a census that found at least one",
+        bool(seen) and not untyped,
+        f"seen {seen}, untyped {untyped}",
     )
     # The census itself is held to exact results by check_census_self_test.
 

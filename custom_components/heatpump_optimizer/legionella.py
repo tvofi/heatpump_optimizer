@@ -21,7 +21,7 @@ from typing import Any, Callable
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
-from .store import QuarantiningStore
+from .store import QuarantiningStore, save_held
 from homeassistant.util import dt as dt_util
 
 from .accuracy import utc_elapsed_seconds
@@ -257,10 +257,7 @@ class LegionellaGuard:
                 payload["last_attempt_peak"] = round(
                     float(self.attempt_peak), 2
                 )
-        try:
-            await self.store.async_save(payload)
-        except Exception as err:
-            _LOGGER.debug("Could not persist DHW legionella timestamp: %s", err)
+        await save_held(self.store, "DHW legionella timestamp", lambda: self.store.async_save(payload))
 
     async def async_track(self, dhw_temp: float) -> None:
         """Reset the anti-legionella timer whenever the tank actually gets hot.

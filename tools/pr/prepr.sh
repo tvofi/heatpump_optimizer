@@ -3352,7 +3352,7 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   st $? 0 "6d predicts ADDED UNPINNED for a guard the diff adds with no pin"
   grep -q '^rc=0$' <<<"$got"
   st $? 0 "and an unpinned site warns, never refuses: mutation-autofix may pin it after the push"
-  got=$(predict_at pstale); grep -q 'PREDICT ledger .*STALE PIN custom_components/heatpump_optimizer/away.py:_parse_return_time' <<<"$got"
+  got=$(predict_at pstale); grep -q 'PREDICT ledger .*STALE PIN custom_components/heatpump_optimizer/away.py:_*parse_return_time' <<<"$got"
   st $? 0 "6d predicts STALE PIN for a pinned line the diff edits, and refuses on it (rc=1)"
   grep -q '^rc=1$' <<<"$got"
   st $? 0 "a stale pin refuses, unlike an unpinned site: mutation-autofix never drops a pin"

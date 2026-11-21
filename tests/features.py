@@ -2669,9 +2669,9 @@ if _r9f10b_clock_default:
     R.check(
         "a stored instant typed without an offset loads aware through the stub's zone "
         "(the away picker string, D1-s3-01)",
-        away_mode._parse_return_time("2026-03-04 12:30:00")
+        away_mode.parse_return_time("2026-03-04 12:30:00")
         == datetime(2026, 3, 4, 12, 30, tzinfo=timezone.utc),
-        repr(away_mode._parse_return_time("2026-03-04 12:30:00")),
+        repr(away_mode.parse_return_time("2026-03-04 12:30:00")),
     )
     R.check(
         "as_local is still the identity under the UTC default (every golden fixture "
@@ -50901,7 +50901,7 @@ R.check(
 
 # A SPACE-SEPARATED local time is what the frontend's picker posts, and it is
 # not an ISO instant: storing it verbatim would leave the store holding a
-# string `_parse_return_time` has to re-interpret on every read, and the
+# string `parse_return_time` has to re-interpret on every read, and the
 # expiry sweep three lines below would compare against None.
 _t1_away_str = _t1_coord()
 _t1_away_target = (dt_util.now() + timedelta(hours=3)).replace(microsecond=0)
@@ -50913,9 +50913,9 @@ R.check(
     _t1_away_str._away_state.override_active is True
     and _t1_away_stored is not None
     and _t1_away_stored != _t1_away_posted
-    and away_mode._parse_return_time(_t1_away_stored) is not None,
+    and away_mode.parse_return_time(_t1_away_stored) is not None,
     f"posted={_t1_away_posted!r} stored={_t1_away_stored!r} -- the stored form "
-    "must round-trip through _parse_return_time, which the posted one only does "
+    "must round-trip through parse_return_time, which the posted one only does "
     "by accident of the parser's tolerance",
 )
 
@@ -58405,7 +58405,7 @@ R.check(
 )
 
 
-# -- away's numbers (const.finite_float) and _parse_return_time ------------------
+# -- away's numbers (const.finite_float) and parse_return_time ------------------
 _g8_nums = {
     "None": _t6_as_float(None, 7.0),
     "int": _t6_as_float(3, 7.0),
@@ -58425,12 +58425,12 @@ R.check(
     "set the away target to 1 °C",
 )
 _g8_rt = {
-    "iso": _g8_away._parse_return_time("2026-07-12T18:00:00+00:00"),
-    "unknown": _g8_away._parse_return_time("unknown"),
-    "unavailable": _g8_away._parse_return_time("unavailable"),
-    "empty": _g8_away._parse_return_time(""),
-    "None": _g8_away._parse_return_time(None),
-    "rubbish": _g8_away._parse_return_time("next tuesday"),
+    "iso": _g8_away.parse_return_time("2026-07-12T18:00:00+00:00"),
+    "unknown": _g8_away.parse_return_time("unknown"),
+    "unavailable": _g8_away.parse_return_time("unavailable"),
+    "empty": _g8_away.parse_return_time(""),
+    "None": _g8_away.parse_return_time(None),
+    "rubbish": _g8_away.parse_return_time("next tuesday"),
 }
 R.check(
     "a return time parses, or reads as absent -- never as a raise",
@@ -66889,7 +66889,7 @@ _SI_STHLM = _SiZone("Europe/Stockholm")
 _si_zone0 = dt_util.DEFAULT_TIME_ZONE
 dt_util.DEFAULT_TIME_ZONE = _SI_STHLM
 try:
-    _si_ret = away_mode._parse_return_time("2026-10-05T08:00")
+    _si_ret = away_mode.parse_return_time("2026-10-05T08:00")
     _si_until = boost_mod._parse_until(_SI_NAIVE)
     _si_c = _t2_coord()
     _si_key = f"heatpump_optimizer_{_si_c.entry.entry_id}_pump_duty"
@@ -80523,7 +80523,7 @@ class _EcCoord(_PaCoord):
 
     def arm(self, at=None):
         _pa_aio.run(_ec.arm(_ec.state_for(self), self.arbiter_inputs,
-                            _ec_boost_mod.held_for(self), self.opt, self.entry.async_on_unload, at))
+                            _ec_boost_mod.held_for(self), lambda: self.opt, self.entry.async_on_unload, at))
 
     def room(self, value):
         ev = _PaNS(data={"new_state": FakeState(str(value), unit="°C")})

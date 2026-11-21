@@ -50,7 +50,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, MODE_OFF
 from .log_latch import log_held
-from .store import QuarantiningStore, load_mapping
+from .store import QuarantiningStore, load_mapping, save_held
 
 if TYPE_CHECKING:
     from .coordinator import HeatPumpOptimizerConfigEntry
@@ -147,10 +147,9 @@ async def _save(held: _Held) -> None:
     data: dict[str, Any] = {"armed": dict(held.armed)}
     if held.consumers:  # a neutral consumer's record keeps #3299's one key (I4)
         data["state"] = held.consumers
-    try:
-        await held.store.async_save(data)
-    except Exception as err:  # noqa: BLE001 - a store failure never blocks a write
-        _LOGGER.debug("Could not save the off-restore store: %s", err)
+    await save_held(
+        held.store, "the off-restore store", lambda: held.store.async_save(data),
+    )  # a store failure never blocks a write
 
 
 async def async_arm(

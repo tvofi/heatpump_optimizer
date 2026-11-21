@@ -30,7 +30,7 @@ import hashlib
 import json
 import logging
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from types import MappingProxyType
 from typing import Any, NamedTuple, TypeVar, cast
@@ -55,6 +55,7 @@ from .price_model import (
     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
 )
 from .issues import create_issue
+from .log_latch import log_held
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -716,6 +717,29 @@ async def load_mapping(store: Any, what: str) -> dict[str, Any] | None:
         return None
     return raw if isinstance(raw, dict) else None
 
+
+
+async def save_held(owner: Any, what: str, save: Callable[[], Awaitable[object]]) -> bool:
+    """Run ``save``; whether it landed. A failure is held per ``(owner, what)``.
+
+    D1-s3-05: every persist handler logged its failure at DEBUG, so a save that
+    failed on every pass, or a payload builder that raised, stopped the store
+    persisting with nothing above Home Assistant's default level. ``save``
+    builds its payload inside the call, so a builder bug is held with the
+    transport failures: an ERROR with its traceback when the outage starts,
+    DEBUG while it holds, ``Resolved`` on the first save that lands
+    (``log_held``). ``owner`` outlives the call, as ``log_held`` requires: the
+    kept store, or the coordinator where a store is built per call; a record
+    dataclass is unhashable and cannot key the latch.
+    """
+    key = "persist_" + what.replace(" ", "_")
+    try:
+        await save()
+    except Exception as err:  # noqa: BLE001 - a lost save never breaks its caller
+        log_held(owner, key, True, "Could not persist %s: %s", what, err, exc_info=err)
+        return False
+    log_held(owner, key, False)
+    return True
 
 class QuarantiningStore(Store[_StorePayload]):
     """A ``Store`` whose ``async_load`` scrubs poisoned numeric leaves.

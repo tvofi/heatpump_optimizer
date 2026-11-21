@@ -438,6 +438,9 @@
     "manual_plan_invalid_expires_at": {
       "message": "Invalid expires_at \"{expires_at}\": not an ISO 8601 datetime"
     },
+    "away_invalid_return_time": {
+      "message": "Invalid return_time \"{return_time}\": not a date and time"
+    },
     "manual_plan_invalid_slots": {
       "message": "{error}"
     },

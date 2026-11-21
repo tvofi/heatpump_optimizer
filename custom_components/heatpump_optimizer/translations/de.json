@@ -438,6 +438,9 @@
     "manual_plan_invalid_expires_at": {
       "message": "Ungültiger Wert für expires_at \"{expires_at}\": kein ISO-8601-Datum mit Uhrzeit"
     },
+    "away_invalid_return_time": {
+      "message": "Ungültiger Wert für return_time \"{return_time}\": kein Datum mit Uhrzeit"
+    },
     "manual_plan_invalid_slots": {
       "message": "{error}"
     },

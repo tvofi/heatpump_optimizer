@@ -20,7 +20,6 @@ a margin before the stated return, and the estimate itself is rounded up.
 """
 from __future__ import annotations
 
-import logging
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
@@ -35,7 +34,7 @@ from .drift import stored_instant
 from .entry_config import EntryConfig
 from .const import finite_float
 from .payload import AwayView
-from .store import QuarantiningStore, load_mapping
+from .store import QuarantiningStore, load_mapping, save_held
 
 from .const import (
     CONF_AWAY_DHW_MIN_TEMP,
@@ -50,7 +49,6 @@ from .const import (
     ECONOMY_ABSOLUTE_FLOOR,
 )
 
-_LOGGER = logging.getLogger(__name__)
 AWAY_STORE_VERSION = 1
 OMIT = object()
 
@@ -319,7 +317,7 @@ def migrate_helper_override(
         active = interpret_presence(
             presence_raw, presence_entity, presence_attributes
         ) is True
-    parsed = _parse_return_time(return_raw)
+    parsed = parse_return_time(return_raw)
     return {
         "active": active,
         "return_time": parsed.isoformat() if parsed else None,
@@ -420,7 +418,7 @@ def _override_payload(state: AwayState) -> dict[str, Any]:
 
 def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> AwayState:
     """``state`` with the stored override in it; ``state`` itself is not written."""
-    parsed = _parse_return_time(payload.get("return_time"))
+    parsed = parse_return_time(payload.get("return_time"))
     return replace(state, override_active=bool(payload.get("active")),
                    override_return_iso=parsed.isoformat() if parsed else None,
                    migrated_helpers=bool(payload.get("migrated_helpers")))
@@ -434,10 +432,9 @@ def published_under(state: AwayState, view: Mapping[str, Any]) -> bool:
 
 async def persist_override(coord: _AwayCoord, state: AwayState) -> None:
     """Save ``state`` -- the coordinator's away state, passed in (#1739)."""
-    try:
-        await _away_store(coord).async_save(_override_payload(state))
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not persist away override: %s", err)
+    await save_held(
+        coord, "away override", lambda: _away_store(coord).async_save(_override_payload(state)),
+    )
 
 
 async def restore_override(
@@ -455,7 +452,7 @@ async def restore_override(
     payload = empty_override()
     if raw is not None:
         payload["active"] = bool(raw.get("active"))
-        parsed = _parse_return_time(raw.get("return_time"))
+        parsed = parse_return_time(raw.get("return_time"))
         payload["return_time"] = parsed.isoformat() if parsed else None
         payload["migrated_helpers"] = bool(raw.get("migrated_helpers"))
     if not payload["migrated_helpers"]:
@@ -558,14 +555,14 @@ async def resolve(
     state.target_temperature = config.away_temperature
     state.dhw_min_temperature = config.away_dhw_min_temperature
 
-    return_time = _parse_return_time(return_raw)
+    return_time = parse_return_time(return_raw)
     if return_time is None and presence_attributes:
         # A calendar event carries its own end time, which is a better return
         # estimate than anything the user would type twice.
         for key in ("end_time", "end", "next_event_end"):
             candidate = presence_attributes.get(key)
             if candidate:
-                return_time = _parse_return_time(str(candidate))
+                return_time = parse_return_time(str(candidate))
                 if return_time is not None:
                     break
     if return_time is None:
@@ -575,10 +572,10 @@ async def resolve(
 
 
 def _holiday_span(attrs: Mapping[str, Any], now: datetime) -> tuple[date, date]:
-    start = _parse_return_time(
+    start = parse_return_time(
         str(attrs.get("start_time") or attrs.get("start") or "")
     )
-    end = _parse_return_time(str(attrs.get("end_time") or attrs.get("end") or ""))
+    end = parse_return_time(str(attrs.get("end_time") or attrs.get("end") or ""))
     if start is None:
         start = now
     if end is None:
@@ -619,12 +616,22 @@ def _holiday_days(state: Any, now: datetime) -> frozenset[date]:
     return frozenset(days)
 
 
-def _parse_return_time(raw: str | None) -> datetime | None:
-    if not raw:
+def clears_return_time(raw: Any) -> bool:
+    """Whether ``raw`` is the absent return time: empty, or an unknown state."""
+    return not raw or str(raw).strip().lower() in ("unknown", "unavailable", "")
+
+
+def parse_return_time(raw: str | None) -> datetime | None:
+    """The return instant ``raw`` names; ``None`` when it clears it or does not parse.
+
+    The one parser of a return time (ADR-008): the restore, the helper
+    entities, the coordinator, the datetime entity and the ``set_away``
+    service, which refuses a value that neither clears nor parses
+    (D10-s1-01) rather than storing it as the absent time.
+    """
+    if clears_return_time(raw):
         return None
     value = str(raw).strip()
-    if value.lower() in ("unknown", "unavailable", ""):
-        return None
     # A typed time has no offset (the card's datetime-local, a time typed
     # into the service form): it is the user's wall clock, so it loads in
     # their zone.

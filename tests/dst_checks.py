@@ -2424,7 +2424,7 @@ def _ec_cut_at(arm_at, switch_since, reading_at):
     hass, inp = _ec_world(arm_at - timedelta(minutes=5), switch_since)
     cfg = SimpleNamespace(get_comfort_temp=lambda hour, when=None: 21.0)
     dt_util.freeze(arm_at)
-    asyncio.run(_ec.arm(held, lambda: inp, _EcBoost(), cfg, lambda _f: None, dt_util.now()))
+    asyncio.run(_ec.arm(held, lambda: inp, _EcBoost(), lambda: cfg, lambda _f: None, dt_util.now()))
     dt_util.freeze(reading_at)
     _ec.on_room_event(held, held.wiring, SimpleNamespace(
         data={"new_state": FakeState("22.5", unit="°C")}))

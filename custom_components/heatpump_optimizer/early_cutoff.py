@@ -132,7 +132,10 @@ class CutoffInputs:
 
     inputs: Callable[[], ArbiterInputs]
     boosts: BoostState
-    opt_config: Any
+    #: The live configuration, read at each reading: a comfort-weight or
+    #: target change publishes a new one (ADR-003), and one handed at the arm
+    #: would judge the rest of the cycle on the old target.
+    opt_config: Callable[[], Any]
 
 
 #: Weak-keyed, so a value must not reach its key: ``wiring.inputs`` is the
@@ -150,7 +153,7 @@ async def arm(
     held: CutoffState,
     inputs: Callable[[], ArbiterInputs],
     boosts: BoostState,
-    opt_config: Any,
+    opt_config: Callable[[], Any],
     on_unload: Callable[[Callable[[], None]], Any],
     now: datetime | None = None,
 ) -> None:
@@ -304,7 +307,7 @@ def on_room_event(held: CutoffState, wiring: CutoffInputs, event: Any) -> None:
         return
     if _exempt(inp, wiring.boosts, now) is not None:
         return
-    limit = threshold(inp, wiring.opt_config, now)
+    limit = threshold(inp, wiring.opt_config(), now)
     if room <= limit:
         return
     reason = _cycle_guard(inp, held, now)

@@ -26,7 +26,7 @@ from typing import Any
 import numpy as np
 
 from homeassistant.core import HomeAssistant
-from .store import QuarantiningStore, load_mapping
+from .store import QuarantiningStore, load_mapping, save_held
 from homeassistant.util import dt as dt_util
 
 from .accuracy import utc_elapsed_seconds
@@ -361,15 +361,14 @@ class DhwProfileLearner:
 
     async def async_save_profile(self) -> None:
         """Persist learned DHW profile to Home Assistant storage."""
-        try:
+        async def save() -> None:
             await self.profile_store.async_save(
                 {
                     **self.payload(),
                     "updated_at": dt_util.now().isoformat(),
                 }
             )
-        except Exception as err:
-            _LOGGER.debug("Could not persist DHW profile: %s", err)
+        await save_held(self.profile_store, "DHW profile", save)
 
     async def async_load_draws(self) -> None:
         """Load the per-window draw statistics (#32)."""
@@ -378,11 +377,10 @@ class DhwProfileLearner:
             self.draw_stats = DrawStats.from_dict(stored)
 
     async def async_save_draws(self) -> None:
-        try:
+        async def save() -> None:
             await self.draws_store.async_save(self.draw_stats.as_dict())
             self.draws_dirty = False
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist DHW draw statistics: %s", err)
+        await save_held(self.draws_store, "DHW draw statistics", save)
 
     def pattern_for(self, weekend: bool) -> list[float]:
         """The #18 blended pattern for one day type, volume-preserving.

@@ -197,16 +197,17 @@ rules:
   async-dependency: done
   inject-websession: done
   strict-typing:
-    status: done
+    status: todo
     comment: >-
-      Both halves of the rule hold. The marker file: "you need to add a
-      py.typed file to your library", "There are no exceptions to this rule" —
-      py.typed is shipped (qs_py_typed_files=1). The warning: the custom typed
-      config entry "must be used throughout" — every entry parameter, return
-      and attribute annotation is typed with HeatPumpOptimizerConfigEntry, none
-      bare (qs_entry_param_bare=0; tests/doc_claims.py derives the census from
-      the code and reads this number, #1545). The
-      note this replaces — that the marker-file half "does not apply to a
-      custom integration" — is not in the rule text, so it was not the basis.
-      #1465, #1466 (round 7 D10-01/D10-02). #303 paid the pinned-ruler census.
-      #829.
+      One half of the rule does not hold. The integration's library "must be
+      typed as well, and ship a py.typed file", and hassfest asks the same of
+      every manifest requirement or a types- stub package for it:
+      threadpoolctl ships neither (optimizer.py resolves it by name for that
+      reason), so the row is todo and the manifest carries the tier
+      tests/entities.py derives from the rows (D10-s3-01). What holds: the
+      integration ships py.typed (qs_py_typed_files=1); every entry
+      parameter, return and attribute annotation is typed with
+      HeatPumpOptimizerConfigEntry, none bare (qs_entry_param_bare=0;
+      tests/doc_claims.py derives the census from the code and reads this
+      number, #1545), and so is the coordinator's config_entry (D10-s3-02).
+      #1465, #1466, #303, #829.

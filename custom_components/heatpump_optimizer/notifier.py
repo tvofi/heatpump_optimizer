@@ -27,7 +27,6 @@ holds its clock and writes it through ``issues.set_issue``.
 """
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable, Coroutine
 from datetime import datetime, timedelta
 from typing import Any, NamedTuple
@@ -39,9 +38,7 @@ from .const import CONF_FLOOR_RETURN_TEMP_ENTITY, DOMAIN
 from .payload import InputProblem, Payload
 from .issues import set_issue
 from .wood_fuel import saving_includes_wood
-from .store import QuarantiningStore, load_mapping
-
-_LOGGER = logging.getLogger(__name__)
+from .store import QuarantiningStore, load_mapping, save_held
 
 NOTIFIER_STORE_VERSION = 1
 EVENT_MONTHLY_RECEIPT = f"{DOMAIN}_monthly_receipt"
@@ -284,10 +281,9 @@ class Notifier:
             self._baseline = False
 
     async def _async_save(self) -> None:
-        try:
-            await self._store.async_save({"sent": dict(self._sent)})
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist notifier state: %s", err)
+        await save_held(
+            self._store, "notifier state", lambda: self._store.async_save({"sent": dict(self._sent)}),
+        )
 
     def handle(self, data: Payload) -> None:
         """Fire what is new in ``data`` and forget what has cleared."""

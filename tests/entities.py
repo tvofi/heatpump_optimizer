@@ -10859,7 +10859,7 @@ def _ss_instant(leaf) -> bool:
         _ss_manual._parse_dt(leaf, _SS_NOW)
         return True
     except _ss_manual.ManualPlanError:
-        return _away_mod._parse_return_time(leaf) is not None
+        return _away_mod.parse_return_time(leaf) is not None
 
 
 def _ss_absolute(value) -> bool:
