@@ -1291,8 +1291,8 @@ class MeasuredCop:
         system-identification override, the action ``asked_kw`` is read from):
         an experiment's ask is not the plan's, so drawn over asked is no
         efficiency reading. Where heat is metered the COP is heat over the
-        draw, and the reason is the scale's: it is one scalar on a law of lift
-        alone, learned where the plan runs the compressor, and an experiment
+        draw, and the reason is the scale's. It is one scalar on a law of lift
+        alone, learned where the plan runs the compressor. An experiment
         drives it to its band ends, where an inverter's efficiency departs from
         that law (a part-load point would bias it). Then
         ``COP_REFUSED_DUTY_FLOOR`` when the ask or the draw is under the duty

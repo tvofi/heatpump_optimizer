@@ -97570,192 +97570,12 @@ R.check(
 )
 
 
-# --- R11-SEAM-solver: the start set brackets the all-off and wood-covered
-# optima, the risk premium stays out of every published money figure, and a
-# slot's reason tie is ordered ------------------------------------------------
-import contextlib as _sv_ctx  # noqa: E402
-from unittest import mock as _sv_mock  # noqa: E402
-
-_sv_optmod = sys.modules[type(_rk["optimizer"]).__module__]
-
-# D1-s1-51: a 2:2 reason tie inside one slot. ``max`` over a ``set`` picks by
-# the set's iteration order, which is PYTHONHASHSEED's. For a two-code set that
-# order follows insertion when both codes land in one hash slot, and then a set
-# also returns each spelling's first code, so a fixed pair passes a ``set``
-# revert under some seeds. The pair is therefore chosen under the running seed:
-# the first pair of action codes (synthetic codes after them) whose set order
-# is the same whichever code is inserted first. For it, a ``set`` reads one
-# winner for both spellings of the tie, and the slot's first code differs
-# between them, whatever the hash seed.
-from itertools import combinations as _sv_pairs  # noqa: E402
-
-from heatpump_optimizer.const import HEAT_PUMP_ACTION_STATES as _sv_codes  # noqa: E402
-
-_sv_pair = next(
-    (a, b)
-    for a, b in _sv_pairs(
-        [c for c in _sv_codes if c != "idle"]
-        + [f"reason_{n}" for n in range(1000)], 2)
-    if list({a, b}) == list({b, a})
-)
-_sv_ts = [_G_START + timedelta(minutes=15 * i) for i in range(4)]
-_sv_ties = [
-    plan_slots(_sv_ts, [1.0] * 4, [1.0] * 4, 0.25, reasons=[x, x, y, y])
-    for x, y in (_sv_pair, _sv_pair[::-1])
-]
-R.check(
-    "a plan slot's reason tie reads the slot's first code, whatever the "
-    "hash seed (D1-s1-51)",
-    [s[0].get("reason") for s in _sv_ties] == [_sv_pair[0], _sv_pair[1]],
-    f"{_sv_pair}: {[s[0].get('reason') for s in _sv_ties]}",
-)
-
-# D2-s3-01: the premium lambda*sigma prices the objective only. The reference
-# thermostat's cost does not depend on the plan, so lambda moves it only if
-# the premium is booked as money; the published prices are the input's; the
-# plan's own cost is its draw on the input prices; and every settlement price
-# the solve hands the stored-heat booking is the input's.
-_sv_raw = np.asarray(_rk["prices"], dtype=float)
-_sv_settle_prices = []
-_sv_opt = _rk["optimizer"]
-_sv_real_def, _sv_real_gap = _sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost
-
-
-def _sv_spy_def(base, opt_end, prices, *a, **kw):
-    _sv_settle_prices.append(np.array(prices, dtype=float))
-    return _sv_real_def(base, opt_end, prices, *a, **kw)
-
-
-def _sv_spy_gap(state, weather, targets, prices, *a, **kw):
-    _sv_settle_prices.append(np.array(prices, dtype=float))
-    return _sv_real_gap(state, weather, targets, prices, *a, **kw)
-
-
-_sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost = _sv_spy_def, _sv_spy_gap
-try:
-    _sv_on = _rk_solve(1.0, _rk_sigma)
-finally:
-    del _sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost
-_sv_zero = _rk_solve(0.0, _rk_sigma)
-_sv_n = len(_sv_on.power_schedule)
-_sv_draw = np.asarray(_sv_on.power_schedule, dtype=float) + np.asarray(
-    _sv_on.dhw_power_schedule, dtype=float)
-_sv_opt.optimize(inputs=solve_inputs(
-    initial_state=_rk["state"], prices=_rk["prices"], outdoor_temps=_rk["outdoor"],
-    wind_speeds=_rk["wind"], precipitation=_rk["rain"], solar_radiation=_rk["solar"],
-    start_time=_G_START, price_known=_rk_known, price_sigma=_rk_sigma,
-))  # re-stashes this solve's surplus for the pricing closure below
-_sv_paid = float(_sv_opt._energy_cost_fn(_sv_raw[:_sv_n], 24.0 / _sv_n)(_sv_draw))
-R.check(
-    "lambda=1 books no premium as money: the published prices are the input's, "
-    "the reference's cost is lambda=0's, the plan's cost is its draw on the "
-    "input prices, and every settlement price is the input's (D2-s3-01)",
-    np.array_equal(np.asarray(_sv_on.prices, dtype=float), _sv_raw[:_sv_n])
-    and _sv_on.baseline_cost == _sv_zero.baseline_cost
-    and abs(_sv_on.predicted_cost - _sv_paid) <= 1e-9
-    and len(_sv_settle_prices) > 0
-    and all(np.array_equal(p, _sv_raw[: p.size]) for p in _sv_settle_prices),
-    f"prices premium {np.max(np.asarray(_sv_on.prices) - _sv_raw[:_sv_n]):.4f}, "
-    f"baseline {_sv_on.baseline_cost:.4f} vs {_sv_zero.baseline_cost:.4f}, "
-    f"predicted {_sv_on.predicted_cost:.4f} vs paid {_sv_paid:.4f}, "
-    f"{len(_sv_settle_prices)} settlement prices",
-)
-R.check(
-    "the premium still prices the objective: lambda=1 moves the plan "
-    "(the D2-s3-01 fix's null control)",
-    not np.array_equal(_sv_draw, np.asarray(_sv_zero.power_schedule, dtype=float)
-                       + np.asarray(_sv_zero.dhw_power_schedule, dtype=float)),
-)
-_rk["optimizer"].config.price_risk_lambda = 0.0
-
-# D0-s3-02 and D0-s2-01: every first solve's start set holds the lower bound
-# (the all-off plan, a forced-on pin at its floor), on both solve paths; and a
-# reference the wood tank covers whole leaves the set an energy-anchored start,
-# not four copies of zero.
-_sv_calls = []
-_sv_ms_real = _sv_optmod._multi_start_minimize
-
-
-def _sv_ms_spy(objective, starts, bounds, *a, **kw):
-    _sv_calls.append(([np.array(s, dtype=float) for s in starts],
-                      np.array([b[0] for b in bounds], dtype=float)))
-    return _sv_ms_real(objective, starts, bounds, *a, **kw)
-
-
-_sv_commits = []
-_sv_commit_real = _sv_optmod._commit_runs
-
-
-def _sv_commit_spy(opt, h, scope, relaxed, *a, **kw):
-    _sv_commits.append(([np.array(r, dtype=float) for r in relaxed],
-                        np.array([b[0] for b in scope[0]], dtype=float)))
-    return _sv_commit_real(opt, h, scope, relaxed, *a, **kw)
-
-
-def _sv_starts(dhw, share=None):
-    sc = _mk_golden(hours=24, dhw=dhw)
-    _sv_calls.clear()
-    _sv_commits.clear()
-    patches = [_sv_mock.patch.object(_sv_optmod, "_multi_start_minimize", _sv_ms_spy),
-               _sv_mock.patch.object(_sv_optmod, "_commit_runs", _sv_commit_spy)]
-    if share is not None:
-        patches.append(_sv_mock.patch.object(
-            _sv_optmod, "_wood_covered_share", lambda *a, **k: share))
-    with _sv_ctx.ExitStack() as stack:
-        for p in patches:
-            stack.enter_context(p)
-        sc["optimizer"].optimize(inputs=solve_inputs(
-            initial_state=sc["state"], prices=sc["prices"], outdoor_temps=sc["outdoor"],
-            wind_speeds=sc["wind"], precipitation=sc["rain"],
-            solar_radiation=sc["solar"], start_time=_G_START,
-        ))
-    return list(_sv_calls)
-
-
-_sv_space = _sv_starts(False)
-_sv_space_commits = list(_sv_commits)
-_sv_dhw = _sv_starts(True)
-R.check(
-    "the first multi-start of each solve path starts one run at the lower "
-    "bound, the all-off plan (D0-s3-02)",
-    bool(_sv_space) and bool(_sv_dhw)
-    and all(any(np.array_equal(s, lb) for s in starts)
-            for starts, lb in (_sv_space[0], _sv_dhw[0])),
-    f"{len(_sv_space)} space-only and {len(_sv_dhw)} DHW multi-starts",
-)
-R.check(
-    "the space-only solve commits the all-off plan beside the descent's run, "
-    "so the true objective, not the start-blind descent, ranks it (D0-s3-02)",
-    len(_sv_space_commits) == 1
-    and any(np.array_equal(r, _sv_space_commits[0][1]) for r in _sv_space_commits[0][0]),
-    f"{len(_sv_space_commits)} commit stages",
-)
-R.check(
-    "a space-only solve no wood covers hands the multi-start no duplicate "
-    "start, so the reference-energy seeds are drawn only where a share "
-    "scaled the others (D0-s2-01)",
-    bool(_sv_space)
-    and len({s.tobytes() for s in _sv_space[0][0]}) == len(_sv_space[0][0]),
-    f"{len(_sv_space[0][0]) if _sv_space else 0} starts, "
-    f"{len({s.tobytes() for s in _sv_space[0][0]}) if _sv_space else 0} distinct",
-)
-_sv_covered = _sv_starts(False, share=1.0)
-_sv_live = {s.tobytes() for s in (_sv_covered[0][0] if _sv_covered else [])
-            if np.any(s > 0.0)}
-R.check(
-    "a reference the wood tank covers whole still leaves the space-only start "
-    "set a nonzero energy-anchored start beside the initial guess (D0-s2-01)",
-    len(_sv_live) >= 2,
-    f"{len(_sv_live)} distinct nonzero starts",
-)
-
-
 # --- R10-DRAW-MAP-EVIDENCE part A (design/R10-DRAW-MAP-EVIDENCE at 9aa450f5,
 # approved at design-verdict f10dd418). Each Control pass on a flow set-point
 # is recorded with where its write came from (``pump_arbiter.pass_origin``,
-# the one place that decides it); steady runs of passes become map rows kept
+# the one place that decides it). Steady runs of passes become map rows kept
 # beside the running-draw window and never in it, stored as one string per
-# column; and an experiment's interval is no efficiency reading for the COP
+# column. An experiment's interval is no efficiency reading for the COP
 # learner (``MeasuredCop.judge_floor``). Synthetic fixtures throughout.
 R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")
 import asyncio as _mr_aio  # noqa: E402
@@ -98321,6 +98141,186 @@ R.check(
     "reading draw_off_ask; the same span with none folds one",
     _mr_span_exp[0] == 0 and _mr_span_exp[1][1] == _MR_OFF and _mr_span_plan[0] == 1,
     f"{_mr_span_exp} / {_mr_span_plan}",
+)
+
+
+# --- R11-SEAM-solver: the start set brackets the all-off and wood-covered
+# optima, the risk premium stays out of every published money figure, and a
+# slot's reason tie is ordered ------------------------------------------------
+import contextlib as _sv_ctx  # noqa: E402
+from unittest import mock as _sv_mock  # noqa: E402
+
+_sv_optmod = sys.modules[type(_rk["optimizer"]).__module__]
+
+# D1-s1-51: a 2:2 reason tie inside one slot. ``max`` over a ``set`` picks by
+# the set's iteration order, which is PYTHONHASHSEED's. For a two-code set that
+# order follows insertion when both codes land in one hash slot, and then a set
+# also returns each spelling's first code, so a fixed pair passes a ``set``
+# revert under some seeds. The pair is therefore chosen under the running seed:
+# the first pair of action codes (synthetic codes after them) whose set order
+# is the same whichever code is inserted first. For it, a ``set`` reads one
+# winner for both spellings of the tie, and the slot's first code differs
+# between them, whatever the hash seed.
+from itertools import combinations as _sv_pairs  # noqa: E402
+
+from heatpump_optimizer.const import HEAT_PUMP_ACTION_STATES as _sv_codes  # noqa: E402
+
+_sv_pair = next(
+    (a, b)
+    for a, b in _sv_pairs(
+        [c for c in _sv_codes if c != "idle"]
+        + [f"reason_{n}" for n in range(1000)], 2)
+    if list({a, b}) == list({b, a})
+)
+_sv_ts = [_G_START + timedelta(minutes=15 * i) for i in range(4)]
+_sv_ties = [
+    plan_slots(_sv_ts, [1.0] * 4, [1.0] * 4, 0.25, reasons=[x, x, y, y])
+    for x, y in (_sv_pair, _sv_pair[::-1])
+]
+R.check(
+    "a plan slot's reason tie reads the slot's first code, whatever the "
+    "hash seed (D1-s1-51)",
+    [s[0].get("reason") for s in _sv_ties] == [_sv_pair[0], _sv_pair[1]],
+    f"{_sv_pair}: {[s[0].get('reason') for s in _sv_ties]}",
+)
+
+# D2-s3-01: the premium lambda*sigma prices the objective only. The reference
+# thermostat's cost does not depend on the plan, so lambda moves it only if
+# the premium is booked as money; the published prices are the input's; the
+# plan's own cost is its draw on the input prices; and every settlement price
+# the solve hands the stored-heat booking is the input's.
+_sv_raw = np.asarray(_rk["prices"], dtype=float)
+_sv_settle_prices = []
+_sv_opt = _rk["optimizer"]
+_sv_real_def, _sv_real_gap = _sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost
+
+
+def _sv_spy_def(base, opt_end, prices, *a, **kw):
+    _sv_settle_prices.append(np.array(prices, dtype=float))
+    return _sv_real_def(base, opt_end, prices, *a, **kw)
+
+
+def _sv_spy_gap(state, weather, targets, prices, *a, **kw):
+    _sv_settle_prices.append(np.array(prices, dtype=float))
+    return _sv_real_gap(state, weather, targets, prices, *a, **kw)
+
+
+_sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost = _sv_spy_def, _sv_spy_gap
+try:
+    _sv_on = _rk_solve(1.0, _rk_sigma)
+finally:
+    del _sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost
+_sv_zero = _rk_solve(0.0, _rk_sigma)
+_sv_n = len(_sv_on.power_schedule)
+_sv_draw = np.asarray(_sv_on.power_schedule, dtype=float) + np.asarray(
+    _sv_on.dhw_power_schedule, dtype=float)
+_sv_opt.optimize(inputs=solve_inputs(
+    initial_state=_rk["state"], prices=_rk["prices"], outdoor_temps=_rk["outdoor"],
+    wind_speeds=_rk["wind"], precipitation=_rk["rain"], solar_radiation=_rk["solar"],
+    start_time=_G_START, price_known=_rk_known, price_sigma=_rk_sigma,
+))  # re-stashes this solve's surplus for the pricing closure below
+_sv_paid = float(_sv_opt._energy_cost_fn(_sv_raw[:_sv_n], 24.0 / _sv_n)(_sv_draw))
+R.check(
+    "lambda=1 books no premium as money: the published prices are the input's, "
+    "the reference's cost is lambda=0's, the plan's cost is its draw on the "
+    "input prices, and every settlement price is the input's (D2-s3-01)",
+    np.array_equal(np.asarray(_sv_on.prices, dtype=float), _sv_raw[:_sv_n])
+    and _sv_on.baseline_cost == _sv_zero.baseline_cost
+    and abs(_sv_on.predicted_cost - _sv_paid) <= 1e-9
+    and len(_sv_settle_prices) > 0
+    and all(np.array_equal(p, _sv_raw[: p.size]) for p in _sv_settle_prices),
+    f"prices premium {np.max(np.asarray(_sv_on.prices) - _sv_raw[:_sv_n]):.4f}, "
+    f"baseline {_sv_on.baseline_cost:.4f} vs {_sv_zero.baseline_cost:.4f}, "
+    f"predicted {_sv_on.predicted_cost:.4f} vs paid {_sv_paid:.4f}, "
+    f"{len(_sv_settle_prices)} settlement prices",
+)
+R.check(
+    "the premium still prices the objective: lambda=1 moves the plan "
+    "(the D2-s3-01 fix's null control)",
+    not np.array_equal(_sv_draw, np.asarray(_sv_zero.power_schedule, dtype=float)
+                       + np.asarray(_sv_zero.dhw_power_schedule, dtype=float)),
+)
+_rk["optimizer"].config.price_risk_lambda = 0.0
+
+# D0-s3-02 and D0-s2-01: every first solve's start set holds the lower bound
+# (the all-off plan, a forced-on pin at its floor), on both solve paths; and a
+# reference the wood tank covers whole leaves the set an energy-anchored start,
+# not four copies of zero.
+_sv_calls = []
+_sv_ms_real = _sv_optmod._multi_start_minimize
+
+
+def _sv_ms_spy(objective, starts, bounds, *a, **kw):
+    _sv_calls.append(([np.array(s, dtype=float) for s in starts],
+                      np.array([b[0] for b in bounds], dtype=float)))
+    return _sv_ms_real(objective, starts, bounds, *a, **kw)
+
+
+_sv_commits = []
+_sv_commit_real = _sv_optmod._commit_runs
+
+
+def _sv_commit_spy(opt, h, scope, relaxed, *a, **kw):
+    _sv_commits.append(([np.array(r, dtype=float) for r in relaxed],
+                        np.array([b[0] for b in scope[0]], dtype=float)))
+    return _sv_commit_real(opt, h, scope, relaxed, *a, **kw)
+
+
+def _sv_starts(dhw, share=None):
+    sc = _mk_golden(hours=24, dhw=dhw)
+    _sv_calls.clear()
+    _sv_commits.clear()
+    patches = [_sv_mock.patch.object(_sv_optmod, "_multi_start_minimize", _sv_ms_spy),
+               _sv_mock.patch.object(_sv_optmod, "_commit_runs", _sv_commit_spy)]
+    if share is not None:
+        patches.append(_sv_mock.patch.object(
+            _sv_optmod, "_wood_covered_share", lambda *a, **k: share))
+    with _sv_ctx.ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        sc["optimizer"].optimize(inputs=solve_inputs(
+            initial_state=sc["state"], prices=sc["prices"], outdoor_temps=sc["outdoor"],
+            wind_speeds=sc["wind"], precipitation=sc["rain"],
+            solar_radiation=sc["solar"], start_time=_G_START,
+        ))
+    return list(_sv_calls)
+
+
+_sv_space = _sv_starts(False)
+_sv_space_commits = list(_sv_commits)
+_sv_dhw = _sv_starts(True)
+R.check(
+    "the first multi-start of each solve path starts one run at the lower "
+    "bound, the all-off plan (D0-s3-02)",
+    bool(_sv_space) and bool(_sv_dhw)
+    and all(any(np.array_equal(s, lb) for s in starts)
+            for starts, lb in (_sv_space[0], _sv_dhw[0])),
+    f"{len(_sv_space)} space-only and {len(_sv_dhw)} DHW multi-starts",
+)
+R.check(
+    "the space-only solve commits the all-off plan beside the descent's run, "
+    "so the true objective, not the start-blind descent, ranks it (D0-s3-02)",
+    len(_sv_space_commits) == 1
+    and any(np.array_equal(r, _sv_space_commits[0][1]) for r in _sv_space_commits[0][0]),
+    f"{len(_sv_space_commits)} commit stages",
+)
+R.check(
+    "a space-only solve no wood covers hands the multi-start no duplicate "
+    "start, so the reference-energy seeds are drawn only where a share "
+    "scaled the others (D0-s2-01)",
+    bool(_sv_space)
+    and len({s.tobytes() for s in _sv_space[0][0]}) == len(_sv_space[0][0]),
+    f"{len(_sv_space[0][0]) if _sv_space else 0} starts, "
+    f"{len({s.tobytes() for s in _sv_space[0][0]}) if _sv_space else 0} distinct",
+)
+_sv_covered = _sv_starts(False, share=1.0)
+_sv_live = {s.tobytes() for s in (_sv_covered[0][0] if _sv_covered else [])
+            if np.any(s > 0.0)}
+R.check(
+    "a reference the wood tank covers whole still leaves the space-only start "
+    "set a nonzero energy-anchored start beside the initial guess (D0-s2-01)",
+    len(_sv_live) >= 2,
+    f"{len(_sv_live)} distinct nonzero starts",
 )
 
 
