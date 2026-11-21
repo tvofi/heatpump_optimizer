@@ -599,10 +599,11 @@ def bound_references(trees: list[tuple[Path, ast.Module]]) -> set[tuple[str, str
 def unloaded_package_imports(trees: list[tuple[Path, ast.Module]]) -> list[tuple[str, int, str]]:
     """``(rel, line, bound name)`` per package from-import nothing reads (R11 D7-s1-03).
 
-    A binding ``from .<module> import N [as A]`` is unused when the importing
-    module never loads ``A``, no module imports ``A`` from it (a re-export,
-    read off ``import_bindings``' own symbol bindings) and no string in it
-    names ``A`` (``__all__``, a ``getattr`` name, a patch target). A star
+    A binding ``from .<module> import N [as A]`` is unused when three things
+    hold. The importing module never loads ``A``. No module imports ``A`` from
+    it (a re-export, read off ``import_bindings``' own symbol bindings). No
+    string in it names ``A`` (``__all__``, a ``getattr`` name, a patch
+    target). A star
     import binds no one name, so it is never a row.
     """
     mods = {p.relative_to(PACKAGE_DIR).as_posix()[:-3].replace("/", "."): (p, t)
@@ -857,9 +858,9 @@ def in_function_copies(trees: list[tuple[Path, ast.Module]],
     ``duplicate_clones`` joins FUNCTIONS, so a rule written at two places of
     one function is one member and moved no row (R11 D7-s1-02). This keys the
     window by PLACE: the spans one function holds it at, overlapping spans
-    merged (a statement repeated three times in a row is one place, not two),
-    and only a window no second function holds -- that one is a clone class
-    already, priced by ``duplication_copies``.
+    merged. A statement repeated three times in a row is one place, not two.
+    Only a window no second function holds is read: one that a second holds
+    is a clone class already, priced by ``duplication_copies``.
     """
     owners: dict[str, set[tuple[str, str, int]]] = defaultdict(set)
     spans: dict[tuple[tuple[str, str, int], str], list[tuple[int, int]]] = defaultdict(list)

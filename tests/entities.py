@@ -42455,13 +42455,14 @@ _R10_LATCH_WORD = re.compile(r"(warn|logged|report|latch|announc|_failed|notifie
 
 
 def _r10_unlatched_logs(sources):
-    """N-log-flood seams: each ``_LOGGER`` call at WARNING or above (``.warning``
-    and its ``.warn`` alias, ``.error``, ``.exception``, ``.critical`` and its
-    ``.fatal`` alias, ``.log`` at such a level: R11 D14-s2-03, the barrier read
-    two of the seven) with no latch in an enclosing
-    ``if`` (a latch-named test, or a ``not in`` against a set the function
-    ``.add``s to; the R10 sweep's static rule), per (module, function). A logger
-    under another name is refused by ``_r11_logger_aliases``."""
+    """N-log-flood seams: each ``_LOGGER`` call at WARNING or above with no
+    latch in an enclosing ``if``, per (module, function). WARNING or above is
+    ``.warning`` and its ``.warn`` alias, ``.error``, ``.exception``,
+    ``.critical`` and its ``.fatal`` alias, and ``.log`` at such a level (R11
+    D14-s2-03: the barrier read two of the seven). A latch is a latch-named
+    test, or a ``not in`` against a set the function ``.add``s to (the R10
+    sweep's static rule). A logger under another name is refused by
+    ``_r11_logger_aliases``."""
     found = Counter()
 
     def flood_level(call):
@@ -42511,15 +42512,16 @@ def _r11_logger_aliases(sources, files=None):
     """``(module, line, binding)`` per way a package line can log through
     something the barrier does not read.
 
-    Claim: every logger the package reaches from text written in its shipped
-    tree is either a ``_LOGGER.<level>(...)`` call the barrier reads or is
-    refused here. Not claimed: text the package derives at run time by any
-    operation (``+``, ``join``, a decode, ``base64``, an f-string, ``chr``,
-    a name read off an object), whether in package code, inside text it
-    evaluates or in pickle opcodes; text read from outside the shipped tree
-    (configuration, the store, the network); an object reached by walking a
-    namespace's values with no name or text for it (``vars(m).values()``);
-    and Home Assistant's ``system_log.write`` service. Which string a
+    Claim: every logger the package can reach from text written in its
+    shipped tree is either a ``_LOGGER.<level>(...)`` call that the barrier
+    reads or is refused.
+
+    Residue: text the package derives at run time is outside the claim: any
+    operator, call or formatting (``+``, join, decode, base64, f-string,
+    ``chr``), whether in package code, in the evaluated text or in pickle
+    opcodes. So is text read from outside the shipped tree (config, store,
+    network), a value flow (``vars(m).values()``) and Home Assistant's
+    ``system_log`` service. Which string a
     computation yields is undecidable in general, so no static rule can name
     it; the boundary is the text as written.
 
@@ -42529,11 +42531,12 @@ def _r11_logger_aliases(sources, files=None):
     ``_LOGGER`` or to a ``getLogger``/``getChild`` result; any other
     ``getLogger``/``getChild`` call; ``import logging as`` another name, an
     import of ``_LOGGER``, of a module called ``logging``, or of anything from
-    ``logging`` but its level numbers; the module ``logging`` used other than
-    as ``logging.<level number>`` or ``logging.getLogger(...)``; an attribute
-    named ``logging``, ``logger`` (Home Assistant's coordinator exposes the
-    handed-over ``_LOGGER`` so), ``_LOGGER`` or ``warnings``; the module
-    ``warnings`` (Home Assistant turns on ``logging.captureWarnings``);
+    ``logging`` but its level numbers. Also refused: the module ``logging``
+    used other than as ``logging.<level number>`` or
+    ``logging.getLogger(...)``; an attribute named ``logging``, ``logger``
+    (Home Assistant's coordinator exposes the handed-over ``_LOGGER`` so),
+    ``_LOGGER`` or ``warnings``. Also refused: the module ``warnings`` (Home
+    Assistant turns on ``logging.captureWarnings``);
     ``_LOGGER.<method>(...)`` outside the level calls and ``isEnabledFor``;
     and ``_LOGGER`` itself escaping, as an argument, a return value, an
     element or a bound method.
@@ -42541,13 +42544,13 @@ def _r11_logger_aliases(sources, files=None):
     Refused, by the payload, whatever later runs it: an identifier that names
     a logger (``LOGGER``, ``logger``, ``logging``, ``warnings`` inside it) in
     any other place, a keyword, a parameter, a definition, an import alias or
-    module (``dict(_LOGGER=0)`` turns a name into text); and a str or bytes
-    constant, a docstring included, or a tracked file of the package that is
-    not a module (a ``.pyc`` included), that names one. The constant is read as written and through each
+    module. Each can become text: ``dict(_LOGGER=0)`` turns a name into a
+    string. Also refused: a str or bytes constant, a docstring included, or a
+    tracked file of the package that is not a module (a ``.pyc`` included),
+    that names one. The constant is read as written and through each
     evaluator's own front end: ``ast.parse`` (a coding cookie, escapes,
-    adjacent literals, NFKC identifiers) and
-    ``pickletools.genops`` (a pickle's literal opcodes), each result read
-    again. A route that runs text (``exec``, ``typing.get_type_hints``,
+    adjacent literals, NFKC identifiers) and ``pickletools.genops`` (a
+    pickle's literal opcodes), each result read again. A route that runs text (``exec``, ``typing.get_type_hints``,
     ``pickle.loads``, any other) needs that text, so the evaluator is not
     read."""
     # imported here: a harness execs this function alone (as logflood_shape.py
@@ -42828,10 +42831,12 @@ def _r11_shipped_planted():
         for k in ("a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc", "__pycache__/d.pyc"):
             (pkg / k).parent.mkdir(parents=True, exist_ok=True)
             (pkg / k).write_bytes(b"x")
-        for args in (["init", "-q"], ["add", "-f", *(f"pkg/{k}" for k in (
-                "a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc"))]):
-            subprocess.run(["git", "-C", d, *args], check=True, capture_output=True)
-        return set(_r11_shipped_files(pkg))
+        env = throwaway_git_init(d, "-q")
+        subprocess.run(["git", "-C", d, "add", "-f", *(f"pkg/{k}" for k in (
+            "a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc"))],
+            check=True, capture_output=True, env=env)
+        with throwaway_git_environ():
+            return set(_r11_shipped_files(pkg))
 _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
              "from logging import DEBUG\n"
@@ -42931,9 +42936,9 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "prose.py": "def f():\n    '''Return the plan; a refusal is logged.'''\n",
 })}
 # Every callable of a Logger, called at ERROR on _LOGGER, and every name the
-# logging module exports: what neither check reads is exactly the quiet
-# level calls and the level numbers, so a method or helper added to either
-# surface by a Python release is refused, not missed.
+# logging module exports. What neither check reads is exactly the quiet level
+# calls and the level numbers. So a method or helper added to either surface
+# by a Python release is refused, not missed.
 _r11_unread = {
     f"_LOGGER.{a}" for a in dir(logging.Logger) if callable(getattr(logging.Logger, a))
     for src in [f"_LOGGER = logging.getLogger(__name__)\ndef f():\n    _LOGGER.{a}(logging.ERROR, 'x')\n"]
@@ -42968,16 +42973,16 @@ R.check(
     "``_LOGGER = logging.getLogger(...)``, the one name the barrier reads",
     not _r11_alias_verdict(_r11_aliases_found)
     # null control: the canonical binding and its method calls are not
-    # refused, nor a sibling import, re.compile, a field, text derived at run
-    # time (derived.py), an evaluator handed no text naming a logger
-    # (bbytes.py, door.py, bimp.py, rebound.py) or prose (prose.py);
-    # perturbation: an alias, another getLogger name, a getChild, a logging
+    # refused, nor a sibling import, re.compile or a field. Nor are text
+    # derived at run time (derived.py), an evaluator handed no text naming a
+    # logger (bbytes.py, door.py, bimp.py, rebound.py) or prose (prose.py).
+    # Perturbation: an alias, another getLogger name, a getChild, a logging
     # alias, a bare-callee getLogger, an inline getLogger, a root logging call,
     # a from-import of _LOGGER, a logger handed to a parameter or returned, a
-    # bound method, another module's _LOGGER as an attribute, the warnings
-    # module, an identifier naming a logger, and text naming one whatever runs
-    # it (round 4's builtins spellings, round 5's typing, inspect and pickle)
-    # and in each spelling an evaluator's front end decodes
+    # bound method. Also: another module's _LOGGER as an attribute, the
+    # warnings module and an identifier naming a logger. And text naming one
+    # whatever runs it (round 4's builtins spellings, round 5's typing,
+    # inspect and pickle), in each spelling an evaluator's front end decodes
     and _r11_aliases_planted == {('mention.py', "'_LOGGER warnings'"),
                                  ('mention.py', "'see logging'"), ('alias.py', 'log'),
                                  ('child.py', 'CHILD'), ('child.py', '_LOG'),
