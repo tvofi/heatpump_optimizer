@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import duty_switch, narrative, room_history, room_record
+from . import duty_switch, narrative
 from . import topology
 from .accuracy import COP_ESTIMATED, COP_NOT_MEASURABLE
 from .const import (
@@ -761,29 +761,6 @@ class RoomAverageTempSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         block = _mapping(self._data().get("rooms"))
         return {key: block.get(key) for key in ("valid_count", "configured_count", "per_room", "dropped")}
-
-
-class RoomSeparabilitySensor(HeatPumpOptimizerSensorBase):
-    """How many rooms the room history can model apart (#3616, phase 3a).
-
-    The state counts the rooms whose verdict is ``separable``; the attributes
-    carry each room's verdict and the house line (``room_history.identifiability_report``).
-    Unknown until the history is loaded on the first cycle.
-    """
-
-    _attr_state_class = SensorStateClass.MEASUREMENT
-
-    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
-        super().__init__(coordinator, entry, "room_separability", "room_separability")
-
-    @property
-    def native_value(self) -> int | None:
-        return room_history.separable_count(room_record.report_of(self.coordinator))
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        view = room_record.report_of(self.coordinator) or {}
-        return {"rooms": view.get("rooms"), "house": view.get("house"), "rows": view.get("rows")}
 
 
 class RoomSpreadSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
@@ -3203,3 +3180,6 @@ class ModelRestartAdvisorSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return self._advice()
+
+
+from .sensor_rooms import RoomSeparabilitySensor  # noqa: E402
