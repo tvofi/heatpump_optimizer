@@ -1,0 +1,8 @@
+head 83ea7881e31a4f3b829fc38f6ea55e389328ef54
+merge-tree origin/main: rc 0
+roles diff since merge base: 0 lines
+VERSION/manifest/RELEASE_NOTES/*_budgets.json/claim files/custom_components touched: 0
+outside dev/audit: dev/programme/delivery/3814.md (A), tests/closures.json (inert_reads additions only)
+added paths shared with #3819 #3822 #3823 #3824: 0
+#3809 bytes also landed here at D3/s1/: findings/D3-s1-02.json 6b9fa5e1b8, top6_findings.json ef53df1e0a, top6_non_findings.json e2d9f50adc (#3809 lands them under J/late-D3/top6/)
+prescreen-D3-top6.py:144 writes STATE/"prescreen.log" (unsuffixed; main's file from #3810)
