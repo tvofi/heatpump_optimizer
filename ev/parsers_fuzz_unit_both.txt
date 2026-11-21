@@ -1,0 +1,42 @@
+== wtb e893cd3d1e
+RESULT unit_payloads=914 drives
+RESULT unit_parsers=26 parsers
+RESULT unit_undeclared_raises=121 drives
+RESULT unit_nonfinite_returns=3 drives
+   ('debugger._parsed', 'None', 'UNDECLARED', 'TypeError: the JSON object must be str, bytes or bytearray, not NoneTyp')
+   ('debugger._parsed', "'[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...", 'UNDECLARED', 'RecursionError')
+   ('dhw_schedule._parse_time', 'None', 'UNDECLARED', "AttributeError: 'NoneType' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '0', 'UNDECLARED', "AttributeError: 'int' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '-1', 'UNDECLARED', "AttributeError: 'int' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '1000000000000000000000000000000000000...', 'UNDECLARED', "AttributeError: 'int' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', 'nan', 'UNDECLARED', "AttributeError: 'float' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', 'inf', 'UNDECLARED', "AttributeError: 'float' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', 'True', 'UNDECLARED', "AttributeError: 'bool' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', "b'\\xff\\xfe'", 'UNDECLARED', 'TypeError: cannot use a string pattern on a bytes-like object')
+   ('dhw_schedule._parse_time', '[]', 'UNDECLARED', "AttributeError: 'list' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '{}', 'UNDECLARED', "AttributeError: 'dict' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '[None]', 'UNDECLARED', "AttributeError: 'list' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', "[{'a': 1}]", 'UNDECLARED', "AttributeError: 'list' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', "{'a': [1]}", 'UNDECLARED', "AttributeError: 'dict' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '1.5', 'UNDECLARED', "AttributeError: 'float' object has no attribute 'strip'")
+== wt e9ad13fa58
+RESULT unit_payloads=914 drives
+RESULT unit_parsers=26 parsers
+RESULT unit_undeclared_raises=121 drives
+RESULT unit_nonfinite_returns=3 drives
+   ('debugger._parsed', 'None', 'UNDECLARED', 'TypeError: the JSON object must be str, bytes or bytearray, not NoneTyp')
+   ('debugger._parsed', "'[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[...", 'UNDECLARED', 'RecursionError')
+   ('dhw_schedule._parse_time', 'None', 'UNDECLARED', "AttributeError: 'NoneType' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '0', 'UNDECLARED', "AttributeError: 'int' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '-1', 'UNDECLARED', "AttributeError: 'int' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '1000000000000000000000000000000000000...', 'UNDECLARED', "AttributeError: 'int' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', 'nan', 'UNDECLARED', "AttributeError: 'float' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', 'inf', 'UNDECLARED', "AttributeError: 'float' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', 'True', 'UNDECLARED', "AttributeError: 'bool' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', "b'\\xff\\xfe'", 'UNDECLARED', 'TypeError: cannot use a string pattern on a bytes-like object')
+   ('dhw_schedule._parse_time', '[]', 'UNDECLARED', "AttributeError: 'list' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '{}', 'UNDECLARED', "AttributeError: 'dict' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '[None]', 'UNDECLARED', "AttributeError: 'list' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', "[{'a': 1}]", 'UNDECLARED', "AttributeError: 'list' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', "{'a': [1]}", 'UNDECLARED', "AttributeError: 'dict' object has no attribute 'strip'")
+   ('dhw_schedule._parse_time', '1.5', 'UNDECLARED', "AttributeError: 'float' object has no attribute 'strip'")

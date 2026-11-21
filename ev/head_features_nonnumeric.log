@@ -1,0 +1,9 @@
+
+=== features block ===
+  ok   parse_bool reads no non-finite number as a flag (D1-s3-01)
+  ok   and the codes either side of it still read (null control)
+  ok   a slot holding a dict or a list reads as unset, not a raise (D1-s2-05)
+  ok   every plausible window refuses a reading one degree past either end (D1-s2-51)
+  ok   and accepts its own midpoint (null control)
+
+ALL 5 FEATURES BLOCK PASSED

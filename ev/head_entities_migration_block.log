@@ -1,0 +1,15 @@
+
+=== Entities and platforms ===
+
+-- Config entry migration
+  ok   the current version is a no-op that reports success
+  ok   an old entry is stamped forward without touching its data
+  ok   a healthy old entry migrates with no repair warning (null control)
+  ok   an old entry's non-numbers under numeric options are repaired, with one warning naming them
+  ok   and the repair moves no parsed field (refused-number keys are left alone)
+  ok   an optimization interval outside (0, a day] parses as the default
+  ok   and one inside it, both ends' neighbours included, is read as stored (null control)
+  ok   every option whose parse defaults text it cannot read is repaired by the migration
+  ok   and a stored number under each is left alone (null control)
+
+ALL 9 MIGRATION BLOCK PASSED
