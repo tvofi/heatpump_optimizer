@@ -1785,13 +1785,12 @@ def _stamp_emptied_side(
     """Whether the differing stamps are one side's release stamp and nothing else.
 
     A release stamp moves ``claims-for:`` and deletes every claim line
-    (``tools/release/stamp.py`` ``rewrite_claims``). So when exactly one side
-    moved the stamp off the base's and that side holds no claim, no claim on
-    it was written for another release: there is nothing for the other side's
-    claims to be confused with, and the per-scenario rule decides (a base line
-    the branch left alone takes the stamp's deletion, a scenario the branch
-    added stays, a base line the branch edited against the deletion is still
-    refused). A stamped side that holds a claim, a stamp both sides moved
+    (``tools/release/stamp.py`` ``rewrite_claims``). When exactly one side
+    moved the stamp off the base's and that side holds no claim, it wrote no
+    claim for another release, so the per-scenario rule decides. A base line
+    the branch left alone takes the stamp's deletion. A scenario the branch
+    added stays. A base line the branch edited against the deletion is still
+    refused. A stamped side that holds a claim, a stamp both sides moved
     apart, and a stamp removed rather than moved keep the refusal.
     """
     was, mine, main = (_parse_claims(text)[0] for text in (base, ours, theirs))
