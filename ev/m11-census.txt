@@ -1,0 +1,1 @@
+OPEN tools/audit/seat/selftest_absorb.py runner-py: a stop SIGKILLs or orphans its tool

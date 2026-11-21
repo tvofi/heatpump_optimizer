@@ -1,0 +1,10 @@
+M1 tools/ci/selftest_scope.py 'and not gaps and not broken and table' -> 'and not gaps and table' rc 0 SURVIVED | selftest_scope self-test: 171 checks, 0 failed
+M2 tools/ci/selftest_scope.py 'and not gaps and not broken and table' -> 'and not broken and table' rc 0 SURVIVED | selftest_scope self-test: 171 checks, 0 failed
+M5 tools/audit/seat/orchestrator_tick.py 'int(ahead) > 0' -> 'int(ahead) >= 0' rc 0 SURVIVED | orchestrator_tick self-test: 391 checks, 0 failed
+M6 tools/audit/seat/orchestrator_tick.py 'if not cid or not name.endswith(SELFTEST_JOB):' -> 'if not cid:' rc 0 SURVIVED | orchestrator_tick self-test: 391 checks, 0 failed
+M9 tools/audit/seat/selftest_absorb.py 'if jobs.get("total_count", 0) > len(jobs.get("jobs", [])):' -> 'if False:' rc 0 SURVIVED | selftest_absorb self-test: 44 checks, 0 failed
+M8 tools/audit/seat/selftest_absorb.py '    if rc != 0 or not added:' -> '    if not added:' rc 0 SURVIVED | selftest_absorb self-test: 44 checks, 0 failed
+M7 tools/audit/seat/selftest_absorb.py '    if rc != 1:' -> '    if rc == 2:' rc 0 SURVIVED | selftest_absorb self-test: 44 checks, 0 failed
+M10 tools/audit/seat/selftest_absorb.py '"--no-renames", ' -> '' rc 0 SURVIVED | selftest_absorb self-test: 44 checks, 0 failed
+M11 tools/audit/seat/selftest_absorb.py '    stop_on_signal()\n    repo_dir' -> '    repo_dir' rc 0 SURVIVED | selftest_absorb self-test: 44 checks, 0 failed
+MUTDONE

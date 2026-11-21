@@ -1,0 +1,5 @@
+ALL 118 closure shrink pins PASSED
+298 passed, 0 failed
+SELFTEST-SCOPE MUTANTS: every mutant refused
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+dev/governance/roles/fix-review.md               129  140     2775  2775   key tools/audit/briefs/fix-review.md
