@@ -98488,14 +98488,19 @@ _r3_d_none = _r3_sd.space_drivers(_r3_h(None), _R3_DROOM, 5.0)
 _r3_d_zero = _r3_sd.space_drivers(_r3_h(np.zeros(4)), _R3_DROOM, 5.0)
 _r3_fl_zero = _rm.floor_limits(_rm.HeldLift(0.0, "climate.a", None, 0.1), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
 _r3_fl_none = _rm.floor_limits(None, None, _rl_cfg, _RM_NOW, _RL_N)
+# A held 0.5 K lift over a base that already fills the 0.5 K day band and the
+# 1.0 K night band: every step's clip leaves nothing to lift.
+_r3_full = np.full(_RL_N, 1.0)
+_r3_fl_clipped = _rm.floor_limits(_rm.HeldLift(0.5, "climate.a", None, 1.1), _r3_full, _rl_cfg, _RM_NOW, _RL_N)
 R.check(
     "R11-OUTSIDE-ROOMS-3B null control: room_lifts None gives the five pre-3B codes and the room_lift row is "
     "absent; a zero lift array gives the same five weights byte-equal and a 0.0 room_lift; floor_limits with "
-    "a zero or absent held lift hands back the base and no room lifts",
+    "a zero or absent held lift, or a 0.5 K lift the band clips to zero at every step, hands back the base and no room lifts",
     tuple(_r3_d_none) == ("price_rank", "comfort_floor", "mold_guard", "away", "forecast")
     and all(_r3_d_none[c] == _r3_d_zero[c] for c in _r3_d_none) and _r3_d_zero["room_lift"] == [0.0] * 4
     and _r3_fl_zero["min_temp_margins"] is _rl_base and _r3_fl_zero["room_lifts"] is None
-    and _r3_fl_none == {"min_temp_margins": None, "room_lifts": None},
+    and _r3_fl_none == {"min_temp_margins": None, "room_lifts": None}
+    and _r3_fl_clipped["min_temp_margins"] is _r3_full and _r3_fl_clipped["room_lifts"] is None,
     f"none={_r3_d_none} zero={_r3_d_zero} fl={_r3_fl_zero['room_lifts']}",
 )
 
