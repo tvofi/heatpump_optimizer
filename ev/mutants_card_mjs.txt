@@ -1,0 +1,44 @@
+hitmax: rc=1 fails=3
+     FAIL  a pipe in the layout editor takes the pointer across 24 px at 375 px (mouse, D4-s1-01)
+     FAIL  a pipe in the layout editor takes the pointer across 44 px at 375 px (touch, D4-s1-01)
+   2 CARD CHECK(S) FAILED
+foldmax: rc=1 fails=2
+     FAIL  a fold header is 32 px tall under a mouse and takes the 44 px touch floor under touch (D4-s1-03)
+   1 CARD CHECK(S) FAILED
+prunecut: rc=1 fails=2
+     FAIL  history: the bound drops nothing the window can show -- every overlay point and the mode at its left edge match an unpruned source
+   1 CARD CHECK(S) FAILED
+trkey: rc=1 fails=3
+     FAIL  failure text: a translated Home Assistant exception reads in the viewer's language
+     FAIL  failure text: a layout save failing under sv shows the sv exception and no en.json text
+   2 CARD CHECK(S) FAILED
+critfill: rc=1 fails=2
+     FAIL  --hpo-crit-fill (dark) carries white text at 4.5:1
+   1 CARD CHECK(S) FAILED
+keeplast: rc=1 fails=2
+     FAIL  history: the bound drops nothing the window can show -- every overlay point and the mode at its left edge match an unpruned source
+   1 CARD CHECK(S) FAILED
+emptyloc: rc=1 fails=2
+     FAIL  failure text: a rejection with no translation key, or one localize cannot resolve, keeps its message
+   1 CARD CHECK(S) FAILED
+fitold: rc=1 fails=3
+     FAIL  UX-1 a box too tall with no explanation drops its reason line and keeps the shared-step sentence
+     FAIL  UX-1 and drops the shared-step sentence only when the rows alone fit
+   2 CARD CHECK(S) FAILED
+hitedge: rc=1 fails=2
+     FAIL  a click on a pipe's hit twin removes that pipe
+   1 CARD CHECK(S) FAILED
+noprune: rc=1 fails=2
+     FAIL  history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau
+   1 CARD CHECK(S) FAILED
+chunkskeep: rc=0 fails=0
+
+noph: rc=1 fails=3
+     FAIL  failure text: a translated Home Assistant exception reads in the viewer's language
+     FAIL  failure text: a layout save failing under sv shows the sv exception and no en.json text
+   2 CARD CHECK(S) FAILED
+noscale: rc=0 fails=0
+
+nosubgrid: rc=0 fails=0
+
+MUTDONE

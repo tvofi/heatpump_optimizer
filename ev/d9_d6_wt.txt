@@ -1,0 +1,33 @@
+# day=30 log=1146 action=361 seen=1507 covered=5 memo=440 total=3454 heap=10233568
+RESULT retained_rows_slope=0.0 rows/day
+RESULT log_rows_slope=0.0 rows/day
+RESULT action_rows_slope=0.0 rows/day
+RESULT seen_keys_slope=0.0 keys/day
+RESULT memo_points_slope=0.0 points/day
+RESULT covered_chunks=5 chunks (48 h span = 4-5)
+RESULT retained_rows_day30=3454 rows
+RESULT heap_slope=-13873 B/day (provisional)
+RESULT thread_factor=1.000
+RESULT cpu_s=1.39 s (provisional)
+RESULT load1=2.91
+RESULT swapins=0
+nopan RESULT retained_rows_slope=0.0 rows/day
+nopan RESULT log_rows_slope=0.0 rows/day
+nopan RESULT action_rows_slope=0.0 rows/day
+nopan RESULT seen_keys_slope=0.0 keys/day
+nopan RESULT memo_points_slope=0.0 points/day
+nopan RESULT covered_chunks=0 chunks (48 h span = 4-5)
+nopan RESULT retained_rows_day30=0 rows
+nopan RESULT heap_slope=1323 B/day (provisional)
+nopan RESULT thread_factor=1.000
+nopan RESULT cpu_s=0.97 s (provisional)
+nopan RESULT load1=2.91
+nopan RESULT swapins=0
+RESULT unresolved_en=0 count
+RESULT unresolved_sv=0 count
+RESULT unresolved_de=0 count
+RESULT stale_title_literal_tokens=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.91
+RESULT swapins=0
+RESULT cpu_ms=18 ms

@@ -1,0 +1,3 @@
+  ok    collapse (dark): the expanded dialog carries the chips and the dashed-line notes
+
+ALL BROWSER CHECKS PASSED
