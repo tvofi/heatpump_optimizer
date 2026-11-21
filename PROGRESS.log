@@ -9,3 +9,4 @@
 1795277900 DONE returned: Fix review: merge 8e98867 (pending-ci: gate) on probe/rev-3728-41a1c9b8 a2758da870
 1795284974 HB alive
 1795285050 CKPT setup done, packet rendered, classify poller running snapshot dd86984bbe3e
+1795285239 CKPT class rules, finder harness both ends, doc_claims/structure done; mutants running snapshot 9698602eba87
