@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_worker_stopping RETURN_DEL b1ddfbbc",
+  "killed_by": "tests/features.py",
+  "old": "    return isinstance(data, dict) and bool(data.get(_WORKER_STOPPING))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
