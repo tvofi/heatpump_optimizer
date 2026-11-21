@@ -4,3 +4,4 @@
 1795283452 CKPT head table byte-identical to CI selftest-absorbed artifact snapshot 9ffad0f3818f
 1795283516 CKPT drift replay: main 7 refusals, head 0, 3 perturbations each 1; figures re-derived snapshot 5607d468ac18
 1795284019 HB alive
+1795284622 HB alive
