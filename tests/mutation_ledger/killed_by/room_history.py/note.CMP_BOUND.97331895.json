@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:note CMP_BOUND 97331895",
+  "killed_by": "tests/features.py",
+  "old": "    if period is not None and start > period.start:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if period is not None and start >= period.start:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+}
