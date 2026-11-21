@@ -98401,6 +98401,7 @@ import ast as _cr_ast  # noqa: E402
 import asyncio as _cr_aio  # noqa: E402
 import logging as _cr_logging  # noqa: E402
 import pathlib as _cr_path  # noqa: E402
+from dataclasses import replace as _cr_replace  # noqa: E402
 from types import SimpleNamespace as _CrNS  # noqa: E402
 
 from harness import FakeEntry as _CrEntry  # noqa: E402
@@ -98671,6 +98672,26 @@ R.check(
     and all(log.count("DEBUG", "", traced=True) >= 1 and log.above_debug() == []
             for log in (_cr_restart_log, _cr_sum_log, _cr_view_log)),
     f"restart={_cr_restart_log.rows} summary={_cr_sum_log.rows} view={_cr_view_log.rows}",
+)
+
+# _capture_diagnosis_inputs: a state that cannot be copied is no evidence (None), a weather
+# read that raises records wind 0.0; each now leaves a DEBUG record.
+_cr_dx = _cr_coord()
+_cr_dx_state = _cr_dx._ctx._current_state
+_cr_dx._ctx = _cr_replace(_cr_dx._ctx, _current_state=object())
+_cr_dx_none_log = _cr_logged(lambda: _cr_landed.append(_cr_dx._capture_diagnosis_inputs()))
+_cr_dx._ctx = _cr_replace(_cr_dx._ctx, _current_state=_cr_dx_state)
+_cr_dx._current_weather = lambda: (_ for _ in ()).throw(RuntimeError("no weather"))
+_cr_dx_wind_log = _cr_logged(lambda: _cr_landed.append(_cr_dx._capture_diagnosis_inputs()))
+R.check(
+    "D1-s3-07: diagnosis inputs whose state cannot be copied are None, and a weather read that "
+    "raises records the plan's wind as 0.0; each leaves a DEBUG record with its traceback",
+    _cr_landed[-2] is None and isinstance(_cr_landed[-1], dict)
+    and _cr_landed[-1]["planned"]["wind_speed"] == 0.0
+    and _cr_dx_none_log.count("DEBUG", "Diagnosis inputs not captured", traced=True) == 1
+    and _cr_dx_wind_log.count("DEBUG", "Diagnosis wind not captured", traced=True) == 1,
+    f"none={_cr_landed[-2]!r} wind={_cr_landed[-1] if isinstance(_cr_landed[-1], str) else 'dict'} "
+    f"logs={_cr_dx_none_log.rows} {_cr_dx_wind_log.rows}",
 )
 
 
