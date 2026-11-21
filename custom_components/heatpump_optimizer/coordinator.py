@@ -8479,14 +8479,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._manual_override = override
 
     async def _async_save_manual_plan(self) -> None:
-        async def save() -> None:
-            payload = (
-                self._manual_override.to_dict()
-                if self._manual_override is not None
-                else {}
-            )
-            await self._manual_plan_store.async_save(payload)
-        await save_held(self._manual_plan_store, "manual plan", save)
+        override = self._manual_override
+        await save_held(self._manual_plan_store, "manual plan", lambda: self._manual_plan_store.async_save(
+            {} if override is None else override.to_dict()))
 
     def _horizon_step_starts(self, solve_now: datetime, n_steps: int) -> list[datetime]:
         """The instant each solved step begins, matching the optimizer's own."""
