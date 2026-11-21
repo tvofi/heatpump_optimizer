@@ -42973,7 +42973,7 @@ _r11_loop_logging = {
     if re.search(r"\blogger\.(warning|error|exception|critical|log)\b", src)
 }
 _r11_loop_unread = {
-    n for n in _r11_loop_logging - _R11_LOOP_LOGGING_RESIDUE
+    n for n in _r11_loop_logging | _R11_LOOP_LOGGING_RESIDUE
     if not _r11_logger_aliases({"s.py": f"def f(loop):\n    loop.{n}({{}})\n"})
 }
 # Every callable of a Logger, called at ERROR on _LOGGER, and every name the
@@ -43071,9 +43071,10 @@ R.check(
     and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
     | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
                                 "CRITICAL", "FATAL")}
-    # every event-loop method that logs is refused or named residue; the
-    # census found both handlers, so it read the loop's source
-    and not _r11_loop_unread
+    # what the barrier leaves unread of the event loop's logging methods is
+    # exactly the named residue; the census found both handlers, so it read
+    # the loop's source
+    and _r11_loop_unread == _R11_LOOP_LOGGING_RESIDUE
     and {"call_exception_handler", "default_exception_handler"} <= _r11_loop_logging
     # precondition: the package is flat, so the glob read every module
     and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources)
