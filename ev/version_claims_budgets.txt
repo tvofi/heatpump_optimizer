@@ -1,0 +1,27 @@
+merge-base 689f33e2653f90ef0abeb10d1fc45be83a2d01cd
+(empty above = untouched)
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index f3676b586c..63130e5f77 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,17 +1,17 @@
+ {
+- "class_excess_loc": 17322,
++ "class_excess_loc": 17317,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 136,
+  "coordinator_multiassigned_attrs": 104,
+  "coordinator_private_reach": 0,
+  "dead_methods": 0,
+  "dead_top_level_symbols": 1,
+- "duplication_copies": 7,
++ "duplication_copies": 5,
+  "functions_cc_over_15": 26,
+  "functions_cc_over_25": 7,
+  "import_cycle_modules": 0,
+  "max_cc": 44,
+- "max_class_loc": 7873,
++ "max_class_loc": 7868,
+  "max_method_loc": 373,
+  "methods_over_150": 14,
+  "methods_over_200": 7,

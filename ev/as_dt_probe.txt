@@ -1,0 +1,2 @@
+RESULT as_dt aware-ref (control): 2026-01-15T20:00:00+00:00
+RESULT as_dt naive-ref: 2026-01-15T21:00:00 (naive plan stamps are UTC by drift.utc_instant)
