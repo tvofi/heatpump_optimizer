@@ -1,0 +1,102 @@
+{
+  "box": "SW4",
+  "missing": [],
+  "reports": {
+    "sweep-N-table-value": {
+      "class": "N-table-value",
+      "instances": 0,
+      "barriered": false,
+      "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/table_value/enumerate.py  (37 module-level numeric tables)  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/table_value/oracle.py [--perturb SYMBOL] [--all]  (disposition: 0 instance, 30 hold against an oracle, 7 not applicable, 0 undispositioned)",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/presets.py",
+          "symbol": "_ERA_LOSS_W_PER_M2K",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/table_value/oracle.py --perturb _ERA_LOSS_W_PER_M2K --all  # low_energy=0.85 (the export value the verifier measured) -> INSTANCE, 36 of 36 derive() cells inverted; at the register tree low_energy is 0.35 and the oracle HOLDS",
+          "beyond_finding": false
+        }
+      ]
+    },
+    "sweep-N-unbounded-retention": {
+      "class": "N-unbounded-retention",
+      "instances": 2,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/retention/enumerate.py [--unbounded]  (static, Python + card JS: 74 grown containers, 43 with a named bound, 31 with none in scope)  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/retention/probe_price_days.py [--perturb|--null]  +  node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  (runtime)",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/price_model.py",
+          "symbol": "PriceShapeLearner.days_seen",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/retention/probe_price_days.py  # 800 keys at day 400 (window holds 180), slope 2.00 keys/day; --perturb and --null 0.00",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/price_model.py",
+          "symbol": "PriceShapeLearner.quarter_days_seen",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/retention/probe_price_days.py  # counted with days_seen: 1 key/day each, payload trims to 90 but memory never does",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "HistorySource.log",
+          "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  # log_rows_slope=476.0 rows/day",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "HistorySource.actionLog",
+          "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  # action_rows_slope=152.0 rows/day",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "HistorySource.seen",
+          "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  # seen_keys_slope=628.0 keys/day",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "symbol": "HistorySource.covered",
+          "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline  # covered_chunks=60 after 30 days (48 h span = 4-5)",
+          "beyond_finding": false
+        }
+      ]
+    },
+    "sweep-N-unbudgeted-background": {
+      "class": "N-unbudgeted-background",
+      "instances": 0,
+      "barriered": false,
+      "enumerator": "python3 dev/audit/rounds/round11/D14/background/enumerate.py  (static: 17 background submit seams, primitives _await_optimize/_await_process/_await_off_loop/async_simulate/async_add_executor_job/run_in_executor)  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/background/probe_burst.py --seam {diagnose,whatif} --k 4 [--guard]  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py --cycles 4 --arms default,tiles_fuse  (runtime)",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py --cycles 4 --arms default,tiles_fuse  # tiles_fuse: fuse_advisor 1 + steady 2 worker jobs stacked after main in the cycle (D9-s1-02)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._maybe_refresh_price_tile",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s1/h_solves_per_cycle.py --cycles 4 --arms default,tiles_fuse  # tiles_fuse: price_tile 4 jobs / 7 msm entries over 4 cycles, 5.43 s CPU vs main 4.40 s (D9-s1-02)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator.async_simulate",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/background/probe_burst.py --seam whatif --k 4  # 12 worker jobs, scheduled solve 11.10x solo; --guard 3 jobs 3.80x (D9-s1-03)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator.async_simulate._held_solve",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/background/probe_burst.py --seam whatif --k 4  # 2 of the 3 jobs per what-if (steady pair) (D9-s1-03)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/services.py",
+          "symbol": "handle_simulate_plan",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/background/probe_burst.py --seam whatif --k 4  # the service entry of D9-s1-03; no guard beyond limited_answer's start interval",
+          "beyond_finding": false
+        }
+      ]
+    }
+  }
+}
