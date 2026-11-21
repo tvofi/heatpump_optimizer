@@ -1,0 +1,9 @@
+head 6ef32c22f3d3cc8e80207cd85900879ab1816d05, worktree /root/wtC, mutant C1 = ev/C1_coordinator_splat_mutant.diff
+cmd: PYTHONPATH=tests/hastub OPENBLAS_NUM_THREADS=1 python3 tests/features.py (in place, git worktree)
+6167
+2658:  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+4104:  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+5076:  ok   a pump command that FAILED is not remembered as done
+
+ALL 6030 FEATURE CHECKS PASSED
+rc=0
