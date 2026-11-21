@@ -1727,7 +1727,12 @@ jobs:
   # above: `policy-docs` proves the checks are right, this proves they ran.
   env-matrix:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Twice the job's projected p95. Its policy_lint arms spend most of their
+    # time in one whole-tree `git grep` per cited symbol, so the job scales with
+    # tracked bytes. 8fa10e00ce doubled those bytes with round-11 evidence; the
+    # 10-minute cap then cancelled 11 of the next 29 main runs, where 270 before
+    # had none. Rule: ceil(2 x p95 before x policy-docs lint-step growth / 60).
+    timeout-minutes: 26
     # R10-CI-SLIM C7(a): a required name, so it stands down at the step level on
     # a pull request whose every changed file is product and reports success.
     env:
