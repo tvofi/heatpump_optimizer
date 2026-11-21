@@ -14,7 +14,9 @@ file new at HEAD is counted only by the total, so a split that moves a docstring
 checkout cannot read refuses, so a shallow clone fails closed. Each refusal quotes the unit's first
 words, because text_ledger's JavaScript line numbers are unreliable.
 
-SCOPE is the one list the comment groups extend: tracked `tests/` files ending `.py`, `.mjs` or `.sh`.
+SCOPE is the one list the comment groups extend: tracked `tests/` files ending `.py`, `.mjs` or `.sh`
+(R11-SEAM-comments-tests), and the package's top-level modules and the card's script
+(R11-SEAM-comments-production). The package has no subpackage; one would be outside SCOPE.
 
 Usage:
   comment_ratchet.py [--base REF]     the ratchet against the ratchet base
@@ -37,10 +39,14 @@ import text_ledger  # noqa: E402
 MAX_WORDS = 40
 SUFFIXES = (".py", ".mjs", ".sh")
 QUOTE_WORDS = 12
+PKG = "custom_components/heatpump_optimizer/"
+CARD = PKG + "www/heatpump-optimizer-card.js"
 
 
 def in_scope(path):
-    return path.startswith("tests/") and path.endswith(SUFFIXES)
+    if path.startswith("tests/"):
+        return path.endswith(SUFFIXES)
+    return path == CARD or (path.startswith(PKG) and path.endswith(".py") and "/" not in path[len(PKG):])
 
 
 def _strip_marker(line):
@@ -308,6 +314,26 @@ def self_test(out=print):
     sh41 = sh + f"\n# {LONG41}\n"
     arm("a 41-word sentence planted in a shell comment is refused",
         any("tests/run.sh" in r for r in decide(base, {**base, "tests/run.sh": long_units("tests/run.sh", sh41)})))
+    mode, card = PKG + "pump_mode.py", CARD
+    prod = {f: long_units(f, (ROOT / f).read_text(encoding="utf-8")) for f in (mode, card)}
+    mode_src, card_src = ((ROOT / f).read_text(encoding="utf-8") for f in (mode, card))
+    arm("a 41-word sentence planted in a production module's docstring is refused",
+        any(mode in r for r in decide(prod, {**prod, mode: long_units(
+            mode, mode_src + f'\n\ndef _planted():\n    """{LONG41}"""\n')})))
+    arm("a 40-word sentence in a production module (the null control) is accepted",
+        not decide(prod, {**prod, mode: long_units(mode, mode_src + f"\n# {SHORT40}\n")}))
+    arm("a 41-word sentence planted in the card's script is refused, in a line or a block comment",
+        all(any(card in r for r in decide(prod, {**prod, card: long_units(card, card_src + planted)}))
+            for planted in (f"\n// {LONG41}\n", f"\n/* {LONG41}\n * end. */\n")))
+    arm("a 40-word sentence in the card's script (the null control) is accepted",
+        not decide(prod, {**prod, card: long_units(card, card_src + f"\n// {SHORT40}\n")}))
+    arm("SCOPE is the tests, the package's top-level modules and the card, and no other path",
+        in_scope(mode) and in_scope(card) and in_scope("tests/edge.py")
+        and not any(in_scope(p) for p in (PKG + "sub/x.py", PKG + "www/other.js", PKG + "manifest.json",
+                                          "tools/audit/text_ledger.py", "custom_components/other/x.py")))
+    arm("every tracked production module is in SCOPE",
+        all(in_scope(f) for f in git("ls-files", PKG).split() if f.endswith(".py") and f.count("/") == 2)
+        and CARD in tracked())
     arm("a shell comment marker is stripped before the count",
         len(long_units("tests/run.sh", sh + f"\n# {SHORT40}\n")) == len(base["tests/run.sh"]))
     arm("a rule line is not a word of the sentence after it",
@@ -367,7 +393,7 @@ def gate(base, out=print):
     base_ref, refusals, summary, _ = measure(base)
     if summary:
         out("  " + summary)
-    rows.append(("no tests/ comment or docstring gains a sentence over 40 words (comment ratchet)",
+    rows.append(("no tests/ or production comment or docstring gains a sentence over 40 words (comment ratchet)",
                  not refusals, "; ".join(refusals)))
     return rows
 
