@@ -6,3 +6,4 @@
 1795264692 HB alive
 1795264857 CKPT p2: all 8 mjs files at 0 long, step pushed snapshot 48b938346033
 1795265297 HB alive
+1795265848 DONE returned: p2 (tests/*.mjs) at 2e4260ccd7, body b277789cda; step ref not deleted (delete denied)
