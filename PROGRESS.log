@@ -3,3 +3,4 @@
 1795292471 CKPT packet rendered, reading diff snapshot 363b1f58a1c3
 1795292847 CKPT census+claim mutants re-run (21 killed); repin gone-anchor defect found snapshot 3861c4de1c97
 1795293013 HB alive
+1795293348 DONE verdict pushed: blocked class-open (brief_lint repin gone-anchor) at 43d3287f
