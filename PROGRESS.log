@@ -2,3 +2,4 @@
 1795260338 HB alive
 1795260343 INBOX acked through 1
 1795260666 CKPT fix committed 57342c0b: reEscape + ratchet splits; card.mjs green, null control FAIL snapshot 0946f38955f2
+1795260946 HB alive
