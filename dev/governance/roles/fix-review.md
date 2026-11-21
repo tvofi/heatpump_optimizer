@@ -27,7 +27,10 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    population.** Run the enumeration rule the body names and compare its output to
    the diff: a seam it returns that is neither in the diff nor dispositioned in the body
    is `blocked <sha> class-open: <seams>`, a site or a predicate's unguarded
-   domain: every one the review found, not one per round, no hunt past it owed.
+   domain: every one found, no hunt past it owed. A seam in a set the claim
+   quantifies over, read by no named rule nor in a stated residue category, blocks
+   the set: `class-open: axis <set> unenumerated (e.g. <seam>)`, `<set>` verbatim
+   in a later block (`bus.sh` compares).
    An item whose harness does not move under its own perturbation is void
    (`judge.md`). A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A rule returning
    nothing means a one-seam class: say so, never read the absence as compliance.
@@ -52,8 +55,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     check. An unanswered owed red is a `Note:` line, never a block (C5):
     root-cause-detectable where a cheaper detector could have shown
     the red before the handoff (name it), `root-cause-unrecorded` where that check
-    is the cheapest, `root-cause-unanswered` if you cannot tell. The wave routes
-    an old `blocked <sha> root-cause-detectable: <check>`.
+    is the cheapest, `root-cause-unanswered` if you cannot tell.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     The rule's `instrument-self-tests` block is `classify --pr`'s INTRODUCED.
@@ -83,8 +85,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     <head>` (a main merge: its resolution), each prior finding resolved, the live
     required checks. Only a production (`custom_components/`) delta putting reviewed
     functionality at a non-obvious risk CI would not detect widens it, to exactly
-    that code; the verdict names path and risk. Instrument, test, policy and body
-    deltas never widen it.
+    that code; the verdict names path and risk.
     A head whose own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
@@ -103,9 +104,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     line is the orchestrator's to resolve by hand, not the author's defect: say
     which file refused and why.
 
-    Never classify by line shape: to `_comment_lines` a `may-drift` line **is**
-    a `#` comment, and `merge_claim_defect` refuses losing one, so "only
-    comment notes conflict" waves a real refusal through.
+    Never classify by line shape: a `may-drift` line **is** a `#` comment to
+    `_comment_lines`, and `merge_claim_defect` refuses losing one.
 
 14. **Every number the diff moves is earned by the change, not the instrument**:
     a structure, policy or mutation budget, the architecture score or its
