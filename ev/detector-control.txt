@@ -1,0 +1,12 @@
+== plant 41 words in tests/card_rig.mjs, --base at head
+RESULT base=87e424e5ebb3 files=195 long_units_base=2303 long_units_head=2304
+REFUSE tests/card_rig.mjs: long units 0 -> 1; new: "one two three four five six seven eight nine ten eleven twelve ..."
+REFUSE scope total: long units 2303 -> 2304
+comment_ratchet: FAIL
+rc=0
+== plant 40 words (null)
+RESULT base=87e424e5ebb3 files=195 long_units_base=2303 long_units_head=2303
+comment_ratchet: OK
+rc=0
+41-word plant exit=1
+restored exit=0
