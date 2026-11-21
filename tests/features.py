@@ -97591,12 +97591,13 @@ def _rl_coord(readings=_RL_COLD, arm=None, **config):
     _rm.record(c, readings)
     if arm is not None:
         arm(c)
-    c._rl_margins = []
+    c._rl_margins, c._rl_lifts = [], []
     inner = c._solve_record
 
     def spy(*args, **kwargs):
         record = inner(*args, **kwargs)
         c._rl_margins.append(record.inputs.limits.min_temp_margins)
+        c._rl_lifts.append(record.inputs.limits.room_lifts)
         return record
 
     c._solve_record = spy
@@ -97687,18 +97688,46 @@ R.check(
 )
 
 
-def _rl_whatif(c, overrides):
-    """The margins one what-if solve of ``overrides`` is given, at the baseline's instant."""
+def _rl_whatif(c, overrides, field="min_temp_margins"):
+    """The margins, or another ``SolveLimits`` field, one what-if solve of
+    ``overrides`` is given, at the baseline's instant."""
     dt_util.freeze(_T5_NOW)
     try:
         horizon = c._forecast_arrays(_T5_NOW)
         config, params, state = c._solve_hubs(len(horizon.prices), banded=False)
-        return c._whatif_solve(overrides, config, params, state, horizon, _T5_NOW, False)[1].limits.min_temp_margins
+        return getattr(c._whatif_solve(overrides, config, params, state, horizon, _T5_NOW, False)[1].limits, field)
     finally:
         dt_util.freeze(None)
 
 
+# #3616 3B: both coordinator builds splat ``rooms.floor_limits`` whole, so
+# ``SolveLimits.room_lifts`` reaches the solver's attribution. A build taking
+# only its ``min_temp_margins`` keeps the plan and drops every room_floor step
+# and room_lift row; this check and the what-if's below fail on that build.
+_rl_on_l = _rl_c_on._rl_lifts[0]
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the scheduled build hands the solve its room lifts, 1.0 K at the cap "
+    "and never above the margins; null control, the flag off or never stored hands None",
+    len(_rl_c_on._rl_lifts) == 1 and _rl_on_l is not None and float(np.max(_rl_on_l)) == 1.0
+    and bool(np.all(_rl_on_l >= 0.0)) and bool(np.all(_rl_on_m - _rl_on_l >= -1e-12))
+    and _rl_c_off._rl_lifts == [None] and _rl_c_default._rl_lifts == [None],
+    f"lifts={None if _rl_on_l is None else np.round(_rl_on_l[:6], 3).tolist()} "
+    f"off={_rl_c_off._rl_lifts}",
+)
+
+
 _rl_wi_c = _rl_whatif(_rl_c_on, {})
+_rl_wi_l = _rl_whatif(_rl_c_on, {}, "room_lifts")
+_rl_wi_l_target = _rl_whatif(_rl_c_on, {"comfort_temp_day": 19.5}, "room_lifts")
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a "
+    "19.5 day target clips them to its 0.5 K band; null control, the flag off hands None",
+    _rl_wi_l is not None and np.array_equal(_rl_wi_l, _rl_on_l)
+    and _rl_wi_l_target is not None and float(np.max(_rl_wi_l_target[:40])) == 0.5
+    and _rl_whatif(_rl_c_off, {}, "room_lifts") is None,
+    f"lifts={None if _rl_wi_l is None else np.round(_rl_wi_l[:6], 3).tolist()} "
+    f"target={None if _rl_wi_l_target is None else sorted(set(np.round(_rl_wi_l_target, 3).tolist()))}",
+)
 _rm.record(_rl_c_on, (_rl_room("climate.a", 21.0, 21.0), _rl_room("climate.b", 20.4, 20.0)))
 _rl_wi_c_after = _rl_whatif(_rl_c_on, {})
 _rl_wi_c_target = _rl_whatif(_rl_c_on, {"comfort_temp_day": 19.5})
