@@ -776,6 +776,18 @@ def floor_in_force_kw(draw: DrawRange) -> float:
     return cfg_min if draw.floor_kw is None else draw.floor_kw
 
 
+def at_running_floor(draw: DrawRange, drawn_kw: float | None) -> bool:
+    """Whether an experiment's draw sat at the running floor in force (D2-s3-09).
+
+    Within ``AGREE_TOLERANCE`` above :func:`floor_in_force_kw`, or under it:
+    the house's load was below the pump's minimum, so the compressor ran its
+    floor whatever the ceiling set-point asked, and the draw says nothing of
+    the top. Stored as one, it narrowed the band every solve books.
+    """
+    floor = floor_in_force_kw(draw)
+    return drawn_kw is not None and floor > 0.0 and drawn_kw <= (1.0 + AGREE_TOLERANCE) * floor
+
+
 def floor_evidence(draw: DrawRange) -> tuple[float | None, int]:
     """``(low end, pairs)`` of the runs asked at the floor in force since it
     last moved (``floor_since``): asks within ``AGREE_TOLERANCE`` of it.
@@ -857,6 +869,7 @@ def fold(
     defrost: bool,
     command: Any = None,
     experiment_s: float | None = None,
+    ceiling_frozen: bool = False,
 ) -> None:
     """Fold one interval into ``draw`` when it is a running sample.
 
@@ -873,7 +886,9 @@ def fold(
     action adopted since -- else ``None``. Such an interval that
     ``takes_ceiling`` goes to the ceiling store and NOT to the window, so no
     experiment's draw can trip the window's latch; every other interval
-    folds into the window as before.
+    folds into the window as before. ``ceiling_frozen`` refuses that store
+    sample alone (D2-s3-09, :func:`at_running_floor`): it is dropped, never
+    handed to the window either.
 
     First, whatever this interval: the map runs closed since the last fold
     become rows (``MapRows.commit_runs``) unless ``frozen`` or ``distorted``;
@@ -888,7 +903,8 @@ def fold(
     ):
         return
     if experiment_s is not None and draw.takes_ceiling(drawn_kw, command):
-        draw.observe_ceiling(drawn_kw, experiment_s)
+        if not ceiling_frozen:
+            draw.observe_ceiling(drawn_kw, experiment_s)
     else:
         draw.observe(
             drawn_kw, space, params.min_electrical_power, params.max_electrical_power,

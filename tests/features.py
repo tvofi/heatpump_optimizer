@@ -98564,4 +98564,219 @@ R.check(
     f"g0={_lf_g0} after zero residual={_lf_g_still} after +0.01 K={_lf_g_moved}",
 )
 
+
+# --- R11-SEAM-learners: an unplanned charge is no space sample (#3760, D12-s3-03).
+# An unobserved interval the plan put no hot water in, over which the tank
+# thermometer rose past heat_energy.UNPLANNED_CHARGE_RISE_K, was a charge the
+# plan never asked for: every space-heat ask refuses it, the energy totals
+# book it as hot water. Each arm has its null: no rise, and (where the plan's
+# split decides) a planned hot-water share.
+R.section("R11-SEAM-learners: the unplanned-charge evidence")
+from unittest import mock as _uc_mock  # noqa: E402
+from heatpump_optimizer import heat_energy as _uc_he  # noqa: E402
+from heatpump_optimizer import sysid as _uc_sysid  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracySample as _UcSample  # noqa: E402
+from heatpump_optimizer.accuracy import COP_REFUSED_FROZEN as _UC_FROZEN  # noqa: E402
+
+_UC_RISE = _uc_he.UNPLANNED_CHARGE_RISE_K + 2.0
+
+
+def _uc_tank(c, rise):
+    """This cycle's two tank reads, ``rise`` apart; no dwell: the interval is unobserved."""
+    _uc_he.meter_of(c).tank_c = (50.0, 50.0 + rise)
+    return c
+
+
+def _uc_flow(rise, dhw_kw=0.0, observed=False):
+    c = _uc_tank(_fl_coord(action={"power": 3.0, "dhw_power": dhw_kw}), rise)
+    if observed:
+        m, t0 = _uc_he.meter_of(c), datetime(2026, 1, 12, 2, 0, tzinfo=UTC)
+        m.dwell.observe(t0, _uc_he.SPACE, t0)
+        m.cycle = (t0, t0 + _lf_td(minutes=30))
+    c._flow_bias.observe_temps(flow_lift.curve_supply_temp(c._thermal_model, -5.0, c.target_temperature) + 6.0, 47.0)
+    _fold_flow_lift(c, _T6)
+    return c._flow_bias.samples, round(c._flow_bias.bias_k, 6)
+
+
+_uc_fl = {k: _uc_flow(*a) for k, a in {
+    "charge": (_UC_RISE,), "no_rise": (0.0,), "planned_share": (_UC_RISE, 0.3),
+    "observed": (_UC_RISE, 0.0, True)}.items()}
+R.check(
+    "an unobserved, plan-space-only cycle whose tank rose past the band folds no flow-curve bias "
+    "(its supply is the tank's charge temperature); null controls: no rise folds, a planned "
+    "hot-water share under the curve share folds (the plan put hot water in it), an observed "
+    "space cycle folds",
+    _uc_fl["charge"] == (0, 0.0) and _uc_fl["no_rise"][0] == 1
+    and _uc_fl["planned_share"][0] == 1 and _uc_fl["observed"][0] == 1,
+    f"{_uc_fl}",
+)
+
+
+def _uc_cop(rise, dhw_kw=0.0):
+    c = _uc_tank(_t2_coord(heat_pump_power_entity="sensor.hp_power"), rise)
+    c._current_action = {"power": 3.0, "dhw_power": dhw_kw}
+    c._measured_power = 2.6
+    return c._fold_measured_cop(None)
+
+
+_uc_cops = (_uc_cop(_UC_RISE), _uc_cop(0.0), _uc_cop(_UC_RISE, 1.0))
+R.check(
+    "the measured-COP fold refuses an unplanned charge as frozen; no rise, or a planned "
+    "hot-water share, is not frozen (null controls)",
+    _uc_cops[0] == _UC_FROZEN and _uc_cops[1] != _UC_FROZEN and _uc_cops[2] != _UC_FROZEN,
+    f"{_uc_cops}",
+)
+
+
+def _uc_totals(rise, pending_dhw=0.0):
+    """One settled interval's energy split; the NEXT interval's plan asks hot water."""
+    c = _uc_tank(_t2_coord(), rise)
+    c._current_action = {"power": 1.0, "dhw_power": 2.0}
+    pending = {"price": 2.0, "space_power": 2.0, "dhw_power": pending_dhw, "when": _T6}
+    c._accumulate_energy(_UcSample(when=_T6, actual_power_kw=2.0), 1.0, pending)
+    return round(c._energy_totals["space_energy_kwh"], 9), round(c._energy_totals["dhw_energy_kwh"], 9)
+
+
+_uc_tot = (_uc_totals(_UC_RISE), _uc_totals(0.0), _uc_totals(_UC_RISE, 0.5))
+R.check(
+    "the energy totals book an unplanned charge as hot water, read on the settled interval's own "
+    "split (the next interval's hot-water ask does not decide it); null controls: no rise books "
+    "space, a planned share books by the plan (review item c4e1a3b2)",
+    _uc_tot[0] == (0.0, 2.0) and _uc_tot[1] == (2.0, 0.0) and _uc_tot[2] == (1.6, 0.4),
+    f"{_uc_tot}",
+)
+
+
+def _uc_sid_run(rise):
+    c = _uc_tank(_t2_coord(), rise)
+    c._current_action = {"power": 3.0, "dhw_power": 0.0}
+    seen, downs = [], []
+    host = _lf_NS(active=True, stand_down=downs.append)
+    c._sysid = host
+    with _uc_mock.patch.object(_uc_sysid, "hold_reason", lambda s, frozen, cfg, now: seen.append(frozen) or frozen or "held"):
+        _lf_aio.run(c._run_system_identification(np.array([1.0])))
+    return seen, downs
+
+
+_uc_sid = (_uc_sid_run(_UC_RISE), _uc_sid_run(0.0))
+R.check(
+    "an unplanned charge during an experiment reaches its hold as the freeze and stands it down "
+    "through stand_down; no rise reaches it as no freeze (null control)",
+    _uc_sid[0] == (["unplanned_charge"], ["unplanned_charge"]) and _uc_sid[1][0] == [None],
+    f"{_uc_sid}",
+)
+
+
+def _uc_span(per_cycle_k, cycles=4):
+    """A heat counter's span over ``cycles`` half-hour reads, the tank rising ``per_cycle_k`` each."""
+    m = _uc_he.HeatEnergyMeter()
+    sig = _lf_NS(mode=_lf_NS(key=None), mode_live=False, mode_changed_at=None)
+    prm = _lf_NS(max_electrical_power=6.0, cop_nominal_floored=3.0)
+    t0, closes, cycle_evidence = datetime(2026, 1, 12, 2, 0, tzinfo=UTC), [], []
+    for i in range(cycles + 1):
+        at = t0 + _lf_td(minutes=30 * i)
+        m.observe_cycle(at, sig, _lf_NS(ok=True, value=10.0 + 2.5 * i, entity_id="sensor.heat"), 5.0 + 0.8 * i,
+                        30.0, (0.5, 2.0), prm, 50.0 + per_cycle_k * i)
+        cycle_evidence.append(m.unplanned_charge((2.0, 0.0)))
+        close = _uc_he.close_span(m, {"cop": True, "house": True, "lower": False}, (2.0, 0.0), "state", at,
+                                  3.0, "unaligned", lambda *a: a)
+        if close is not _uc_he.NO_SPAN:
+            closes.append(close.unplanned_charge)
+    return closes, any(cycle_evidence)
+
+
+_uc_spans = (_uc_span(0.8), _uc_span(0.0))
+R.check(
+    "a counter span whose tank rise is spread under the band on every cycle but past it over the "
+    "span is an unplanned charge at its close; a span with no rise is not (null control)",
+    _uc_spans[0] == ([True], False) and _uc_spans[1] == ([False], False),
+    f"{_uc_spans}",
+)
+
+
+def _uc_span_fold(rise):
+    """The span close on a real coordinator: what it hands the COP and house learners."""
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power")
+    reached = []
+    c._async_learn_house_heat_loss = lambda *a: reached.append("house") or _lf_aio.sleep(0)
+    c._fold_cop_evidence = lambda *a, **k: reached.append("cop")
+    close = _uc_he.SpanClose("interval", 2.0, 2.0, 6.0, 2.0, None,
+                             (6.0, _uc_he.Attribution(2.0, 0.0, False)), False, True, True, rise)
+    with _uc_mock.patch.object(_uc_he, "close_span", lambda *a, **k: close):
+        _lf_aio.run(_lf_cm._async_learn_heat_span(c, {}))
+    return reached, c._measured_cop.refusal, dict(c._learner_freezes)
+
+
+_uc_sf = (_uc_span_fold(True), _uc_span_fold(False))
+R.check(
+    "a span closed on an unplanned charge reaches neither the house learner nor the COP fold, "
+    "refuses the COP as frozen and notes the freeze once; the same span with no charge reaches "
+    "both (null control)",
+    _uc_sf[0] == ([], _UC_FROZEN, {"house": "unplanned_charge"})
+    and _uc_sf[1][0] == ["house", "cop"] and _uc_sf[1][2] == {},
+    f"{_uc_sf}",
+)
+
+
+
+def _uc_gate(rise, pending_dhw=0.0):
+    """The draw-range gate in ``_record_accuracy``: the ``frozen=`` it hands the fold."""
+    c = _uc_tank(_t2_coord(heat_pump_power_entity="sensor.hp_power"), rise)
+    c._measured_power = 2.6
+    c._pending_prediction = {"when": _lf_dt.now() - _lf_td(minutes=30), "split": (2.0, pending_dhw),
+                             "power": 2.0 + pending_dhw, "space_power": 2.0, "dhw_power": pending_dhw}
+    seen = []
+    with _uc_mock.patch.object(_lf_cm.draw_range, "fold", lambda *a, **k: seen.append(k["frozen"])):
+        try:
+            c._record_accuracy()
+        except Exception as err:  # noqa: BLE001 - only the fold's argument is judged
+            seen.append(type(err).__name__)
+    return seen
+
+
+_uc_gates = (_uc_gate(_UC_RISE), _uc_gate(0.0), _uc_gate(_UC_RISE, 0.5))
+R.check(
+    "the draw-range window refuses an unplanned charge on the pending interval's own split "
+    "(frozen=True, so no window sample and no map run commits); null controls: no rise, or a "
+    "planned hot-water share, hands frozen=False",
+    _uc_gates == ([True], [False], [False]),
+    f"{_uc_gates}",
+)
+
+
+
+# D2-s3-09: a draw-range experiment's ceiling sample at the running floor in
+# force says nothing of the top; ``ceiling_frozen`` drops it from the ceiling
+# store and from the window alike.
+from heatpump_optimizer import draw_range as _cf_dr  # noqa: E402
+
+_CF_P = dataclasses.replace(ThermalParameters(), min_electrical_power=1.0, max_electrical_power=6.0)
+_CF_CEIL = _lf_NS(written_c=55.0, gate_c=20.0, ceiling_c=55.0)
+
+
+def _cf_fold(drawn, floor_kw=None):
+    """One experiment interval at the ceiling set-point, its ceiling ask through the predicate."""
+    d = _cf_dr.DrawRange()
+    _cf_dr.fold(d, 3.0, (3.0, 0.0), _CF_P, frozen=False, distorted=False, defrost=False)  # keys the window
+    d.floor_kw = floor_kw
+    window = len(d.samples)
+    frozen = _lf.reason(_lf.Facts(), (), _LF_K.CEILING,
+                        _lf.Evidence(at_running_floor=_cf_dr.at_running_floor(d, drawn))) is not None
+    _cf_dr.fold(d, drawn, (6.0, 0.0), _CF_P, frozen=False, distorted=False, defrost=False,
+                command=_CF_CEIL, experiment_s=1.0e9, ceiling_frozen=frozen)
+    return frozen, len(d.ceiling), len(d.samples) - window
+
+
+_cf = {k: _cf_fold(*a) for k, a in {"at_learned_floor": (1.5, 1.5), "at_configured_floor": (1.1,),
+                                     "top_4": (4.0, 1.5), "top_4_cfg": (4.0,)}.items()}
+R.check(
+    "a ceiling sample at the floor in force (learned 1.5 kW, or the configured 1.0 kW unlearned) "
+    "is ceiling-frozen and reaches neither the ceiling store nor the window; a 4.0 kW ceiling "
+    "sample is kept in the store (null control) (D2-s3-09, note 9b3d1e15)",
+    _cf["at_learned_floor"] == (True, 0, 0) and _cf["at_configured_floor"] == (True, 0, 0)
+    and _cf["top_4"] == (False, 1, 0) and _cf["top_4_cfg"] == (False, 1, 0),
+    f"{_cf}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

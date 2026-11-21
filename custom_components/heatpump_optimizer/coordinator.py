@@ -978,7 +978,9 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     commanded = coord._commanded_power()
     if commanded < draw_range.power_floor_kw(coord._accuracy.draw, params):
         return
-    if coord._learning_frozen(CONF_OUTDOOR_TEMP_ENTITY) is not None:
+    # An unplanned charge runs the supply at the tank's charge temperature (#3760).
+    if coord._learning_frozen(CONF_OUTDOOR_TEMP_ENTITY, sample=learning_freeze.Sample.SPACE_HEAT,
+                              evidence=_space_evidence(coord, coord._commanded_split())) is not None:
         return
     if _cop_fold_blocked(coord):
         return
@@ -1131,11 +1133,23 @@ def _observe_heat_energy(coord: Any, reader: Any, at: datetime) -> None:
     """
     ctx = _ctx_of(coord)
     meter = heat_energy.meter_of(coord)
-    heat = reader.read(CONF_HEAT_ENERGY_ENTITY)
+    heat, tank = reader.read(CONF_HEAT_ENERGY_ENTITY), reader.read(CONF_DHW_TEMP_ENTITY)
     meter.observe_cycle(
         at, coord._pump_signals, heat, coord._measured_energy, ctx._config.optimization_interval,
-        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params,
+        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params, tank.value if tank.ok else None,
     )
+
+
+def _ceiling_frozen(coord: Any) -> bool:
+    """A draw-range ceiling sample's ask (D2-s3-09): refused at the running floor in force."""
+    at_floor = draw_range.at_running_floor(coord._accuracy.draw, coord._measured_power)
+    return coord._learning_frozen(CONF_POWER_ENTITY, sample=learning_freeze.Sample.CEILING,
+                                  evidence=learning_freeze.Evidence(at_running_floor=at_floor)) is not None
+
+
+def _space_evidence(coord: Any, split: tuple[float, float]) -> learning_freeze.Evidence:
+    """A space-heat ask's evidence for the interval ``split`` planned (#3760, D12-s3-03)."""
+    return learning_freeze.Evidence(unplanned_charge=heat_energy.meter_of(coord).unplanned_charge(split))
 
 
 def _replay_gate(
@@ -1191,6 +1205,15 @@ async def _async_learn_heat_span(coord: Any, clean: dict[str, bool]) -> None:
     modelled_cop = coord._thermal_model.compute_cop(ctx._current_state.outdoor_temperature)
     close = heat_energy.close_span(meter, clean, split, coord._last_house_sample, coord._last_house_sample_time,
                                    modelled_cop, COP_REFUSED_UNALIGNED, FabricInterval)
+    # The span's own evidence; its cycles' facts are already ANDed into ``clean``.
+    if frozen := learning_freeze.reason(learning_freeze.Facts(), (), learning_freeze.Sample.SPACE_HEAT,
+                                        learning_freeze.Evidence(unplanned_charge=close.unplanned_charge)):
+        # One span, one note (it spoils every learner it would reach).
+        if close.house or close.lower:
+            coord._learner_freezes.note_freeze("house" if close.house else "lower", frozen)
+        if close.cop:
+            coord._measured_cop.refusal = COP_REFUSED_FROZEN
+        return
     if close.lower:
         await coord._async_learn_lower_floor_loss(close.interval, close.space_kw)
     if close.house:
@@ -5043,7 +5066,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         leaves neither the reading nor the ask a space figure (``ran_hot_water``).
         """
         commanded_space, dhw_share = self._commanded_split()
-        if heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution((commanded_space, dhw_share))):
+        meter = heat_energy.meter_of(self)
+        if heat_energy.ran_hot_water(meter.attribution((commanded_space, dhw_share))) or meter.unplanned_charge(
+                (commanded_space, dhw_share)):
             return None
         if not getattr(self, "_ctx", self)._config.heat_pump_power_entity:
             return commanded_space
@@ -5337,7 +5362,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._measured_power is None and not heat_energy.meter_of(self).counter:
             return COP_REFUSED_NO_POWER
         heat_kw = self._flow_bias.heat_output_kw  # read first: an open window moves no measured heat
-        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, sample=learning_freeze.space_heat(heat_kw is not None or heat_energy.meter_of(self).counter)):
+        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, sample=learning_freeze.space_heat(heat_kw is not None or heat_energy.meter_of(self).counter), evidence=_space_evidence(self, self._commanded_split())):
             self._measured_cop.frozen_refusals += 1  # machine_evidence's tally
             return COP_REFUSED_FROZEN
 
@@ -5772,7 +5797,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #2508: no room entity is the raw freeze, so it ranks before the
         # ventilation pass-through below and leaves no counter span clean.
         raw = learner_room_unread(ctx._config) or self._learning_frozen(
-            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY)
+            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY,
+            sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, self._commanded_split()))
         heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, raw)
         # "ventilation" is the one reason to look past: the detector below
         # clears it and needs the residual to see the window close. Any other
@@ -5931,7 +5957,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not params.two_zone_enabled or not ctx._config.lower_floor_temp_entity:
             return False
         heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, self._learning_frozen(
-            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_LOWER_FLOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
+            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_LOWER_FLOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY,
+            sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, self._commanded_split()),
         ))
         if frozen:
             self._learner_freezes.note_freeze("lower", frozen)
@@ -9967,7 +9994,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # (#2262), within the window the accuracy pairing below trusts; a
         # prediction recording no split, or a dwell that saw hot water, is none.
         if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and not heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
-            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None)
+            # An unplanned charge is no running space sample (#3760): the pending split's own evidence.
+            space_frozen = self._learning_frozen(CONF_POWER_ENTITY, sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, pending["split"]))
+            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=space_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None, ceiling_frozen=_ceiling_frozen(self))
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -10284,9 +10313,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._schedule_ledger_save()
             return
 
-        dhw_share = heat_energy.dhw_share(
-            heat_energy.meter_of(self).attribution((planned_space, planned_dhw))
-        )
+        # The interval ``pending`` governed, read at this cycle's close: an
+        # unplanned charge books as hot water (the whole-unit rule).
+        dhw_share = heat_energy.meter_of(self).booked_dhw_share((planned_space, planned_dhw))
         dhw_energy = energy * dhw_share
         space_energy = energy - dhw_energy
 
@@ -11011,9 +11040,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
+        # An unplanned charge stands the step down: its heat went to the tank.
         why = sysid.hold_reason(
             self._pump_signals,
-            self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
+            self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY,
+                                  sample=learning_freeze.Sample.SPACE_HEAT,
+                                  evidence=_space_evidence(self, self._commanded_split())),
             getattr(ctx, "_config", None),
             dt_util.now(),
         )

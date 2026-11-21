@@ -60,6 +60,11 @@ SPAN_REFUSED_RESET = "counter_reset"
 SPAN_REFUSED_ROLLOVER = "counter_rollover"
 SPAN_REFUSED_RESOLUTION = "counter_resolution"
 SPAN_REFUSED_LONG = "span_too_long"
+#: An interval's tank rise past which a space-only, unobserved interval was a
+#: charge the plan did not ask for (#3760, D12-s3-03). Over a tank probe's
+#: quantisation and stratification wobble (a few tenths), under one charging
+#: cycle's rise (a 6 kW pump into 200 L lifts it about 6 K in 15 minutes).
+UNPLANNED_CHARGE_RISE_K = 1.0
 
 
 def _after(newer: datetime, older: datetime) -> bool:
@@ -279,6 +284,20 @@ def dhw_share(a: Attribution) -> float:
     return a.dhw / total if total > 1e-6 else 0.0
 
 
+def unplanned_charge(a: Attribution, tank_rise_k: float | None) -> bool:
+    """Whether an interval was a hot-water charge its plan split never asked for.
+
+    Unobserved (no dwell saw the duty), planned as space alone -- the
+    whole-unit rule :func:`space_heat_kw` applies -- and the tank thermometer
+    rose past :data:`UNPLANNED_CHARGE_RISE_K` over it. No reading, or no
+    tank thermometer, reads ``False``: the plan split stands, as before.
+    """
+    return (
+        not a.observed and a.dhw <= 0.0 < a.space
+        and tank_rise_k is not None and tank_rise_k > UNPLANNED_CHARGE_RISE_K
+    )
+
+
 class SpanEvidence(NamedTuple):
     """What a span hands its learners at its close: its energy, or why it was refused."""
 
@@ -292,6 +311,8 @@ class SpanEvidence(NamedTuple):
     #: The plan's ``(space, hot water)`` commanded kWh over the span.
     plan_kwh: tuple[float, float]
     attribution: Attribution
+    #: The tank's rise from the span's opening read to its close, or ``None``.
+    tank_rise_k: float | None = None
 
 
 class SpanHeat(NamedTuple):
@@ -358,6 +379,8 @@ class SpanClose(NamedTuple):
     lower: bool
     house: bool
     cop: bool
+    #: The span was a charge its plan never asked for (:func:`unplanned_charge`).
+    unplanned_charge: bool = False
 
 
 #: No span closed or was refused this cycle: no learner is reached.
@@ -388,6 +411,11 @@ class HeatEnergyMeter:
     _dhw_seen: bool = False
     _clean: dict[str, bool] = field(default_factory=dict)
     _plan: tuple[float, float] = (0.0, 0.0)
+    #: The tank thermometer at the previous and this cycle's reads, and at the
+    #: open span's opening read: runtime only, the evidence of
+    #: :func:`unplanned_charge`.
+    tank_c: tuple[float | None, float | None] = (None, None)
+    _span_tank_c: float | None = None
 
     def observe_mode(
         self, at: datetime, mode_key: str | None, live: bool, changed_at: datetime | None
@@ -397,7 +425,7 @@ class HeatEnergyMeter:
 
     def observe_cycle(
         self, at: datetime, signals: Any, heat: Any, elec_kwh: float | None, cadence_min: float,
-        bounds_h: tuple[float, float], params: Any,
+        bounds_h: tuple[float, float], params: Any, tank_c: float | None = None,
     ) -> None:
         """This cycle's mode and counter reads (#2261), as the coordinator holds them.
 
@@ -406,14 +434,28 @@ class HeatEnergyMeter:
         value only when it read, configured when it names an entity),
         ``cadence_min`` the optimization interval in minutes, ``bounds_h`` the
         interval learners' sample bounds and ``params`` the thermal parameters
-        whose nameplate heat bounds a rollover.
+        whose nameplate heat bounds a rollover; ``tank_c`` the tank
+        thermometer's usable reading, or ``None``.
         """
+        self.tank_c = (self.tank_c[1], tank_c)
         self.observe_mode(at, signals.mode.key, signals.mode_live, signals.mode_changed_at)
         self.observe_counters(
             at, heat.value if heat.ok else None, elec_kwh, configured=bool(heat.entity_id),
             cadence_h=cadence_min / 60.0, bounds_h=bounds_h,
             max_heat_kw=params.max_electrical_power * params.cop_nominal_floored,
         )
+
+    def unplanned_charge(self, plan_split: tuple[float, float]) -> bool:
+        """This cycle's interval, on ``plan_split``, was a charge the plan never asked for."""
+        prev, now = self.tank_c
+        rise = None if prev is None or now is None else now - prev
+        return unplanned_charge(self.attribution(plan_split), rise)
+
+    def booked_dhw_share(self, plan_split: tuple[float, float]) -> float:
+        """Hot water's share of this cycle's metered energy: all of it on an unplanned charge."""
+        if self.unplanned_charge(plan_split):
+            return 1.0
+        return dhw_share(self.attribution(plan_split))
 
     def attribution(self, plan_split: tuple[float, float]) -> Attribution:
         """This cycle's interval, split by the dwell where observed, else by ``plan_split``."""
@@ -505,9 +547,13 @@ class HeatEnergyMeter:
         if (self.closed is not None or self.refusal is not None) and self._anchor is not None:
             e = self.closed
             shares = self.dwell.shares(e.start, e.end) if e is not None else None
+            now_c = self.tank_c[1]
             out = SpanEvidence(
-                e, self.refusal, *self._anchor, self._clean, self._plan, attribution(shares, self._plan)
+                e, self.refusal, *self._anchor, self._clean, self._plan, attribution(shares, self._plan),
+                None if now_c is None or self._span_tank_c is None else now_c - self._span_tank_c,
             )
+        if self._opened:
+            self._span_tank_c = self.tank_c[1]
         if self._opened and anchor[1] is not None:
             self._anchor, self._clean, self._plan = (anchor[0], anchor[1]), {}, (0.0, 0.0)
         elif self._opened:
@@ -571,7 +617,7 @@ def close_span(
         interval, got.space_kw, got.asked_kw, got.heat_kw, 0.0 if got.elec_kw is None else got.elec_kw,
         got.refusal or (unaligned if got.elec_kw is None else None), (got.heat_kw, ev.attribution),
         interval is not None and bool(ev.clean.get("lower")), interval is not None and bool(ev.clean.get("house")),
-        bool(ev.clean.get("cop")) or e is None,
+        bool(ev.clean.get("cop")) or e is None, unplanned_charge(ev.attribution, ev.tank_rise_k),
     )
     log_close(ev, close)
     return close
