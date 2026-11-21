@@ -41,8 +41,10 @@ scoped to what the three-dot diff adds or changes, so a red main already
 carries is never charged to a branch. Nothing here runs a test, a recording
 or a mutant: seconds, never a heavy script, but for AGREEMENT, which runs the
 lane in a throwaway clone (about 10 s) and only on a diff to a path its job
-restores, and two opt-in by `--record-self-tests` (prepr's 6d passes it):
-GRADER, minutes where keyed (measured in its record), and SELF-TEST READS,
+restores, and three opt-in by `--record-self-tests` (prepr's 6d passes it):
+GRADER, minutes where keyed (measured in its record), SELFTEST SCOPE (main's
+drift step over the gated self-tests whose own script the diff changes,
+traced in a scratch clone: `selftest_scope_preds`), and SELF-TEST READS,
 a changed file's own `--self-test`, recorded by `closure._exec_record` and
 graded as its host's record by `closure.check`, for each gate script whose
 source runs that self-test (0.5 s to 29 s a file, measured;
@@ -529,6 +531,11 @@ def instrument_steps(root: Path) -> dict[str, str]:
         m = re.search(r"^        run: \|\n((?:(?: {10}.*)?\n)*)", rest + "\n", re.M)
         one = re.search(r"^        run: (?!\|)(.+)$", rest, re.M)
         run = "\n".join(ln[10:] for ln in m.group(1).splitlines()) if m else (one.group(1) if one else "")
+        # A step that runs only after another step failed (`absorb`, after a
+        # red `drift`) reads what that failure wrote: replayed alone it is red
+        # on a missing input, never on the diff.
+        if re.search(r"^        if: .*\bsteps\.[\w-]+\.outcome == 'failure'", rest, re.M):
+            continue
         if run.strip():
             out[name.strip()] = run
     return out
@@ -641,6 +648,102 @@ def step_replay_preds(root: Path, base: str, changed: set[str],
     return out
 
 
+SCOPE_TOOL = "tools/ci/selftest_scope.py"
+
+
+def selftest_scope_preds(root: Path, base: str, notes: list | None = None,
+                         run=subprocess.run) -> list[tuple[str, str]]:
+    """Main's drift step, the one `instrument-self-tests` check no pull request
+    runs (dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md: a diff that gives a
+    gated self-test a new read turned main red after its merge, ten hotfixes in
+    round 10). `selftest_scope.py precheck` traces the gated steps whose own
+    script the diff changes, in a scratch clone, and grades them as
+    that step does: each read the table misses is a predicted red naming its
+    repair; rc 3 (no strace here) is a note, main's step staying the detector."""
+    if not (root / SCOPE_TOOL).is_file():
+        return []
+    r = run([sys.executable, "-I", SCOPE_TOOL, "precheck", "--base", base], cwd=root,
+            capture_output=True, text=True)
+    lines = [x for x in r.stdout.splitlines() if x.strip()]
+    if r.returncode == 3:
+        (notes if notes is not None else []).append("SELFTEST SCOPE " + (lines[-1] if lines else "skipped"))
+        return []
+    if r.returncode == 0:
+        return []
+    refused = [x.strip() for x in lines if x.startswith("  ")]
+    if r.returncode != 1 or not refused:
+        tail = (lines or r.stderr.splitlines() or ["no output"])[-1]
+        return [("instrument", f"SELFTEST SCOPE UNREADABLE precheck rc {r.returncode}: {tail}")]
+    out = []
+    for x in refused:
+        m = re.search(r"\bstep ([\w-]+)", x)
+        out.append(("instrument", f"SELFTEST SCOPE {x}" + (
+            f" -- `python3 {SCOPE_TOOL} record --step {m.group(1)}` adds what the step reads now" if m else "")))
+    return out
+
+
+def selftest_scope_self_test() -> int:
+    """`selftest_scope_preds` over each exit `precheck` has, the tool stubbed."""
+    import tempfile
+    from types import SimpleNamespace as R
+    bad = 0
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        calls: list = []
+
+        def fake(rc, out="", err=""):
+            def run(argv, **kw):
+                calls.append((argv[1:], kw.get("cwd")))
+                return R(returncode=rc, stdout=out, stderr=err)
+            return run
+        none = selftest_scope_preds(root, "b", run=fake(1, "  UNDER-SCOPED step a: files misses ['x']\n"))
+        (root / "tools" / "ci").mkdir(parents=True)
+        (root / SCOPE_TOOL).write_text("")
+        notes: list = []
+        red = selftest_scope_preds(root, "b4se", notes, fake(
+            1, "OK       0.1s a\n  UNDER-SCOPED step a-b: files misses ['docs/d.md']\n  PARTIAL trace x\n"
+               "selftest_scope precheck: 1 step(s) traced ['a-b'], 2 refusal(s)\n"))
+        skip = selftest_scope_preds(root, "b", notes, fake(3, "selftest_scope precheck: skip, 1 step(s) untraced\n"))
+        rc2 = selftest_scope_preds(root, "b", [], lambda argv, **kw: R(returncode=2, stderr="",
+                                                                      stdout="  UNDER-SCOPED step a: files misses ['x']\n"))
+        try:  # not a repository: past the arm check, no merge base
+            only_ok = predict(root, "HEAD", only="selftest-scope")[:2]
+        except SystemExit:
+            only_ok = None
+        try:
+            predict(root, "HEAD", only="no-such-arm")
+            only_bad = False
+        except SystemExit:
+            only_bad = True
+        cases = [
+            ("selftest-scope: a tree without the tool predicts nothing and runs nothing", none == [] and len(calls) == 2),
+            ("selftest-scope: each refusal of precheck is a predicted instrument red; a step's names its record command",
+             red == [("instrument", "SELFTEST SCOPE UNDER-SCOPED step a-b: files misses ['docs/d.md'] -- `python3 "
+                                    "tools/ci/selftest_scope.py record --step a-b` adds what the step reads now"),
+                     ("instrument", "SELFTEST SCOPE PARTIAL trace x")]),
+            ("selftest-scope: precheck is run isolated, against the given base, in the tree",
+             calls[0] == (["-I", SCOPE_TOOL, "precheck", "--base", "b4se"], root)),
+            ("selftest-scope: rc 3 (no strace) is a note and no red",
+             skip == [] and notes == ["SELFTEST SCOPE selftest_scope precheck: skip, 1 step(s) untraced"]),
+            ("selftest-scope: rc 0 predicts nothing (null control)",
+             selftest_scope_preds(root, "b", notes, fake(0, "selftest_scope precheck: 1 step(s) traced, 0 refusal(s)\n")) == []
+             and len(notes) == 1),
+            ("selftest-scope: a precheck that could not run is a red, never a pass",
+             selftest_scope_preds(root, "b", notes, fake(2, "", "git cannot diff\n"))
+             == [("instrument", "SELFTEST SCOPE UNREADABLE precheck rc 2: git cannot diff")]
+             and selftest_scope_preds(root, "b", notes, fake(1, "no refusal line\n"))
+             == [("instrument", "SELFTEST SCOPE UNREADABLE precheck rc 1: no refusal line")]),
+            ("selftest-scope: an indented line under an rc that is neither 0, 1 nor 3 is no refusal: the run is unreadable",
+             [j for j, _ in rc2] == ["instrument"] and rc2[0][1].startswith("SELFTEST SCOPE UNREADABLE precheck rc 2")),
+            ("selftest-scope: --only selftest-scope is an arm predict accepts (an unknown name is refused)",
+             only_ok == (2, []) and only_bad),
+        ]
+    for label, ok in cases:
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+        bad += not ok
+    return bad
+
+
 def step_replay_self_test(root: Path) -> int:
     """`step_replay_preds` over a scratch repo: a summary line the head stops
     printing, its null control, and a step red at both ends."""
@@ -685,6 +788,16 @@ def step_replay_self_test(root: Path) -> int:
             got = len(step_replay_preds(t, base, changed))
             print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
             bad += got != want
+        wf = (t / INSTRUMENT_WF).read_text()
+        (t / INSTRUMENT_WF).write_text(wf + "      - name: e\n        id: e\n        if: ${{ !cancelled() && steps.d.outcome == 'failure' }}\n"
+                                       "        run: bash tools/e.sh\n      - name: f\n        id: f\n"
+                                       "        if: ${{ !cancelled() && steps.d.outcome == 'success' }}\n        run: bash tools/f.sh\n")
+        names = set(instrument_steps(t))
+        (t / INSTRUMENT_WF).write_text(wf)
+        good = "e" not in names and {"a", "b", "c", "d", "f"} <= names
+        print(f"  {'ok  ' if good else 'FAIL'} a step that runs only after another step failed is not replayed alone; "
+              "null control: one conditioned on another's success is")
+        bad += not good
         notes: list[str] = []
         got = len(step_replay_preds(t, base, {"tools/b.sh"}, notes))
         good = got == 0 and len(notes) == 1
@@ -1222,7 +1335,26 @@ def unpinned(base):
 # review, 2026-10-26).
 ARMS = ("orphans", "layout", "privacy", "wiring", "mutants", "agreement", "graders", "no-recording",
         "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads",
-        "step-replay")
+        "step-replay", "selftest-scope")
+# The arms that run a gate's programs, minutes where they are keyed: run on
+# --record-self-tests (prepr 6d) or by name, never on a default call, so
+# body_push.sh's seconds-budget run leaves them to prepr (R10-RCA-PREPR-HEAD-GRADERS).
+GATED_ARMS = ("self-test-reads", "graders", "step-replay", "selftest-scope")
+
+
+def arm_runs(name: str, only: str | None, record: bool) -> bool:
+    """Whether `predict` runs arm ``name``: the one arm ``only`` names, else
+    every arm, a gated one only under ``record``."""
+    return name == only if only is not None else (record or name not in GATED_ARMS)
+
+
+def run_arms(arms, only: str | None, record: bool) -> list[tuple[str, str]]:
+    """The predictions of each ``(name, arm)`` in order, for the arms `arm_runs` admits."""
+    preds: list[tuple[str, str]] = []
+    for name, arm in arms:
+        if arm_runs(name, only, record):
+            preds += arm()
+    return preds
 
 
 def is_red(job: str, line: str) -> bool:
@@ -1268,14 +1400,9 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
         ("self-test-reads", lambda: self_test_reads(root, changed, closures, inert_reads,
                                                     closure, scripts, notes=notes)),
         ("step-replay", lambda: step_replay_preds(root, base, changed, notes)),
+        ("selftest-scope", lambda: selftest_scope_preds(root, base, notes)),
     )
-    preds: list[tuple[str, str]] = []
-    for name, arm in arms:
-        # The arms that run a gate's programs: on --record-self-tests (prepr 6d)
-        # or by name. `graders` takes minutes where it is keyed, so body_push.sh's
-        # seconds-budget run leaves it to prepr (R10-RCA-PREPR-HEAD-GRADERS).
-        if (only is None and (name not in ("self-test-reads", "graders", "step-replay") or record)) or name == only:
-            preds += arm()
+    preds = run_arms(arms, only, record)
     if body:
         preds += carry_preds(root, body)
     seen, out = set(), []
@@ -1683,6 +1810,8 @@ def self_test() -> int:
     bad += null_control_self_test(root)
     bad += graders_self_test(root)
     bad += step_replay_self_test(root)
+    bad += selftest_scope_self_test()
+    bad += gated_arms_self_test()
     bad += roundref_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
@@ -1696,6 +1825,34 @@ def self_test() -> int:
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+def gated_arms_self_test() -> int:
+    """`run_arms`, `predict`'s loop, over a stub per arm that records it ran: a
+    default call (body_push.sh's seconds budget) runs no gated arm, `precheck`'s
+    minutes under strace among them; --record-self-tests runs every arm (null
+    control). Stubs, not `predict` over the checkout: that read the whole tree,
+    which the `ci-predictor` step's recorded reads would then carry."""
+    ran: list = []
+    arms = [(a, lambda a=a: ran.append(a) or [("x", a)]) for a in ARMS]
+    default = [line for _, line in run_arms(arms, None, False)]
+    ran_default = list(ran)
+    ran.clear()
+    recorded = [line for _, line in run_arms(arms, None, True)]
+    ran.clear()
+    only = [line for _, line in run_arms(arms, "selftest-scope", False)]
+    # Named here, not read from GATED_ARMS: an expected value derived from the
+    # tuple under test holds for any membership, so a dropped arm went unseen.
+    gated = ("self-test-reads", "graders", "step-replay", "selftest-scope")
+    cases = [("gated arms: GATED_ARMS is exactly self-test-reads, graders, step-replay and selftest-scope",
+              sorted(GATED_ARMS) == sorted(gated)),
+             ("gated arms: a default call runs every ungated arm and none of the four named gated ones",
+              default == ran_default == [a for a in ARMS if a not in gated]),
+             ("gated arms: null: --record-self-tests runs every arm, in order", recorded == list(ARMS)),
+             ("gated arms: --only selftest-scope runs that arm alone", only == ran == ["selftest-scope"])]
+    for label, ok in cases:
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+    return sum(not ok for _, ok in cases)
 
 
 def roundref_self_test(root: Path) -> int:
