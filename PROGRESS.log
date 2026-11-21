@@ -4,3 +4,4 @@
 1795303022 HB alive
 1795303126 CKPT mutants 5/5 killed; lints green; greedy-capture edge found; waiting CI snapshot 9924241ffcb4
 1795303626 HB alive
+1795304315 DONE verdict merge (pending-ci: gate) pushed to probe/rev-3839-27524305 d556e843
