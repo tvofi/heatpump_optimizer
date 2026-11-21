@@ -2361,7 +2361,6 @@ def classify_space_steps(
     *,
     other: np.ndarray | None = None,
     caps: np.ndarray | None = None,
-    room_lifts: np.ndarray | None = None,
 ) -> list[str]:
     """Why each space-heating step is where it is.
 
@@ -2376,8 +2375,7 @@ def classify_space_steps(
     The classification is a post-hoc reading of the solved plan rather than
     something the solver emits, because the objective is a single scalar and
     there is no point in the LP at which one term "wins". Ranked, so the most
-    specific explanation is the one reported. A floor step the floor less
-    ``room_lifts`` would not hold is the room lift's (``_Horizon.room_lifts``).
+    specific explanation is the one reported.
     """
     reasons: list[str] = []
     if n_steps == 0:
@@ -2387,7 +2385,6 @@ def classify_space_steps(
     idle = idle_codes(
         n_steps, power, prices, room_temps, temp_min_bounds, surplus, other, caps, threshold,
     )
-    lifts = np.nan_to_num(_padded(room_lifts, n_steps))  # None: no step is the lift's
     for i in range(n_steps):
         if power[i] <= threshold:
             reasons.append(idle[i])
@@ -2396,7 +2393,7 @@ def classify_space_steps(
         # the plan has no choice.
         room = room_temps[i + 1] if i + 1 < len(room_temps) else room_temps[-1]
         if room <= temp_min_bounds[i] + 0.15:
-            reasons.append(REASON_COMFORT_FLOOR if room <= temp_min_bounds[i] - lifts[i] + 0.15 else REASON_ROOM_FLOOR)
+            reasons.append(REASON_COMFORT_FLOOR)
             continue
         if surplus is not None and i < len(surplus) and surplus[i] > 1e-6:
             reasons.append(REASON_SOLAR_SURPLUS)
@@ -2517,6 +2514,28 @@ def _apply_pins_to_bounds(
         else:
             out[i] = (0.0, 0.0)
     return out
+
+
+def _mark_room_floor(
+    reasons: list[str], room_temps: np.ndarray, temp_min_bounds: np.ndarray,
+    room_lifts: np.ndarray | None,
+) -> list[str]:
+    """Relabel a ``comfort_floor`` step ``room_floor`` where the floor less
+    ``room_lifts`` (``_Horizon.room_lifts``) would not hold it (#3616).
+
+    The same 0.15 K test ``classify_space_steps`` puts a step at the floor
+    with, against the floor the solve held without the room lift: the step
+    keeps its rank, and only the lift's share of the floor is named apart.
+    None leaves every label as classified.
+    """
+    if room_lifts is None:
+        return reasons
+    last = len(room_temps) - 1
+    return [
+        REASON_ROOM_FLOOR if reason == REASON_COMFORT_FLOOR
+        and room_temps[min(i + 1, last)] > temp_min_bounds[i] - room_lifts[i] + 0.15 else reason
+        for i, reason in enumerate(reasons)
+    ]
 
 
 def _mark_blocked_reasons(reasons: list[str], blocked: bool) -> list[str]:
@@ -4057,7 +4076,7 @@ class HeatPumpOptimizer:
             dhw_heating_cost=dhw_cost,
             space_reasons=_mark_blocked_reasons(
                 _mark_manual_reasons(
-                    classify_space_steps(
+                    _mark_room_floor(classify_space_steps(
                         space_power,
                         h.prices,
                         room,
@@ -4067,8 +4086,7 @@ class HeatPumpOptimizer:
                         h.n_steps,
                         other=dhw_power,
                         caps=h.power_caps_extra,
-                        room_lifts=h.room_lifts,
-                    ),
+                    ), room, h.temp_min_bounds, h.room_lifts),
                     h.space_pins,
                 ),
                 h.space_blocked,

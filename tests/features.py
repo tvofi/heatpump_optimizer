@@ -98407,9 +98407,9 @@ _R3_ROOM = np.array([19.5, 19.6, 19.95, 20.0, 21.0])
 
 
 def _r3_classify(lifts):
-    return _r3_opt.classify_space_steps(
+    return _r3_opt._mark_room_floor(_r3_opt.classify_space_steps(
         np.full(4, 2.0), np.ones(4), _R3_ROOM, 19.5 + _R3_LIFT, np.ones(4), None, 4,
-        room_lifts=lifts)
+    ), _R3_ROOM, 19.5 + _R3_LIFT, lifts)
 
 
 _r3_split, _r3_today = _r3_classify(_R3_LIFT), _r3_classify(None)
