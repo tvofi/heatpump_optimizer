@@ -4,7 +4,7 @@
 //
 // Metric (one line, unchanged from the finder): source lines in README.md +
 // docs/{architecture,automations,configuration,dashboard-card,heat-curve,
-// how-it-works,setup}.md that render in the wrong block -- (a) prose lines
+// how-it-works,setup}.md that render in the wrong block. They are (a) prose lines
 // (not starting with "|") rendered as table rows ("swallowed"), plus (b)
 // pipe-table rows rendered as paragraph text with raw pipes ("orphaned")
 // because no header/delimiter row governs them.
@@ -12,10 +12,10 @@
 // what the renderer delivers, never the raw source shape alone -- the same
 // distinction render_md.mjs (#682) draws for the other reader docs.
 //
-// Unlike the finder's copy under dev/audit/rounds/round9/ (evidence-only, not in
-// main's tree, and needing a throwaway `npm install markdown-it@14.1.0`),
-// this gate reaches the SAME vendored 14.1.0 build already checked in for
-// render_md.mjs, so it runs offline in the scoped gate and in CI with no
+// The finder's copy is under dev/audit/rounds/round9/ (evidence-only, not in
+// main's tree, and needing a throwaway `npm install markdown-it@14.1.0`).
+// This gate reaches the SAME vendored 14.1.0 build already checked in for
+// render_md.mjs instead. It runs offline in the scoped gate and in CI with no
 // network step:
 //   node tests/md_tables.mjs
 // `--self-test` runs the null control only (see below) and exits without
@@ -84,7 +84,7 @@ function report(files) {
 
 // Null control: the exact anti-legionella (orphaned) and fuel-price
 // (swallowed) shapes D5-s1-04 measured at baseline 1936d5ca, reintroduced
-// as a synthetic document -- proof the gate fires on the shape it exists to
+// as a synthetic document. It proves the gate fires on the shape it exists to
 // catch, not only that the current docs happen to be clean.
 const SELF_TEST_BAD = [
   '# Configuration',
