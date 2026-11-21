@@ -1588,6 +1588,17 @@ def budget_table_problems(table: dict) -> list[str]:
                                       low_open=True)
                 if problem:
                     out.append(problem.replace(": ", f": {label} ", 1))
+        if "simulate_allowance" in entry:
+            allow = entry["simulate_allowance"]
+            factor = allow.get("factor") if isinstance(allow, dict) else None
+            below = allow.get("baseline_below") if isinstance(allow, dict) else None
+            if (isinstance(factor, bool) or not isinstance(factor, (int, float))
+                    or not np.isfinite(factor) or factor <= 0
+                    or isinstance(below, bool) or not isinstance(below, int)
+                    or below <= 0):
+                out.append(f"{BUDGET_TABLE_PATH}: {label} simulate_allowance="
+                           f"{allow!r} needs a finite factor > 0 and an "
+                           f"integer baseline_below > 0")
     return out
 
 
@@ -1926,7 +1937,9 @@ def budget_remeasure_verdicts(
     return kept, notes
 
 
-def work_over_verdict(observed: int, recorded: int) -> bool:
+def work_over_verdict(
+    observed: int, recorded: int, factor: float = SCENARIO_WORK_FACTOR
+) -> bool:
     """Has this scenario's solver work grown past its recorded count?
 
     The sweep and the checks that prove the sweep can fail both call this
@@ -1934,7 +1947,28 @@ def work_over_verdict(observed: int, recorded: int) -> bool:
     is meant to pin (tests/README.md). Deleting the body's comparison turns
     four named checks red; the mutation proof is in the PR for #346.
     """
-    return observed > recorded * SCENARIO_WORK_FACTOR
+    return observed > recorded * factor
+
+
+def simulate_work_factor(table: dict, label: str, base_sim: int) -> float:
+    """The simulate-channel factor for one scenario: its recorded allowance
+    where one applies, else SCENARIO_WORK_FACTOR.
+
+    The allowance is one scenario's recorded raise for a change that
+    legitimately multiplies its simulate work on an unchanged plan
+    (R11-SEAM-solver, D0-s2-01: the wood-covered start set; owner-mandate
+    raise, CLAUDE.md rule 2). It applies only while the live baseline still
+    reads the pre-change count (below ``baseline_below``, the geometric mean
+    of the pre-change 37824 and post-change 122592 counts), so once main
+    carries the change the global factor judges the scenario again and the
+    allowance is inert -- it never widens the gate on any other scenario or
+    channel.
+    """
+    row = table.get(label)
+    allow = row.get("simulate_allowance") if isinstance(row, dict) else None
+    if isinstance(allow, dict) and base_sim < allow["baseline_below"]:
+        return float(allow["factor"])
+    return SCENARIO_WORK_FACTOR
 
 
 def kernel_cost_over_verdict(
@@ -2918,6 +2952,7 @@ def work_drift_compare(
     observed_kernel: dict[str, float],
     baseline: dict[str, dict],
     doubt_over_factor: bool = False,
+    table: dict | None = None,
 ) -> WorkDrift:
     """Judge this tree's solver work against the baseline's, per scenario.
 
@@ -2995,13 +3030,18 @@ def work_drift_compare(
         # plan moved is exempt with the plan.
         base_sim = entry.get("simulate") if isinstance(entry, dict) else None
         got_sim = observed_simulate[label]
+        sim_factor = (
+            simulate_work_factor(table or {}, label, base_sim)
+            if isinstance(base_sim, int) and base_sim > 0
+            else SCENARIO_WORK_FACTOR
+        )
         if (isinstance(base_sim, int) and base_sim > 0
-                and work_over_verdict(int(got_sim), base_sim)):
+                and work_over_verdict(int(got_sim), base_sim, sim_factor)):
             verdict.sim_over.append(
                 f"{label} stepped the simulation {int(got_sim)} "
                 f"step-equivalents against the baseline's {base_sim} = "
                 f"{int(got_sim) / base_sim:.2f}x, over the "
-                f"{SCENARIO_WORK_FACTOR:.2f}x factor, on an unchanged "
+                f"{sim_factor:.2f}x factor, on an unchanged "
                 f"plan (objective {_fmt_objective(objective)})"
             )
         # The per-call-cost channel (round-5 D9-07). The counts above
@@ -3075,6 +3115,7 @@ def judge_work(
     combos_by_label: dict[str, dict],
     rounds: int = KERNEL_DOUBT_ROUNDS,
     remeasure=None,
+    table: dict | None = None,
 ) -> tuple[WorkDrift, bool, str]:
     """work_drift_compare, with the kernel doubt band re-measured.
 
@@ -3096,7 +3137,7 @@ def judge_work(
     """
     drift = work_drift_compare(
         observed_evals, observed_simulate, observed_objective,
-        observed_kernel, baseline, doubt_over_factor=True,
+        observed_kernel, baseline, doubt_over_factor=True, table=table,
     )
     doubt = list(drift.cost_doubt)
     if not doubt:
@@ -3131,6 +3172,7 @@ def judge_work(
         )
     judged = work_drift_compare(
         observed_evals, observed_simulate, observed_objective, kernel, rebased,
+        table=table,
     )
     return judged, True, (
         f"kernel doubt band: re-solved {len(doubt)} scenario(s) "
@@ -4256,6 +4298,52 @@ if __name__ == "__main__":
         f"added: {_added.only_here}, deleted: {_deleted.only_baseline}",
     )
 
+    # (e2) the per-scenario simulate allowance: self-expiring, one scenario,
+    # one channel.
+    _AL, _OT = "allowed/scenario", "other/scenario"
+    _al_table = {
+        _AL: {"simulate_allowance": {"factor": 3.25, "baseline_below": 68093}},
+        _OT: {"ratio": 1.0},
+    }
+
+    def _al_rule(label, base_sim, grown):
+        return work_drift_compare(
+            {label: 100}, {label: int(base_sim * grown)}, {label: 1.0},
+            {label: 0.0},
+            {label: {"evals": 100, "simulate": base_sim, "objective": 1.0}},
+            table=_al_table,
+        )
+
+    _al_pre = _al_rule(_AL, 37824, 3.2)
+    _al_post = _al_rule(_AL, 122592, 3.2)
+    _al_other = _al_rule(_OT, 37824, 2.0)
+    R.check(
+        "a simulate allowance excuses its scenario while the baseline "
+        "predates the change",
+        not _al_pre.sim_over and _al_pre.covered == [_AL],
+        f"3.2x on a pre-change baseline fired {_al_pre.sim_over}",
+    )
+    R.check(
+        "...and is inert once the baseline carries the change",
+        [f.split()[0] for f in _al_post.sim_over] == [_AL],
+        f"3.2x on a post-change baseline fired {_al_post.sim_over}",
+    )
+    R.check(
+        "...and never widens the gate on a scenario without one",
+        [f.split()[0] for f in _al_other.sim_over] == [_OT],
+        f"2.0x on a scenario with no allowance fired {_al_other.sim_over}",
+    )
+    R.check(
+        "a malformed simulate allowance is refused by the budget table check",
+        len(budget_table_problems(
+            {_AL: {"simulate_allowance": {"factor": float("nan"),
+                                          "baseline_below": 5}}})) == 1
+        and len(budget_table_problems(
+            {_AL: {"simulate_allowance": {"factor": 3.0}}})) == 1
+        and not budget_table_problems(_al_table),
+        "a NaN factor or a missing baseline_below was accepted",
+    )
+
     # (f) the cheaper side, at both ends of its range. #288 and #289 make
     # scenarios cheaper on purpose; this rule is what stops the comparison
     # being quietly re-fitted around them.
@@ -5000,7 +5088,7 @@ if __name__ == "__main__":
         drift, _doubt_ok, _doubt_note = judge_work(
             observed_evals, observed_simulate, observed_objective,
             observed_kernel, baseline_work, repository_root(),
-            WORK_DRIFT_REF, combos_by_label,
+            WORK_DRIFT_REF, combos_by_label, table=budget_table,
         )
         print(f"  {_doubt_note}")
         R.check(
