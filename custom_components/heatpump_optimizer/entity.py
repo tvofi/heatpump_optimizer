@@ -135,11 +135,18 @@ def payload_number(
     had drifted from this four ways (D7-s2-60), so every entity that publishes
     a payload number reads it here. A numpy scalar is read as the Python
     value it holds, the order ``_finite`` takes for the same reason: a
-    ``numpy.bool_`` is then a bool, and a ``numpy.int64`` an ``int``.
+    ``numpy.bool_`` is then a bool, and a ``numpy.int64`` an ``int``. NaN and
+    infinity are not numbers a state publishes (``_finite`` makes them unknown
+    at the boundary anyway), so they are ``None`` here, where a guard reading
+    the value decides on it (round-11 D7-s3-04). The domain differs from
+    ``const.finite_float`` only in text: a stored or configured number may be
+    spelled, a payload number may not.
     """
     if isinstance(value, np.generic):
         value = value.item()
     if isinstance(value, bool) or not isinstance(value, types):
+        return None
+    if isinstance(value, float) and not math.isfinite(value):
         return None
     return value
 
