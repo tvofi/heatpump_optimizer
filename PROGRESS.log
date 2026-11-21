@@ -1,2 +1,3 @@
 1795276857 INIT r11-hotfix-instrument-selftests
 1795276864 HB alive
+1795276973 CKPT cause named: drift step UNDER-SCOPED 7 steps (#3708 table, #3711 room files); P351 passes in CI snapshot 0b0f991265b2
