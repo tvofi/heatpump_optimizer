@@ -1,0 +1,17 @@
+head 2ab3a56582474465586a11d6e63a40db7a8be0b5 box 48b7c2c08adc927fd240136e452b2a3a666c655d base e698fc8ac374a1d72c230b55d938d75b03b7de67
+added-identical 616
+added-modified 3
+main-holds-other-bytes(not-copied) 1
+not-copied 2
+on-main-identical 120
+suffixed-identical 6
+suffixed-modified 2
+  added-modified dev/audit/rounds/round11/D3/s1/REPORT-u1a.json
+  added-modified dev/audit/rounds/round11/D3/s1/u1a_report.py
+  added-modified dev/audit/rounds/round11/reports-D3-u1a.json
+  main-holds-other-bytes(not-copied) dev/audit/rounds/round11/D3/s1/finalize.py
+  not-copied CHECK.txt
+  not-copied dev/audit/rounds/round11/D3/s1/__pycache__/prescreen.cpython-314.pyc
+  suffixed-modified dev/audit/rounds/round11/D3/s1/REPORT.json
+  suffixed-modified dev/audit/rounds/round11/D3/s1/state/prescreen.log
+added paths not from box: ['dev/programme/delivery/3822.md', 'tests/closures.json']

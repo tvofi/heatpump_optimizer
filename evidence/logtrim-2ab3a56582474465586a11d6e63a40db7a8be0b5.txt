@@ -1,0 +1,3 @@
+head 2ab3a56582474465586a11d6e63a40db7a8be0b5
+box state/prescreen.log 683 lines -> landed state/prescreen-D3-u1a.log 301 lines: first 100 identical, line 101 the trim marker, last 200 identical to the box's last 200 (python list compare True True)
+[... trimmed by the landing: 383 of      683 lines omitted; the full log is in handoff/audit-r11-find-D3-u1a at 48b7c2c08adc ...]
