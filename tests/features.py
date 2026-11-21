@@ -21345,7 +21345,7 @@ _ci._detect_immersion()
 R.check(
     "two agreeing samples latch, with evidence and an event on record",
     _ci._immersion_active
-    and _ci._immersion_evidence
+    and _ci._immersion_log.evidence
     and len(_ci._immersion_events) == 1,
 )
 _ci._measured_power = 3.0
@@ -81176,10 +81176,13 @@ R.check(
     and _fm_norm(5.0, None) is None,
 )
 # A planted flow and temperature difference: 0.25 kg/s of water cooling 5 K
-# at c_p 4.186 kJ/(kg K) hands over 0.25 * 4.186 * 5 = 5.2325 kW.
+# is 0.25 / 0.998 L/s. At the one water heat capacity, 0.00116 kWh per
+# litre per K (const.WATER_SPECIFIC_HEAT, round-11 D7-s3-04; 4.186 kJ/(kg K)
+# and 5.2325 kW before), it hands over 0.25 / 0.998 * 0.00116 * 3600 * 5 =
+# 5.230461 kW.
 R.check(
-    "a planted 0.25 kg/s over a 5 K drop is 5.2325 kW",
-    abs(_fm.thermal_output_kw(0.25, 45.0, 40.0) - 5.2325) < 1e-9,
+    "a planted 0.25 kg/s over a 5 K drop is 5.230461 kW",
+    abs(_fm.thermal_output_kw(0.25, 45.0, 40.0) - 5.230460921843687) < 1e-9,
     f"{_fm.thermal_output_kw(0.25, 45.0, 40.0)}",
 )
 R.check(
@@ -81216,7 +81219,7 @@ _fm_r, _fm_cfg = _fm_reader({}, "15.0")
 _fm_kw = _fm.read_heat_output_kw(_fm_r, _fm_cfg)
 R.check(
     "the estimate follows the sensor: 15 L/min over a 5 K drop",
-    _fm_kw is not None and abs(_fm_kw - 15.0 / 60.0 * 0.998 * 4.186 * 5.0) < 1e-6,
+    _fm_kw is not None and abs(_fm_kw - 5.22) < 1e-9,
     f"{_fm_kw}",
 )
 _fm_r2, _fm_cfg2 = _fm_reader({}, "30.0")
@@ -81555,11 +81558,12 @@ for _frs_file in ("strings.json", *SHIPPED_CATALOGUES):
 # meter, a stale reading, a negative one, an unreadable one, an unknown unit,
 # an unset key, and an interval the plan gave partly to hot water.
 #
-# 15 L/min at 0.998 kg/L over the planted 5 K drop is 5.222035 kW: the figure
+# 15 L/min (0.25 L/s) over the planted 5 K drop at 0.00116 kWh per litre per K
+# is 5.22 kW (5.222035 at the 4.186 kJ/(kg K) of before round 11): the figure
 # the R9-UX-9 block above derives from these same three states, quoted here as
 # the literal the issue's acceptance names, so this block pins the wiring and
 # not a second copy of the arithmetic.
-_FM_LEARN_KW = 5.222035
+_FM_LEARN_KW = 5.22
 _FM_FLOW_CFG = {
     _fb_const.CONF_FLOW_METER_ENTITY: "sensor.flow",
     _fb_const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "sensor.sup",
@@ -81715,7 +81719,7 @@ _LOWER_LEARNER = "_async_learn_lower_floor_loss"
 _fm_seen, _fm_coord = _fm_replay(_HOUSE_LEARNER)
 R.check(
     "a planted 15 L/min over a 5 K drop reaches the house heat-loss replay as "
-    "5.222035 kW",
+    "5.22 kW",
     _fm_coord._t2_escaped is None
     and _fm_coord._house_heat_loss_samples == 1
     and _fm_seen["kwargs"].get("measured_heat_kw") is not None
@@ -82905,18 +82909,21 @@ def _fd_logged(fn):
 
 
 # -- N-no-expiry (#2229): the covering rule has an end --------------------
+# Its owner is plan_step.covering_index (round-11 ADR-001 part 2); the
+# coordinator reads it there.
+from heatpump_optimizer.plan_step import covering_index as _fd_covering_index  # noqa: E402
 _fd_starts = [_FD_T0 + timedelta(hours=k) for k in range(4)]
 _fd_cov = {
-    "before": _fd_cm._covering_index(_fd_starts, _FD_T0 - timedelta(minutes=1), timedelta(hours=1)),
-    "first": _fd_cm._covering_index(_fd_starts, _FD_T0, timedelta(hours=1)),
-    "inner": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(minutes=90), timedelta(hours=1)),
-    "last": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(minutes=239), timedelta(hours=1)),
-    "end": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(hours=4), timedelta(hours=1)),
-    "past": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(hours=50), timedelta(hours=1)),
-    "lone_in": _fd_cm._covering_index([0.0], 899.0, 900.0),
-    "lone_out": _fd_cm._covering_index([0.0], 900.0, 900.0),
-    "quarter_last": _fd_cm._covering_index([0.0, 900.0], 1799.0, 3600.0),
-    "quarter_out": _fd_cm._covering_index([0.0, 900.0], 1800.0, 3600.0),
+    "before": _fd_covering_index(_fd_starts, _FD_T0 - timedelta(minutes=1), timedelta(hours=1)),
+    "first": _fd_covering_index(_fd_starts, _FD_T0, timedelta(hours=1)),
+    "inner": _fd_covering_index(_fd_starts, _FD_T0 + timedelta(minutes=90), timedelta(hours=1)),
+    "last": _fd_covering_index(_fd_starts, _FD_T0 + timedelta(minutes=239), timedelta(hours=1)),
+    "end": _fd_covering_index(_fd_starts, _FD_T0 + timedelta(hours=4), timedelta(hours=1)),
+    "past": _fd_covering_index(_fd_starts, _FD_T0 + timedelta(hours=50), timedelta(hours=1)),
+    "lone_in": _fd_covering_index([0.0], 899.0, 900.0),
+    "lone_out": _fd_covering_index([0.0], 900.0, 900.0),
+    "quarter_last": _fd_covering_index([0.0, 900.0], 1799.0, 3600.0),
+    "quarter_out": _fd_covering_index([0.0, 900.0], 1800.0, 3600.0),
 }
 R.check(
     "#2229: an entry covers [start, next start); the last one its predecessor's span, "
@@ -82925,6 +82932,159 @@ R.check(
                 "past": None, "lone_in": 0, "lone_out": None,
                 "quarter_last": 1, "quarter_out": None},
     repr(_fd_cov),
+)
+
+
+# -- round-11 ADR-001 (R11-SEAM-kernel-step): each small rule read from one owner --
+# D7-s3-03: every reader of "the plan step covering now" takes plan_step's index,
+# so past the plan's last step none of them answers. The census drives all four
+# with the same probes and asserts its own precondition: probes on both sides of
+# the plan's end, or it proves nothing about the end rule.
+from types import SimpleNamespace as _k11_ns  # noqa: E402
+
+from heatpump_optimizer import const as _k11_const  # noqa: E402
+from heatpump_optimizer import drift as _k11_drift  # noqa: E402
+from heatpump_optimizer import early_cutoff as _k11_ec  # noqa: E402
+from heatpump_optimizer import entity as _k11_entity  # noqa: E402
+from heatpump_optimizer import flow_meter as _k11_fm  # noqa: E402
+from heatpump_optimizer import manual_plan as _k11_mp  # noqa: E402
+from heatpump_optimizer import open_meteo as _k11_om  # noqa: E402
+from heatpump_optimizer import power_guard as _k11_pg  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _k11_pa  # noqa: E402
+from heatpump_optimizer.plan_step import PLAN_STEP as _k11_step  # noqa: E402
+from heatpump_optimizer.plan_step import plan_step_index as _k11_idx  # noqa: E402
+
+_k11_stamps = [_FD_T0 + k * _k11_step for k in range(8)]
+_k11_plan = _k11_ns(timestamps=_k11_stamps, optimal_setpoints=[20.0 + k for k in range(8)],
+                    room_temp_trajectory=[19.0 + 0.1 * k for k in range(9)])
+_k11_probes = {
+    "before": _FD_T0 - _k11_step, "first": _FD_T0, "mid": _FD_T0 + 3.5 * _k11_step,
+    "last": _k11_stamps[-1] + _k11_step / 2, "end_edge": _k11_stamps[-1] + _k11_step,
+    "a_day_past": _k11_stamps[-1] + timedelta(days=1),
+}
+_k11_rows = {
+    name: (_k11_idx(_k11_plan, now) is not None,
+           _fd_covering_index(_k11_stamps, now, _k11_step) is not None,
+           _k11_pa._planned_room(_k11_plan, now) is not None,
+           bool(_k11_ec._planned_room(_k11_plan, now)))
+    for name, now in _k11_probes.items()
+}
+_k11_inside = {"first", "mid", "last"}
+R.check(
+    "D7-s3-03: plan_step_index, covering_index and both _planned_room copies agree on "
+    "every probe -- inside the plan a step covers now, at and past its end none does",
+    any(now >= _k11_stamps[-1] + _k11_step for now in _k11_probes.values())
+    and _k11_rows == {name: (name in _k11_inside,) * 4 for name in _k11_probes},
+    f"{_k11_rows}",
+)
+
+# A plan is on the step grid: its last step is one PLAN_STEP wide whatever gap
+# precedes it, as the arbiter's _step_index held before the move. A series
+# lookup with no grid width takes the predecessor's gap; null control, that one
+# reads the same plan as ended a gap after its last stamp.
+_k11_short = [_FD_T0, _FD_T0 + timedelta(minutes=2)]
+_k11_short_plan = _k11_ns(timestamps=_k11_short, optimal_setpoints=[20.0, 21.0])
+_k11_short_rows = (
+    _k11_idx(_k11_short_plan, _k11_short[-1] + _k11_step / 2),
+    _k11_idx(_k11_short_plan, _k11_short[-1] + _k11_step),
+    _k11_pa._planned_room(_k11_short_plan, _k11_short[-1] + _k11_step / 2),
+    _fd_covering_index(_k11_short, _k11_short[-1] + _k11_step / 2, _k11_step),
+)
+R.check(
+    "D7-s3-03: a plan's last step is one PLAN_STEP wide after a shorter gap (covered at half a step, "
+    "not at a step), and the arbiter's planned room reads it; null control, the series lookup with no "
+    "grid width ends it one gap after its stamp",
+    _k11_short_rows == (1, None, 21.0, None),
+    f"{_k11_short_rows}",
+)
+
+# D7-s1-05 (the note arm): the peak guard, the CUSUM and the coordinator's
+# immersion log write their evidence through drift's one owner, which keeps the
+# newest EVIDENCE_KEEP lines.
+_k11_guard = _k11_pg.GuardState()
+_k11_cusum = _k11_drift.Cusum(threshold=1.0, drift=0.0)
+for _k11_n in range(_k11_drift.EVIDENCE_KEEP + 2):
+    _k11_guard.note(_FD_T0 + timedelta(minutes=_k11_n), f"n{_k11_n}")
+    _k11_cusum.note(_FD_T0 + timedelta(minutes=_k11_n), f"n{_k11_n}")
+R.check(
+    "D7-s1-05 note: GuardState, Cusum and the immersion log write evidence through "
+    "EvidenceNotes.note, the newest EVIDENCE_KEEP lines kept, the same line for the same note",
+    _k11_pg.GuardState.note is _k11_drift.EvidenceNotes.note
+    and _k11_drift.Cusum.note is _k11_drift.EvidenceNotes.note
+    and _k11_drift.EvidenceLog.note is _k11_drift.EvidenceNotes.note
+    and _k11_guard.evidence == _k11_cusum.evidence
+    and len(_k11_guard.evidence) == _k11_drift.EVIDENCE_KEEP
+    and _k11_guard.evidence[0].endswith(": n2") and _k11_guard.evidence[-1].endswith(": n7"),
+    f"{_k11_guard.evidence} / {_k11_cusum.evidence}",
+)
+
+# D7-s3-04, water: the heat that warms a litre by one kelvin, read through each
+# path that uses it -- the tank model, the flow meter, the sensor-gap advisor.
+from heatpump_optimizer import sensor as _k11_sensor  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _k11_TP  # noqa: E402
+
+_k11_tp = _k11_TP()
+_k11_terms = _k11_sensor._gap_probe_terms(
+    {_k11_const.CONF_DHW_ENABLED: True}, [1.0], [1.0], 1.0
+)
+_k11_band = float(_k11_const.DEFAULT_DHW_SETPOINT) - float(_k11_const.DEFAULT_DHW_MIN_TEMP)
+_k11_vol = EntryConfig.from_mapping({}).dhw_tank_volume
+_k11_water = {
+    "const": _k11_const.WATER_SPECIFIC_HEAT,
+    "tank model": _k11_tp.dhw_tank_thermal_mass / float(_k11_tp.dhw_tank_volume),
+    "flow meter": _k11_fm.thermal_output_kw(_k11_const.WATER_KG_PER_L, 1.0, 0.0) / 3600.0,
+    "gap advisor": _k11_terms["dhw_extra_kwh"] / (_k11_vol * _k11_band * 30.0),
+}
+R.check(
+    "D7-s3-04 water: the tank model, the flow meter and the gap advisor read one "
+    "heat capacity, const.WATER_SPECIFIC_HEAT (kWh per litre per K)",
+    max(_k11_water.values()) - min(_k11_water.values()) < 1e-12 * _k11_const.WATER_SPECIFIC_HEAT,
+    f"{_k11_water}",
+)
+
+# D7-s3-04, naive instant: one zone for a naive stamp, UTC, whatever the host's
+# zone -- open_meteo read it as the host's and landed nine hours off under Tokyo.
+import os as _k11_os  # noqa: E402
+import time as _k11_time  # noqa: E402
+
+_k11_saved_tz = _k11_os.environ.get("TZ")
+_k11_os.environ["TZ"] = "Asia/Tokyo"
+_k11_time.tzset()
+try:
+    _k11_naive = datetime(2026, 1, 10, 12, 0)
+    _k11_aware = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
+    _k11_zone = {
+        "drift": _k11_drift.utc_instant(_k11_naive) == _k11_aware,
+        "open_meteo": _k11_om.utc_instant is _k11_drift.utc_instant,
+        "manual_plan": _k11_mp._instant(_k11_naive) == _k11_aware.timestamp(),
+        "manual_plan coerce": _k11_mp._coerce_awareness(_k11_aware, _k11_naive) == _k11_naive,
+        "aware kept": _k11_drift.utc_instant(_k11_aware.astimezone()) == _k11_aware,
+    }
+finally:
+    if _k11_saved_tz is None:
+        _k11_os.environ.pop("TZ", None)
+    else:
+        _k11_os.environ["TZ"] = _k11_saved_tz
+    _k11_time.tzset()
+R.check(
+    "D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a "
+    "Tokyo host; open_meteo and manual_plan (its instant and its naive-reference coercion) read it there",
+    all(_k11_zone.values()),
+    f"{_k11_zone}",
+)
+
+# D7-s3-04, finite: a payload number is a finite one; it differs from
+# const.finite_float only in refusing text, which its docstring names.
+_k11_fin = [1, 1.5, True, None, "1.5", float("nan"), float("inf"), float("-inf"),
+            np.float64("nan"), np.float64(2.0), np.int64(3)]
+_k11_pay = [_k11_entity.payload_number(v) is not None for v in _k11_fin]
+_k11_ff = [_k11_const.finite_float(v.item() if isinstance(v, np.generic) else v) is not None
+           and not isinstance(v, str) for v in _k11_fin]
+R.check(
+    "D7-s3-04 finite: payload_number refuses NaN and infinity, and agrees with "
+    "finite_float on every probe but text",
+    _k11_pay == _k11_ff and _k11_pay.count(True) == 4,
+    f"payload {_k11_pay} / finite_float less text {_k11_ff}",
 )
 
 _fd_spot = _fd_coord()
