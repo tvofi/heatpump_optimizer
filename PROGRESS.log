@@ -2,3 +2,4 @@
 1795276864 HB alive
 1795276973 CKPT cause named: drift step UNDER-SCOPED 7 steps (#3708 table, #3711 room files); P351 passes in CI snapshot 0b0f991265b2
 1795277057 CKPT fix committed c76347bdb5: absorbed table, drift 7->0 snapshot 7b420c92c9ad
+1795277229 CKPT handoff pushed c76347bdb5 + handoff-body a0ef5efe25; app_push refused: no App id/key in this container, PR not opened snapshot e597039f38a9
