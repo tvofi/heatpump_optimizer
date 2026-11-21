@@ -94379,16 +94379,16 @@ R.check(
 # plan the true objective scores above the one that kept it. Such a solve
 # therefore descends twice, with the switch operand and as a solve that
 # prices no stop would, and the true objective judges the candidates of both.
-# Two duty-cycle days, one where each descent supplies the plan that ships:
-# the duty-cycle solve at price phase 30 that
+# Two duty-cycle days, one where each descent supplies the plan that ships.
+# Each is the duty-cycle solve at price phase 30 that
 # dev/audit/harnesses/r11_honest_starts_runs.py's descents mode runs, at an
 # outdoor mean of 1.0 (mild) and -1.0 (cold), both and each descent alone
 # (design verdict r2). The scores are of one
-# non-convex solve per arm (``fixer.md`` step 15), so each day is one whose
-# shipping arm stands apart in each of four kernel classes measured
-# (OPENBLAS_CORETYPE unset with numpy's own dispatch; Haswell without
-# AVX-512; Sandybridge and Nehalem without AVX, numpy narrowed to match by
-# NPY_DISABLE_CPU_FEATURES): the checks ask for 0.01.
+# non-convex solve per arm (``fixer.md`` step 15). So each day is one whose
+# shipping arm stands apart, by the 0.01 the checks ask for, in each of four
+# kernel classes measured. They are OPENBLAS_CORETYPE unset with numpy's own
+# dispatch, Haswell without AVX-512, and Sandybridge and Nehalem without AVX,
+# numpy narrowed to match by NPY_DISABLE_CPU_FEATURES.
 _dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
 _dsp_descents = []
 
@@ -94416,8 +94416,8 @@ def _dsp_arm(arm, **kw):
 
 _dsp_days = {
     day: {arm: _dsp_arm(arm, **kw) for arm in ("both", "operand", "unpriced", "no operand")}
-    # Both days moved with R11-OUTSIDE-HONEST-DHW-RUNS: with the hot water
-    # committed as runs both descents ship one plan at -4 degC, and at 2 degC
+    # Both days moved with R11-OUTSIDE-HONEST-DHW-RUNS. With the hot water
+    # committed as runs both descents ship one plan at -4 degC. At 2 degC
     # the operand's descent alone comes within 0.01 of the shipped plan once
     # numpy's dispatch has no AVX.
     for day, kw in (("mild", {"out_mean": 1.0}), ("cold", {"out_mean": -1.0}))
@@ -94425,12 +94425,12 @@ _dsp_days = {
 # What the commit stage guarantees is read where it decides: each commit call
 # scores the committed form of every relaxed plan (one per descent) on the
 # true objective, start term included, and ships the lowest. The solve's final
-# objective is not that score (stages after the commit move it), so which arm
+# objective is not that score: stages after the commit move it. So which arm
 # alone ships the lower final objective is a property of one non-convex solve
-# per arm and moved with the CPU class (``fixer.md`` step 15): with hot water
-# committed as runs the 2 degC day's operand arm alone scored under both
-# descents on one CI runner class and on arm64 and above them on another, and
-# the 1 degC day chosen over four x86 kernel classes failed on arm64.
+# per arm, and it moved with the CPU class (``fixer.md`` step 15). With hot
+# water committed as runs, the 2 degC day's operand arm alone scored under both
+# descents on one CI runner class and on arm64, and above them on another.
+# The 1 degC day chosen over four x86 kernel classes failed on arm64.
 _dsp_real_best, _dsp_real_commit = _dsp_om._best_runs, _dsp_om._commit_runs
 
 
@@ -96688,7 +96688,7 @@ R.check(
 )
 
 # 2d. The shortfall clause, cycling_cost's shape: two trickles fill the tank
-# to its ceiling; lifted, the first leaves the second no room, the rating
+# to its ceiling. Lifted, the first leaves the second no room, the rating
 # clamp cuts it under a runnable block and zeroes it, and the tank ends
 # under the floor the uncommitted plan held.
 _hdr_d_plan = np.zeros(_HDR_N)
@@ -96789,7 +96789,7 @@ R.check(
 )
 
 # 4. Two levels (the contributor's forward-carry). Three trickles hold a
-# 51.5 degC floor late in the horizon, the steps before them dear; two
+# 51.5 degC floor late in the horizon, the steps before them dear. Two
 # steps at the floor hold it for less than a fill to the ceiling does, and
 # a whole step at the run power would pass the ceiling. Without the floor level the fill ships, dearer.
 _hdr_l_plan = np.zeros(_HDR_N)
@@ -97160,8 +97160,8 @@ R.check(
     and np.array_equal(_hdr_y_run, _hdr_y_free[0]),
     f"{None if _hdr_y_run is None else np.round(_hdr_y_run[:4], 2)} {_hdr_y_pause is None}",
 )
-# The program says so where no mask keeps the store in bounds; a program
-# plan refused for anything but a start is not asked for again; and a plan
+# The program says so where no mask keeps the store in bounds. A program
+# plan refused for anything but a start is not asked for again. A plan
 # the rating leaves with a step under the floor inside a charge is refused.
 _hdr_n_prog = _hdr_dp._StoreProgram(
     _hdr_h_rig.planner, _hdr_h_rig.ctx, _hdr_h_plan, (50.0, np.zeros(_HDR_N)),
@@ -97717,7 +97717,7 @@ R.check(
 # The combi commit's tolerance, met exactly: the committed plan ships where
 # its store falls exactly the slack further under the requirement than the
 # plan the rounds settled on, and that plan where the slack is a float
-# short; both plans are the ones the exchange's comparison reads. The
+# short. Both plans are the ones the exchange's comparison reads. The
 # slack is set inside the solve, from the two worst gaps the exchange has
 # just read and before its comparison reads the slack, because one solve's
 # gaps need not be the next solve's to the float.
@@ -97782,9 +97782,9 @@ R.check(
 
 # The charge bound, met exactly: on 5-minute steps a floor-level charge
 # from 50 degC that ends exactly on step 0's ceiling less the margin, plus
-# the tolerance, is inside it, and the fill to the ceiling sits more than
-# the tolerance under the floor there, so it is no stand-in; one float
-# lower a ceiling leaves that charge outside, and the start moves off step 0.
+# the tolerance, is inside it. The fill to the ceiling sits more than
+# the tolerance under the floor there, so it is no stand-in. One float
+# lower, a ceiling leaves that charge outside, and the start moves off step 0.
 def _hdr_u_plans():
     rig = _hdr_rig(dt=1.0 / 12.0, draws=np.full(_HDR_N, 0.5), prices=np.where(np.arange(_HDR_N) < 1, 0.2, 3.0))
     floors = np.where(np.arange(_HDR_N) >= 4, 50.0, 45.0)
@@ -97822,7 +97822,7 @@ R.check(
 )
 # The program's ceiling is the higher of the maximum and the uncommitted
 # plan's own walk: a plan that charges steps 0-2 at the run power over a
-# 55 degC maximum, in the cheap early hours, ships those steps; a program
+# 55 degC maximum, in the cheap early hours, ships those steps. A program
 # held at the maximum alone cannot carry that walk, and moves the charge.
 _hdr_v_rig = _hdr_rig(prices=np.where(np.arange(_HDR_N) < 8, 0.5, 2.0), draws=np.full(_HDR_N, 0.3))
 _hdr_v_plan = np.where(np.arange(_HDR_N) < 3, 4.8, 0.0)
@@ -97835,7 +97835,7 @@ R.check(
 )
 # The commit's early returns: a store with no capacity, and a plan that
 # charges nowhere, ship the plan given, the same object, unwalked (no walk
-# divides by a capacity of zero) and the program unasked; the null control,
+# divides by a capacity of zero) and the program unasked. The null control,
 # the same rig and a plan that charges, walks it and asks the program.
 _hdr_x_rig = _hdr_rig()
 _hdr_x_empty = dataclasses.replace(
