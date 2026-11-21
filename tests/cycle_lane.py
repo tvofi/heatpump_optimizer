@@ -6,20 +6,20 @@ Finding D9-s3-02: the stress gate reads the solver and one-shot peaks, so a
 ``HeatPumpOptimizerCoordinator._async_update_data`` (solves per cycle, bytes
 published, bytes retained between cycles, GIL yields, loop-side Python calls)
 left every gate reading unchanged. This script drives one warm-up cycle and
-four measured cycles of a real coordinator (FakeHass, the three fetchers
-no-ops, the worker pipe ``_run_in_process`` replaced by an inline call so the
-solve is countable) on five sweep scenarios and compares five readings with
-``tests/cycle_budgets.json``:
+four measured cycles of a real coordinator on five sweep scenarios. The
+coordinator runs on FakeHass with the three fetchers no-ops, and the worker
+pipe ``_run_in_process`` is replaced by an inline call so the solve is
+countable. Five readings are compared with ``tests/cycle_budgets.json``:
 
-  solves      entries to optimizer._multi_start_minimize; FAIL above record
-  payload_b   bytes of json.dumps(returned dict); FAIL above 1.5 x record
-  retained_b_per_cycle
-              tracemalloc current after gc.collect(), mean consecutive
-              difference after warm-up; FAIL above max(1.5 x record,
-              RETAIN_FLOOR_B)
-  yields      optimizer sleep calls; FAIL below record / 1.5
-  loop_calls  Python calls in coordinator.py frames, solve excluded;
-              FAIL above 1.5 x record
+    solves      entries to optimizer._multi_start_minimize; FAIL above record
+    payload_b   bytes of json.dumps(returned dict); FAIL above 1.5 x record
+    retained_b_per_cycle
+                tracemalloc current after gc.collect(), mean consecutive
+                difference after warm-up; FAIL above max(1.5 x record,
+                RETAIN_FLOOR_B)
+    yields      optimizer sleep calls; FAIL below record / 1.5
+    loop_calls  Python calls in coordinator.py frames, solve excluded;
+                FAIL above 1.5 x record
 
 Every channel is a count or bytes, never a time, so the lane is
 contention-immune and runs with the parallel lanes. The clock is frozen at
@@ -28,8 +28,8 @@ FROZEN_NOW for every cycle: the solve count reads the wall clock otherwise
 
     PYTHONPATH=tests/hastub python3 tests/cycle_lane.py [--record|--self-check|--arm X]
 
-``--record`` writes the budgets; ``--arm`` (clean, solves2x, payload2x,
-retain, noyield) injects a 2x regression that must redden its own channel;
+``--record`` writes the budgets. ``--arm`` (clean, solves2x, payload2x,
+retain, noyield) injects a 2x regression that must redden its own channel.
 ``--self-check`` runs every arm in a subprocess and passes only if each arm
 fails on its own channel and the clean arm passes.
 """
@@ -72,17 +72,17 @@ OWN_CHANNEL = {"solves2x": "solves", "payload2x": "payload_b",
                "retain": "retained_b_per_cycle", "noyield": "yields"}
 WARMUP, MEASURED = 1, 4
 #: Every cycle runs at this instant. Unfrozen, the readings follow the wall
-#: clock, which places the price and forecast series and the DHW draw hours:
-#: on one M1, ``winter/2z/dhw`` read 2 solves (the DHW/space co-optimization
-#: re-solves, ``HeatPumpOptimizer._co_optimize``) frozen at 2026-11-19 00:57
-#: and 00:59 UTC, and 1 at 00:07, 01:07, 18:55 and 19:30. CI's run at 00:57
+#: clock, which places the price and forecast series and the DHW draw hours.
+#: On one M1, ``winter/2z/dhw`` read 2 solves frozen at 2026-11-19 00:57 and
+#: 00:59 UTC, and 1 at 00:07, 01:07, 18:55 and 19:30; the second solve is the
+#: DHW/space co-optimization's (``HeatPumpOptimizer._co_optimize``). CI's run at 00:57
 #: read 2 against a record of 1 made at another time of day.
 FROZEN_NOW = datetime(2026, 1, 15, 12, 7, tzinfo=timezone.utc)
 RATIO = 1.5
-# Set from the maximum of five clean runs plus the record run (1184-3393
-# B/cycle here; percycle's own clean arms read up to 8406) with 2x the larger
-# of those as headroom, so a clean run never flaps; the `retain` arm reads
-# ~190 kB/cycle.
+# Set from the maximum of five clean runs plus the record run, 1184-3393
+# B/cycle here; percycle's own clean arms read up to 8406. The floor is 2x the
+# larger of those, so a clean run never flaps; the `retain` arm reads ~190
+# kB/cycle.
 RETAIN_FLOOR_B = 16384
 
 _C = {"msm": 0, "yield": 0, "calls": 0, "in_solve": False, "noyield": False,
