@@ -206,6 +206,15 @@ NIGHTLY_CLASS = re.compile(r"autofix|record|nightly|closures", re.I)
 #: never inside it) -- the tick's brief is the dispatch seed, and the
 #: orchestrator's remaining duty is routing, not diagnosing.
 BRIEF_CAP = 5
+#: P-R11-SELFTEST-ABSORB rung 4: a red on instrument-self-tests' drift step
+#: ALONE is the selftest-absorb beat row's (tools/audit/seat/selftest_absorb.py),
+#: never a fixer's: its digest line names the action (OWED: land the standing
+#: pull request on SELFTEST_ABSORB_REF; RECORD-OWED: a Linux re-record). A hand
+#: hotfix measured at one sha is outrun by the merges that add reads, and three
+#: were once in flight for one red. Literals are governance.yml's (self-test).
+SELFTEST_JOB = "instrument-self-tests"
+SELFTEST_DRIFT = "Refuse a self-test read set the committed table misses"
+SELFTEST_ABSORB_REF = "handoff/selftest-absorb"
 #: The watcher heartbeat the tick assumes; a train beat older than 2x this
 #: while the python is alive is the wedged-or-dead suspicion (a beat-age
 #: check flags at minute 16 what a 4h wedge sat inside a 5-min poll loop).
@@ -2076,13 +2085,34 @@ class Tick:
                         "required-absence arms skipped, never guessed")
         return None
 
+    def absorb_hold(self, name: str, cid) -> "str | None":
+        """None unless `name` is instrument-self-tests and its drift step is its
+        one failed step; then the standing ref's sha (12) when it is ahead of
+        main, else ''."""
+        if not cid or not name.endswith(SELFTEST_JOB):
+            return None
+        code, o = self.gh(["api", f"repos/{self.repo}/actions/jobs/{cid}", "--jq",
+                           '.steps[] | select(.conclusion == "failure") | .name'])
+        if code != 0 or [x.strip() for x in o.splitlines() if x.strip()] != [SELFTEST_DRIFT]:
+            return None
+        code, o = self.gh(["api", f"repos/{self.repo}/compare/main...{SELFTEST_ABSORB_REF}",
+                           "--jq", '"\\(.ahead_by) \\(.commits[-1].sha)"'])
+        ahead, _, sha = o.strip().partition(" ")
+        return sha[:12] if code == 0 and ahead.isdigit() and int(ahead) > 0 else ""
+
     def red_brief(self, name: str, cr: dict) -> str:
         """The fixer dispatch brief for one red lane at main's tip: four
         fields -- the context, the job id and its error line (the check-run's
         own output, one read, capped), the suspected class, and the dispatch
         instruction. Bot lanes lead with the ci-autofix rule and quote the
-        job's summary line."""
+        job's summary line. The drift step's red alone is held (absorb_hold)."""
         cid = cr.get("id")
+        held = self.absorb_hold(name, cid)
+        if held is not None:
+            ref = f"{held} ({SELFTEST_ABSORB_REF})" if held else f"(no {SELFTEST_ABSORB_REF} ahead of main)"
+            return (f"main-red {name}: job {cid}, the drift step alone | held by selftest-absorb {ref}: "
+                    "its digest line is the action (OWED: land the standing pull request on that ref; "
+                    "RECORD-OWED: re-record on Linux) | dispatch no fixer to re-derive the table")
         summary = text = ""
         if cid:
             code, o = self.gh(["api", f"repos/{self.repo}/check-runs/{cid}",
@@ -4927,6 +4957,47 @@ def self_test() -> int:
              "summary",
              bot_brief.startswith("ci-autofix: read the bot's job summary")
              and "skip-failed-recording" in bot_brief),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- main-red on the self-test drift step: held by selftest-absorb (P-R11-SELFTEST-ABSORB) ----
+        def absorb_tick(compare_rc):
+            g = Stub()
+            g.on("commits/main", out=H1)
+            g.on_ruleset_list()
+            g.on("rulesets/42", out="tests\n")
+            g.on(f"commits/{H1}/check-runs", out="\n".join(json.dumps(run_obj(n, conclusion="failure", cid=c)) for n, c in (
+                ("governance / instrument-self-tests", 136902224642), ("instrument-self-tests", 5002))))
+            g.on("actions/jobs/136902224642/logs", out="")
+            g.on("actions/jobs/136902224642", out=SELFTEST_DRIFT + "\n")
+            g.on("actions/jobs/5002/logs", out="FAILED: a mutant survived\n")
+            g.on("actions/jobs/5002", out="Show the beat's job rows refusing their own fixtures\n" + SELFTEST_DRIFT + "\n")
+            g.on("check-runs/", out=json.dumps({"title": None, "summary": None, "text": None}))
+            g.on("compare/main...handoff/selftest-absorb", rc=compare_rc,
+                 out="" if compare_rc else "1 25238b470a" + "c" * 30)
+            g.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+            g.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
+            tk = Tick("o/r", str(version), gh=g, git=Stub(), proc=lambda p: [], now=NOW)
+            tk.main()
+            got = [x["text"] for x in tk.sections["MAIN"] if x["text"].startswith("main-red ")]
+            return (next((b for b in got if b.startswith("main-red governance / instrument-self-tests")), ""),
+                    next((b for b in got if b.startswith("main-red instrument-self-tests")), ""), g)
+        held, both, g = absorb_tick(0)
+        unheld, _, _ = absorb_tick(1)
+        wf = (Path(__file__).resolve().parents[3] / ".github/workflows/governance.yml").read_text()
+        a, f = check("main-red held by selftest-absorb", [
+            ("run 44922703115's job 136902224642, the drift step its one failed step, reads held by selftest-absorb "
+             "and the standing ref's sha, never a fixer dispatch",
+             "held by selftest-absorb 25238b470acc (handoff/selftest-absorb)" in held
+             and "dispatch a fixer seat" not in held and "job 136902224642" in held),
+            ("null control: a second failed step beside the drift step is the fixer brief",
+             "dispatch a fixer seat" in both and "held by" not in both),
+            ("no standing ref ahead of main: still held, saying so",
+             "held by selftest-absorb (no handoff/selftest-absorb ahead of main)" in unheld),
+            ("the held lane reads neither its check-run output nor its log",
+             not any("check-runs/136902224642" in " ".join(c) or "136902224642/logs" in " ".join(c) for c in g.calls)),
+            ("the drift step's name and job id are governance.yml's",
+             f"\n  {SELFTEST_JOB}:\n" in wf and f"- name: {SELFTEST_DRIFT}\n        id: drift\n" in wf),
         ])
         total, failed = total + a, failed + f
 

@@ -395,6 +395,27 @@
       "env_pass": [],
       "class": null,
       "kind": "periodic"
+    },
+    {
+      "name": "selftest-absorb",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "selftest-absorb",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 1800,
+      "timeout_s": 900,
+      "heartbeat_s": null,
+      "env_pass": [
+        "GH_TOKEN",
+        "HPO_IDENTITY_DIR"
+      ],
+      "class": null,
+      "kind": "periodic"
     }
   ]
 }

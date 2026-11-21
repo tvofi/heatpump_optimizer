@@ -167,7 +167,16 @@ ROWS (the job table's `interval_s` in brackets):
                      re-attempted that often (R10-RCA-SWEEP-SETTLE-LOOP countermeasure
                      B: 1089 bot re-attempts on 11-08 were seen about 16 h late); a
                      run below it is silent; `ci-attempt: UNREADABLE gh rc=<n>`.
-No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
+  selftest-absorb [1800] selftest_absorb.py `beat --push` over main's push runs, absorbed at
+                     origin/main's tip in its own scratch clone under `state/` and force-pushed
+                     as the one standing ref handoff/selftest-absorb (P-R11-SELFTEST-ABSORB):
+                     `OWED selftest-absorb <n> read(s) <m> step(s) on handoff/selftest-absorb`
+                     while main's measured reads wait on that ref (no tip in the line, so a
+                     merge that adds none is no new line), `RECORD-OWED: selftest-absorb ...`
+                     when the drift step refuses what absorb cannot repair, `selftest-absorb:
+                     PUSH-REFUSED ...` or `UNREADABLE ...`; nothing when main is clean.
+No row runs `git checkout`, `reset`, `pull` or `merge` in the checkout it is handed (selftest-absorb
+moves only its own scratch clone); main is read as
 `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
 file. Every row exits 0 once its lines are written: the digest is the signal,
 and beatd's own outcome stays `ok` unless this file crashed.
@@ -193,7 +202,7 @@ import roster_lib  # noqa: E402  the roster's one-writer lease
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
         "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "cp-owed", "bottleneck",
-        "scorecard", "ci-attempt", "toolchain-promote", "darwin-selftest")
+        "scorecard", "ci-attempt", "toolchain-promote", "darwin-selftest", "selftest-absorb")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
 #: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
@@ -890,12 +899,39 @@ def darwin_selftest(ctx: Ctx) -> None:
         write_job(ctx, "darwin-selftest", mem["red"])
 
 
+ABSORB_OWED = re.compile(r"^SELFTEST-ABSORB OWED (\d+) read\(s\), (\d+) step\(s\)", re.M)
+
+
+def selftest_absorb(ctx: Ctx) -> None:
+    """selftest_absorb.py beat --push: main's measured self-test reads, committed to one standing ref."""
+    got = ctx.need("selftest-absorb", "repo")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/selftest_absorb.py", "beat", "--repo-dir", str(ctx.repo), "--repo", got[0],
+                          "--work", str(ctx.digest / "state" / "selftest-absorb"), "--push")
+    m = ABSORB_OWED.search(out)
+    if rc == 0:
+        return write_job(ctx, "selftest-absorb", [])
+    if rc == 1 and m:
+        lines = [f"OWED selftest-absorb {m[1]} read(s) {m[2]} step(s) on handoff/selftest-absorb"]
+        lines += [f"selftest-absorb: {ln.split(' ', 1)[1]}" for ln in out.splitlines()
+                  if ln.startswith("SELFTEST-ABSORB PUSH-REFUSED ")]
+        return write_job(ctx, "selftest-absorb", lines)
+    if rc == 4:
+        return write_job(ctx, "selftest-absorb", [
+            "RECORD-OWED: selftest-absorb main's drift step refuses what absorb cannot repair; re-record the step "
+            "with python3 tools/ci/selftest_scope.py record --step ID (Linux)"])
+    why = next((ln.split(" ", 2)[2] for ln in out.splitlines() if ln.startswith("SELFTEST-ABSORB UNREADABLE ")),
+               f"rc={rc}: {(err.strip().splitlines() or [''])[-1]}")
+    write_job(ctx, "selftest-absorb", [f"selftest-absorb: UNREADABLE {why}"])
+
+
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
        "opener": opener, "loop-cwd": loop_cwd, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
        "outside-intake": outside_intake, "cp-owed": cp_owed, "bottleneck": bottleneck, "scorecard": scorecard,
        "ci-attempt": ci_attempt, "toolchain-promote": toolchain_promote,
-       "darwin-selftest": darwin_selftest}
+       "darwin-selftest": darwin_selftest, "selftest-absorb": selftest_absorb}
 
 
 def main(argv: list[str]) -> int:
