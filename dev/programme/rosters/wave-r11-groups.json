@@ -7028,8 +7028,8 @@
    "brief": "Hotfix, S. Freeze ground: main red (required codeql / Analyze (python), hence gate). Defect: main's push-run python leg exceeds its 75-minute cap in .github/workflows/codeql.yml: job 136736442455 on main 0ae95e4c9b was cancelled 75.0 min after start at query 35/52 (`##[error]The operation was canceled.`), and the last 12 main push jobs read 8 cancelled at the cap against 4 uncensored successes of 61.5 to 73.3 min (gh api repos/<repo>/actions/runs/<id>/jobs, 2026-11-21). Part A (the main red): raise the python matrix timeout (proposed 120), re-derived from that job list, the header comment carrying the measurement and its enumerator, and _PY_WORST_CASE_MIN in tests/entities.py to the measured uncensored worst case; actions and javascript-typescript stay 45 (the entities null control). Part B (carried, built): handoff/fix-codeql-perms at 036cb18339 (body ref handoff-body/fix-codeql-perms 7233351c) closes code-scanning alerts 57 and 58 (roster-writer.lease and roster-drain.queue created 0o600, self-test pins and a mutant). Build on 036cb18339. The workflow edit is a code-owned path: serial train route, owner or mandate review. Structural cure (splitting tests/features.py or narrowing the push leg's extraction) is an owner ruling: a forward-carry. Proof: the first main push run after the merge finishes Analyze (python) under the cap; the PR's pull_request leg ignores tests/ and dev/ and cannot prove Part A.",
    "carry": [],
    "resume": {
-    "stage": "fixing",
-    "commit": "036cb18339921f4c8fc408e4f6900660c4236370",
+    "stage": "done",
+    "commit": "42809bec348085a9a7e2c0d16af40023ebb1719a",
     "branch": "handoff/fix-codeql-perms",
     "last_step": "Part B handed off at 036cb18339; cause of main red measured (75-min cap)",
     "next_step": "build Part A, open PR",
