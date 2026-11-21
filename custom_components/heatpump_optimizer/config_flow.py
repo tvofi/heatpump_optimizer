@@ -793,7 +793,7 @@ def _prefilled_values(marker: Any) -> list[Any]:
         try:
             values.append(default())
         except Exception:  # noqa: BLE001 - a broken default is not our business
-            pass
+            _LOGGER.debug("A field default raised; not prefilled", exc_info=True)
     return values
 
 
@@ -2531,6 +2531,7 @@ def _omit_unstored_computed(
         try:
             computed = row.default.of(saving, hass)
         except Exception:  # noqa: BLE001 - leave a value we cannot recompute
+            _LOGGER.debug("Computed default %s not recomputed; value kept", row.key, exc_info=True)
             continue
         if _same_setting(computed, cleaned[row.key]):
             del cleaned[row.key]

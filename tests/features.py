@@ -98668,12 +98668,14 @@ def _cr_silent(path, func):
     return len(broad), silent
 
 
-_CR_SILENT_SEAMS = [  # D1-s3-07's seven, and the three evidence fallbacks this PR records
+_CR_SILENT_SEAMS = [  # D1-s3-07's seven, and the evidence fallbacks D1-s3-07's seam rule returns
     ("coordinator.py", "_record_accuracy"), ("coordinator.py", "_capture_diagnosis_inputs"),
     ("coordinator.py", "of"), ("diagnostics.py", "_coordinator_snapshot"),
     ("diagnostics.py", "_never_breaks"), ("optimizer.py", "_lbfgsb_restart"),
     ("coordinator.py", "_stored_fuse_advisor"), ("coordinator.py", "_track_curve_comfort"),
     ("coordinator.py", "_raise_cop_issue"), ("optimizer.py", "_solver_status"),
+    ("config_flow.py", "_omit_unstored_computed"),
+    ("config_flow.py", "_prefilled_values"), ("diagnosis.py", "attribute"),
 ]
 _cr_silent_found = {s: _cr_silent(*s) for s in _CR_SILENT_SEAMS}
 R.check(
