@@ -1,0 +1,7 @@
+     97 tests/card.mjs
+     21 tests/card_browser.mjs
+      4 tests/card_drift.mjs
+     13 tests/card_rig.mjs
+      2 tests/dom_stub.mjs
+      2 tests/md_tables.mjs
+      1 tests/setup_qa_render.mjs

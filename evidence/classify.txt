@@ -1,0 +1,2 @@
+WAIT 345c7c111fafed4775b6a07e4eaf7d66e32a445c pending: gate red: none
+polled 19x 15:21-15:49 UTC, every line WAIT ... pending: gate red: none

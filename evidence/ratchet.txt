@@ -1,0 +1,11 @@
+RESULT base=e698fc8ac374 files=195 long_units_base=2443 long_units_head=2303
+comment_ratchet: OK
+rc=0
+SHIFTED tests/stress.py 2
+RESULT code_changed_files=12 line_shifted_hunks=22
+rc=0
+RESULT code_changed_files=0 line_shifted_hunks=0
+rc=0
+RESULT base=78d3b4022154 files=195 long_units_base=2513 long_units_head=2303
+comment_ratchet: OK
+rc=0

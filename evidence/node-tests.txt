@@ -1,0 +1,6 @@
+tests/md_tables.mjs rc=0 0s :: RESULT doc_misrendered_lines=0 count
+tests/card_drift.mjs rc=1 1s :: FAIL: plan payload /tmp/plandata-32551a352915.json not found -- run tests/plan_view.py first
+tests/card.mjs rc=1 0s :: FAIL: plan payload /tmp/plandata-32551a352915.json not found — run tests/plan_view.py first
+plan_view rc=0 12s :: plan reason codes, price provenance and slot energy OK
+tests/card_drift.mjs rc=0 4s :: card_drift: identical in all 45 states
+tests/card.mjs rc=0 103s :: ALL CARD CHECKS PASSED

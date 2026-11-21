@@ -1,0 +1,102 @@
+== 78d3b4022154b2cc2792df8ebf4a5d7753e8ed7f
+RESULT units=3771
+RESULT files=69
+RESULT refs_checked=3652
+RESULT const_cited=2
+RESULT C2-moved=15
+RESULT C2-path=3
+RESULT C2-line=0
+RESULT C2-symbol=0
+RESULT C2-ident=0
+RESULT C2-call=0
+RESULT C1-const=1
+RESULT C5-long=809
+RESULT C2-benign=78
+RESULT units_false=597
+RESULT units_no_claim=85
+RESULT thread_factor=1.000
+RESULT load1=0.97
+RESULT swapins=0
+RESULT stale_refs=18
+RESULT stale_units=16
+RESULT files_with_stale=3
+RESULT moved_refs=15
+RESULT contradicted=3
+RESULT thread_factor=1.000
+RESULT load1=0.98
+RESULT swapins=0
+card: RESULT file=tests/card.mjs units=712 unresolved_units=4 long_sentence_units=17 
+card_browser: RESULT file=tests/card_browser.mjs units=121 unresolved_units=0 long_sentence_units=2 
+== e698fc8ac374a1d72c230b55d938d75b03b7de67
+RESULT units=3774
+RESULT files=69
+RESULT refs_checked=3651
+RESULT const_cited=2
+RESULT C2-moved=15
+RESULT C2-path=3
+RESULT C2-line=0
+RESULT C2-symbol=0
+RESULT C2-ident=0
+RESULT C2-call=0
+RESULT C1-const=1
+RESULT C5-long=808
+RESULT C2-benign=77
+RESULT units_false=596
+RESULT units_no_claim=85
+RESULT thread_factor=1.000
+RESULT load1=1.09
+RESULT swapins=0
+RESULT stale_refs=18
+RESULT stale_units=16
+RESULT files_with_stale=3
+RESULT moved_refs=15
+RESULT contradicted=3
+RESULT thread_factor=1.000
+RESULT load1=1.09
+RESULT swapins=0
+card: RESULT file=tests/card.mjs units=712 unresolved_units=4 long_sentence_units=17 
+card_browser: RESULT file=tests/card_browser.mjs units=121 unresolved_units=0 long_sentence_units=2 
+== 345c7c111fafed4775b6a07e4eaf7d66e32a445c
+RESULT units=3774
+RESULT files=69
+RESULT refs_checked=3651
+RESULT const_cited=2
+RESULT C2-moved=15
+RESULT C2-path=3
+RESULT C2-line=0
+RESULT C2-symbol=0
+RESULT C2-ident=0
+RESULT C2-call=0
+RESULT C1-const=1
+RESULT C5-long=804
+RESULT C2-benign=77
+RESULT units_false=593
+RESULT units_no_claim=85
+RESULT thread_factor=1.000
+RESULT load1=1.03
+RESULT swapins=0
+RESULT stale_refs=18
+RESULT stale_units=16
+RESULT files_with_stale=3
+RESULT moved_refs=15
+RESULT contradicted=3
+RESULT thread_factor=1.000
+RESULT load1=1.03
+RESULT swapins=0
+card: RESULT file=tests/card.mjs units=712 unresolved_units=4 long_sentence_units=17 
+card_browser: RESULT file=tests/card_browser.mjs units=121 unresolved_units=0 long_sentence_units=2 
+== from base worktree (e698fc8) checkout
+card: RESULT file=tests/card.mjs units=712 unresolved_units=4 long_sentence_units=106 RESULT units=712 count RESULT references=161 count RESULT units_with_unresolved_ref=4 count RESULT units_with_sentence_over_40_words=106 count RESULT units_naming_no_reference=611 count RESULT thread_factor=1.000 RESULT load1=0.95 RESULT swapins=0 
+card_browser: RESULT file=tests/card_browser.mjs units=121 unresolved_units=0 long_sentence_units=22 RESULT units=121 count RESULT references=44 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=22 count RESULT units_naming_no_reference=99 count RESULT thread_factor=1.000 RESULT load1=0.95 RESULT swapins=0 
+card_rig: RESULT file=tests/card_rig.mjs units=46 unresolved_units=0 long_sentence_units=12 RESULT units=46 count RESULT references=77 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=12 count RESULT units_naming_no_reference=24 count RESULT thread_factor=1.000 RESULT load1=0.96 RESULT swapins=0 
+card_drift: RESULT file=tests/card_drift.mjs units=30 unresolved_units=0 long_sentence_units=4 RESULT units=30 count RESULT references=34 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=4 count RESULT units_naming_no_reference=20 count RESULT thread_factor=1.000 RESULT load1=0.96 RESULT swapins=0 
+md_tables: RESULT file=tests/md_tables.mjs units=2 unresolved_units=0 long_sentence_units=2 RESULT units=2 count RESULT references=8 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=2 count RESULT units_naming_no_reference=1 count RESULT thread_factor=1.000 RESULT load1=0.96 RESULT swapins=0 
+dom_stub: RESULT file=tests/dom_stub.mjs units=9 unresolved_units=0 long_sentence_units=2 RESULT units=9 count RESULT references=10 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=2 count RESULT units_naming_no_reference=5 count RESULT thread_factor=1.000 RESULT load1=0.97 RESULT swapins=0 
+setup_qa_render: RESULT file=tests/setup_qa_render.mjs units=7 unresolved_units=0 long_sentence_units=1 RESULT units=7 count RESULT references=11 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=1 count RESULT units_naming_no_reference=2 count RESULT thread_factor=1.000 RESULT load1=0.97 RESULT swapins=0 
+== from head worktree
+card_rig: RESULT file=tests/card_rig.mjs units=46 unresolved_units=0 long_sentence_units=0 RESULT units=46 count RESULT references=78 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=0 count RESULT units_naming_no_reference=24 count RESULT thread_factor=1.000 RESULT load1=0.97 RESULT swapins=0 
+card_drift: RESULT file=tests/card_drift.mjs units=30 unresolved_units=0 long_sentence_units=0 RESULT units=30 count RESULT references=34 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=0 count RESULT units_naming_no_reference=20 count RESULT thread_factor=1.000 RESULT load1=0.97 RESULT swapins=0 
+md_tables: RESULT file=tests/md_tables.mjs units=2 unresolved_units=0 long_sentence_units=0 RESULT units=2 count RESULT references=8 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=0 count RESULT units_naming_no_reference=1 count RESULT thread_factor=1.000 RESULT load1=0.98 RESULT swapins=0 
+dom_stub: RESULT file=tests/dom_stub.mjs units=9 unresolved_units=0 long_sentence_units=0 RESULT units=9 count RESULT references=10 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=0 count RESULT units_naming_no_reference=5 count RESULT thread_factor=1.000 RESULT load1=0.98 RESULT swapins=0 
+setup_qa_render: RESULT file=tests/setup_qa_render.mjs units=7 unresolved_units=0 long_sentence_units=0 RESULT units=7 count RESULT references=11 count RESULT units_with_unresolved_ref=0 count RESULT units_with_sentence_over_40_words=0 count RESULT units_naming_no_reference=2 count RESULT thread_factor=1.000 RESULT load1=0.98 RESULT swapins=0 
+== base worktree, --ref <head> card.mjs: RESULT file=tests/card.mjs units=712 unresolved_units=4 long_sentence_units=106

@@ -1,0 +1,48 @@
+-/** The row target for one slot: its own, or -- for a slot with no reading,
+- * which is inside its box's folded block (R10-UX-SETUP) -- the block's own
++/** The row target for one slot: its own. A slot with no reading is
++ * inside its box's folded block (R10-UX-SETUP); for it, the block's own
+- * Assistant produces but no P9 grid cell renders: HA reports
++ * Assistant produces but no P9 grid cell renders. HA reports
+- * one check's evidence rather than two lanes' (P662), and so a fix that only
++ * one check's evidence rather than two lanes' (P662). And so a fix that only
+- * chip and no dashed-line note on the card; Enter and Space on a focused
+- * header toggle it and focus stays on the header; the summary text clears
++ * chip and no dashed-line note on the card. Enter and Space on a focused
++ * header toggle it and focus stays on the header. The summary text clears
+- * floor; the expanded dialog carries the chips and the notes. */
++ * floor. The expanded dialog carries the chips and the notes. */
+- * models HA's themes mixin in its order: on the OS colour-scheme change it
++ * models HA's themes mixin in its order. On the OS colour-scheme change it
+- * theme's text against the old darkMode's surface literals -- the mismatched
+- * pairing -- so the Health dialog is measured there ("between write and
++ * theme's text against the old darkMode's surface literals: the mismatched
++ * pairing. So the Health dialog is measured there ("between write and
+- * first measurement IS the mismatched pairing), the dialog is still open on
++ * first measurement IS the mismatched pairing). The dialog is still open on
+- * pass). A blocker's `##.x` is `display: none !important`; the cell injects
++ * pass). A blocker's `##.x` is `display: none !important`. The cell injects
+- * in both themes: the input rows span the page in a grid, and the Health
+- * page's first row is not drawn under the dialog's head -- on open, and
++ * in both themes. The input rows span the page in a grid, and the Health
++ * page's first row is not drawn under the dialog's head, on open and
+- * `innerHTML` is parsed rather than merely stored (see dom_stub.mjs): the
++ * `innerHTML` is parsed rather than merely stored (see dom_stub.mjs). The
+- *     UNCHANGED (power_kw republished every cycle); with `power: false`
++ *     UNCHANGED (power_kw republished every cycle). With `power: false`
+- * `describe_setup` publishes it -- single buffer, two tanks on a 4-way
++ * `describe_setup` publishes it. It has a single buffer, two tanks on a 4-way
+- * layout editor can be driven: a two-zone house with a throttling valve and
++ * layout editor can be driven. It is a two-zone house with a throttling valve and
+- * LISTS, line count included -- env_drift.py's dict equality over
++ * LISTS, line count included. It is env_drift.py's dict equality over
+- * parseClaims once collapsed a state's lines to the last, so a fresh claim
++ * `parseClaims` once collapsed a state's lines to the last, so a fresh claim
+- * single entry and card_drift.mjs fired INHERITED CLAIMS where the Python
++ * single entry. Then card_drift.mjs fired INHERITED CLAIMS where the Python
+- * `justifies` asks the question PER FILE KIND (#747), never per branch:
+- * pass `justifiesCardClaim` when the claim file at stake is the card's --
+- * a solver diff can move a card STATE through the payload the card
++ * `justifies` asks the question PER FILE KIND (#747), never per branch.
++ * Pass `justifiesCardClaim` when the claim file at stake is the card's.
++ * A solver diff can move a card STATE through the payload the card

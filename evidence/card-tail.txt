@@ -1,0 +1,3 @@
+  ok    user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language
+
+ALL CARD CHECKS PASSED
