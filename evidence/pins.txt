@@ -1,0 +1,15 @@
+exists 9d8a979823:dev/audit/rounds/round10/D7/arch2-s5/card_shapes.mjs
+exists 7bca8ab36b:handoff/round9/state/alt/design/DESIGN.md
+4
+1:# Design of record: identity, card visual system, plan chart, README graphics (lane UI)
+13:## 1. Decisions (tvofi, 2026-09-30)
+24:## 2. Identity (D1)
+41:## 3. Card visual system (R9-UI-3)
+73:## 4. Plan chart, concept A (R9-UI-4; D2, D3, D4)
+129:## 5. README (R9-UI-2)
+147:## 6. D5: the manual plan is already fixed for its window
+162:## 7. Files
+502:// stripping at 9d8a979823), may not name a member of NAV_SURFACE outside navigateTo's body
+3743:  // rule (card_shapes.mjs's `char_width_inline` at 9d8a979823), run here so the tree holds
+3794:    // The finder's own pattern (card_shapes.mjs's `finite_inline` at 9d8a979823): the SAME
+10605:  // (R9-UI-4, DESIGN.md section 4 at 7bca8ab36b) both themes have a window. Swept over

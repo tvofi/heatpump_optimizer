@@ -1,0 +1,9 @@
+card.mjs: tokens base=127184 head=127184 identical=true positions_identical=true
+card_browser.mjs: tokens base=37186 head=37186 identical=true positions_identical=true
+card_drift.mjs: tokens base=7656 head=7656 identical=true positions_identical=true
+card_rig.mjs: tokens base=5696 head=5696 identical=true positions_identical=true
+dom_stub.mjs: tokens base=1615 head=1615 identical=true positions_identical=true
+md_tables.mjs: tokens base=779 head=779 identical=true positions_identical=true
+setup_qa_render.mjs: tokens base=704 head=704 identical=true positions_identical=true
+plant-string rc=1
+control: comment-only plant -> identical=true rc=0; string plant 'node:fs'->'Znode:fs' -> identical=false rc=1
