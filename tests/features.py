@@ -20394,6 +20394,48 @@ R.check(
     f"{_d17_sched.windows_in_force(_d17_params, None, _D17_SAT, {_D17_SAT.date()})!r}",
 )
 _d17_params.dhw_holiday_windows = None
+# The learner reads the holiday tier through the coordinator's calendar
+# (its ``holidays`` callback): on a holiday whose windows cover Saturday
+# 07:00, the draw falls in a window and takes the flat label the planner keys
+# its stats by; the same instant on an ordinary Saturday is out of window.
+_d17_params.dhw_holiday_windows = [(6.5, 7.5)]
+_d17_hol = {}
+for _d17_label, _d17_days in (("holiday", lambda now: {now.date()}), ("ordinary", lambda now: ())):
+    _d17_labels = []
+    _d17_c._dhw_learner._holidays = _d17_days
+    with _d17_mock.patch.object(_d17_c._dhw_learner.draw_stats, "fold",
+                                lambda now, lab, e, charge=False, _l=_d17_labels: _l.append(lab)):
+        _asyncio.run(_d17_c._dhw_learner.async_fold_draw_stats(_D17_SAT, 50.0, 3.0, 0.25))
+    _d17_hol[_d17_label] = _d17_labels
+R.check(
+    "the draw learner takes the holiday tier from the coordinator's calendar (D17-s3-51)",
+    _d17_hol == {"holiday": ["06:00-09:30"], "ordinary": [""]},
+    str(_d17_hol),
+)
+_d17_params.dhw_holiday_windows = None
+
+# The lead across midnight reads TOMORROW's windows: the VVC pre-heat and the
+# published hours to the next window. "Tu 00:10-00:40": Monday 23:55 is 15
+# minutes before Tuesday's window; Tuesday 23:55 is before no window at all
+# (Wednesday has none), where the flat every-day union pre-heated.
+_d17_mid = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True, "dhw_windows": "Tu 00:10-00:40"}))
+_D17_MON2355 = datetime(2026, 1, 12, 23, 55, tzinfo=UTC)
+_D17_TUE2355 = _D17_MON2355 + timedelta(days=1)
+_d17_vvc = {
+    _l: _ps.vvc_should_run_at(_t, _d17_mid._thermal_params, 20)[0]
+    for _l, _t in (("mon", _D17_MON2355), ("tue", _D17_TUE2355))
+}
+with _d17_mock.patch.object(_d17_dt_util, "now", lambda: _D17_MON2355):
+    _d17_next = _d17_mid._dhw_next_window_in_hours()
+R.check(
+    "the VVC lead and the next-window hours read tomorrow's windows across midnight (D17-s3-51)",
+    _d17_vvc == {"mon": True, "tue": False} and _d17_next == 0.25
+    and _ps.vvc_should_run_at(_D17_MON2355, None, 20)[0],
+    f"vvc {_d17_vvc} next window {_d17_next!r} h at Monday 23:55",
+)
 
 _SAFE = dict(
     plan_heat_now=False,
@@ -51340,7 +51382,7 @@ async def _rc2_press(cls, setup):
     ent.hass = _RC2Hass()
     try:
         await ent.async_press()
-    except _rc2_hae as err:
+    except Exception as err:  # noqa: BLE001 - an untranslated escape is the defect's shape
         return type(err).__name__, getattr(err, "translation_key", None), coord
     return None, None, coord
 
@@ -51354,6 +51396,11 @@ def _rc2_sysid_on(coord):
     coord._thermal_params.slab_heat_transfer *= 100.0  # the #942 gate's fast slab
 
 
+def _rc2_sysid_recent(coord):
+    _rc2_sysid_on(coord)
+    coord._sysid.last_run = _rc2_dt_util.now()  # armable's minimum days between runs
+
+
 def _rc2_worker_down(coord):
     async def _down():
         raise _rc2_pwu("the process worker timed out")
@@ -51363,13 +51410,17 @@ def _rc2_worker_down(coord):
 
 _rc2_off = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_off))
 _rc2_on = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_on))
+_rc2_recent = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_recent))
 _rc2_down = _asyncio.run(_rc2_press(_rc2_button.DiagnoseIntervalButton, _rc2_worker_down))
 R.check(
     "a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)",
     _rc2_off[:2] == (_rc2_sve.__name__, "system_identification_disabled")
     and _rc2_off[2]._sysid.phase == "idle"
-    and _rc2_on[:2] == (None, None) and _rc2_on[2]._sysid.phase == "armed",
+    and _rc2_on[:2] == (None, None) and _rc2_on[2]._sysid.phase == "armed"
+    and _rc2_recent[:2] == (_rc2_sve.__name__, "system_identification_not_armed")
+    and _rc2_recent[2]._sysid.phase == "idle",
     f"option off -> {_rc2_off[:2]} phase {_rc2_off[2]._sysid.phase!r}; "
+    f"ran just now -> {_rc2_recent[:2]}; "
     f"option on -> {_rc2_on[:2]} phase {_rc2_on[2]._sysid.phase!r}",
 )
 R.check(

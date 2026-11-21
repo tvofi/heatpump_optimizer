@@ -22,13 +22,36 @@ transitions, and only for entities the user explicitly configured.
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
+from datetime import date, datetime, timedelta
+from typing import Any
 
 from .const import SPACE_PUMP_FLOOR_MARGIN_C
-from .dhw_schedule import Window, hour_in_windows, hours_until_next_window
+from .dhw_schedule import Window, hour_in_windows, hours_until_next_window, windows_in_force
+
+def vvc_should_run_at(
+    now: datetime, params: Any | None, lead_minutes: float, holidays: Collection[date] = (),
+) -> tuple[bool, str]:
+    """``vvc_should_run`` at ``now`` on the windows in force (D17-s3-51).
+
+    Today's windows (``dhw_schedule.windows_in_force``) decide the window,
+    and tomorrow's the lead across midnight. ``params`` ``None`` is no
+    schedule: hot water is always required.
+    """
+    hour = now.hour + now.minute / 60.0
+    if params is None:
+        return vvc_should_run(hour, None, lead_minutes)
+    return vvc_should_run(
+        hour,
+        windows_in_force(params, None, now, holidays),
+        lead_minutes,
+        windows_in_force(params, None, now + timedelta(days=1), holidays),
+    )
+
 
 def vvc_should_run(
-    hour_of_day: float, windows: list[Window] | None, lead_minutes: float
+    hour_of_day: float, windows: list[Window] | None, lead_minutes: float,
+    tomorrow: list[Window] | None = None,
 ) -> tuple[bool, str]:
     """Whether the hot-water circulation loop should run right now.
 
@@ -38,8 +61,8 @@ def vvc_should_run(
     simply left on — the schedule can only save where a schedule exists. An
     empty list is a schedule with no window today (a day-aware spec's day
     with no segment, ``dhw_schedule.windows_in_force``): nothing to keep hot.
-    The lead reads today's windows only: on a day-aware schedule a window
-    opening just after midnight is not pre-heated from the evening before.
+    ``tomorrow`` is the next day's windows, which a lead crossing midnight
+    reads; ``None`` reads today's again, the every-day schedule.
     """
     if windows is None:
         return True, "no demand windows; hot water always required"
@@ -51,7 +74,7 @@ def vvc_should_run(
     # inside one". Probing the single instant left a hole in the final
     # approach to any window shorter than the lead — off during exactly
     # the minutes the pre-heat exists for.
-    until = hours_until_next_window(hour, list(windows))
+    until = hours_until_next_window(hour, list(windows), tomorrow)
     if lead_h > 0.0 and until is not None and 0.0 < until <= lead_h:
         return True, f"window opens within {int(lead_minutes)} min; pre-heating the loop"
     return False, "outside every demand window"

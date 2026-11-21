@@ -3768,6 +3768,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The live detector, never a solve's copy of it: no solve runs
             # in comfort, boost or off to refresh one (#1736 H4).
             external_heat_active=lambda: bool(self._external_heat_active),
+            holidays=lambda now: away_mode.holiday_dates(self.hass, _ctx_of(self)._config.holiday_calendar_entity, now),
         )
         # #193's W5-G10: the disinfection cycle, its ceilings and its three
         # repair notices are their own subsystem. It reads the published
@@ -4487,16 +4488,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # With hot water disabled (or no schedule) there is no frame to
             # exploit and the loop is simply left on — never abandoned in
             # whatever state the last schedule-driven command left it.
-            windows = (
-                windows_in_force(params, None, now, away_mode.holiday_dates(
-                    self.hass, ctx._config.holiday_calendar_entity, now))
-                if params.dhw_enabled and params.dhw_windows_active
-                else None
-            )
-            on, reason = pump_schedule.vvc_should_run(
-                now.hour + now.minute / 60.0,
-                windows,
-                ctx._config.vvc_lead_minutes,
+            scheduled = params.dhw_enabled and params.dhw_windows_active
+            on, reason = pump_schedule.vvc_should_run_at(
+                now, params if scheduled else None, ctx._config.vvc_lead_minutes,
+                away_mode.holiday_dates(self.hass, ctx._config.holiday_calendar_entity, now),
             )
             await self._async_set_pump(vvc_entity, on, reason)
 
@@ -6005,9 +6000,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         now = dt_util.now()
         return now.hour + now.minute / 60.0
 
-    def _dhw_effective_windows(self) -> list[Any]:
-        """Demand windows the optimizer plans against now (``dhw_schedule.windows_in_force``)."""
-        ctx, now = getattr(self, "_ctx", self), dt_util.now()
+    def _dhw_effective_windows(self, days: int = 0) -> list[Any]:
+        """Demand windows the optimizer plans against, today or ``days`` on (``windows_in_force``)."""
+        ctx, now = getattr(self, "_ctx", self), dt_util.now() + timedelta(days=days)
         holidays = away_mode.holiday_dates(self.hass, ctx._config.holiday_calendar_entity, now)
         return windows_in_force(ctx._thermal_params, self._optimization_result, now, holidays)
 
@@ -6020,7 +6015,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _dhw_next_window_in_hours(self) -> float | None:
         """Hours until the next DHW demand window opens (0 if inside one)."""
         hours = hours_until_next_window(
-            self._dhw_current_hour(), self._dhw_effective_windows()
+            self._dhw_current_hour(), self._dhw_effective_windows(), self._dhw_effective_windows(1)
         )
         return round(hours, 2) if hours is not None else None
 

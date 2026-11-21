@@ -441,13 +441,14 @@ def windows_in_force(
             fallback = parse_windows(info["dhw_windows"])
         except DHWWindowError:
             pass
+    # The day-aware fields read as the planner reads them (None: no tier).
     return windows_for_day(
-        params.dhw_weekly_windows,
+        getattr(params, "dhw_weekly_windows", None),
         when.weekday(),
         fallback,
-        holiday_windows=params.dhw_holiday_windows,
+        holiday_windows=getattr(params, "dhw_holiday_windows", None),
         holiday=when.date() in holiday_dates,
-        day_overrides=params.dhw_day_windows,
+        day_overrides=getattr(params, "dhw_day_windows", None),
     )
 
 
@@ -546,22 +547,23 @@ def overlap_fraction(
     return max(0.0, min(1.0, covered / length))
 
 
-def hours_until_next_window(hour: float, windows: list[Window]) -> float | None:
+def hours_until_next_window(
+    hour: float, windows: list[Window], tomorrow: list[Window] | None = None
+) -> float | None:
     """Hours from ``hour`` until the next window starts (0.0 when inside one).
 
-    Returns None when no windows are configured.
+    ``windows`` are today's; a start already passed reads in ``tomorrow``'s,
+    the next day's windows in force (``windows_in_force``), or today's again
+    when ``None`` -- the every-day schedule. Returns None when neither day
+    has a window.
     """
-    if not windows:
-        return None
-    if hour_in_windows(hour, windows):
+    if windows and hour_in_windows(hour, windows):
         return 0.0
     h = hour % 24.0
-    best: float | None = None
-    for start, _ in windows:
-        delta = (start - h) % 24.0
-        if best is None or delta < best:
-            best = delta
-    return best
+    starts = [start - h for start, _ in windows if start > h] + [
+        start + 24.0 - h for start, _ in (windows if tomorrow is None else tomorrow)
+    ]
+    return min(starts, default=None)
 
 
 def is_valid_spec(spec: str) -> bool:

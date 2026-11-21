@@ -737,7 +737,7 @@ def _due_inside_horizon(coord: Any) -> bool:
 
 def _window_open(snap: Any, now: datetime) -> bool:
     holidays = away_mode.holiday_dates(
-        snap.hass, getattr(snap.config, "holiday_calendar_entity", None), now)
+        getattr(snap, "hass", None), getattr(getattr(snap, "config", None), "holiday_calendar_entity", None), now)
     windows = windows_in_force(snap.params, snap.plan, now, holidays)
     return hour_in_windows(now.hour + now.minute / 60.0, windows)
 
