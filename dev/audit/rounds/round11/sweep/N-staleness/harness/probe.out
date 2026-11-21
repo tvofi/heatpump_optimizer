@@ -1,0 +1,108 @@
+== probe.py CONF_HEAT_PUMP_FAULT_ENTITY 
+RESULT key=CONF_HEAT_PUMP_FAULT_ENTITY limit=60.0 held=255.0 in_stale_inputs=1 input_problem_on=1
+rc=1
+== probe.py CONF_HEAT_PUMP_FAULT_ENTITY --held 10
+RESULT key=CONF_HEAT_PUMP_FAULT_ENTITY limit=60.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_FAULT_ENTITY --perturb inf
+RESULT key=CONF_HEAT_PUMP_FAULT_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_DEFROST_ENTITY 
+RESULT key=CONF_HEAT_PUMP_DEFROST_ENTITY limit=30.0 held=255.0 in_stale_inputs=1 input_problem_on=1
+rc=1
+== probe.py CONF_HEAT_PUMP_DEFROST_ENTITY --held 10
+RESULT key=CONF_HEAT_PUMP_DEFROST_ENTITY limit=30.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_DEFROST_ENTITY --perturb inf
+RESULT key=CONF_HEAT_PUMP_DEFROST_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_ONLINE_ENTITY 
+RESULT key=CONF_HEAT_PUMP_ONLINE_ENTITY limit=30.0 held=255.0 in_stale_inputs=1 input_problem_on=1
+rc=1
+== probe.py CONF_HEAT_PUMP_ONLINE_ENTITY --held 10
+RESULT key=CONF_HEAT_PUMP_ONLINE_ENTITY limit=30.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_ONLINE_ENTITY --perturb inf
+RESULT key=CONF_HEAT_PUMP_ONLINE_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY 
+RESULT key=CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY limit=30.0 held=255.0 in_stale_inputs=1 input_problem_on=1
+rc=1
+== probe.py CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY --held 10
+RESULT key=CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY limit=30.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY --perturb inf
+RESULT key=CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY 
+RESULT key=CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY limit=30.0 held=255.0 in_stale_inputs=1 input_problem_on=1
+rc=1
+== probe.py CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY --held 10
+RESULT key=CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY limit=30.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY --perturb inf
+RESULT key=CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY 
+RESULT key=CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY limit=30.0 held=255.0 in_stale_inputs=1 input_problem_on=1
+rc=1
+== probe.py CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY --held 10
+RESULT key=CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY limit=30.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY --perturb inf
+RESULT key=CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_SOLAR_RADIATION_ENTITY 
+RESULT key=CONF_SOLAR_RADIATION_ENTITY limit=90.0 held=255.0 in_stale_inputs=1 input_problem_on=1
+rc=1
+== probe.py CONF_SOLAR_RADIATION_ENTITY --held 10
+RESULT key=CONF_SOLAR_RADIATION_ENTITY limit=90.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_SOLAR_RADIATION_ENTITY --perturb inf
+RESULT key=CONF_SOLAR_RADIATION_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_PV_PRODUCTION_ENTITY 
+RESULT key=CONF_PV_PRODUCTION_ENTITY limit=30.0 held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_PV_PRODUCTION_ENTITY --held 10
+RESULT key=CONF_PV_PRODUCTION_ENTITY limit=30.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_PV_PRODUCTION_ENTITY --perturb inf
+RESULT key=CONF_PV_PRODUCTION_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_VALVE_OUTLET_TEMP_ENTITY 
+RESULT key=CONF_VALVE_OUTLET_TEMP_ENTITY limit=60.0 held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_VALVE_OUTLET_TEMP_ENTITY --held 10
+RESULT key=CONF_VALVE_OUTLET_TEMP_ENTITY limit=60.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_VALVE_OUTLET_TEMP_ENTITY --perturb inf
+RESULT key=CONF_VALVE_OUTLET_TEMP_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_WOOD_TANK_TOP_ENTITY 
+RESULT key=CONF_WOOD_TANK_TOP_ENTITY limit=60.0 held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_WOOD_TANK_TOP_ENTITY --held 10
+RESULT key=CONF_WOOD_TANK_TOP_ENTITY limit=60.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_WOOD_TANK_TOP_ENTITY --perturb inf
+RESULT key=CONF_WOOD_TANK_TOP_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_WOOD_TANK_BOTTOM_ENTITY 
+RESULT key=CONF_WOOD_TANK_BOTTOM_ENTITY limit=60.0 held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_WOOD_TANK_BOTTOM_ENTITY --held 10
+RESULT key=CONF_WOOD_TANK_BOTTOM_ENTITY limit=60.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_WOOD_TANK_BOTTOM_ENTITY --perturb inf
+RESULT key=CONF_WOOD_TANK_BOTTOM_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_EXTERNAL_HEAT_ENTITY 
+RESULT key=CONF_EXTERNAL_HEAT_ENTITY limit=60.0 held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_EXTERNAL_HEAT_ENTITY --held 10
+RESULT key=CONF_EXTERNAL_HEAT_ENTITY limit=60.0 held=10.0 in_stale_inputs=0 input_problem_on=0
+rc=0
+== probe.py CONF_EXTERNAL_HEAT_ENTITY --perturb inf
+RESULT key=CONF_EXTERNAL_HEAT_ENTITY limit=inf held=255.0 in_stale_inputs=0 input_problem_on=0
+rc=0
