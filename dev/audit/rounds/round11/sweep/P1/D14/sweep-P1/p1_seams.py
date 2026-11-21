@@ -320,7 +320,7 @@ def main():
         d = Path(tempfile.mkdtemp()) / PKG
         d.mkdir(parents=True)
         (d / "fixture.py").write_text(src)
-        root = d.parents[1]
+        root = d.parent.parent
     else:
         root = Path(a.root)
     if a.plant:
