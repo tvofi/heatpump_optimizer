@@ -18,7 +18,7 @@ from .freq_control import defrost_interval
 
 #: The warmest a floor-loop return may read above the room air it heats, K.
 #: Floor-loop water runs 3-9 K above that air (the repository's working band,
-#: see the ``lower_floor_modelled`` repair text), and EN 1264's surface limits,
+#: see the ``lower_floor_modelled`` repair text). EN 1264's surface limits,
 #: 29 C in an occupied zone and 33 C in a bathroom over 20 and 24 C design
 #: rooms, both put the floor 9 K above its room. The 3 K over that is margin
 #: for a sensor on the manifold and a peripheral zone. A buffer or heat-pump
@@ -74,7 +74,7 @@ def judge(notices: Any, hass: Any, reading: Any, room_c: float, signals: Any) ->
 
     A refused reading leaves the slab to the model, as no sensor does. The
     repair naming the sensor is raised while its level is refused and cleared
-    otherwise: judged on the level alone, since a hot-water run or a defrost
+    otherwise. It is judged on the level alone, since a hot-water run or a defrost
     refuses a reading for that cycle only, which is the plant working, not a
     wrong sensor.
     """

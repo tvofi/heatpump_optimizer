@@ -2,7 +2,7 @@
 
 Every monetary unit in the integration used to be the literal string "SEK",
 hard-coded per sensor — eight copies of an assumption about where the user
-lives. Home Assistant already knows the instance's currency; the fallback
+lives. Home Assistant already knows the instance's currency. The fallback
 stays SEK because that is what every existing install has always shown, and
 a unit that changes under an unconfigured instance would break long-term
 statistics for the people the hard-coding happened to fit.

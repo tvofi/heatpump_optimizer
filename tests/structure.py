@@ -2938,9 +2938,9 @@ def module_excess(trees: list[tuple[Path, ast.Module]]) -> int:
     """``module_excess_loc``: each module's span past MODULE_LOC_LIMIT, summed (D7-s1-04).
 
     The class rows price lines inside a class, and the function rows a
-    function crossing 150 lines or CC 15, so a module-level function under
-    both was in no row: coordinator.py could grow beside its class while the
-    class rows fell. A module's span runs from line 1 to the end of its last
+    function crossing 150 lines or CC 15. A module-level function under both
+    was in no row: coordinator.py could grow beside its class while the class
+    rows fell. A module's span runs from line 1 to the end of its last
     statement, so lines cost the same in a class, a helper or a function, and
     a module under the limit costs nothing. A sum, not a threshold count: a
     count stops pricing a module once it has crossed the line.
@@ -2953,8 +2953,8 @@ def const_names_read(tree: ast.Module) -> set[str]:
     """The distinct ``.const`` names a module reads, by either spelling (D7-s1-01).
 
     ``from .const import X`` and ``const.X`` off ``from . import const [as c]``
-    are the same dependency; counting only the names on from-import statements
-    read entry_config.py's 118 binding reads as 3, and a re-spelling of
+    are the same dependency. Counting only the names on from-import statements
+    read entry_config.py's 118 binding reads as 3. A re-spelling of
     thermal_model.py's from-import lowered the row with the coupling unchanged.
     """
     names: set[str] = set()

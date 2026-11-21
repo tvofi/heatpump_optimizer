@@ -14,9 +14,9 @@ a reading the coordinator's ``element`` callable calls the immersion element's
 is no signal: a resistive draw is not the compressor (#11).
 
 **Edges.** Each state event of the signal entity is one reading
-(:func:`note`); the coordinator re-reads once per refresh too, since the
+(:func:`note`). The coordinator re-reads once per refresh too, since the
 element's latch and the commanded draw change there without a meter event
-(:func:`refresh`), and each subscriber's tick then hears whether the class
+(:func:`refresh`). Each subscriber's tick then hears whether the class
 reads settled running: the start counter holds a meter's rise for them. A
 change pending at a reading is confirmed by a timer at
 ``wear.EDGE_DEBOUNCE_S`` (:func:`confirm`), because a sensor whose state holds
@@ -25,7 +25,7 @@ subscriber (:func:`subscribe`): the start counter always, the duty-switch
 learner while the arbiter listens.
 
 **Running now** (:func:`running_now`): ``True`` or ``False`` for a settled
-class with no change pending; ``None`` before the first confirmed edge, with no
+class with no change pending. ``None`` before the first confirmed edge, with no
 source configured, while the entity is unavailable or non-numeric, on the meter
 while the element rule holds, and while a change is pending.
 """
