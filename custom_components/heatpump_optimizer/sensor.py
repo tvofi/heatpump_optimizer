@@ -40,6 +40,7 @@ from .const import (
     MANUAL_PLAN_WINDOW_HOURS,
     OPTIMIZATION_MODE_STATES,
     SOLAR_APERTURE_MIN_SAMPLES,
+    WATER_SPECIFIC_HEAT,
 )
 from .coordinator import (
     HeatPumpOptimizerConfigEntry,
@@ -3060,7 +3061,7 @@ def _gap_probe_terms(
     # An install with no hot water has no tank to coast (D8-s1-01): the
     # model's own answer, so the default volume is never priced for it.
     if dhw_enabled_from_config(config):
-        terms["dhw_extra_kwh"] = volume * band * (4.187 / 3600.0) * 30.0
+        terms["dhw_extra_kwh"] = volume * band * WATER_SPECIFIC_HEAT * 30.0
     terms["dhw_price"] = rate
     return terms
 
