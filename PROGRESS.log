@@ -7,3 +7,4 @@
 1795290753 DONE verdict pushed: blocked mutation-vacuous at 76f30b59 (probe/rev-3834-4047d07d 53de4d0b)
 1795297530 HB alive
 1795297638 CKPT round 2 delta read; reviewer mutants running snapshot d43c66419999
+1795297840 CKPT verdict drafted: blocked mutation-vacuous, waiting CI snapshot 1824185d83c2
