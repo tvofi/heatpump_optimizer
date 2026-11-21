@@ -1,0 +1,5 @@
+RESULT gate_rc=1 code
+RESULT failed_scripts=3 count
+RESULT wall=3215 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=1.0

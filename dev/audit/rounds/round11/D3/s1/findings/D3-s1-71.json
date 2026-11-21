@@ -1,0 +1,47 @@
+{
+ "id": "D3-s1-71",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "No check feeds observe_day_quarters a day whose mean is exactly 1e-6",
+ "severity": "low",
+ "claim": "Mutant c38d53ab787ddbfa at price_model.py:252 survives the full gate (RED-AS-NULL), yet the probe's accepted_mutant moves: baseline accepted=0, mutant accepted=1.",
+ "mechanism": "Reach: reach_real_price_days_at_boundary=0 is asserted not measured; separable only via a hand-built vector whose np.mean is exactly 1e-6 (48x0.0 + 48x2e-6). Check that should have failed (D3.M4): tests/features.py ~18732-18792 has no zero-mean boundary case.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+  "value": 1,
+  "unit": "quarter-days accepted for a day of 48x0.0 and 48x2e-6 (mean exactly 1e-6; baseline 0)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+  "cpu_or_wall": "n/a",
+  "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+  "tolerance": "exact",
+  "load1": 1.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:PriceShapeModel.observe_day_quarters",
+ "perturbation": {
+  "change": "the mutant edit at price_model.py:252 applied in memory by the probe (48 quarters 0.0 + 48 of 2e-6); full gate: fullgate.py run --key c38d53ab787ddbfa",
+  "expected_direction": "up",
+  "observed_value": 1
+ },
+ "metric_definition": "quarter-days accepted for a day of 48x0.0 and 48x2e-6 (mean exactly 1e-6; baseline 0)",
+ "phenomenon_property": "A price day with mean <= 1e-6 is rejected by the quarter-shape learner",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+  "value": "0 count",
+  "note": "null arm where the edit cannot matter; identical floats under both arms"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key c38d53ab787ddbfa"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (accepted=0)",
+ "files": [
+  "custom_components/heatpump_optimizer/price_model.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}
