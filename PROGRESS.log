@@ -38,3 +38,4 @@
 1795280340 HB alive
 1795280943 HB alive
 1795280965 CKPT blocked: body_push figure-block base mismatch snapshot 5a1b1fa7daee
+1795280971 DONE blocked: code c4faf32b98 on handoff/, body refused by body_push figure-block base mismatch; BLOCKED.md on handoff-wip
