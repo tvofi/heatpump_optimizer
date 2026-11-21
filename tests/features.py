@@ -15179,6 +15179,7 @@ _FR_STORES = {
     "duty_switch": "voided: the learned stop estimate and its latch, the in-memory learner with it",
     "debug": "kept: a diagnostics collection",
     "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
+    "room_history": "kept: measured room readings; the report is re-derived on every read",
 }
 _fr_found = set()
 for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")):
@@ -98414,5 +98415,621 @@ R.check(
     f"max |zeros-none|={_rl_peak_null_k:.6g} K, tolerance {_RL_PEAK_TOL_K} K",
 )
 
+# ---------------------------------------------------------------------------
+# R11-OUTSIDE-ROOMS-P3 (#3616, phase 3a): room history and the identifiability report
+# ---------------------------------------------------------------------------
+R.section("Room history and the identifiability report")
+import asyncio as _rh_aio  # noqa: E402
+from datetime import datetime as _rh_dt, timedelta as _rh_td, timezone as _rh_tz  # noqa: E402
+from homeassistant.helpers import storage as _rh_storage  # noqa: E402
+from heatpump_optimizer import room_history as _rh  # noqa: E402
+from heatpump_optimizer import room_record as _rr  # noqa: E402
+from heatpump_optimizer.rooms import RoomReading as _RhReading  # noqa: E402
+
+_RH_T0 = _rh_dt(2026, 1, 5, tzinfo=_rh_tz.utc)
+_RH_M0 = int(_RH_T0.timestamp()) // 60
+
+
+def _rh_house(space_kw=2.0, kw=2.0, outdoor=-2.0):
+    return _rh.House(outdoor, 30.0, kw, space_kw, 0.0)
+
+
+def _rh_feed(minutes, readings_at, history=None):
+    """Cycles at ``minutes`` past _RH_T0 into a ring; ``readings_at(m)`` gives each cycle's readings."""
+    history, period = history or _rh.History(), None
+    for m in minutes:
+        period, _ = _rh.note(history, period, _RH_M0 + m, readings_at(m), _rh_house())
+    return history, period
+
+
+# The ring: three 10-minute cycles make one row, its calling share two of three.
+_rh_calls = {0: True, 10: True, 20: False, 30: False}
+_rh_h, _ = _rh_feed((0, 10, 20, 30), lambda m: [_RhReading("climate.a", 20.0 + m / 100, 21.0, _rh_calls[m], "heat")])
+R.check(
+    "three 10-minute cycles make one 30-minute row: the first reading, the target and a calling share "
+    "of 6667 (two of three samples, hundredths of a percent); the open period is not a row",
+    _rh_h.times == [_RH_M0] and _rh_h.rooms["climate.a"] == {"t": [2000], "target": [2100], "call": [6667]}
+    and _rh_h.house["space"] == [10000] and _rh_h.house["outdoor"] == [-200],
+    f"{_rh_h.times} {_rh_h.rooms} {_rh_h.house}",
+)
+_rh_h60, _ = _rh_feed(range(0, 301, 60), lambda m: [_RhReading("climate.a", 20.0, 21.0, True, "heat")])
+R.check(
+    "a 60-minute entry leaves every other row null, never filled",
+    [t - _RH_M0 for t in _rh_h60.times] == list(range(0, 241, 30))
+    and _rh_h60.rooms["climate.a"]["t"] == [2000, None] * 4 + [2000],
+    f"{_rh_h60.rooms['climate.a']['t']}",
+)
+_rh_h15, _ = _rh_feed(range(0, 15 * 1440 + 1, 30), lambda m: [_RhReading("sensor.a", 20.0)])
+R.check(
+    "fifteen days of rows keep the ring's 14 days: HISTORY_LENGTH rows, the oldest 671 periods before the newest",
+    len(_rh_h15.times) == _rh.HISTORY_LENGTH == 672
+    and _rh_h15.times[-1] - _rh_h15.times[0] == 671 * _rh.PERIOD_MIN
+    and all(len(c) == 672 for c in (*_rh_h15.rooms["sensor.a"].values(), *_rh_h15.house.values())),
+    f"{len(_rh_h15.times)}",
+)
+_rh_set, _ = _rh_feed((0, 30, 60), lambda m: [_RhReading("sensor.a" if m < 30 else "sensor.b", 20.0)])
+R.check(
+    "a room leaving the list drops its column at the next row; one joining starts null",
+    set(_rh_set.rooms) == {"sensor.b"} and _rh_set.rooms["sensor.b"]["t"] == [None, 2000],
+    f"{_rh_set.rooms}",
+)
+_rh_back, _rh_back_p = _rh_feed((0, 30, 60), lambda m: [_RhReading("sensor.a", 20.0)])
+_rh_back_p, _rh_back_n = _rh.note(_rh_back, _rh_back_p, _RH_M0 - 600, [_RhReading("sensor.a", 25.0)], _rh_house())
+_rh_back_p, _rh_back_n2 = _rh.note(_rh_back, _rh_back_p, _RH_M0 + 90, [_RhReading("sensor.a", 20.0)], _rh_house())
+_rh_reload = _rh.loaded(_rh.stored(_rh_back))
+_rh_rp, _ = _rh.note(_rh_reload, None, _RH_M0 + 65, [_RhReading("sensor.a", 20.0)], _rh_house())
+for _rh_m in (120, 150):
+    _rh_rp, _ = _rh.note(_rh_reload, _rh_rp, _RH_M0 + _rh_m, [_RhReading("sensor.a", 20.0)], _rh_house())
+R.check(
+    "after a reload, a sample at or before the ring's last row opens nothing: the times run on, "
+    "a null row filling the half hour no cycle reached",
+    [t - _RH_M0 for t in _rh_reload.times] == [0, 30, 60, 90, 120]
+    and _rh_reload.rooms["sensor.a"]["t"] == [2000, 2000, 2000, None, 2000],
+    f"{[t - _RH_M0 for t in _rh_reload.times]}",
+)
+R.check(
+    "a clock stepped back adds no row and closes nothing; the clock passing on closes the next period",
+    _rh_back_n == 0 and _rh_back_n2 == 1 and [t - _RH_M0 for t in _rh_back.times] == [0, 30, 60]
+    and 2500 not in _rh_back.rooms["sensor.a"]["t"],
+    f"{_rh_back.times} {_rh_back.rooms}",
+)
+
+# The store: a round trip, and what one bad cell costs.
+_rh_two, _ = _rh_feed(range(0, 181, 10), lambda m: [_RhReading("climate.a", 20.0, 21.0, m % 20 == 0, "heat"),
+                                                    _RhReading("climate.b", 19.0, 20.0, True, "heat")])
+_rh_doc = _rh.stored(_rh_two)
+_rh_bad = {**_rh_doc, "rooms": {**_rh_doc["rooms"], "climate.a": {**_rh_doc["rooms"]["climate.a"],
+                                                                   "t": "9999," + _rh_doc["rooms"]["climate.a"]["t"].split(",", 1)[1]}}}
+_rh_badh = {**_rh_doc, "house": {**_rh_doc["house"], "space": "x" + _rh_doc["house"]["space"]}}
+_rh_short = {**_rh_doc, "rooms": {**_rh_doc["rooms"], "climate.b": {**_rh_doc["rooms"]["climate.b"],
+                                                                     "call": "10000"}}}
+R.check(
+    "the store round-trips the ring unchanged; one out-of-range cell drops that room's ring whole and "
+    "keeps the other; a bad house cell nulls the house columns and keeps the rooms; a column of the "
+    "wrong length drops its room; null control, the healthy document loads every room",
+    _rh.stored(_rh.loaded(_rh_doc)) == _rh_doc and set(_rh.loaded(_rh_doc).rooms) == {"climate.a", "climate.b"}
+    and set(_rh.loaded(_rh_bad).rooms) == {"climate.b"}
+    and set(_rh.loaded(_rh_badh).rooms) == {"climate.a", "climate.b"}
+    and all(v is None for c in _rh.loaded(_rh_badh).house.values() for v in c)
+    and set(_rh.loaded(_rh_short).rooms) == {"climate.a"}
+    and _rh.loaded({**_rh_doc, "times": "5,3"}).times == [],
+    f"{sorted(_rh.loaded(_rh_bad).rooms)} {sorted(_rh.loaded(_rh_short).rooms)}",
+)
+
+
+class _RhOwner:
+    def __init__(self, entry_id):
+        self.hass = FakeHass({})
+        self.entry = type("E", (), {"entry_id": entry_id})()
+
+
+async def _rh_cycles(owner, n, readings, first=0):
+    for k in range(first, first + n):
+        await _rr.async_note_cycle(owner, _RH_T0 + _rh_td(minutes=30 * k), readings, _rh_house())
+
+
+_rh_storage._DISK.clear()
+_rh_none = _RhOwner("rh_none")
+_rh_aio.run(_rh_cycles(_rh_none, 30, []))
+_rh_aio.run(_rr.async_flush(_rh_none))
+R.check(
+    "no room list: no record, no store file and no row (invariant i); the report and the sensor state read None",
+    _rr.record_of(_rh_none) is None and not any("room_history" in k for k in _rh_storage._DISK)
+    and _rr.report_of(_rh_none) is None and _rh.separable_count(None) is None,
+    f"{sorted(_rh_storage._DISK)}",
+)
+_rh_owner = _RhOwner("rh_save")
+_RH_KEY = "heatpump_optimizer_rh_save_room_history"
+_rh_aio.run(_rh_cycles(_rh_owner, _rr.SAVE_EVERY_ROWS, [_RhReading("sensor.a", 20.0)]))
+_rh_before = _RH_KEY in _rh_storage._DISK
+_rh_aio.run(_rh_cycles(_rh_owner, 1, [_RhReading("sensor.a", 20.0)], first=_rr.SAVE_EVERY_ROWS))
+_rh_saved = _RH_KEY in _rh_storage._DISK
+_rh_storage._DISK.clear()
+_rh_aio.run(_rr.async_flush(_rh_owner))
+_rh_clean_flush = _RH_KEY not in _rh_storage._DISK
+_rh_aio.run(_rh_cycles(_rh_owner, 3, [_RhReading("sensor.a", 20.0)], first=_rr.SAVE_EVERY_ROWS + 1))
+_rh_aio.run(_rr.async_flush(_rh_owner))
+_rh_flushed = _fi_json.loads(_rh_storage._DISK.get(_RH_KEY, "{}"))
+R.check(
+    "a save at exactly SAVE_EVERY_ROWS closed rows, not one before (the 12th cycle closes the 11th row); "
+    "unload's flush writes nothing just after a save and what the last save missed otherwise; rows sit "
+    "on the half hours",
+    _rh_before is False and _rh_saved is True and _rh_clean_flush
+    and _rr.record_of(_rh_owner).history.times == [_RH_M0 + 30 * k for k in range(_rr.SAVE_EVERY_ROWS + 3)]
+    and len(_rh_flushed.get("data", _rh_flushed).get("times", "").split(",")) == len(_rr.record_of(_rh_owner).history.times),
+    f"before={_rh_before} saved={_rh_saved} flushed={sorted(_rh_flushed)}",
+)
+
+# The report, from synthetic histories: each room a first-order model,
+# dT/dt = 0.05 (outdoor - T) + 2.0 K/h while it calls.
+_RH_GAIN = 2.0
+
+
+def _rh_simulate(days, interval, schedule, rooms=("climate.a", "climate.b"), seed=1, sensor=(), gain=_RH_GAIN):
+    rng = np.random.default_rng(seed)
+    history, period = _rh.History(), None
+    temps = {r: 20.0 for r in (*rooms, *sensor)}
+    for k in range(int(days * 1440 / interval)):
+        outdoor = -5.0 + 5.0 * np.sin(2 * np.pi * k * interval / 1440)
+        calls = {}
+        for r in rooms:
+            calls[r] = schedule(r, temps[r], rng, calls)
+        readings = [_RhReading(r, temps[r], 21.0, calls[r], "heat") for r in rooms]
+        readings += [_RhReading(r, temps[r]) for r in sensor]
+        fraction = sum(calls.values()) / len(calls)
+        house = _rh.House(outdoor, 30.0, 1.0 + 3.0 * fraction + rng.normal(0, 0.1), 2.0 * any(calls.values()), 0.0)
+        period, _ = _rh.note(history, period, _RH_M0 + k * interval, readings, house)
+        for r in temps:
+            temps[r] += interval / 60 * (0.05 * (outdoor - temps[r]) + gain * calls.get(r, False)) + rng.normal(0, 0.02)
+    return history
+
+
+def _rh_own(r, t, rng, calls):
+    return bool(rng.random() < (0.5 if t < 21.0 else 0.2))
+
+
+def _rh_copied(r, t, rng, calls):
+    return calls["climate.a"] if r == "climate.b" else _rh_own(r, t, rng, calls)
+
+
+_rh_sep = _rh.identifiability_report(_rh_simulate(5, 10, _rh_own))
+_rh_sep60 = _rh.identifiability_report(_rh_simulate(10, 60, _rh_own))
+R.check(
+    "independent calling reads separable, the calling gain within 20 % of the simulated 2.0 K/h, at a "
+    "10-minute and at a 60-minute interval (pairs span the 60-minute entry's null rows)",
+    all(v["code"] == "separable" and abs(v["b_k_per_h"] - _RH_GAIN) <= 0.2 * _RH_GAIN
+        for rep in (_rh_sep, _rh_sep60) for v in rep["rooms"].values()),
+    f"{_rh_sep['rooms']} {_rh_sep60['rooms']}",
+)
+_rh_col = _rh.identifiability_report(_rh_simulate(5, 10, _rh_copied))
+R.check(
+    "a room whose calling copies another's reads collinear and names it; null control, the same room on "
+    "its own schedule reads separable (above)",
+    _rh_col["rooms"]["climate.b"]["code"] == "collinear" and _rh_col["rooms"]["climate.b"]["with"] == "climate.a",
+    f"{_rh_col['rooms']}",
+)
+_rh_shuf_h = _rh_simulate(5, 10, _rh_own)
+np.random.default_rng(7).shuffle(_rh_shuf_h.rooms["climate.a"]["call"])
+_rh_shuf = _rh.identifiability_report(_rh_shuf_h)
+R.check(
+    "a room whose calling is shuffled in time reads no response; the room left in order still reads separable",
+    _rh_shuf["rooms"]["climate.a"]["code"] == "no_response" and _rh_shuf["rooms"]["climate.b"]["code"] == "separable",
+    f"{_rh_shuf['rooms']}",
+)
+_rh_cooling = _rh.identifiability_report(_rh_simulate(5, 10, _rh_own, gain=-_RH_GAIN))
+R.check(
+    "a room that cools while it calls reads no response however clear its t-statistic: the gain must be positive "
+    "(the t-statistic carries its sign)",
+    all(v["code"] == "no_response" and v["t"] < -_rh.MIN_T for v in _rh_cooling["rooms"].values()),
+    f"{_rh_cooling['rooms']}",
+)
+_rh_short_r = _rh.identifiability_report(_rh_simulate(102 * 30 / 1440, 30, _rh_own))
+_rh_sens = _rh.identifiability_report(_rh_simulate(5, 10, _rh_own, sensor=("sensor.c",)))
+_rh_always = _rh.identifiability_report(_rh_simulate(5, 10, lambda r, t, rng, c: True))
+_rh_never = _rh.identifiability_report(_rh_simulate(5, 10, lambda r, t, rng, c: False))
+R.check(
+    "100 pairs read short history; a sensor room reads no action reported; always and never calling read so",
+    all(v["code"] == "short_history" and v["pairs"] == 100 for v in _rh_short_r["rooms"].values())
+    and _rh_sens["rooms"]["sensor.c"] == {"code": "no_action"}
+    and _rh_sens["rooms"]["climate.a"]["code"] == "separable"
+    and all(v["code"] == "always_calling" for v in _rh_always["rooms"].values())
+    and all(v["code"] == "never_calling" for v in _rh_never["rooms"].values()),
+    f"{_rh_short_r['rooms']} {_rh_sens['rooms']['sensor.c']}",
+)
+_rh_house30 = _rh.identifiability_report(_rh_simulate(5, 30, _rh_own))["house"]
+R.check(
+    "the house line reads enough with power proportional to the calling fraction (slope near the "
+    "simulated 3 kW), flat with every room calling together, and no power meter without one",
+    _rh_house30["verdict"] == "enough" and abs(_rh_house30["slope_kw"] - 3.0) < 0.3
+    and _rh_always["house"]["verdict"] == "calling_fraction_flat"
+    and _rh.identifiability_report(_rh_feed((0, 30, 60), lambda m: [_RhReading("sensor.a", 20.0)])[0])["house"]["verdict"] != "no_power_meter"
+    and _rh._house_line(_rh.History(times=[0], house={f: [None] for f in _rh.HOUSE_FIELDS}), {})["verdict"] == "no_power_meter",
+    f"{_rh_house30} {_rh_sep['house']} {_rh_always['house']}",
+)
+_rh_iqr = _rh.History(
+    times=[30 * k for k in range(200)],
+    rooms={"climate.a": {"t": [2000] * 200, "target": [2100] * 200, "call": [10000] * 200},
+           "climate.b": {"t": [2000] * 200, "target": [2100] * 200, "call": [8000, 10000] * 100}},
+    house={"outdoor": [0] * 200, "return": [3000] * 200, "power": [200, 300] * 100, "space": [10000] * 200})
+R.check(
+    "a calling fraction that moves, but by under FLAT_IQR between its quartiles, reads flat",
+    _rh.identifiability_report(_rh_iqr)["house"] == {"verdict": "calling_fraction_flat", "rows": 200},
+    f"{_rh.identifiability_report(_rh_iqr)['house']}",
+)
+# The boundaries each threshold and range is read at (the mutation proof's survivors).
+_rh_cyc = [_rh.House(-2.0, 30.0, 2.0, 2.0, 0.0), _rh.House(-2.0, None, 2.0, 0.5, 0.0), _rh.House(-2.0, None, 2.0, 0.0, 0.0)]
+_rh_bp = None
+_rh_bh = _rh.History()
+for _rh_k, _rh_hs in enumerate(_rh_cyc + [_rh_cyc[0]]):
+    _rh_bp, _ = _rh.note(_rh_bh, _rh_bp, _RH_M0 + 10 * _rh_k, [_RhReading("sensor.a", 20.0 + _rh_k)], _rh_hs)
+R.check(
+    "a sensor room keeps the period's first reading; a missing floor return keeps the last one read; "
+    "any space power counts the cycle as space heating and none does not",
+    _rh_bh.rooms["sensor.a"]["t"] == [2000] and _rh_bh.house["return"] == [3000] and _rh_bh.house["space"] == [6667],
+    f"{_rh_bh.rooms} {_rh_bh.house}",
+)
+R.check(
+    "the ranges are inclusive at both ends and refuse what lies past them or is not finite",
+    _rh._centi(-30.0, "t") == -3000 and _rh._centi(60.0, "t") == 6000 and _rh._centi(60.01, "t") is None
+    and _rh._centi(float("nan"), "outdoor") is None and _rh._centi(0.0, "power") == 0,
+)
+_rh_edge = {"times": "0,30", "rooms": {"climate.a": {"t": "2000,", "target": ",", "call": "0,10000"}},
+            "house": {"outdoor": "-7000,7000", "return": ",", "power": "0,10000", "space": "0,10000"}}
+R.check(
+    "a document at every range's ends loads whole; times that do not run on by a half hour, unparsable "
+    "times and a column that is not text each cost what they own",
+    _rh.stored(_rh.loaded(_rh_edge)) == _rh_edge
+    and _rh.loaded({**_rh_edge, "times": "0,30,30"}).times == []
+    and _rh.loaded({**_rh_edge, "times": "a,b"}).times == []
+    and _rh.loaded({**_rh_edge, "rooms": {"climate.a": {**_rh_edge["rooms"]["climate.a"], "call": [0, 10000]}}}).rooms == {},
+)
+R.check(
+    "a degenerate fit reads None: as many rows as coefficients, or a design of lower rank",
+    _rh._fit(np.eye(3), np.ones(3)) is None
+    and _rh._fit(np.ones((10, 2)), np.arange(10.0)) is None
+    and _rh._fit(np.column_stack([np.arange(10.0), np.ones(10)]), np.arange(10.0) * 2 + 1) is not None,
+)
+
+
+def _rh_grid(calls, gap=30):
+    """A ring of len(calls) rows ``gap`` minutes apart: one room, outdoor 0."""
+    n = len(calls)
+    return _rh.History(
+        times=[gap * k for k in range(n)],
+        rooms={"climate.a": {"t": [2000 + (k % 7) * 10 for k in range(n)], "target": [2100] * n, "call": list(calls)}},
+        house={"outdoor": [0] * n, "return": [3000] * n, "power": [200] * n, "space": [10000] * n})
+
+
+def _rh_code(history):
+    return _rh.identifiability_report(history)["rooms"]["climate.a"]
+
+
+R.check(
+    "MIN_PAIRS is a floor: 144 pairs are history enough, 143 are short; 120-minute rows still pair",
+    _rh_code(_rh_grid([0, 10000] * 72 + [0]))["code"] != "short_history"
+    and _rh_code(_rh_grid([0, 10000] * 72))["code"] == "short_history"
+    and _rh_code(_rh_grid([0, 10000] * 72, gap=120))["pairs"] == 143,
+    f"{_rh_code(_rh_grid([0, 10000] * 72 + [0]))}",
+)
+R.check(
+    "a period calling in exactly half its samples counts as calling; exactly 5 % and 95 % of periods "
+    "calling are neither never nor always calling",
+    _rh_code(_rh_grid([5000, 0] * 100))["code"] not in ("never_calling", "always_calling")
+    and _rh_code(_rh_grid([10000] * 10 + [0] * 190))["code"] != "never_calling"
+    and _rh_code(_rh_grid([0] * 10 + [10000] * 190))["code"] != "always_calling"
+    and _rh_code(_rh_grid([10000] * 7 + [0] * 194))["calling_fraction"] == 0.035,
+    f"{_rh_code(_rh_grid([10000] * 7 + [0] * 194))}",
+)
+R.check(
+    "the separable verdict publishes the simulated loss rate as a_per_h (0.05 /h) and the gain as b_k_per_h",
+    all(abs(v["a_per_h"] - 0.05) < 0.01 for v in _rh_sep["rooms"].values()),
+    f"{_rh_sep['rooms']}",
+)
+_rh_flat_edge = _rh.History(
+    times=[30 * k for k in range(200)],
+    rooms={f"climate.{c}": {"t": [2000] * 200, "target": [2100] * 200,
+                            "call": [10000] * 200 if c != "d" else [0, 10000] * 100} for c in "abcd"},
+    house={"outdoor": [0] * 200, "return": [3000] * 200, "power": [300, 400] * 100, "space": [5000] * 200})
+R.check(
+    "a calling fraction whose quartiles lie exactly FLAT_IQR apart is enough, and a period spent exactly "
+    "half on space heating counts",
+    _rh.identifiability_report(_rh_flat_edge)["house"]["verdict"] == "enough",
+    f"{_rh.identifiability_report(_rh_flat_edge)['house']}",
+)
+R.check(
+    "the sensor state counts the separable rooms of a report",
+    _rh.separable_count(_rh_sep) == 2 and _rh.separable_count(_rh_shuf) == 1 and _rh.separable_count(_rh_col) == 0,
+)
+_rh_cache_owner = _RhOwner("rh_cache")
+_rh_aio.run(_rh_cycles(_rh_cache_owner, 4, [_RhReading("sensor.a", 20.0)]))
+_rh_rep1, _rh_rep2 = _rr.report_of(_rh_cache_owner), _rr.report_of(_rh_cache_owner)
+_rh_aio.run(_rh_cycles(_rh_cache_owner, 1, [_RhReading("sensor.a", 20.0)], first=4))
+_rh_rep3 = _rr.report_of(_rh_cache_owner)
+R.check(
+    "the report is re-read only when the ring grows: the same object twice, a new one with a new row",
+    _rh_rep1 is _rh_rep2 and _rh_rep1["rows"] == 3 and _rh_rep3["rows"] == 4,
+    f"{_rh_rep1} {_rh_rep3}",
+)
+_rh_storage._DISK["heatpump_optimizer_rh_load_room_history"] = _fi_json.dumps(_rh.stored(_rh_two))
+_rh_load_owner = _RhOwner("rh_load")
+_rh_aio.run(_rr.async_note_cycle(_rh_load_owner, _RH_T0 + _rh_td(days=1), [_RhReading("climate.a", 20.0)], _rh_house()))
+R.check(
+    "the first cycle loads the stored ring before it notes anything: the stored rows are kept",
+    _rr.record_of(_rh_load_owner).history.times == _rh_two.times,
+    f"{_rr.record_of(_rh_load_owner).history.times[:3]}",
+)
+_rh_bh2 = _rh.History()
+_rh_bp2 = _rh.note(_rh_bh2, _rh.note(_rh_bh2, None, _RH_M0, [_RhReading("sensor.a", 20.0)], _rh.House(None, None, None, 0.0, 0.0))[0],
+                   _RH_M0 + 30, [_RhReading("sensor.a", 20.0)], _rh_house())
+R.check(
+    "a period with no house value measured stores nulls: no outdoor, no floor return, no power, no space heating",
+    _rh_bh2.house == {"outdoor": [None], "return": [None], "power": [None], "space": [0]},
+    f"{_rh_bh2.house}",
+)
+R.check(
+    "the save cadence is 12 rows (6 h) and pairs never span more than two hours: 121 minutes apart is two stretches",
+    _rr.SAVE_EVERY_ROWS == 12 and _rh.PAIR_GAP_MIN == 120
+    and _rh_code(_rh_grid([0, 10000] * 72, gap=121))["pairs"] == 0,
+)
+R.check(
+    "three common rows are enough to read a correlation; the always-calling fraction is published to three decimals",
+    _rh._correlations({"a": np.array([0.0, 0.5, 1.0]), "b": np.array([0.0, 0.5, 1.0])})[0, 1] == 1.0
+    and _rh_code(_rh_grid([0] * 7 + [10000] * 194))["calling_fraction"] == 0.965,
+)
+_rh_flat144 = _rh.History(
+    times=[30 * k for k in range(144)],
+    rooms={f"climate.{c}": {"t": [2000] * 144, "target": [2100] * 144,
+                            "call": [10000] * 144 if c != "d" else [0, 10000] * 72} for c in "abcd"},
+    house={"outdoor": [0] * 144, "return": [3000] * 144, "power": [300, 400] * 72, "space": [10000] * 144})
+R.check(
+    "the house line needs MIN_PAIRS periods and no more: 144 read enough",
+    _rh.identifiability_report(_rh_flat144)["house"]["verdict"] == "enough",
+    f"{_rh.identifiability_report(_rh_flat144)['house']}",
+)
+from harness import FakeEntry as _RhEntry  # noqa: E402
+from heatpump_optimizer import diagnostics as _rh_diag  # noqa: E402
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as _RhCoord  # noqa: E402
+
+_rh_coords = [_RhCoord(FakeHass({}), _RhEntry(data={"tibber_token": "x", "weather_entity": "weather.home"},
+                                              entry_id=f"rh_diag_{k}")) for k in range(2)]
+_rh_aio.run(_rh_cycles(_rh_coords[0], 3, [_RhReading("climate.a", 20.0, 21.0, True, "heat")]))
+_rh_aio.run(_rh_cycles(_rh_coords[1], 3, []))
+_rh_snaps = [_rh_diag._coordinator_snapshot(c) for c in _rh_coords]
+R.check(
+    "a production coordinator's diagnostics carry the room-history report once a cycle with a room list made "
+    "a record; null control, a coordinator whose cycles had none carries no key",
+    _rh_snaps[0].get("room_history") == _rr.report_of(_rh_coords[0]) and _rh_snaps[0]["room_history"]["rows"] == 2
+    and "room_history" not in _rh_snaps[1],
+    f"{_rh_snaps[0].get('room_history')} {'room_history' in _rh_snaps[1]}",
+)
+R.check(
+    "factory reset keeps the room history: no _FACTORY_VOID row and not among the restored stores",
+    "room_history" not in {n for n, _ in _r9f13_cmod._FACTORY_VOID},
+)
+from heatpump_optimizer import sensor as _rh_sensor_mod  # noqa: E402
+
+_rh_sep_sensors = [_rh_sensor_mod.RoomSeparabilitySensor(c, c.config_entry) for c in _rh_coords]
+R.check(
+    "the Room Separability sensor publishes the report's rooms, house line and row count as attributes; null "
+    "control, a coordinator with no record publishes no state and None for each",
+    _rh_sep_sensors[0].extra_state_attributes == {k: _rh_snaps[0]["room_history"][k] for k in ("rooms", "house", "rows")}
+    and _rh_sep_sensors[0].extra_state_attributes["rows"] == 2
+    and _rh_sep_sensors[1].native_value is None
+    and _rh_sep_sensors[1].extra_state_attributes == {"rooms": None, "house": None, "rows": None},
+    f"{_rh_sep_sensors[0].extra_state_attributes} {_rh_sep_sensors[1].extra_state_attributes}",
+)
+# A weak gain: its t-statistic clears MIN_T but not twice it (the fixture is
+# kept only while it lands there, which the second half of the check asserts).
+_rh_weak = _rh.identifiability_report(_rh_simulate(5, 10, _rh_own, rooms=("climate.a",), gain=0.12))["rooms"]["climate.a"]
+R.check(
+    "a gain three to six standard errors clear of zero reads separable: MIN_T is the bar, not twice it",
+    _rh_weak["code"] == "separable" and _rh.MIN_T <= _rh_weak["t"] < 2 * _rh.MIN_T,
+    f"{_rh_weak}",
+)
+_rh_fit_real = _rh._fit
+_rh._fit = lambda x, y: (np.array([0.05, 1.0, 0.0]), np.array([10.0, _rh.MIN_T, 0.0]))
+try:
+    _rh_at_t = _rh_code(_rh_grid([0, 10000] * 100))
+finally:
+    _rh._fit = _rh_fit_real
+R.check(
+    "a calling gain exactly MIN_T standard errors clear of zero reads separable (the bar is inclusive)",
+    _rh_at_t["code"] == "separable" and _rh_at_t["t"] == _rh.MIN_T,
+    f"{_rh_at_t}",
+)
+_rh_nan = float("nan")
+R.check(
+    "a room whose calling moves with another's at exactly COLLINEAR_R is collinear (the bar is inclusive); "
+    "just under it is not",
+    _rh._collinear(0, ["climate.a", "climate.b"], np.array([[_rh_nan, _rh.COLLINEAR_R], [_rh.COLLINEAR_R, _rh_nan]]))
+    == ("climate.b", _rh.COLLINEAR_R)
+    and _rh._collinear(0, ["climate.a", "climate.b"], np.array([[_rh_nan, 0.899], [0.899, _rh_nan]])) is None,
+)
+_rh_exact = _rh._fit(np.column_stack([[0.0, 1.0] * 5, np.ones(10)]), np.array([1.0, 2.0] * 5))
+R.check(
+    "an exact fit (a residual sum of exactly zero) keeps finite t-statistics, which the report rounds and "
+    "diagnostics serialise",
+    _rh_exact is not None and bool(np.isfinite(_rh_exact[1]).all()) and bool((_rh_exact[1] >= _rh.MIN_T).all()),
+    f"{_rh_exact}",
+)
+_rh_holes = _rh_grid([0, 10000] * 100)
+_rh_holes.rooms["climate.a"]["t"] = [None if k % 10 == 0 else v for k, v in enumerate(_rh_holes.rooms["climate.a"]["t"])]
+_rh_holes.house["outdoor"] = [None if k % 10 == 5 else v for k, v in enumerate(_rh_holes.house["outdoor"])]
+R.check(
+    "a pair needs the room's temperature and the outdoor temperature in both rows: 200 rows missing one or "
+    "the other every fifth row step 159 times",
+    len(_rh._step_pairs(_rh_holes, _rh_holes.rooms["climate.a"]["t"])) == 159
+    and _rh_code(_rh_holes)["pairs"] == 159,
+    f"{_rh_code(_rh_holes)}",
+)
+_rh_append_real, _rh_appended = _rh._append, []
+_rh_gap_h, _rh_gap_p = _rh.History(), None
+for _rh_m in (0, 30, 400 * 1440, 400 * 1440 + 30):
+    if _rh_m == 400 * 1440 + 30:
+        _rh._append = lambda *a: (_rh_appended.append(a[1]), _rh_append_real(*a))
+    try:
+        _rh_gap_p, _ = _rh.note(_rh_gap_h, _rh_gap_p, _RH_M0 + _rh_m, [_RhReading("sensor.a", 20.0)], _rh_house())
+    finally:
+        _rh._append = _rh_append_real
+R.check(
+    "a period after an outage longer than the ring fills only the ring's 14 days with null rows, not the "
+    "whole outage",
+    0 < len(_rh_appended) <= _rh.HISTORY_LENGTH and len(_rh_gap_h.times) == _rh.HISTORY_LENGTH
+    and _rh_gap_h.times[-1] == _RH_M0 + 400 * 1440,
+    f"appended={len(_rh_appended)} ring={len(_rh_gap_h.times)}",
+)
+
+# Verdict 478e2ab9 (mutation-vacuous): each predicate below is driven through the code that holds it.
+_rh_mix = _rh.History()
+_rh_mix_p = None
+for _rh_k, (_rh_rd, _rh_hs) in enumerate([
+    (_RhReading("climate.a", 20.0, 21.0, True, "heat"), _rh.House(-3.0, 28.0, 1.0, 2.5, 0.0)),
+    (_RhReading("climate.a", 21.0, 21.5, True, "heat", "stale"), _rh.House(-3.0, 28.0, 2.0, 2.5, 1.5)),
+    (_RhReading("climate.a", 22.0, 22.0, None, "heat"), _rh.House(-3.0, 28.0, 3.0, 2.5, 0.0)),
+    (_RhReading("climate.a", 23.0, 22.0, False, "heat"), _rh.House(-3.0, 28.0, 3.0, 2.5, 0.0)),
+]):
+    _rh_mix_p, _ = _rh.note(_rh_mix, _rh_mix_p, _RH_M0 + 7 * _rh_k, [_rh_rd], _rh_hs)
+_rh_mix_p, _ = _rh.note(_rh_mix, _rh_mix_p, _RH_M0 + 30, [], _rh_house())
+R.check(
+    "one period: a reading with a problem and one reporting no action are not calling samples (share 5000, "
+    "one call of two), the target is the period's last (22.0), power is the mean of the cycles' (2.25 kW, "
+    "not the last 3.0), and a hot-water cycle is not space heating (three of four cycles)",
+    _rh_mix.rooms["climate.a"] == {"t": [2000], "target": [2200], "call": [5000]}
+    and _rh_mix.house == {"outdoor": [-300], "return": [2800], "power": [225], "space": [7500]},
+    f"{_rh_mix.rooms} {_rh_mix.house}",
+)
+_rh_nullc = _rh_grid([None if k % 10 == 0 else 10000 * (k % 2) for k in range(200)])
+_rh_nullc_v = _rh_code(_rh_nullc)
+R.check(
+    "a pair needs the first row's calling share: 200 rows, every tenth with none, step 179 times and the fit "
+    "reads finite; null control, the same ring with every share held steps 199 times",
+    _rh_nullc_v.get("pairs") == 179 and _rh_nullc_v["code"] in ("separable", "no_response")
+    and (_rh_nullc_v.get("t") is None or bool(np.isfinite(_rh_nullc_v["t"])))
+    and _rh_code(_rh_grid([10000 * (k % 2) for k in range(200)]))["pairs"] == 199,
+    f"{_rh_nullc_v}",
+)
+R.check(
+    "stored row times off the half-hour grid empty the ring, the first row's included; null control, the same "
+    "rows on the grid load",
+    _rh.loaded({**_rh_edge, "times": "0,45"}).times == []
+    and _rh.loaded({**_rh_edge, "times": "15,45"}).times == []
+    and _rh.loaded({**_rh_edge, "times": "0,60"}).times == [0, 60],
+)
+_rh_spc = _rh_grid([10000 * (k % 2) for k in range(200)])
+_rh_spc.house["space"] = [10000, 0] * 100
+R.check(
+    "the house line reads only periods spent mostly on space heating: 100 of 200 rows; null control, 200 with "
+    "every period on space heating",
+    _rh.identifiability_report(_rh_spc)["house"] == {"verdict": "short_history", "rows": 100}
+    and _rh.identifiability_report(_rh_grid([10000 * (k % 2) for k in range(200)]))["house"]["rows"] == 200,
+    f"{_rh.identifiability_report(_rh_spc)['house']}",
+)
+_rh_full_owner = _RhOwner("rh_full")
+_rh_aio.run(_rh_cycles(_rh_full_owner, 1, [_RhReading("sensor.a", 20.0)]))
+_rh_full_rec = _rr.record_of(_rh_full_owner)
+_rh_full_rec.history, _rh_full_rec.period = _rh.loaded(_rh.stored(_rh_h15)), None
+_rh_full_1 = _rr.report_of(_rh_full_owner)
+_rh_full_last = _rh_full_rec.history.times[-1] - _RH_M0
+for _rh_m in (30, 60):
+    _rh_aio.run(_rr.async_note_cycle(_rh_full_owner, _RH_T0 + _rh_td(minutes=_rh_full_last + _rh_m),
+                                     [_RhReading("sensor.a", 20.0)], _rh_house()))
+_rh_full_2 = _rr.report_of(_rh_full_owner)
+R.check(
+    "a full ring's report is re-read when a row replaces its oldest: the row count stays HISTORY_LENGTH and "
+    "the report is a new object; null control, read again with no new row it is the same object",
+    _rh_full_1["rows"] == _rh_full_2["rows"] == _rh.HISTORY_LENGTH and _rh_full_2 is not _rh_full_1
+    and _rr.report_of(_rh_full_owner) is _rh_full_2
+    and _rh_full_rec.history.times[-1] - _RH_M0 == _rh_full_last + 30,
+    f"rows={_rh_full_1['rows']},{_rh_full_2['rows']}",
+)
+
+# The coordinator's cycle step: a production coordinator runs _async_update_data with
+# a room list, and its own outdoor, floor-return, measured-power and plan values reach the ring.
+from heatpump_optimizer import rooms as _rh_rooms  # noqa: E402
+from heatpump_optimizer.const import CONF_FLOOR_RETURN_TEMP_ENTITY as _RH_FR  # noqa: E402
+
+_RH_CYCLES = [  # (minutes past _RH_T0, metered kW, plan space kW, plan hot-water kW)
+    (0, 1.0, 2.5, 0.0), (10, 2.0, 2.5, 1.5), (20, 3.0, 2.5, 0.0), (30, 1.0, 2.5, 0.0)]
+
+
+async def _rh_coord_cycles():
+    hass = _SrcHass()
+    for entity, value in {**_SRC_SENSORS, "sensor.floor_return": 28.0}.items():
+        hass.states.set(entity, FakeState(str(value)))
+    coord = HeatPumpOptimizerCoordinator(hass, FakeEntry(entry_id="rh_cycle", data={
+        "tibber_token": "x", "weather_entity": "weather.home", "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor", "heat_pump_power_entity": "sensor.power",
+        _RH_FR: "sensor.floor_return"}))
+    hour = _src_clock[0].replace(minute=0)
+    coord._prices = [{"total": round(0.6 + 0.5 * (h % 12) / 12, 4), "level": "NORMAL",
+                      "starts_at": (hour + timedelta(hours=h - 26)).isoformat()} for h in range(74)]
+
+    async def _no_fetch():
+        return None
+
+    coord._fetch_tibber_prices = coord._fetch_weather_forecast = coord._fetch_solar_forecast = _no_fetch
+    await asyncio.gather(*hass._tasks)
+    coord._skip_solve_once = False
+    seen, step = [], {}
+    real_apply, real_note = coord._apply_action, _rr.async_note_cycle
+
+    async def _apply():  # the plan's kW are the test's, set where the cycle sets them
+        await real_apply()
+        coord._current_action["power"], coord._current_action["dhw_power"] = step["plan"]
+
+    async def _note(c, _now, readings, house):  # the cycle's own arguments; the test's clock
+        seen.append(house)
+        await real_note(c, _RH_T0 + _rh_td(minutes=step["m"]), readings, house)
+
+    coord._apply_action = _apply
+    reading = (_RhReading("climate.a", 20.0, 21.0, True, "heat"),)
+    with _src_mock.patch.object(_rr, "async_note_cycle", _note), \
+            _src_mock.patch.object(_rh_rooms, "readings_of", lambda o: reading if o is coord else ()):
+        for m, kw, space, dhw in _RH_CYCLES:
+            step["m"], step["plan"] = m, (space, dhw)
+            hass.states.set("sensor.power", FakeState(str(kw), attributes={"unit_of_measurement": "kW"}))
+            hass.states.set("sensor.outdoor", FakeState(str(-3.0 - m / 10)))
+            await coord._async_update_data()
+    return coord, seen
+
+
+_rh_cc, _rh_cc_seen = _rh_aio.run(_rh_coord_cycles())
+_rh_cc_rec = _rr.record_of(_rh_cc)
+R.check(
+    "a production coordinator's cycle hands the room history this cycle's outdoor reading (not the context "
+    "the cycle started with: the first cycle reads -3.0, not the 5.0 default), the floor return (28.0), "
+    "metered power and the plan's space and hot-water kW, and the closed row holds them: outdoor the "
+    "period's last -500, return 2800, power the period's mean 200 (not the last 300), space heating two "
+    "cycles of three (the hot-water one not); null control, each value distinct from the one it could be "
+    "swapped for",
+    len(_rh_cc_seen) == len(_RH_CYCLES)
+    and [(h.outdoor_c, h.floor_return_c, h.measured_kw, h.space_kw, h.dhw_kw) for h in _rh_cc_seen]
+    == [(-3.0 - m / 10, 28.0, kw, s, d) for m, kw, s, d in _RH_CYCLES]
+    and _rh_cc_rec is not None and _rh_cc_rec.history.times == [_RH_M0]
+    and _rh_cc_rec.history.house == {"outdoor": [-500], "return": [2800], "power": [200], "space": [6667]}
+    and _rh_cc_rec.history.rooms["climate.a"]["call"] == [10000],
+    f"seen={[(h.outdoor_c, h.floor_return_c, h.measured_kw, h.space_kw, h.dhw_kw) for h in _rh_cc_seen]} "
+    f"house={None if _rh_cc_rec is None else _rh_cc_rec.history.house}",
+)
+
+# The unload flush, through the entry's own async_unload_entry.
+_rh_ul_hass = FakeHass()
+_seed_prices(_rh_ul_hass)
+_rh_ul_entry = FakeEntry(data=_LC_DATA, entry_id="rh_unload")
+_RH_UL_KEY = "heatpump_optimizer_rh_unload_room_history"
+_asyncio.run(_ha_setup_entry(_integ, _rh_ul_hass, _rh_ul_entry))
+_rh_ul_coord = _rh_ul_entry.runtime_data
+_rh_aio.run(_rh_cycles(_rh_ul_coord, 3, [_RhReading("sensor.a", 20.0)]))
+_rh_storage._DISK.pop(_RH_UL_KEY, None)
+_rh_ul_before = _RH_UL_KEY in _rh_storage._DISK
+_rh_ul_ok = _asyncio.run(_ha_unload_entry(_integ, _rh_ul_hass, _rh_ul_entry))
+_rh_ul_doc = _fi_json.loads(_rh_storage._DISK.get(_RH_UL_KEY, "{}"))
+R.check(
+    "unloading the entry saves the rows the last save missed: two closed rows, unsaved before the unload, are "
+    "in the store after it; null control, the store held nothing before the unload",
+    _rh_ul_ok and not _rh_ul_before
+    and _rh_ul_doc.get("data", _rh_ul_doc).get("times", "").split(",") == [str(_RH_M0), str(_RH_M0 + 30)],
+    f"before={_rh_ul_before} after={_rh_ul_doc}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))

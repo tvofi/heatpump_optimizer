@@ -2,45 +2,45 @@
 
 Distinct from :mod:`silent_mode`, which models the pump's OWN night-mode
 schedule -- a fact about the hardware the plan must respect. These windows
-are the user's wish about noise: rows that say "run silently here" (the
-compressor capped, the plan buying the hours the cap makes cheap) and rows
-that say "plan nothing here" (no space heating and no hot-water slots in the
-window, tvofi's decision D1 of 2026-09-30: an Off window means solely that,
-with nothing extra written -- those steps are ordinary idle steps).
+are the user's wish about noise. Some rows say "run silently here" (the
+compressor capped, the plan buying the hours the cap makes cheap), others
+say "plan nothing here" (no space heating and no hot-water slots in the
+window). By tvofi's decision D1 of 2026-09-30 an Off window means solely that,
+with nothing extra written: those steps are ordinary idle steps.
 
 Two option keys, one spec per action, both in the unchanged
 ``dhw_schedule`` grammar; the fraction a silent row keeps is the existing
 ``silent_mode_power_fraction``. Four properties are the contract, and
 ``tests/features.py`` pins each:
 
-* **Inert when unset.** No rows, an unreadable stored spec, or the whole
+* **Inert when unset**. No rows, an unreadable stored spec, or the whole
   horizon meeting no window returns ``None`` everywhere, and ``compose``
   hands the caller's ceiling back as the same object. An install that sets
   nothing plans bit for bit as before, and every value-bearing golden stays
   byte-identical.
-* **Floored where silent, zero where off.** A silent step caps electrical
+* **Floored where silent, zero where off**. A silent step caps electrical
   power at ``max(fraction, CAPACITY_FLOOR_FRACTION) * p_max`` -- the same
   floor as the pump's own schedule and the capacity envelope, so a derate
   can trim the plan but never starve the house. An off step is a deliberate
   zero and is NOT floored: the plan pre-heats before it and the soft comfort
   penalty prices any shortfall through the published breach figures.
-* **The solver's clock.** Steps are walked in UTC through
+* **The solver's clock**. Steps are walked in UTC through
   ``drift.utc_step_starts`` and read in the step's own zone, so a window binds
   the real hours on a DST night.
-* **Enforced only where enforceable.** Nothing while the optimizer is off
+* **Enforced only where enforceable**. Nothing while the optimizer is off
   (D2: switching it off inside a window undoes nothing). A silent row needs
   a control the optimizer can hold, which today is the capacity-limited slot
-  being a ``switch`` -- decided from the entity ID's domain alone, so a
+  being a ``switch``. That is decided from the entity ID's domain alone, so a
   switch that has not reported yet (state ``unknown``; many Tuya forks
   transmit on change only) is still a usable control: unknown is not off.
   Where a silent row cannot be enforced the plan is not capped for it and
   ``compose`` says so, so the card and one repair issue can say it too.
 
 Where the capacity figure comes from (tvofi, 2026-10-04): a measured figure
-is preferred over the configured fraction -- a heat-pump power entity (W or
+is preferred over the configured fraction. A heat-pump power entity (W or
 kW) supplies the in-window ceiling directly, else a compressor-frequency
-reading scales nameplate by ``hz / hz_max`` -- and the configured fraction
-is used exactly as configured otherwise, including 1.0 meaning "rows shown,
+reading scales nameplate by ``hz / hz_max``. Otherwise the configured fraction
+is used exactly as configured, including 1.0 meaning "rows shown,
 nothing capped".
 
 Kept free of Home Assistant imports so it can be unit-tested directly, like
@@ -101,8 +101,8 @@ class QuietCompose:
     """What quiet windows did to one solve's limits.
 
     ``caps`` is the electrical ceiling after the silent windows folded in
-    (``None`` and the caller's own object unchanged when they cap nothing);
-    off steps are NOT expressed here -- a zero entry would collapse the
+    (``None`` and the caller's own object unchanged when they cap nothing).
+    Off steps are NOT expressed here -- a zero entry would collapse the
     DHW planner's horizon-minimum run cap, so off rides ``off_steps`` and
     the space-heating caps array instead. ``actions`` is the resolved
     per-step action array for publication; ``silent_dropped`` says silent
@@ -174,7 +174,7 @@ def silent_control_usable(entity_id: Any) -> bool:
     the Tuya night/mute switches. A ``binary_sensor`` (GCHV's read-only
     flag) cannot be written, so those installs fall to SW-4's schedule
     registers. Decided from the entity ID's domain and NEVER from the
-    state: a switch that has not reported yet reads ``unknown`` -- unknown
+    state. A switch that has not reported yet reads ``unknown`` -- unknown
     is not off -- and the gate must not drop the window for a silence that
     is only the device transmitting on change.
     """
@@ -339,7 +339,7 @@ def _power_entity_kw(
     """A heat-pump power entity's reading in kW, or ``None``.
 
     The entity's own declared unit converts to kW through the same
-    normaliser every other power read uses; an unrecognised unit, a
+    normaliser every other power read uses. An unrecognised unit, a
     non-finite figure and a reading at or below zero are no reading rather
     than a guess, because a wrongly scaled ceiling is worse than none.
     """
@@ -350,7 +350,7 @@ def _within_nameplate(kw: float | None, p_max: float) -> float | None:
     """``kw`` when it is a draw the nameplate admits, ``(0, p_max]``, else ``None``.
 
     The range bound on a measured ceiling (D7-s2-61): ``silent_cap_kw``
-    clipped a reading past the nameplate down to ``p_max`` itself, so an
+    clipped a reading past the nameplate down to ``p_max`` itself. An
     absurd figure -- a wrong entity, a wrong unit, a frequency past its
     configured maximum -- read as "silent costs nothing" and lifted the cap
     entirely, and the fallbacks never ran. A figure the nameplate does not
@@ -441,7 +441,7 @@ def compose(
 
     Silent steps fold into ``caps_extra`` by elementwise minimum -- the one
     ``power_caps_extra`` channel the fuse guard, the capacity envelope and
-    the pump's own schedule already share -- and off steps come back as the
+    the pump's own schedule already share. Off steps come back as the
     ``off_steps`` mask for the solver's space caps and the DHW planner's
     forced-off door. Unset, unreadable, unreachable or unenforceable caps
     nothing: the caller's array comes back as the same object, which is
@@ -519,7 +519,7 @@ def configured_specs(
     -- in the shared grammar, empty string for "no rows" -- not the plan's
     reading of it. The specs are stored canonical by the services that write
     them, so they are handed back as stored. A silent spec no control can
-    fully hold carries the not-enforced marker; ``silent_unenforceable``
+    fully hold carries the not-enforced marker. ``silent_unenforceable``
     decides it -- a switch from its entity ID's domain and never its state,
     so one that has not reported yet (state ``unknown``) is not dropped:
     unknown is not off.
@@ -607,8 +607,8 @@ def overlap_problem(
 
     The plan's section 2.1 rules: an off window may not overlap a hot-water
     window on the same day (hot water must be available exactly when the
-    user asked for it); a silent window may not overlap an off window on
-    the same day (one step cannot be both); a silent window MAY overlap a
+    user asked for it). A silent window may not overlap an off window on
+    the same day (one step cannot be both). A silent window MAY overlap a
     hot-water one -- the tank just charges slower. Judged per weekday over
     the specs' own weekly structure, the same resolution
     ``step_actions`` plans by, so what is refused is exactly what could
