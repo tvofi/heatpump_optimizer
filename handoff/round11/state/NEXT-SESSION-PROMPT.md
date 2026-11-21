@@ -17,7 +17,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SECURITY-PRIVACY (stage carries-open, branch `fix/r11-pre-security-privacy-p2`): `git fetch origin fix/r11-pre-security-privacy-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OUTSIDE-ROOMS-P3 (stage in-progress, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OUTSIDE-ROOMS-P3 (stage carries-open, branch `handoff/r11-outside-rooms-p3`): `git fetch origin handoff/r11-outside-rooms-p3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage carries-open, branch `fix/r11-outside-self-setting-pump-p2`): `git fetch origin fix/r11-outside-self-setting-pump-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-CARRY-DRAWMAP (stage in-progress, branch `fix/r11-carry-drawmap`): `git fetch origin fix/r11-carry-drawmap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-kernel-step (stage in-progress, branch `handoff/r11-seam-kernel-step`): `git fetch origin handoff/r11-seam-kernel-step && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -28,18 +28,16 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SEAM-tests (stage in-progress, branch `handoff/r11-seam-tests`): `git fetch origin handoff/r11-seam-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-ratchets (stage in-progress, branch `handoff/r11-seam-ratchets`): `git fetch origin handoff/r11-seam-ratchets && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-ratchet-raise (stage in-progress, branch `handoff/r11-seam-ratchet-raise`): `git fetch origin handoff/r11-seam-ratchet-raise && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-comments-production (stage in-progress, branch `handoff/r11-seam-comments-production`): `git fetch origin handoff/r11-seam-comments-production && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-comments-production (stage carries-open, branch `handoff/r11-seam-comments-production`): `git fetch origin handoff/r11-seam-comments-production && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-comments-tests (stage carries-open, branch `handoff/r11-seam-comments-tests`): `git fetch origin handoff/r11-seam-comments-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-HOTFIX-CODEQL-PERMS (stage fixing, branch `handoff/fix-codeql-perms`): `git fetch origin handoff/fix-codeql-perms && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R11-ARCH-cycle-surface, R11-CARRY-DRAWMAP, R11-CLOSEOUT-CLEANUP, R11-HOTFIX-CODEQL-PERMS, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-release, R11-SEAM-card, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-entity-service, R11-SEAM-inputs-guards, R11-SEAM-kernel-step, R11-SEAM-learners, R11-SEAM-ratchet-raise, R11-SEAM-ratchets, R11-SEAM-store, R11-SEAM-tests, R11-SEAM-two-zone-slab
+Ready next (after-edges satisfied; nothing open constrains them): R11-ARCH-cycle-surface, R11-CARRY-DRAWMAP, R11-CLOSEOUT-CLEANUP, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-P3, R11-OUTSIDE-SELF-SETTING-PUMP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-release, R11-SEAM-card, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-entity-service, R11-SEAM-inputs-guards, R11-SEAM-kernel-step, R11-SEAM-learners, R11-SEAM-ratchet-raise, R11-SEAM-ratchets, R11-SEAM-store, R11-SEAM-tests, R11-SEAM-two-zone-slab
 
 ## Resume steps
 
 1. Read the resume doc's Roster and Ready next sections.
-2. Run `python3 -I tools/audit/seat/seat_gen.py lock` before the first dispatch and stop if it prints REFUSED.
-3. Claim one ready group and announce it on the record issue #3394 before opening work -- before each PR, merge and release, not only after a state change.
-4. Work at your own merge base; re-derive every figure you quote there. A figure from another seat's run is a claim, not a measurement.
+2. Claim one ready group and announce it on the record issue #3394 before opening work -- before each PR, merge and release, not only after a state change.
+3. Work at your own merge base; re-derive every figure you quote there. A figure from another seat's run is a claim, not a measurement.
 
 ## Identity and merge (from the roster)
 
