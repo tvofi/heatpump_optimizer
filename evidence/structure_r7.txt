@@ -1,4 +1,0 @@
-  ok   seam_cut_total 415 <= 415
-  ok   unloaded_package_imports 14 <= 14
-
-STRUCTURE RATCHET PASSED
