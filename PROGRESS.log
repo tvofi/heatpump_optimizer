@@ -9,3 +9,4 @@
 1795283975 HB alive
 1795284042 CKPT setup done; packet rendered (introduced-red: CI in progress) snapshot c54fd558310e
 1795284083 CKPT read body and production diff; starting mutants snapshot 09e7600d1812
+1795284508 CKPT 26 targeted mutants all killed snapshot a04c6e00559a
