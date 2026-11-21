@@ -1,0 +1,5 @@
+No baseline readable from climate.valve: written, nothing to restore it to
+RESULT phase1_writes 1 armed True None
+  call ('climate', 'set_temperature', {'entity_id': 'climate.valve', 'temperature': 23})
+RESULT phase2_writes 0 armed None
+RESULT phase3_restore_writes 0 counted 0 armed_after ABSENT

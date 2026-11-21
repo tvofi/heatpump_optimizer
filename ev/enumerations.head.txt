@@ -1,0 +1,15 @@
+## lazy-load flags
+custom_components/heatpump_optimizer/coordinator.py:9784:            self._snapshots_loaded = True
+custom_components/heatpump_optimizer/frontend.py:112:            resources.loaded = True
+custom_components/heatpump_optimizer/off_restore.py:173:            held.loaded = True
+custom_components/heatpump_optimizer/pump_arbiter.py:2266:    held.loaded = True
+## let-go sites
+909:    handover["plan_stale"] = coord._plan_is_stale()
+3499:    if _plan_let_go(coord):
+3505:def _plan_let_go(coord: Any) -> bool:
+3512:    return coord._mode in (MODE_AUTO, MODE_ECONOMY) and bool(coord._plan_is_stale())
+4172:            plan_stale=self._plan_is_stale(),
+7745:        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE or self._mode == MODE_OFF or _plan_let_go(self):
+7807:        stale = _plan_let_go(self)
+8228:            "plan_stale": self._plan_is_stale(),
+10866:        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or _plan_let_go(self):

@@ -1,0 +1,26 @@
+m0:   FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1); a climate that reads no target has no baseline to restore, so it is written and restores nothing (ADR-004)  [{'climate on degF': ([74], 
+m0:   FAIL an entity whose baseline is unreadable is still written and restores nothing; an arm after its own write lands keeps that, the restore that drops it writes nothing, and the next arm captures the reading (the valve on an off climate, 
+m0:   FAIL a smart_write valve on a climate that is off with no target is written on the first cycle, once, not parked until the climate reports one  [0 writes over 5 cycles]
+m0: 3 of 31 FEATURES BLOCK FAILED
+m1:   FAIL an entity whose baseline is unreadable is still written and restores nothing; an arm after its own write lands keeps that, the restore that drops it writes nothing, and the next arm captures the reading (the valve on an off climate, 
+m1: 1 of 31 FEATURES BLOCK FAILED
+m2:   FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1); a climate that reads no target has no baseline to restore, so it is written and restores nothing (ADR-004)  [{'climate on degF': ([74], 
+m2:   FAIL an entity whose baseline is unreadable is still written and restores nothing; an arm after its own write lands keeps that, the restore that drops it writes nothing, and the next arm captures the reading (the valve on an off climate, 
+m2:   FAIL a smart_write valve on a climate that is off with no target is written on the first cycle, once, not parked until the climate reports one  [0 writes over 5 cycles]
+m2: 3 of 31 FEATURES BLOCK FAILED
+m3:   FAIL the supply restore that lands ends the step tick's held write: the same step's tick writes nothing over it (null control: the held write alone retries OFF)  [{'restored': (1, [False], True, [('switch', 'turn_on')]), 'null, held only'
+m3: 1 of 55 FEATURES BLOCK FAILED
+m4:   FAIL an entity whose baseline is unreadable is still written and restores nothing; an arm after its own write lands keeps that, the restore that drops it writes nothing, and the next arm captures the reading (the valve on an off climate, 
+m4: 1 of 31 FEATURES BLOCK FAILED
+m5:   FAIL an entity whose baseline is unreadable is still written and restores nothing; an arm after its own write lands keeps that, the restore that drops it writes nothing, and the next arm captures the reading (the valve on an off climate, 
+m5: 1 of 31 FEATURES BLOCK FAILED
+m5:   FAIL null control: the same unreadable entity under a write_unread restorer arms a restore of nothing, and a readable one arms its reading  [{(False, None): (False, 'absent'), (True, None): (True, 'absent'), (False, 40.0): (True, {'entity
+m5: 1 of 77 FEATURES BLOCK FAILED
+m6:   FAIL an entity whose baseline is unreadable is still written and restores nothing; an arm after its own write lands keeps that, the restore that drops it writes nothing, and the next arm captures the reading (the valve on an off climate, 
+m6: 1 of 31 FEATURES BLOCK FAILED
+m7:   FAIL a frequency one FREQ_WRITE_EPSILON_HZ (1 Hz) from the last command, and a valve target one epsilon_k from the last write, are each written, and the write's tail answers True  [{('freq', 51.0): (False, []), ('freq', 50.5): (False, [])
+m7: 1 of 77 FEATURES BLOCK FAILED
+m8:   FAIL verdict item 8: a pass that forgets the arbiter's record between two slot writes of the row's restore does not stop it: the restore completes, the row is disarmed and the record holds no slot but the space set-point  [(restores, inte
+m8:   FAIL verdict item 8 null control: without the interleaving the end state is the same  [(8, False, False, ['dhw_setpoint', 'mode'])]
+m8:   FAIL the row's restore that landed leaves the arbiter's stored record holding the space set-point slot alone  [(['Heating + DHW'], [], ['dhw_setpoint', 'mode'], ['dhw_setpoint', 'mode', 'space_setpoint'])]
+m8: 3 of 77 FEATURES BLOCK FAILED
