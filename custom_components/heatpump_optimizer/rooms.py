@@ -166,7 +166,7 @@ TARGET_COUNTS_IN = frozenset({"heat", "auto"})
 
 @dataclass(frozen=True)
 class HeldLift:
-    """What one solve was given: the lift, K, before its per-step clip; the
+    """What one solve was given. The lift, K, before its per-step clip; the
     room that set it; the gate that zeroed it; and the house's margin over
     its comfort floor at that solve, K (negative under it), which the ramp
     starts from."""
@@ -199,9 +199,9 @@ def gate(
     floor, by name, or None.
 
     Economy and away chose a lower floor, and a room does not undo the
-    choice; with a window open the coldest room is the one with the window;
-    a manual pin's release is judged against the floor, which a lift must not
-    move; and a two-zone model applies one margin to both floors while the
+    choice. With a window open the coldest room is the one with the window.
+    A manual pin's release is judged against the floor, which a lift must not
+    move. A two-zone model applies one margin to both floors while the
     list does not say which floor a room is on.
     """
     fired = {
@@ -288,7 +288,7 @@ def lifted(
     the step's band leaves over ``base`` under its comfort target, so the
     lifted floor never passes the target the same solve pulls towards. It
     reaches the target, with no headroom kept under it, and the plan's peak
-    may then pass the unlifted plan's: the plan stores heat above a floor held
+    may then pass the unlifted plan's. The plan stores heat above a floor held
     at the target, a rise accepted rather than clipped (round-11 ruling,
     2026-11-18; ``tests/features.py`` pins it). The ramp starts at the house's margin over the floor ``base`` already
     raised, never under zero. A step on a holiday date takes no lift, as a
