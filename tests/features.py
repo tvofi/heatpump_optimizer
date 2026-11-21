@@ -98613,6 +98613,7 @@ def _cr_retry_run():
     global _cr_up
     _cr_update_run()
     first = _cr_up
+    _cr_aio.run(first.async_shutdown())  # a failed setup shuts its coordinator down, forgetting hass's latches
     _cr_up = Coord(first.hass, first.entry)
     for _name in ("_fetch_tibber_prices", "_fetch_weather_forecast", "_fetch_solar_forecast",
                   "_async_learn_price_shape"):
