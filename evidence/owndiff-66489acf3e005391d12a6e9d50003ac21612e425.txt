@@ -1,0 +1,14 @@
+head 66489acf3e005391d12a6e9d50003ac21612e425 reviewed b2a751cf90bdbc1cecd7c17f47d88b2226a2551d
+66489acf3e005391d12a6e9d50003ac21612e425 b2a751cf90bdbc1cecd7c17f47d88b2226a2551d e698fc8ac374a1d72c230b55d938d75b03b7de67 ci: merge main
+review_carry: b2a751cf9 -> 66489acf3  main=origin/main
+  branch-only commits: 1
+  why: 0 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  66489acf3  ci: merge main
+review_carry: CARRY
+own three-dot diff, +/- lines sha256 (old merge base 05657b6898a813054ecac7de43d8a39e885c0158 ...b2a751cf90, then e698fc8a...head):
+a7ab946fe37b8c0f53ebb18c5f654f9727554164c72df447b1be3d6cff27ab8d  -
+a7ab946fe37b8c0f53ebb18c5f654f9727554164c72df447b1be3d6cff27ab8d  -
+name-status sha256:
+bebfbd549ad9ac28bb21845b3b0a7e08ffd4755f3ddc5d3c7990960de4f47479  -
+bebfbd549ad9ac28bb21845b3b0a7e08ffd4755f3ddc5d3c7990960de4f47479  -
+only hunk-context lines of tests/closures.json differ (main added inert_reads entries)
