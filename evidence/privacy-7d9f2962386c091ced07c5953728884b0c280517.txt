@@ -1,6 +1,0 @@
-# pr 3822 head 7d9f2962386c091ced07c5953728884b0c280517
-$ ref_privacy.py guard --ref fix/... --commits 7d9f2962386c091ced07c5953728884b0c280517 --over origin/main
-rc=0
-$ body-lines <added lines>
-rc=0
-added lines with /Users/: 0

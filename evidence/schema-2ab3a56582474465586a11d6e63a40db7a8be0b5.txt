@@ -1,0 +1,24 @@
+head 2ab3a56582474465586a11d6e63a40db7a8be0b5; validator: the reviewer's own (rev-land-6/validate.py), not a tracked instrument
+dev/audit/rounds/round11/reports-D3-m5.json D3-s1: findings=1 errors=0
+dev/audit/rounds/round11/reports-D3-rem.json D3-s1: findings=10 errors=0
+dev/audit/rounds/round11/reports-D3-u1a.json D3-s1: findings=0 errors=5
+    $.coverage[0].evidence: type ['string'] got list
+    $.coverage[1].evidence: type ['string'] got list
+    $.coverage[2].evidence: type ['string'] got list
+    $.coverage[3].evidence: type ['string'] got list
+    $.coverage[4].evidence: type ['string'] got list
+dev/audit/rounds/round11/reports-D3-u1d.json D3-s1: findings=0 errors=0
+dev/audit/rounds/round11/D3/s1/REPORT-D3-u1a.json (bare): findings=0 errors=5
+    $.coverage[0].evidence: type ['string'] got list
+    $.coverage[1].evidence: type ['string'] got list
+    $.coverage[2].evidence: type ['string'] got list
+    $.coverage[3].evidence: type ['string'] got list
+    $.coverage[4].evidence: type ['string'] got list
+dev/audit/rounds/round11/D3/s1/REPORT-u1a.json (bare): findings=0 errors=5
+    $.coverage[0].evidence: type ['string'] got list
+    $.coverage[1].evidence: type ['string'] got list
+    $.coverage[2].evidence: type ['string'] got list
+    $.coverage[3].evidence: type ['string'] got list
+    $.coverage[4].evidence: type ['string'] got list
+../s3822/prev-reports.json D3-s1: findings=0 errors=0
+prev-reports.json = reports-D3-u1a.json at the previously reviewed head 7d9f2962386c
