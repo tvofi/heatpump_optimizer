@@ -9,14 +9,14 @@ drift ETAs against the true settle day on synthetic plants and found both
   convergence predicate, the solar aperture's minimum sample count, the
   internal-gains learner's wait on the heat-loss level. A count reached at
   a measured rate is the one honest day figure, so ``eta_days`` is set
-  here and nowhere else;
+  here and nowhere else.
 * ``settling``: past every gate, the value is measurement and still moving.
   ``progress`` is the fraction of the learner's EWMA walk traversed --
-  how much of the value is measurement rather than prior -- never a time;
+  how much of the value is measurement rather than prior -- never a time.
 * ``waiting``: nothing was counted over the rate window and the weather
-  blocks the learner's own sample gate right now (``waiting_for``);
+  blocks the learner's own sample gate right now (``waiting_for``).
 * ``frozen``: a space boost, or the slab heat it left behind, holds the
-  learner; ``frozen_until`` is when that ends, ``None`` while unknown;
+  learner; ``frozen_until`` is when that ends, ``None`` while unknown.
 * ``off``: disabled, or not measurable on this install.
 
 A read-only view: the coordinator passes the learners' counts, their own
@@ -133,11 +133,11 @@ def pauses(reason: str | None) -> bool:
     The census of every reason ``_learning_frozen`` and ``_tail_freeze`` can
     return. Shown, the reason in ``waiting_for``: the boost (``boost_space``,
     with an end where one is known), an open window (``ventilation``) and an
-    unusable reading (``<problem>:<entity key>``, but not ``not_configured:``) -- each holds the learner
+    unusable reading (``<problem>:<entity key>``, but not ``not_configured:``). Each holds the learner
     until something changes, and a count that stands still hides it. Kept as
     the count: the early cut-off (one interval, gone next cycle), the
     unmetered-power freeze and an unread room (a property of the install that
-    never ends, so a pause would promise a resume), and the plant states the
+    never ends, so a pause would promise a resume). So are the plant states the
     heat pump itself signals (external heat, defrost, fault), which come and
     go within cycles. Which learner a reason holds is not this census's: each
     card learner reads only the record of the learner it folds in

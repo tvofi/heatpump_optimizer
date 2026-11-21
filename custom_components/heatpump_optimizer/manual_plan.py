@@ -188,7 +188,7 @@ class ManualOverride:
         step's interval, pinned off when none does, and left free once its
         start is at or beyond the expiry. Overlap, not start-containment:
         the solve anchor is snapped to the quarter grid, so a service call's
-        "from now" slot starts mid-step — judging only the step's start
+        "from now" slot starts mid-step. Judging only the step's start
         instant turned that command into a force-OFF of the very step it
         landed in, the opposite of what was asked, for up to a full step.
         Card-built slots are grid-aligned, where overlap and containment
@@ -309,9 +309,9 @@ def build_override(
     space = parse_channel(space_slots, now)
     dhw = parse_channel(dhw_slots, now)
     # A slot may start at the expiry -- the card's "beyond the window"
-    # arrangement is accepted and pins nothing -- but a slot starting
+    # arrangement is accepted and pins nothing. But a slot starting
     # beyond the window itself is refused: the store's lead bound rewrites
-    # a stored instant beyond now plus the window, and a wholly-beyond slot
+    # a stored instant beyond now plus the window. A wholly-beyond slot
     # would come back with its start clamped onto its end, discarding the
     # whole stored plan at the next restart for the sake of dead weight.
     for _channel, _slots in (("space", space), ("dhw", dhw)):
