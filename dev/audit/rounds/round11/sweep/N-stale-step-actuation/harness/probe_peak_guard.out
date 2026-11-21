@@ -1,0 +1,12 @@
+== probe_peak_guard.py 
+RESULT at_min=16 step=1 published=4 plan_step_displace=6 cut_step_displace=4
+RESULT release_publishes_other_step=1
+rc=1
+== probe_peak_guard.py --at 5
+RESULT at_min=5 step=0 published=4 plan_step_displace=4 cut_step_displace=4
+RESULT release_publishes_other_step=0
+rc=0
+== probe_peak_guard.py --recut
+RESULT at_min=16 step=1 published=6 plan_step_displace=6 cut_step_displace=4
+RESULT release_publishes_other_step=0
+rc=0

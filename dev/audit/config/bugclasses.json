@@ -5302,11 +5302,12 @@
       "status": "landed",
       "parts_missing": [],
       "process_state": "(d) the re-record was sound against the table it was taken from and its precondition, that the base had not moved, changed underneath it",
-      "countermeasure": "record unions over the committed entry, and a read leaves the table only by the named `prune` operation; part A (a bot re-records refused steps from main's own run) is R11-PRE-SHARED-FILES part 1",
+      "countermeasure": "record unions over the committed entry, and a read leaves the table only by the named `prune` operation. R11-PRE-SHARED-FILES part 1 adds the seat's detector (`selftest_scope.py precheck`, run by ci_predict.py's `selftest-scope` arm in prepr.sh: the gated steps whose own script a diff changes, traced in a scratch clone and graded as main's drift step grades them; a refusal the merge base draws too is a note), the scratch clone `record` traces in, and the table half of part A (`selftest_scope.py absorb`: main's own artifact unioned over the live table). The job that runs `absorb` on a red drift step and opens the pull request is not built: its write set and identity wait on the owner's ruling of design decisions D1 and D2 (design/R11-PRE-SHARED-FILES)",
       "landed": "R10-SELFTEST-SCOPE-UNION-GUARD",
       "in_tree_home": "dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md",
       "doc": [
-        "dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md"
+        "dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md",
+        "dev/audit/rca/R10-RCA-FAMILY-SELFTEST-SCOPE-DRIFT.md"
       ]
     },
     "R10-RCA-FEATURES-WEEKEND-CLOCK": {
@@ -6644,9 +6645,9 @@
     "per_round": {},
     "total": 0,
     "max_per_round": 0,
-    "detector": "python3 -I tools/ci/selftest_scope.py check, the drift step governance.yml runs on a push to main: an UNDER-SCOPED step line for each read main measures that the committed table lacks",
+    "detector": "python3 -I tools/ci/selftest_scope.py check, the drift step governance.yml runs on a push to main: an UNDER-SCOPED step line for each read main measures that the committed table lacks; before the merge, python3 -I tools/ci/selftest_scope.py precheck --base origin/main, which tools/pr/ci_predict.py runs as its selftest-scope arm",
     "detector_idea": null,
-    "barrier": "selftest_scope.union_record (record keeps every committed read; a read leaves only by the named `prune` operation), pinned by mutants in tools/ci/selftest_scope_mutants.sh",
+    "barrier": "selftest_scope.union_record (record keeps every committed read; a read leaves only by the named `prune` operation) and selftest_scope.absorb_entries (main's own measurement is unioned over the live table, never hand-copied), pinned by mutants in tools/ci/selftest_scope_mutants.sh",
     "status": "barriered",
     "nearest_existing": "R10-SELFTEST-RED-INTRODUCED",
     "mechanism_difference": "R10-SELFTEST-RED-INTRODUCED is a step the diff turned red; here the diff turns nothing red at its own head, it narrows a measured table that a later diff is scoped by.",

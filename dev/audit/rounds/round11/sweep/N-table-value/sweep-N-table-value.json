@@ -1,0 +1,14 @@
+{
+ "class": "N-table-value",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/table_value/enumerate.py  (37 module-level numeric tables)  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/table_value/oracle.py [--perturb SYMBOL] [--all]  (disposition: 0 instance, 30 hold against an oracle, 7 not applicable, 0 undispositioned)",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "symbol": "_ERA_LOSS_W_PER_M2K",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/table_value/oracle.py --perturb _ERA_LOSS_W_PER_M2K --all  # low_energy=0.85 (the export value the verifier measured) -> INSTANCE, 36 of 36 derive() cells inverted; at the register tree low_energy is 0.35 and the oracle HOLDS",
+   "beyond_finding": false
+  }
+ ]
+}
