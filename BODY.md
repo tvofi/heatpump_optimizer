@@ -1,0 +1,81 @@
+R11-SEAM-ratchet-raise (ADR-009 part 2): two `tests/structure.py` rows read what they name.
+
+- D7-s1-01: `const_modules_over_50` counted names on `from .const import` statements. `const_names_read()` counts the distinct `.const` names a module reads, by a from-import or by a binding of the module (`const.X`, `c.X`). The repaired row reads 4 (entry_config.py added) against a budget of 3.
+- D7-s1-04: no row priced a module's lines outside its classes. `module_excess_loc` sums each module's span (line 1 to the end of its last statement) past `MODULE_LOC_LIMIT` = 2000, built the way `class_excess_loc` is built over class spans.
+
+Both rows are recorded at their values measured at origin/main ae0ed64af8. The commit message gives the reason.
+
+## Head
+
+`5b81eba197d772ecf8e5dee46f7d4ac53940fd65` merges the authored code head `b278df39d6856cceab26584eb3f3dd112dc8a28c`.
+
+`3ef8aa8e8bfc41cc94da6bded6dc1005a0a59d61` merges the authored code head `b278df39d6856cceab26584eb3f3dd112dc8a28c`.
+
+`de84aa9bf9cc7a08b57436a8e952f7cafa73d657` merges the authored code head `0800f342ef7be0f36932a294f7f9e5d332417b34`.
+
+`4050847db5f614ed87b6c36a70099026afd43db7` merges the authored code head `0800f342ef7be0f36932a294f7f9e5d332417b34`.
+
+`8f34cd23e0ec30d26969c328807c98ebc6cabde7` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
+`ef7d2e40387edb5eb350ce24705655fdc3c036f1` is this PR's code head: the PR head 011a463926 (merge-main bot), the code 0dfa61d887 (re-record of `module_excess_loc` 21549 -> 21536 at 99436a082c), a merge of origin/main cb8edb65a5, and one commit recording `module_excess_loc` 21536 -> 21571 and `recorded_at` -> cb8edb65a5. Measured against origin/main cb8edb65a5a9c0940dbe263acee49e02ba5f0b25 (2026-11-19 UTC). `0800f342ef7be0f36932a294f7f9e5d332417b34` then re-records `module_excess_loc` 21571 -> 21633 (+62) and `recorded_at` -> b36742b17b as measured at the bot-merged head f50a75b4f7, where the plain run failed `module_excess_loc 21633 > 21571 (+62)`; the growth is main's large modules, no line of this PR moved it.
+
+`b278df39d6856cceab26584eb3f3dd112dc8a28c` re-records `module_excess_loc` 21633 -> 21694 (+61) and `recorded_at` -> 689f33e265 on the bot-merged head 430bc6bfad (origin/main 689f33e265, 2026-11-20 UTC), where the plain run failed `module_excess_loc 21694 > 21633 (+61)`. All 61 lines are optimizer.py's, from #3736; no line of this PR moved the figure (the `ast` span count below, b36742b17b -> 689f33e265).
+
+`module_excess_loc` is this PR's new row, absent on main, so `budget_raise_gate.py` reads none of its re-records as a raise (`raises_between` from merge base 689f33e265 to b278df39d6 names only `const_modules_over_50: 3 -> 4`, the owner-ruled raise below). Each follows main's own movement of module spans past 2000 lines, recorded at the value measured on the PR merged with main as the owner's 2026-11-18 ruling for this row directs: 99436a082c moved them -13 (coordinator.py -23, config_flow.py +3, sensor.py +7); main's merges up to cb8edb65a5 moved them +35 (optimizer.py +12, thermal_model.py +14, config_flow.py +7, sensor.py +4, coordinator.py -2). No line of this PR moved either figure. The rule: an `ast` span count (last statement's end line less 2000, floored at 0) over `git show` of each module at both commits.
+
+## Raise justification
+
+Owner ruling, tvofi 2026-11-18, verbatim "Yes to both": (1) raise `const_modules_over_50` from 3 to the value the repaired count reads at confirmation; (2) the module-span row limit is 2000 lines, and the row is recorded at its value measured now. The ruling was given before this branch was pushed. `module_excess_loc` is a new row, which `budget_raise_gate.py` does not read as a raise.
+
+Payments tried: narrowing entry_config.py's const reads; bringing config_flow.py, thermal_model.py or coordinator.py under 51 names; keeping the from-import count. None was taken, for these reasons:
+- Narrowing entry_config.py's reads of `const`: refused by ADR-009's Alternatives. The module reads its configuration keys because it owns that reading. Moving the reads elsewhere hides the fan-out without lowering it.
+- Bringing another of the four modules under 51 distinct names: config_flow.py reads 425, thermal_model.py 137, entry_config.py 120 and coordinator.py 99 (the `.const fan-out` table `PYTHONPATH=tests/hastub python3 tests/structure.py` prints at b278df39d6). No move of those reads lowers coupling, and re-spelling them is the blindness D7-s1-01 repairs.
+- Keeping the from-import count: that leaves the row blind to binding reads, which is the finding itself.
+
+Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --diff origin/main HEAD`).
+
+## Mutation proof
+
+The checks are the two new self-check groups in `tests/structure.py` (`const_self_check`, `module_self_check`), run by `PYTHONPATH=tests/hastub python3 tests/structure.py`:
+- Mutant A, `const_names_read`'s binding-read line disabled (`if bindings:` -> `if False:`): `FAIL a from-import re-spelled as a binding read moves no const row`, `FAIL a name read by both spellings counts once`, `2 COUNTING RULE(S) BROKEN`.
+- Mutant B, `module_excess` returning `0 * sum(...)`: `FAIL a module-level function past the module limit is priced by its lines`, `FAIL the same lines in a class past the module limit cost the same`, `2 COUNTING RULE(S) BROKEN`.
+- Restored: `ok 80 counting rules hold`.
+
+## Null control
+
+The finder's harness is `$EXPORT/dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py` from plan/r11 819aa2e354, sha1 e2f94c69129a1e2840e5b4b83e67dab96b576f7b. It was run with `PYTHONPATH=tests/hastub` at both ends:
+- origin/main ae0ed64af8: `ratchet_const_modules_over_50=3`, `any_spelling_const_modules_over_50=4`, `const_unseen_modules=1`. Under `--perturb const-respell` the ratchet falls to 2 while any_spelling stays at 4. Under `--perturb module-growth`, `coordinator_py_unpriced_loc` goes 2986 -> 4409 with `ratchet_rows_off_budget=0`: the defect.
+- HEAD 045f358a4f: `ratchet_const_modules_over_50=4`, `const_unseen_modules=0`. Under `--perturb const-respell` the ratchet stays at 4. Under `--perturb module-growth`, `ratchet_module_excess_loc=22972` and `ratchet_rows_off_budget=1 (module_excess_loc 21549->22972)`. The added 1423 lines are priced.
+- At HEAD the harness's `recount_mismatches` reads 1 (`RECOUNT const_modules_over_50 ratchet=4 recount=3 MISMATCH`). The harness recounts with the old from-import rule that this PR replaces, so this line reads the fix rather than a regression.
+- The introduced red, failing then passing, on the predicate the four self-test rows reach: `review_packet.structure_at_merge(main, head)`, which `review_packet.py handoff` (run by `body_push.sh`) turns into a refusal. With main = origin/main 99436a082c: head 382df86816 (before) returns `'table with this change, and say in the commit which rows moved.'` (structure.py's IMPROVED tail, a refusal); head 0dfa61d887 (after) returns `None` (no refusal). At ef7d2e4038 the plain `tests/structure.py` passes after the record (see `## Figures`). Command: a three-line script importing `tools/audit/seat/review_packet.py` and printing `structure_at_merge(<main>, <head>)` for each head. The whole `prepr.sh --self-test` was not re-run locally (it ran at ~2 rows a minute on this host); CI's `governance / instrument-self-tests` at the new head is the authority for it.
+
+## Figures
+
+<!-- figure-block: scope-line mb=689f33e2653f90ef0abeb10d1fc45be83a2d01cd head=5b81eba197d772ecf8e5dee46f7d4ac53940fd65 -->
+~~~text
+MODE: FULL -- every test script runs, nothing is scoped out.
+~~~
+<!-- /figure-block -->
+- `PYTHONPATH=tests/hastub python3 tests/structure.py` at b278df39d6: `const_modules_over_50=4`, `module_excess_loc=21694` (MODULE_LOC_LIMIT 2000), both at budget, `STRUCTURE RATCHET PASSED`. At 430bc6bfad (the same tree before the record) the plain run exits 1: `FAIL module_excess_loc 21694 > 21633 (+61)`, `1 STRUCTURE BUDGET(S) BREACHED`. Earlier, at ef7d2e4038, `module_excess_loc=21571` at budget (`--record --allow-regression` rc 0). At 5716b98d2d (the same tree before that record) the plain run exits 1: `FAIL module_excess_loc 21571 > 21536 (+35)`, `1 STRUCTURE BUDGET(S) BREACHED`; update_pr refused the push for it (`REFUSE merged structure`), so nothing reached the PR. Earlier, at 0dfa61d887, the row read 21536 at budget (rc 0). At db0831f278 (382df86816 merged with origin/main 99436a082c, before the re-record) the same command exits 2: `module_excess_loc 21549 -> 21536 BETTER`, `1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED`. The -13 is main's own: module spans past 2000 lines moved coordinator.py -23, config_flow.py +3, sensor.py +7 between ae0ed64af8 and 99436a082c (an `ast` span count over `git show` of each module at both commits). The four modules over the const limit are config_flow.py, thermal_model.py, entry_config.py and coordinator.py.
+- `python3 tools/audit/archscore/score.py --diff origin/main HEAD`: dS +0.0000 NULL.
+- Harness figures: see `## Null control`, with the command and sha1 named there.
+
+## Red checks
+
+- `budget-raise-gate / budget-raise-gate`: red by design until tvofi approves at the head, because `const_modules_over_50` goes 3 -> 4. The owner's ruling of 2026-11-18 is quoted under `## Raise justification`. This is no defect, so the root-cause question does not arise: the gate is the cheapest detector, it is the one that fired, and it waits on the owner's review.
+- `governance / instrument-self-tests` (step "Show the pre-PR self-check refusing its own fixtures") at 382df86816: introduced by this PR, and fixed at 0dfa61d887, then again at ef7d2e4038 after main moved the row by +35. Cause: on the PR merged with main, `tests/structure.py` exited 2 (`module_excess_loc` IMPROVED AND NOT YET RECORDED, 21549 -> 21536, a gain main made after the row was recorded at ae0ed64af8). `review_packet.py handoff` refuses a head whose merge with main `tests/structure.py` refuses, and `body_push.sh` runs it, so four body_push rows of `prepr.sh --self-test` failed (`566 passed, 4 failed`): "and pushes a body the lint passes", "and that body's commit names the handoff head ... (V147)", "and refuses a body whose carry its group does not hold ... (CARRY 11)", "and pushes, saying so, when the roster cannot be read". Fix: the re-record commits 0dfa61d887 and ef7d2e4038. Proof under `## Null control`. The cheaper detector exists and fired: `python3 tests/structure.py` on the merged tree, which the fixer contract runs before every push; the head 382df86816 was a `ci: merge main` push made without re-running it.
+- `tests / fast (3.14)` at 382df86816: the same cause (`FAILED python3 tests/structure.py`, exit 2, IMPROVED AND NOT YET RECORDED), fixed by the same commits.
+- `governance / env-matrix` at 382df86816: cancelled at its 10-minute `timeout-minutes` (started 06:01:57Z, cancelled 06:12:11Z), not a failure this PR introduced. The PR's diff (tests/structure.py, tests/structure_budgets.json, its delivery row) reaches nothing the environment matrix builds. The re-run at the new head is the answer.
+- Inherited from main, not from this diff: `tests / nightly-status`, `code-scanning alert 57 (py/overly-permissive-file)`, `code-scanning alert 58 (py/overly-permissive-file)`, `code-scanning alert 59 (js/insecure-temporary-file)`, `code-scanning alert 60 (js/file-system-race)`, `code-scanning alert 61 (py/insecure-temporary-file)`, `code-scanning alert 62 (py/insecure-temporary-file)`, `code-scanning alert 63 (py/insecure-temporary-file)`, `code-scanning alert 64 (py/incomplete-url-substring-sanitization)`, `code-scanning alert 65 (py/incomplete-url-substring-sanitization)`, `code-scanning alert 66 (py/overly-permissive-file)` and `code-scanning alert 67 (py/overly-permissive-file)`. Each alert's most recent instance is on refs/heads/main, in tools/audit/seat/postmerge.py, tools/audit/seat/roster_lib.py or a dev/audit/rounds/round11/ harness, none of which this diff touches (`git diff --stat cb8edb65a5...ef7d2e4038`: dev/programme/delivery/3735.md, tests/structure.py, tests/structure_budgets.json). The cheaper detector is the CodeQL scan that raised them, which already runs on main.
+
+## Forward-carry
+
+none
+
+## Friction
+
+none
+
+
+
+
