@@ -6,3 +6,4 @@
 1795288300 CKPT fix step committed 6ef81898 and pushed to handoff-wip; tests next snapshot 624600298319
 1795288624 HB alive
 1795288650 CKPT tests committed 8d1e608832, pushed wip; scope next snapshot ec2e6e188d80
+1795288977 CKPT mutation proofs M1-M7 done; stale pins dropped f74f91a3; gate + D1 harness running snapshot b2e6ede38943
