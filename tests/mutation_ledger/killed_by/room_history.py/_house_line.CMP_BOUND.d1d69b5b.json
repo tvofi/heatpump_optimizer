@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_house_line CMP_BOUND d1d69b5b",
+  "killed_by": "tests/features.py",
+  "old": "            if p is not None and s is not None and s >= CALLING_SHARE and reported[i]]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if p is not None and s is not None and s > CALLING_SHARE and reported[i]]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
