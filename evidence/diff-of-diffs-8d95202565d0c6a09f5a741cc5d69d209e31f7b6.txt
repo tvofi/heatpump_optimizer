@@ -1,0 +1,70 @@
+head 8d95202565d0c6a09f5a741cc5d69d209e31f7b6 reviewed-head 6e05a43067127660dcf161a46874e7cc0b889186
+three-dot old: git diff 9d65fe80b0cc76f4a65c1963fe244f8c296bdd26...6e05a43067127660dcf161a46874e7cc0b889186 ->       50 files; new: git diff 78d3b4022154b2cc2792df8ebf4a5d7753e8ed7f...8d95202565d0c6a09f5a741cc5d69d209e31f7b6 ->       29 files; added to new:        0
+== dropped from new (blob at O vs main 78d3b4022154b2cc2792df8ebf4a5d7753e8ed7f)
+O=main N=main dev/audit/harnesses/r11_comments_ratchet_mutants.py
+O=main N=main dev/audit/harnesses/r11_comments_ratchet_reconcile.py
+O!=main N=main dev/programme/delivery/3808.md
+O=main N=main tests/closure.py
+O=main N=main tests/doc_claims.py
+O=main N=main tests/entities.py
+O=main N=main tests/hastub/homeassistant/components/binary_sensor.py
+O=main N=main tests/hastub/homeassistant/components/diagnostics.py
+O=main N=main tests/hastub/homeassistant/components/recorder/history.py
+O=main N=main tests/hastub/homeassistant/components/sensor.py
+O=main N=main tests/hastub/homeassistant/config_entries.py
+O=main N=main tests/hastub/homeassistant/const.py
+O=main N=main tests/hastub/homeassistant/exceptions.py
+O=main N=main tests/hastub/homeassistant/helpers/entity.py
+O=main N=main tests/hastub/homeassistant/helpers/issue_registry.py
+O=main N=main tests/hastub/homeassistant/helpers/selector.py
+O=main N=main tests/hastub/homeassistant/helpers/storage.py
+O=main N=main tests/hastub/homeassistant/helpers/update_coordinator.py
+O=main N=main tests/hastub/homeassistant/util/dt.py
+O=main N=main tests/run.sh
+O=main N=main tests/throwaway_git.sh
+== retained: per-file patch (index lines dropped) old vs new
+same custom_components/heatpump_optimizer/batchmath.py
+same custom_components/heatpump_optimizer/battery.py
+same custom_components/heatpump_optimizer/currency.py
+same custom_components/heatpump_optimizer/dhw_schedule.py
+same custom_components/heatpump_optimizer/diagnosis.py
+same custom_components/heatpump_optimizer/driving_grade.py
+same custom_components/heatpump_optimizer/duty_legs.py
+same custom_components/heatpump_optimizer/frontend.py
+same custom_components/heatpump_optimizer/grid_fee.py
+same custom_components/heatpump_optimizer/issues.py
+same custom_components/heatpump_optimizer/learner_progress.py
+same custom_components/heatpump_optimizer/ledger.py
+same custom_components/heatpump_optimizer/manual_plan.py
+same custom_components/heatpump_optimizer/name_match.py
+same custom_components/heatpump_optimizer/prefill_offer.py
+same custom_components/heatpump_optimizer/price_model.py
+same custom_components/heatpump_optimizer/pump_mode.py
+same custom_components/heatpump_optimizer/pump_schedule.py
+same custom_components/heatpump_optimizer/quiet_windows.py
+same custom_components/heatpump_optimizer/rooms.py
+same custom_components/heatpump_optimizer/running_signal.py
+same custom_components/heatpump_optimizer/slab_seed.py
+same custom_components/heatpump_optimizer/supply_hold.py
+same custom_components/heatpump_optimizer/switch.py
+same custom_components/heatpump_optimizer/wear.py
+same dev/audit/harnesses/r11_comments_production_reconcile.py
+same dev/programme/delivery/3820.md
+DIFF tests/closures.json
+DIFF tests/comment_ratchet.py
+== #3808 tip a94deddd62ca54f9c81bc1a558c398887d67ddf7, ancestor of O: yes
+tests/comment_ratchet.py branch-own hunks (a94deddd62ca54f9c81bc1a558c398887d67ddf7..6e05a43067127660dcf161a46874e7cc0b889186 vs 78d3b4022154b2cc2792df8ebf4a5d7753e8ed7f..8d95202565d0c6a09f5a741cc5d69d209e31f7b6): identical
+== 3808.md O vs main
+diff --git a/dev/programme/delivery/3808.md b/dev/programme/delivery/3808.md
+index 116711aefd..f5e9243485 100644
+--- a/dev/programme/delivery/3808.md
++++ b/dev/programme/delivery/3808.md
+@@ -1 +1 @@
+-- [#3808](https://github.com/tvofi/heatpump_optimizer/pull/3808) — **open**, R11-SEAM-comments-tests: comments seam tests (R11-SEAM-comments-tests)
++- [#3808](https://github.com/tvofi/heatpump_optimizer/pull/3808) — **merged `9e7abae`**, R11-SEAM-comments-tests: comments seam tests.
+== merge-tree O x main tree vs head tree
+auto=ea8fb6ca1e717503306d03a27d8eedcfa4bb7d6b head=ea8fb6ca1e717503306d03a27d8eedcfa4bb7d6b
+== main's own production delta 9d65fe80b0cc76f4a65c1963fe244f8c296bdd26..78d3b4022154b2cc2792df8ebf4a5d7753e8ed7f
+ custom_components/heatpump_optimizer/optimizer.py  | 155 ++++++++++++++-------
+ custom_components/heatpump_optimizer/plan_slots.py |   6 +-
+ 2 files changed, 112 insertions(+), 49 deletions(-)
