@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_StoreProgram.plan.place CLAMP_DROP ea9b6ec1",
+  "old": "                return np.clip(j, 0, width - 1), np.where(inside, 0.0, np.inf)",
+  "reason": "Equivalent on every input (CLAMP_DROP, `np.clip(j, 0, width - 1)` -> `(j)`): a cell index the clip would move lies outside [0, width - 1], where `inside` (which requires `j >= 0` and `j < width`) is False, so the same arrival's extra cost is inf; runs.advance drops every arrival whose cost is not finite (`ok = np.isfinite(c)`, then `j = j[ok]`) before it indexes a cell with j, so no clipped index is ever read. Survived the unsharded pin drive (tests/mutation_table.py --pin-killed --base origin/main) on every driver in play.",
+  "verdict": "equivalent"
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:charges_run RETURN_DEL 70fe77b1",
+  "killed_by": "tests/features.py",
+  "old": "    return not bool(np.any(low & ~(ends & tails)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=20."
+}

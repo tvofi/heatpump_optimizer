@@ -62,7 +62,7 @@ from .const import (
     WOOD_TANK_MAX_TEMP,
 )
 from .batchmath import row_sums
-from .dhw_planner import DhwPlanner
+from .dhw_planner import ChargeRuns, DhwPlanner
 from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
@@ -199,6 +199,14 @@ def _engaged(opt: HeatPumpOptimizer) -> bool:
     with no start term to price.
     """
     return opt.config.start_price > 0 or opt.config.clamp_planned_levels
+
+
+def _charge_runs(opt: HeatPumpOptimizer, running: bool) -> ChargeRuns | None:
+    """What an engaged solve hands the hot-water planner so its charges ship
+    as runs too (``dhw_planner.commit_charges``); ``None`` unengaged."""
+    if not _engaged(opt):
+        return None
+    return ChargeRuns(opt.config.start_price, running, opt.config.clamp_planned_levels)
 
 
 #: The objectives a multi-start descends on in place of the true one
@@ -2033,6 +2041,10 @@ def _combi_dhw_exo(
 #: (the `exchange` harness arm in dev/audit/harnesses/r10_combi_tank.py
 #: prints the rounds a plan takes).
 _COMBI_EXCHANGE_ROUNDS = 4
+#: How much further under the requirement the committed plan's store may
+#: fall than the exchange's own plan and still ship, K: the planners'
+#: shortfall tolerance.
+_COMBI_COMMIT_SLACK_K = 0.05
 
 
 def _combi_flux_exchange(
@@ -2048,23 +2060,51 @@ def _combi_flux_exchange(
     A feasibility repair, never a scored candidate: the first plan's store
     breaches the hot-water floor the space side drains, so its score bounds
     nothing, and a space re-solve would draw the repair straight back out.
+
+    The rounds exchange uncommitted plans, whose levels move with the flux,
+    from a planner handed no runs to commit. On a solve that plans runs, one
+    more build on the settled flux commits the charges
+    (``dhw_planner.commit_charges``), and is kept only where the
+    store, walked under the flux the committed plan itself leaves, falls no
+    further under the requirement than the last round's plan did.
     """
     model, store = opt.model, opt.model.params.dhw_store
     weather = WeatherSeries.from_horizon(h)
-    space_net = None
-    for _ in range(_COMBI_EXCHANGE_ROUNDS):
-        dhw_exo = _combi_dhw_exo(model, h, dhw_power, draw_rates, space_net)
+
+    def net_under(schedule: np.ndarray, prior: np.ndarray | None) -> np.ndarray:
+        """The space side's net flux into the store beside ``schedule``."""
+        dhw_exo = _combi_dhw_exo(model, h, schedule, draw_rates, prior)
         buffer_temps = model.simulate_trajectory(
             initial_state=h.initial_state, power_schedule=space_power,
             weather=_with_buffer_exo(weather, dhw_exo), dt_hours=h.dt,
             valve_targets=h.valve_targets, start_hour=float(h.step_hours[0]))[4]
-        space_net = combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
-        plan, opt._dhw_requirement = _dhw_build(
-            planner, h, p_max, space_demand=space_power, tank_exo_kw=space_net)
-        if np.allclose(plan.schedule, dhw_power, atol=1e-4):
+        return combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
+
+    def build(by: DhwPlanner, space_net: np.ndarray) -> np.ndarray:
+        plan, opt._dhw_requirement = _dhw_build(by, h, p_max, space_demand=space_power, tank_exo_kw=space_net)
+        return np.asarray(plan.schedule)
+
+    levels = DhwPlanner(opt.model, opt.config, opt._pv_surplus, opt._price_known)
+    space_net = None
+    for _ in range(_COMBI_EXCHANGE_ROUNDS):
+        space_net = net_under(dhw_power, space_net)
+        plan = build(levels, space_net)
+        if np.allclose(plan, dhw_power, atol=1e-4):
             break
-        dhw_power = plan.schedule
-    return dhw_power
+        dhw_power = plan
+    if planner.charge_runs is None or space_net is None:
+        return dhw_power
+    committed = build(planner, space_net)
+
+    def short(schedule: np.ndarray, net: np.ndarray) -> float:
+        """How far the store falls under the requirement at worst, K."""
+        gaps = planner._dhw_shortfall(
+            None, schedule, float(h.initial_state.dhw_temperature), h.outdoor_temps, draw_rates,
+            h.dt, h.humidity, np.asarray(opt._dhw_requirement), set(), net)[1]
+        return float(np.max(gaps))
+
+    kept = short(committed, net_under(committed, space_net)) <= short(dhw_power, space_net) + _COMBI_COMMIT_SLACK_K
+    return committed if kept else dhw_power
 
 
 def _price_guess_weights(prices: np.ndarray) -> np.ndarray:
@@ -4486,8 +4526,7 @@ class HeatPumpOptimizer:
         )
         # One hot-water planner per solve, from this solve's inputs (#1743).
         planner = DhwPlanner(
-            self.model, self.config, self._pv_surplus, self._price_known
-        )
+            self.model, self.config, self._pv_surplus, self._price_known, _charge_runs(self, inputs.compressor_running))
 
         # --- Analyze forecast trajectory for predictive signals ---
         forecast_analysis = self._analyze_forecast_trajectory(

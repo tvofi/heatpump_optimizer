@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_StoreProgram._actions.fill CMP_BOUND f5054d73",
+  "old": "            under = level < floor - 1e-9",
+  "reason": "Equivalent on every float input (CMP_BOUND, `level < floor - 1e-9` -> `<=`): the two differ only where the fill's level, `_StoreProgram._to_ceiling`'s `power_for_heat_per_cop_kw` of a share of the run power's heat, equals `floor - 1e-9` exactly, and no input reaches that float. Measured on the block's own rig (`_hdr_rig()`, a 50 degC tank, floor 1.0 kW): bisecting the step's ceiling to two adjacent floats (52.43492312513295 and the next) gives levels 0.9999999989999981 and 0.9999999990000011, either side of 0.999999999 and some 27 ulps apart, so the level steps over the bound and the tie is never computed; the 1e-9 itself is the tolerance that keeps a level a rounding under the floor from reading as a tail. Survived the pin drive's shard 1 (tests/mutation_table.py --pin-killed --scripts tests/features.py --shard 1/4) and features_block.py over the R11-OUTSIDE-HONEST-DHW-RUNS block with the mutant applied (no added failure).",
+  "verdict": "equivalent"
+}

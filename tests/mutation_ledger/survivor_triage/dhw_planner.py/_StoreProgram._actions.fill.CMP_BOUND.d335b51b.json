@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_StoreProgram._actions.fill CMP_BOUND d335b51b",
+  "old": "            fills = fills & (under & (level >= ctx.min_run_power) & ran_before if tail else ~under)",
+  "reason": "Equivalent on every float input (CMP_BOUND, the tail's `level >= ctx.min_run_power` -> `>`): the two differ only where the fill's level equals the minimum run power exactly, and no input reaches that float. Measured on the block's rig (`_hdr_rig(t0=50.0, draws=0.5)`, min_run_power 0.6 kW): bisecting step 0's ceiling to two adjacent floats (50.894160773134445 and the next) gives levels 0.5999999999999979 and 0.6000000000000008, either side of 0.6 and some 26 ulps of it apart, so the level steps over the bound and the tie is never computed. Survived the unsharded pin drive (tests/mutation_table.py --pin-killed --base origin/main) on every driver in play.",
+  "verdict": "equivalent"
+}

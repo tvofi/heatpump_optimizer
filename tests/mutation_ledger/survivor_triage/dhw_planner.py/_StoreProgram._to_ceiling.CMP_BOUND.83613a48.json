@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_StoreProgram._to_ceiling CMP_BOUND 83613a48",
+  "old": "        fills = (share > 0.0) & (share < 1.0)",
+  "reason": "Both mutants of the line are equivalent. `share > 0.0` -> `>=` adds only share == 0.0, a tank whose coast lands exactly on the ceiling less the margin: the fill's level is then `power_for_heat_per_cop_kw` of no heat, 0.0 kW, which the run's fill refuses (`under`, 0.0 < floor - 1e-9) and the tail refuses (`level >= ctx.min_run_power`, every caller's minimum run power above 0), so the action is the idle coast either way. `share < 1.0` -> `<=` adds only share == 1.0, which no float input reaches: on the block's rig (`_hdr_rig(t0=50.0, draws=0.5)`, step 0, run power 4.8 kW) bisecting step 0's ceiling to two adjacent floats gives shares 0.9999999999999996 and 1.0000000000000002, so the quotient steps over 1.0, and where it would land the fill's level is the run power the `at(4.8)` action already takes to the same temperature. Measured with the share == 0 tie constructed exactly (room 0.0: level 0.0, fills False). Survived the unsharded pin drive (tests/mutation_table.py --pin-killed --base origin/main) on every driver in play.",
+  "verdict": "equivalent"
+}

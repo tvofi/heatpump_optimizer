@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:commit_charges CMP_BOUND e2cc9d77",
+  "killed_by": "tests/features.py",
+  "old": "    if charge is None or ctx.p_dhw_max < floor or ctx.c_dhw <= 0.0 or not np.any(plan > 0.0):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if charge is None or ctx.p_dhw_max <= floor or ctx.c_dhw <= 0.0 or not np.any(plan > 0.0):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 3 sites under this anchor was killed."
+}

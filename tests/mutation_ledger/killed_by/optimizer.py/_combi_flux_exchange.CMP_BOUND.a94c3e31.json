@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_combi_flux_exchange CMP_BOUND a94c3e31",
+  "killed_by": "tests/features.py",
+  "old": "    kept = short(committed, net_under(committed, space_net)) <= short(dhw_power, space_net) + _COMBI_COMMIT_SLACK_K",
+  "reason": "Killed by the check \"combi: the committed build ships where its store falls exactly the slack further under the requirement ...\" in tests/features.py's R11-OUTSIDE-HONEST-DHW-RUNS block, which sets the slack to the float that makes the two sides equal: CMP_BOUND (`<`) ships the last round's plan there; features_block.py over the block went from 1 failed (the block-mode baseline) to 2 failed with the mutant, the added failure being that check."
+}

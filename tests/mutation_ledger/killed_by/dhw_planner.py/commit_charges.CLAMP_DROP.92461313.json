@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:commit_charges CLAMP_DROP 92461313",
+  "killed_by": "tests/features.py",
+  "old": "    space = np.zeros(ctx.n_steps) if space_demand is None else np.clip(space_demand, 0.0, None)",
+  "reason": "Killed by the check \"a space plan under zero commits as no space plan: ...\" in tests/features.py's R11-OUTSIDE-HONEST-DHW-RUNS block: CLAMP_DROP (`(space_demand)`) lets a space step of -10 kW under the program's dear early charge hide that charge's start, so the early charge ships; features_block.py over the block went from 1 failed (the block-mode baseline) to 2 failed with the mutant, the added failure being that check."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_StoreProgram._actions CMP_BOUND 64eeed1c",
+  "killed_by": "tests/features.py",
+  "old": "        ran, paused = runs.tie_break(bool(self.asked[k] > 0.0))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`ran, paused = runs.tie_break(bool(self.asked[k] >= 0.0))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
