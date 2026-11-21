@@ -1,0 +1,5 @@
+fix/fix-codeql-perms -> None
+handoff/fix-codeql-perms -> R11-HOTFIX-CODEQL-PERMS
+fix/r11-hotfix-codeql-perms -> R11-HOTFIX-CODEQL-PERMS
+gate_priority --hotfix --branch fix/fix-codeql-perms: 0
+gate_priority --hotfix --branch handoff/fix-codeql-perms: 1

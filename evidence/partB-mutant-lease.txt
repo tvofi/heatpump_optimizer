@@ -1,0 +1,2 @@
+roster_lib self-test: 105 checks, 1 failed
+FAIL writer_lease: the lease file is owner-only under umask 022 (got: 0o644)
