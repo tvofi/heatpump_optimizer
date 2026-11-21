@@ -1,0 +1,15 @@
+== M1
+-  if [ -z "$2" ] && axis_repeat "$1"; then  # mut:axisrepeat
++  if false && axis_repeat "$1"; then  # mut:axisrepeat
+== M2
+-    awk '{ h = $1; sub(/^[^ ]+ /, "") } h != ENVIRON["AX_HEAD"] && $0 == ENVIRON["AX_SET"] { f = 1 } END { exit !f }'
++    awk '{ h = $1; sub(/^[^ ]+ /, "") } $0 == ENVIRON["AX_SET"] { f = 1 } END { exit !f }'
+== M3
+-    awk '{ h = $1; sub(/^[^ ]+ /, "") } h != ENVIRON["AX_HEAD"] && $0 == ENVIRON["AX_SET"] { f = 1 } END { exit !f }'
++    awk '{ h = $1; sub(/^[^ ]+ /, "") } h != ENVIRON["AX_HEAD"] { f = 1 } END { exit !f }'
+== M4
+-  last=$(grep -m 1 "^verdict: #$1 Fix review: blocked " <<<"$subj") || return 1
++  last=$(grep -m 1 "^verdict: #$1 Fix review: blocked .* class-open: axis " <<<"$subj") || return 1
+== M5
+-  if [ -z "$2" ] && axis_repeat "$1"; then  # mut:axisrepeat
++  if axis_repeat "$1"; then  # mut:axisrepeat
