@@ -14,7 +14,7 @@ alwaysApply: true
 **What resolves**
 
 1. **Paths** (`dir/file.ext` or a unique basename) — in the tree, or in the same brief as a tag SHA (7–40 hex, at least one `a-f`) or `audit-round2-evidence` that actually carries them. A tag-only path without its tag is an error. Negation ("does not exist") is skipped.
-2. **`path:line`** (`foo.py:123` or `foo.py:123-145`) — the range exists, and a quoted phrase, a keyword (`return`/`raise`/`assert`/…), or a nearby snake_case identifier is found there or in the enclosing `def`/`class`. No extractable anchor is only a warning. Bare `:123` works only next to a `module.symbol`.
+2. **`path:line`** (`foo.py:123` or `foo.py:123-145`) — the range exists, and a quoted phrase, a keyword (`return`/`raise`/`assert`/…), or a nearby snake_case identifier is found there or in the enclosing `def`/`class`. No extractable anchor is only a warning. So is a pin that moved: an anchor found at exactly one other place in the file is a warning naming the new line, and `node tools/policy/brief_lint.mjs --repin [file...]` rewrites it there; an anchor at several places, or gone, is an error. Bare `:123` works only next to a `module.symbol`.
 3. **Symbols** — `snake_case` (≥2 segments), `SCREAMING_SNAKE`, or `module.symbol`, found in the tracked tree (not `.claude/`) or at a cited tag. Probe-output names (`min_ink_gap`) fail unless tagged.
 4. **Metrics and counts** — a metric names a key of `tests/structure_budgets.json`; a literal (`coordinator_loc 10394 <= 10394`) is always an error, and a stated count the tree answers must equal what it answers. Re-measure at your merge base; derive a count, never carry one (#581).
 
@@ -31,8 +31,8 @@ Three remedies, in order of preference, and **weakening the linter is not among 
 The linter's ref path also resolves at the cited tag, so verify a tag citation actually carries the symbol rather than assuming the tag rescues it.
 
 ```
-# BAD — only in the plan, or a moved range with no live anchor
-tests/entities.py:6042-6062 "does not run ahead"
+# BAD — only in the plan, or a range whose anchor is gone or sits at several places
+tests/entities.py:6042-6062 "return"
 
 # GOOD — in the group's brief, re-anchored, quoted phrase still at the range
 tests/entities.py:7305 "does not run ahead"
