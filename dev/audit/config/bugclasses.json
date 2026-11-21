@@ -5809,6 +5809,24 @@
       "doc": [
         "dev/audit/rca/R11-N-unbounded-retention.md"
       ]
+    },
+    "R11-RCA-SELFTEST-DOMINATED-DRIFT": {
+      "class": "R11-SELFTEST-DOMINATED-DRIFT",
+      "level": "class",
+      "subject": "main's self-test drift step refused dirs and probes misses that no selection reads, so each data landing adding directories under dev/audit/rounds/ reddened main (#3723, #3809, #3810) and #3806 re-took the table four times",
+      "trigger": "main red on governance / instrument-self-tests, re-reddened per round-11 data landing",
+      "date": "2026-11-20",
+      "status": "proposed",
+      "parts_missing": [
+        "merge on the owner's approving review (tools/ci/ is code-owned)"
+      ],
+      "process_state": "(d) the drift step's refusal of every miss was sound while directories under dev/audit/rounds/ arrived rarely (3 in 275 merges from #3315 to 2026-11-16) and its precondition changed with round 11's data landings (235 in the next 120 merges)",
+      "countermeasure": "selftest_scope.dominated: drift prints a miss in a list the entry's objects or index flag already selects on as a note, never a refusal; built on this class's own branch, self-test +4 checks, 4 mutants",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-RCA-SELFTEST-DOMINATED-DRIFT.md",
+      "doc": [
+        "dev/audit/rca/R11-RCA-SELFTEST-DOMINATED-DRIFT.md"
+      ]
     }
   },
   "N-registry-leak": {
