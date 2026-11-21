@@ -10,3 +10,4 @@
 1795287527 DONE returned: Fix review: merge accff49d51 (pending-ci: gate) on probe/rev-3812-5267b74a at 88bdf121a6
 1795303430 HB alive
 1795303533 CKPT round 3 delta: carry FRESH-REVIEW, merge-tree clean, resolution keyword-safe; re-running cheap checks snapshot e9a64311695b
+1795303613 CKPT blocks 77/37/55 at head; mutants running; classify waiting snapshot f22ee28aa75e
