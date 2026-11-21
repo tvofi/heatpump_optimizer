@@ -12005,7 +12005,7 @@ check("without an indoor reading the corner now label is absent",
   !/now-temp/.test(dump));
 
 // --- D4-s1-05 / P9-rca3: the "now" label, the now-temp reading, and the ---
-// estimated-prices label used to share one baseline (`plotT + font`), so
+// estimated-prices label used to share one baseline (`plotT + font`). So
 // the default live view (whose window opens AT "now") printed the "now"
 // label directly over the measured-now reading anchored at the plot's own
 // left edge. A card comment claimed the estimated-prices label "lives at a
