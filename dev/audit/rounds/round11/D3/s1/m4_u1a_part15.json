@@ -1,0 +1,9 @@
+{
+"3b9eddc7ba9a7488": {"answer": "defrost.py:124 DERATE_ALPHA 0.05 -> 0.1. Should fail: a DefrostDerate unit asserting the EWMA move after one duty sample in a confident bucket; the rate is unpinned.", "kind": "gap"},
+"3c6e75178a60d75e": {"answer": "dhw_planner.py:1870 _repair_dhw_floor: new_level < min_run - 1e-9 -> <=. Only a level exactly 1e-9 below min_run differs. Boundary; near-equivalent.", "kind": "boundary"},
+"3ceb6a076659004f": {"answer": "price_model.py:510 extend_price_series: the fully-known early return is disabled; with known_count >= n_steps the extension loop has nothing to fill, so the same prices (with a zero sigma) come back. Likely equivalent; should fail only if the general path rescales known prices.", "kind": "equivalent"},
+"3cfe39778305daba": {"answer": "coordinator.py:11008 _record_quiet_comfort_period: heating_kwh < 1.0 -> <=. Only exactly 1.0 kWh differs. Boundary; near-equivalent.", "kind": "boundary"},
+"3d468643db7d9ee4": {"answer": "thermal_model.py:668 buffer_tank_heat_loss_coefficient: the cache hit is disabled, so the value is recomputed every call: identical value, only CPU cost (the comment notes millions of calls per solve). Equivalent in value; a D9 cost, not a D3 gap.", "kind": "equivalent"},
+"3d4899a05eb126c3": {"answer": "thermal_model.py:940 _windowed_draw_pattern: total <= 1e-6 -> <. Only exactly 1e-6 differs. Boundary; near-equivalent.", "kind": "boundary"},
+"3d83c32f185cf411": {"answer": "coordinator.py:9819 _pv_forecast: peak_kw <= 0 -> < 0, so an enabled PV with zero peak runs the model. Should fail: a PV config with peak_kw = 0 asserting an empty PV summary; config validation may forbid 0.", "kind": "boundary"}
+}
