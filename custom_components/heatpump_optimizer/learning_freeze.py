@@ -18,7 +18,7 @@ the freeze notes) and are kept verbatim.
 from __future__ import annotations
 
 import enum
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 
 REASON_EXTERNAL_HEAT = "external_heat_source"
@@ -45,6 +45,8 @@ class Sample(enum.Enum):
     COMFORT = "comfort"
     #: heat the plan put into space heating, attributed by its split
     SPACE_HEAT = "space_heat"
+    #: the same, on metered heat: no room air in the sample (R10-COP-GATE item E)
+    METERED_SPACE_HEAT = "metered_space_heat"
     #: a running-draw ceiling sample of a draw-range experiment
     CEILING = "ceiling"
     #: the tank's draws and usage hours (no room air; occupied)
@@ -97,30 +99,43 @@ class Evidence:
 NO_EVIDENCE = Evidence()
 
 
+def space_heat(metered: bool) -> Sample:
+    """The space-heat kind of a sample whose heat is ``metered``, or inferred from the room."""
+    return Sample.METERED_SPACE_HEAT if metered else Sample.SPACE_HEAT
+
+
+#: The additive reasons, after the shared ones and in this order: each with
+#: the kinds it refuses and the fact or evidence that raises it. An away
+#: setback sits below the floor the curve tracker reads and the recovery
+#: climbs back through it, so the recovery refuses the comfort kind alone.
+_ADDITIVE: tuple[tuple[str, frozenset[Sample], Callable[[Facts, Evidence], bool]], ...] = (
+    (REASON_AWAY, _AWAY_KINDS, lambda f, e: f.away),
+    (REASON_AWAY_RECOVERY, frozenset({Sample.COMFORT}), lambda f, e: f.away_recovery),
+    (REASON_UNPLANNED_CHARGE, frozenset({Sample.SPACE_HEAT, Sample.METERED_SPACE_HEAT}),
+     lambda f, e: e.unplanned_charge),
+    (REASON_AT_RUNNING_FLOOR, frozenset({Sample.CEILING}), lambda f, e: e.at_running_floor),
+    (REASON_CHARGE_OPEN, frozenset({Sample.TANK_DRAW}), lambda f, e: e.charge_open),
+    (REASON_ASK_IGNORED, frozenset({Sample.DELIVERED_RATIO}), lambda f, e: e.ask_ignored),
+)
+
+
 def reason(
     facts: Facts, keys: tuple[str, ...], sample: Sample, evidence: Evidence = NO_EVIDENCE
 ) -> str | None:
-    """Why a ``sample`` over ``keys`` must not be folded this interval, or ``None``."""
-    if sample is Sample.DELIVERED_RATIO:
-        # #944: the caller's power gate owns the shared reasons and exempts
-        # ``defrosting``, the derate's own input; this ask adds only its own.
-        return REASON_ASK_IGNORED if evidence.ask_ignored else None
-    shared = _shared(facts, keys, sample)
-    if shared is not None:
-        return shared
-    if sample in _AWAY_KINDS and facts.away:
-        return REASON_AWAY
-    if sample is Sample.COMFORT and facts.away_recovery:
-        # An away setback sits below the floor the curve tracker reads, and
-        # the recovery climbs back through it: a comfort miss it did not cause.
-        return REASON_AWAY_RECOVERY
-    if sample is Sample.SPACE_HEAT and evidence.unplanned_charge:
-        return REASON_UNPLANNED_CHARGE
-    if sample is Sample.CEILING and evidence.at_running_floor:
-        return REASON_AT_RUNNING_FLOOR
-    if sample is Sample.TANK_DRAW and evidence.charge_open:
-        return REASON_CHARGE_OPEN
-    return None
+    """Why a ``sample`` over ``keys`` must not be folded this interval, or ``None``.
+
+    The delivered ratio answers its own reason alone (#944): the caller's
+    power gate owns the shared reasons and exempts ``defrosting``, the
+    derate's own input.
+    """
+    if sample is not Sample.DELIVERED_RATIO:
+        shared = _shared(facts, keys, sample)
+        if shared is not None:
+            return shared
+    return next(
+        (why for why, kinds, raised in _ADDITIVE if sample in kinds and raised(facts, evidence)),
+        None,
+    )
 
 
 def _shared(facts: Facts, keys: tuple[str, ...], sample: Sample) -> str | None:
