@@ -1651,7 +1651,7 @@ async def _r9f12_walk(choices, form_overrides):
     trail = []
     for _ in range(40):
         if result.get("type") == "create_entry":
-            return dict(result["data"]), trail
+            return {**result["data"], **result.get("options", {})}, trail
         if result.get("type") == "menu":
             options = list(result["menu_options"])
             step = choices[mi] if mi < len(choices) else options[0]
@@ -8577,6 +8577,7 @@ class _PredGate:
             upper_temp_trajectory = []
             # The production selection, as _predicted_next_room_temp is above.
             sensor_trajectory = _O.sensor_trajectory
+            zone_trajectories = _O.zone_trajectories
 
         class _OptCfg:
             time_step_minutes = 30.0
@@ -14799,7 +14800,7 @@ R.check(
     "a reset of both leaves the wiring alone and every learner at its initial state",
     _fr_learned(_fr_b_new) == _fr_learned(_fr_b_fresh)
     and set({**_fr_b_entry.data, **_fr_b_entry.options}) <= set(_fr_ec.FACTORY_KEPT)
-    and _fr_b_entry.data["indoor_temp_entity"] == "sensor.indoor",
+    and {**_fr_b_entry.data, **_fr_b_entry.options}["indoor_temp_entity"] == "sensor.indoor",
     f"stored {sorted({**_fr_b_entry.data, **_fr_b_entry.options})}",
 )
 _fr_undo = _fr_b_new._snapshot_ring.snapshots[-1]
@@ -14846,7 +14847,8 @@ R.check(
     f"refreshes asked {len(_fr_b_asked)}",
 )
 # The undo's pins, as stored: an explicit value, and one stored on the other
-# side (data versus options), each come back where and as they were.
+# side (data versus options), each come back as they were -- placed where the
+# entry now keeps them (only the name in data).
 _FR_PIN_DATA = {"name": "x", "two_zone_mode": "auto", "comfort_weight": 3.0, "indoor_temp_entity": "sensor.in"}
 _FR_PIN_OPTS = {"dhw_enabled": False, "target_temperature": 22.0}
 _fr_pin_reset = _fr_ec.factory_settings(_FR_PIN_DATA, _FR_PIN_OPTS, two_zone=True, dhw=True, wood=False)
@@ -14854,7 +14856,9 @@ _fr_pin_record = _fi_json.loads(_fi_json.dumps(_fr_ec.undo_point("both", _FR_PIN
 R.check(
     "an undo puts each pinned key back where and as it was stored, over the pins the reset wrote",
     _fr_pin_reset != (_FR_PIN_DATA, _FR_PIN_OPTS)
-    and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) == (_FR_PIN_DATA, _FR_PIN_OPTS),
+    and (_fr_pin_undone := _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record)) is not None
+    and {**_fr_pin_undone[0], **_fr_pin_undone[1]} == {**_FR_PIN_DATA, **_FR_PIN_OPTS}
+    and set(_fr_pin_undone[0]) <= {"name"},
     f"reset {_fr_pin_reset}, undone {_fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record)}",
 )
 # A record missing either half, or holding a half that is not a (data,
@@ -23525,6 +23529,9 @@ def _nf_settled(sun):
     coord._optimization_result.sensor_trajectory = _types_mod.MethodType(
         _OptResult.sensor_trajectory, coord._optimization_result
     )
+    coord._optimization_result.zone_trajectories = _types_mod.MethodType(
+        _OptResult.zone_trajectories, coord._optimization_result
+    )
     coord._current_state.room_temperature = 21.0
     coord._current_state.outdoor_temperature = -2.0
     coord.hass.states.set("sensor.indoor", FakeState("21.0"))
@@ -23968,6 +23975,9 @@ _fake_plan = _NS(
 # The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
 _fake_plan.sensor_trajectory = _types_mod.MethodType(
     _OptResult.sensor_trajectory, _fake_plan
+)
+_fake_plan.zone_trajectories = _types_mod.MethodType(
+    _OptResult.zone_trajectories, _fake_plan
 )
 _c16._file_lead_predictions(_fake_plan, _T5)
 R.check(
@@ -27429,6 +27439,7 @@ _SVC_KEYS = {
     "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
+    "set_thermal_params_house_field_two_zone": ({"field"}, "sve"),
     "factory_reset_not_applied": ({"entry_id"}, "hae"),
 }
 
@@ -38021,10 +38032,14 @@ R.check(
 
 _ss_cold, _, _ = _ss_run([0.0, 0.0, 0.0])
 R.check(
-    "the first solve (no warm start) adds the three structural seeds",
-    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 4,
+    "the first solve (no warm start) adds the three structural seeds and "
+    "the all-off start (D0-s3-02)",
+    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 5
+    and list(_ss_calls[0]["starts"][-1])
+    == [low for low, _ in _ss_calls[0]["bounds"]],
     f"nstarts={len(_ss_calls[0]['starts']) if _ss_calls else 0} — 1 means "
-    f"the warm-start gate was inverted and the D0-01 seeds never ran",
+    f"the warm-start gate was inverted and the D0-01 seeds never ran; 4 "
+    f"means the all-off start was dropped",
 )
 
 _ss_pin_h = _SsNS(
@@ -41829,6 +41844,7 @@ _ET_KEYS = {
     "config_entry_not_loaded": {"entry_id"},
     "no_loaded_config_entry": set(),
     "set_thermal_params_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
+    "set_thermal_params_house_field_two_zone": {"field"},
     "assign_entity_missing": {"entity_id"},
     "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
     "apply_topology_unsupported": {"layout", "requirement"},
@@ -90686,20 +90702,209 @@ R.check(
     f"{_c2238_p3_br.predictive_info.get('power_cap_breach_c')}, release {_c2238_p3_rel}",
 )
 
-# P3's rule itself, on a real result: two-zone with an upper trajectory reads
-# it; single-zone, or two-zone without one, reads the room.
+# P3's rule itself, on a real result: two-zone with its floors reads the
+# upper one; single-zone, or two-zone without floors, reads the room. A
+# two-zone solve fills both floor lists, so the upper floor is kept whenever
+# the plan has floors (R11-SEAM-plant-model pm-03: the indoor sensor's
+# series does not move when the floors' predicate gains the lower list).
 _c2238_p3_rule = _c2238_result(3)
 _c2238_p3_rule.upper_temp_trajectory = [19.0] * 4
+_c2238_p3_rule.lower_temp_trajectory = [20.0] * 4
 _c2238_p3_bare = _c2238_result(3)
 R.check(
     "R10-CLONE-2238 P3: sensor_trajectory is the upper floor only in two-zone "
-    "mode with an upper trajectory, else the room",
+    "mode with the plan's floors, else the room",
     _c2238_p3_rule.sensor_trajectory(True) == [19.0] * 4
     and _c2238_p3_rule.sensor_trajectory(False) == [21.0] * 4
     and _c2238_p3_bare.sensor_trajectory(True) == [21.0] * 4
     and _c2238_p3_bare.sensor_trajectory(False) == [21.0] * 4,
     f"{_c2238_p3_rule.sensor_trajectory(True)} {_c2238_p3_rule.sensor_trajectory(False)} "
     f"{_c2238_p3_bare.sensor_trajectory(True)}",
+)
+
+# R11-SEAM-plant-model: one predicate per plant question (ADR-008 part 1).
+# D12-s1-01: a single-zone solve fills the floor lists with the room's own
+# trajectory, so "has floors" is the model's flag, answered once by
+# OptimizationResult.zone_trajectories; the plan view reads it, not the lists.
+_pm_single = _c2238_result(3)
+_pm_single.upper_temp_trajectory = [21.0] * 4
+_pm_single.lower_temp_trajectory = [21.0] * 4
+_pm_upper_only = _c2238_result(3)
+_pm_upper_only.upper_temp_trajectory = [19.0] * 4
+R.check(
+    "R11-SEAM-plant-model D12-s1-01: zone_trajectories is None on one zone "
+    "even with filled floor lists, the floors on two zones, None without both",
+    _pm_single.zone_trajectories(False) is None
+    and _pm_single.zone_trajectories(True) == ([21.0] * 4, [21.0] * 4)
+    and _c2238_p3_rule.zone_trajectories(True) == ([19.0] * 4, [20.0] * 4)
+    and _pm_upper_only.zone_trajectories(True) is None,
+    f"{_pm_single.zone_trajectories(False)} {_pm_upper_only.zone_trajectories(True)}",
+)
+
+
+def _pm_space_rows(two_zone_mode):
+    coord = _t2_coord(two_zone_mode=two_zone_mode)
+    res = _c2238_result(3)
+    res.upper_temp_trajectory = [19.0] * 4
+    res.lower_temp_trajectory = [20.0] * 4
+    res.timestamps = [_T6 + timedelta(minutes=15 * i) for i in range(3)]
+    return coord._build_plan_views(res)["space_plan"]["forecast"]
+
+
+_pm_rows_one = _pm_space_rows("off")
+_pm_rows_two = _pm_space_rows("on")
+R.check(
+    "R11-SEAM-plant-model D12-s1-01: a single-zone plan publishes null "
+    "upper/lower rows; a two-zone one (null control) publishes its floors",
+    bool(_pm_rows_one)
+    and all(r.get("upper") is None and r.get("lower") is None for r in _pm_rows_one)
+    and bool(_pm_rows_two)
+    and all(r.get("upper") == 19.0 and r.get("lower") == 20.0 for r in _pm_rows_two),
+    f"one={_pm_rows_one[:1]} two={_pm_rows_two[:1]}",
+)
+
+# Not reproduced at main, pinned (R11-SEAM-plant-model; the owner's
+# 2026-11-18 precedent): each check below fails when the finder's planted
+# line is re-applied. D12-s2-01: "auto" -- the default, so every entry with
+# no mode key -- is the presence rule, never "on".
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    two_zone_from_config as _pm_two_zone,
+)
+
+R.check(
+    "R11-SEAM-plant-model D12-s2-01: two_zone_mode absent or auto follows the "
+    "zone keys; on and off override them",
+    _pm_two_zone({}) is False
+    and _pm_two_zone({"two_zone_mode": "auto"}) is False
+    and _pm_two_zone({"upper_floor_thermal_mass": 4.0}) is True
+    and _pm_two_zone({"two_zone_mode": "off", "upper_floor_thermal_mass": 4.0}) is False
+    and _pm_two_zone({"two_zone_mode": "on"}) is True
+    and ThermalParameters.from_config({}).two_zone_enabled is False,
+    f"absent {_pm_two_zone({})} auto {_pm_two_zone({'two_zone_mode': 'auto'})}",
+)
+
+# D2-s1-51: the era table orders the whole-house loss, oldest leakiest, on
+# every structure the preset offers (a low-energy house loses least).
+_pm_era_loss = {
+    st: [
+        presets.derive(presets.BuildingPreset(
+            structure=st, era=era, heated_area_m2=140.0,
+        ))["house_heat_loss_coefficient"]
+        for era in presets.ERAS
+    ]
+    for st in presets.STRUCTURES
+}
+R.check(
+    "R11-SEAM-plant-model D2-s1-51: the preset heat loss falls strictly from "
+    "the oldest era to low_energy, on every structure",
+    tuple(presets.ERAS)[-1] == presets.ERA_LOW_ENERGY
+    and all(
+        all(a > b for a, b in zip(row, row[1:])) for row in _pm_era_loss.values()
+    ),
+    f"{_pm_era_loss}",
+)
+
+# D8-s1-01: the hot-water coast term prices a tank only on an install with
+# hot water, answered by thermal_model.dhw_enabled_from_config. Null
+# control: the same series with hot water switched on still prices it.
+from heatpump_optimizer import sensor as _pm_sensor  # noqa: E402
+
+_pm_gap_off = _pm_sensor._gap_probe_terms({}, [1.0, 0.0], [2.0, 2.0], 1.5)
+_pm_gap_on = _pm_sensor._gap_probe_terms(
+    {"dhw_enabled": True}, [1.0, 0.0], [2.0, 2.0], 1.5
+)
+R.check(
+    "R11-SEAM-plant-model D8-s1-01: no hot water prices no DHW coast; "
+    "hot water (null control) still does",
+    _pm_gap_off["dhw_extra_kwh"] == 0.0
+    and _pm_gap_on["dhw_extra_kwh"] > 0.0
+    and _pm_gap_off["outdoor_load_kw"] == _pm_gap_on["outdoor_load_kw"] > 0.0,
+    f"off={_pm_gap_off} on={_pm_gap_on}",
+)
+
+# D17-s3-02: on two zones the whole-house mass and loss are read by nothing,
+# so the action refuses them before any write instead of acknowledging a
+# write that changes nothing. Null control: one zone still takes them.
+_pm_svc_hass = FakeHass()
+_seed_prices(_pm_svc_hass)
+_asyncio.run(_ha_setup_component(_integ, _pm_svc_hass))
+_pm_svc_two = FakeEntry(data=dict(_LC_DATA, two_zone_mode="on"), entry_id="pm_two")
+_asyncio.run(_ha_setup_entry(_integ, _pm_svc_hass, _pm_svc_two))
+_pm_svc_mass0 = _pm_svc_two.runtime_data._thermal_params.room_thermal_mass
+_pm_svc_out = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"house_thermal_mass": 33.0}
+)
+_svc_check(
+    "R11-SEAM-plant-model D17-s3-02: set_thermal_parameters refuses the "
+    "whole-house mass on a two-zone entry",
+    _pm_svc_out,
+    "set_thermal_params_house_field_two_zone",
+)
+_pm_svc_loss = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"house_heat_loss_coefficient": 0.4}
+)
+_svc_check(
+    "R11-SEAM-plant-model D17-s3-02: and the whole-house heat loss",
+    _pm_svc_loss,
+    "set_thermal_params_house_field_two_zone",
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02: the refused call wrote nothing",
+    _pm_svc_two.runtime_data._thermal_params.room_thermal_mass == _pm_svc_mass0
+    and "house_thermal_mass" not in _pm_svc_two.options,
+    f"mass={_pm_svc_two.runtime_data._thermal_params.room_thermal_mass} "
+    f"options={dict(_pm_svc_two.options)}",
+)
+_pm_svc_slab = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"slab_thermal_mass": 41.0}
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02 null control: a two-zone entry still "
+    "takes a field both topologies read",
+    _pm_svc_slab[0] == "returned"
+    and _pm_svc_two.runtime_data._thermal_params.slab_thermal_mass == 41.0,
+    f"{_pm_svc_slab} slab={_pm_svc_two.runtime_data._thermal_params.slab_thermal_mass}",
+)
+_pm_svc1_hass = FakeHass()
+_seed_prices(_pm_svc1_hass)
+_asyncio.run(_ha_setup_component(_integ, _pm_svc1_hass))
+_pm_svc_one = FakeEntry(data=dict(_LC_DATA, two_zone_mode="off"), entry_id="pm_one")
+_asyncio.run(_ha_setup_entry(_integ, _pm_svc1_hass, _pm_svc_one))
+_pm_svc_one_out = _svc_call(
+    _pm_svc1_hass, "set_thermal_parameters", {"house_thermal_mass": 33.0}
+)
+R.check(
+    "R11-SEAM-plant-model D17-s3-02 null control: a single-zone entry still "
+    "takes the whole-house mass",
+    _pm_svc_one_out[0] == "returned"
+    and _pm_svc_one.runtime_data._thermal_params.room_thermal_mass == 33.0,
+    f"{_pm_svc_one_out} mass={_pm_svc_one.runtime_data._thermal_params.room_thermal_mass}",
+)
+
+# D17-s2-03: quick setup's wood answers record the furnace and the tank; the
+# page says what else the plan needs, as buffer_tank's sentence does.
+import json as _pm_json  # noqa: E402
+from pathlib import Path as _pm_Path  # noqa: E402
+
+_pm_strings = _pm_json.loads(
+    _pm_Path("custom_components/heatpump_optimizer/strings.json").read_text()
+)
+_pm_wood = [
+    _pm_strings[flow]["step"]["quick_setup"]["data_description"][key]
+    for flow in ("config", "options")
+    for key in ("wood_furnace", "wood_buffer_tank")
+]
+R.check(
+    "R11-SEAM-plant-model D17-s2-03: every quick-setup wood description names "
+    "the throttling mixing valve, and the furnace's names the detection switch",
+    all("throttling mixing valve" in t for t in _pm_wood)
+    and all(
+        "Detect a wood furnace or other heat source" in t
+        for t in _pm_wood[0::2]
+    )
+    and not any("stand the pump down while the fire is lit." in t
+                and "once" not in t for t in _pm_wood),
+    f"{_pm_wood}",
 )
 
 # P4: window means at their billed-equivalent factor -- the published peak_kw,
@@ -94174,16 +94379,16 @@ R.check(
 # plan the true objective scores above the one that kept it. Such a solve
 # therefore descends twice, with the switch operand and as a solve that
 # prices no stop would, and the true objective judges the candidates of both.
-# Two duty-cycle days, one where each descent supplies the plan that ships:
-# the duty-cycle solve at price phase 30 that
+# Two duty-cycle days, one where each descent supplies the plan that ships.
+# Each is the duty-cycle solve at price phase 30 that
 # dev/audit/harnesses/r11_honest_starts_runs.py's descents mode runs, at an
 # outdoor mean of 1.0 (mild) and -1.0 (cold), both and each descent alone
 # (design verdict r2). The scores are of one
-# non-convex solve per arm (``fixer.md`` step 15), so each day is one whose
-# shipping arm stands apart in each of four kernel classes measured
-# (OPENBLAS_CORETYPE unset with numpy's own dispatch; Haswell without
-# AVX-512; Sandybridge and Nehalem without AVX, numpy narrowed to match by
-# NPY_DISABLE_CPU_FEATURES): the checks ask for 0.01.
+# non-convex solve per arm (``fixer.md`` step 15). So each day is one whose
+# shipping arm stands apart, by the 0.01 the checks ask for, in each of four
+# kernel classes measured. They are OPENBLAS_CORETYPE unset with numpy's own
+# dispatch, Haswell without AVX-512, and Sandybridge and Nehalem without AVX,
+# numpy narrowed to match by NPY_DISABLE_CPU_FEATURES.
 _dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
 _dsp_descents = []
 
@@ -94211,8 +94416,8 @@ def _dsp_arm(arm, **kw):
 
 _dsp_days = {
     day: {arm: _dsp_arm(arm, **kw) for arm in ("both", "operand", "unpriced", "no operand")}
-    # Both days moved with R11-OUTSIDE-HONEST-DHW-RUNS: with the hot water
-    # committed as runs both descents ship one plan at -4 degC, and at 2 degC
+    # Both days moved with R11-OUTSIDE-HONEST-DHW-RUNS. With the hot water
+    # committed as runs both descents ship one plan at -4 degC. At 2 degC
     # the operand's descent alone comes within 0.01 of the shipped plan once
     # numpy's dispatch has no AVX.
     for day, kw in (("mild", {"out_mean": 1.0}), ("cold", {"out_mean": -1.0}))
@@ -94220,12 +94425,12 @@ _dsp_days = {
 # What the commit stage guarantees is read where it decides: each commit call
 # scores the committed form of every relaxed plan (one per descent) on the
 # true objective, start term included, and ships the lowest. The solve's final
-# objective is not that score (stages after the commit move it), so which arm
+# objective is not that score: stages after the commit move it. So which arm
 # alone ships the lower final objective is a property of one non-convex solve
-# per arm and moved with the CPU class (``fixer.md`` step 15): with hot water
-# committed as runs the 2 degC day's operand arm alone scored under both
-# descents on one CI runner class and on arm64 and above them on another, and
-# the 1 degC day chosen over four x86 kernel classes failed on arm64.
+# per arm, and it moved with the CPU class (``fixer.md`` step 15). With hot
+# water committed as runs, the 2 degC day's operand arm alone scored under both
+# descents on one CI runner class and on arm64, and above them on another.
+# The 1 degC day chosen over four x86 kernel classes failed on arm64.
 _dsp_real_best, _dsp_real_commit = _dsp_om._best_runs, _dsp_om._commit_runs
 
 
@@ -94805,22 +95010,49 @@ R.check(
     "the fixture has something to commit: the unpriced duty-cycle plan runs steps "
     "under the floor, and every engaged solve was handed a relaxed plan that does",
     _hsr_under(_hsr_free.space, 1.1) > 0 and not _hsr_free.plans
-    and all(v.plans and _hsr_under(v.relaxed[-1], k[2]) > 0 for k, v in _hsr_engaged.items()),
+    and all(v.plans and _hsr_under(v.relaxed[0], k[2]) > 0 for k, v in _hsr_engaged.items()),
     f"free {_hsr_under(_hsr_free.space, 1.1)}; "
-    f"{({k: _hsr_under(v.relaxed[-1], k[2]) if v.relaxed else None for k, v in _hsr_engaged.items()})}",
+    f"{({k: _hsr_under(v.relaxed[0], k[2]) if v.relaxed else None for k, v in _hsr_engaged.items()})}",
 )
-R.check(
-    "acceptance: an engaged plan ships no step between the running rule and the "
-    "floor, on a priced modulating install at both floors and on a clamped one",
-    all(_hsr_under(v.space, k[2]) == 0 for k, v in _hsr_engaged.items()),
-    f"{({k: _hsr_under(v.space, k[2]) for k, v in _hsr_engaged.items()})}",
-)
+# Since D0-s3-02 the space-only stage is handed the all-off plan beside the
+# descent's run, so ``relaxed[0]`` and ``first[0]`` are the descent's plan and
+# its projection (candidate 1) and the last entries are the all-off plan's.
+# Which of the two ships on this mild day is a knife edge across OpenBLAS
+# kernels: the 0.53 kW priced cell ships the all-off plan under all four, the
+# 1.1 kW priced cells under Haswell alone and a run under the other three. So
+# the check below asks what the stage holds on every kernel, and the same
+# house on a colder day is the priced cell that commits a run, carrying the
+# start-pricing identity and the floor acceptance.
+_hsr_cold = _hsr_solve(0.25, False, 1.1, out_mean=5.0)
+_hsr_cold_free = _hsr_solve(0.0, False, 1.1, out_mean=5.0)
 
 
 def _hsr_scores(seen):
     """The true-objective score of the shipped plan and of candidate (1)."""
     _, objective, _, _ = seen.objectives[-1]
-    return float(objective(seen.space)), float(objective(seen.first[-1]))
+    return float(objective(seen.space)), float(objective(seen.first[0]))
+
+
+R.check(
+    "every engaged space-only stage is handed the descent's plan and the all-off "
+    "plan, and ships a plan the true objective scores no higher than the all-off "
+    "plan (D0-s3-02)",
+    all(
+        len(v.relaxed) == 2 and not np.any(v.relaxed[-1] > 0)
+        and _hsr_scores(v)[0] <= float(v.objectives[-1][1](v.relaxed[-1])) + 1e-12
+        for v in _hsr_engaged.values()
+    ),
+    f"{({k: (len(v.relaxed), round(float(np.sum(v.space)) * 0.25, 3), round(_hsr_scores(v)[0], 4), round(float(v.objectives[-1][1](v.relaxed[-1])), 4)) for k, v in _hsr_engaged.items()})}",
+)
+R.check(
+    "acceptance: an engaged plan ships no step between the running rule and the "
+    "floor, on a priced modulating install at both floors and on a clamped one, "
+    "and on the colder day's priced install, which ships a run",
+    all(_hsr_under(v.space, k[2]) == 0 for k, v in _hsr_engaged.items())
+    and _hsr_under(_hsr_cold.space, 1.1) == 0 and _hsr_count(_hsr_cold.space, 1.1) >= 1.0,
+    f"{({k: _hsr_under(v.space, k[2]) for k, v in _hsr_engaged.items()})}; cold "
+    f"{_hsr_under(_hsr_cold.space, 1.1)} under, {_hsr_count(_hsr_cold.space, 1.1)} starts",
+)
 
 
 # The energy half of this acceptance is restated (``tests/README.md``, "A
@@ -94830,11 +95062,12 @@ def _hsr_scores(seen):
 # and the levels of the best candidates are re-solved inside their runs.
 # Under three of four OpenBLAS kernels the 1.1 kW cell ships one run where
 # the fourth ships two, almost two floor steps under its relaxed plan, at a
-# lower true objective: the plan a priced start is meant to buy. What the
-# stage does hold is asked in its place, a quantity of one solve: the shipped
-# plan scores no higher on its own objective than the projection of the
-# relaxed plan it was committed from. The energy difference is reported in
-# the detail and asserted nowhere.
+# lower true objective: the plan a priced start is meant to buy. (Measured
+# before D0-s3-02 handed the stage the all-off plan too; since then Haswell
+# ships the all-off plan in this cell.) What the stage does hold is asked in
+# its place, a quantity of one solve: the shipped plan scores no higher on its
+# own objective than the projection of the descent's relaxed plan, candidate
+# 1. The energy difference is reported in the detail and asserted nowhere.
 R.check(
     "acceptance: a priced plan holds no more starts than the unpriced plan of the "
     "same install by the same count, and scores no higher on its own objective "
@@ -94845,7 +95078,7 @@ R.check(
         for k, v in _hsr_engaged.items() if k[0] > 0 and not k[1]
     ),
     f"starts, scores (shipped, projection), kWh against the relaxed plan: "
-    f"{({k: (round(_hsr_count(v.space, k[2]), 3), tuple(round(x, 4) for x in _hsr_scores(v)), round(float(np.sum(v.space - v.relaxed[-1])) * 0.25, 3)) for k, v in _hsr_engaged.items()})}",
+    f"{({k: (round(_hsr_count(v.space, k[2]), 3), tuple(round(x, 4) for x in _hsr_scores(v)), round(float(np.sum(v.space - v.relaxed[0])) * 0.25, 3)) for k, v in _hsr_engaged.items()})}",
 )
 R.check(
     "selection: the shipped plan never scores above the projection (candidate 1) "
@@ -94888,7 +95121,7 @@ _hsr_failed = _hsr_solve(0.25, False, 1.1, raises=True)
 R.check(
     "selection: a stage that raises ships the projection, and the solve still "
     "reports its own status",
-    np.array_equal(_hsr_failed.space, _hsr_failed.first[-1])
+    np.array_equal(_hsr_failed.space, _hsr_failed.first[0])
     and not np.array_equal(_hsr_failed.space, _hsr_cells[(0.25, False, 1.1)].space)
     and _hsr_failed.result.status == _hsr_cells[(0.25, False, 1.1)].result.status,
     f"{_hsr_failed.result.status}",
@@ -94898,12 +95131,12 @@ R.check(
     "published objective of a priced plan less the same plan's unpriced score is "
     "cycling_cost x its start count",
     abs(
-        float(_hsr_cells[(0.25, False, 1.1)].result.objective_value)
-        - float(_hsr_free.objectives[-1][1](_hsr_cells[(0.25, False, 1.1)].space))
-        - 0.25 * _hsr_count(_hsr_cells[(0.25, False, 1.1)].space, 1.1)
+        float(_hsr_cold.result.objective_value)
+        - float(_hsr_cold_free.objectives[-1][1](_hsr_cold.space))
+        - 0.25 * _hsr_count(_hsr_cold.space, 1.1)
     ) < 1e-9
-    and _hsr_count(_hsr_cells[(0.25, False, 1.1)].space, 1.1) >= 1.0,
-    f"{_hsr_cells[(0.25, False, 1.1)].result.objective_value}",
+    and _hsr_count(_hsr_cold.space, 1.1) >= 1.0,
+    f"{_hsr_cold.result.objective_value}, {_hsr_count(_hsr_cold.space, 1.1)} starts",
 )
 _hsr_obj, _hsr_obj_batch = _hsr_cells[(0.25, False, 1.1)].objectives[-1][1:3]
 _hsr_rows = np.stack([_hsr_cells[(0.25, False, 1.1)].space, _hsr_free.space, _hsr_trickle.repeat(8)])
@@ -95174,7 +95407,7 @@ R.check(
     "than any candidate the stage scored",
     all(
         float(v.objectives[-1][1](v.space))
-        <= min(float(v.objectives[-1][1](c)) for c in (v.first[-1], *v.plans[-1])) + 1e-12
+        <= min(float(v.objectives[-1][1](c)) for c in (*v.first, *(c for p in v.plans for c in p))) + 1e-12
         for v in _hsr_engaged.values()
     ),
 )
@@ -96455,7 +96688,7 @@ R.check(
 )
 
 # 2d. The shortfall clause, cycling_cost's shape: two trickles fill the tank
-# to its ceiling; lifted, the first leaves the second no room, the rating
+# to its ceiling. Lifted, the first leaves the second no room, the rating
 # clamp cuts it under a runnable block and zeroes it, and the tank ends
 # under the floor the uncommitted plan held.
 _hdr_d_plan = np.zeros(_HDR_N)
@@ -96556,7 +96789,7 @@ R.check(
 )
 
 # 4. Two levels (the contributor's forward-carry). Three trickles hold a
-# 51.5 degC floor late in the horizon, the steps before them dear; two
+# 51.5 degC floor late in the horizon, the steps before them dear. Two
 # steps at the floor hold it for less than a fill to the ceiling does, and
 # a whole step at the run power would pass the ceiling. Without the floor level the fill ships, dearer.
 _hdr_l_plan = np.zeros(_HDR_N)
@@ -96927,8 +97160,8 @@ R.check(
     and np.array_equal(_hdr_y_run, _hdr_y_free[0]),
     f"{None if _hdr_y_run is None else np.round(_hdr_y_run[:4], 2)} {_hdr_y_pause is None}",
 )
-# The program says so where no mask keeps the store in bounds; a program
-# plan refused for anything but a start is not asked for again; and a plan
+# The program says so where no mask keeps the store in bounds. A program
+# plan refused for anything but a start is not asked for again. A plan
 # the rating leaves with a step under the floor inside a charge is refused.
 _hdr_n_prog = _hdr_dp._StoreProgram(
     _hdr_h_rig.planner, _hdr_h_rig.ctx, _hdr_h_plan, (50.0, np.zeros(_HDR_N)),
@@ -97484,7 +97717,7 @@ R.check(
 # The combi commit's tolerance, met exactly: the committed plan ships where
 # its store falls exactly the slack further under the requirement than the
 # plan the rounds settled on, and that plan where the slack is a float
-# short; both plans are the ones the exchange's comparison reads. The
+# short. Both plans are the ones the exchange's comparison reads. The
 # slack is set inside the solve, from the two worst gaps the exchange has
 # just read and before its comparison reads the slack, because one solve's
 # gaps need not be the next solve's to the float.
@@ -97549,9 +97782,9 @@ R.check(
 
 # The charge bound, met exactly: on 5-minute steps a floor-level charge
 # from 50 degC that ends exactly on step 0's ceiling less the margin, plus
-# the tolerance, is inside it, and the fill to the ceiling sits more than
-# the tolerance under the floor there, so it is no stand-in; one float
-# lower a ceiling leaves that charge outside, and the start moves off step 0.
+# the tolerance, is inside it. The fill to the ceiling sits more than
+# the tolerance under the floor there, so it is no stand-in. One float
+# lower, a ceiling leaves that charge outside, and the start moves off step 0.
 def _hdr_u_plans():
     rig = _hdr_rig(dt=1.0 / 12.0, draws=np.full(_HDR_N, 0.5), prices=np.where(np.arange(_HDR_N) < 1, 0.2, 3.0))
     floors = np.where(np.arange(_HDR_N) >= 4, 50.0, 45.0)
@@ -97589,7 +97822,7 @@ R.check(
 )
 # The program's ceiling is the higher of the maximum and the uncommitted
 # plan's own walk: a plan that charges steps 0-2 at the run power over a
-# 55 degC maximum, in the cheap early hours, ships those steps; a program
+# 55 degC maximum, in the cheap early hours, ships those steps. A program
 # held at the maximum alone cannot carry that walk, and moves the charge.
 _hdr_v_rig = _hdr_rig(prices=np.where(np.arange(_HDR_N) < 8, 0.5, 2.0), draws=np.full(_HDR_N, 0.3))
 _hdr_v_plan = np.where(np.arange(_HDR_N) < 3, 4.8, 0.0)
@@ -97602,7 +97835,7 @@ R.check(
 )
 # The commit's early returns: a store with no capacity, and a plan that
 # charges nowhere, ship the plan given, the same object, unwalked (no walk
-# divides by a capacity of zero) and the program unasked; the null control,
+# divides by a capacity of zero) and the program unasked. The null control,
 # the same rig and a plan that charges, walks it and asks the program.
 _hdr_x_rig = _hdr_rig()
 _hdr_x_empty = dataclasses.replace(
@@ -98326,6 +98559,186 @@ R.check(
 )
 
 
+# --- R11-SEAM-solver: the start set brackets the all-off and wood-covered
+# optima, the risk premium stays out of every published money figure, and a
+# slot's reason tie is ordered ------------------------------------------------
+import contextlib as _sv_ctx  # noqa: E402
+from unittest import mock as _sv_mock  # noqa: E402
+
+_sv_optmod = sys.modules[type(_rk["optimizer"]).__module__]
+
+# D1-s1-51: a 2:2 reason tie inside one slot. ``max`` over a ``set`` picks by
+# the set's iteration order, which is PYTHONHASHSEED's. For a two-code set that
+# order follows insertion when both codes land in one hash slot, and then a set
+# also returns each spelling's first code, so a fixed pair passes a ``set``
+# revert under some seeds. The pair is therefore chosen under the running seed:
+# the first pair of action codes (synthetic codes after them) whose set order
+# is the same whichever code is inserted first. For it, a ``set`` reads one
+# winner for both spellings of the tie, and the slot's first code differs
+# between them, whatever the hash seed.
+from itertools import combinations as _sv_pairs  # noqa: E402
+
+from heatpump_optimizer.const import HEAT_PUMP_ACTION_STATES as _sv_codes  # noqa: E402
+
+_sv_pair = next(
+    (a, b)
+    for a, b in _sv_pairs(
+        [c for c in _sv_codes if c != "idle"]
+        + [f"reason_{n}" for n in range(1000)], 2)
+    if list({a, b}) == list({b, a})
+)
+_sv_ts = [_G_START + timedelta(minutes=15 * i) for i in range(4)]
+_sv_ties = [
+    plan_slots(_sv_ts, [1.0] * 4, [1.0] * 4, 0.25, reasons=[x, x, y, y])
+    for x, y in (_sv_pair, _sv_pair[::-1])
+]
+R.check(
+    "a plan slot's reason tie reads the slot's first code, whatever the "
+    "hash seed (D1-s1-51)",
+    [s[0].get("reason") for s in _sv_ties] == [_sv_pair[0], _sv_pair[1]],
+    f"{_sv_pair}: {[s[0].get('reason') for s in _sv_ties]}",
+)
+
+# D2-s3-01: the premium lambda*sigma prices the objective only. The reference
+# thermostat's cost does not depend on the plan, so lambda moves it only if
+# the premium is booked as money; the published prices are the input's; the
+# plan's own cost is its draw on the input prices; and every settlement price
+# the solve hands the stored-heat booking is the input's.
+_sv_raw = np.asarray(_rk["prices"], dtype=float)
+_sv_settle_prices = []
+_sv_opt = _rk["optimizer"]
+_sv_real_def, _sv_real_gap = _sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost
+
+
+def _sv_spy_def(base, opt_end, prices, *a, **kw):
+    _sv_settle_prices.append(np.array(prices, dtype=float))
+    return _sv_real_def(base, opt_end, prices, *a, **kw)
+
+
+def _sv_spy_gap(state, weather, targets, prices, *a, **kw):
+    _sv_settle_prices.append(np.array(prices, dtype=float))
+    return _sv_real_gap(state, weather, targets, prices, *a, **kw)
+
+
+_sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost = _sv_spy_def, _sv_spy_gap
+try:
+    _sv_on = _rk_solve(1.0, _rk_sigma)
+finally:
+    del _sv_opt._deferred_energy_cost, _sv_opt._start_gap_cost
+_sv_zero = _rk_solve(0.0, _rk_sigma)
+_sv_n = len(_sv_on.power_schedule)
+_sv_draw = np.asarray(_sv_on.power_schedule, dtype=float) + np.asarray(
+    _sv_on.dhw_power_schedule, dtype=float)
+_sv_opt.optimize(inputs=solve_inputs(
+    initial_state=_rk["state"], prices=_rk["prices"], outdoor_temps=_rk["outdoor"],
+    wind_speeds=_rk["wind"], precipitation=_rk["rain"], solar_radiation=_rk["solar"],
+    start_time=_G_START, price_known=_rk_known, price_sigma=_rk_sigma,
+))  # re-stashes this solve's surplus for the pricing closure below
+_sv_paid = float(_sv_opt._energy_cost_fn(_sv_raw[:_sv_n], 24.0 / _sv_n)(_sv_draw))
+R.check(
+    "lambda=1 books no premium as money: the published prices are the input's, "
+    "the reference's cost is lambda=0's, the plan's cost is its draw on the "
+    "input prices, and every settlement price is the input's (D2-s3-01)",
+    np.array_equal(np.asarray(_sv_on.prices, dtype=float), _sv_raw[:_sv_n])
+    and _sv_on.baseline_cost == _sv_zero.baseline_cost
+    and abs(_sv_on.predicted_cost - _sv_paid) <= 1e-9
+    and len(_sv_settle_prices) > 0
+    and all(np.array_equal(p, _sv_raw[: p.size]) for p in _sv_settle_prices),
+    f"prices premium {np.max(np.asarray(_sv_on.prices) - _sv_raw[:_sv_n]):.4f}, "
+    f"baseline {_sv_on.baseline_cost:.4f} vs {_sv_zero.baseline_cost:.4f}, "
+    f"predicted {_sv_on.predicted_cost:.4f} vs paid {_sv_paid:.4f}, "
+    f"{len(_sv_settle_prices)} settlement prices",
+)
+R.check(
+    "the premium still prices the objective: lambda=1 moves the plan "
+    "(the D2-s3-01 fix's null control)",
+    not np.array_equal(_sv_draw, np.asarray(_sv_zero.power_schedule, dtype=float)
+                       + np.asarray(_sv_zero.dhw_power_schedule, dtype=float)),
+)
+_rk["optimizer"].config.price_risk_lambda = 0.0
+
+# D0-s3-02 and D0-s2-01: every first solve's start set holds the lower bound
+# (the all-off plan, a forced-on pin at its floor), on both solve paths; and a
+# reference the wood tank covers whole leaves the set an energy-anchored start,
+# not four copies of zero.
+_sv_calls = []
+_sv_ms_real = _sv_optmod._multi_start_minimize
+
+
+def _sv_ms_spy(objective, starts, bounds, *a, **kw):
+    _sv_calls.append(([np.array(s, dtype=float) for s in starts],
+                      np.array([b[0] for b in bounds], dtype=float)))
+    return _sv_ms_real(objective, starts, bounds, *a, **kw)
+
+
+_sv_commits = []
+_sv_commit_real = _sv_optmod._commit_runs
+
+
+def _sv_commit_spy(opt, h, scope, relaxed, *a, **kw):
+    _sv_commits.append(([np.array(r, dtype=float) for r in relaxed],
+                        np.array([b[0] for b in scope[0]], dtype=float)))
+    return _sv_commit_real(opt, h, scope, relaxed, *a, **kw)
+
+
+def _sv_starts(dhw, share=None):
+    sc = _mk_golden(hours=24, dhw=dhw)
+    _sv_calls.clear()
+    _sv_commits.clear()
+    patches = [_sv_mock.patch.object(_sv_optmod, "_multi_start_minimize", _sv_ms_spy),
+               _sv_mock.patch.object(_sv_optmod, "_commit_runs", _sv_commit_spy)]
+    if share is not None:
+        patches.append(_sv_mock.patch.object(
+            _sv_optmod, "_wood_covered_share", lambda *a, **k: share))
+    with _sv_ctx.ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        sc["optimizer"].optimize(inputs=solve_inputs(
+            initial_state=sc["state"], prices=sc["prices"], outdoor_temps=sc["outdoor"],
+            wind_speeds=sc["wind"], precipitation=sc["rain"],
+            solar_radiation=sc["solar"], start_time=_G_START,
+        ))
+    return list(_sv_calls)
+
+
+_sv_space = _sv_starts(False)
+_sv_space_commits = list(_sv_commits)
+_sv_dhw = _sv_starts(True)
+R.check(
+    "the first multi-start of each solve path starts one run at the lower "
+    "bound, the all-off plan (D0-s3-02)",
+    bool(_sv_space) and bool(_sv_dhw)
+    and all(any(np.array_equal(s, lb) for s in starts)
+            for starts, lb in (_sv_space[0], _sv_dhw[0])),
+    f"{len(_sv_space)} space-only and {len(_sv_dhw)} DHW multi-starts",
+)
+R.check(
+    "the space-only solve commits the all-off plan beside the descent's run, "
+    "so the true objective, not the start-blind descent, ranks it (D0-s3-02)",
+    len(_sv_space_commits) == 1
+    and any(np.array_equal(r, _sv_space_commits[0][1]) for r in _sv_space_commits[0][0]),
+    f"{len(_sv_space_commits)} commit stages",
+)
+R.check(
+    "a space-only solve no wood covers hands the multi-start no duplicate "
+    "start, so the reference-energy seeds are drawn only where a share "
+    "scaled the others (D0-s2-01)",
+    bool(_sv_space)
+    and len({s.tobytes() for s in _sv_space[0][0]}) == len(_sv_space[0][0]),
+    f"{len(_sv_space[0][0]) if _sv_space else 0} starts, "
+    f"{len({s.tobytes() for s in _sv_space[0][0]}) if _sv_space else 0} distinct",
+)
+_sv_covered = _sv_starts(False, share=1.0)
+_sv_live = {s.tobytes() for s in (_sv_covered[0][0] if _sv_covered else [])
+            if np.any(s > 0.0)}
+R.check(
+    "a reference the wood tank covers whole still leaves the space-only start "
+    "set a nonzero energy-anchored start beside the initial guess (D0-s2-01)",
+    len(_sv_live) >= 2,
+    f"{len(_sv_live)} distinct nonzero starts",
+)
+
+
 # -- The plan peak under the lift: accepted, never clipped (round-11 ruling, 2026-11-18,
 # option A). The lifted floor reaches the comfort target and the plan may store heat above
 # it, so its peak may pass the unlifted plan's. These checks encode that choice: a clip of
@@ -98368,14 +98781,21 @@ R.check(
     _rl_peak_gap is not None and _rl_peak_gap[0] > 0.0 and set(_rl_peak_gap[7:]) == {0.0},
     f"gap to target {_rl_peak_gap and sorted(set(_rl_peak_gap))}",
 )
+# The room trajectories are solver output (multi-start L-BFGS-B), so they are compared within
+# _RL_PEAK_TOL_K, never bit for bit: the same tree plans them differently under OpenBLAS's
+# Haswell and SkylakeX kernels, which CI's runners pick by CPU (CLAUDE.md rule 3). 1e-3 K is
+# far under what the checks separate: the lift's 0.1 K headroom mutant and the 0.2 K peak rise.
+_RL_PEAK_TOL_K = 1e-3
+_rl_peak_null_k = float(np.max(np.abs(_rl_peak["zeros"] - _rl_peak["none"])))
 R.check(
     "the lift may raise the plan's peak over the unlifted plan's, and the lifted plan holds the "
     "target past the ramp; null control, an all-zero margin array plans the unlifted plan",
-    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max())
-    and float(_rl_peak["lift"][12:].min()) >= 20.0 - 1e-6
-    and np.array_equal(_rl_peak["zeros"], _rl_peak["none"]),
-    f"peak none={_rl_peak['none'].max():.3f} zeros={_rl_peak['zeros'].max():.3f} "
-    f"lift={_rl_peak['lift'].max():.3f} lift min past 3 h={_rl_peak['lift'][12:].min():.3f}",
+    float(_rl_peak["lift"].max()) > float(_rl_peak["none"].max()) + _RL_PEAK_TOL_K
+    and float(_rl_peak["lift"][12:].min()) >= 20.0 - _RL_PEAK_TOL_K
+    and np.allclose(_rl_peak["zeros"], _rl_peak["none"], rtol=0.0, atol=_RL_PEAK_TOL_K),
+    f"peak none={_rl_peak['none'].max():.6f} zeros={_rl_peak['zeros'].max():.6f} "
+    f"lift={_rl_peak['lift'].max():.6f} lift min past 3 h={_rl_peak['lift'][12:].min():.6f} "
+    f"max |zeros-none|={_rl_peak_null_k:.6g} K, tolerance {_RL_PEAK_TOL_K} K",
 )
 
 
