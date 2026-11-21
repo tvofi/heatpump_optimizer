@@ -24,7 +24,7 @@ D5-s4-01's card comment units stay in `R11-SEAM-comments-production` (design-rev
 
 ## Head
 
-ba991fac8a452121c12d4e71e7334b1d8ea8b87d, on base 1723f9fdc9; the figures were measured at 123db89390 and 1de96557ad as each line names. origin/main cb8edb65a5, `date -u` 2026-11-19T11:06Z.
+57342c0b17a62cad8f6bf175b36c309b7645d32b, on merge base 9e7abae6bb (origin/main at the run: 9e7abae6bb, `date -u` 2026-11-21). It repairs PR head 43c37865a4 (`ci: merge main`) with one commit, touching `tests/card.mjs` and `tests/card_browser.mjs` only; no production line moves. Every figure from earlier rounds below was measured at 123db89390 or 1de96557ad, as each line names, and the card file differs between 1de96557ad and this head only by main's stamp cb8edb65a5 (`git diff 1de96557ad 57342c0b17 -- custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js` prints one line, `CARD_VERSION` 10.1.0 to 10.1.1).
 
 ## Mutation proof
 
@@ -41,10 +41,14 @@ Each mutant is a design-named mutation target, applied to a `git archive` copy o
 | emptyloc (group 3) | an empty `localize` answer is returned as the text | "failure text: a rejection with no translation key, or one localize cannot resolve, keeps its message" |
 | fitold (group 4) | `fitWhy` stops after the idle explanation | "UX-1 a box too tall with no explanation drops its reason line and keeps the shared-step sentence", "UX-1 and drops the shared-step sentence only when the rows alone fit" |
 
+| reEscape (repair, 57342c0b) | `reEscape` back to the dot-only `s.replace(/\./g, "\\.")` the CodeQL alert named | "a selector spliced into a RegExp matches only itself, backslash included" (`node tests/card.mjs`: 1 FAIL, rc 1; unmutated: 0 FAIL, rc 0) |
+
 Group 1 failed 4 checks, group 2 4, group 3 1, group 4 2, each exactly the rows above; the unmutated head passed all.
 
 ## Null control
 
+- CodeQL repair: the new check's input `a\\.b c` holds a backslash, and its negative arm `a\\xb c` is what a dot-only escape lets through. Under the dot-only mutant (the `reEscape` row above) the check reads FAIL with detail `a\\.b c`, and it reads ok at 57342c0b.
+- Comment ratchet repair: `python3 tests/comment_ratchet.py --base origin/main` at 43c37865 (the null control) reads `long_units_head=1625` against base 1622 and `comment_ratchet: FAIL`. At 57342c0b it reads `long_units_head=1622` and `comment_ratchet: OK`.
 - D4-s3-01: `m3_look.mjs --err=plain` (a rejection with no translation key) reads `english_error_lines` 0 at base and at head.
 - D4-s1-01: the port centre band (`port_hit_median_px`), the finder's control, reads 31.25 px at base and 30.75 px at head under the companion (on this machine it reads 30.75 to 31.25 px run to run; the finder's Linux reading is 30.5 px). The companion's perturbation `PERTURB=1` (`Math.max` to `Math.min` in the twin's width) reads 576 of 576 at head.
 - D9-s2-01: `card_history_retained.mjs --arm nopan` reads 0 rows/day and 0 chunks at base and at head.
@@ -82,13 +86,15 @@ The finders' harnesses are from `plan/r11` 819aa2e354, `dev/audit/rounds/round11
   - Padding, margin and gap declarations not on a `--hpo-space-*` token: 1, `.expand, .close { margin: calc(-1 * var(--hpo-space-1, 4px)) }`, a negative step.
   - `grep -n 'this\.\(log\|actionLog\|seen\|covered\|memo\|chunks\)\b' $F`: all `HistorySource`, all now bounded by `prune`.
 - `node tests/card.mjs`: ALL CARD CHECKS PASSED at 1de96557ad, in the scoped gate below.
+- Repair at 57342c0b17. The delta's own scope, `python3 tests/closure.py select --diff 43c37865a4`, reads `MODE: SCOPED -- 4 script(s) run, 29 scoped out` and names `doc_claims.py`, `plan_view.py`, `card.mjs` and `card_drift.mjs`, and each was run at 57342c0b17. Results: `tests/plan_view.py` rc 0; `node tests/card.mjs` rc 0 with 1466 `ok` and 0 `FAIL` lines, one of the `ok` lines the new backslash check; `tests/doc_claims.py` ALL 441 checks PASSED; `node tests/card_drift.mjs <merge-base>` 44 states moved and claimed, 1 identical. Also at 57342c0b17, `tests/entities.py` reads ALL 2736 ENTITY CHECKS PASSED, `tests/structure.py` STRUCTURE RATCHET PASSED and `tests/env_drift.py` rc 0. The `tests/card_browser.mjs` change is a comment, so the browser job was not re-run here.
 - `node tests/card_browser.mjs` (CI’s never-scoped `browser` job; run here at 123db89390 with `HPO_PAGES_OUT=docs/img/card`, which wrote the figures 1de96557ad commits): ALL BROWSER CHECKS PASSED, `P9 grid: 396 cells, 23876 text runs, 889 box-intersecting pairs inked, 112 colour rules`. At the pre-fix head it read three reds: three colour rules unreached, the phone tooltip 29.3 / 43.3 px outside its chart, and P40 figures stale in ten pictures. 1de96557ad only re-lays the phone tooltip rule’s text, which the P9 grid does not read.
 - `node tests/card_drift.mjs <merge-base>`: 44 of 45 states move and are claimed in `tests/golden/card_claimed_drift.txt` (`claims-for: 10.1.0`). `editor_schema` is identical and unclaimed. `tests/golden/claimed_drift.txt` is byte-identical.
 - Scoped gate, `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh` at 1de96557ad, machine load 200 to 380: `MODE: SCOPED -- 11 script(s) run, 22 scoped out`. ok: env_drift (`--claims-only`, `--all`), plan_view, closure selftest, arch_score_head, card.mjs, card_drift.mjs, features, layout, deployment_shape. Red, each disposed under `## Red checks`: doc_claims (1 of 439), entities (1 of 2731), harness_headers (12 of 115).
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
+- prepr: passed rc=0 at 57342c0b17a62cad8f6bf175b36c309b7645d32b (`PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, scoped; the delta reaches no closure). The run before it refused on two counts. One was the body (`tests / browser` unanswered), answered under `## Red checks`. The other was a `ci_predict` step replay of `bash tools/audit/seat/bus.sh --self-test`: rc 1 at the head, 0 at the base. That replay does not reproduce at 57342c0b17. Run alone, the self-test reads `bus self-test: 240 checks, 0 failed`, rc 0. `python3 tools/pr/ci_predict.py --base 9e7abae6bb --only step-replay` reads `no closures, fast, governance or instrument red predicted`. The repair touches no file the bus self-test reads.
 - `python3 tools/pr/ci_predict.py --apply-inert`: applied `inert_reads tests/harness_headers.py: dev/audit/harnesses/r11_card_pipe_hit.mjs`, then no closures, fast, governance or instrument red predicted.
 
-<!-- figure-block: scope-line mb=1723f9fdc9d8a6e6987190d2887686297a621dd4 head=ba991fac8a452121c12d4e71e7334b1d8ea8b87d -->
+<!-- figure-block: scope-line mb=9e7abae6bbce9bc971393a5010ae099dfd9e6a90 head=57342c0b17a62cad8f6bf175b36c309b7645d32b -->
 ~~~text
 MODE: SCOPED -- 11 script(s) run, 22 scoped out.
 ~~~
@@ -100,10 +106,19 @@ MODE: SCOPED -- 11 script(s) run, 22 scoped out.
 
 ## Red checks
 
+Owed reds at 43c37865a4, from `python3 tools/audit/seat/merge_train.py owed-reds` and the job logs the dispatch names:
+
+- `tests / fast (3.14)` (job 136625614390): `tests/doc_claims.py`'s comment ratchet refused five test-comment sentences over 40 words, four in `tests/card.mjs` (97 to 99 long units) and one in `tests/card_browser.mjs` (21 to 22). Fixed in 57342c0b17: each sentence is split with its meaning kept, and `python3 tests/comment_ratchet.py --base origin/main` reads `long_units_head=1622` against base 1622, `comment_ratchet: OK` (`tests/doc_claims.py`: ALL 441 checks PASSED). Root-cause trigger: the ratchet (`tests/comment_ratchet.py`, added to main at 3702981d47 on 2026-11-19T01:00Z) reached this branch by the merges of main after ba991fac8a, so the sentences predate the check. The cheaper detector exists and costs nothing new: the scoped `doc_claims.py` re-run after a main merge, which the recovery brief now requires. State (d), preconditions changed under the branch; no further countermeasure.
+- `CodeQL` (check run 136577575390), `js/incomplete-sanitization` high at `tests/card.mjs:1660`: the phone-rule probe spliced a selector into a RegExp escaping dots only. Fixed in 57342c0b17 with `reEscape`, which escapes every regex metacharacter, the backslash included, through one character class and `$&`. It is pinned by "a selector spliced into a RegExp matches only itself, backslash included", and the dot-only form fails that check (`## Mutation proof`). The alert is fixed, not dismissed. Root-cause trigger: no cheaper detector runs here. The environment has no `codeql` binary, and `eslint`'s stock rules carry no equivalent of this query, so the CodeQL job is the cheapest detector that finds it. Recorded: no countermeasure.
+- `pr-contract / pr-contract` (job 136620208870): the body did not answer `tests / fast (3.14)`, and its figure-block scope line named 1e0e175cbe. This body answers it, and the figure block is refreshed at 57342c0b17.
+- `gate`: `merge_train.py classify 43c37865a4 --pr 3821` prints `red: gate`. `gate` is `ci.yml`'s one required check, and `tools/ci/gate.py` judges it from the units above. Its log was not read here; once those units are green at this head, CI is the authority on it.
+
+Earlier rounds' reds, at 1de96557ad and ba991fac8a:
+
 - `tests/doc_claims.py` "every declared width and height equals the PNG header": `docs/index.html` declared `advisor-light.png` at 1056x708, the regenerated file is 1056x716. Fixed in ba991fac8a by setting the declared size from the PNG header; the other declared card figure sizes already matched. Re-run: ALL 439 checks PASSED.
 - `tests/entities.py` "a measured script's late-writing descendant is waited for, not recorded as nodata" (1 of 2731): a wall-clock wait bound in the coverage stage's self-test, read under a load average of 200 to 380; no file this branch touches is in its path (closure stage, `tests/closure.py`). CI is the authority.
 - `tests/harness_headers.py` (12 of 115): every failure is `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py`, `rc=124 ... wall limit 900s exceeded` (154 s of CPU in 900 s of wall at that load), and its 11 RESULT lines then print nothing. The new `dev/audit/harnesses/r11_card_pipe_hit.mjs` passes its header checks. CI is the authority.
-- CI's `browser` job (`tests/card_browser.mjs`, Linux): P40 compares the figures' heights. On this machine base itself reads `setup-*.png` 720 px drawn against 714 committed (fonts), and these figures were written here, so the Linux job may read `setup-light.png` and `setup-dark.png` 6 px off. If it does, the fix is the job's own line, `HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs`, on Linux. Every other figure matched at base on this machine.
+- `tests / browser` (`tests/card_browser.mjs`, Linux): red on an earlier commit of this branch. P40 read the committed setup figures at a height drawn off Linux (706 px against the Linux render's 698), because the figures were written on macOS, whose fonts lay the card out differently. Fixed by 30e547d7f7, which regenerates the figures on Linux. The job reads success at 43c37865a4 (job 136625614782), and this repair touches only a comment in that file. Root-cause trigger: the cheaper detector is the same script run on Linux before the push (`HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs`, about 5 minutes, the job's own wall time). It exists, and `fixer.md` step 5 already names it for a `GRID_SURFACE` diff; it was run, but off Linux. State (b): run, but not on the platform the check measures. No new countermeasure: the cloud seats run on Linux.
 - `tools/audit/machinery_ratchet.py --check --base origin/main --head HEAD` (prepr): `FAIL churn_per_kilo_product_lines 33762 <= 14797 + band 3636` over a window of 580 merges (23860 product lines, 805571 nonproduct). Inherited from the window, not from this branch: the candidate is a production merge whose own diff is 570 product lines against about 505 nonproduct, under 1000 per kilo, so it lowers the metric. Not a fix this group can make (`ratchet-budgets.md`: paid by production merges).
 
 ## Forward-carry
