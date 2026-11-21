@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_room_verdict CMP_BOUND 80e11c71",
+  "killed_by": "tests/features.py",
+  "old": "    if on > ALWAYS_FRACTION:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if on >= ALWAYS_FRACTION:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

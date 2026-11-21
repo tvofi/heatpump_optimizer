@@ -3,9 +3,9 @@
 The hot-water circulation pump follows the user's hot-water windows and the
 space circulation pump the plan (``pump_schedule`` decides both; the
 coordinator hands the decision here). Each is commanded once per state
-change, and an off write arms :mod:`off_restore` first, so the pump is
-switched back on when the optimizer lets go: on Off, on unload, and for the
-space pump, whose command is cut from the plan, on a stale plan too. A
+change. An off write arms :mod:`off_restore` first, so the pump is switched
+back on when the optimizer lets go: on Off and on unload. The space pump,
+whose command is cut from the plan, is switched back on for a stale plan too. A
 restore that lands empties the record, so the first command after it is sent
 whatever was last sent.
 

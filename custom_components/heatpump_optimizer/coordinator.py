@@ -266,7 +266,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
-from . import rooms, slab_seed
+from . import room_record, rooms, slab_seed
 from . import price_tiles
 from . import whatif
 from .pump_mode import ModeCapability
@@ -765,7 +765,8 @@ def _register_number_restore(key: str, entity_of: Any, restored: Any, write: Any
     """Register the entity ``entity_of(config)`` under ``key``; ``restored`` empties its owner's record."""
     def restorer(config: Any) -> off_restore.Restorer | None:
         entity_id = entity_of(EntryConfig.from_mapping(config))
-        return off_restore.Restorer(str(entity_id), write, baseline_of=reading, restored=restored) if entity_id else None
+        return off_restore.Restorer(
+            str(entity_id), write, baseline_of=reading, restored=restored, write_unread=True) if entity_id else None
 
     off_restore.register_consumer(key, restorer, write, stale=True)
 
@@ -6079,7 +6080,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Raises UpdateFailed once no published price covers now -- see _fetch_tibber_prices.
             await self._fetch_tibber_prices()
 
-            # Fetch weather forecast (full 24h for solar, wind, rain, temp)
             await self._fetch_weather_forecast()
 
             # Refresh Open-Meteo irradiance, if that is the selected source.
@@ -6091,7 +6091,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # which is what fills the horizon past the published data.
             await self._async_learn_price_shape()
 
-            # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
             elif self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
@@ -6130,6 +6129,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             await _best_effort_cycle_step(
                 self._record_accuracy, "Accuracy pairing skipped: %s"
             )
+            await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(  # #3616 phase 3a
+                _ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power, float(self._current_action.get("power", 0.0)), float(self._current_action.get("dhw_power", 0.0)))), "Room history skipped: %s")
             await _best_effort_cycle_step(
                 self._track_realised_peak, "Realised-peak tracking skipped: %s"
             )

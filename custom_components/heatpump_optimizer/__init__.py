@@ -439,6 +439,7 @@ async def async_unload_entry(
         # wrote is restored as it lets go, a Home Assistant stop included.
         restore = (await _async_lazy(hass, "off_restore")).async_restore
         await restore(hass, entry, coordinator.effective_config, "unload")
+        await (await _async_lazy(hass, "room_record")).async_flush(coordinator)
         await coordinator.async_shutdown()
         # Once more behind the released latch: a write that raced the first
         # pass armed again, and nothing can arm after it.
