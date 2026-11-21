@@ -1167,7 +1167,7 @@ def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT,
     refuse = broken + refuse
     added: list[str] = []
     remain = refuse
-    if absorb_out is not None and write is not None and refuse and not gaps and not broken and table is not None:
+    if absorb_out is not None and write is not None and refuse and not gaps and table is not None:
         graded, added, _, _, _ = absorb_write(table, [load_table(write) or {"steps": {}}], absorb_out, root)
         remain = drift(graded, measured, steps)[0]
     absorbed = bool(added) and not remain
