@@ -116,21 +116,29 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     # The cap is per leg, read from the matrix `include` entries below.
-    # python 75, actions and javascript-typescript 45 (r10-hotfix-codeql-headroom,
-    # a stopgap of about two weeks). `Analyze (python)` is a required context
-    # and main's python job outgrew 45 minutes: over the check-runs of
-    # ci.yml's push runs on main since 2026-10-25, the python leg's p90 sat at
-    # the cap and capped jobs began on 2026-11-04. The time is the
-    # single-threaded extraction of tests/features.py plus a query evaluation
-    # that grows with it; the other two legs read about 40x under 45, so they
-    # keep it. 75 is the projected uncensored worst case (about 51 minutes)
-    # plus a margin of about two weeks of measured growth. Re-derive, never
-    # carry: list `codeql / Analyze (python)` jobs of main's ci.yml push runs
-    # (`gh api repos/<repo>/actions/runs/<id>/jobs?filter=all`), duration =
-    # completed_at - started_at, a job cancelled at 44.9 minutes or more
-    # counts as capped. The structural cure (splitting tests/features.py) is
-    # an owner ruling, not this cap. tests/entities.py reads these entries and
-    # refuses a python value below the worst case or any other leg off 45.
+    # python 120, actions and javascript-typescript 45. `Analyze (python)` is a
+    # required context, so a capped (cancelled) python job reddens main's gate.
+    # History: 45 for every leg until main's python job outgrew it
+    # (r10-hotfix-codeql-headroom raised python to 75 as a stopgap of about
+    # two weeks); 75 was outgrown in turn (R11-HOTFIX-CODEQL-PERMS). Over the
+    # 40 newest ci.yml push runs on main (2026-11-18T13:09Z to
+    # 2026-11-21T04:51Z) the python leg read 22 jobs capped at 75.1 minutes
+    # and 18 uncensored ones of 57.0 to 74.2 minutes, so the worst case is
+    # censored above 75; main 0ae95e4c9b's job was cancelled at query 35 of 52
+    # after about 38 minutes of extraction. 120 is that censored bound plus
+    # 45 minutes, which the evaluation's measured tail (17 queries unfinished
+    # at the cap) has to fit in. The time is the single-threaded extraction
+    # of tests/features.py and dev/ (a push run ignores neither) plus a query
+    # evaluation that grows with it; the other two legs read about 40x under
+    # 45, so they keep it. Re-derive, never carry: list
+    # `codeql / Analyze (python)` jobs of main's ci.yml push runs
+    # (`gh api "repos/<repo>/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=40"`,
+    # then `gh api repos/<repo>/actions/runs/<id>/jobs?filter=all` per run),
+    # duration = completed_at - started_at, a job cancelled within a minute
+    # of the cap counts as capped. The structural cure (splitting
+    # tests/features.py, or narrowing what the push leg extracts) is an owner
+    # ruling, not this cap. tests/entities.py reads these entries and refuses
+    # a python value below the worst case or any other leg off 45.
     timeout-minutes: ${{ matrix.timeout }}
     # One language failing must not cancel the others: each leg is its own
     # analysis and its own evidence.
@@ -140,7 +148,7 @@ jobs:
         include:
           - { language: actions, timeout: 45 }
           - { language: javascript-typescript, timeout: 45 }
-          - { language: python, timeout: 75 }
+          - { language: python, timeout: 120 }
     steps:
       - name: Say what the prelude decided for this leg
         env:
