@@ -47,3 +47,4 @@
 1795266380 CKPT handoff: code 05775e4f on handoff/r11-seam-ratchets, body 261e3706 snapshot 36773cf03b1b
 1795266384 DONE returned: handoff/r11-seam-ratchets 05775e4f, body 261e3706; three owed reds repaired
 1795283140 HB alive
+1795283494 CKPT barrier refuses asyncio handlers; test added; entities.py running snapshot a15d83933c8f
