@@ -31685,6 +31685,12 @@ R.check(
     f"payload keys: {sorted(_wi_payload)[:5]}",
 )
 R.check(
+    "T2: a what-if that capped no power carries no power_cap_breach_c -- the key is "
+    "the capped ask's comfort cost, never a solve's own predictive info leaking through",
+    "power_cap_breach_c" not in _wi_payload,
+    f"payload carries power_cap_breach_c={_wi_payload.get('power_cap_breach_c')!r}",
+)
+R.check(
     "the what-if's scratch config carries the override the user asked for "
     "-- a dropped override guard would answer a question nobody asked",
     len(_wi_cfgs) == 2
