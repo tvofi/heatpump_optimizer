@@ -67,7 +67,7 @@ class SensorEntity(Entity):
 
         Upstream's cached_property returns ``_attr_device_class`` when the
         attribute exists, then consults ``entity_description``, then
-        ``None``; this copy drops the description branch (the stub does not
+        ``None``. This copy drops the description branch (the stub does not
         model descriptions) and uses a plain property, since a cached one
         would hide an in-place swap from the instrument harnesses that
         perform them. Without this property ``getattr(ent, "device_class")``
@@ -100,14 +100,14 @@ class SensorEntity(Entity):
 
         Transcribed from Home Assistant 2025.2.0 -- the floor `hacs.json`
         declares -- rather than reasoned out here, because a stub that is
-        merely plausible is how #536 and #543 shipped: a test pins the stub
+        merely plausible is how #536 and #543 shipped. A test pins the stub
         and the production path is never exercised as an installation runs
         it. Only the enum and unit branches are mirrored; the numeric
         conversion path is not, so this returns ``native_value`` unchanged
         for every sensor that declares no options.
 
         The three refusals, in upstream's order and with upstream's meaning:
-        a non-numeric device class may carry no unit; ``None`` short-circuits
+        a non-numeric device class may carry no unit. ``None`` short-circuits
         BEFORE the options check, so an unavailable enum sensor is
         ``STATE_UNKNOWN`` rather than an error; and a value outside the
         declared options raises. That last one is the whole reason this
