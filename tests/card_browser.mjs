@@ -1373,6 +1373,49 @@ function instrument() {
     for (const s of sheets) walk(s.cssRules, "");
     return out;
   };
+  // ROWS (D4-s3-02): the headline numbers of one visual row of `.tiles` or
+  // `.hl-stats` end their first line on one y however their labels wrap.
+  // `uneven` counts the rows whose labels take different line counts, the
+  // rows where a cell that is not on the row's subgrid tracks shows.
+  H.rows = () => {
+    const out = { rows: 0, uneven: 0, misaligned: [] };
+    const firstLineBottom = (el) => {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let t = w.nextNode(); t; t = w.nextNode()) {
+        if (!t.textContent.trim()) continue;
+        const r = document.createRange(); r.selectNodeContents(t);
+        const rs = r.getClientRects();
+        if (rs.length) return rs[0].bottom;
+      }
+      return null;
+    };
+    const lines = (k) => {
+      if (!k) return 0;
+      const r = document.createRange(); r.selectNodeContents(k);
+      return new Set([...r.getClientRects()].map((x) => Math.round(x.top))).size;
+    };
+    for (const [grid, cellSel, valSel, keySel] of [[".tiles", ".tile", ".tile-v", ".tile-k"], [".hl-stats", ".hl-stat", ".hl-value", ".hl-label"]]) {
+      for (const g of scope().querySelectorAll(grid)) {
+        if (!visible(g)) continue;
+        const byTop = {};
+        for (const c of [...g.children].filter((c) => c.matches(cellSel) && visible(c))) {
+          (byTop[Math.round(c.getBoundingClientRect().top)] ||= []).push(c);
+        }
+        for (const row of Object.values(byTop)) {
+          const vals = row.map((c) => ({ v: c.querySelector(valSel), k: c.querySelector(keySel) }))
+            .filter((x) => x.v && visible(x.v))
+            .map((x) => ({ bottom: firstLineBottom(x.v), lines: lines(x.k), label: x.k ? x.k.textContent.trim().slice(0, 24) : "" }))
+            .filter((x) => x.bottom !== null);
+          if (vals.length < 2) continue;
+          out.rows += 1;
+          if (new Set(vals.map((x) => x.lines)).size > 1) out.uneven += 1;
+          const spread = Math.max(...vals.map((x) => x.bottom)) - Math.min(...vals.map((x) => x.bottom));
+          if (spread > 0.5) out.misaligned.push(`${grid} row [${vals.map((x) => x.label).join(" / ")}] values ${spread.toFixed(1)} px apart`);
+        }
+      }
+    }
+    return out;
+  };
   // Pixel ink of one text run: everything else hidden, the run forced black on white.
   // A run's own ink only. An SVG text's glyphs can sit in its tspans, which
   // the hide-everything rule matches too, so they are shown with their text:
@@ -1586,9 +1629,9 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "dark", os: "light" });
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "light", os: "dark" });
   const PAGE = `<!doctype html><html><head><meta charset="utf-8"><style id="theme"></style></head><body></body></html>`;
-  const bad = { contrast: [], overflow: [], overlap: [], small: [], popups: [], options: [], missed: [], threw: [] };
+  const bad = { contrast: [], overflow: [], overlap: [], small: [], popups: [], options: [], missed: [], threw: [], misaligned: [] };
   const reach = {};
-  let measuredRuns = 0, candidates = 0, unknown = 0, n = 0;
+  let measuredRuns = 0, candidates = 0, unknown = 0, n = 0, valueRows = 0, unevenRows = 0;
   const t0 = Date.now();
   // The clip walk's own witness (carry 7c609975): a run clipped by its own
   // box is clipped all the same, so the walk starts at the run's element. A
@@ -1660,6 +1703,9 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
         n += 1; measuredRuns += m.runs; unknown += m.unknownColour; candidates += m.boxPairs.length;
         for (const k of ["contrast", "overflow", "small", "popups", "options"]) for (const x of m[k]) bad[k].push(`${tag}: ${x}`);
         for (const [k, v] of Object.entries(await page.evaluate(() => window.__p9.colourRules()))) reach[k] = reach[k] || v;
+        const rows = await page.evaluate(() => window.__p9.rows());
+        valueRows += rows.rows; unevenRows += rows.uneven;
+        for (const x of rows.misaligned) bad.misaligned.push(`${tag}: ${x}`);
         for (const p of m.boxPairs) {
           const { clip, why } = await page.evaluate((q) => window.__p9.reveal(q), p);
           if (!clip) { bad.threw.push(`${tag}: ${p.at} x ${p.bt} cannot be inked: ${why}`); continue; }
@@ -1693,6 +1739,11 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   check("P9 grid: every listbox option reads differently from its siblings as shown", bad.options.length === 0, show(bad.options));
   check("P9 grid: no text is clipped where its ancestor cannot scroll to it", bad.overflow.length === 0, show(bad.overflow));
   check("P9 grid: every target clears 24 px or the 2.5.8 spacing exception", bad.small.length === 0, show(bad.small));
+  // A grid with no row whose labels wrap unevenly cannot tell a subgrid row
+  // from a block one, so the check also asks that such rows were measured.
+  check("P9 grid: the numbers of one tile or stat row share a line however their labels wrap",
+    bad.misaligned.length === 0 && unevenRows > 0,
+    `${show(bad.misaligned)}; ${valueRows} row(s) measured, ${unevenRows} with unevenly wrapped labels`);
   // P9_DEBUG prints every failure with its cell, where the checks above
   // print the first few, de-duplicated across cells.
   if (process.env.P9_DEBUG) console.log(JSON.stringify(bad, null, 1));
