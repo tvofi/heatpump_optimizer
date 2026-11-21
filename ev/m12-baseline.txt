@@ -1,0 +1,6 @@
+== unmutated at e9ad13fa58e02965bb5eb772b19535c09c9523c6
+  ok   the fence hands back the empty series, not None, for a raising fetch
+  ok   a parse that raises is fenced into a counted failure, not an exception
+
+ALL OPEN-METEO CHECKS PASSED
+rc=0

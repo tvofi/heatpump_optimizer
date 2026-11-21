@@ -1,0 +1,10 @@
+== wt-rev
+bad: True {} {'dhw_tank_volume': 200.0, 'silent_mode_power_fraction': 'abc'}
+Stored options that are not numbers: min_temperature; text is stored as its number, anything else is dropped and its default applies
+text: {} {'min_temperature': 19.5}
+good: {} {'min_temperature': 19.0, 'dhw_tank_volume': 200.0}
+== wt-mut
+bad: True {} {'min_temperature': 'abc', 'dhw_tank_volume': 200.0, 'silent_mode_power_fraction': 'abc'}
+Stored options that are not numbers: min_temperature; text is stored as its number, anything else is dropped and its default applies
+text: {} {'min_temperature': '19.5'}
+good: {} {'min_temperature': 19.0, 'dhw_tank_volume': 200.0}

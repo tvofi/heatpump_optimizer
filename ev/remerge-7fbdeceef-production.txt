@@ -1,0 +1,84 @@
+7fbdeceef7249508f43ebf36e8494e8cda094741
+
+diff --git a/custom_components/heatpump_optimizer/__init__.py b/custom_components/heatpump_optimizer/__init__.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/__init__.py
+index f3e4df030d..a2a1c55987 100644
+--- a/custom_components/heatpump_optimizer/__init__.py
++++ b/custom_components/heatpump_optimizer/__init__.py
+@@ -33,11 +33,7 @@ from .const import (
+     CONFIG_ENTRY_VERSION,
+     DOMAIN,
+ )
+-<<<<<<< b3f7a46cc6 (ci: pin killed mutants)
+-from .entry_config import EntryConfig, number_repairs, repaired_numbers
+-=======
+-from .entry_config import EntryConfig, placed
+->>>>>>> e83a2c919f (Merge pull request #3817 from tvofi/fix/r11-rca-class-open)
++from .entry_config import EntryConfig, number_repairs, placed, repaired_numbers
+ 
+ # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
+ # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
+@@ -208,15 +204,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
+     """Migrate a config entry created by an older version of the integration.
+ 
+     Every option the integration reads is looked up with a default, so older
+-<<<<<<< b3f7a46cc6 (ci: pin killed mutants)
+-    entries need their version stamped forward and any numeric option stored
+-    as a non-number repaired: numeric text stored as its number, anything else
+-    dropped for its default (``entry_config.number_repairs``). Without this
+-    handler Home Assistant refuses to load entries created before the current
+-=======
+-    entries need their keys placed (7.2) and their version stamped forward. Without this handler Home
+-    Assistant refuses to load entries created before the current
+->>>>>>> e83a2c919f (Merge pull request #3817 from tvofi/fix/r11-rca-class-open)
++    entries need their version stamped forward, any numeric option stored as a
++    non-number repaired -- numeric text stored as its number, anything else
++    dropped for its default (``entry_config.number_repairs``) -- and their keys
++    placed (7.2). Without this handler Home Assistant refuses to load entries
++    created before the current
+     ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
+     """
+     if entry.version > CONFIG_ENTRY_VERSION:
+@@ -238,33 +230,25 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
+             CONFIG_ENTRY_VERSION,
+             CONFIG_ENTRY_MINOR_VERSION,
+         )
+-        # 7.2 stores each key in its one place. Placing only moves keys, and
+-        # on a key in both sides keeps the options value, the one in force,
+-        # so the effective mapping every reader takes is unchanged.
+-        data, options = placed({**entry.data, **entry.options})
+-        hass.config_entries.async_update_entry(
+-            entry,
+-            data=data,
+-            options=options,
+-            version=CONFIG_ENTRY_VERSION,
+-            minor_version=CONFIG_ENTRY_MINOR_VERSION,
+-        )
+-<<<<<<< b3f7a46cc6 (ci: pin killed mutants)
+-        repairs = number_repairs({**entry.data, **entry.options})
++        effective = {**entry.data, **entry.options}
++        repairs = number_repairs(effective)
+         if repairs:
+             _LOGGER.warning(
+                 "Stored options that are not numbers: %s; text is stored as its number, "
+                 "anything else is dropped and its default applies",
+                 ", ".join(sorted(repairs)),
+             )
++        # 7.2 stores each key in its one place. Placing only moves keys, and
++        # on a key in both sides keeps the options value, the one in force,
++        # so the effective mapping every reader takes is unchanged.
++        data, options = placed(repaired_numbers(effective, repairs))
+         hass.config_entries.async_update_entry(
+             entry,
+-            data=repaired_numbers(entry.data, repairs),
+-            options=repaired_numbers(entry.options, repairs),
++            data=data,
++            options=options,
+             version=CONFIG_ENTRY_VERSION,
++            minor_version=CONFIG_ENTRY_MINOR_VERSION,
+         )
+-=======
+->>>>>>> e83a2c919f (Merge pull request #3817 from tvofi/fix/r11-rca-class-open)
+ 
+     return True
+ 

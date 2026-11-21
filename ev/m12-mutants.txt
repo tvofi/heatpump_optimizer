@@ -1,0 +1,18 @@
+    if len(kept) < 1:
+rc=1
+  FAIL a lone sample left after the year-1 drop is no series: mean_over claims no window  [times=(datetime.datetime(2026, 8, 21, 0, 0, tzinfo=datetime.timezone.utc),) resolution=739848 days, 0:00:00]
+  ok   the lone-sample check reads a value once a second sample is kept (null control)
+  ok   forecast alone is used when there is no observation
+1 CHECK(S) FAILED
+    if len(kept) <= 0:
+rc=1
+  FAIL a lone sample left after the year-1 drop is no series: mean_over claims no window  [times=(datetime.datetime(2026, 8, 21, 0, 0, tzinfo=datetime.timezone.utc),) resolution=739848 days, 0:00:00]
+  ok   the lone-sample check reads a value once a second sample is kept (null control)
+  ok   forecast alone is used when there is no observation
+1 CHECK(S) FAILED
+    if len(kept) == 0:
+rc=1
+  FAIL a lone sample left after the year-1 drop is no series: mean_over claims no window  [times=(datetime.datetime(2026, 8, 21, 0, 0, tzinfo=datetime.timezone.utc),) resolution=739848 days, 0:00:00]
+  ok   the lone-sample check reads a value once a second sample is kept (null control)
+  ok   forecast alone is used when there is no observation
+1 CHECK(S) FAILED
