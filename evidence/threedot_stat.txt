@@ -1,0 +1,6 @@
+ dev/programme/delivery/3729.md  |   1 +
+ tests/entities.py               | 497 +++++++++++++++++++++++++++++++++++++++-
+ tests/structure.py              | 187 +++++++++++++--
+ tests/structure_budgets.json    |   4 +-
+ tools/policy/field_coverage.mjs |  11 +
+ 5 files changed, 680 insertions(+), 20 deletions(-)

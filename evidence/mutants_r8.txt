@@ -1,0 +1,11 @@
+UNMUTATED ok   ok   
+M1_no_exception_critical FAIL FAIL (R10 flood, R11 reach)
+M2_kw_level_unread FAIL ok   (R10 flood, R11 reach)
+M3_logger_attr_unreached ok   FAIL (R10 flood, R11 reach)
+M4_regex_no_logger ok   FAIL (R10 flood, R11 reach)
+M5_files_unread ok   FAIL (R10 flood, R11 reach)
+M6_pickle_unread ok   FAIL (R10 flood, R11 reach)
+M7_warnings_refused ok   FAIL (R10 flood, R11 reach)
+M8_escape_unrefused ok   FAIL (R10 flood, R11 reach)
+M9_handover_dropped ok   FAIL (R10 flood, R11 reach)
+M10_canonical_any ok   FAIL (R10 flood, R11 reach)
