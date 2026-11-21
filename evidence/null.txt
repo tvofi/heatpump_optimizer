@@ -1,2 +1,0 @@
-SURVIVED rc=0 NULL no-op :: ['RuntimeWarning: Enable tracemalloc to get the object allocation traceback']
-DONE
