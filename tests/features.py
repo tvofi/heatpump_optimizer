@@ -65548,9 +65548,9 @@ def _r11ar_coord(hass, entry):
 async def _r11ar_drive(c, null=False, duties="dd--dd--", disinfect=False, idle=True):
     """Write phase: a hot-water-only step, then an idle step, of the harness's plan.
 
-    Null arm: the plan starts two hours ahead, so the arbiter serves its baseline row; the action keeps the
-    supply on and the valve at its reading, the frequency map answers the reading, the circulation pump's
-    window covers the clock: every write equals the baseline, so nothing can be owed back."""
+    Null arm: the plan starts two hours ahead, so the arbiter serves its baseline row. The action keeps the
+    supply on and the valve at its reading, the frequency map answers the reading, and the circulation pump's
+    window covers the clock. Every write equals the baseline, so nothing can be owed back."""
     c._mode = _R11AR_AUTO
     c._optimization_result = _r11ar_plan(duties, start=_R11AR_T0 + timedelta(hours=2) if null else _R11AR_T0)
     c._current_action = {"heat_pump_on": True, "displace_value": 0.0 if null else 2.0,
