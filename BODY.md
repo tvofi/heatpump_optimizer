@@ -24,7 +24,7 @@ D5-s4-01's card comment units stay in `R11-SEAM-comments-production` (design-rev
 
 ## Head
 
-57342c0b17a62cad8f6bf175b36c309b7645d32b, on merge base 9e7abae6bb (origin/main at the run: 9e7abae6bb, `date -u` 2026-11-21). It repairs PR head 43c37865a4 (`ci: merge main`) with one commit, touching `tests/card.mjs` and `tests/card_browser.mjs` only; no production line moves. Every figure from earlier rounds below was measured at 123db89390 or 1de96557ad, as each line names, and the card file differs between 1de96557ad and this head only by main's stamp cb8edb65a5 (`git diff 1de96557ad 57342c0b17 -- custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js` prints one line, `CARD_VERSION` 10.1.0 to 10.1.1).
+8a75caf5e352feb640f56bffc74ef6e95f45f30a, on merge base 86859b9594 (origin/main at the run: a8efe1d1c2, `date -u` 2026-11-21; `git merge-tree --write-tree origin/main HEAD` reports no conflict). It repairs review round 1's block at b1ee994a6e (`verdict/3821`, `mutation-vacuous`) on PR head 1bd0f355b9 (`ci: merge main`) with three commits. 792fbd5381 and 8a75caf5e3 touch `tests/card.mjs` and `tests/card_browser.mjs` only. 3ece86974e splits two comment sentences in the card file, which moves no code. Every figure from earlier rounds below was measured at 123db89390, 1de96557ad or 57342c0b17, as each line names. `git diff 57342c0b17 8a75caf5e352feb640f56bffc74ef6e95f45f30a -- custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js` shows those two comments alone.
 
 ## Mutation proof
 
@@ -45,7 +45,21 @@ Each mutant is a design-named mutation target, applied to a `git archive` copy o
 
 Group 1 failed 4 checks, group 2 4, group 3 1, group 4 2, each exactly the rows above; the unmutated head passed all.
 
+Review round 1's three survivors, each re-applied as the reviewer named it, one at a time, to the card file of the repair head, then restored:
+
+| survivor | edit | check that goes red | where |
+|---|---|---|---|
+| nochunkprune (`HistorySource.prune`) | delete `if (chunk < cut) this.chunks.delete(chunk);` | "history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau" (`node tests/card.mjs`: 1 FAIL, rc 1) | `tests/card.mjs`: the check now also reads `hs.chunks`: its size at day 30 is at most 5 and equals day 10's, its oldest key is at or after the cut, and the unpruned twin holds more than 5 |
+| notypescale (`ExpandedDialog.scaleFont`) | delete the `dlg.style.setProperty("--hpo-type-scale", ...)` line | "the dialog scales its chrome's type tokens with its font: 1 at the 14 px base, font / base at the cap" (`node tests/card.mjs`: 1 FAIL, rc 1) | `tests/card.mjs`: `dlgOf` gives the dialog a style that records `setProperty`, so the write now runs under test |
+| nosubgrid (`.tile, .hl-stat`) | `display: grid; grid-template-rows: subgrid;` to `display: block;` | "D4-s3-02 the numbers of one tile or stat row share a line however their labels wrap (6 states, 3 widths, en/de/sv)": `6 misaligned`, each `score_open*` or `savings_open` at 375 px in de-DE, `.hl-stats row [Voraussichtliche Einspar / Optimierungswert] values 14.0 px apart` | `tests/card_browser.mjs`: new `tileRows` |
+
+Unmutated, at 8a75caf5e352feb640f56bffc74ef6e95f45f30a: `node tests/card.mjs` ALL CARD CHECKS PASSED (1467 `ok`, 0 `FAIL`, rc 0). The browser rows are under `## Figures`.
+
 ## Null control
+
+- nosubgrid: `tileRows` asks that rows whose labels wrap to different line counts were measured, because only those rows separate a subgrid row from a block one. At the head it reads `tile and stat rows: 108 measured, 6 with unevenly wrapped labels, 0 misaligned`; under the mutant, the same 6 uneven rows read misaligned at 14.0 px. The finder's `m3_look.mjs` read 12 (max 14 px) under that mutant, the same 6 rows in each of its two themes. A first version of this check sat inside the P9 grid. Its guard read `360 row(s) measured, 0 with unevenly wrapped labels` at the head and under the mutant, because the grid renders en and sv-SE only, so it was moved to the finder's six states in en, de-DE and sv-SE.
+- nochunkprune: the unpruned twin (`prune` stubbed out) must hold more than 5 chunks, so a run that never fetched past the span cannot pass the bound vacuously.
+- notypescale: the check reads the value written at two widths. At 320 px it is `1.0000`; at 4000 px it is the font over `DIALOG_FONT_PX_MIN`, which is greater than 1. A write of a constant 1 fails the second arm.
 
 - CodeQL repair: the new check's input `a\\.b c` holds a backslash, and its negative arm `a\\xb c` is what a dot-only escape lets through. Under the dot-only mutant (the `reEscape` row above) the check reads FAIL with detail `a\\.b c`, and it reads ok at 57342c0b.
 - Comment ratchet repair: `python3 tests/comment_ratchet.py --base origin/main` at 43c37865 (the null control) reads `long_units_head=1625` against base 1622 and `comment_ratchet: FAIL`. At 57342c0b it reads `long_units_head=1622` and `comment_ratchet: OK`.
@@ -88,13 +102,16 @@ The finders' harnesses are from `plan/r11` 819aa2e354, `dev/audit/rounds/round11
 - `node tests/card.mjs`: ALL CARD CHECKS PASSED at 1de96557ad, in the scoped gate below.
 - Repair at 57342c0b17. The delta's own scope, `python3 tests/closure.py select --diff 43c37865a4`, reads `MODE: SCOPED -- 4 script(s) run, 29 scoped out` and names `doc_claims.py`, `plan_view.py`, `card.mjs` and `card_drift.mjs`, and each was run at 57342c0b17. Results: `tests/plan_view.py` rc 0; `node tests/card.mjs` rc 0 with 1466 `ok` and 0 `FAIL` lines, one of the `ok` lines the new backslash check; `tests/doc_claims.py` ALL 441 checks PASSED; `node tests/card_drift.mjs <merge-base>` 44 states moved and claimed, 1 identical. Also at 57342c0b17, `tests/entities.py` reads ALL 2736 ENTITY CHECKS PASSED, `tests/structure.py` STRUCTURE RATCHET PASSED and `tests/env_drift.py` rc 0. The `tests/card_browser.mjs` change is a comment, so the browser job was not re-run here.
 - `node tests/card_browser.mjs` (CI’s never-scoped `browser` job; run here at 123db89390 with `HPO_PAGES_OUT=docs/img/card`, which wrote the figures 1de96557ad commits): ALL BROWSER CHECKS PASSED, `P9 grid: 396 cells, 23876 text runs, 889 box-intersecting pairs inked, 112 colour rules`. At the pre-fix head it read three reds: three colour rules unreached, the phone tooltip 29.3 / 43.3 px outside its chart, and P40 figures stale in ten pictures. 1de96557ad only re-lays the phone tooltip rule’s text, which the P9 grid does not read.
-- `node tests/card_drift.mjs <merge-base>`: 44 of 45 states move and are claimed in `tests/golden/card_claimed_drift.txt` (`claims-for: 10.1.0`). `editor_schema` is identical and unclaimed. `tests/golden/claimed_drift.txt` is byte-identical.
+- `node tests/card_drift.mjs <merge-base>`: 44 of 45 states move and are claimed in `tests/golden/card_claimed_drift.txt` (`claims-for: 10.1.1`, equal to `VERSION`). `editor_schema` is identical and unclaimed. `tests/golden/claimed_drift.txt` is byte-identical.
 - Scoped gate, `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh` at 1de96557ad, machine load 200 to 380: `MODE: SCOPED -- 11 script(s) run, 22 scoped out`. ok: env_drift (`--claims-only`, `--all`), plan_view, closure selftest, arch_score_head, card.mjs, card_drift.mjs, features, layout, deployment_shape. Red, each disposed under `## Red checks`: doc_claims (1 of 439), entities (1 of 2731), harness_headers (12 of 115).
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
 - prepr: passed rc=0 at 57342c0b17a62cad8f6bf175b36c309b7645d32b (`PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, scoped; the delta reaches no closure). The run before it refused on two counts. One was the body (`tests / browser` unanswered), answered under `## Red checks`. The other was a `ci_predict` step replay of `bash tools/audit/seat/bus.sh --self-test`: rc 1 at the head, 0 at the base. That replay does not reproduce at 57342c0b17. Run alone, the self-test reads `bus self-test: 240 checks, 0 failed`, rc 0. `python3 tools/pr/ci_predict.py --base 9e7abae6bb --only step-replay` reads `no closures, fast, governance or instrument red predicted`. The repair touches no file the bus self-test reads.
 - `python3 tools/pr/ci_predict.py --apply-inert`: applied `inert_reads tests/harness_headers.py: dev/audit/harnesses/r11_card_pipe_hit.mjs`, then no closures, fast, governance or instrument red predicted.
 
-<!-- figure-block: scope-line mb=9e7abae6bbce9bc971393a5010ae099dfd9e6a90 head=57342c0b17a62cad8f6bf175b36c309b7645d32b -->
+- Repair of review round 1, at 8a75caf5e352feb640f56bffc74ef6e95f45f30a. The delta's own scope, `python3 tests/closure.py select --diff 1bd0f355b9`, reads `MODE: SCOPED -- 4 script(s) run, 29 scoped out` and names `doc_claims.py`, `plan_view.py`, `card.mjs` and `card_drift.mjs`. Each was run here, with `PYTHONPATH=tests/hastub`: `tests/plan_view.py` rc 0; `node tests/card.mjs` rc 0, 1467 `ok`, 0 `FAIL` (run at 3ece86974e; 8a75caf5e3 changes `tests/card_browser.mjs` alone, which `card.mjs` does not read); `tests/doc_claims.py` ALL 441 checks PASSED; `node tests/card_drift.mjs 86859b9594` reads `card_drift: 44 state(s) moved and claimed, 1 identical`. Also `tests/structure.py` STRUCTURE RATCHET PASSED and `tests/env_drift.py --claims-only` rc 0.
+- `node tests/card_browser.mjs` (no scope selects it; Linux, Chromium 1243 at /opt/pw-browsers): ALL BROWSER CHECKS PASSED, rc 0, `P9 grid: 396 cells, 23871 text runs, 1190 box-intersecting pairs inked, 112 colour rules`, `tile and stat rows: 108 measured, 6 with unevenly wrapped labels, 0 misaligned`. On a copy whose card carries the nosubgrid mutant: `1 BROWSER CHECK(S) FAILED`, rc 1, the one red the D4-s3-02 row check, `6 misaligned`.
+
+<!-- figure-block: scope-line mb=86859b95946e155a13ac8a68ac3711b336689a01 head=8a75caf5e352feb640f56bffc74ef6e95f45f30a -->
 ~~~text
 MODE: SCOPED -- 11 script(s) run, 22 scoped out.
 ~~~
@@ -105,6 +122,10 @@ MODE: SCOPED -- 11 script(s) run, 22 scoped out.
 `python3 tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0280 IMPROVES` (`card_clone_copies` 103 to 101, +0.0280; `card_rule_copies` 70 to 67, gate only). `card_clone_copies` falls because ten respellings of the error rule became one function, `serviceFailureText`, and the three per-role colour locals became the role tokens: a real move, banked for the reviewer's diff (design-review note rule-copies-bank). `card_rule_copies` is gate-only.
 
 ## Red checks
+
+Review round 1, at 8a75caf5e352feb640f56bffc74ef6e95f45f30a:
+
+- `tests / fast (3.14)`, predicted here, not yet seen in CI: after main's 86859b9594 (#3820), `tests/doc_claims.py`'s comment ratchet refused two card-file comment sentences this branch writes, over 40 words (`long units 153 -> 154`). The two were `serviceFailureText`'s doc comment and `fitWhy`'s. Fixed in 3ece86974e by splitting each, meaning kept; `tests/doc_claims.py` ALL 441 checks PASSED. Root-cause trigger: the same as the comment-ratchet entry below. The ratchet tightened under the branch through a main merge, and the scoped `doc_claims.py` re-run after that merge caught it before the push. No further countermeasure.
 
 Owed reds at 43c37865a4, from `python3 tools/audit/seat/merge_train.py owed-reds` and the job logs the dispatch names:
 
