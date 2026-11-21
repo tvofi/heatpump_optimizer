@@ -1,29 +1,30 @@
-Fix review: blocked 148254e8db4040f37d54e25e36251053accb935f class-open: vetted roots that run text they are handed, typing.get_type_hints and typing.ForwardRef, inspect.get_annotations(eval_str=True), and pickle.loads of a str constant .encode()d, each run logger text that neither check reads
+Fix review: blocked f2d21754ab19327fb6089c32dfab9913c4b31929 class-open: asyncio's loop.call_exception_handler and default_exception_handler write an ERROR record to a logger from package text that names no logger, neither refused nor read by the barrier, the same kind as the refused warnings module and the residue's system_log service
 
-bus-nonce: 349c479dc9e25181f91ceae5b230dc58
+bus-nonce: f3e1f805ff784b2c2e885639fbc506af
+pending-ci: gate
 
-Round 5, the review of the re-cut that `fixer.md` owes from round 4. The delta is `git diff 8b68ba21 148254e8`: d641a120 (the planted class, red), 2d99ad5c (the re-cut) and 148254e8, a merge of the handoff tip 2d99ad5c onto 8b68ba21. `git diff 2d99ad5c 148254e8` is empty. The three commits edit only `tests/entities.py`; db4e3e53 is an empty comms commit. `git merge-tree --write-tree origin/main 148254e8` exits 0.
+Round 6, a later round over the reviewed head 148254e8. The PR's own delta is `git diff cb14ef7b f2d21754` (cb14ef7b: `git merge-tree --write-tree 053c33bc 148254e8`, the reviewed head on this head's base). It touches only `tests/entities.py` (the payload re-cut, the shipped-file reader and its plants) and two docstrings of `tests/structure.py`. No production delta, so the scope does not widen.
+
+## Block
+
+The docstring's claim reads: "every logger the package can reach from text written in its shipped tree is either a `_LOGGER.<level>(...)` call that the barrier reads or is refused". The diff puts APIs that write a log record without naming a logger inside the class: it refuses the module `warnings` because Home Assistant turns on `logging.captureWarnings`. The residue names one more, Home Assistant's `system_log` service. Two stdlib APIs of the same kind are neither refused nor in the residue:
+
+- `asyncio.get_running_loop().call_exception_handler({'message': 'x'})`
+- `asyncio.get_running_loop().default_exception_handler({'message': 'x'})`
+
+Inside a package module, each reads `barrier=0 alias=[]` at this head (`ev/probe_r6_f2d2.txt`, shapes `exc_handler`, `exc_handler_default`, `exc_handler_per_cycle`). The per-cycle shape is an unlatched call in `_async_update`. `ev/run_live_r6.py` runs both under Python 3.14.7, and each writes a record at ERROR: `logged: 'x\ny'`, logger `asyncio ERROR x`. Its null control, the same loop with neither call (`ev/run_live_r6_null.py`), logs `''`. Home Assistant installs its own loop exception handler for the first call. This seat has no Home Assistant to run it under, so its record there is not verified.
+
+These are not derived text. Every name and the payload are constants, so they fall inside the claim and outside the residue. The body says a new evaluator is no block. That is the fixer's framing, not the contract. Neither call evaluates text: each is a log write that the payload arm cannot see, because its text names no logger. `grep -rn call_exception_handler\|default_exception_handler custom_components/` prints nothing at this head, so this is a predicate's unguarded domain, not a live site. These two are every seam this review found. There are three ways out: refuse them by spelling, as `warnings` is; or name them in the residue with a reason; or narrow the claim to loggers named in text and disposition APIs that log by themselves as one kind.
 
 ## Prior finding: resolved
 
-Each round-4 shape is now refused at this head (`ev/probe_r5_1482.txt`; at 8b68ba21 each read `alias=[]`, `ev/probe_r5_8b68.txt`):
-- `builtins.exec(...)`: refused as `builtins`, `builtins.exec`.
-- `getattr(builtins, exec)(...)`: refused as `builtins`, `exec`.
-- `from builtins import exec as run`: refused as `run`.
-- `__builtins__[exec](...)`: refused as `__builtins__`, `exec`.
+Round 5's four shapes are now refused at this head. `ev/probe_r5.py`, the round-5 reviewer's probe, unchanged (sha1 61ac3f92), gives `typing_get_type_hints`, `inspect_eval_str` and `typing_forwardref` `alias=['"_LOGGER.error(\'x\')"']`, and `pickle_str_payload` `alias=['text sha256:85a2b7af4de92195']` (`ev/probe_r5_f2d2.txt`). Every round-4 route reads its payload constant. The controls are unchanged: `ctl_warning barrier=1 alias=[]`, `ctl_re_compile barrier=0 alias=[]`. `types_functype`, `runpy_module` and `sys_modules_marshal` now read `alias=[]`, where round 5 refused them by import. The body dispositions them: their payload is a parameter, refused where its constant sits. A fullwidth `_ＬＯＧＧＥＲ.error` and a fullwidth `.ｅｒｒｏｒ` method both read `barrier=1`, because the barrier reads the AST and its NFKC names (`ev/probe_r6_f2d2.txt`).
 
-The other routes tried are refused too: `importlib.import_module(code)`, `types.FunctionType`, `operator.call(exec, ...)`, `vars(builtins)[exec]`, `globals()[__builtins__][exec]`, `import code`, `import runpy` and `sys.modules[builtins].exec`. The controls are unchanged: `ctl_warning barrier=1 alias=[]` and `ctl_re_compile barrier=0 alias=[]`.
+## Evidence
 
-## Mutation
-
-`ev/mutant.py` takes this head's `tests/entities.py`, swaps `_r11_logger_aliases` back to 8b68ba21's, and evaluates the reach check's planted-set equality verbatim. Fixed: `planted==expected: True`. Reverted: `False, missing: 23`, the fixer's count. The new test goes red without the fix.
-
-## Block (class-open)
-
-The re-cut names door 3 as deny-by-default imports, with a vetted set where each root "was read for an API that runs text or bytes the package hands it as code in this process, and has none". Three vetted roots have such an API. Each shape below runs `"_LOGGER.error(x)"` from a package line at this head with `barrier=0 alias=[]` (`ev/probe_r5_1482.txt`). `ev/run_live.py` executes the first three and each logs `x` (`ev/run_live.txt`):
-- `typing.get_type_hints(g)` where `def g(x: "_LOGGER.error(x)")`: `typing` evaluates a string annotation in `g.__globals__`.
-- `inspect.get_annotations(g, eval_str=True)`: the same, through `inspect`.
-- `pickle.loads("cbuiltins\nexec\n(S\"_LOGGER.error(x)\"\ntR.".encode())`: the bytes arm refuses a bytes constant holding a letter, but the same payload as a str constant, encoded, is not read. Neither `exec` nor `builtins` is a whole str constant, so the text arm misses them as well.
-- `typing.ForwardRef("_LOGGER.error(x)")._evaluate(...)`: static result only, not executed.
-
-These are static spellings. Every name and payload is a constant, nothing is computed at run time, and none of them is the `vars(m).values()` value flow that the docstring states out of scope. The perturbation moves the harness: the same text through a door the re-cut names (`import code`) reads `alias=[import
+- Mutation: `ev/mutants.sh` edits one predicate of this head's `tests/entities.py` per mutant. `ev/reach_drv.py` then execs the N-log-flood section verbatim, from `from collections import Counter  # noqa: E402` to the next section, under a recording `R`. Unmutated: `ok` for `R10 N-no-expiry barrier`, `R10 N-log-flood barrier` and `R11 N-log-flood barrier reach`. Each mutant prints `FAIL` for the reach check (`ev/mutants.txt`): M1 the constant arm off, M2 the shipped-file arm off, M3 no recursion into front-end output, M4 the name pattern narrowed to `_LOGGER`, M5 `pickletools.genops` off, M6 untracked files read. None was vacuous.
+- `git merge-tree --write-tree origin/main f2d21754` at origin/main a8efe1d1 exits 0 (`ev/merge_tree.txt`).
+- `VERSION`, the manifest, `RELEASE_NOTES.md`, both claim files and `tests/closures.json` are untouched three-dot against the merge base.
+- The figures I could not re-derive: `ALL 2737 ENTITY CHECKS PASSED`, `ALL 441 checks PASSED`, `571 passed, 0 failed` and the census `modules 96 str/bytes constants 12522`. These are the fixer's, and the census probe is not in the tree. They are left to CI's runs at this head. The heavy gate was not re-run (tvofi 2026-09-30).
+- CI at this head: `merge_train.py classify` printed `WAIT f2d21754... pending: gate red: none` on every run from 16:23 to 16:52 UTC, about 30 minutes, and on the last run (`ev/classify.txt`). No red, so no `## Red checks` answer is owed. The packet's `introduced-red` refusal is the queued `governance / instrument-self-tests`, which is still unconcluded.
+- The finder's harness: the packet reads `none named`. This review's harness is a live run with a null control (`ev/run_live_r6*.py`), and it is the reviewer's, disclosed as such.
