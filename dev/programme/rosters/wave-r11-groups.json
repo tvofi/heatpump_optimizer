@@ -7096,7 +7096,7 @@
     "From r11-outside-rooms-p3, body item e82913fe: The why-now comfort-floor row and the daily narrative still do not name the room lift (P2 body item e98789a8). Not built here: the approved P3 note is phase 3a only and keeps `optimizer.py` out, and the precondition is a per-step lift on the solve's result beside `comfort_floors`, read by `slot_drivers` and `narrative.py`, with card text in three languages; its control is a solve with the toggle off whose row must not change. The roster sent it here and the approved note's routed orchestrator decision makes P3 phase 3a only, so where it is built is that decision's to place. Carry: R11-OUTSIDE-ROOMS-3B (item e98789a8) (items e82913fe)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "commit": null,
     "branch": "handoff/r11-outside-rooms-3b",
     "last_step": null,
