@@ -1373,6 +1373,49 @@ function instrument() {
     for (const s of sheets) walk(s.cssRules, "");
     return out;
   };
+  // ROWS (D4-s3-02): the headline numbers of one visual row of `.tiles` or
+  // `.hl-stats` end their first line on one y however their labels wrap.
+  // `uneven` counts the rows whose labels take different line counts, the
+  // rows where a cell that is not on the row's subgrid tracks shows.
+  H.rows = () => {
+    const out = { rows: 0, uneven: 0, misaligned: [] };
+    const firstLineBottom = (el) => {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let t = w.nextNode(); t; t = w.nextNode()) {
+        if (!t.textContent.trim()) continue;
+        const r = document.createRange(); r.selectNodeContents(t);
+        const rs = r.getClientRects();
+        if (rs.length) return rs[0].bottom;
+      }
+      return null;
+    };
+    const lines = (k) => {
+      if (!k) return 0;
+      const r = document.createRange(); r.selectNodeContents(k);
+      return new Set([...r.getClientRects()].map((x) => Math.round(x.top))).size;
+    };
+    for (const [grid, cellSel, valSel, keySel] of [[".tiles", ".tile", ".tile-v", ".tile-k"], [".hl-stats", ".hl-stat", ".hl-value", ".hl-label"]]) {
+      for (const g of scope().querySelectorAll(grid)) {
+        if (!visible(g)) continue;
+        const byTop = {};
+        for (const c of [...g.children].filter((c) => c.matches(cellSel) && visible(c))) {
+          (byTop[Math.round(c.getBoundingClientRect().top)] ||= []).push(c);
+        }
+        for (const row of Object.values(byTop)) {
+          const vals = row.map((c) => ({ v: c.querySelector(valSel), k: c.querySelector(keySel) }))
+            .filter((x) => x.v && visible(x.v))
+            .map((x) => ({ bottom: firstLineBottom(x.v), lines: lines(x.k), label: x.k ? x.k.textContent.trim().slice(0, 24) : "" }))
+            .filter((x) => x.bottom !== null);
+          if (vals.length < 2) continue;
+          out.rows += 1;
+          if (new Set(vals.map((x) => x.lines)).size > 1) out.uneven += 1;
+          const spread = Math.max(...vals.map((x) => x.bottom)) - Math.min(...vals.map((x) => x.bottom));
+          if (spread > 0.5) out.misaligned.push(`${grid} row [${vals.map((x) => x.label).join(" / ")}] values ${spread.toFixed(1)} px apart`);
+        }
+      }
+    }
+    return out;
+  };
   // Pixel ink of one text run: everything else hidden, the run forced black on white.
   // A run's own ink only. An SVG text's glyphs can sit in its tspans, which
   // the hide-everything rule matches too, so they are shown with their text:
@@ -1566,6 +1609,77 @@ function gridScope(env = process.env) {
   const hit = files.filter((f) => payload.has(f) || GRID_SURFACE.some((re) => re.test(f)));
   if (hit.length) return { run: true, line: `P9 grid MODE: SCOPED -- RUN (${hit.length} of ${files.length} changed file(s) on the card surface or ${GRID_PAYLOAD}'s closure: ${hit.slice(0, 4).join(", ")})` };
   return { run: false, line: `P9 grid MODE: SCOPED -- SKIPPED, NOT A PASS (none of ${files.length} changed file(s) is on the card surface or in ${GRID_PAYLOAD}'s ${closure.length}-file closure)` };
+}
+
+/** D4-s3-02: the numbers of one row of tiles or stats share a line however
+ * their labels wrap. The P9 grid's cells (en and sv-SE) wrap no label
+ * unevenly, so they cannot tell a subgrid row from a block one; German does.
+ * The states are the grid's own, mounted as the grid mounts them, with
+ * `hass.localize` reading the integration's translations. The check also asks
+ * that rows with unevenly wrapped labels were measured, its own null control. */
+const ROW_STATES = ["score_open", "score_open_typical", "score_open_no_evidence", "score_open_graded_pump", "savings_open", "folds_open"];
+async function tileRows({ browser, check, plan, cardSrc }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const states = gridStates(plan).filter((s) => ROW_STATES.includes(s.name));
+  const tr = Object.fromEntries(["en", "de", "sv"].map((l) => [l, JSON.parse(readFileSync(
+    path.join(repo, `custom_components/heatpump_optimizer/translations/${l}.json`), "utf8"))]));
+  const PAGE = `<!doctype html><html><head><meta charset="utf-8"><style id="theme"></style></head><body></body></html>`;
+  const misaligned = [], missed = [];
+  let rows = 0, uneven = 0;
+  for (const [vw, vh] of VIEWPORTS) {
+    const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, colorScheme: "light", reducedMotion: "reduce" });
+    await ctx.clock.setFixedTime(FROZEN);
+    await ctx.route("http://hpo.test/**", (r) => r.fulfill({ contentType: "text/html", body: PAGE }));
+    const page = await ctx.newPage();
+    try {
+      for (const lang of ["en", "de-DE", "sv-SE"]) for (const st of states) {
+        const tag = `${st.name}/${vw}/${lang}`;
+        await page.goto("http://hpo.test/");
+        await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+        await page.addScriptTag({ content: cardSrc });
+        await page.addScriptTag({ content: `(${instrument.toString()})();` });
+        await page.evaluate(([themeCss, w, cfg, states2, lang2, t]) => {
+          document.getElementById("theme").textContent =
+            `html{${themeCss};background:var(--primary-background-color)}` +
+            `body{margin:0;padding:8px;font-family:"Liberation Sans",Arial,sans-serif;color:var(--primary-text-color)}` +
+            `heatpump-optimizer-card{display:block;width:${w}px}`;
+          if (!customElements.get("ha-card")) {
+            customElements.define("ha-card", class extends HTMLElement {
+              constructor() {
+                super();
+                this.attachShadow({ mode: "open" }).innerHTML =
+                  "<style>:host{display:block;box-sizing:border-box;border:1px solid var(--divider-color,#e0e0e0);border-radius:12px}</style><slot></slot>";
+              }
+            });
+          }
+          const c = document.createElement("heatpump-optimizer-card");
+          c.setConfig({ type: "custom:heatpump-optimizer-card", ...cfg });
+          const look = (key) => key.split(".").reduce((o, k) => (o && o[k]), t);
+          const hass = { states: states2, language: lang2, themes: { darkMode: false } };
+          hass.localize = (key, ph) => {
+            const m = key.match(/^component\.heatpump_optimizer\.(.*)$/);
+            const text = m ? look(m[1]) : "";
+            return typeof text === "string" ? text.replace(/\{(\w+)\}/g, (x, k) => (ph && k in ph ? String(ph[k]) : x)) : "";
+          };
+          hass.loadBackendTranslation = async () => hass.localize;
+          c.hass = hass;
+          document.body.appendChild(c);
+        }, [THEMES.light, vw - 16, st.config, st.states, lang, tr[lang.slice(0, 2)]]);
+        await page.waitForTimeout(40);
+        const drove = await page.evaluate((s) => window.__p9.drive(s), st.steps);
+        for (const m of drove.missed) missed.push(`${tag}: ${m}`);
+        const r = await page.evaluate(() => window.__p9.rows());
+        rows += r.rows; uneven += r.uneven;
+        for (const x of r.misaligned) misaligned.push(`${tag}: ${x}`);
+      }
+    } finally {
+      await ctx.close();
+    }
+  }
+  console.log(`        tile and stat rows: ${rows} measured, ${uneven} with unevenly wrapped labels, ${misaligned.length} misaligned`);
+  check(`D4-s3-02 the numbers of one tile or stat row share a line however their labels wrap (${ROW_STATES.length} states, 3 widths, en/de/sv)`,
+    states.length === ROW_STATES.length && missed.length === 0 && misaligned.length === 0 && uneven > 0,
+    `${misaligned.length} misaligned: ${misaligned.slice(0, 4).join(" | ")}; ${rows} row(s) measured, ${uneven} with unevenly wrapped labels; missed ${missed.slice(0, 2).join(" | ")}`);
 }
 
 // ---- the host side -----------------------------------------------------------
@@ -3320,6 +3434,7 @@ try {
 
   // R9-UX-8: the narrative rows lay out on a phone and on a desktop.
   await narrativeLayout({ browser, check, plan, out: process.env.HPO_NL_OUT });
+  await tileRows({ browser, check, plan, cardSrc: readFileSync(CARD_SRC, "utf8") });
   await cardCollapse({ browser, check, plan, out: process.env.HPO_NL_OUT });
 } finally {
   await browser.close();

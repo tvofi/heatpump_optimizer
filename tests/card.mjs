@@ -1560,6 +1560,8 @@ const fontCard = build(slotStates, {});
 fontCard.dialog.open();
 const dlgOf = (w) => {
   const d = fontCard.shadowRoot.querySelector("dialog");
+  d.typeScaleSet = undefined;
+  d.style = { setProperty(k, v) { if (k === "--hpo-type-scale") d.typeScaleSet = v; } };
   d.getBoundingClientRect = () => ({ width: w });
   if (!d.style) d.style = {};
   fontCard.dialog.fontPx = 0;
@@ -1583,6 +1585,22 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
   dlgOf(1700) >= vm.runInContext("DIALOG_FONT_PX_MAX", ctx) - 0.2 &&
   /width: min\(96vw, calc\([^)]*\), 1700px\)/.test(cardSrc),
   `cap ${vm.runInContext("DIALOG_FONT_PX_MAX", ctx)}, 1700 px -> ${dlgOf(1700)} px`);
+// The chrome's text tokens are `calc(<token> * var(--hpo-type-scale, 1))`, so
+// without the write the dialog's legend and controls keep their 14 px base
+// at every width while its font grows: the scale is the font over that base.
+{
+  const typeScaleOf = (w) => {
+    const px = dlgOf(w);
+    return { px, set: fontCard.shadowRoot.querySelector("dialog").typeScaleSet };
+  };
+  const narrow = typeScaleOf(320), wide = typeScaleOf(4000);
+  const base = vm.runInContext("DIALOG_FONT_PX_MIN", ctx);
+  check("the dialog scales its chrome's type tokens with its font: 1 at the 14 px base, font / base at the cap",
+    narrow.set === "1.0000" && wide.set !== undefined && Number(wide.set) > 1 &&
+      Math.abs(Number(wide.set) * base - wide.px) < 1e-3 &&
+      /calc\(\$\{CARD_SCALE_TOKENS\[name\]\} \* var\(--hpo-type-scale, 1\)\)/.test(cardSrc),
+    `320 px -> ${narrow.set}, 4000 px (${wide.px} px) -> ${wide.set}`);
+}
 
 // R10-HOTFIX-CARD-HEALTH-TEXT: no class or id the card writes may be a name
 // an ad blocker's generic element-hiding rules target. EasyList's
@@ -14266,14 +14284,19 @@ check("without an indoor reading the corner now label is absent",
         await flushHistory();
         now += 15 * 60000;
       }
-      byDay.push({ rows: rows(hs), covered: hs.covered.size });
+      byDay.push({ rows: rows(hs), covered: hs.covered.size, chunks: hs.chunks.size, oldest: Math.min(...hs.chunks.keys()) });
     }
     const live = now - 15 * 60000;
     const cutMs = Math.floor((live - SPAN) / CHUNK) * CHUNK;
     const day10 = byDay[9], day30 = byDay[DAYS - 1];
+    // `chunks` is read on its own: it is a separate Map from `covered`, and
+    // `prune` drops each of them by its own loop.
     check("history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau",
-      day30.covered <= 5 && day30.rows === day10.rows && !hs.unavailable,
-      `covered ${day30.covered}, rows day 10 ${day10.rows} -> day 30 ${day30.rows}, unpruned twin ${rows(keepAll)}`);
+      day30.covered <= 5 && day30.chunks <= 5 && day30.chunks === day10.chunks &&
+        day30.oldest >= Math.floor((live - SPAN) / CHUNK) &&
+        day30.rows === day10.rows && !hs.unavailable && keepAll.chunks.size > 5,
+      `covered ${day30.covered}, chunks day 10 ${day10.chunks} -> day 30 ${day30.chunks} (unpruned twin ${keepAll.chunks.size}), ` +
+      `rows day 10 ${day10.rows} -> day 30 ${day30.rows}, unpruned twin ${rows(keepAll)}`);
     const shown = (s) => {
       const o = s.overlays() || { space: [], dhw: [], solar: [] };
       return JSON.stringify(Object.fromEntries(Object.entries(o).map(([k, pts]) =>
