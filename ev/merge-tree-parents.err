@@ -1,0 +1,8 @@
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides changed claims under different
+'claims-for:' stamps (base 10.1.1, this branch 10.1.1, incoming 10.1.2), so they describe different
+releases' diffs. Resolve it by hand: keep the claims that
+describe THIS branch's diff and delete the rest.
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1558 entries)
+  re-run the gate that owns this file before pushing

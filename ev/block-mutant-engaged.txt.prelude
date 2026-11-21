@@ -1,0 +1,13 @@
+features_block: the block raised other than a NameError:
+Traceback (most recent call last):
+  File "/tmp/tmp.7VbeJ7a6yl/mut/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/tmp/tmp.7VbeJ7a6yl/mut/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/tmp/tmp.7VbeJ7a6yl/mut/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 501, in <module>
+IndexError: list index out of range
+
