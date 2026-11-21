@@ -1,6 +1,6 @@
 # exec tests/entities.py's N-log-flood section (from the Counter import to the next
 # "# ---" section line) under a recording R; prints each check's verdict.
-import sys, ast, re, subprocess, tempfile, os, json, hashlib, io
+import sys, ast, re, subprocess, tempfile, os, json, hashlib, io, asyncio  # r7: the section reads the module-level asyncio import
 from pathlib import Path
 path = sys.argv[1]
 sys.path[:0] = [str(Path(path).parent), str(Path(path).parent / "hastub")]
