@@ -1,0 +1,92 @@
+
+=== features block ===
+
+-- R11-SEAM-actuation-release: one restore owner for every written entity (ADR-004, D16 ruling 2026-11-15)
+  ok   D16-s3-02: after off the supply switch, the frequency, the valve and the circulation pump read what they read before the optimizer's first write, each written back once
+  ok   D16-s3-02 null control (off): commands equal to the baseline leave all four unchanged
+  ok   D16-s3-02: after unload the supply switch, the frequency, the valve and the circulation pump read what they read before the optimizer's first write, each written back once
+  ok   D16-s3-02 null control (unload): commands equal to the baseline leave all four unchanged
+  ok   D16-s3-02: after remove the supply switch, the frequency, the valve and the circulation pump read what they read before the optimizer's first write, each written back once
+  ok   D16-s3-02 null control (remove): commands equal to the baseline leave all four unchanged
+  ok   D16-s3-01: Off returns the pump's mode select to the baseline row on the Tuya arm (the arbiter had written the hot-water duty)
+  ok   D16-s3-01: Off returns the tank set-point to the configured 50 on the Modbus arm (space-only steps had gated it)
+  ok   D16-s3-01 null control: with the arbiter serving its baseline row (plan two hours ahead) both arms already read the baseline and Off changes neither
+  ok   D16-s3-03: unloaded while the integration holds the pump's disinfection (the arbiter raised the tank to the cycle target 60), the tank set-point reads the configured 50 afterwards
+  ok   D16-s3-03 null control: the same drive with no hold never raised the tank to 60 and reads 50 after the unload
+  ok   D16-s3-03: the baseline row under a disinfection hold carries the configured 50
+  ok   D16-s3-03 null control: the plain desired row under the same hold carries the cycle target, above 50, so the hold flag is what moves the row
+  ok   D16-s1-04 precondition: the last fresh cycle left the supply off and the plan is stale
+  ok   D16-s1-04: a stale plan returns the supply switch to on and the frequency and valve to their pre-write readings 70 and 22, one write each in that cycle
+  ok   D16-s1-04: a second stale cycle writes nothing to the four restored entities, and the restore is recorded as plan_stale
+  ok   D16-s1-04: a third stale cycle writes nothing at all
+  ok   D16-s1-04: the hot-water circulation pump (a clock, not the plan) is not written by the stale cycle's restore
+  ok   D16-s1-04 null control: the supply on at the last fresh step with commands equal to the baseline, the stale cycle writes nothing to the supply switch
+Restore of number.water_set to 45.0 on mode_off failed: device briefly unreachable
+  ok   D16-s3-04: a restore of number.water_set that raised at the change into Off is retried by the Off cycles: exactly one write lands and the entity reads its baseline 45
+  ok   D16-s3-04 null control: with no failure the restore of number.water_set lands at Off, and the Off cycles after it write nothing to it
+Restore of number.offset to 0.0 on mode_off failed: device briefly unreachable
+  ok   D16-s3-04: a restore of number.offset that raised at the change into Off is retried by the Off cycles: exactly one write lands and the entity reads its baseline 0
+  ok   D16-s3-04 null control: with no failure the restore of number.offset lands at Off, and the Off cycles after it write nothing to it
+  ok   D1-s2-04: an off restore running while another caller's first read of the record is in flight waits for it: the baseline 3.0 is written back once, the first caller saw it, the saved record is the restored one
+  ok   D1-s2-04 null control: the same two calls one after the other give the same result
+  ok   D1-s2-04: the record reads as not loaded while its first read is in flight
+  ok   design invariant 2, valve: after Off then On the same planned target 20 is sent again, and the record of the last write is empty right after the restore
+  ok   design invariant 2, valve null control: with no Off between, the second cycle sends no valve write
+  ok   design invariant 2, frequency: after Off then On the same target is sent again, and the watchdog's commanded value is None right after the restore
+  ok   design invariant 2, frequency null control: with no Off between, the second cycle sends no frequency write
+  ok   design invariant 2, hot-water circulation pump: after Off the record has no entry for the pump, and after On its next off command is sent again
+  ok   design invariant 2, circulation pump null control: with no Off between, the second cycle sends no pump write
+  ok   verdict item 9: Off taken on an idle step sends the supply switch on but writes no mode select while the switch still reads off, and the row stays armed
+  ok   verdict item 9: once the switch reads on, the next cycle writes the baseline row (the select reads Heating + DHW) and the row is no longer armed
+  ok   verdict item 9 null control: with the switch on at the Off trigger (a hot-water step, not idle) the row is written in the Off pass itself
+  ok   verdict item 8: a pass that forgets the arbiter's record between two slot writes of the row's restore does not stop it: the restore completes, the row is disarmed and the record holds no slot but the space set-point
+  ok   verdict item 8 null control: without the interleaving the end state is the same
+  ok   design note 3: an off write of the supply switch racing the unload's restore is refused or restored: after the unload the switch reads on and its restore is not left armed
+  ok   design note 3 null control: with no racing write the same end state, from exactly one turn_on
+  ok   in-flight guard: async_arm refuses (False) a key while that key's restore write is awaited, and accepts it again (True) once the restore has finished
+  ok   in-flight guard null control: called outside a restore, async_arm answers True
+  ok   registry (a): restores run in registration order, though the keys were armed in reverse
+  ok   registry (b): a cycle with neither Off nor a stale plan restores nothing, and a stale plan restores the stale=True key only
+  ok   registry (c): a cycle in Off restores both keys
+  ok   registry (d): a pass that restores nothing does not save the store, one that restores saves it once
+  ok   registry (f): removing an entry with a neutral key still armed logs a warning naming the key
+Release of _r11ar_rel on mode_off failed: release failed
+  ok   registry (e): a release consumer answering False stays armed, one answering True is disarmed, and one that raises stays armed and does not raise into the restore
+  ok   registry (e) null control: the consumer that answered False was asked, and counted no restore
+  ok   design note 3 (later key): an off write of the supply switch landing during a later key's unload restore is handed back by the unload's second restore: the switch reads on and its restore is not left armed
+  ok   design note 3 (later key) null control: with no racing write the same end state, from exactly one turn_on
+  ok   two restores running at once on one entry send a key's restore write once, the summed count being 1
+  ok   null control: the same two restores one after the other also send one write
+  ok   a stale-plan cycle switches the space circulation pump back on and empties its record
+  ok   null control: the same stale-plan cycle does not write the hot-water circulation pump, which a clock drives
+Could not command pump switch.vvc_pump: entity unavailable
+Could not command pump switch.vvc_pump: entity unavailable
+  ok   a circulation pump command whose service call raised is not recorded, and the same command is sent again
+  ok   null control: a command that succeeded is recorded and the same command is not sent again
+  ok   a circulation pump's off command whose restore cannot be armed is not sent and not recorded
+  ok   null control: the same off command with the arm taken is sent once and recorded
+  ok   the two circulation pumps and the supply switch are restored to on (neutral 1.0) on the entity the config names, and an entity not configured has no restorer
+  ok   on a stale plan in a plan mode the space circulation pump is not driven: the let-go predicate holds it
+  ok   null control: on a fresh plan the same pump is the one to drive
+  ok   a frequency one FREQ_WRITE_EPSILON_HZ (1 Hz) from the last command, and a valve target one epsilon_k from the last write, are each written, and the write's tail answers True
+  ok   null control: a move of half that is not written, and the tail answers False
+Pump duty: writing HEATDHW to select.pump_mode failed: select unavailable
+  ok   Off with the pump's mode select refusing the baseline row's write: the row's restore stays armed, so the next cycle writes it again
+  ok   null control: the same Off with the select taking the write disarms the row
+  ok   the row's restore that landed leaves the arbiter's stored record holding the space set-point slot alone
+  ok   null control: before that Off the stored record held the mode and tank set-point slots
+No baseline readable from number.unread: not written, nothing to restore it to
+No baseline readable from number.unread: written, nothing to restore it to
+  ok   a baseline restorer that is not write_unread refuses the write when its entity reads no baseline, and arms nothing
+  FAIL null control: the same unreadable entity under a write_unread restorer arms a restore of nothing, and a readable one arms its reading  [{(False, None): (False, 'absent'), (True, None): (False, 'absent'), (False, 40.0): (True, {'entity_id': 'number.unread', 'value': 40.0})}]
+  ok   the row's release on an entry whose coordinator is gone answers not done without raising: the row stays armed and nothing is logged as failed
+  ok   null control: a release that reads the missing coordinator and raises stays armed and logs one warning
+  ok   a valve target write that raised logs why, and no line that the target was commanded
+  ok   null control: the same write landing logs the commanded target once
+The anti-legionella cycle has been due for 14 day(s) but the heat pump's mode makes no hot water, so it cannot be planned
+  ok   D7-s1-05: check_mode_block raises its notice through _interval_notice with the key dhw_legionella_mode_blocked and the field overdue_days
+  ok   D7-s1-05: check_overdue raises its notice through _interval_notice with the key dhw_legionella_overdue and the field days
+  ok   D7-s1-05: unpatched, a day count raises the issue with the count under its own name and the interval
+  ok   D7-s1-05 null control: the same call with no day count clears the issue
+
+1 of 77 FEATURES BLOCK FAILED

@@ -1,0 +1,31 @@
+commit 6f0df6dedf6efe915c6b71a555cfc48ccfd44da7
+Merge: fca20a5f5d 6fdc15354f
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Sat Nov 21 23:03:04 2026 +0100
+
+    Merge origin/main 6fdc15354f into fix/r11-seam-actuation-release-pr
+    
+    Resolution: pump_arbiter.ArbiterInputs conflicted on its trailing
+    defaulted fields; both are kept, this branch's `entry` (the off-restore
+    key) then main's `draw` (the running-draw window). No other line changed.
+
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/pump_arbiter.py
+index 31098875fb..c88cc86ac7 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -436,14 +436,11 @@ class ArbiterInputs:
+     #: means is ``freq_control.defrost_interval``'s, and ``None`` is no flag
+     #: or no evidence.
+     defrosting: bool | None = None
+-<<<<<<< fca20a5f5d (ci: pin killed mutants)
+     #: The config entry, the key every off restore is armed on (:mod:`off_restore`).
+     entry: Any = None
+-=======
+     #: The running-draw window each pass record is handed to
+     #: (``draw_range.note_pass``); ``None`` keeps none.
+     draw: Any = None
+->>>>>>> 6fdc15354f (Merge pull request #3833 from tvofi/record/autofix)
+ 
+ 
+ _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()

@@ -1,0 +1,61 @@
+
+=== features block ===
+
+-- supply switch: minimum run and pause, restart
+  ok   a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN
+  ok   a write held back is not retried once the optimizer is switched off
+  ok   null control: the same re-solve twelve minutes into the run switches it off at once
+  ok   a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE
+  ok   null control: the same re-solve eleven minutes into the pause switches it on at once
+  ok   a run someone else started three minutes ago is held on until MIN_RUN of the switch's own stamp
+  ok   a pause someone else started three minutes ago is held off until MIN_PAUSE of the switch's own stamp
+  ok   after a Home Assistant restart a supply found on is held for MIN_RUN of its restart stamp, then switched off
+  ok   null control: after a reload an hour-old run is switched off at once
+  ok   with no plan, an OFF held three minutes into a run lands at MIN_RUN
+  ok   system identification: an OFF three minutes into a run is written at once
+  ok   a climate target reading heat three minutes is held on until MIN_RUN
+  ok   null control: a climate target heating an hour is switched off at once
+  ok   an interval in which the gate held a write freezes the learners with the supply_held reason
+  ok   null control: the same interval with no write held does not
+  ok   null control: writes on step boundaries, the gate issues main's service calls in main's order
+  ok   null control: a plan the step tick moves, the gate issues main's service calls in main's order
+  ok   null control: no supply switch, the gate issues main's service calls in main's order
+  ok   rule three: a space step, ON at minute 7 before an OFF step -> (None, True)
+  ok   rule three: null control: the same ON at minute 5, MIN_RUN before the boundary -> (True, False)
+  ok   rule three: a hot-water step with the tank warm -> (None, True)
+  ok   rule three: a hot-water step with the tank below its minimum -> (True, False)
+  ok   rule three: a hot-water step under a disinfection hold -> (True, False)
+  ok   rule three: a space step with the tank below its minimum -> (None, True)
+  ok   rule three: null control: the switch already on -> (True, False)
+  ok   rule three: an unreadable switch -> (True, False)
+  ok   rule three: a hot-water step with the tank exactly at its minimum (not below) -> (None, True)
+  ok   rule three: a cold tank on params with no dhw_enabled field is not exempt -> (None, True)
+  ok   a write of None passes and marks nothing held
+  ok   step tick, held write: the optimizer switched off: no write, the hold dropped
+  ok   step tick, held write: null control: a plan mode with no plan retries the action's OFF
+  ok   stop: an OFF to a switch reading unavailable passes -> (False, False)
+  ok   stop: an OFF to a switch reading unknown passes -> (False, False)
+  ok   stop: an OFF to a switch stamped ahead of the clock passes -> (False, False)
+  ok   stop: null control: an OFF to a switch on three minutes is held -> (None, True)
+  ok   stop: an OFF to a switch stamped this instant is held (age 0, not unknown) -> (None, True)
+  ok   freeze_reason: nothing held reads nothing
+  ok   freeze_reason: a write held 59 minutes ago on a 30-minute interval is frozen
+  ok   freeze_reason: null control: 60 minutes ago is not
+  ok   freeze_reason: a config with no interval reads the default
+  ok   a held OFF is not logged as the cooling or blocked-mode skip
+  ok   null control: an OFF both blocked channels skip writes nothing and is logged as the skip
+  ok   which writes are held: economy is a plan mode: an OFF three minutes into a run is held -> (None, True)
+  ok   which writes are held: a fixed mode (comfort) passes an OFF three minutes into a run -> (False, False)
+  ok   which writes are held: a live space boost passes an ON three minutes into a pause -> (True, False)
+  ok   which writes are held: a live DHW boost passes an ON three minutes into a pause -> (True, False)
+  ok   which writes are held: null control: no boost holds that ON -> (None, True)
+  ok   which writes are held: rule three: an ON at minute 6, one tick inside MIN_RUN of an OFF step, is skipped -> (None, True)
+  ok   which writes are held: rule three: a both step with the tank below its minimum is exempt -> (True, False, 'both')
+  ok   which writes are held: rule three: null control: a both step with the tank warm is skipped -> (None, True, 'both')
+  ok   step tick, held write: the entry released: no write, the hold dropped
+  ok   step tick, held write: a stale plan: no write, the hold dropped
+  ok   step tick, held write: economy with no plan retries the action's OFF
+  FAIL the supply restore that lands ends the step tick's held write: the same step's tick writes nothing over it (null control: the held write alone retries OFF)  [{'restored': (1, [False], True, [('switch', 'turn_on')]), 'null, held only': (None, [False], True, [])}]
+  ok   an install with no power switch: the gate writes and holds nothing, and raises nothing
+
+1 of 55 FEATURES BLOCK FAILED
