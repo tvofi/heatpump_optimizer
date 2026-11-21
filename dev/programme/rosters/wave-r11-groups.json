@@ -6992,6 +6992,58 @@
     "branch": null,
     "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner, R11-SEAM-two-zone-slab): thermal_model.py: the edit is the trajectory's wall-clock step arithmetic only, which no not-started group's scope touches"
    }
+  },
+  {
+   "group": "R11-HOTFIX-CODEQL-PERMS",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    ".github/workflows/codeql.yml",
+    "tests/entities.py",
+    "tools/audit/seat/postmerge.py",
+    "tools/audit/seat/roster_lib.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Hotfix, S. Freeze ground: main red (required codeql / Analyze (python), hence gate). Defect: main's push-run python leg exceeds its 75-minute cap in .github/workflows/codeql.yml: job 136736442455 on main 0ae95e4c9b was cancelled 75.0 min after start at query 35/52 (`##[error]The operation was canceled.`), and the last 12 main push jobs read 8 cancelled at the cap against 4 uncensored successes of 61.5 to 73.3 min (gh api repos/<repo>/actions/runs/<id>/jobs, 2026-11-21). Part A (the main red): raise the python matrix timeout (proposed 120), re-derived from that job list, the header comment carrying the measurement and its enumerator, and _PY_WORST_CASE_MIN in tests/entities.py to the measured uncensored worst case; actions and javascript-typescript stay 45 (the entities null control). Part B (carried, built): handoff/fix-codeql-perms at 036cb18339 (body ref handoff-body/fix-codeql-perms 7233351c) closes code-scanning alerts 57 and 58 (roster-writer.lease and roster-drain.queue created 0o600, self-test pins and a mutant). Build on 036cb18339. The workflow edit is a code-owned path: serial train route, owner or mandate review. Structural cure (splitting tests/features.py or narrowing the push leg's extraction) is an owner ruling: a forward-carry. Proof: the first main push run after the merge finishes Analyze (python) under the cap; the PR's pull_request leg ignores tests/ and dev/ and cannot prove Part A.",
+   "carry": [],
+   "resume": {
+    "stage": "fixing",
+    "commit": "036cb18339921f4c8fc408e4f6900660c4236370",
+    "branch": "handoff/fix-codeql-perms",
+    "last_step": "Part B handed off at 036cb18339; cause of main red measured (75-min cap)",
+    "next_step": "build Part A, open PR",
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-inputs-freshness): main-red hotfix: one constant pin in tests/entities.py, cannot wait for those groups"
+   },
+   "source": "programme",
+   "hotfix": true,
+   "hotfix_by": {
+    "rule": "main-red-required",
+    "evidence": {
+     "run_id": 44868101509,
+     "context": "codeql / Analyze (python)"
+    }
+   }
   }
  ]
 }
