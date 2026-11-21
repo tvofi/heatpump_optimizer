@@ -1,0 +1,9 @@
+RESULT unpinned_sites_in_closure=1260
+RESULT capture_never_executes=681
+RESULT gate_skippable=0
+RESULT null_capture_executes=579
+RESULT null_skippable=0
+RESULT gate_reach_problems=2
+RESULT env_drift_baseline_wall_s=177.3 (provisional)
+RESULT load1=0.61
+RESULT thread_factor=1.00
