@@ -58,6 +58,8 @@ mut bl-moved-stays-error $BL "    return { ok: true, warn: true, movedTo: to," "
 mut bl-range-loses-length $BL 'end: end ? Math.min(lineCount, line + (end - start)) : undefined' 'end: end ? line : undefined' "$BLT" 'VACUOUS'
 # A quoted phrase alone decides a pin whose clause quotes one (the fix review of e2255027, the gone-phrase probe).
 mut bl-gone-quote-yields-to-symbol $BL '  if (quoted.length) {' '  if (false) {' "$BLT" 'VACUOUS'
+mut bl-unquoted-moved-is-error $BL '    if (at.length === 1) return moved(c, at[0])' '    if (at.length === 1) return { ok: false, reason: String(c) }' "$BLT" 'VACUOUS'
+mut bl-repeated-quote-is-moved $BL '    if (several) return ambiguous(several.c, several.at)' '    if (false) return ambiguous(several.c, several.at)' "$BLT" 'VACUOUS'
 mut bl-lost-quote-not-refused $BL '    if (lost.length) return' '    if (false) return' "$BLT" 'VACUOUS'
 mut bl-quotes-apart-not-refused $BL '    if (at.length > 1) return { ok: false, reason: `the quoted anchors' '    if (false) return { ok: false, reason: `the quoted anchors' "$BLT" 'VACUOUS'
 # Class 2b's re-pinned range ends inside the file, as class 2's does; the file's trailing newline is no line.

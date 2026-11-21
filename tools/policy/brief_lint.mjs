@@ -1735,7 +1735,8 @@ function assertRosterIssues() {
 // linted, re-pinned and linted again: the moved pin warns with its new line,
 // is rewritten to it and is then clean; a pin in place leaves the file's bytes
 // alone (the null); an anchor at several places and one that is gone stay
-// errors and are not rewritten.
+// errors and are not rewritten, and a quoted phrase that is gone is not
+// replaced by a symbol of its clause.
 function assertRepin() {
   const target = 'tools/policy/fixtures/playbook-null.md'
   const lines = fileLines(target)
@@ -1771,6 +1772,16 @@ function assertRepin() {
     r = repinFile(f, lintFile, { shape: false })
     expect('an anchor at several places is an error and is not rewritten',
       found.length === 1 && found[0].severity === 'error' && found[0].message.includes('ambiguous') && r.repinned === 0 && fs.readFileSync(f, 'utf8') === two)
+    f = roster(`See ${target}:2 for indented_is_skipped.`)
+    found = pathline(f)
+    expect('with no quoted phrase, a symbol at one other place is a moved pin',
+      found.length === 1 && found[0].severity === 'warning' && found[0].message.includes(`to line ${lineOf('indented_is_skipped')},`))
+    f = roster(`See ${target}:2 for the is_skipped fences.`)
+    found = pathline(f)
+    const bare = fs.readFileSync(f, 'utf8')
+    r = repinFile(f, lintFile, { shape: false })
+    expect('an unquoted anchor at several places is an error and is not rewritten',
+      found.length === 1 && found[0].severity === 'error' && found[0].message.includes('ambiguous') && r.repinned === 0 && fs.readFileSync(f, 'utf8') === bare)
     f = roster(`See ${target}:2 "no such phrase anywhere" for nothing.`)
     found = pathline(f)
     expect('an anchor that is gone is an error', found.length === 1 && found[0].severity === 'error' && found[0].message.includes('anywhere else in the file'))
