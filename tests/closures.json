@@ -1515,6 +1515,7 @@
    "tests/comment_ratchet.py",
    "tests/config_flow_steps.py",
    "tests/coverage_ratchet.py",
+   "tests/cycle_lane.py",
    "tests/debug_collect.py",
    "tests/delivery_status.py",
    "tests/deployment_shape.py",
