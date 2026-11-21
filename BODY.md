@@ -13,7 +13,13 @@ Alternatives lost: D10-s1-02's other shape, making the sysid button unavailable 
 
 ## Head
 
-2a50c826b4c54d82f703e812b01e6e37b35f33c6, measured against merge base a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b (`origin/main` at dispatch). `origin/main` moved to 63c6d1cff9a2 by 2026-11-21T20:26Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict, so the branch is not re-merged (the brief).
+2a50c826b4c54d82f703e812b01e6e37b35f33c6, measured against merge base a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b (`origin/main` at dispatch). `15566c4f6c2cf2f8ef0899778559a3e5f3ab301b` is the head: two merges of `origin/main` into 2a50c826b4, each with one content resolution, the delta a merge review reads, and one budget re-record.
+
+- `de56e48137` merges 6fdc15354f. `coordinator.py`: main moved `_dhw_current_hour` out of the coordinator class to a module function (#3737); this branch rewrote `_dhw_effective_windows` to `windows_in_force(..., days)` and passed tomorrow's windows to `hours_until_next_window`. The method copy is dropped, this branch's `_dhw_effective_windows` is kept, and its three-argument call reads the module-level `_dhw_current_hour()`.
+- `32ac1d026b` merges 4ebd430fbf. `tests/entities.py`'s P2 registry: both sides appended entries; both are kept, this branch's `dhw_window_in_force` (D17-s3-51), then main's `water_heat_capacity`, `naive_instant_zone` and `evidence_cap` (D7-s3-04, D7-s1-05).
+- `15566c4f6c` records `tests/structure_budgets.json` down: `tests/structure.py` at `32ac1d026b` refused two rows improved and not recorded on the merged tree, `class_excess_loc` and `duplication_copies`; `--record` wrote both lower and `recorded_at` to 4ebd430fbf. No row rose.
+
+Re-run on the merges, with `PYTHONPATH=tests/hastub`: `tests/structure.py` at `de56e48137` reads `STRUCTURE RATCHET PASSED`. `tools/audit/seat/features_block.py` with a derived prelude at `de56e48137` passes the `T3 — hot water` block (80 checks), which holds the D17-s3-51 next-window check, and the `R10-DRAW-MAP-EVIDENCE part A` block (42 checks), which calls `coordinator._dhw_current_hour`. `tests/entities.py` at `32ac1d026b` prints `ok` on the P2 owners line for each of the four merged entries. That run hit its 1800 s bound before it finished, so the rest of the script is left to CI. Every `FAIL` line it printed before the bound is a null-control arm followed by its `ok ... fails ...` line.
 
 ## Mutation proof
 
@@ -33,7 +39,7 @@ Each mutant applied to a detached copy of a branch commit whose mutated code is 
 
 ## Unpinned sites
 
-`tools/pr/ci_predict.py --base a8efe1d1c2a8` at the head lists the added unpinned sites; each, with its disposition:
+`tools/pr/ci_predict.py --base a8efe1d1c2a8` at the head lists the added unpinned sites; each, with its disposition. At the head `15566c4f6c` nine of them are re-anchored to the line numbers prepr's `ADDED UNPINNED` lines read there (`coordinator.py` 4491 to 4480 and 6007 to 5994, `entity.py` 321 to 328 and 447 to 454, `sensor.py` 542, 550, 552 and 557 each one line down); each line's text is unchanged from 2a50c826b4 (main's merges moved them, not this diff):
 - custom_components/heatpump_optimizer/boost.py:742 RETURN_DEL: return hour_in_windows(now.hour + now.minute / 60.0, windows: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/button.py:168 GUARD_OFF: if refused == sysid.ARM_REFUSED_DISABLED:: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/button.py:175 GUARD_OFF: if refused is not None:: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
@@ -41,23 +47,23 @@ Each mutant applied to a detached copy of a branch commit whose mutated code is 
 - custom_components/heatpump_optimizer/config_flow.py:848 CMP_BOUND: if value == declared or base is None or not isinstance(step,: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/config_flow.py:848 GUARD_OFF: if value == declared or base is None or not isinstance(step,: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/config_flow.py:851 RETURN_DEL: return round(low + rounding(round((value - low) / grain, 9)): pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/coordinator.py:4491 BOOLOP: scheduled = params.dhw_enabled and params.dhw_windows_active: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/coordinator.py:6007 RETURN_DEL: return windows_in_force(ctx._thermal_params, self._optimizat: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/coordinator.py:4480 BOOLOP: scheduled = params.dhw_enabled and params.dhw_windows_active: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/coordinator.py:5994 RETURN_DEL: return windows_in_force(ctx._thermal_params, self._optimizat: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/debugger.py:337 CMP_BOUND: [ms for row in rows if (ms := row.get("payload_solve_time_ms: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/dhw_schedule.py:441 GUARD_OFF: if info.get("dhw_windows"):: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/dhw_schedule.py:563 BOOLOP: if windows and hour_in_windows(hour, windows):: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/dhw_schedule.py:563 GUARD_OFF: if windows and hour_in_windows(hour, windows):: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/dhw_schedule.py:566 CMP_BOUND: starts = [start - h for start, _ in windows if start > h] + : pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/dhw_schedule.py:569 RETURN_DEL: return min(starts, default=None): pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/entity.py:321 BOOLOP: lead = f"{family}_" if family and not translation_key.starts: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/entity.py:447 BOOLOP: return bool(super().available and gate.get(flag)): pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/entity.py:447 RETURN_DEL: return bool(super().available and gate.get(flag)): pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/entity.py:328 BOOLOP: lead = f"{family}_" if family and not translation_key.starts: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/entity.py:454 BOOLOP: return bool(super().available and gate.get(flag)): pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/entity.py:454 RETURN_DEL: return bool(super().available and gate.get(flag)): pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/pump_schedule.py:42 GUARD_OFF: if params is None:: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/pump_schedule.py:67 GUARD_OFF: if windows is None:: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/sensor.py:542 GUARD_OFF: if isinstance(row, dict) and row.get("estimated"):: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/sensor.py:550 GUARD_OFF: if self._open_saving() is not None:: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/sensor.py:552 RETURN_DEL: return "open_month_coverage" if self._rows() else "settled_s: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/sensor.py:557 RETURN_DEL: return None if val is None else round(val, 2): pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/sensor.py:543 GUARD_OFF: if isinstance(row, dict) and row.get("estimated"):: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/sensor.py:551 GUARD_OFF: if self._open_saving() is not None:: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/sensor.py:553 RETURN_DEL: return "open_month_coverage" if self._rows() else "settled_s: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/sensor.py:558 RETURN_DEL: return None if val is None else round(val, 2): pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/sysid.py:2500 GUARD_OFF: if arm_from_config(ident, now, config, plant, learner_sample: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/sysid.py:2502 GUARD_OFF: if not ident.config.enabled:: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/sysid.py:2504 GUARD_OFF: if ident.active:: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
@@ -95,7 +101,7 @@ Gate: `python3 tests/closure.py select --diff a8efe1d1c2a8` printed `MODE: SCOPE
 
 Structure: `python3 tests/structure.py` passes. `class_excess_loc` 17322 -> 17317, `dead_top_level_symbols` 1 -> 0, `duplication_copies` 7 -> 5 and `max_class_loc` 7873 -> 7862 are re-recorded in two commits (each reason in its commit message). `_widen_to_fit` rose from CC 15 to 17 on its first cut, over the `functions_cc_over_15` budget. It was paid by folding the bound-moved test into `_on_grid` and the NaN/inf test into `math.isfinite`, for CC 14. `tests/ci_budgets.json`: `archscore.dead_members` 1 -> 0 and `archscore.public_unused` 1 -> 0, lowered by hand at the values `vector.measure` derives at 96d8a05b2159 (the 814f944f18 precedent; `--record` needs CI's metrics artifacts), because `tools/policy/field_coverage.mjs` read both census rows UNGATED in `prepr.sh` until they were; it now prints `FIELD COVERAGE ok`. Architecture score: `python3 tools/audit/archscore/score.py --diff a8efe1d1c2a8` printed `Architecture score: dS +3.6150 IMPROVES` (`duplication_copies` 16 -> 14, `dead_members` 1 -> 0, `public_unused` 1 -> 0, `coord_footprint` 2528 -> 2523).
 
-<!-- figure-block: scope-line mb=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b head=2a50c826b4c54d82f703e812b01e6e37b35f33c6 -->
+<!-- figure-block: scope-line mb=4ebd430fbff9a7b19582ca530a817f34abbafa16 head=15566c4f6c2cf2f8ef0899778559a3e5f3ab301b -->
 ~~~text
 MODE: SCOPED -- 31 script(s) run, 2 scoped out.
 ~~~
