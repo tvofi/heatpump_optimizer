@@ -1163,7 +1163,7 @@ def writer_lease(state_dir, wait_s: float, sleep=None, clock=None):
     import time
     sleep, clock = sleep or time.sleep, clock or time.monotonic
     Path(state_dir).mkdir(parents=True, exist_ok=True)
-    fd = os.open(Path(state_dir) / WRITER_LEASE, os.O_RDWR | os.O_CREAT, 0o644)
+    fd = os.open(Path(state_dir) / WRITER_LEASE, os.O_RDWR | os.O_CREAT, 0o600)
     end = clock() + wait_s
     while True:
         try:
@@ -1683,7 +1683,13 @@ def _self_test() -> int:
               "cannot read" in why and "is not a file" not in why, why)
     import os
     with tempfile.TemporaryDirectory() as st:
-        held = writer_lease(st, 0)
+        old_umask = os.umask(0o022)
+        try:
+            held = writer_lease(st, 0)
+        finally:
+            os.umask(old_umask)
+        mode = os.stat(Path(st) / WRITER_LEASE).st_mode & 0o777
+        check("writer_lease: the lease file is owner-only under umask 022", mode == 0o600, oct(mode))
         other = writer_lease(st, 0)
         waits = []
         late = writer_lease(st, 3, sleep=waits.append, clock=lambda t=iter(range(0, 99)): next(t))
