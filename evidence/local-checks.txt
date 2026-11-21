@@ -1,0 +1,39 @@
+== merge-base
+e698fc8ac374a1d72c230b55d938d75b03b7de67
+e698fc8ac374a1d72c230b55d938d75b03b7de67
+== commits on PR
+5c8ad0805b99d3be04b221e92cd40ad2c6506d66 record: the delivery row for #3830
+0454f55c08320ba518b057e140e2814746cbb2bb Merge remote-tracking branch 'origin/main' into fix/r11-hotfix-envmatrix-timeout-pr
+1ec3ebde083a884035392b11bd095eb14a54030d env-matrix: cap re-derived from its measured duration (26 min); the 10-minute cap cancelled 11 of 29 main runs after the round-11 evidence doubled the grepped tree
+== diffstat
+ .github/workflows/governance.yml | 7 ++++++-
+ dev/programme/delivery/3830.md   | 1 +
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+== VERSION/manifest/notes
+(empty = untouched)
+== merge-tree
+9527b4d08989902049ee09455da251a293227add
+rc=0
+== role diff
+0
+== tree bytes
+6e100ef698 133197618
+8f39313a44 140675332
+54cb721164 140333720
+8fa10e00ce 265550206
+42809bec34 279136158
+e698fc8ac374a1d72c230b55d938d75b03b7de67 297568050
+== round11 bytes at 42809bec34
+136795536
+40639
+== first-parent log
+83b9012d61 2026-11-18T07:47:47+01:00 Merge pull request #3688 from tvofi/fix/r11-pre-machinery-limiter-p2
+00d31aec24 2026-11-16T23:59:40+01:00 Merge pull request #3668 from tvofi/fix/r10-nudge-retire-pr
+31117b1029 2026-11-15T22:38:56+01:00 Merge pull request #3631 from tvofi/fix/r11-pre-owner-criteria-p1
+6790cd3fd8 2026-11-14T18:00:16+01:00 Merge pull request #3514 from tvofi/fix/r10-outside-contributor-cycle
+== 8fa10e00ce
+8fa10e00cee050b327d9cb43d1834cf3aff6f544 2026-11-19T04:20:07+01:00 Merge pull request #3723 from tvofi/handoff/audit-r11-register
+== states.json size
+100644 blob 75d1d9ebacae4a65b1d13999e0b0afc358378ee4 35419796	dev/audit/rounds/round11/D12/s1/out/dump/states.json
+== arithmetic
+25.308 26 759.24 1.4787234042553192 1.1695906432748537
