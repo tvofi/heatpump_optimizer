@@ -1,0 +1,11 @@
+RESULT unresolved_en=0 count
+RESULT unresolved_sv=1 count
+RESULT unresolved_de=0 count
+RESULT stale_title_literal_tokens=1 count
+RESULT thread_factor=1.000
+RESULT load1=2.77
+RESULT swapins=0
+RESULT cpu_ms=18 ms
+  FAIL  every card language is key-for-key with en and keeps en's placeholders
+  FAIL  and a planted missing key, dropped or unlisted extra placeholder, or extra key in any language fails it (null controls)
+2 CARD CHECK(S) FAILED

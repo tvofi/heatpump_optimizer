@@ -1,0 +1,1 @@
+carry_audit check --body <empty> --comments [verdict]: CARRY-AUDIT: 0 finding item(s), rc 0; the PR body's own audit is the packet's: 1 routed, 0 unrouted
