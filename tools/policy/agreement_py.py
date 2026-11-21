@@ -447,6 +447,31 @@ def raise_justification():
     return {b: refused(b) for b in dict.fromkeys(bodies)}
 
 
+def figure_block():
+    """The lines of a pull-request body refused as a stored figure block, read by
+    tools/pr/figure_block.py's `verify_text` (what pr-contract's verify step and
+    prepr.sh run) for agreement.mjs to compare with policy_lint.mjs's
+    `figureBlockProblems` (the body contract). The corpus: the pr-body
+    fixtures, each stored shape, and markers under the leading whitespace and
+    line breaks where Python's and JS's line reads could part."""
+    sys.path.insert(0, str(ROOT / "tools/pr"))
+    import figure_block as fb
+    fix = ROOT / "tools/policy/fixtures/policy-rot/prepr"
+    bodies = [f.read_text() for f in sorted(fix.glob("*.md"))]
+    sha = "a" * 40
+    block = f"<!-- figure-block: scope-line mb={sha} head={sha} -->\n~~~text\nMODE: SCOPED\n~~~\n<!-- /figure-block -->\n"
+    empty = "<!-- figure-block: scope-line -->\n<!-- /figure-block -->\n"
+    bodies += ["## Figures\n\n" + block, "## Figures\n\n" + empty, "## Notes\n" + block + "x\n" + block,
+               "<!-- figure-block: Scope -->\n", "<!-- figure-block: scope-line -->\nnever closed\n",
+               "<!-- /figure-block -->\n", empty + "<!-- /figure-block -->\n", " " + empty, "\t" + block,
+               "x <!-- figure-block: scope-line -->\n", "`<!-- figure-block: scope-line -->`\n",
+               block.replace("\n", "\r\n"), "a\r" + empty, "a\u2028" + empty, "a\x0b" + empty, "a\x0c" + empty, "a\x85" + empty, ""]
+
+    def refused(body):
+        return [int(p.split(":", 1)[0].removeprefix("line ")) for p in fb.verify_text(body)]
+    return {b: refused(b) for b in dict.fromkeys(bodies)}
+
+
 def main(argv, root=ROOT, reader=Path(__file__).resolve()):
     if argv == ["--self-test"]:
         return self_test()
@@ -459,7 +484,7 @@ def main(argv, root=ROOT, reader=Path(__file__).resolve()):
         return 1  # the precondition: an answer from unrestored readers is no verdict
     data = {"merge": merge(), "structure": structure_rows(), "governance_jobs": governance_jobs(),
             "budget_raise": budget_raise(), "attribution": attribution(),
-            "raise_justification": raise_justification()}
+            "raise_justification": raise_justification(), "figure_block": figure_block()}
     if argv[:1] == ["--out"] and len(argv) == 2:
         Path(argv[1]).write_text(json.dumps(data))
         return 0

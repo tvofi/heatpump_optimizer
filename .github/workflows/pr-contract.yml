@@ -384,16 +384,36 @@ jobs:
         if: always()
         run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
 
-      # Generated figure blocks are re-rendered from an instrument the BASE's
-      # tools/pr/figure_registry.json names, run by the base's restored copy of
-      # the program (tools/pr/*.py) over the head's tree, read-only. A body with
-      # no block passes.
-      - name: Every figure block is what its registered instrument renders
+      # A body stores no figure block: a rendered block names its head, and every
+      # head move no seat made (the merge-main bot, a recarry) left it false. The
+      # base's restored copy of the program (tools/pr/*.py) refuses a body that
+      # carries one, reading the body alone.
+      - name: The body stores no figure block
+        if: always()
+        run: python3 -I tools/pr/figure_block.py verify /tmp/pr-body.md
+
+      # The registered figures are rendered here instead, at the head this run
+      # grades: each instrument the BASE's tools/pr/figure_registry.json names,
+      # run by the base's restored program over the head's tree, read-only, into
+      # the job summary. A render that fails is printed there with its exit
+      # status and fails nothing: this step states figures, it grades none.
+      - name: Render the registered figures at this head
         if: always()
         env:
           PR_HEAD: ${{ steps.pr.outputs.head }}
           PR_BASE: ${{ steps.pr.outputs.base }}
-        run: python3 -I tools/pr/figure_block.py verify /tmp/pr-body.md --base "$PR_BASE" --head "$PR_HEAD"
+        run: |
+          set -uo pipefail
+          {
+            echo "### Registered figures at \`${PR_HEAD}\`"
+            echo
+            for name in $(git show "$PR_BASE:tools/pr/figure_registry.json" | jq -r '.instruments | keys[]'); do
+              rc=0; out=$(python3 -I tools/pr/figure_block.py render "$name" --base "$PR_BASE" --head "$PR_HEAD" 2>&1) || rc=$?
+              echo "**${name}**$([ "$rc" = 0 ] || echo " (not rendered: exit status $rc)")"
+              echo
+              printf '%s\n\n' "$out"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # preflight.sh refuses a closing keyword whose number is not in the
       # intended list it is given. prepr.sh's step 7 derives it with this
