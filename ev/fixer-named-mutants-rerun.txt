@@ -1,0 +1,2 @@
+F1_absorbed_false: rc=1 KILLED :: selftest_scope self-test: 171 checks, 1 failed :: ["  FAIL the bot's step: drift over a run with an unrecorded read is a note, not a red: it passes with ABSORB OWED, keeps the absorbed table for the commit and in the job summary, and leaves the checkout's table as it was"]
+F2_absorbed_added_only: rc=1 KILLED :: selftest_scope self-test: 171 checks, 1 failed :: ["  FAIL the bot's step: drift stays red on an UNMEASURED step beside an absorbable read: the absorbed table is kept, the refusal it still makes is named"]

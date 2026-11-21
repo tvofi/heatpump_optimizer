@@ -1,0 +1,2 @@
+SELFTEST-ABSORB OWED 738 read(s), 7 step(s) at c037e9bfe152 from run(s) 44922703115; table /tmp/tmp.ncl5hrIRwH/work-defect/selftest_closures.json
+rc=1

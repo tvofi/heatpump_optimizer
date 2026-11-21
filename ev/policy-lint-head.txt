@@ -1,0 +1,10 @@
+
+tools/audit/briefs/fix-review.md
+  ERROR   [budgets] tools/audit/briefs/fix-review.md: about 2962 tokens across its lines exceeds its cap of 2775 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+
+KNOWN-BAD: 5 of 5 recorded defect(s) still present, in 6 recorded occurrence(s)
+
+TOTAL: 1 error(s) across 58 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=1
