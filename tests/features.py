@@ -90571,8 +90571,8 @@ R.check(
 _wn_bopt = _WnOpt(ThermalModel(ThermalParameters()), _WnCfg(
     horizon_hours=6, time_step_minutes=15, target_temp=21.0, min_temp=19.0, max_temp=23.0))
 _wn_bh = np.array([(12.0 + 0.25 * i) % 24.0 for i in range(24)])
-_, _wn_b0, _, (_wn_cf0, _) = _wn_bopt._build_comfort_bounds(_wn_bh, 24, None, None)
-_, _wn_bm, _, (_wn_cfm, _wn_mfm) = _wn_bopt._build_comfort_bounds(
+_, _wn_b0, _, (_wn_cf0, _, _) = _wn_bopt._build_comfort_bounds(_wn_bh, 24, None, None)
+_, _wn_bm, _, (_wn_cfm, _wn_mfm, _) = _wn_bopt._build_comfort_bounds(
     _wn_bh, 24, np.full(24, 0.4), np.full(24, 20.0))
 R.check(
     "R10-WHY-NOW-WIDGET: the drivers' comfort floor is the margined floor, below the mold floor's raise",
