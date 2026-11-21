@@ -3,3 +3,4 @@
 1795276128 HB alive
 1795276240 CKPT packet rendered, PR body read snapshot fdc02508ea6a
 1795276311 CKPT M9/M10 killed; tracker mutants running snapshot dff7f3bfb12b
+1795276621 CKPT finder harness both ends; mutants A1 A2 G M9 M10 killed snapshot b408d069d4f6
