@@ -6002,9 +6002,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _dhw_effective_windows(self, days: int = 0) -> list[Any]:
         """Demand windows the optimizer plans against, today or ``days`` on (``windows_in_force``)."""
-        ctx, now = getattr(self, "_ctx", self), dt_util.now() + timedelta(days=days)
+        ctx, now = getattr(self, "_ctx", self), dt_util.now()
         holidays = away_mode.holiday_dates(self.hass, ctx._config.holiday_calendar_entity, now)
-        return windows_in_force(ctx._thermal_params, self._optimization_result, now, holidays)
+        return windows_in_force(ctx._thermal_params, self._optimization_result, now, holidays, days)
 
     def _dhw_in_demand_window(self) -> bool:
         """Whether hot water is required right now."""
@@ -10639,7 +10639,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Service/button entry for #52; publishes on the insight view.
 
         The last SETTLED interval, from a snapshot on the loop: the worker
-        gets copies, never this object (#1529).
+        gets copies, never this object (#1529). The caller asks for the
+        refresh that publishes it: the press off its action (D10-s1-02).
         """
         report: DiagnosisReport | None = await _await_process(
             self.hass,
@@ -10652,7 +10653,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "No settled interval to diagnose yet — one full "
                 "optimization interval must pass first"
             )
-        await self.async_request_refresh()
         return report
 
     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:

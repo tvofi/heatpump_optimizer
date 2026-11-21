@@ -530,6 +530,10 @@ def run(R, _parent: int) -> None:
                 raise self.outcome
             return self.outcome
 
+        async def async_request_refresh(self):
+            """The service publishes each diagnosis it ran (D10-s1-02)."""
+            return None
+
 
     def _wt_diagnose(outcome):
         saved = _wt_svc._manual_targets

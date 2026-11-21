@@ -4810,9 +4810,9 @@ async def widening_refusals():
     )
 
     # D14-s1-01: a slider's grid starts at its min. A min widened to a stored
-    # 14.7 on a 0.5 grid put the field's default 21.0 and every nominal value
-    # off the reachable set; the widened bound moves outward onto the grid,
-    # and a step "any" field (no grid) widens to exactly the value.
+    # 14.7 on a 0.5 grid put the field's default 21.0 off the reachable set.
+    # The widened bound now moves outward onto the grid. A step "any" field
+    # has no grid and widens to exactly the value.
     def _on_grid(cfg, value):
         steps = (value - cfg["min"]) / cfg["step"]
         return abs(steps - round(steps)) < 1e-9

@@ -250,6 +250,7 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
                 translation_key="diagnose_interval_failed",
                 translation_placeholders={"entry_ids": self._entry.entry_id, "error": str(err)},
             ) from err
+        off_the_action(self, self.coordinator.async_request_refresh())
 
 
 class DebugFinalizeButton(_OptimizerButtonBase):

@@ -1941,10 +1941,10 @@ ENTITY_FAMILY_OVERRIDES: Final[dict[str, str]] = {
     # The accuracy readout sorts with its prediction sensor (#1668), not
     # among the diagnose buttons' other neighbours.
     "diagnose_last_interval": "prediction",
-    # The four lifetime meters left the Cost family: their names lead with
-    # the meters' own token so the name sort keeps them in one run (#1668),
-    # and so do their suggested object ids (entity._pin_identity, D8-s2-02);
-    # translation keys and unique ids are untouched.
+    # The four lifetime meters left the Cost family. Their names lead with
+    # the meters' own token, so the name sort keeps them in one run (#1668).
+    # Their suggested object ids lead with it too (entity._pin_identity,
+    # D8-s2-02). Translation keys and unique ids are untouched.
     "cost_total_heating": "lifetime",
     "space_heating_cost": "lifetime",
     "space_heating_energy": "lifetime",

@@ -304,22 +304,22 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
         is one) would derive *translated* object ids from the translation-keyed
         name, breaking the dashboard card's id-suffix contract on fresh
         installs. The object id is ``heat_pump_optimizer_`` plus the
-        translation key, led by its declared family where
-        ``const.ENTITY_FAMILY_OVERRIDES`` homes the key outside its own lead
-        token, so the id sort keeps a family in one run as the name sort does
-        (D8-s2-02); ``object_id`` replaces it only for the climate entity,
-        whose id predates the scheme. New installs only: the registry keeps an
-        existing entity's id, keyed on ``unique_id``.
+        translation key. Where ``const.ENTITY_FAMILY_OVERRIDES`` homes a key
+        outside its own lead token, the declared family leads, so the id sort
+        keeps the family in one run as the name sort does (D8-s2-02). New
+        installs only: the registry keeps an existing entity's id by
+        ``unique_id``. ``object_id`` replaces the rule only for the climate
+        entity, whose id predates the scheme.
         """
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         if translation_key is not None:
             self._attr_translation_key = translation_key
         if object_id is None:
-            tkey = self._attr_translation_key
-            family = ENTITY_FAMILY_OVERRIDES.get(tkey)
-            lead = f"{family}_" if family and not tkey.startswith(f"{family}_") else ""
-            object_id = f"heat_pump_optimizer_{lead}{tkey}"
+            translation_key = self._attr_translation_key or ""
+            family = ENTITY_FAMILY_OVERRIDES.get(translation_key)
+            lead = f"{family}_" if family and not translation_key.startswith(f"{family}_") else ""
+            object_id = f"heat_pump_optimizer_{lead}{translation_key}"
         self.entity_id = f"{self._platform_domain}.{object_id}"
 
     def _data(self) -> Payload:

@@ -23,7 +23,7 @@ transitions, and only for entities the user explicitly configured.
 from __future__ import annotations
 
 from collections.abc import Collection, Sequence
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 
 from .const import SPACE_PUMP_FLOOR_MARGIN_C
@@ -45,7 +45,7 @@ def vvc_should_run_at(
         hour,
         windows_in_force(params, None, now, holidays),
         lead_minutes,
-        windows_in_force(params, None, now + timedelta(days=1), holidays),
+        windows_in_force(params, None, now, holidays, days=1),
     )
 
 

@@ -1302,6 +1302,7 @@ async def handle_diagnose_interval(hass: HomeAssistant, call: ServiceCall) -> di
         # live coordinator state off the loop (#1529).
         try:
             reports[entry_id] = await coord.async_diagnose_interval()
+            await coord.async_request_refresh()
         except ProcessWorkerUnavailable as err:
             # A worker that timed out or could not run the job: the service
             # call failed, so it says so in the shape the other services use,

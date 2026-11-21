@@ -20394,10 +20394,10 @@ R.check(
     f"{_d17_sched.windows_in_force(_d17_params, None, _D17_SAT, {_D17_SAT.date()})!r}",
 )
 _d17_params.dhw_holiday_windows = None
-# The learner reads the holiday tier through the coordinator's calendar
-# (its ``holidays`` callback): on a holiday whose windows cover Saturday
-# 07:00, the draw falls in a window and takes the flat label the planner keys
-# its stats by; the same instant on an ordinary Saturday is out of window.
+# The learner reads the holiday tier through the coordinator's calendar,
+# its ``holidays`` callback. On a holiday whose windows cover Saturday 07:00,
+# the draw falls in a window. It takes the flat label the planner keys its
+# stats by. The same instant on an ordinary Saturday is out of window.
 _d17_params.dhw_holiday_windows = [(6.5, 7.5)]
 _d17_hol = {}
 for _d17_label, _d17_days in (("holiday", lambda now: {now.date()}), ("ordinary", lambda now: ())):
@@ -41955,6 +41955,9 @@ _ET_KEYS = {
     "manual_plan_invalid_expires_at": {"expires_at"},
     "manual_plan_invalid_slots": {"error"},
     "run_optimization_no_prices": {"entry_ids"},
+    # D10-s1-02: the system-identification press's two refusals.
+    "system_identification_disabled": {"entry_ids"},
+    "system_identification_not_armed": {"entry_ids", "reason"},
     "run_optimization_solve_failed": {"entry_ids"},
     "simulate_plan_no_plan": {"entry_ids"},
     "simulate_plan_no_prices": {"entry_ids"},
@@ -47721,16 +47724,23 @@ R.check(
     and _r11m_feb_rows == _r11m_jan_rows and not _r11m_jan_rows[0]["estimated"],
     repr(_r11m_feb_rows),
 )
-_r11m_sensor = _r11m_NS(_rows=lambda: _r11m_feb_rows)
+def _r11m_stand_in(rows):
+    """The sensor's two row readers on a stand-in: ``_rows`` and the one open saving."""
+    ns = _r11m_NS(_rows=rows)
+    ns._open_saving = lambda: _r11m_Sensor._open_saving(ns)
+    return ns
+
+
+_r11m_sensor = _r11m_stand_in(lambda: _r11m_feb_rows)
 _r11m_two_day = _SavLedger.from_dict(_r11m_two.as_dict())
 for _h in range(24):
     _r11m_two_day.observe_spot_and_settle_savings(
         datetime(2026, 2, 1, 0, 15) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
-_r11m_ready = _r11m_NS(_rows=lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
+_r11m_ready = _r11m_stand_in(lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
 R.check(
     "R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows",
     _r11m_Sensor._waiting_for.fget(_r11m_sensor) == "open_month_coverage"
-    and _r11m_Sensor._waiting_for.fget(_r11m_NS(_rows=lambda: [])) == "settled_savings_month"
+    and _r11m_Sensor._waiting_for.fget(_r11m_stand_in(lambda: [])) == "settled_savings_month"
     and _r11m_Sensor._waiting_for.fget(_r11m_ready) is None,
     f"{_r11m_Sensor._waiting_for.fget(_r11m_sensor)!r} / {_r11m_Sensor._waiting_for.fget(_r11m_ready)!r}",
 )
@@ -55630,15 +55640,35 @@ R.check(
     f"{_t4_arm_off._sysid.phase!r} -- both directions, because the push is "
     "invisible whenever the constructed value already agrees",
 )
+# The arm is a synchronous decision since D10-s1-02, so the press, not the
+# arm, schedules the refresh that publishes it: armed or refused alike.
+from heatpump_optimizer import button as _t4_button  # noqa: E402
+from unittest import mock as _t4_mock  # noqa: E402
+
+_t4_scheduled = []
+
+
+def _t4_off_action(entity, work):
+    _t4_scheduled.append(entity.coordinator)
+    work.close()
+
+
+_t4_press = {}
+for _t4_label, _t4_on in (("armed", True), ("refused", False)):
+    _t4_c = _t4_coord(system_identification_enabled=_t4_on)
+    _t4_c._thermal_params.slab_heat_transfer *= 100.0
+    _t4_ent = _t4_button.SystemIdentificationButton(_t4_c, _t4_c.entry)
+    with _t4_mock.patch.object(_t4_button, "off_the_action", _t4_off_action):
+        try:
+            _asyncio.run(_t4_ent.async_press())
+            _t4_press[_t4_label] = (None, _t4_scheduled.count(_t4_c))
+        except Exception as err:  # noqa: BLE001
+            _t4_press[_t4_label] = (type(err).__name__, _t4_scheduled.count(_t4_c))
 R.check(
-    "a refused arm still refreshes, which is what publishes the refusal",
-    _t4_arm_on._t4_refreshes == 1
-    and _t4_arm_off._t4_refreshes == 1
-    and _t4_arm_on._t4_escaped is None
-    and _t4_arm_off._t4_escaped is None,
-    f"armed -> {_t4_arm_on._t4_refreshes} refresh, refused -> "
-    f"{_t4_arm_off._t4_refreshes} -- returning early on a refusal leaves the "
-    "user's own button reporting nothing at all",
+    "a refused press still schedules the refresh, which is what publishes the refusal",
+    _t4_press == {"armed": (None, 1), "refused": ("ServiceValidationError", 1)},
+    f"{_t4_press} -- returning early on a refusal leaves the user's own "
+    "button reporting nothing at all",
 )
 
 _t4_reset = _t4_coord(comfort_learning_enabled=True)

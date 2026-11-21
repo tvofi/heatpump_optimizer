@@ -847,7 +847,8 @@ def _on_grid(
     """
     if value == declared or base is None or not isinstance(step, (int, float)) or step <= 0:
         return value
-    return round(base + rounding(round((value - base) / step, 9)) * step, 9)
+    low, grain = float(base), float(step)
+    return round(low + rounding(round((value - low) / grain, 9)) * grain, 9)
 
 
 def _fit_stored_values(schema: Any) -> tuple[Any, list[str]]:

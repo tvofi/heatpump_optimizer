@@ -56,7 +56,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Collection, Mapping
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Final
 
 from . import const
@@ -423,6 +423,7 @@ def windows_in_force(
     plan: Any,
     when: datetime,
     holiday_dates: Collection[date] = (),
+    days: int = 0,
 ) -> list[Window]:
     """The hot-water demand windows in force at ``when`` (D17-s3-51).
 
@@ -432,7 +433,8 @@ def windows_in_force(
     against the flat every-day union instead reads a weekend window open on a
     weekday morning. The chain ends in the planned windows ``plan`` (the last
     optimization result, or ``None``) published, learned ones included, where
-    they parse, else ``params.dhw_demand_windows``.
+    they parse, else ``params.dhw_demand_windows``. ``days`` moves to a later
+    calendar day of ``when``'s date: date arithmetic, never wall-clock.
     """
     info = getattr(plan, "predictive_info", None) or {}
     fallback = list(params.dhw_demand_windows)
@@ -442,12 +444,13 @@ def windows_in_force(
         except DHWWindowError:
             pass
     # The day-aware fields read as the planner reads them (None: no tier).
+    day = when.date() + timedelta(days=days)
     return windows_for_day(
         getattr(params, "dhw_weekly_windows", None),
-        when.weekday(),
+        day.weekday(),
         fallback,
         holiday_windows=getattr(params, "dhw_holiday_windows", None),
-        holiday=when.date() in holiday_dates,
+        holiday=day in holiday_dates,
         day_overrides=getattr(params, "dhw_day_windows", None),
     )
 

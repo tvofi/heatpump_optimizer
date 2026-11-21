@@ -13093,11 +13093,11 @@ for _sav_label, _sav_rows in (
         f"waiting_for {_sav_w.extra_state_attributes.get('waiting_for')!r}",
     )
 
-# The census the fact needs (sweep-P2 F18): every waits-for-evidence sensor
-# the platform builds is available exactly when it has a value, on the empty
-# payload and on the rich one -- the mixin's contract that "not measured yet"
-# is unavailable, never unknown. It asserts its reach: every subclass the
-# module defines is built here.
+# The census the fact needs (sweep-P2 F18). Every waits-for-evidence sensor
+# the platform builds is available exactly when it has a value, on the empty,
+# the default and the rich payload. That is the mixin's contract: "not
+# measured yet" is unavailable, never unknown. The census asserts its reach:
+# every subclass the module defines is built here.
 _wfe_classes = {
     _c for _c in vars(sensor).values()
     if isinstance(_c, type) and issubclass(_c, sensor._WaitsForEvidenceMixin)
