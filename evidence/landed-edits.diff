@@ -1,0 +1,117 @@
+diff --git a/dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py b/dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py
+index f1e22a3d6a..0e9a69378d 100644
+--- a/dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py
++++ b/dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py
+@@ -320,7 +320,7 @@ def main():
+         d = Path(tempfile.mkdtemp()) / PKG
+         d.mkdir(parents=True)
+         (d / "fixture.py").write_text(src)
+-        root = d.parents[1]
++        root = d.parent.parent
+     else:
+         root = Path(a.root)
+     if a.plant:
+diff --git a/dev/audit/rounds/round11/sweep/P3/D14/sweep-P3/enumerate.py b/dev/audit/rounds/round11/sweep/P3/D14/sweep-P3/enumerate.py
+index 63916db690..0092280063 100644
+--- a/dev/audit/rounds/round11/sweep/P3/D14/sweep-P3/enumerate.py
++++ b/dev/audit/rounds/round11/sweep/P3/D14/sweep-P3/enumerate.py
+@@ -33,7 +33,20 @@ import tempfile
+ from pathlib import Path
+ 
+ HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parents[5]
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(HERE)
+ PKG = ROOT / "custom_components" / "heatpump_optimizer"
+ 
+ POWER_ATTR = "min_electrical_power"
+diff --git a/dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/enumerate.py b/dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/enumerate.py
+index fe3aab73ae..6381a976bf 100644
+--- a/dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/enumerate.py
++++ b/dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/enumerate.py
+@@ -41,7 +41,20 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+     os.environ.setdefault(_v, "1")
+ 
+ HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parents[5]
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(HERE)
+ PKG = ROOT / "custom_components" / "heatpump_optimizer"
+ sys.path.insert(0, str(ROOT / "dev/audit/rounds/round11/D0/s3"))
+ sys.path.insert(0, str(ROOT / "dev/audit/rounds/round11/D0/s2"))
+diff --git a/dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/probe_offstart_sites.py b/dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/probe_offstart_sites.py
+index 90cbb98bd5..bd9bfb3add 100644
+--- a/dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/probe_offstart_sites.py
++++ b/dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/probe_offstart_sites.py
+@@ -24,7 +24,20 @@ from pathlib import Path
+ 
+ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+     os.environ.setdefault(_v, "1")
+-ROOT = Path(__file__).resolve().parents[6]
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(__file__)
+ sys.path.insert(0, str(ROOT / "dev/audit/rounds/round11/D0/s3"))
+ import numpy as np  # noqa: E402
+ import d0s3_lib as L  # noqa: E402
+diff --git a/dev/audit/rounds/round11/sweep/P5/D14/sweep-P5/enumerate.py b/dev/audit/rounds/round11/sweep/P5/D14/sweep-P5/enumerate.py
+index 1c039193b2..883d20982c 100644
+--- a/dev/audit/rounds/round11/sweep/P5/D14/sweep-P5/enumerate.py
++++ b/dev/audit/rounds/round11/sweep/P5/D14/sweep-P5/enumerate.py
+@@ -41,7 +41,20 @@ from pathlib import Path
+ 
+ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+     os.environ.setdefault(_v, "1")
+-ROOT = Path(__file__).resolve().parents[6]
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(__file__)
+ sys.path[:0] = [str(ROOT / "tests"), str(ROOT / "dev/audit/rounds/round11/D7/s2")]
+ import numpy as np  # noqa: E402
+ import m2_sysid_plant as M  # noqa: E402

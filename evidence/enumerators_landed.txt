@@ -1,0 +1,18 @@
+== P3/D14/sweep-P3/enumerate.py
+P   thermal_model.py:2767 refill_power_kwh  power=via power_for_heat_per_cop_kw lift=-
+P   thermal_model.py:2782 added_power_for_heat_per_cop_kw  power=via power_for_heat_per_cop_kw lift=-
+RESULT tree M=1 L=1 P=55 seams_total=57
+positive_control D16-s2-04 pump_arbiter._flow_target in M: True
+rc=0
+== P5/D14/sweep-P5/enumerate.py
+P5  house.gains          free heat +0.8 kW (D7-s2-02)             cells=3 admitted=2 biased_admitted=2 misses=2 worst=0.2111
+ok  house.slab_mass      true slab mass x2                        cells=3 admitted=1 biased_admitted=0 misses=0 worst=0.0000
+ok  house.slab_transfer  true slab transfer x2                    cells=3 admitted=1 biased_admitted=0 misses=0 worst=0.0000
+RESULT tree seams=16 probed=9 flagged=3 biased_admitted_total=3 misses_total=8 cpu=25s
+rc=0
+== P1/D14/sweep-P1/p1_seams.py
+RESULT judged_sites_listed=0 of 7
+RESULT judged_sites_flagged=0 of 7 ()
+RESULT seams_total=0
+RESULT seams_flagged=0
+rc=0
