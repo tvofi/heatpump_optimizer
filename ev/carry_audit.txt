@@ -1,0 +1,2 @@
+NOTE review 0 item 2adab1ea: dismissed:read-only API collectors over GitHub's job record for a CI-constant hotfix; the body routes the cap's re-derivation from uncensored durations to proposal P-R11-94 at round-end triage
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
