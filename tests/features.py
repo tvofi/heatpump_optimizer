@@ -90419,7 +90419,7 @@ def _wn_h(n, dt=1.0, outdoor=None, sun=None, floor=20.0, ceiling=22.0, drops=Non
         solar_gains=np.zeros(n) if sun is None else np.asarray(sun, float),
         temp_min_bounds=np.full(n, floor), temp_max_bounds=np.full(n, ceiling),
         comfort_floors=None, mold_floors=None,
-        away_floor_drops=None if drops is None else np.full(n, drops))
+        away_floor_drops=None if drops is None else np.full(n, drops), room_lifts=None)
 
 
 # Window 0..8 h: four steps at 0 C, four at -4 C -> mean -2 C, a 2 C swing
