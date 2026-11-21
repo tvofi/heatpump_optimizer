@@ -95,6 +95,8 @@ standing-seat liveness step keep the seats alive.
 - [`ci_probe.py`](instruments/ci_probe.py.md) — the writes a CI-layout probe needs
 - [`ci_priority.py`](instruments/ci_priority.py.md) — the one CI-priority tier and rank rule over the roster's mapping
 - [`ci_pause.py`](instruments/ci_pause.py.md) — the merge train's pause and resume of the worst-ranked PR's CI while the head's job queues
+- [`ci_rerun.py`](instruments/ci_rerun.py.md) — reruns only the failed required jobs of a PR head's newest runs, capped at attempt 6
+- [`ci_supersede.sh`](instruments/ci_supersede.sh.md) — the cancel-sweep of superseded PR runs, once or on a loop with a STOP file
 - [`closeout.py`](instruments/closeout.py.md) — the round's final act: archive, prune and clean up, a dry plan by default and refused while any other group is open
 - [`prune_refs.py`](instruments/prune_refs.py.md) — reconciles the remote branch refs down to main plus a few development branches at programme closure, archive-as-tags first
 - [`pulse.py`](instruments/pulse.py.md) — says whether the programme is still being driven

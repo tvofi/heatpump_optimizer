@@ -1520,7 +1520,7 @@ function instrument() {
 // when the branch's diff from its merge base with HPO_BROWSER_BASE (default
 // origin/main) touches the surface. Unset or any other value runs it, as does
 // a push (GITHUB_EVENT_NAME=push). So main is always measured in full, and a
-// closure that misses a file goes red on main within one merge: the scoped
+// closure that misses a file goes red on main within one burst: the scoped
 // gate's own bargain (CLAUDE.md rule 1). Any git failure, and a closure file
 // without plan_view.py's entry, runs it. The mode line always prints, and a
 // skip is reported as a skip in the summary, never as a pass.
