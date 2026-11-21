@@ -53,9 +53,16 @@ AG="python3 -I tools/policy/agreement_py.py --out $W/ag.json && node tools/polic
 mut ag-js-reader-skips-malformed $PL "    if (line.startsWith('<!-- figure-block')) {" "    if (line.startsWith('<!-- figure-block: ')) {" "$AG" 'divergent=[1-9]|DIVERGENT'
 mut ag-py-reader-skips-close $FB '            if not opened:' '            if False:' "$AG" 'divergent=[1-9]|DIVERGENT'
 BL=tools/policy/brief_lint.mjs; BLT="node tools/policy/brief_lint.mjs"
-mut bl-ambiguous-is-moved $BL '    if (at.length === 1) {' '    if (at.length >= 1) {' "$BLT" 'VACUOUS'
-mut bl-moved-stays-error $BL "      return { ok: true, warn: true, movedTo: to," "      return { ok: false, movedTo: to," "$BLT" 'VACUOUS'
-mut bl-range-loses-length $BL 'end: end ? Math.min(lines.length, at[0] + (end - start)) : undefined' 'end: end ? at[0] : undefined' "$BLT" 'VACUOUS'
+mut bl-ambiguous-is-moved $BL '    if (at.length === 1) return moved(c, at[0])' '    if (at.length >= 1) return moved(c, at[0])' "$BLT" 'VACUOUS'
+mut bl-moved-stays-error $BL "    return { ok: true, warn: true, movedTo: to," "    return { ok: false, movedTo: to," "$BLT" 'VACUOUS'
+mut bl-range-loses-length $BL 'end: end ? Math.min(lineCount, line + (end - start)) : undefined' 'end: end ? line : undefined' "$BLT" 'VACUOUS'
+# A quoted phrase alone decides a pin whose clause quotes one (the fix review of e2255027, the gone-phrase probe).
+mut bl-gone-quote-yields-to-symbol $BL '  if (quoted.length) {' '  if (false) {' "$BLT" 'VACUOUS'
+mut bl-lost-quote-not-refused $BL '    if (lost.length) return' '    if (false) return' "$BLT" 'VACUOUS'
+mut bl-quotes-apart-not-refused $BL '    if (at.length > 1) return { ok: false, reason: `the quoted anchors' '    if (false) return { ok: false, reason: `the quoted anchors' "$BLT" 'VACUOUS'
+# Class 2b's re-pinned range ends inside the file, as class 2's does; the file's trailing newline is no line.
+mut bl-anchored-range-unclamped $BL "text: \`:\${r.movedTo.start}\${end ? sep + r.movedTo.end : ''}\` })" "text: \`:\${r.movedTo.start}\${end ? sep + (r.movedTo.start + end - start) : ''}\` })" "$BLT" 'VACUOUS'
+mut bl-count-includes-phantom-line $BL "  const lineCount = lines.length - (lines[lines.length - 1] === '' ? 1 : 0)" '  const lineCount = lines.length' "$BLT" 'VACUOUS'
 mut bl-twice-not-refused $BL "    if (out.split(was).length !== 2) {" "    if (out.split(was).length < 2) {" "$BLT" 'VACUOUS'
 mut bl-repin-collects-nothing $BL "    if (r.movedTo && repins) {
       const sep = m[0].slice(token.length" "    if (false) {

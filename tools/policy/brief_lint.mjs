@@ -435,7 +435,9 @@ function candidateLines(lines, candidate) {
 export function checkPathLine(relPath, start, end, context, excludeStems, exact) {
   const lines = fileLines(relPath)
   if (!lines) return { ok: false, reason: `${relPath} could not be read` }
-  if (start > lines.length) return { ok: false, reason: `line ${start} is past end of file (${lines.length} lines)` }
+  // A file ending in a newline splits into one empty element past its last line.
+  const lineCount = lines.length - (lines[lines.length - 1] === '' ? 1 : 0)
+  if (start > lineCount) return { ok: false, reason: `line ${start} is past end of file (${lineCount} lines)` }
   const isJs = /\.(mjs|js)$/.test(relPath)
   const pad = exact ? 0 : 1 // an explicit range is checked as given; a single line gets +-1 for off-by-one
   const win = windowText(lines, start, end ?? start, pad)
@@ -452,22 +454,37 @@ export function checkPathLine(relPath, start, end, context, excludeStems, exact)
   // the cited fact is still in the file, so it is a warning that names the new
   // line and `--repin` rewrites it (R11-PRE-SHARED-FILES: a line pin is
   // regenerated, not hand-edited inside every pull request that shifts a file).
-  // The most specific candidate found anywhere decides; one found at several
-  // places stays an error, because no rule picks among them.
-  const bySpecificity = [...candidates].sort((a, b) => b.length - a.length)
+  // A clause that quotes a phrase cites that phrase, so the quoted phrases
+  // alone decide where the pin went: each must sit at exactly one place and all
+  // at the same line, and one that is gone or repeated keeps the error. A
+  // keyword or symbol of the clause never stands in for a missing phrase.
+  // Without a quoted phrase the most specific candidate found anywhere decides.
+  // One found at several places stays an error, because no rule picks among them.
   const cited = `${relPath}:${start}${end ? '-' + end : ''}`
+  const ambiguous = (c, at) => ({ ok: false, reason: `'${c}' not found near ${cited}; found at ${at.length} places instead (lines ${at.slice(0, 5).join(', ')}${at.length > 5 ? ', ...' : ''}), so the pin is ambiguous` })
+  const moved = (c, line) => {
+    const to = { start: line, end: end ? Math.min(lineCount, line + (end - start)) : undefined }
+    return { ok: true, warn: true, movedTo: to,
+      reason: `'${c}' moved from ${cited} to line ${to.start}${to.end ? '-' + to.end : ''}, its one place in the file; re-pin with \`brief_lint.mjs --repin\`` }
+  }
+  const quoted = quotedPhrases(context).filter((p) => candidates.includes(p))
+  if (quoted.length) {
+    const places = quoted.map((c) => ({ c, at: candidateLines(lines, c) }))
+    const lost = places.filter((p) => p.at.length === 0).map((p) => p.c)
+    if (lost.length) return { ok: false, reason: `the quoted anchor [${lost.join(', ')}] is not found near ${cited}, or anywhere else in the file` }
+    const several = places.find((p) => p.at.length > 1)
+    if (several) return ambiguous(several.c, several.at)
+    const at = [...new Set(places.map((p) => p.at[0]))]
+    if (at.length > 1) return { ok: false, reason: `the quoted anchors [${quoted.join(', ')}] are not found near ${cited} and sit at different lines (${at.join(', ')}), so the pin is ambiguous` }
+    return moved(places.sort((a, b) => b.c.length - a.c.length)[0].c, at[0])
+  }
+  const bySpecificity = [...candidates].sort((a, b) => b.length - a.length)
   for (const c of bySpecificity) {
     const at = candidateLines(lines, c)
-    if (at.length === 1) {
-      const to = { start: at[0], end: end ? Math.min(lines.length, at[0] + (end - start)) : undefined }
-      return { ok: true, warn: true, movedTo: to,
-        reason: `'${c}' moved from ${cited} to line ${to.start}${to.end ? '-' + to.end : ''}, its one place in the file; re-pin with \`brief_lint.mjs --repin\`` }
-    }
-    if (at.length > 1) {
-      return { ok: false, reason: `'${c}' not found near ${cited}; found at ${at.length} places instead (lines ${at.slice(0, 5).join(', ')}${at.length > 5 ? ', ...' : ''}), so the pin is ambiguous` }
-    }
+    if (at.length === 1) return moved(c, at[0])
+    if (at.length > 1) return ambiguous(c, at)
   }
-  return { ok: false, reason: `none of [${bySpecificity.join(', ')}] found near ${relPath}:${start}${end ? '-' + end : ''}, or anywhere else in the file` }
+  return { ok: false, reason: `none of [${bySpecificity.join(', ')}] found near ${cited}, or anywhere else in the file` }
 }
 
 // ---------------------------------------------------------------------------
@@ -652,8 +669,7 @@ function lintBrief(groupName, brief, findings, repins = null) {
     else if (r.warn) add('warning', 'path:line (anchored)', `${label}: ${r.reason}`)
     if (r.movedTo && repins) {
       const sep = end ? m[0].slice(1 + m.groups.start.length, 2 + m.groups.start.length) : ''
-      const to = r.movedTo.start
-      repins.push({ index: m.index, length: m[0].length, text: `:${to}${end ? sep + Math.max(to, to + (end - start)) : ''}` })
+      repins.push({ index: m.index, length: m[0].length, text: `:${r.movedTo.start}${end ? sep + r.movedTo.end : ''}` })
     }
   }
 
@@ -1758,6 +1774,35 @@ function assertRepin() {
     f = roster(`See ${target}:2 "no such phrase anywhere" for nothing.`)
     found = pathline(f)
     expect('an anchor that is gone is an error', found.length === 1 && found[0].severity === 'error' && found[0].message.includes('anywhere else in the file'))
+    // A quoted phrase is the anchor the brief cites: when it is gone, a shorter
+    // symbol of the same clause found once elsewhere must not stand in for it.
+    f = roster(`See ${target}:2 "no such phrase anywhere" which bounds indented_is_skipped.`)
+    found = pathline(f)
+    const gone = fs.readFileSync(f, 'utf8')
+    r = repinFile(f, lintFile, { shape: false })
+    expect('a gone quoted anchor stays an error when a clause symbol sits once in the file',
+      found.length === 1 && found[0].severity === 'error' && found[0].message.includes('no such phrase anywhere')
+      && r.repinned === 0 && fs.readFileSync(f, 'utf8') === gone)
+    f = roster(`See ${target}:2 "Not a citation" beside "indented_is_skipped" for two rows.`)
+    found = pathline(f)
+    const apart = fs.readFileSync(f, 'utf8')
+    r = repinFile(f, lintFile, { shape: false })
+    expect('two quoted anchors each at one place but on different lines are an error and are not rewritten',
+      found.length === 1 && found[0].severity === 'error' && found[0].message.includes('different lines')
+      && r.repinned === 0 && fs.readFileSync(f, 'utf8') === apart)
+    // An anchored bare `:N-M` (class 2b) re-pinned to a file's last line keeps
+    // its range inside the file, as class 2's does.
+    const tail = 'dev/audit/rounds/round11/sweep/N-unbounded-retention/D14/retention/clean_fixture/bounded.py'
+    const tailLines = (fileLines(tail) || []).join('\n').replace(/\n+$/, '').split('\n')
+    const last = tailLines[tailLines.length - 1].trim()
+    expect('precondition: the anchored fixture resolves and its last line sits once in it',
+      resolveModuleFile('bounded') === tail && last.length >= 4 && tailLines.filter((l) => l.includes(last)).length === 1)
+    f = roster(`The loop "${last}" in bounded.add at :1-3 trims old days.`)
+    r = repinFile(f, lintFile, { shape: false })
+    const anchored = (g) => lintFile(g, { shape: false }).filter((x) => x.kind === 'path:line (anchored)')
+    expect('an anchored range re-pinned at the end of the file ends inside it',
+      r.repinned === 1 && JSON.parse(fs.readFileSync(f, 'utf8')).groups[0].brief.includes(`at :${tailLines.length}-${tailLines.length} `)
+      && anchored(f).length === 0)
     const twice = repinText('{"a": "x.py:1", "b": "x.py:1"}', [{ text: 'x.py:1', repins: [{ index: 0, length: 6, text: 'x.py:2' }] }])
     expect('a cited string in the file twice is refused, not guessed', twice.refused.length === 1 && twice.repinned === 0 && twice.text === '{"a": "x.py:1", "b": "x.py:1"}')
   } finally {
