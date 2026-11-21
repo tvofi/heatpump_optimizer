@@ -1,0 +1,10 @@
+O minus T (adds since 3808 tip, incl. main merges): 3
+    ('/closures/tests/entities.py', '"dev/governance/dimensions/DX0.md"')
+    ('/inert_reads/tests/harness_headers.py', '"dev/audit/harnesses/r11_comments_production_reconcile.py"')
+    ('/inert_reads/tests/harness_headers.py', '"dev/audit/harnesses/r11_seam_config_silent_prefill.py"')
+T minus O: 0
+N minus BN (branch-own adds now): 1
+    ('/inert_reads/tests/harness_headers.py', '"dev/audit/harnesses/r11_comments_production_reconcile.py"')
+BN minus N (main entries the merge dropped): 0
+O-own adds missing from N: 0
+O-own deletes re-present in N: 0
