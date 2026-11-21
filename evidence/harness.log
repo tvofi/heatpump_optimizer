@@ -1,0 +1,56 @@
+===== daemonize pid=22001 2026-11-21T10:47:38Z argv: bash /Users/timmalmstrom/hpo-seats/r11/rev-3820/run_h.sh
+== base 0ae95e4c9b65229c550d8a0d38f8adb6ecfab9f1
+RESULT units=2928 count
+RESULT long_units=370 count
+RESULT files_with_long=43 of 45 files
+RESULT per_file_min=0 per_file_max=90 count
+RESULT loo_drop_max=280 count (without coordinator)
+RESULT dhw_planner_long=29 count
+RESULT thread_factor=1.000
+RESULT load1=17.90
+RESULT swapins=0
+RESULT units=3425 count
+RESULT unresolved_units=0 count
+RESULT long_units=562 count
+RESULT hist_units=45 count
+RESULT num_units=42 count
+RESULT unresolved_tokens=0 count
+RESULT thread_factor=1.000
+RESULT load1=16.47
+RESULT swapins=na
+RESULT wall=19.0 s provisional cpu=12.8
+RESULT ratchet_long=0
+RESULT ratchet_above_harness_files=0
+== merged 394743adaebcbf16eca46f0c9c272f0ed117f3e9
+RESULT units=2928 count
+RESULT long_units=343 count
+RESULT files_with_long=33 of 45 files
+RESULT per_file_min=0 per_file_max=90 count
+RESULT loo_drop_max=253 count (without coordinator)
+RESULT dhw_planner_long=29 count
+RESULT thread_factor=1.000
+RESULT load1=15.55
+RESULT swapins=0
+RESULT units=3425 count
+RESULT unresolved_units=0 count
+RESULT long_units=515 count
+RESULT hist_units=46 count
+RESULT num_units=42 count
+RESULT unresolved_tokens=0 count
+RESULT thread_factor=1.000
+RESULT load1=17.28
+RESULT swapins=na
+RESULT wall=27.3 s provisional cpu=16.6
+RESULT ratchet_long=820
+RESULT ratchet_above_harness_files=0
+== perturb
+RESULT units=2928 count
+RESULT long_units=323 count
+RESULT files_with_long=33 of 45 files
+RESULT per_file_min=0 per_file_max=90 count
+RESULT loo_drop_max=233 count (without coordinator)
+RESULT dhw_planner_long=9 count
+RESULT thread_factor=1.000
+RESULT load1=17.01
+RESULT swapins=0
+DONE

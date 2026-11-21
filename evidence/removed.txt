@@ -1,0 +1,160 @@
+One primitive, shared by the solver's batch twins (``optimizer.py``'s cost
+terms since R9 F2.2 and ``tariff.py``'s capacity term since R9 F2.5): a row
+backend (#948: bit-identical on the arm64 seat that wrote it, re-planned
+19 of 51 stress scenarios on CI's x86_64, at the production width only).
+one elementwise ``+`` across the batch's column, so row ``b`` is the
+scalar ``np.sum`` of ``rows[b]`` to the bit while the interpreter works
+measured naively in electrical terms — so it is reported in thermal terms,
+there is overwritten only when its entity read OK -- so on an install
+with no probes the whole view is assembled from constructor defaults
+(55/40/22/21 °C) and published as a ``BATTERY`` percentage and an
+``ENERGY_STORAGE`` kWh, both ``MEASUREMENT``, which is a long-term
+statistics series of a number nothing measured (#282).
+zones, and the learned split on the lower one (whose docstring says
+every consumer of the dynamics must go through it). Raw configured
+the settlement cap in ANY direction: on the default parameters
+it is too high (cap 27.4 °C at −15 outdoor), and on a radiator
+lives. Home Assistant already knows the instance's currency; the fallback
+get different windows (owner request: weekdays vs weekend, or one specific
+A day selector is one of: ``daily`` (the default when absent), ``weekdays``
+(Monday–Friday), ``weekend`` (Saturday–Sunday), or a comma/range list of
+two-letter day tokens ``Mo Tu We Th Fr Sa Su``. A range without a selector
+applies to all seven days, which is exactly the previous behaviour — the flat
+spec ``06:00-08:30`` and ``daily 06:00-08:30`` mean the same thing, and an
+existing configuration loads unchanged. Later segments for the same day
+accumulate (``Mo 06:00-07:00, Mo 18:00-19:00`` is Monday with two windows),
+mirroring how the flat grammar treats ``06:00-07:00, 18:00-19:00``.
+The day selector is accepted and IGNORED here -- ``parse_windows`` is the
+days"; the every-day view keeps the times so nothing downstream breaks
+range with no selector as applying to all seven days, so a group's
+rest of the chain unchanged, and the whole ``day_overrides`` argument
+defaulting to ``None`` reproduces yesterday's behaviour exactly — the
+no weekly structure exists; it is also what a ``None`` weekday (a caller
+the whole feature — overrides included, since a caller with no date
+at each step's start (``hour_in_windows``), so a window shorter than a
+step can sit between two starts and bind nothing at all -- "06:05-06:06"
+Stricter than ``parse_windows`` on purpose, and separate from it: the
+plan used, swapping one realised input at a time into the forecast set —
+and so on — and charges each swap with the temperature shift it alone
+later — so the power swap's room contribution is genuinely ~0 there, and a
+the day's saving against the flat replay exactly in two -- the energy bought
+below the day's running mean as it was bought (``tally``), and the rest --
+each weighed against the day's own mean, and fold with the grade's own EMA,
+lowers the day's mean paid price), the time-weighted spot price, and --
+for an interval bought below the day's running mean, ``spot_sum /
+spot_h`` with this interval already in it -- the cheap side's share.
+One concern with one owner, on ``plan_step.py``'s own argument: the pump
+the optimizer prices the switches that serving makes, so two modules need one
+first duty when the next step serves the second, so its delivery moves
+legs: inside a two-leg step both legs run at the step's combined level; across a boundary the stop adds the smaller
+a block can only end into a planned stop or into more hot water; where
+Both steps are defensive: the static-path helper prefers the modern
+synchronous call on older Home Assistant releases, and the resource
+or for a hand-added resource, and a browser holding a long-cached copy of
+A comma between digits is a decimal separator (``0,25`` is ``0.25`` — the
+form a Swedish keyboard writes), so it never splits a rule; every other
+Each part before the ``=`` is optional and narrows when the rate applies:
+a month or month range (wrapping allowed, ``Nov-Mar``), a weekday or weekday
+range (``Mon-Fri``), and a time-of-day range in the same ``HH:MM-HH:MM``
+grammar as the DHW demand windows (wrapping allowed). A rule with no
+#169): the config flow refuses a rules text above it (``spec_problem``),
+because the form is where the typo happens and can still be corrected;
+the coordinator raises a warn-only repair issue for a value that arrived
+permissive (a stored fee that stopped loading, or was silently capped,
+would be worse than a wrong one the user was told about).
+the grid company charges most for; a rate above the implausibility bound
+ellevio.se/abonnemang/elnatspriser/hus/), timmedeleffekt averaged over
+abonnemang/elnatspriser/hus/) — flat, so the rules are "= 0.07"; the
+effektguiden/). eon_energidistribution_effekt_2026 — E.ON never
+A leaf (it imports only ``const``), so a module that raises a notice -- the
+does not inherit what the set-point consistency check imports to do its own
+work (the quiet windows and, through them, the solver).
+how much of the value is measurement rather than prior -- never a time;
+blocks the learner's own sample gate right now (``waiting_for``);
+learner; ``frozen_until`` is when that ends, ``None`` while unknown;
+unusable reading (``<problem>:<entity key>``, but not ``not_configured:``) -- each holds the learner
+never ends, so a pause would promise a resume), and the plant states the
+restates one of these -- ``space`` and ``dhw`` split the spot energy by
+``savings_`` lines compare it with a thermostat -- so adding any of them
+valved horizon by steady demand (released in v7.1.15), so its months are old;
+ceiling (released in v7.1.17), where pull request 3587 holds it at the valve top;
+(``STEADY_COP_META``), and prices it once, at its own metered kWh price:
+an interval's own COP or price would cancel the timing saving of a store
+only ever raising the thermostat (``"wood_floor"``): a meter under the plan
+are priced at spot plus the interval's per-kWh grid fee: a thermostat
+is explained by the reason for its step, whatever the meter's magnitude: a
+None, not False, for a month with no reason lines at all -- a
+"from now" slot starts mid-step — judging only the step's start
+arrangement is accepted and pins nothing -- but a slot starting
+a stored instant beyond now plus the window, and a wholly-beyond slot
+This module is the fallback, and it guesses, so it is built to be boring:
+* **The hard filter runs first, and it is not a name test.** A candidate must
+* **A name is evidence, not identity.** ``entity_id``, ``original_name`` and
+phrase's token coverage and a :mod:`difflib` ratio, so a phrase whose words
+are all present scores high and a name carrying a phrase's words *plus*
+* **A suggestion needs a winner, not a candidate.** A role is suggested only
+recall, which is the right direction to spend it in: a role this misses is one
+total is not a power reading and a Fahrenheit probe is not a Celsius one,
+so ``kWh`` and ``°F`` belong to no family a role here reads in, and a
+definitions themselves use. The last part is not typed from memory --
+source tables map out of the generated fixtures and asserts every one of
+entity's name and a phrase carrying it would match ``Outlet temperature``
+own mapped entities with and asserts they are all above; the words that
+one of the sources G7b can map resolves it, which is
+**The minimum is measured, not chosen.** It is read off the corpus table
+prints "roles the fallback fills per corpus device (W1067-POST1's table)",
+one row per labelled device with the roles its source table resolved and the
+the device being unreadable: that is why this number is never read off the
+that, a large fraction of a 24-hour-plus horizon has no data, and the
+The quarter-hour refinement (#19) rides its own confidence ramp: the hourly
+onto the 24-bin one — which is what keeps old stores and fresh installs
+refinements: absent from an old store they default to "no effect", and
+and every horizon's cheapest hour beats its mean — so a young
+positional (index == wall-clock hour), and on the autumn fold the
+future path that *writes* the mode — reads its answer from here, so there is
+mode" — and there ``heating`` means "the compressor is making heat right
+same, and its options being user-typed is the point: a person who builds
+pipe. It is therefore guarded by hard rails — forced ON whenever the
+inside one": probing the single instant left a hole in the final
+are the user's wish about noise: rows that say "run silently here" (the
+compressor capped, the plan buying the hours the cap makes cheap) and rows
+that say "plan nothing here" (no space heating and no hot-water slots in the
+window, tvofi's decision D1 of 2026-09-30: an Off window means solely that,
+with nothing extra written -- those steps are ordinary idle steps).
+* **Inert when unset.** No rows, an unreadable stored spec, or the whole
+* **Floored where silent, zero where off.** A silent step caps electrical
+* **The solver's clock.** Steps are walked in UTC through
+* **Enforced only where enforceable.** Nothing while the optimizer is off
+being a ``switch`` -- decided from the entity ID's domain alone, so a
+is preferred over the configured fraction -- a heat-pump power entity (W or
+reading scales nameplate by ``hz / hz_max`` -- and the configured fraction
+is used exactly as configured otherwise, including 1.0 meaning "rows shown,
+(``None`` and the caller's own object unchanged when they cap nothing);
+off steps are NOT expressed here -- a zero entry would collapse the
+state: a switch that has not reported yet reads ``unknown`` -- unknown
+normaliser every other power read uses; an unrecognised unit, a
+clipped a reading past the nameplate down to ``p_max`` itself, so an
+the pump's own schedule already share -- and off steps come back as the
+fully hold carries the not-enforced marker; ``silent_unenforceable``
+user asked for it); a silent window may not overlap an off window on
+the same day (one step cannot be both); a silent window MAY overlap a
+"""What one solve was given: the lift, K, before its per-step clip; the
+choice; with a window open the coldest room is the one with the window;
+a manual pin's release is judged against the floor, which a lift must not
+move; and a two-zone model applies one margin to both floors while the
+may then pass the unlifted plan's: the plan stores heat above a floor held
+(:func:`note`); the coordinator re-reads once per refresh too, since the
+(:func:`refresh`), and each subscriber's tick then hears whether the class
+class with no change pending; ``None`` before the first confirmed edge, with no
+see the ``lower_floor_modelled`` repair text), and EN 1264's surface limits,
+otherwise: judged on the level alone, since a hot-water run or a defrost
+* end a run younger than :data:`MIN_RUN`;
+* end a pause younger than :data:`MIN_PAUSE`;
+(``tests/ha_contract.py``, ``StateMachine.async_set``), so a pump found
+**Only a delay.** The gate never makes a write; it returns ``None`` for one it
+a Pi): Home Assistant's toggle falls back to the old state after about two
+``is_on`` above reads, not the published payload's copy: the payload
+the counter is pure observation; pricing it is the user's call, and feeding
+on it is a start (S7, owner ruling D1): the first can fall inside an
+(:meth:`note`) or by the caller's own clock (:meth:`confirm`): a final
+:meth:`restore` reads the stored payload and replays the queue against
