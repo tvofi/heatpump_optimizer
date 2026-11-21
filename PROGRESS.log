@@ -2,3 +2,4 @@
 1795264378 INIT r11-seam-comments-tests
 1795264385 HB alive
 1795264473 CKPT p2 scope measured: 8 released tests/*.mjs, 140 long units snapshot 4b6fdef065ee
+1795264585 CKPT p2: 5 small mjs files split, 0 long snapshot e6e185868569
