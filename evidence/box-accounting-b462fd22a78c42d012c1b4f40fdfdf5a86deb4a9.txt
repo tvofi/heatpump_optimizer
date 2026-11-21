@@ -1,0 +1,17 @@
+box af1554ca89ee79acf981e3805aefc19e246b8260 files 745; head b462fd22a78c42d012c1b4f40fdfdf5a86deb4a9 added/changed 627
+  DROPPED: 2
+  identical-on-main: 118
+  same-path-identical(added): 612
+  same-path-modified: 4
+  suffixed-identical: 6
+  suffixed-modified: 3
+  head-added dev/audit paths not from box: 0
+   DROPPED	CHECK.txt
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/REPORT.json
+   DROPPED	dev/audit/rounds/round11/D3/s1/__pycache__/prescreen.cpython-314.pyc
+   same-path-modified	dev/audit/rounds/round11/D3/s1/build_report_u1d.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/ensure_worker_leak.py
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/finalize.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/m4_pending.py
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/state/prescreen.log
+   same-path-modified	dev/audit/rounds/round11/reports-D3-u1d.json
