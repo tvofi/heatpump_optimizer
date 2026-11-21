@@ -2481,3 +2481,26 @@ def arm_from_config(
             ident.kind,
         )
     return armed
+
+
+#: ``arm_refusal``'s answer when the options page has the experiment off.
+ARM_REFUSED_DISABLED = "disabled"
+
+
+def arm_refusal(
+    ident: SystemIdentification, now: datetime, config: Any, plant: ThermalParameters,
+    learner_samples: int, draw: DrawRange,
+) -> str | None:
+    """``arm_from_config``, answering why nothing was armed (``None``: armed).
+
+    The press that asked must hear a refusal (D10-s1-02): ``ARM_REFUSED_DISABLED``
+    with the option off, else the reason ``arm`` published in ``result``, else
+    the experiment already running.
+    """
+    if arm_from_config(ident, now, config, plant, learner_samples, draw):
+        return None
+    if not ident.config.enabled:
+        return ARM_REFUSED_DISABLED
+    if ident.active:
+        return "an experiment is already armed or running"
+    return ident.result.reason or "the experiment cannot be armed now"

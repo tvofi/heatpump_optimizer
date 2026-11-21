@@ -465,6 +465,12 @@
     "diagnose_interval_failed": {
       "message": "Die Intervalldiagnose konnte für {entry_ids} nicht ausgeführt werden: {error}"
     },
+    "system_identification_disabled": {
+      "message": "Die Systemidentifikation ist für {entry_ids} ausgeschaltet: \"Einmaliges Messexperiment zulassen\" in den Optionen einschalten, um sie vorzubereiten"
+    },
+    "system_identification_not_armed": {
+      "message": "Die Systemidentifikation wurde für {entry_ids} nicht vorbereitet: {reason}"
+    },
     "simulate_plan_failed": {
       "message": "Die Was-wäre-wenn-Simulation konnte für {entry_ids} nicht ausgeführt werden: {error}"
     },

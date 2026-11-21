@@ -55,7 +55,8 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
+from datetime import date, datetime
 from typing import Any, Final
 
 from . import const
@@ -415,6 +416,39 @@ def windows_for_day(
     if weekly is None or weekday is None:
         return fallback
     return weekly[max(0, min(6, int(weekday)))]
+
+
+def windows_in_force(
+    params: Any,
+    plan: Any,
+    when: datetime,
+    holiday_dates: Collection[date] = (),
+) -> list[Window]:
+    """The hot-water demand windows in force at ``when`` (D17-s3-51).
+
+    ``windows_for_day``'s chain over ``params``' day-aware fields -- the
+    resolution the planner applies to every step (``dhw_planner._dhw_windows_at``)
+    -- for a reader holding a clock instead of a step array. A clock tested
+    against the flat every-day union instead reads a weekend window open on a
+    weekday morning. The chain ends in the planned windows ``plan`` (the last
+    optimization result, or ``None``) published, learned ones included, where
+    they parse, else ``params.dhw_demand_windows``.
+    """
+    info = getattr(plan, "predictive_info", None) or {}
+    fallback = list(params.dhw_demand_windows)
+    if info.get("dhw_windows"):
+        try:
+            fallback = parse_windows(info["dhw_windows"])
+        except DHWWindowError:
+            pass
+    return windows_for_day(
+        params.dhw_weekly_windows,
+        when.weekday(),
+        fallback,
+        holiday_windows=params.dhw_holiday_windows,
+        holiday=when.date() in holiday_dates,
+        day_overrides=params.dhw_day_windows,
+    )
 
 
 def _split_wrapping(windows: list[Window]) -> list[Window]:

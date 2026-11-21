@@ -26,12 +26,16 @@ import logging
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import debugger
+from . import debugger, sysid
 from .const import DOMAIN
-from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .coordinator import (
+    HeatPumpOptimizerConfigEntry,
+    HeatPumpOptimizerCoordinator,
+    ProcessWorkerUnavailable,
+)
 from .entity import HeatPumpOptimizerEntity, off_the_action
 
 _LOGGER = logging.getLogger(__name__)
@@ -153,7 +157,27 @@ class SystemIdentificationButton(_OptimizerButtonBase):
         )
 
     async def async_press(self) -> None:
-        off_the_action(self, self.coordinator.async_arm_system_identification())
+        """Arm the experiment, raising when nothing was armed (D10-s1-02).
+
+        Awaited, as the optimize-now press is: the platform holds no
+        parallel-updates slot, and a press the option or the gate refused
+        must not read as done.
+        """
+        refused = await self.coordinator.async_arm_system_identification()
+        if refused == sysid.ARM_REFUSED_DISABLED:
+            raise ServiceValidationError(
+                f"System identification is turned off for {self._entry.entry_id}",
+                translation_domain=DOMAIN,
+                translation_key="system_identification_disabled",
+                translation_placeholders={"entry_ids": self._entry.entry_id},
+            )
+        if refused is not None:
+            raise ServiceValidationError(
+                f"System identification was not armed for {self._entry.entry_id}: {refused}",
+                translation_domain=DOMAIN,
+                translation_key="system_identification_not_armed",
+                translation_placeholders={"entry_ids": self._entry.entry_id, "reason": refused},
+            )
 
 
 class ResetComfortWeightButton(_OptimizerButtonBase):
@@ -214,7 +238,17 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
         )
 
     async def async_press(self) -> None:
-        off_the_action(self, self.coordinator.async_diagnose_interval())
+        """Run the diagnosis, raising as the ``diagnose_interval`` action does
+        when the worker cannot run it (D10-s1-02)."""
+        try:
+            await self.coordinator.async_diagnose_interval()
+        except ProcessWorkerUnavailable as err:
+            raise HomeAssistantError(
+                f"The interval diagnosis could not run for {self._entry.entry_id}: {err}",
+                translation_domain=DOMAIN,
+                translation_key="diagnose_interval_failed",
+                translation_placeholders={"entry_ids": self._entry.entry_id, "error": str(err)},
+            ) from err
 
 
 class DebugFinalizeButton(_OptimizerButtonBase):

@@ -375,6 +375,7 @@ from .dhw_schedule import (
     overlap_fraction,
     parse_weekly_windows,
     parse_windows,
+    windows_in_force,
 )
 from .optimizer import (
     ForecastSeries,
@@ -4487,9 +4488,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # exploit and the loop is simply left on — never abandoned in
             # whatever state the last schedule-driven command left it.
             windows = (
-                list(params.dhw_windows)
+                windows_in_force(params, None, now, away_mode.holiday_dates(
+                    self.hass, ctx._config.holiday_calendar_entity, now))
                 if params.dhw_enabled and params.dhw_windows_active
-                else []
+                else None
             )
             on, reason = pump_schedule.vvc_should_run(
                 now.hour + now.minute / 60.0,
@@ -6004,16 +6006,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return now.hour + now.minute / 60.0
 
     def _dhw_effective_windows(self) -> list[Any]:
-        """Demand windows the optimizer is actually planning against."""
-        result = self._optimization_result
-        planned = (result.predictive_info or {}).get("dhw_windows") if result else None
-        if planned:
-            try:
-                return parse_windows(planned)
-            except DHWWindowError:
-                pass
-        windows: list[Any] = getattr(self, "_ctx", self)._thermal_params.dhw_demand_windows
-        return windows
+        """Demand windows the optimizer plans against now (``dhw_schedule.windows_in_force``)."""
+        ctx, now = getattr(self, "_ctx", self), dt_util.now()
+        holidays = away_mode.holiday_dates(self.hass, ctx._config.holiday_calendar_entity, now)
+        return windows_in_force(ctx._thermal_params, self._optimization_result, now, holidays)
 
     def _dhw_in_demand_window(self) -> bool:
         """Whether hot water is required right now."""
@@ -11017,14 +11013,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def system_identification_active(self) -> bool:
         return self._sysid.active
 
-    async def async_arm_system_identification(self) -> None:
-        """Arm a step-response experiment for the next suitable moment."""
+    async def async_arm_system_identification(self) -> str | None:
+        """Arm a step-response experiment for the next suitable moment; why not, else ``None``."""
         ctx = getattr(self, "_ctx", self)
-        sysid.arm_from_config(
+        refused = sysid.arm_refusal(
             self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
             self._house_heat_loss_samples, self._accuracy.draw,
         )
         await self.async_request_refresh()
+        return refused
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
         """Advance sysid and override the plan when the experiment commands heat.

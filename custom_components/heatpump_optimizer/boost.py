@@ -38,7 +38,7 @@ from .const import (
     MODE_BOOST,
     SPACE_PUMP_FLOOR_MARGIN_C,
 )
-from .dhw_schedule import DHWWindowError, hour_in_windows, parse_windows
+from .dhw_schedule import hour_in_windows, windows_in_force
 from .drift import stored_instant
 from .entity import has_hot_water
 from .payload import CurrentAction, REASON_BOOST, REASON_LEGIONELLA
@@ -736,20 +736,10 @@ def _due_inside_horizon(coord: Any) -> bool:
 
 
 def _window_open(snap: Any, now: datetime) -> bool:
-    info = getattr(snap.plan, "predictive_info", None) or {}
-    planned = info.get("dhw_windows") if snap.plan is not None else None
-    windows = None
-    if planned:
-        try:
-            windows = parse_windows(planned)
-        except DHWWindowError:
-            windows = None
-    if not windows:
-        windows = list(getattr(snap.params, "dhw_demand_windows", None) or [])
-    if not windows:
-        return False
-    hour = now.hour + now.minute / 60.0
-    return hour_in_windows(hour, windows)
+    holidays = away_mode.holiday_dates(
+        snap.hass, getattr(snap.config, "holiday_calendar_entity", None), now)
+    windows = windows_in_force(snap.params, snap.plan, now, holidays)
+    return hour_in_windows(now.hour + now.minute / 60.0, windows)
 
 
 def _dhw_floor(coord: Any, snap: Any, now: datetime) -> str | None:

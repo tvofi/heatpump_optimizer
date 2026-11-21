@@ -25,6 +25,7 @@ import numpy as np
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .const import ENTITY_FAMILY_OVERRIDES
 from .payload import Payload
 
 if TYPE_CHECKING:  # coordinator imports this module
@@ -303,15 +304,22 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
         is one) would derive *translated* object ids from the translation-keyed
         name, breaking the dashboard card's id-suffix contract on fresh
         installs. The object id is ``heat_pump_optimizer_`` plus the
-        translation key; ``object_id`` replaces it only for the climate entity,
-        whose id predates the scheme.
+        translation key, led by its declared family where
+        ``const.ENTITY_FAMILY_OVERRIDES`` homes the key outside its own lead
+        token, so the id sort keeps a family in one run as the name sort does
+        (D8-s2-02); ``object_id`` replaces it only for the climate entity,
+        whose id predates the scheme. New installs only: the registry keeps an
+        existing entity's id, keyed on ``unique_id``.
         """
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         if translation_key is not None:
             self._attr_translation_key = translation_key
         if object_id is None:
-            object_id = f"heat_pump_optimizer_{self._attr_translation_key}"
+            tkey = self._attr_translation_key
+            family = ENTITY_FAMILY_OVERRIDES.get(tkey)
+            lead = f"{family}_" if family and not tkey.startswith(f"{family}_") else ""
+            object_id = f"heat_pump_optimizer_{lead}{tkey}"
         self.entity_id = f"{self._platform_domain}.{object_id}"
 
     def _data(self) -> Payload:
@@ -419,6 +427,24 @@ class ConfiguredInputMixin(HeatPumpOptimizerEntity):
     @property
     def available(self) -> bool:
         return bool(super().available and self.entity_registry_enabled_default)
+
+
+class PayloadFlagMixin(HeatPumpOptimizerEntity):
+    """An entity that answers only while one flag of one payload block is set.
+
+    The block is the coordinator's own statement that the feature has an answer
+    (``wood_fuel.ready``, ``power_headroom.available``, ``reading_ok.<input>``); a
+    missing block or flag is unavailable, never a default.
+    """
+
+    #: (payload block, flag in it) that must be truthy for the entity to be available.
+    _available_flag: tuple[str, str] = ("", "")
+
+    @property
+    def available(self) -> bool:
+        block, flag = self._available_flag
+        gate: Any = self._data().get(block) or {}
+        return bool(super().available and gate.get(flag))
 
 
 class DHWEntityMixin(HeatPumpOptimizerEntity):

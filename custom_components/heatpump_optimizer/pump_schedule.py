@@ -28,16 +28,20 @@ from .const import SPACE_PUMP_FLOOR_MARGIN_C
 from .dhw_schedule import Window, hour_in_windows, hours_until_next_window
 
 def vvc_should_run(
-    hour_of_day: float, windows: list[Window], lead_minutes: float
+    hour_of_day: float, windows: list[Window] | None, lead_minutes: float
 ) -> tuple[bool, str]:
     """Whether the hot-water circulation loop should run right now.
 
     Inside a demand window, or within the lead time before one opens, the
     loop must be hot; anywhere else it is pure standby loss. With no
-    windows configured hot water is "always required" and the pump is
-    simply left on — the schedule can only save where a schedule exists.
+    schedule (``None``) hot water is "always required" and the pump is
+    simply left on — the schedule can only save where a schedule exists. An
+    empty list is a schedule with no window today (a day-aware spec's day
+    with no segment, ``dhw_schedule.windows_in_force``): nothing to keep hot.
+    The lead reads today's windows only: on a day-aware schedule a window
+    opening just after midnight is not pre-heated from the evening before.
     """
-    if not windows:
+    if windows is None:
         return True, "no demand windows; hot water always required"
     hour = float(hour_of_day) % 24.0
     if hour_in_windows(hour, windows):

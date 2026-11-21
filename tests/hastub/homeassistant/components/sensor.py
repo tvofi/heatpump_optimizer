@@ -5,6 +5,9 @@ from homeassistant.helpers.entity import Entity
 
 class SensorDeviceClass(str):
     TEMPERATURE = "temperature"
+    # Upstream since 2025.11.0, above the hacs.json floor: production reads it
+    # through getattr (sensor._TEMPERATURE_DELTA), so the floor still loads.
+    TEMPERATURE_DELTA = "temperature_delta"
     POWER = "power"
     ENERGY = "energy"
     MONETARY = "monetary"
@@ -33,6 +36,7 @@ class SensorStateClass(str):
 #: class is never a violation.
 DEVICE_CLASS_STATE_CLASSES = {
     SensorDeviceClass.TEMPERATURE: {SensorStateClass.MEASUREMENT},
+    SensorDeviceClass.TEMPERATURE_DELTA: {SensorStateClass.MEASUREMENT},
     SensorDeviceClass.POWER: {SensorStateClass.MEASUREMENT},
     SensorDeviceClass.ENERGY: {
         SensorStateClass.TOTAL,

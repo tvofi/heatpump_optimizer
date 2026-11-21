@@ -1928,8 +1928,9 @@ INPUT_PLAUSIBLE_RANGE_C: Final = {
 # --- Entity families (N-name-sort barrier, #1760) ---------------------------
 #
 # A family is a translation key's lead token -- the token the suggested
-# object id is already built from -- plus the explicit overrides below for
-# members homed elsewhere. tests/entities.py holds the one check this
+# object id is built from -- plus the explicit overrides below for members
+# homed elsewhere, whose suggested object id leads with the family
+# (entity._pin_identity). tests/entities.py holds the check this
 # declaration feeds: every family of two or more members must form one
 # contiguous run in the English and Swedish name sorts. Before this table
 # existed, family membership was declared nowhere, and eight fixes (#174,
@@ -1941,8 +1942,9 @@ ENTITY_FAMILY_OVERRIDES: Final[dict[str, str]] = {
     # among the diagnose buttons' other neighbours.
     "diagnose_last_interval": "prediction",
     # The four lifetime meters left the Cost family: their names lead with
-    # the meters' own token so the name sort keeps them in one run (#1668);
-    # entity ids and translation keys are untouched.
+    # the meters' own token so the name sort keeps them in one run (#1668),
+    # and so do their suggested object ids (entity._pin_identity, D8-s2-02);
+    # translation keys and unique ids are untouched.
     "cost_total_heating": "lifetime",
     "space_heating_cost": "lifetime",
     "space_heating_energy": "lifetime",

@@ -20337,8 +20337,14 @@ R.check(
     "exact minutes the pre-heat exists for",
 )
 R.check(
-    "with no windows the loop is simply left on",
-    _ps.vvc_should_run(3.0, [], 20)[0],
+    "with no schedule the loop is simply left on",
+    _ps.vvc_should_run(3.0, None, 20)[0],
+)
+R.check(
+    "a schedule with no window today keeps the loop off (D17-s3-51)",
+    not _ps.vvc_should_run(3.0, [], 20)[0] and not _ps.vvc_should_run(7.0, [], 20)[0],
+    f"{_ps.vvc_should_run(3.0, [], 20)!r} -- an empty day of a day-aware spec "
+    "read as 'no schedule' ran the loop all day",
 )
 
 _SAFE = dict(

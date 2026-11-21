@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import math
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from functools import partial
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
@@ -815,10 +816,7 @@ def _widen_to_fit(
             number_value = float(value)
         except (TypeError, ValueError):
             continue
-        if number_value != number_value or number_value in (
-            float("inf"),
-            float("-inf"),
-        ):
+        if not math.isfinite(number_value):
             continue
         if fitted_low is not None and number_value < fitted_low:
             fitted_low = number_value
@@ -827,11 +825,29 @@ def _widen_to_fit(
     if fitted_low == low and fitted_high == high:
         return None
     config: selector.NumberSelectorConfig = {**number.config}
+    step = config.get("step")
     if fitted_low is not None:
-        config["min"] = fitted_low
+        config["min"] = _on_grid(low, fitted_low, low, step, math.floor)
     if fitted_high is not None:
-        config["max"] = fitted_high
+        config["max"] = _on_grid(low, fitted_high, high, step, math.ceil)
     return selector.NumberSelector(selector.NumberSelectorConfig(**config))
+
+
+def _on_grid(
+    base: Any, value: float, declared: Any, step: Any, rounding: Callable[[float], int]
+) -> float:
+    """A widened bound ``value`` moved outward onto the field's own ``base + k * step`` grid (D14-s1-01).
+
+    A slider's and a number box's grid starts at ``min``: a min widened to a
+    stored 14.7 on a 0.5 grid put every nominal value of the field, its
+    default included, off the reachable set. ``rounding`` is ``math.floor``
+    for a lower bound and ``math.ceil`` for an upper one. A bound left at its
+    ``declared`` value, a step of ``"any"`` and a field with no ``min`` keep
+    ``value``: only what the widening moved is snapped.
+    """
+    if value == declared or base is None or not isinstance(step, (int, float)) or step <= 0:
+        return value
+    return round(base + rounding(round((value - base) / step, 9)) * step, 9)
 
 
 def _fit_stored_values(schema: Any) -> tuple[Any, list[str]]:

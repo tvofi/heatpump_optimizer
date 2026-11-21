@@ -30,7 +30,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
-from .entity import HeatPumpOptimizerEntity
+from .entity import HeatPumpOptimizerEntity, PayloadFlagMixin
 from .payload import Payload
 from .const import finite_float
 
@@ -305,7 +305,7 @@ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
         }
 
 
-class WoodCheaperBinarySensor(_OptimizerBinarySensorBase):
+class WoodCheaperBinarySensor(PayloadFlagMixin, _OptimizerBinarySensorBase):
     # The wood furnace is an options-page opt-in most installs never turn
     # on; the comparison is unavailable without it, so disabled rather than
     # shipped dead (#1335), with the advisor twin on the same gate.
@@ -317,10 +317,7 @@ class WoodCheaperBinarySensor(_OptimizerBinarySensorBase):
     ) -> None:
         super().__init__(coordinator, entry, "wood_cheaper", "wood_cheaper")
 
-    @property
-    def available(self) -> bool:
-        fuel = self._data().get("wood_fuel") or {}
-        return bool(super().available and fuel.get("ready"))
+    _available_flag = ("wood_fuel", "ready")
 
     @property
     def is_on(self) -> bool:

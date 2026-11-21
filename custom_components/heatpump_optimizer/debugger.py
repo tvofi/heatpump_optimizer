@@ -320,7 +320,13 @@ def collection_window(rows: list[dict[str, Any]], now: datetime) -> dict[str, An
 
 
 async def _solver_smoke(coordinator: Any, rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """One what-if solve with no override, which the live plan should equal."""
+    """One what-if solve with no override, which the live plan should equal.
+
+    ``week_solve_ms`` spreads the rows where a solve ran: the not-run publish
+    after a restart (``_apply_unsolved_payload``) carries ``solve_time_ms`` 0,
+    an inert value and never a duration (D15-s3-01), so a row whose recorded
+    time is not positive is left out.
+    """
     began = time.monotonic()
     result = await coordinator.async_simulate({}, limited=False)
     return {
@@ -328,7 +334,7 @@ async def _solver_smoke(coordinator: Any, rows: list[dict[str, Any]]) -> dict[st
         "error": result.get("error"),
         "cost_delta": result.get("cost_delta"),
         "week_solve_ms": spread(
-            [row["payload_solve_time_ms"] for row in rows if "payload_solve_time_ms" in row]),
+            [ms for row in rows if (ms := row.get("payload_solve_time_ms") or 0) > 0]),
     }
 
 

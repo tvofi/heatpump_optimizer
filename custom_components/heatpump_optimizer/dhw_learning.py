@@ -38,6 +38,7 @@ from .const import (
     DHW_DAYTYPE_BLEND_K,
     DOMAIN,
 )
+from .dhw_schedule import hour_in_windows, windows_in_force
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .inputs import plausible_c
 from .thermal_model import TANK_ROOM_AMBIENT_TEMP, ThermalParameters
@@ -499,10 +500,13 @@ class DhwProfileLearner:
         cap = params.dhw_store.capacity_kwh_per_c
         intensity = max(0.0, temp_drop / dt_h - self._standby_rate(previous_temp))
         energy_kwh = intensity * dt_h * cap  # beyond standby
+        # The stats table is keyed by the flat windows, as the planner reads
+        # it; whether the draw fell in a window is the day's own answer
+        # (dhw_schedule.windows_in_force, D17-s3-51).
         windows = params.dhw_demand_windows
-        label = draw_window_label(
-            now.hour + now.minute / 60.0, windows
-        )
+        hour = now.hour + now.minute / 60.0
+        in_force = hour_in_windows(hour, windows_in_force(params, None, now))
+        label = draw_window_label(hour, windows) if in_force else ""
         self.draw_stats.prune(labels_for(windows))
         before = {k: len(v) for k, v in self.draw_stats.reservoirs.items()}
         taken_kwh = self.draw_stats.take_back(recovered_k * cap)
