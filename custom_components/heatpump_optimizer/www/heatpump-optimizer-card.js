@@ -2485,9 +2485,9 @@ function L(key, vars) {
 
 /** The line a failed service call shows, in the viewer's language
  * (D4-s3-01). Home Assistant formats a raised integration exception's
- * `message` from the English translations before it knows who is looking,
- * and sends its `translation_domain`, `translation_key` and
- * `translation_placeholders` beside it; `hass.localize` turns those into the
+ * `message` from the English translations before it knows who is looking.
+ * It sends the exception's `translation_domain`, `translation_key` and
+ * `translation_placeholders` beside it. `hass.localize` turns those into the
  * viewer's own text once the card has loaded the backend's `exceptions`
  * category (`HeatpumpOptimizerCard`'s `set hass`). A rejection with no
  * key, or a key the loaded translations do not hold, keeps the message. */
@@ -9382,9 +9382,9 @@ function idleWhyHtml(rows, ctx) {
   return whyBlock("why.likely", lines);
 }
 /** Keep the tooltip inside a chart `cap` px tall by shortening the idle
- * explanation, its last (least telling) line first, and dropping it whole
- * when even its heading does not fit; then, if the box is still too tall,
- * the step's reason line. On the phone-width dialog's chart, at the 12 px
+ * explanation, its last (least telling) line first. The explanation is
+ * dropped whole when even its heading does not fit. If the box is still
+ * too tall, the step's reason line goes next. On the phone-width dialog's chart, at the 12 px
  * floor, a shared step's value rows and sentence alone nearly fill it.
  * Text is omitted, never clipped: the box cannot scroll, so a clipped line
  * is one nobody can read. The value rows and the shared-step sentence are
