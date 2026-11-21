@@ -1,0 +1,8 @@
+head 35bb34b2a3790539cd5555606a6c935d9abe4c17
+merge_train.py classify --pr 3832, polled 17:50-18:15Z: WAIT x18 (pending: gate red: none), then rc=2:
+REFUSE selftests: the head's governance / instrument-self-tests job 136929429316 concluded cancelled, which reads no step: re-run it: an introduced red cannot be ruled out (fail closed)
+job 136929429316: started 17:44:20Z, completed 18:14:36Z (30m16s), conclusion cancelled.
+Steps 1-124 success. Step 125 (ci_predict self-test) cancelled at 18:14:33Z; steps 126-139 skipped, the drift and selftest_scope steps among them.
+governance.yml:310 timeout-minutes: push 90, pull request 30.
+selftest_scope select at this head: MODE: FULL -- every step runs (a gate file changed: ['tools/ci/selftest_closures.json']), 127 steps (ev/select.txt).
+owed-reds set (merge_train.py owed-reds) includes tests / fast (3.14), tests / mutation, tests / typing, validate / validate-hacs, tests / coverage-ratchet ...; no owed red concluded failure at review time.

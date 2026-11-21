@@ -1,0 +1,15 @@
+head=35bb34b2a3790539cd5555606a6c935d9abe4c17 base=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b
+selftest_scope static: 127 gated step(s), 0 problem(s)
+static_rc=0
+1	0	dev/programme/delivery/3832.md
+738	3	tools/ci/selftest_closures.json
+-- deleted lines:
+-    "dev/governance/dimensions/D12.md",
+-    "dev/governance/dimensions/D3.md",
+-    "dev/governance/dimensions/D99.md",
+duplicate list items: 0
+run_sha changed: []
+steps added/removed: set()
+other top keys differ: []
+-- VERSION/manifest/notes/claims touched:
+(none above = untouched)
