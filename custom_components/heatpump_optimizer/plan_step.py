@@ -55,9 +55,9 @@ def covering_index(
 ) -> int | None:
     """The index of the entry whose ``[start, end)`` covers ``now``, or ``None``.
 
-    ``starts`` is sorted. An entry ends where the next begins; the last ends
+    ``starts`` is sorted. An entry ends where the next begins. The last ends
     one predecessor's span after its own start (``lone_span`` when it is the
-    only entry), so a series its source stopped extending stops covering now
+    only entry). So a series its source stopped extending stops covering now
     (R10 N-no-expiry, #2229: ``bisect_right(...) - 1`` alone held the last
     entry current forever, and a stale price was published and booked). Before
     the first entry nothing covers ``now`` either; a caller wanting the head
