@@ -1,0 +1,20 @@
+{
+ "class": "P3",
+ "instances": 1,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P3/enumerate.py [--null | --perturb]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_flow_target",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s2/effect.py -> min-cold-tank_k8.0_starts=30 measured_kw=0.602 vs 1.0 booked (D16-s2-04)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_full_draw_c",
+   "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P3/probe_full_draw.py -> exit 1, contradictions=210/1170 (lift 5.5-15 K: the floor-level write is the set-point FlowCommand.ceiling_c calls full draw); --null 0, --fixed 0",
+   "beyond_finding": true
+  }
+ ]
+}

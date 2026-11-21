@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_cell RETURN_DEL 9b1bb4f6",
+  "killed_by": "tests/features.py",
+  "old": "    return str(int(value)) if isinstance(value, int) else repr(round(float(value), 3))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,133 @@
+{
+ "static": [
+  {
+   "file": "dhw_planner.py",
+   "line": 1601,
+   "symbol": "DhwPlanner._plan_dhw_min_cost",
+   "call": "linprog"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 245,
+   "symbol": "_relaxed_plans",
+   "call": "_multi_start_minimize"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 251,
+   "symbol": "_relaxed_plans",
+   "call": "_multi_start_minimize"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 635,
+   "symbol": "_resolved_runs",
+   "call": "_lbfgsb_run"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 638,
+   "symbol": "_resolved_runs",
+   "call": "_lbfgsb_restart"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 1488,
+   "symbol": "_scoped_minimize",
+   "call": "minimize"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 1490,
+   "symbol": "_scoped_minimize",
+   "call": "minimize"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 1698,
+   "symbol": "_lbfgsb_run",
+   "call": "_scoped_minimize"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 1862,
+   "symbol": "_lbfgsb_restart",
+   "call": "_lbfgsb_run"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 1966,
+   "symbol": "_multi_start_minimize",
+   "call": "_lbfgsb_run"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 1990,
+   "symbol": "_multi_start_minimize",
+   "call": "_lbfgsb_restart"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 5554,
+   "symbol": "HeatPumpOptimizer._optimize_space_only.move_starts",
+   "call": "_lbfgsb_run"
+  },
+  {
+   "file": "optimizer.py",
+   "line": 5566,
+   "symbol": "HeatPumpOptimizer._optimize_space_only",
+   "call": "_multi_start_minimize"
+  }
+ ],
+ "runtime": {
+  "optimizer.py:_optimize_space_only:5566": {
+   "calls": 5,
+   "Z_cells": [
+    "summer_negative/summer_warm/single-zone/no-dhw/valve-storage/24h",
+    "winter_typical/shoulder/two-zone/no-dhw/wood/24h",
+    "winter_typical/winter_mild/single-zone/no-dhw/plain/24h",
+    "s2:winter_typical/shoulder/two-zone/no-dhw/wood/24h"
+   ],
+   "C_cells": [
+    "s2:winter_narrow/summer_cool/two-zone/no-dhw/wood/24h"
+   ],
+   "max_dup": 3,
+   "n": [
+    4,
+    5
+   ]
+  },
+  "optimizer.py:_relaxed_plans:245": {
+   "calls": 8,
+   "Z_cells": [
+    "summer_negative/summer_warm/single-zone/dhw/valve-storage/24h",
+    "winter_typical/shoulder/two-zone/dhw/wood/24h",
+    "winter_typical/winter_mild/single-zone/dhw/plain/24h",
+    "s2:winter_typical/shoulder/two-zone/dhw/wood/24h",
+    "s2:winter_narrow/summer_cool/two-zone/dhw/wood/24h",
+    "stops:summer_negative/summer_warm/single-zone/dhw/valve-storage/24h",
+    "stops:winter_typical/winter_mild/single-zone/dhw/plain/24h"
+   ],
+   "C_cells": [],
+   "max_dup": 0,
+   "n": [
+    1,
+    4
+   ]
+  },
+  "optimizer.py:_relaxed_plans:251": {
+   "calls": 3,
+   "Z_cells": [
+    "stops:summer_negative/summer_warm/single-zone/dhw/valve-storage/24h",
+    "stops:winter_typical/winter_mild/single-zone/dhw/plain/24h"
+   ],
+   "C_cells": [],
+   "max_dup": 0,
+   "n": [
+    1,
+    4
+   ]
+  }
+ },
+ "mode": "tree"
+}
