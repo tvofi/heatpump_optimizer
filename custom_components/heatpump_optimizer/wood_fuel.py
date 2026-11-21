@@ -7,20 +7,19 @@ from itertools import zip_longest
 from typing import Any
 
 from .drift import utc_elapsed_seconds
+from .entry_config import EntryConfig
 from .const import (
     CONF_DHW_WOOD_COIL_ENABLED,
     CONF_EXTERNAL_HEAT_ENABLED,
     CONF_EXTERNAL_HEAT_ENTITY,
     CONF_WOOD_FURNACE_EFFICIENCY,
     CONF_WOOD_FURNACE_ENABLED,
-    CONF_WOOD_LIGHTING_LEAD_MINUTES,
     CONF_WOOD_PACKING,
     CONF_WOOD_PRICE_SEK_M3,
     CONF_WOOD_TANK_BOTTOM_ENTITY,
     CONF_WOOD_TANK_TOP_ENTITY,
     CONF_WOOD_TYPE,
     DEFAULT_MIN_TEMP,
-    DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
     WOOD_TANK_MAX_TEMP,
 )
 from .const import finite_float
@@ -558,13 +557,7 @@ def _attach_windows(
     windows: list[WoodWindow] = [
         {"start": iso(start), "end": iso(end)} for start, end in runs
     ]
-    lead = max(
-        0.0,
-        finite_float(
-            config.get(CONF_WOOD_LIGHTING_LEAD_MINUTES),
-            DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
-        ),
-    )
+    lead = EntryConfig.from_mapping(config).wood_lighting_lead_minutes
     light_start, light_end = lighting_window(runs[0][0], timestamps[0], lead)
     view["cheaper_windows"] = windows
     view["lighting_start"] = iso(light_start)

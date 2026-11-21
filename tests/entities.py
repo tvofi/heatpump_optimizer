@@ -15594,6 +15594,110 @@ R.check(
     and _old.data == _old_data,
     "every option is read with a default, so only the stamp moves",
 )
+# D1-s2-05: an earlier release's non-number under a numeric option raised in
+# the thermal table or the comfort band at setup or on every cycle.
+from heatpump_optimizer.entry_config import EntryConfig as _MigEC  # noqa: E402
+from dataclasses import fields as _mig_fields  # noqa: E402
+
+_mig_bad_data = {"min_temperature": [19.0], "max_temperature": "abc", "dhw_tank_volume": "200",
+                 "mixing_valve_target": "abc"}
+_mig_bad_options = {"target_temperature": None, "comfort_weight": {"v": 1.0}, "price_weight": "nan",
+                    "cop_scale": True, "silent_mode_power_fraction": "abc"}
+import logging as _mig_logging  # noqa: E402
+
+
+class _MigLog(_mig_logging.Handler):
+    def __init__(self):
+        super().__init__(_mig_logging.WARNING)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def _mig_warnings(entry):
+    """Migrate ``entry``; return (result, the integration's WARNING records)."""
+    handler, logger = _MigLog(), _mig_logging.getLogger(integration.__name__)
+    logger.addHandler(handler)
+    try:
+        return asyncio.run(integration.async_migrate_entry(_mig_hass, entry)), handler.records
+    finally:
+        logger.removeHandler(handler)
+
+
+_mig_quiet = FakeEntry(data={"min_temperature": 19.0, "dhw_tank_volume": 200.0})
+_mig_quiet_ok, _mig_quiet_logs = _mig_warnings(_mig_quiet)
+R.check(
+    "a healthy old entry migrates with no repair warning (null control)",
+    _mig_quiet_ok is True and not _mig_quiet_logs
+    and {**_mig_quiet.data, **_mig_quiet.options} == {"min_temperature": 19.0, "dhw_tank_volume": 200.0},
+    f"{[r.getMessage() for r in _mig_quiet_logs]} data={_mig_quiet.data} options={_mig_quiet.options}",
+)
+_mig_bad = FakeEntry(data=dict(_mig_bad_data), options=dict(_mig_bad_options))
+_mig_before = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+_mig_bad_ok, _mig_bad_logs = _mig_warnings(_mig_bad)
+R.check(
+    "an old entry's non-numbers under numeric options are repaired, with one warning naming them",
+    _mig_bad_ok is True
+    and len(_mig_bad_logs) == 1 and "min_temperature" in _mig_bad_logs[0].getMessage()
+    and _mig_bad.version == const.CONFIG_ENTRY_VERSION
+    # 7.2 then places each surviving key: neither is DATA_ONLY, so both land in options
+    and _mig_bad.data == {}
+    and _mig_bad.options == {"dhw_tank_volume": 200.0, "silent_mode_power_fraction": "abc"},
+    f"data={_mig_bad.data} options={_mig_bad.options}",
+)
+_mig_after = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+_mig_moved = [
+    f.name for f in _mig_fields(_MigEC)
+    if f.metadata and getattr(_mig_before, f.name) != getattr(_mig_after, f.name)
+]
+R.check(
+    "and the repair moves no parsed field (refused-number keys are left alone)",
+    not _mig_moved,
+    f"moved: {_mig_moved}",
+)
+
+# sweep-P1 (early_cutoff.arm): a re-solve interval outside (0, a day] is no
+# interval; the parse reads it as the default.
+_mig_iv = {v: _MigEC.from_mapping({"optimization_interval": v}).optimization_interval
+           for v in (0, -5, 0.0, 1e12, 1440.5, "nan", 10, 120, 1440)}
+R.check(
+    "an optimization interval outside (0, a day] parses as the default",
+    all(_mig_iv[v] == const.DEFAULT_OPTIMIZATION_INTERVAL for v in (0, -5, 0.0, 1e12, 1440.5, "nan")),
+    f"{_mig_iv}",
+)
+R.check(
+    "and one inside it, both ends' neighbours included, is read as stored (null control)",
+    _mig_iv[10] == 10.0 and _mig_iv[120] == 120.0 and _mig_iv[1440] == 1440.0,
+    f"{_mig_iv}",
+)
+
+# The keys the migration must repair, by the parse's own behaviour rather than
+# by entry_config._DEFAULTED_NUMBERS: a field whose parse reads numeric text as
+# its float and other text as the default. Text left under one such key is read
+# raw by no parse at all once a release reads it outside EntryConfig.
+from heatpump_optimizer.entry_config import number_repairs as _mig_repairs  # noqa: E402
+
+
+def _mig_defaulted(f):
+    _p = f.metadata["parse"]
+    _twelve = _p("12", f.default)
+    return _p("abc", f.default) == f.default and type(_twelve) is float and _twelve == 12.0
+
+
+_mig_numeric = [f.name for f in _mig_fields(_MigEC) if f.metadata and _mig_defaulted(f)]
+_mig_unrepaired = [k for k in _mig_numeric if _mig_repairs({k: "12"}) != {k: 12.0}]
+R.check(
+    "every option whose parse defaults text it cannot read is repaired by the migration",
+    "optimization_interval" in _mig_numeric and "wood_lighting_lead_minutes" in _mig_numeric
+    and not _mig_unrepaired,
+    f"unrepaired: {_mig_unrepaired}",
+)
+R.check(
+    "and a stored number under each is left alone (null control)",
+    not [k for k in _mig_numeric if _mig_repairs({k: 12.0})],
+)
+
 _new = FakeEntry()
 _new.version = const.CONFIG_ENTRY_VERSION + 1
 R.check(
@@ -42502,7 +42606,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
-        ("__init__.py", "async_migrate_entry"): 1, ("accuracy.py", "from_dict"): 1,
+        ("__init__.py", "async_migrate_entry"): 2, ("accuracy.py", "from_dict"): 1,
         ("defrost.py", "from_dict"): 1, ("ledger.py", "from_dict"): 1,
         ("price_model.py", "from_dict"): 1, ("price_model.py", "_stored_rows"): 1,
         ("price_model.py", "_in_domain"): 1, ("snapshots.py", "from_dict"): 1,

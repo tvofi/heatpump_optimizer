@@ -33,7 +33,7 @@ from .const import (
     CONFIG_ENTRY_VERSION,
     DOMAIN,
 )
-from .entry_config import EntryConfig, placed
+from .entry_config import EntryConfig, number_repairs, placed, repaired_numbers
 
 # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
 # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
@@ -204,8 +204,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
     """Migrate a config entry created by an older version of the integration.
 
     Every option the integration reads is looked up with a default, so older
-    entries need their keys placed (7.2) and their version stamped forward. Without this handler Home
-    Assistant refuses to load entries created before the current
+    entries need their version stamped forward, any numeric option stored as a
+    non-number repaired -- numeric text stored as its number, anything else
+    dropped for its default (``entry_config.number_repairs``) -- and their keys
+    placed (7.2). Without this handler Home Assistant refuses to load entries
+    created before the current
     ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
     """
     if entry.version > CONFIG_ENTRY_VERSION:
@@ -227,10 +230,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
             CONFIG_ENTRY_VERSION,
             CONFIG_ENTRY_MINOR_VERSION,
         )
+        effective = {**entry.data, **entry.options}
+        repairs = number_repairs(effective)
+        if repairs:
+            _LOGGER.warning(
+                "Stored options that are not numbers: %s; text is stored as its number, "
+                "anything else is dropped and its default applies",
+                ", ".join(sorted(repairs)),
+            )
         # 7.2 stores each key in its one place. Placing only moves keys, and
         # on a key in both sides keeps the options value, the one in force,
         # so the effective mapping every reader takes is unchanged.
-        data, options = placed({**entry.data, **entry.options})
+        data, options = placed(repaired_numbers(effective, repairs))
         hass.config_entries.async_update_entry(
             entry,
             data=data,
