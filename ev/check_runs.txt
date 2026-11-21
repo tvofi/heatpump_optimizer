@@ -1,0 +1,4 @@
+head 827fa67eb6ee84d8874524557cdd540ca1b54593, read 2026-11-21 ~20:05Z via get_check_runs (55 runs)
+failure: tests / mutation (136961493894) -- ADDED UNPINNED coordinator.py:6146 BOOLOP, 11197 GUARD_OFF; solve_gate.py:76 GUARD_OFF, 78 RETURN_DEL, 90 GUARD_OFF, 129 GUARD_OFF; MUTATION TABLE REFUSED -- 1955 vs 1953 at 63c6d1cff9
+success: tests / closure-scope, tests / briefs, budget-raise-gate (x2), arch-score / arch-score (run 44940371676), validate / validate-hacs, governance / policy-docs, governance / wave-script, hassfest / hassfest, codeql / Analyze (actions), tests / nightly-status, prelude, refresh, cancel-superseded
+in_progress/queued: tests / mutation-pins (1)(2), tests / fast (3.14), closures, coverage, typing, replay, browser, arch-instrument, nightly-ha (stable, 2025.2.0), governance / env-matrix, governance / instrument-self-tests, codeql python/js

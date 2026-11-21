@@ -1,0 +1,12 @@
+NOTE body item e4fde940: dismissed:excluded by this PR's design; disposition recorded at its merge, as the carry directs
+NOTE body item 401b4860: dismissed:built and pinned in this PR
+NOTE body item 85ef765b: dismissed:built in this PR
+NOTE body item db96b316: dismissed:no test shows the cancellation the note asks to report
+NOTE body item bad27f92: dismissed:one re-raise per restart, re-latched on the next solve
+NOTE body item a0ac6ffd: dismissed:the round-11 register owns its harnesses
+NOTE body item 89a681d1: dismissed:a seat-environment conflict, recorded for the orchestrator
+NOTE review 0 item 00d6ea30: dismissed:answered in the body's Red checks; autofix pins pending
+NOTE review 0 item 00d6ea30: dismissed:paperwork on a body figure, not code
+NOTE review 0 item 00d6ea30: dismissed:a tree id that depends on the seat's merge drivers, not code
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)
+rc=0

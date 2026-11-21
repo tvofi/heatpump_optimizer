@@ -1,0 +1,104 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 27 script(s) run, 6 scoped out.
+  changed files (72), measured against the recorded closures in tests/closures.json:
+      custom_components/heatpump_optimizer/boost.py
+      custom_components/heatpump_optimizer/button.py
+      custom_components/heatpump_optimizer/coordinator.py
+      custom_components/heatpump_optimizer/services.py
+      custom_components/heatpump_optimizer/solve_gate.py
+      custom_components/heatpump_optimizer/strings.json
+      custom_components/heatpump_optimizer/translations/de.json
+      custom_components/heatpump_optimizer/translations/en.json
+      custom_components/heatpump_optimizer/translations/sv.json
+      custom_components/heatpump_optimizer/whatif.py
+      dev/audit/harnesses/r10_registry_leak.py
+      dev/audit/rounds/round4/D6/claims.json
+      dev/audit/rounds/round4/D6/claims.md
+      dev/audit/rounds/round4/D6/claims.py
+      dev/programme/delivery/3738.md
+      docs/architecture.md
+      tests/closures.json
+      tests/deployment_shape.py
+      tests/entities.py
+      tests/features.py
+      tests/harness.py
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_update_data.GUARD_OFF.3e107eaf.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._maybe_refresh_price_tile.GUARD_OFF.210c601b.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_diagnose_interval.GUARD_OFF.39438831.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_request_refresh.GUARD_OFF.7dceb299.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_run_optimization.BOOLOP.502b669f.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_run_optimization.GUARD_OFF.502b669f.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_run_optimization.GUARD_OFF.52efbb19.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_run_optimization.GUARD_OFF.6eb2683a.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_run_optimization.GUARD_OFF.6ef2c0d8.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_run_optimization.GUARD_OFF.cfa25e19.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.BOOLOP.1550d375.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.BOOLOP.17c29715.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.BOOLOP.19646b85.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.BOOLOP.6e295277.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.BOOLOP.866f534a.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.BOOLOP.f27ea26a.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.17c29715.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.237753fb.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.3dd2bc51.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.5f80a8b0.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.6e295277.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.7c57dbcc.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.7f751e2c.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.91e008d2.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.b2dd1f84.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.c4387b47.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.ddb12f29.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.RETURN_DEL.1457a93f.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.RETURN_DEL.54d1fe9f~2.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.RETURN_DEL.c0eb7824~2.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.RETURN_DEL.fd0988d6.json
+      tests/mutation_ledger/killed_by/coordinator.py/_await_optimize.GUARD_OFF.021cdc25.json
+      tests/mutation_ledger/killed_by/coordinator.py/_clear_worker_fallback.GUARD_OFF.5e16cb51.json
+      tests/mutation_ledger/killed_by/coordinator.py/_worker_stopping.BOOLOP.b1ddfbbc.json
+      tests/mutation_ledger/killed_by/coordinator.py/_worker_stopping.RETURN_DEL.b1ddfbbc.json
+      tests/mutation_ledger/killed_by/solve_gate.py/absorb_request.GUARD_OFF.00d050e6.json
+      tests/mutation_ledger/killed_by/solve_gate.py/absorb_request.RETURN_DEL.355fcbc3~2.json
+      tests/mutation_ledger/killed_by/solve_gate.py/absorb_request.RETURN_DEL.4b4b35b0.json
+      tests/mutation_ledger/killed_by/solve_gate.py/admit_background.GUARD_OFF.85ad9bb1.json
+      ... and 12 more
+
+      RUN   tests/arch_score.py
+      RUN   tests/arch_score_head.py (its tests/closures.json entry changed)
+      RUN   tests/backtest.py
+      RUN   tests/block_duty.py (its tests/closures.json entry changed)
+      RUN   tests/boost_drift_replay.py (its tests/closures.json entry changed)
+      RUN   tests/config_flow_steps.py (its tests/closures.json entry changed)
+      RUN   tests/debug_collect.py (its tests/closures.json entry changed)
+      RUN   tests/deployment_shape.py (its tests/closures.json entry changed)
+      RUN   tests/doc_claims.py (its tests/closures.json entry changed)
+      RUN   tests/entities.py (its tests/closures.json entry changed)
+      RUN   tests/env_drift.py (its tests/closures.json entry changed)
+      RUN   tests/features.py (its tests/closures.json entry changed)
+      RUN   tests/finite_boundary.py (its tests/closures.json entry changed)
+      RUN   tests/golden.py (its tests/closures.json entry changed)
+      RUN   tests/guard_pins.py (its tests/closures.json entry changed)
+      RUN   tests/harness_headers.py (its tests/closures.json entry changed)
+      RUN   tests/manual_plan.py (its tests/closures.json entry changed)
+      RUN   tests/md_tables.mjs
+      RUN   tests/optimality.py
+      RUN   tests/plan_view.py (its tests/closures.json entry changed)
+      RUN   tests/card.mjs (its tests/closures.json entry changed)
+      RUN   tests/card_drift.mjs (its tests/closures.json entry changed)
+      RUN   tests/solar_alignment.py (its tests/closures.json entry changed)
+      RUN   tests/stress.py
+      RUN   tests/structure.py (its tests/closures.json entry changed)
+      RUN   tests/typing_ruler.py (its tests/closures.json entry changed)
+      RUN   tests/wood_advisor.py (its tests/closures.json entry changed)
+
+      SKIP  tests/edge.py  (closure: 39 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 39 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
