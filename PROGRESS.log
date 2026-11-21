@@ -1,3 +1,4 @@
 1795283370 INIT r11-rev-3832
 1795283377 INIT r11-rev-3832
 1795283415 HB alive
+1795283452 CKPT head table byte-identical to CI selftest-absorbed artifact snapshot 9ffad0f3818f
