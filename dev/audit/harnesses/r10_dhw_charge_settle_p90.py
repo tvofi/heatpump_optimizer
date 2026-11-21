@@ -81,7 +81,7 @@ def run(
     learner = dl.DhwProfileLearner(
         None, "h", lambda: params,
         publish=lambda **k: usage_points.__setitem__(0, usage_points[0] + 1),
-        frozen=lambda *a: None,
+        frozen=lambda *a, **_kw: None,
         heating_active=lambda: heating[0],
         external_heat_active=lambda: False,
     )

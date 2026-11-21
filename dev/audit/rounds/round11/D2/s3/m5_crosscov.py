@@ -74,7 +74,10 @@ def run(noise, genuine, seed):
     h = SimpleNamespace(_house_heat_loss_scale=1.0, _house_heat_loss_samples=0,
                         _internal_gains_profile=None,
                         _config=SimpleNamespace(internal_gains_learning_enabled=True),
-                        _thermal_params=params)
+                        _thermal_params=params,
+                        # an occupied, clean interval: the fold's own freeze ask
+                        # (R11-SEAM-learners) answers nothing here, as before it
+                        _learning_frozen=lambda *keys, **kw: None)
     t0 = datetime(2026, 1, 1)
     n = int(A.days * 24 / DT_H)
     premature = 0

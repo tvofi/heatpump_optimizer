@@ -41,6 +41,7 @@ from .const import (
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .inputs import plausible_c
 from .thermal_model import TANK_ROOM_AMBIENT_TEMP, ThermalParameters
+from .learning_freeze import Sample
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -163,7 +164,7 @@ class DhwProfileLearner:
         params: Callable[[], ThermalParameters],
         *,
         publish: Callable[..., None],
-        frozen: Callable[[str], str | None],
+        frozen: Callable[..., str | None],
         heating_active: Callable[[], bool],
         external_heat_active: Callable[[], bool],
     ) -> None:
@@ -438,27 +439,31 @@ class DhwProfileLearner:
         self.last_sample_time = now
         self.heating_since_sample = heating
 
-        frozen = self._frozen(CONF_DHW_TEMP_ENTITY)
+        frozen = self._frozen(CONF_DHW_TEMP_ENTITY, sample=Sample.PLANT)
         if frozen:
             return frozen
+        # The usage hours and the draws are the occupied house's: an away
+        # period holds them, never the tank's standby loss (D7-s2-01).
+        occupied = self._frozen(CONF_DHW_TEMP_ENTITY, sample=Sample.TANK_DRAW)
 
         if previous_temp is None or previous_time is None:
-            return None
+            return occupied
 
         dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
         if dt_h <= 0.02 or dt_h > DHW_COOLING_MAX_SAMPLE_HOURS:
-            return None
+            return occupied
 
         temp_drop = previous_temp - dhw_temp
         weekend = now.weekday() >= 5
         recovered_k, due = self.charge_settle.advance(
             heated_interval, settling, [previous_temp, temp_drop, dt_h, now.hour, weekend]
         )
-        for prev, drop, dt_p, hour, wkend in due:
-            await self.async_learn_usage(prev, drop, dt_p, hour, False, weekend=wkend)
-
         if not heated_interval:
             await self.async_learn_cooling(previous_temp, dhw_temp, dt_h)
+        if occupied:
+            return occupied
+        for prev, drop, dt_p, hour, wkend in due:
+            await self.async_learn_usage(prev, drop, dt_p, hour, False, weekend=wkend)
         if not settling:
             await self.async_learn_usage(
                 previous_temp, temp_drop, dt_h, now.hour, heated_interval, weekend=weekend
