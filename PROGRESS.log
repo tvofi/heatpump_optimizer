@@ -1,2 +1,3 @@
 1795268892 INIT r11-rev-3821
 1795268961 HB alive
+1795269014 CKPT packet and body read; starting CI wait and mutation re-run snapshot a91cd07b2a46
