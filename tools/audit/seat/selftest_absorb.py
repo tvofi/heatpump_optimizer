@@ -198,7 +198,8 @@ def beat(p: Pass, runs_given: list[str], max_runs: int, at: str | None, do_push:
         if newest is None:
             raise Unreadable(f"no measured drift step in {len(runs)} run(s)")
         if newest[2] == "clean":
-            return 0, [f"SELFTEST-ABSORB CLEAN at {newest[1][:12] or newest[0]} (run {newest[0]}): nothing to absorb"]
+            at_sha = f" at {newest[1][:12]}" if newest[1] else ""
+            return 0, [f"SELFTEST-ABSORB CLEAN{at_sha} (run {newest[0]}): nothing to absorb"]
         rc, _, err = p.git("-C", str(p.repo_dir), "fetch", "-q", "origin", "main")
         tip = at or p.git("-C", str(p.repo_dir), "rev-parse", "origin/main")[1].strip()
         if (rc != 0 and not at) or not re.fullmatch(r"[0-9a-f]{40}", tip):

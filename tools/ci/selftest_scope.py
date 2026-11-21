@@ -1045,8 +1045,8 @@ def carried(src: dict, live: dict[str, str], tracked: set[str], tracked_dirs: se
             return name in tracked_dirs
         return item in tracked if kind == "files" else probe_path(item, tracked_dirs) and item not in gone
 
-    return {sid: {**{k: False for k in FLAG_KINDS}, **got,
-                  **{k: [x for x in got.get(k, ()) if here(k, x)] for k in LIST_KINDS}}
+    return {sid: {**got, **{k: [x for x in got.get(k, ()) if here(k, x)] for k in LIST_KINDS},
+                  **{k: bool(got.get(k)) for k in FLAG_KINDS}}  # in got's key order: the written table's bytes
             for sid, got in sorted(src.get("steps", {}).items()) if live.get(sid) == got.get("run_sha")}
 
 
