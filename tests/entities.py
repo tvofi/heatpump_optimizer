@@ -560,13 +560,13 @@ _ROOM_BLOCK = {
 _room_coord = FakeCoordinator({**DATA, "rooms": _ROOM_BLOCK})
 _room_coord._config = {_ROOM_KEY: ["climate.a", "sensor.b", "climate.c"]}
 _room_all = collect(sensor, coordinator=_room_coord)
-_room_keys = ("room_average_temperature", "room_temperature_spread")
+_room_keys = ("room_average_temperature", "room_temperature_spread", "room_separability")
 room_sensors = [e for e in _room_all if e._attr_translation_key in _room_keys]
 _room_by_key = {e._attr_translation_key: e for e in room_sensors}
 R.check(
-    "a configured room list adds exactly the room average and spread sensors; null control, the "
-    "default roster with no list holds neither",
-    len(_room_all) == len(sensors) + 2 and set(_room_by_key) == set(_room_keys)
+    "a configured room list adds exactly the room average, spread and separability sensors; null "
+    "control, the default roster with no list holds none of them",
+    len(_room_all) == len(sensors) + 3 and set(_room_by_key) == set(_room_keys)
     and not any(e._attr_translation_key in _room_keys for e in sensors),
     f"{len(_room_all)} vs {len(sensors)}: {sorted(_room_by_key)}",
 )
@@ -22668,14 +22668,15 @@ R.check(
     f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
-# pull request. The cap is per leg, read from the matrix's `include` entries
-# (r10-hotfix-codeql-headroom, design note sections 1 and 3): python carries 75
-# because main's python job outgrew the 45-minute cap (extraction of
-# tests/features.py is the critical path; projected uncensored worst case about
-# 51 minutes, so 75 is that plus a deliberate stopgap margin); the two legs that
-# read about 40x under the cap stay at exactly 45, which is the null control
-# (a blanket raise would move them and fails here). The cap is pinned against
-# the YAML, not left as prose in the workflow, because a one-line edit
+# pull request and reddens main's gate. The cap is per leg, read from the
+# matrix's `include` entries: python's 45 became 75 (r10-hotfix-codeql-headroom)
+# and 75 became 120 (R11-HOTFIX-CODEQL-PERMS) when main's push jobs outran it:
+# 22 of the 40 newest were capped at 75.1 minutes, so the measured worst case
+# is censored above 75 and the floor below is the first whole minute past that
+# cap (the workflow's comment carries the job list's enumerator). The two legs
+# that read about 40x under the cap stay at exactly 45, which is the null
+# control (a blanket raise would move them and fails here). The cap is pinned
+# against the YAML, not left as prose in the workflow, because a one-line edit
 # shrinking it back is exactly what no other check reads.
 _CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
 _analyze_job = _CODEQL_JOBS.get("analyze") or {}
@@ -22684,7 +22685,7 @@ _analyze_incl = (((_analyze_job.get("strategy") or {}).get("matrix") or {})
                  .get("include")) or []
 _leg_caps = {e.get("language"): e.get("timeout") for e in _analyze_incl
              if isinstance(e, dict)}
-_PY_WORST_CASE_MIN = 51
+_PY_WORST_CASE_MIN = 76
 R.check(
     "codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45",
     _analyze_cap == "${{ matrix.timeout }}"
@@ -22696,9 +22697,9 @@ R.check(
     and _leg_caps["javascript-typescript"] == 45
     and type(_leg_caps["javascript-typescript"]) is int,
     f"timeout-minutes={_analyze_cap!r}; include caps={_leg_caps!r}; the python "
-    "leg was capped at 45.1 min on main (projected worst case ~51, design "
-    "r10-hotfix-codeql-headroom s1); actions and javascript-typescript read "
-    "p99 <= 2.3 min and stay 45",
+    "leg was capped at 75.1 min on 22 of main's 40 newest push jobs (worst case "
+    "censored above 75, R11-HOTFIX-CODEQL-PERMS); actions and "
+    "javascript-typescript read p99 <= 2.3 min and stay 45",
 )
 # D-5: O17's INERT list is admitted only with the soundness step, which runs
 # on push and reads the leg's extracted source archive; and the `scope` job
@@ -22886,11 +22887,13 @@ R.check(
 # child, never every closure (R9-F10.9; this pinned `full` until then).
 # tests/entities.py is the third entry: countermeasure B's pin reads every
 # non-INERT .py under tests/ and tools/, so every such edit re-derives it.
+# tests/doc_claims.py is the fourth: its comment ratchet reads every tests/ script.
 _A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
     "a change to a subprocess-driven script re-derives its driver and itself",
     _A_DRIVEN["case"] == "scoped"
-    and _A_DRIVEN["rederive"] == ["tests/entities.py", "tests/features.py", "tests/dst_checks.py"],
+    and _A_DRIVEN["rederive"] == ["tests/doc_claims.py", "tests/entities.py", "tests/features.py",
+                                  "tests/dst_checks.py"],
     f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
 )
 # A tests/closures.json change runs the scripts whose entry moved, measured

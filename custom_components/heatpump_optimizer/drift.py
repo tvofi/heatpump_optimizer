@@ -39,10 +39,10 @@ REFERENCE_PRIOR_COV = 1.0
 def utc_instant(value: datetime) -> datetime:
     """``value`` as an aware UTC instant: naive is read as UTC, aware is converted.
 
-    The package's one reading of a naive instant's zone (round-11 D7-s3-04):
-    the stored and solver stamps are UTC-walked, so a naive one is UTC, never
-    the host's zone -- ``open_meteo`` read it with ``astimezone`` and landed
-    nine hours off under a Tokyo host.
+    This is the package's one reading of a naive instant's zone (round-11
+    D7-s3-04). The stored and solver stamps are UTC-walked, so a naive one is
+    UTC, never the host's zone. ``open_meteo`` read it with ``astimezone`` and
+    landed nine hours off under a Tokyo host.
     """
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)

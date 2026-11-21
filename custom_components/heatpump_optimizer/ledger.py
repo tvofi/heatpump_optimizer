@@ -42,9 +42,9 @@ _LOGGER = logging.getLogger(__name__)
 KEEP_MONTHS = 24
 
 #: The lines a receipt's total adds up: what the month cost. Every other line
-#: restates one of these -- ``space`` and ``dhw`` split the spot energy by
+#: restates one of these. ``space`` and ``dhw`` split the spot energy by
 #: circuit, the ``reason:`` lines partition it by why, and the two
-#: ``savings_`` lines compare it with a thermostat -- so adding any of them
+#: ``savings_`` lines compare it with a thermostat. Adding any of them
 #: counts the same money again (R9-UX-6).
 BILLED_LINES = ("spot", "grid_fee", "capacity", *RESISTIVE_LINES, "wear")
 
@@ -72,9 +72,9 @@ REFERENCE_BASIS_META = "reference_basis"
 
 #: The reference in force: a heat-pump thermostat with no wood tank and no fire,
 #: booked as simulated. Bump when the booked reference changes: 1 spread a
-#: valved horizon by steady demand (released in v7.1.15), so its months are old;
+#: valved horizon by steady demand (released in v7.1.15), so its months are old.
 #: 2 held a valve-limited two-zone house at level floors below the plant's
-#: ceiling (released in v7.1.17), where pull request 3587 holds it at the valve top;
+#: ceiling (released in v7.1.17), where pull request 3587 holds it at the valve top.
 #: 3 held a single-zone valved house short of its setpoint, its curve missing the
 #: slab in series (released in v10.0.0), which R11-VALVE-REFERENCE's curve reaches.
 REFERENCE_BASIS = 4
@@ -84,8 +84,8 @@ OLD_REFERENCE_BASIS = 0
 
 #: The plan's stored-heat change over the settled intervals, kWh_th (its
 #: ``sek`` stays 0). The row converts it once, at the month's mean steady COP
-#: (``STEADY_COP_META``), and prices it once, at its own metered kWh price:
-#: an interval's own COP or price would cancel the timing saving of a store
+#: (``STEADY_COP_META``), and prices it once, at its own metered kWh price.
+#: An interval's own COP or price would cancel the timing saving of a store
 #: charged warm or cheap and drawn cold or dear (owner ruling, 2026-11-04).
 SAVINGS_STORED_LINE = "savings_stored"
 
@@ -213,7 +213,7 @@ def applied_calibration(
     did not heat (``"wood_free"``), so a model that reads the meter high is
     corrected down and one that reads it low up. Where those booked under
     ``MIN_CALIBRATION_KWH`` of plan (``wood_free`` None), the month's meter,
-    only ever raising the thermostat (``"wood_floor"``): a meter under the plan
+    only ever raising the thermostat (``"wood_floor"``). A meter under the plan
     there is what an unforeseen fire looks like, and scaling down by it would
     cancel wood's heat from the saving.
     """
@@ -353,7 +353,7 @@ class MonthlyLedger:
         The interval's hours fold into the month's coverage first, priced or
         not: the open month's estimate scales by how much of the month was
         settled, not by the calendar day (#2255 item 2). Both savings sides
-        are priced at spot plus the interval's per-kWh grid fee: a thermostat
+        are priced at spot plus the interval's per-kWh grid fee. A thermostat
         that drew other kWh would have paid the fee on those, and the bill the
         row is set against carries the fee line (#2255 item 5). A missing fee
         prices at spot alone, as the bill does.
@@ -612,7 +612,7 @@ def explain_metered(
     """``[(reason, kWh)]`` partitioning one interval's metered energy.
 
     A reason names WHY a plan ran a channel. A channel the plan was drawing on
-    is explained by the reason for its step, whatever the meter's magnitude: a
+    is explained by the reason for its step, whatever the meter's magnitude. A
     step below the modulation floor is duty cycling within it, so a reading
     above the step's average is the pump's own cycling and not an unplanned
     draw. A channel the plan was drawing NOTHING on — ``payload.IDLE_REASONS``,
@@ -704,7 +704,7 @@ def freeze_month_report(
         "contract_comparison": contract_comparison,
         # The partition check, published instead of asserted: a receipt that
         # hides its own bookkeeping error is worse than one that admits it.
-        # None, not False, for a month with no reason lines at all -- a
+        # None, not False, for a month with no reason lines at all. A
         # pre-T6 month never had a partition to break, and publishing
         # "failed" for it would make an upgrade look like the very bug the
         # flag exists to expose.

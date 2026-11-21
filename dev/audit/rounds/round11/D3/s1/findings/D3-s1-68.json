@@ -1,0 +1,47 @@
+{
+ "id": "D3-s1-68",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "No check bounds single-tank valve delivery by the tank energy over dt; max->min is unseen",
+ "severity": "low",
+ "claim": "Mutant 22b5ec8775d5bd50 at thermal_model.py:2593 survives the full gate (SURVIVED), yet the probe's delta moves: baseline delivered=0.278400 kW, mutant delivered=2.800000 kW.",
+ "mechanism": "Reach: reach_valve_calls_single_tank=64 on the public simulate_step path. Check that should have failed (D3.M4): no tank-energy bound check in tests/edge.py or tests/block_duty.py (both drive mixing_valve_mode) pins the delivered-heat cap.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+  "value": 2.5216,
+  "unit": "valve-delivered heat in kW from a 20 L tank at 24 C, manual valve target 35 C, dt 0.25 h",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+  "cpu_or_wall": "n/a",
+  "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+  "tolerance": "exact",
+  "load1": 1.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:_valve_two_zone_delivery",
+ "perturbation": {
+  "change": "the mutant edit at thermal_model.py:2593 applied in memory by the probe (20 L tank at 24 C, pump 0 kW, manual valve target 35 C, dt 0.25 h, single tank); full gate: fullgate.py run --key 22b5ec8775d5bd50",
+  "expected_direction": "up",
+  "observed_value": 2.5216
+ },
+ "metric_definition": "valve-delivered heat in kW from a 20 L tank at 24 C, manual valve target 35 C, dt 0.25 h",
+ "phenomenon_property": "Heat a valve draws from a single tank in one step never exceeds the tank's usable energy divided by dt",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+  "value": "0.0 kW",
+  "note": "null arm where the edit cannot matter; identical floats under both arms"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_22b5ec87.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key 22b5ec8775d5bd50"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (delivered=0.278400 kW)",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}
