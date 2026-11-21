@@ -42539,19 +42539,17 @@ def _r11_logger_aliases(sources, files=None):
     ``logging.getLogger(...)``; an attribute named ``logging``, ``logger``
     (Home Assistant's coordinator exposes the handed-over ``_LOGGER`` so),
     ``_LOGGER`` or ``warnings``. Also refused: the module ``warnings`` (Home
-    Assistant turns on ``logging.captureWarnings``); an attribute named
-    ``call_exception_handler`` or ``default_exception_handler`` (each writes
-    an ERROR record through asyncio's logger, naming none);
+    Assistant turns on ``logging.captureWarnings``), and an attribute named
+    ``call_exception_handler`` or ``default_exception_handler``: each writes
+    an ERROR record through asyncio's logger, naming none. Also refused:
     ``_LOGGER.<method>(...)`` outside the level calls and ``isEnabledFor``;
     and ``_LOGGER`` itself escaping, as an argument, a return value, an
     element or a bound method.
 
     Refused, by the payload, whatever later runs it: an identifier that names
-    a logger or an exception handler (``LOGGER``, ``logger``, ``logging``,
-    ``warnings``, ``call_exception_handler``, ``default_exception_handler``
-    inside it) in
+    a logger (``LOGGER``, ``logger``, ``logging``, ``warnings`` inside it) in
     any other place, a keyword, a parameter, a definition, an import alias or
-    module. Each can become text: ``dict(_LOGGER=0)`` turns a name into a
+    module. Either handler's name counts as naming one. Each can become text: ``dict(_LOGGER=0)`` turns a name into a
     string. Also refused: a str or bytes constant, a docstring included, or a
     tracked file of the package that is not a module (a ``.pyc`` included),
     that names one. The constant is read as written and through each
