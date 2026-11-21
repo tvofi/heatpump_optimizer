@@ -5391,7 +5391,7 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-seam-solver",
     "commit": "689f33e2653f90ef0abeb10d1fc45be83a2d01cd",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
