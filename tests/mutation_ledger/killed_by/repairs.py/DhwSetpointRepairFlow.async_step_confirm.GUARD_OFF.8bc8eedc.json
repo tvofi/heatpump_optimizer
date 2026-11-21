@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/repairs.py:DhwSetpointRepairFlow.async_step_confirm GUARD_OFF 8bc8eedc",
+  "killed_by": "tests/features.py",
+  "old": "        if user_input is None:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,949 @@
+{
+ "perturb": null,
+ "cells": 900,
+ "states": [
+  "status_idle",
+  "status_stale",
+  "status_fallback",
+  "live_default",
+  "live_default_expanded",
+  "draft_menu_open",
+  "menu_right_edge",
+  "menu_right_edge_dhw",
+  "pin_ok",
+  "pin_fail",
+  "save_confirm",
+  "save_ok",
+  "save_fail",
+  "dhw_clamped",
+  "no_plan",
+  "no_plan_expanded",
+  "score_open",
+  "score_open_typical",
+  "score_open_no_evidence",
+  "score_open_graded_pump",
+  "savings_open",
+  "hidden_series",
+  "folds_open",
+  "tooltip_hover",
+  "override_active",
+  "wood_alert",
+  "wood_lane",
+  "away_return",
+  "away_status",
+  "setup_two_tank",
+  "advisor_page",
+  "health_page",
+  "savings_page",
+  "savings_page_wood",
+  "estimated_price_hover",
+  "shared_steps_hover",
+  "view_limit",
+  "layout_editing",
+  "setup_clear_armed",
+  "setup_unset_open",
+  "picker_twins",
+  "plan_short_window",
+  "custom_title_currency",
+  "setup_single_buffer",
+  "setup_coil",
+  "savings_empty",
+  "setup_not_published",
+  "advisor_empty",
+  "history_unavailable",
+  "history_pending"
+ ],
+ "missed": [],
+ "offscale_fonts": {
+  "14": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "span",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "div.wi-result",
+   "span.wi-value.wi-comfort-value",
+   "span.wi-value.wi-dhw-value",
+   "button",
+   "span.cheaper",
+   "span.dearer",
+   "button.wi-save.confirm",
+   "div.wi-result.cheaper",
+   "div.wi-result.dearer",
+   "div.empty",
+   "div.wi-row.wi-override",
+   "button.wi-auto",
+   "label",
+   "div",
+   "span.fact-title",
+   "span.fact-text",
+   "button.fact-act",
+   "span.fact-label",
+   "span.fact-value",
+   "span.fact-est",
+   "div.fact-unpriced-head",
+   "h3.health-h",
+   "span.model-value",
+   "th",
+   "th.num",
+   "td",
+   "span.savings-est",
+   "td.num",
+   "span.sv-val",
+   "span.savings-est.savings-old",
+   "div.sp-title",
+   "button.sp-save.confirm",
+   "button.sp-cancel",
+   "button.sp-save",
+   "button.chip",
+   "button.chip.nodata",
+   "button.chip.off",
+   "button.layout-edit-toggle.on",
+   "button.layout-save",
+   "button.layout-undo",
+   "button.layout-tidy"
+  ],
+  "16": [
+   "button.chip",
+   "button.chip.nodata",
+   "div.empty",
+   "button.chip.off",
+   "button.layout-edit-toggle.on",
+   "button.layout-save",
+   "button.layout-undo",
+   "button.layout-tidy",
+   "button"
+  ],
+  "19.6": [
+   "span.title"
+  ],
+  "16.66": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "12.16": [
+   "p.legend-note"
+  ],
+  "12.6": [
+   "div.wi-group-title",
+   "button.wi-add",
+   "button.wi-add-quiet",
+   "div.savings-wood-note",
+   "div.hist-note"
+  ],
+  "17.5": [
+   "span.delta",
+   "span.delta.dearer"
+  ],
+  "15.4": [
+   "button.wi-remove"
+  ],
+  "13.12": [
+   "span.hl-caveat",
+   "span.sb-name",
+   "span.sb-val",
+   "span.sb-na"
+  ],
+  "12.48": [
+   "div.sb-text.sb-drivers",
+   "div.sb-text"
+  ],
+  "10.92": [
+   "div.tt-time",
+   "div.tt-row",
+   "div.tt-reason"
+  ],
+  "14.4": [
+   "div.wood-alert"
+  ],
+  "9.28": [
+   "div.tt-shared"
+  ],
+  "11.9": [
+   "span.layout-verdict.match"
+  ],
+  "11.2": [
+   "div.sp-note"
+  ],
+  "12.88": [
+   "div.tt-time",
+   "div.tt-row",
+   "div.tt-reason",
+   "span.why-head",
+   "li"
+  ],
+  "10.95": [
+   "div.tt-shared"
+  ]
+ },
+ "offscale_spacing": {
+  "1": [
+   "div.sb-row",
+   "input",
+   "button.wi-viewreset"
+  ],
+  "2": [
+   "div.header",
+   "span.tile-v",
+   "div.dlg-head",
+   "div.legend",
+   "p.legend-note",
+   "input.wi-temp",
+   "input.wi-dhw-min",
+   "div.headline",
+   "span.hl-value",
+   "div.score-breakdown",
+   "div.score-breakdown.why-now",
+   "div.viewctl",
+   "div.fact-head",
+   "button.fact-row",
+   "div.fact-unpriced-head",
+   "span.gains-strip",
+   "ul"
+  ],
+  "3": [
+   "span.status-pill.tone-idle",
+   "span.tile-u",
+   "span.status-pill.tone-warn",
+   "span.status-pill.tone-crit",
+   "span.status-pill.tone-ok",
+   "div.tt-time",
+   "input",
+   "button.layout-edit-toggle.on",
+   "p.setup-dest",
+   "div.setup-hint",
+   "div.setup-result",
+   "div.tt-shared",
+   "button.layout-save",
+   "button.layout-undo",
+   "button.layout-tidy",
+   "button"
+  ],
+  "6": [
+   "span.status-pill.tone-idle",
+   "span.status-pill.tone-warn",
+   "span.status-pill.tone-crit",
+   "span.status-pill.tone-ok",
+   "span.legend-chips",
+   "div.score-breakdown",
+   "ul.hl-narrative",
+   "div.score-breakdown.why-now",
+   "div.tt-row",
+   "button.layout-edit-toggle.on",
+   "p.setup-dest",
+   "div.setup-hint",
+   "div.setup-result",
+   "div.fact-inbox-row",
+   "div.health-row",
+   "div.health-row.model-row",
+   "div.health-row.health-support",
+   "div.health-row.health-debug",
+   "div.wi-viewlimit",
+   "button.layout-save",
+   "button.layout-undo",
+   "button.layout-tidy",
+   "button"
+  ],
+  "7": [
+   "div.setup-page",
+   "div.layout-bar.tank-bar",
+   "div.setup-page.advisor-page",
+   "div.setup-page.health-page",
+   "th",
+   "th.num",
+   "td",
+   "td.num",
+   "div.setup-page.editing",
+   "div.layout-bar",
+   "div.sp-actions",
+   "div.legend"
+  ],
+  "10": [
+   "span.status-pill.tone-idle",
+   "span.status-pill.tone-warn",
+   "span.status-pill.tone-crit",
+   "span.status-pill.tone-ok",
+   "button.layout-edit-toggle.on",
+   "button.layout-save",
+   "button.layout-undo",
+   "button.layout-tidy",
+   "button"
+  ],
+  "14": [
+   "div.fact-unpriced-head"
+  ],
+  "28": [
+   "div.empty"
+  ],
+  "10.78": [
+   "div.dlg-head"
+  ],
+  "8.82": [
+   "div.dlg-head",
+   "div.hist-note"
+  ],
+  "5.88": [
+   "div.dlg-tabs"
+  ],
+  "5.83": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "14.99": [
+   "button.dlg-tab.active",
+   "button.dlg-tab"
+  ],
+  "7.2": [
+   "button.chip",
+   "button.chip.nodata",
+   "button.chip.off"
+  ],
+  "13.6": [
+   "button.chip",
+   "button.chip.nodata",
+   "button.chip.off"
+  ],
+  "11.2": [
+   "div.whatif",
+   "div.fact-inbox-row",
+   "div.health-row",
+   "div.health-row.model-row",
+   "div.health-row.health-support",
+   "div.health-row.health-debug",
+   "div.setup-picker",
+   "button.sp-save.confirm",
+   "button.sp-cancel",
+   "button.sp-save"
+  ],
+  "4.2": [
+   "div.whatif",
+   "button.fact-act",
+   "input.sp-filter",
+   "select.sp-select"
+  ],
+  "2.1": [
+   "div.whatif"
+  ],
+  "9.8": [
+   "div.whatif",
+   "div.wi-row.wi-delta",
+   "div.wi-row.wi-actions",
+   "div.wi-section",
+   "div.wi-row.wi-slots",
+   "div.wi-row",
+   "button",
+   "div.wi-row.wi-override",
+   "button.fact-row",
+   "div.setup-picker"
+  ],
+  "16.8": [
+   "div.wi-row.wi-delta",
+   "div.wi-row.wi-actions",
+   "div.wi-row.wi-slots",
+   "div.wi-row",
+   "div.wi-row.wi-override"
+  ],
+  "6.3": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "button.wi-save.confirm",
+   "button.wi-auto",
+   "button.fact-row",
+   "button.chip",
+   "button.chip.nodata",
+   "button.chip.off"
+  ],
+  "11.9": [
+   "button.wi-pin",
+   "button.wi-revert",
+   "button.wi-apply",
+   "button.wi-save",
+   "button.wi-reset",
+   "button.wi-save.confirm",
+   "button.wi-auto",
+   "button.chip",
+   "button.chip.nodata",
+   "button.chip.off"
+  ],
+  "5.6": [
+   "div.wi-pin-result",
+   "div.wi-group",
+   "input.wi-day-start",
+   "input.wi-day-end",
+   "div.wi-windows",
+   "div.wi-quiet",
+   "button",
+   "div.wi-window",
+   "input.wi-win-start",
+   "input.wi-win-end",
+   "label",
+   "div.layout-bar.tank-bar",
+   "div.layout-bar",
+   "div.sp-title",
+   "input.sp-filter",
+   "div.sp-actions"
+  ],
+  "12.6": [
+   "div.wi-section",
+   "button.fact-act"
+  ],
+  "7.7": [
+   "label.wi-field"
+  ],
+  "2.8": [
+   "input.wi-day-start",
+   "input.wi-day-end",
+   "div.slot-menu",
+   "input.wi-win-start",
+   "input.wi-win-end"
+  ],
+  "5.67": [
+   "button.wi-add",
+   "button.wi-add-quiet",
+   "div.hist-note"
+  ],
+  "10.71": [
+   "button.wi-add",
+   "button.wi-add-quiet"
+  ],
+  "1.89": [
+   "select.wi-win-days"
+  ],
+  "2.52": [
+   "select.wi-win-days"
+  ],
+  "6.93": [
+   "button.wi-remove"
+  ],
+  "3.5": [
+   "div.setup-page",
+   "div.layout-bar.tank-bar",
+   "div.setup-page.advisor-page",
+   "div.setup-page.health-page",
+   "div.setup-page.editing",
+   "div.layout-bar",
+   "button.sp-save.confirm",
+   "button.sp-cancel",
+   "button.sp-save"
+  ],
+  "5.46": [
+   "div.tooltip"
+  ],
+  "7.64": [
+   "div.tooltip"
+  ],
+  "6.48": [
+   "div.wood-alert"
+  ],
+  "10.08": [
+   "div.wood-alert"
+  ],
+  "8.64": [
+   "div.wood-alert"
+  ],
+  "10.5": [
+   "div.away-strip",
+   "div.legend"
+  ],
+  "8.4": [
+   "div.fact-inbox-row",
+   "div.health-row",
+   "div.health-row.model-row",
+   "div.health-row.health-support",
+   "div.health-row.health-debug"
+  ],
+  "4.9": [
+   "span.fact-est",
+   "th",
+   "th.num",
+   "td",
+   "td.num"
+  ],
+  "7.56": [
+   "div.savings-wood-note",
+   "div.hist-note"
+  ],
+  "4.48": [
+   "div.sp-note"
+  ],
+  "6.44": [
+   "div.tooltip"
+  ],
+  "9.02": [
+   "div.tooltip"
+  ],
+  "14.17": [
+   "ul"
+  ]
+ },
+ "misaligned_rows": [
+  {
+   "cell": "score_open/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_typical/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_no_evidence/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_graded_pump/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "savings_open/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "folds_open/375/light/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_typical/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_no_evidence/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "score_open_graded_pump/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "savings_open/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  },
+  {
+   "cell": "folds_open/375/dark/de-DE",
+   "grid": ".hl-stats",
+   "db": 14,
+   "df": 0,
+   "labels": [
+    "Voraussichtliche Einsparung",
+    "Optimierungswert"
+   ],
+   "lines": [
+    2,
+    1
+   ]
+  }
+ ],
+ "misaligned_by_state": {
+  "score_open/de-DE": 2,
+  "score_open_typical/de-DE": 2,
+  "score_open_no_evidence/de-DE": 2,
+  "score_open_graded_pump/de-DE": 2,
+  "savings_open/de-DE": 2,
+  "folds_open/de-DE": 2
+ },
+ "series_split": {},
+ "untranslated": {
+  "Most heating is placed in the cheapest hours.": [
+   "score_open/de-DE",
+   "score_open_typical/de-DE",
+   "score_open_no_evidence/de-DE",
+   "score_open_graded_pump/de-DE",
+   "savings_open/de-DE",
+   "score_open/sv-SE",
+   "score_open_typical/sv-SE",
+   "score_open_no_evidence/sv-SE",
+   "score_open_graded_pump/sv-SE",
+   "savings_open/sv-SE"
+  ],
+  "Buffer tank temperature": [
+   "advisor_page/de-DE",
+   "advisor_page/sv-SE"
+  ],
+  "Hot water temperature": [
+   "advisor_page/de-DE",
+   "advisor_page/sv-SE"
+  ],
+  "Indoor temperature": [
+   "setup_clear_armed/de-DE",
+   "setup_clear_armed/sv-SE"
+  ],
+  "Wood tank top": [
+   "picker_twins/de-DE",
+   "picker_twins/sv-SE"
+  ]
+ },
+ "console_errors": [],
+ "role_colours": {
+  "light:warn": {
+   "rgb(138, 90, 0)": [
+    "span.status-pill.tone-warn @status_stale",
+    "span.status-pill.tone-warn @health_page"
+   ],
+   "rgb(255, 166, 0)": [
+    "div.wood-alert (stripe) @wood_alert"
+   ]
+  },
+  "light:error": {
+   "rgb(179, 38, 30)": [
+    "span.status-pill.tone-crit @status_fallback"
+   ],
+   "rgb(202, 76, 70)": [
+    "span.delta.dearer @draft_menu_open",
+    "span.delta.dearer @pin_ok",
+    "span.dearer @pin_fail",
+    "div.wi-result.dearer @save_fail"
+   ]
+  },
+  "light:ok": {
+   "rgb(28, 115, 80)": [
+    "span.status-pill.tone-ok @live_default",
+    "span.status-pill.tone-ok @score_open",
+    "span.status-pill.tone-ok @score_open_typical",
+    "span.status-pill.tone-ok @score_open_no_evidence",
+    "span.status-pill.tone-ok @score_open_graded_pump",
+    "span.status-pill.tone-ok @folds_open",
+    "span.status-pill.tone-ok @wood_alert",
+    "span.status-pill.tone-ok @wood_lane"
+   ],
+   "rgb(36, 132, 93)": [
+    "span.cheaper @pin_ok",
+    "div.wi-result.cheaper @save_ok"
+   ]
+  },
+  "dark:warn": {
+   "rgb(227, 178, 90)": [
+    "span.status-pill.tone-warn @status_stale",
+    "span.status-pill.tone-warn @health_page"
+   ],
+   "rgb(255, 166, 0)": [
+    "div.wood-alert (stripe) @wood_alert"
+   ]
+  },
+  "dark:error": {
+   "rgb(242, 139, 130)": [
+    "span.status-pill.tone-crit @status_fallback"
+   ],
+   "rgb(224, 87, 77)": [
+    "span.delta.dearer @draft_menu_open",
+    "span.delta.dearer @pin_ok",
+    "span.dearer @pin_fail",
+    "div.wi-result.dearer @save_fail"
+   ]
+  },
+  "dark:ok": {
+   "rgb(31, 173, 107)": [
+    "span.status-pill.tone-ok @live_default",
+    "span.cheaper @pin_ok",
+    "div.wi-result.cheaper @save_ok",
+    "span.status-pill.tone-ok @score_open",
+    "span.status-pill.tone-ok @score_open_typical",
+    "span.status-pill.tone-ok @score_open_no_evidence",
+    "span.status-pill.tone-ok @score_open_graded_pump",
+    "span.status-pill.tone-ok @folds_open"
+   ]
+  }
+ },
+ "english_error_lines": [
+  "pin_fail/375/light/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/375/light/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/375/light/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/375/light/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/375/dark/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/375/dark/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/375/dark/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/375/dark/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/768/light/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/768/light/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/768/light/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/768/light/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/768/dark/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/768/dark/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/768/dark/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/768/dark/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/1280/light/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/1280/light/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/1280/light/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/1280/light/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/1280/dark/de-DE: .wi-pin-result Anwenden nicht möglich: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/1280/dark/de-DE: .wi-result Speichern nicht möglich: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C",
+  "pin_fail/1280/dark/sv-SE: .wi-pin-result Kunde inte tillämpa: No loaded Heat Pump Optimizer config entry matched this call",
+  "save_fail/1280/dark/sv-SE: .wi-result Kunde inte spara: A hot water minimum of 52 °C leaves no deadband below the 55 °C setpoint; it must be at most 50 °C"
+ ],
+ "below_floor": {
+  "div.tt-time 10.92px": [
+   "tooltip_hover/375/light/en",
+   "estimated_price_hover/375/light/en",
+   "shared_steps_hover/375/light/en",
+   "tooltip_hover/375/light/sv-SE",
+   "estimated_price_hover/375/light/sv-SE",
+   "shared_steps_hover/375/light/sv-SE",
+   "tooltip_hover/375/dark/en",
+   "estimated_price_hover/375/dark/en",
+   "shared_steps_hover/375/dark/en",
+   "tooltip_hover/375/dark/sv-SE",
+   "estimated_price_hover/375/dark/sv-SE",
+   "shared_steps_hover/375/dark/sv-SE"
+  ],
+  "div.tt-row 10.92px": [
+   "tooltip_hover/375/light/en",
+   "estimated_price_hover/375/light/en",
+   "shared_steps_hover/375/light/en",
+   "tooltip_hover/375/light/sv-SE",
+   "estimated_price_hover/375/light/sv-SE",
+   "shared_steps_hover/375/light/sv-SE",
+   "tooltip_hover/375/dark/en",
+   "estimated_price_hover/375/dark/en",
+   "shared_steps_hover/375/dark/en",
+   "tooltip_hover/375/dark/sv-SE",
+   "estimated_price_hover/375/dark/sv-SE",
+   "shared_steps_hover/375/dark/sv-SE"
+  ],
+  "div.tt-reason 10.92px": [
+   "tooltip_hover/375/light/en",
+   "estimated_price_hover/375/light/en",
+   "shared_steps_hover/375/light/en",
+   "tooltip_hover/375/light/sv-SE",
+   "estimated_price_hover/375/light/sv-SE",
+   "shared_steps_hover/375/light/sv-SE",
+   "tooltip_hover/375/dark/en",
+   "estimated_price_hover/375/dark/en",
+   "shared_steps_hover/375/dark/en",
+   "tooltip_hover/375/dark/sv-SE",
+   "estimated_price_hover/375/dark/sv-SE",
+   "shared_steps_hover/375/dark/sv-SE"
+  ],
+  "div.tt-shared 9.28px": [
+   "shared_steps_hover/375/light/en",
+   "shared_steps_hover/375/light/sv-SE",
+   "shared_steps_hover/375/dark/en",
+   "shared_steps_hover/375/dark/sv-SE"
+  ],
+  "span.layout-verdict.match 11.9px": [
+   "layout_editing/375/light/en",
+   "layout_editing/375/light/de-DE",
+   "layout_editing/375/light/sv-SE",
+   "layout_editing/375/dark/en",
+   "layout_editing/375/dark/de-DE",
+   "layout_editing/375/dark/sv-SE",
+   "layout_editing/768/light/en",
+   "layout_editing/768/light/de-DE",
+   "layout_editing/768/light/sv-SE",
+   "layout_editing/768/dark/en",
+   "layout_editing/768/dark/de-DE",
+   "layout_editing/768/dark/sv-SE",
+   "layout_editing/1280/light/en",
+   "layout_editing/1280/light/de-DE",
+   "layout_editing/1280/light/sv-SE",
+   "layout_editing/1280/dark/en",
+   "layout_editing/1280/dark/de-DE",
+   "layout_editing/1280/dark/sv-SE"
+  ],
+  "div.sp-note 11.2px": [
+   "setup_clear_armed/375/light/en",
+   "picker_twins/375/light/en",
+   "setup_clear_armed/375/light/de-DE",
+   "picker_twins/375/light/de-DE",
+   "setup_clear_armed/375/light/sv-SE",
+   "picker_twins/375/light/sv-SE",
+   "setup_clear_armed/375/dark/en",
+   "picker_twins/375/dark/en",
+   "setup_clear_armed/375/dark/de-DE",
+   "picker_twins/375/dark/de-DE",
+   "setup_clear_armed/375/dark/sv-SE",
+   "picker_twins/375/dark/sv-SE",
+   "setup_clear_armed/768/light/en",
+   "picker_twins/768/light/en",
+   "setup_clear_armed/768/light/de-DE",
+   "picker_twins/768/light/de-DE",
+   "setup_clear_armed/768/light/sv-SE",
+   "picker_twins/768/light/sv-SE",
+   "setup_clear_armed/768/dark/en",
+   "picker_twins/768/dark/en",
+   "setup_clear_armed/768/dark/de-DE",
+   "picker_twins/768/dark/de-DE",
+   "setup_clear_armed/768/dark/sv-SE",
+   "picker_twins/768/dark/sv-SE",
+   "setup_clear_armed/1280/light/en",
+   "picker_twins/1280/light/en",
+   "setup_clear_armed/1280/light/de-DE",
+   "picker_twins/1280/light/de-DE",
+   "setup_clear_armed/1280/light/sv-SE",
+   "picker_twins/1280/light/sv-SE",
+   "setup_clear_armed/1280/dark/en",
+   "picker_twins/1280/dark/en",
+   "setup_clear_armed/1280/dark/de-DE",
+   "picker_twins/1280/dark/de-DE",
+   "setup_clear_armed/1280/dark/sv-SE",
+   "picker_twins/1280/dark/sv-SE"
+  ],
+  "div.tt-shared 10.95px": [
+   "shared_steps_hover/768/light/en",
+   "shared_steps_hover/768/light/de-DE",
+   "shared_steps_hover/768/light/sv-SE",
+   "shared_steps_hover/768/dark/en",
+   "shared_steps_hover/768/dark/de-DE",
+   "shared_steps_hover/768/dark/sv-SE",
+   "shared_steps_hover/1280/light/en",
+   "shared_steps_hover/1280/light/de-DE",
+   "shared_steps_hover/1280/light/sv-SE",
+   "shared_steps_hover/1280/dark/en",
+   "shared_steps_hover/1280/dark/de-DE",
+   "shared_steps_hover/1280/dark/sv-SE"
+  ]
+ },
+ "hl_rows_by_vp_lang": {
+  "375/en": [
+   12,
+   0
+  ],
+  "375/de-DE": [
+   12,
+   12
+  ],
+  "375/sv-SE": [
+   12,
+   0
+  ],
+  "768/en": [
+   12,
+   0
+  ],
+  "768/de-DE": [
+   12,
+   0
+  ],
+  "768/sv-SE": [
+   12,
+   0
+  ],
+  "1280/en": [
+   12,
+   0
+  ],
+  "1280/de-DE": [
+   12,
+   0
+  ],
+  "1280/sv-SE": [
+   12,
+   0
+  ]
+ }
+}

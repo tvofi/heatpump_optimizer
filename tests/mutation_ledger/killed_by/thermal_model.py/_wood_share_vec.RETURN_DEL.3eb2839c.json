@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_wood_share_vec RETURN_DEL 3eb2839c",
+  "killed_by": "tests/features.py",
+  "old": "    return np.where(r1, 1.0, np.where(r2, v2, v3))",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

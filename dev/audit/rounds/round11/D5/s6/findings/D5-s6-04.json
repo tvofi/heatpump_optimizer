@@ -1,0 +1,41 @@
+{
+ "id": "D5-s6-04",
+ "scope": "D5-s6",
+ "step": "D5.M4",
+ "title": "plan_audit.py documents end-to-end --target 22.7; its parser refuses it",
+ "severity": "low",
+ "claim": "tools/audit/seat/plan_audit.py's usage line 'plan_audit.py end-to-end --fork SHA [--head REF] [--target 22.7]' fed to plan_audit.main's own argparse parser exits 2 'unrecognized arguments: --target 22.7': the end-to-end subparser defines only --fork and --head and the target is the constant TARGET_DS.",
+ "mechanism": "The option was documented (or removed) without the other side following; a reader who passes it gets an argparse error, not a different target. Fails D5-criteria C1.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "value": 1,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 container (shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.59,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/seat/plan_audit.py:main",
+ "perturbation": {
+  "change": "--perturb plan_audit: plan_audit.main's end-to-end subparser given a --target option (argparse add_parser patched in memory)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "1 when plan_audit.main(argv from the docstring's end-to-end usage line) exits 2 (argparse refusal), run_end_to_end stubbed so only parsing is measured.",
+ "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "tools/audit/seat/plan_audit.py"
+ ],
+ "proposed_fix_scope": "Docstring line drops [--target 22.7] (or the subparser gains it and main reads it instead of TARGET_DS: then it is a behaviour change).",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb plan_audit"
+ ]
+}

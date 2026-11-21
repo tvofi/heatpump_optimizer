@@ -1,0 +1,37 @@
+{
+ "id": "D5-s10-05",
+ "scope": "D5-s10",
+ "step": "D5.M4",
+ "title": "thermal_parity.py docstring cites tools/audit/README.md, absent at the baseline",
+ "severity": "low",
+ "claim": "The module docstring of dev/audit/harnesses/thermal_parity.py names tools/audit/README.md as the reference it relies on, and that path is not in the baseline tree (the harness contract moved to dev/audit/README.md), so the C2 resolvability check fails for that unit.",
+ "mechanism": "A file move or discharge left the docstring's path citation behind; nothing checks prose path citations in harness docstrings.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --file dev/audit/harnesses/thermal_parity.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s10/m4_ledger.py",
+  "value": 1,
+  "unit": "unresolved paths in the file's D5 units",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 2.6,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of over dev/audit/harnesses/thermal_parity.py (the unit text as delivered), resolved against git ls-tree at the baseline",
+ "perturbation": {
+  "change": "--rewrite tools/audit/README.md=dev/audit/README.md (the one-line comment fix, in memory)",
+  "expected_direction": "down",
+  "observed_value": 0
+ },
+ "metric_definition": "unresolved_paths: repository paths named in the file's D5 units that neither exist at the ref nor resolve as a relative tail",
+ "phenomenon_property": "Every repository path a harness docstring cites as current exists in the tree at the ref.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/m4_ledger.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --adjudicate dev/audit/rounds/round11/D5/s10/m4_adjudicate.tsv --show | grep 'unresolved=[1-9]'",
+ "proposed_fix_scope": "dev/audit/harnesses/thermal_parity.py: cite dev/audit/README.md",
+ "files": [
+  "dev/audit/harnesses/thermal_parity.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5"
+}

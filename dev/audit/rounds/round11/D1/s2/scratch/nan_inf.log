@@ -1,0 +1,25 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  FAIL the boundary quarantines nan at every depth  [scrubbed={'leaf': nan, 'nested': [[nan], {'k': nan}]}]
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  FAIL the boundary quarantines str-nan at every depth  [scrubbed={'leaf': 'NaN', 'nested': [['NaN'], {'k': 'NaN'}]}]
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the boundary quarantines an absurd magnitude as it does a non-finite (class P1)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+RESULT nan_boundary_passes=1 count
+STORE accuracy: leaves=72 live=0 disk_undecodable=0 ex=[]
+STORE dhw_profile: leaves=76 live=0 disk_undecodable=0 ex=[]
+RESULT leaves_total=148 count
+RESULT leaves_reaching_live=0 count
+RESULT leaves_making_disk_undecodable=0 count
+RESULT stores_affected=0 count
+RESULT thread_factor=1.000
+RESULT load1=143.23
+RESULT swapins=31
