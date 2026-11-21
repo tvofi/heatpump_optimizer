@@ -42828,10 +42828,12 @@ def _r11_shipped_planted():
         for k in ("a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc", "__pycache__/d.pyc"):
             (pkg / k).parent.mkdir(parents=True, exist_ok=True)
             (pkg / k).write_bytes(b"x")
-        for args in (["init", "-q"], ["add", "-f", *(f"pkg/{k}" for k in (
-                "a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc"))]):
-            subprocess.run(["git", "-C", d, *args], check=True, capture_output=True)
-        return set(_r11_shipped_files(pkg))
+        env = throwaway_git_init(d, "-q")
+        subprocess.run(["git", "-C", d, "add", "-f", *(f"pkg/{k}" for k in (
+            "a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc"))],
+            check=True, capture_output=True, env=env)
+        with throwaway_git_environ():
+            return set(_r11_shipped_files(pkg))
 _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
     "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
              "from logging import DEBUG\n"
