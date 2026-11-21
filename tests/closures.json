@@ -1045,6 +1045,8 @@
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
+   "custom_components/heatpump_optimizer/room_history.py",
+   "custom_components/heatpump_optimizer/room_record.py",
    "custom_components/heatpump_optimizer/rooms.py",
    "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/runs.py",
