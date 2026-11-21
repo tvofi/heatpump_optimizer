@@ -1,0 +1,25 @@
+== merge-tree origin/main vs branch tip (expect one conflict in r10 roster)
+6336672c6d1f2e2c97d55da76bdb3468ac95736a
+dev/programme/rosters/wave-r10-groups.json
+
+Auto-merging dev/programme/rosters/wave-r10-groups.json
+CONFLICT (content): Merge conflict in dev/programme/rosters/wave-r10-groups.json
+dev/programme/rosters/wave-r10-groups.json main 544 head 559 added 15 removed 0 changed 34 carries 1 -> 1
+ COP-LEARNER resume.stage head: absorbed  main: carries-open
+fatal: path 'dev/programme/rosters/wave-r11-groups.json' exists on disk, but not in 'origin/main'
+dev/programme/rosters/wave-r11-groups.json main 0 head 116 added 116 removed 0 changed 0 carries 0 -> 0
+== conflict markers
+27383:<<<<<<< origin/main
+27384-    "stage": "carries-open",
+27385-=======
+27386-    "stage": "absorbed",
+27387->>>>>>> 320a1ada53e936a559aa6f140e7ea4e2d2e96c73
+27388-    "branch": "archive/handoff/r10-cop-learner-draw-floor",
+27389-    "commit": "b046b22d6ed8e0ebc5fead18b6f5cd9178b1b12d",
+27390-    "last_step": null,
+27391-    "next_step": "cut over to dev/programme/rosters/wave-r11-groups.json at 933a8c81b1; this entry is the round-10 record at the cut",
+1
+origin/main wave-r10-groups.json 544 {'carries': 1, 'carry': 2308}
+origin/main wave-r11-groups.json absent
+HEAD wave-r10-groups.json 559 {'carries': 1, 'carry': 2466}
+HEAD wave-r11-groups.json 116 {'carry': 655}

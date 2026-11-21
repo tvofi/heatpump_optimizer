@@ -1,0 +1,28 @@
+== tip-vs-head roster diff (expect empty)
+0
+== branch tip now
+320a1ada53e936a559aa6f140e7ea4e2d2e96c73
+== blobs
+8035f823dfb6d3673be8666f9d9fb9336f173a4f
+0a6ecd9e96fe4e9e12037873f7f3857b1589a0ca
+== e29c tree
+f9e030dc425d3728853f8c7beb041db2d16b52d5
+== parent of e29c
+63c6d1cff9a29ec0c99bcbd5e12c229b61e7c184
+== numstat
+1	0	dev/programme/delivery/3836.md
+1259	354	dev/programme/rosters/wave-r10-groups.json
+7153	0	dev/programme/rosters/wave-r11-groups.json
+== merge-tree
+c0f1cdbf6221a6ba468aafcb81d5dcccdc585972
+merge-tree rc=0
+== VERSION/manifest/notes touched?
+0
+== range commits
+1381
+5522a01722
+== files outside rosters in range
+warning: 63c6d1cff9a29ec0c99bcbd5e12c229b61e7c184...320a1ada53e936a559aa6f140e7ea4e2d2e96c73: multiple merge bases, using f567988b519a8cb28d6f6ebdf2328fd120d028bd
+0
+== 0bcaf7cdda author
+tvofi <> / tvofi <> roster_edit append-group R11-RCA-SELFTEST-TABLE-DRIFT (tools/audit/seat/roster_edit.py)
