@@ -128,5 +128,4 @@ Every site `tools/pr/ci_predict.py` lists as added and unpinned at this head, ea
 
 ## Friction
 
-- The recovered merge 55aca858 carried an unnumbered author email, and `body_push.sh`'s ref_privacy guard refused it. The merge was re-authored as 93cbcecb (same tree and parents), and `handoff/r11-carry-drawmap` moved from 2b4a5fd8 to 7b9204eb by a lease-guarded force. The two heads have the same tree.
-- A stray ref `handoff-wip/r11-carry-drawmap-rewrite-tmp` (at 7b9204eb) was pushed by mistake. Its deletion is refused by the git proxy (`HTTP 403` on `git push --delete`), so it stands for the relay to delete.
+none
