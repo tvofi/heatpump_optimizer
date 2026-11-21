@@ -1,0 +1,16 @@
+
+=== Initial config flow, walked end to end ===
+  ok   option_range reads the options table's own number selector for its key
+  ok   option_range refuses 'prefill_offer', which has no number field
+  ok   option_range refuses 'no_such_option_key', which has no number field
+
+=== self-check: each mutation must break its named check ===
+  caught  duplicate guard no-op  ->  check 'the same answers a second time abort as already_configured'
+  caught  user_sensors nest is identity  ->  check 'a flat identity payload is invalid on the grouped setup schema, the nested one is valid'
+  caught  token probe always ok  ->  check 'a 401 re-shows the first screen with invalid_tibber_token'
+  caught  grid months validation no-op  ->  check 'an unparseable month mask on the grid page is invalid_peak_months'
+  caught  reconfigure guard runs on own identity  ->  check "re-submitting this entry's own identity reconfigures it instead of aborting"
+  caught  peak hours validated with the fee-rules grammar (#327)  ->  check "the documented peak-hours form saves and reaches the coordinator's mask"
+
+all six mutations caught by their named checks
+rc=0

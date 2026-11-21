@@ -1,0 +1,16 @@
+ok   (2) second run exits 75
+ok   (2) held reads 0 while it runs
+ok   (2) lock files are owner-only under umask 022
+ok   (2) null: a run after the first exits 0
+ok   (2) SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP
+ok   (2) null: the job was running when the beat got SIGTERM
+ok   anchor m2_no_instance_flock occurs once in production, changes it, names a check of (2)
+ok   anchor m2_lock_world_readable occurs once in production, changes it, names a check of (2)
+ok   anchor m2_sigterm_handler_off occurs once in production, changes it, names a check of (2)
+ok   anchor m2_sigterm_handler_after_jobs occurs once in production, changes it, names a check of (2)
+ok   mutant m2_no_instance_flock turns (2) 'second run exits 75' red
+ok   mutant m2_lock_world_readable turns (2) 'lock files are owner-only under umask 022' red
+ok   mutant m2_sigterm_handler_off turns (2) 'SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP' red
+ok   mutant m2_sigterm_handler_after_jobs turns (2) 'SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP' red
+beatd self-test: 14 checks, 0 failed
+rc=0
