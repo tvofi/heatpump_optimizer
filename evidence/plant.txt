@@ -1,0 +1,2 @@
+REFUSE custom_components/heatpump_optimizer/log_latch.py: long units 0 -> 1; new: "word word word word word word word word word word word word ..."
+comment_ratchet: FAIL

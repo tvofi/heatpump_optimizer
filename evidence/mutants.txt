@@ -1,0 +1,6 @@
+prod-off KILLED rc= 1 ["FAIL SCOPE is the tests, the package's top-level modules and the card, and no other path", 'FAIL every tracked production module is in SCOPE', 'comment_ratchet self-test: FAIL']
+card-dropped KILLED rc= 1 ["FAIL SCOPE is the tests, the package's top-level modules and the card, and no other path", 'FAIL every tracked production module is in SCOPE', 'comment_ratchet self-test: FAIL']
+subpkg-guard-dropped KILLED rc= 1 ["FAIL SCOPE is the tests, the package's top-level modules and the card, and no other path", 'comment_ratchet self-test: FAIL']
+suffix-dropped KILLED rc= 1 ["FAIL SCOPE is the tests, the package's top-level modules and the card, and no other path", 'comment_ratchet self-test: FAIL']
+whole-pkg KILLED rc= 1 ["FAIL SCOPE is the tests, the package's top-level modules and the card, and no other path", 'comment_ratchet self-test: FAIL']
+restored rc 0
