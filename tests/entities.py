@@ -42521,7 +42521,10 @@ def _r11_logger_aliases(sources, files=None):
     ``chr``), whether in package code, in the evaluated text or in pickle
     opcodes. So is text read from outside the shipped tree (config, store,
     network), a value flow (``vars(m).values()``) and Home Assistant's
-    ``system_log`` service. Which string a
+    ``system_log`` service. So is a dependency's own logger written as a side
+    effect of other work: the event loop's server and endpoint constructors
+    and its internal steps (the census in the reach check names each), and
+    Home Assistant's and aiohttp's helpers. Which string a
     computation yields is undecidable in general, so no static rule can name
     it; the boundary is the text as written.
 
@@ -42536,13 +42539,17 @@ def _r11_logger_aliases(sources, files=None):
     ``logging.getLogger(...)``; an attribute named ``logging``, ``logger``
     (Home Assistant's coordinator exposes the handed-over ``_LOGGER`` so),
     ``_LOGGER`` or ``warnings``. Also refused: the module ``warnings`` (Home
-    Assistant turns on ``logging.captureWarnings``);
+    Assistant turns on ``logging.captureWarnings``); an attribute named
+    ``call_exception_handler`` or ``default_exception_handler`` (each writes
+    an ERROR record through asyncio's logger, naming none);
     ``_LOGGER.<method>(...)`` outside the level calls and ``isEnabledFor``;
     and ``_LOGGER`` itself escaping, as an argument, a return value, an
     element or a bound method.
 
     Refused, by the payload, whatever later runs it: an identifier that names
-    a logger (``LOGGER``, ``logger``, ``logging``, ``warnings`` inside it) in
+    a logger or an exception handler (``LOGGER``, ``logger``, ``logging``,
+    ``warnings``, ``call_exception_handler``, ``default_exception_handler``
+    inside it) in
     any other place, a keyword, a parameter, a definition, an import alias or
     module. Each can become text: ``dict(_LOGGER=0)`` turns a name into a
     string. Also refused: a str or bytes constant, a docstring included, or a
@@ -42563,9 +42570,11 @@ def _r11_logger_aliases(sources, files=None):
     methods = levels | {"isEnabledFor"}
     numbers = {"NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"}
     binders = (ast.Assign, ast.AnnAssign, ast.NamedExpr)
-    # each name a logger is reached by, read as an attribute
-    reached = {"logging", "logger", "_LOGGER", "warnings"}
-    names_one = re.compile(r"LOGGER|[Ll]ogger|logging|warnings")
+    # each name a logger is reached by, read as an attribute; the loop's
+    # handlers are methods, so only an attribute or text reaches them
+    handlers = {"call_exception_handler", "default_exception_handler"}
+    reached = {"logging", "logger", "_LOGGER", "warnings"} | handlers
+    names_one = re.compile(r"LOGGER|[Ll]ogger|logging|warnings|(call|default)_exception_handler")
 
     def idents(node):
         # every identifier a node carries: each can become text at run time
@@ -42934,7 +42943,39 @@ _r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
                   "    exec(base64.b64decode('X0xPR0dFUi5lcnJvcigxKQ=='))\n"
                   "    exec(f'{x}GER.error(1)')\n    exec(''.join(map(chr, (95, 76))))\n",
     "prose.py": "def f():\n    '''Return the plan; a refusal is logged.'''\n",
+    # R11 #3729 round 6 block: asyncio's two handlers write an ERROR record
+    # naming no logger; setting a handler writes none (the null control)
+    "handler.py": "import asyncio\ndef f(loop, ctx):\n"
+                  "    asyncio.get_running_loop().call_exception_handler(ctx)\n"
+                  "    loop.default_exception_handler(ctx)\n"
+                  "    getattr(loop, 'call_exception_handler')(ctx)\n"
+                  "    loop.set_exception_handler(None)\n",
 })}
+# Each event-loop method whose own source logs at WARNING or above: the two
+# handlers are refused, the rest are the docstring's named residue (setup-time
+# constructors and the loop's internal steps). A method a Python release adds
+# to this census fails the check until it is refused or named here.
+def _r11_source_or_empty(obj):
+    # a builtin or C slot has no Python source and logs through no Python logger
+    import inspect
+    try:
+        return inspect.getsource(obj)
+    except (OSError, TypeError):
+        return ""
+
+
+_R11_LOOP_LOGGING_RESIDUE = {"_run_once", "_stop_serving", "create_datagram_endpoint",
+                             "create_server", "create_unix_server"}
+_r11_loop_logging = {
+    n for n in dir(asyncio.SelectorEventLoop)
+    for a in [getattr(asyncio.SelectorEventLoop, n)] if callable(a)
+    for src in [_r11_source_or_empty(a)]
+    if re.search(r"\blogger\.(warning|error|exception|critical|log)\b", src)
+}
+_r11_loop_unread = {
+    n for n in _r11_loop_logging - _R11_LOOP_LOGGING_RESIDUE
+    if not _r11_logger_aliases({"s.py": f"def f(loop):\n    loop.{n}({{}})\n"})
+}
 # Every callable of a Logger, called at ERROR on _LOGGER, and every name the
 # logging module exports. What neither check reads is exactly the quiet level
 # calls and the level numbers. So a method or helper added to either surface
@@ -43023,10 +43064,17 @@ R.check(
                                  ('pickesc.py', 'text sha256:bc18f7cf581cd48b'),
                                  ('idents.py', 'ClassDef MyLogger'),
                                  ('idents.py', 'ImportFrom homeassistant.util.logging'),
-                                 ('idents.py', 'arg logger'), ('idents.py', 'keyword _LOGGER')}
+                                 ('idents.py', 'arg logger'), ('idents.py', 'keyword _LOGGER'),
+                                 ('handler.py', 'asyncio.get_running_loop().call_exception_handler'),
+                                 ('handler.py', 'loop.default_exception_handler'),
+                                 ('handler.py', "'call_exception_handler'")}
     and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
     | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
                                 "CRITICAL", "FATAL")}
+    # every event-loop method that logs is refused or named residue; the
+    # census found both handlers, so it read the loop's source
+    and not _r11_loop_unread
+    and {"call_exception_handler", "default_exception_handler"} <= _r11_loop_logging
     # precondition: the package is flat, so the glob read every module
     and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources)
     and _r11_files_planted == set(_r11_files_plant) - {"pixel.png"}
@@ -43036,7 +43084,8 @@ R.check(
     # precondition: the shipped files that are not modules were read
     and len(_r11_files) >= 10,
     f"refused {_r11_alias_verdict(_r11_aliases_found)}; planted read {sorted(_r11_aliases_planted)}; "
-    f"unread surface {sorted(_r11_unread)}; files planted {sorted(_r11_files_planted)}",
+    f"unread surface {sorted(_r11_unread)}; files planted {sorted(_r11_files_planted)}; "
+    f"event-loop logging census {sorted(_r11_loop_logging)}, unread {sorted(_r11_loop_unread)}",
 )
 
 # THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
