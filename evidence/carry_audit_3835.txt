@@ -1,0 +1,25 @@
+== #3769 owner in rosters at HEAD vs main
+origin/main: 
+HEAD: HEAD:dev/programme/rosters/wave-r11-groups.json:1 
+== carry_audit at origin/main view (this checkout)
+NOTE body item c138a0b6: #3769
+NOTE body item db65fcf6: dismissed:stated cost, the design's own acceptance
+NOTE body item e44ceea0: dismissed:reported to the orchestrator
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+0
+== carry_audit with origin/main = this head, no r11 roster branch
+NOTE body item c138a0b6: #3769
+NOTE body item db65fcf6: dismissed:stated cost, the design's own acceptance
+NOTE body item e44ceea0: dismissed:reported to the orchestrator
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+refs: 0
+== carry_audit, origin/main=63c6d1 clone, no roster branch
+NOTE body item c138a0b6: #3769
+NOTE body item db65fcf6: dismissed:stated cost, the design's own acceptance
+NOTE body item e44ceea0: dismissed:reported to the orchestrator
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+== same, with the script from this clone
+BAD-DEST body item c138a0b6: #3769: #3769 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-3769.json
+NOTE body item db65fcf6: dismissed:stated cost, the design's own acceptance
+NOTE body item e44ceea0: dismissed:reported to the orchestrator
+CARRY-AUDIT: 4 finding item(s): 2 routed, 0 unrouted, 2 bad destination(s)
