@@ -1,0 +1,9 @@
+merge-tree origin/main(=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b) 35bb34b2a3790539cd5555606a6c935d9abe4c17:
+8f503338f9c2d1ac658c884f5827efe9e2980b2f
+rc=0
+
+selftest-absorbed artifact 14716467433 zip sha256 4de15ca1a0b1f33d07d406e527b9d5ff3bd32a9e847884d94ce7a1646e226697 (matches API digest)
+selftest-closures artifact 14715768946 zip sha256 63b0bba784e86ea081e8c16888feacf70c09ced742f7494319d96a0d87276491 (matches API digest)
+cmp artifact selftest_closures.json vs head tools/ci/selftest_closures.json: BYTE-IDENTICAL
+0974553324366f6d9d4d09bd28b87003522952499338bdd51fe8100c7cb80f6f  /root/head_table.json
+0974553324366f6d9d4d09bd28b87003522952499338bdd51fe8100c7cb80f6f  /root/art/selftest_closures.json
