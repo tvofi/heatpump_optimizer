@@ -24094,6 +24094,90 @@ R.check(
     ),
     "a claim stamped for another release excuses that release's diff only",
 )
+# A release stamp is not a claim for another release (PC-1113-18,
+# dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md): it moves the stamp and empties
+# the list. Main held a claim when the branch forked, the stamp deleted it, the
+# branch added its own. Per scenario nothing clashes, so the merge is main's
+# stamp and reason block plus the branch's claim, and the deleted line stays
+# deleted. `_CM_STAMPED` is `rewrite_claims`' shape; the stamp section below
+# drives the real function over the same base.
+_CM_BASE_HELD_CLAIM = _CM_BASE.rstrip("\n") + "\nvalve_storage_small_tank # a claim main held at the fork\n"
+_CM_STAMPED = (
+    "# Scenarios this branch deliberately moves, one name per line.\n"
+    "#\n"
+    "# claims-for: 6.3.17\n"
+    "#\n"
+    "# v6.3.17: a release. The stamp empties the list; the\n"
+    "# next branch restates its own footprint, claims included.\n"
+    "#\n"
+    "\n"
+    "# may-drift: wood_coil -- machine-sensitive\n"
+)
+_CM_OURS_OVER_HELD = _CM_BASE_HELD_CLAIM + "everything_on # this branch's own measured drift\n"
+_CM_POST_STAMP = _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED)
+R.check(
+    "a branch's claims merge over a release stamp that emptied the list",
+    _CM_POST_STAMP is not None
+    and [ln for ln in _CM_POST_STAMP.splitlines() if "claims-for:" in ln]
+    == ["# claims-for: 6.3.17"]
+    and "# v6.3.17: a release." in _CM_POST_STAMP
+    and _env_drift.parse_claim_map(_CM_POST_STAMP)
+    == {"everything_on": ["this branch's own measured drift"]},
+    f"merged={_CM_POST_STAMP!r}",
+)
+_CM_POST_STAMP_REV = _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_STAMPED, _CM_OURS_OVER_HELD)
+R.check(
+    "the release stamp merges alike from either side",
+    _CM_POST_STAMP_REV is not None
+    and _env_drift._parse_claims(_CM_POST_STAMP_REV)[0] == "6.3.17"
+    and _env_drift.parse_claim_map(_CM_POST_STAMP_REV)
+    == {"everything_on": ["this branch's own measured drift"]},
+    f"merged={_CM_POST_STAMP_REV!r}",
+)
+# Nulls: each is one condition of `_stamp_emptied_side` taken away.
+_CM_OURS_EDITED_HELD = _CM_OURS_OVER_HELD.replace(
+    "# a claim main held at the fork", "# rewritten by this branch")
+R.check(
+    "a claim the branch edited against the stamp's deletion is still refused",
+    _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_OURS_EDITED_HELD, _CM_STAMPED) is None
+    and _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_EDITED_HELD, _CM_STAMPED)[1]
+    == ["valve_storage_small_tank"],
+    "the stamp deleted it and the branch rewrote it: no rule says which holds",
+)
+_CM_STAMPED_WITH_CLAIM = _CM_STAMPED + "wood_only # claimed after the stamp\n"
+R.check(
+    "a stamped side that holds a claim keeps the different-stamps refusal",
+    _env_drift.merge_claim_file(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED_WITH_CLAIM) is None
+    and "different\n'claims-for:' stamps" in _env_drift.merge_claim_refusal(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED_WITH_CLAIM),
+    "a claim written after the stamp is another release's claim",
+)
+R.check(
+    "the branch's side stamped and holding a claim keeps the refusal too",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_STAMPED_WITH_CLAIM, _CM_OURS_OVER_HELD) == (None, []),
+    "the rule is one side's shape, not main's side alone",
+)
+# The two below are asked of the DECISION: the file-level merge refuses them
+# further down as well (the stamp key both sides rewrote; a result with no
+# stamp), which would hide the claim rule deciding them per scenario.
+R.check(
+    "stamps both sides moved apart are refused though one side is empty",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM,
+        _CM_OURS_OVER_HELD.replace("claims-for: 6.3.16", "claims-for: 6.3.18"),
+        _CM_STAMPED) == (None, []),
+    "the branch stamped its claims for a release main is not at",
+)
+R.check(
+    "a side that removed the stamp is not a release stamp",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD,
+        _CM_STAMPED.replace("# claims-for: 6.3.17\n", "")) == (None, []),
+    "an emptied list with no stamp is not what a release writes",
+)
 # Both sides bumped the stamp to the SAME release and changed disjoint claims:
 # every claim either side wrote describes that release's diff, so the stamps
 # agree and the merge is per scenario -- the guard above must not refuse it
@@ -25637,6 +25721,31 @@ R.check(
     "push to main, and both agree on the files a stamp writes",
     _stc_ok,
     _stc_detail,
+)
+# And the composition with the merge driver (PC-1113-18): the file the stamp
+# writes over a list that held a claim, merged with a branch cut before the
+# stamp that added its own, is the stamp's file plus the branch's claim. The
+# driver section pins the rule on `rewrite_claims`' shape; this drives the
+# function, so a stamp that stops emptying the list, or writes another stamp
+# line, turns red here and not on the first pull request after a release.
+try:
+    _stm_base = _stc_before
+    _stm_ours = _stm_base + "everything_on  # a branch cut before the stamp\n"
+    _stm_merged = _env_drift.merge_claim_file(_stm_base, _stm_ours, _stc_after)
+    _stm_ok = (
+        _stm_merged is not None
+        and _env_drift._parse_claims(_stm_merged)[0] == "6.6.0"
+        and _env_drift.parse_claim_map(_stm_merged)
+        == {"everything_on": ["a branch cut before the stamp"]}
+    )
+    _stm_detail = f"merged={_stm_merged!r}"
+except Exception as _stm_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _stm_ok = False
+    _stm_detail = f"{type(_stm_exc).__name__}: {_stm_exc}"
+R.check(
+    "a branch cut before a stamp merges its claims over the file stamp.py wrote",
+    _stm_ok,
+    _stm_detail,
 )
 # The same composition for the coverage rule, on THIS tree's own claim file
 # (v7.0.1's refusal): the stamp deletes every claim, so every may-drift entry

@@ -1779,6 +1779,29 @@ def _claim_blocks(text: str) -> dict[str, list[str]]:
     return blocks
 
 
+def _stamp_emptied_side(
+    base: str, ours: str, theirs: str, our_map: dict, their_map: dict
+) -> bool:
+    """Whether the differing stamps are one side's release stamp and nothing else.
+
+    A release stamp moves ``claims-for:`` and deletes every claim line
+    (``tools/release/stamp.py`` ``rewrite_claims``). So when exactly one side
+    moved the stamp off the base's and that side holds no claim, no claim on
+    it was written for another release: there is nothing for the other side's
+    claims to be confused with, and the per-scenario rule decides (a base line
+    the branch left alone takes the stamp's deletion, a scenario the branch
+    added stays, a base line the branch edited against the deletion is still
+    refused). A stamped side that holds a claim, a stamp both sides moved
+    apart, and a stamp removed rather than moved keep the refusal.
+    """
+    was, mine, main = (_parse_claims(text)[0] for text in (base, ours, theirs))
+    if mine == was and main not in (was, None):
+        return not their_map
+    if main == was and mine not in (was, None):
+        return not our_map
+    return False
+
+
 def merge_claim_decision(
     base: str, ours: str, theirs: str
 ) -> tuple[dict[str, list[str]] | None, list[str]]:
@@ -1790,7 +1813,9 @@ def merge_claim_decision(
     ``decided`` is None when ``refused`` is non-empty or the two sides'
     ``claims-for:`` stamps differ while both sides changed claims: claims
     written for different releases do not merge, while a stamp both sides
-    bumped alike is one release, as the stamp's own per-key rule decides. A scenario's lines are
+    bumped alike is one release, as the stamp's own per-key rule decides, and
+    a stamp one side moved while emptying its list is a release stamp, which
+    holds no claim to confuse (``_stamp_emptied_side``). A scenario's lines are
     compared parsed (``parse_claim_map``: same lines, same reasons, count
     included), so whitespace never decides.
 
@@ -1804,7 +1829,8 @@ def merge_claim_decision(
     their_blocks = _claim_blocks(theirs)
     both_changed = base_map not in (our_map, their_map) and our_map != their_map
     if both_changed and _parse_claims(ours)[0] != _parse_claims(theirs)[0]:
-        return None, []
+        if not _stamp_emptied_side(base, ours, theirs, our_map, their_map):
+            return None, []
     decided, refused = _decide_per_key(
         base_map, our_map, their_map, our_blocks, their_blocks)
     return (None if refused else decided), refused
@@ -1911,7 +1937,8 @@ def merge_claim_file(base: str, ours: str, theirs: str) -> str | None:
     by exactly one side. Where BOTH sides changed one scenario's lines there
     is no rule that says which claim describes which diff, and this returns
     None so git keeps the markers and a human decides. It refuses as well
-    when both sides changed claims under different ``claims-for:`` stamps.
+    when both sides changed claims under different ``claims-for:`` stamps,
+    unless the side that moved the stamp holds no claim (a release stamp).
     The stamp and the ``may-drift`` lines merge by the same rule, per
     fixture (``merge_marker_decision``), and the union's copy of them is cut
     to that decision, since an overlapping hunk's union keeps both sides.
