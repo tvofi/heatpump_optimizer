@@ -1,0 +1,6 @@
+MUTANT P3-enumerate-parents5 rc=1   FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL depth seams: dev/audit/rounds/round11/sweep/P3/D14/sweep-P3/enumerate.py:36: ROOT = HERE.parents[5]
+MUTANT P4-enumerate-parents5 rc=1   FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL depth seams: dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/enumerate.py:44: ROOT = HERE.parents[5]
+MUTANT P4-probe-parents6 rc=1   FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL depth seams: dev/audit/rounds/round11/sweep/P4/D14/sweep-P4/probe_offstart_sites.py:27: ROOT = Path(__file__).resolve().parents[6]
+MUTANT P5-enumerate-parents6 rc=1   FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL depth seams: dev/audit/rounds/round11/sweep/P5/D14/sweep-P5/enumerate.py:44: ROOT = Path(__file__).resolve().parents[6]
+MUTANT P1-p1_seams-parents1 rc=1   FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL depth seams: dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py:323: root = d.parents[1]
+MUTANT P3-inlined-walk-differs rc=1   FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL python copies=221 differ=['dev/audit/rounds/round11/sweep/P3/D14/sweep-P3/enumerate.py']
