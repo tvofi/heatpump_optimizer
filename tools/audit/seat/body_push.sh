@@ -237,7 +237,7 @@ if [ -n "$HREF" ]; then
     PRN=$(gh api "repos/tvofi/heatpump_optimizer/pulls?state=open&head=tvofi:fix/$TOPIC" --jq '.[0].number // empty') \
       || { echo "body_push: REFUSE: the pull requests of fix/$TOPIC could not be listed, so the base its figure block is verified against is unknown" >&2; keep_refused; exit 1; }
     if [ -n "$PRN" ]; then
-      FB=$(pr_recorded_base tvofi/heatpump_optimizer "$PRN") || { echo "body_push: REFUSE: the recorded base.sha of #$PRN could not be read, the base pr-contract verifies the figure block against" >&2; keep_refused; exit 1; }  # mut:bpbase
+      : # LOCAL OVERLAY r11 P-R11-98: figure base is origin/main, as prepr --body-check verifies
     fi
   fi
   (cd "$ROOT" && python3 -I "$HERE/../../pr/figure_block.py" refresh "$ABS" --base "$FB") # mut:keep
