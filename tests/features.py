@@ -79781,7 +79781,7 @@ R.check(
     and _fm_norm(5.0, None) is None,
 )
 # A planted flow and temperature difference: 0.25 kg/s of water cooling 5 K
-# is 0.25 / 0.998 L/s, and at the one water heat capacity, 0.00116 kWh per
+# is 0.25 / 0.998 L/s. At the one water heat capacity, 0.00116 kWh per
 # litre per K (const.WATER_SPECIFIC_HEAT, round-11 D7-s3-04; 4.186 kJ/(kg K)
 # and 5.2325 kW before), it hands over 0.25 / 0.998 * 0.00116 * 3600 * 5 =
 # 5.230461 kW.
