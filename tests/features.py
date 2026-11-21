@@ -31564,7 +31564,7 @@ def _g1754_overrides(now):
     return o1, o2
 
 
-async def _g1754_arm(*, swap):
+async def _g1754_arm(*, swap, nested):
     coord = _solve_coord()
     hass = coord.hass
     hass.entered = _asyncio.Event()
@@ -31587,15 +31587,34 @@ async def _g1754_arm(*, swap):
         coord._manual_override = o2
         # The in-flight refresh: async_apply_manual_plan's async_request_refresh
         # funnels a second run here, and the guard is what dropped it (#1754).
-        await coord.async_run_optimization()
+        # Bounded: a second solve started beside the in-flight one waits on the
+        # gate this rig opens only after the call returns, so an unbounded
+        # await deadlocks the script instead of failing a check. Not cancelled:
+        # the gate opens below and the second solve, if any, ends on its own.
+        second = _asyncio.ensure_future(coord.async_run_optimization())
+        done, _ = await _asyncio.wait({second}, timeout=_G1754_NESTED_S)
+        nested.append("returned" if done else "blocked")
     hass.release.set()
     await task
+    if swap:
+        await second
     return seen, o1, o2
 
 
-_g1754_swap_seen, _g1754_swap_o1, _g1754_swap_o2 = _asyncio.run(_g1754_arm(swap=True))
-_g1754_noswap_seen, _g1754_noswap_o1, _ = _asyncio.run(_g1754_arm(swap=False))
+_G1754_NESTED_S = 10.0  # an absorbed request returns without awaiting the gate
+_g1754_nested: list[str] = []
+_g1754_swap_seen, _g1754_swap_o1, _g1754_swap_o2 = _asyncio.run(
+    _g1754_arm(swap=True, nested=_g1754_nested))
+_g1754_noswap_seen, _g1754_noswap_o1, _ = _asyncio.run(_g1754_arm(swap=False, nested=[]))
 _g1754_steps = lambda o: [r["step"] for r in o.released_space]  # noqa: E731
+
+R.check(
+    "a run request during an in-flight solve returns at once, recorded as its re-run, "
+    "never a second solve started beside it (#1754, the solve gate)",
+    _g1754_nested == ["returned"],
+    f"nested request {_g1754_nested}; 'blocked' is a second solve waiting on the gate "
+    f"the in-flight one holds",
+)
 
 R.check(
     "a refresh requested during an in-flight solve re-solves against the new "
