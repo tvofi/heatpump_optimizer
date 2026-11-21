@@ -97115,7 +97115,7 @@ R.check(
 
 R.section("#3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor")
 
-# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.resolve and rooms.lifted add a lift to the
+# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.resolve and rooms.floor_limits add a lift to the
 # floor-margin array the solver already takes. The fixture is the design
 # note's: rooms A 18.0 under a 21.0 target, B and C at or above theirs, D
 # colder than A but switched off; the house reads 19.6 under a 20.0 target on
@@ -97153,7 +97153,7 @@ def _rl_solve(readings=_RL_ROOMS, house=19.6, base=None, cfg=_rl_cfg, owner=None
     held = _rm.hold(owner, _rm.resolve(
         _rm.readings_of(owner), _rm.lift_of(owner), _rm.gate(**dict(_RL_OPEN, **signals)),
         cfg, house, start))
-    return _rm.lifted(held, base, cfg, start, n), owner
+    return _rm.floor_limits(held, base, cfg, start, n)["min_temp_margins"], owner
 
 
 _rl_ramped, _rl_ramped_owner = _rl_solve()
@@ -97360,11 +97360,11 @@ R.check(
 
 # -- The what-if: the baseline's held lift and anchor, its own configuration ----
 _rl_wi_base, _rl_wi = _rl_solve()
-_rl_wi_same = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_same = _rm.floor_limits(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)["min_temp_margins"]
 _rm.record(_rl_wi, (_rl_room("climate.a", 21.0, 21.0),) + _RL_REST)
-_rl_wi_after = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
-_rl_wi_low = _rm.lifted(_rm.lift_of(_rl_wi), None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)
-_rl_wi_fresh = _rm.lifted(_rm.lift_of(_RlOwner()), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_after = _rm.floor_limits(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)["min_temp_margins"]
+_rl_wi_low = _rm.floor_limits(_rm.lift_of(_rl_wi), None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)["min_temp_margins"]
+_rl_wi_fresh = _rm.floor_limits(_rm.lift_of(_RlOwner()), _rl_base, _rl_cfg, _RM_NOW, _RL_N)["min_temp_margins"]
 _rl_wi_resolved, _ = _rl_solve(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST, owner=_rl_wi)
 R.check(
     "a what-if's margins equal the baseline's after the readings change, and its clip is its own "
@@ -98388,6 +98388,152 @@ R.check(
     _rh_ul_ok and not _rh_ul_before
     and _rh_ul_doc.get("data", _rh_ul_doc).get("times", "").split(",") == [str(_RH_M0), str(_RH_M0 + 30)],
     f"before={_rh_ul_before} after={_rh_ul_doc}",
+)
+
+
+R.section("#3616 R11-OUTSIDE-ROOMS-3B: the room lift on the solve's record, the why-now row and the narrative")
+
+# design/R11-OUTSIDE-ROOMS-3B: the lift reaches the solve folded into
+# min_temp_margins. The solve records the part of the floor it held that the
+# lift raised (_Horizon.room_lifts), labels a step only that part holds
+# room_floor, and splits the why-now comfort push into a comfort row and a
+# room_lift row. The 4-step case is the note's: floor 19.5, a 0.5 K lift on
+# steps 1-3, next temperatures 19.6 / 19.95 / 20.0 / 21.0, every step heating.
+from heatpump_optimizer import narrative as _r3_nar, slot_drivers as _r3_sd  # noqa: E402
+from heatpump_optimizer import optimizer as _r3_opt, payload as _r3_pay  # noqa: E402
+
+_R3_LIFT = np.array([0.0, 0.5, 0.5, 0.5])
+_R3_ROOM = np.array([19.5, 19.6, 19.95, 20.0, 21.0])
+
+
+def _r3_classify(lifts):
+    return _r3_opt.classify_space_steps(
+        np.full(4, 2.0), np.ones(4), _R3_ROOM, 19.5 + _R3_LIFT, np.ones(4), None, 4,
+        room_lifts=lifts)
+
+
+_r3_split, _r3_today = _r3_classify(_R3_LIFT), _r3_classify(None)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: a heating step within 0.15 K of the lifted floor but above the floor less the lift "
+    "is room_floor (19.95 and 20.0 against 20.15 and 19.65); one within 0.15 K of both stays comfort_floor "
+    "(19.6), one above both keeps today's label; null control, no lift labels steps 0-2 comfort_floor",
+    _r3_split == [_r3_pay.REASON_COMFORT_FLOOR, "room_floor", "room_floor", _r3_today[3]]
+    and _r3_today[:3] == [_r3_pay.REASON_COMFORT_FLOOR] * 3 and _r3_pay.REASON_ROOM_FLOOR == "room_floor"
+    and _r3_pay.REASON_ROOM_FLOOR not in _r3_pay.IDLE_REASONS
+    and _r3_pay.REASON_ROOM_FLOOR not in _r3_opt._MANUAL_KEEP_REASONS,
+    f"split={_r3_split} today={_r3_today}",
+)
+
+# Invariant (iv): a room_floor step is a step that is comfort_floor today, so
+# the narrative's two groups sum to today's one.
+_r3_ch = lambda reasons: {"powers": [2.0] * 4, "prices": [1.0, 2.0, 3.0, 4.0], "reasons": reasons}  # noqa: E731
+_r3_none = {"powers": [], "prices": [], "reasons": []}
+_r3_items = {i["reason"]: i for i in _r3_nar.build(_r3_ch(_r3_split), _r3_none, 0.25)}
+_r3_items0 = {i["reason"]: i for i in _r3_nar.build(_r3_ch(_r3_today), _r3_none, 0.25)}
+_r3_lines = {lang: _r3_nar.render([_r3_items["room_floor"]], lang, "SEK") for lang in ("en", "sv", "de")}
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the narrative groups room_floor apart and its kWh plus comfort_floor's equals "
+    "the unsplit run's comfort_floor (1.5 kWh = 0.5 + 1.0), one sentence per language naming the room lift; "
+    "null control, the unsplit run has no room_floor group",
+    "room_floor" not in _r3_items0
+    and abs(_r3_items["room_floor"]["kwh"] + _r3_items["comfort_floor"]["kwh"] - _r3_items0["comfort_floor"]["kwh"]) < 1e-9
+    and abs(_r3_items["room_floor"]["kwh"] - 1.0) < 1e-9
+    and all(len(v) == 1 for v in _r3_lines.values())
+    and "room" in _r3_lines["en"][0] and "rum" in _r3_lines["sv"][0] and "Raum" in _r3_lines["de"][0],
+    f"{_r3_items} {_r3_items0} {_r3_lines}",
+)
+
+
+def _r3_h(lifts, n=4, ceiling=23.0):
+    lift = None if lifts is None else np.asarray(lifts, float)
+    held = 19.5 + (np.zeros(n) if lift is None else lift)
+    return SimpleNamespace(
+        n_steps=n, dt=0.25, prices=np.arange(n, dtype=float), outdoor_temps=np.zeros(n),
+        heat_loss_factors=np.ones(n), solar_gains=np.zeros(n),
+        temp_min_bounds=held, temp_max_bounds=np.full(n, ceiling), comfort_floors=held,
+        mold_floors=None, away_floor_drops=None, room_lifts=lift)
+
+
+# Invariant (ii): where nothing clips, the comfort push plus the room-lift
+# push is today's comfort push (the same horizon with room_lifts None).
+_R3_DROOM = np.array([20.5, 20.5, 22.0, 21.0])
+_r3_push = _r3_sd.space_pushes(_r3_h(_R3_LIFT), _R3_DROOM, 5.0)
+_r3_push0 = _r3_sd.space_pushes(SimpleNamespace(**dict(vars(_r3_h(_R3_LIFT)), room_lifts=None)), _R3_DROOM, 5.0)
+_r3_drv = _r3_sd.space_drivers(_r3_h(_R3_LIFT), _R3_DROOM, 5.0)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: with a lift the drivers carry a room_lift row after comfort_floor, its push the "
+    "lift over the half band (0.5 / 1.5 on steps 1-3), and comfort plus room_lift equals today's comfort push "
+    "where nothing clips; null control, step 0 (no lift) has a zero room_lift push and today's comfort push",
+    tuple(_r3_drv) == ("price_rank", "comfort_floor", "room_lift", "mold_guard", "away", "forecast")
+    and tuple(_r3_drv) == _r3_sd.DRIVER_CODES
+    and np.allclose(_r3_push["room_lift"], [0.0, 1 / 3, 1 / 3, 1 / 3])
+    and np.allclose(_r3_push["comfort_floor"] + _r3_push["room_lift"], _r3_push0["comfort_floor"])
+    and _r3_push["comfort_floor"][0] == _r3_push0["comfort_floor"][0] and _r3_drv["room_lift"][1] > 0.0,
+    f"push={ {k: np.round(v, 4).tolist() for k, v in _r3_push.items()} } today={_r3_push0['comfort_floor']}",
+)
+
+# The clip bounds: a lift wider than the half band saturates at 1, and the
+# comfort push against the unlifted floor clips at 1 too.
+_r3_wide = _r3_sd.space_pushes(_r3_h([3.0] * 4, ceiling=23.5), np.full(4, 19.0), 5.0)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: a 3 K lift under a 0.5 K half band reads a room_lift push of 1 (clipped), the "
+    "comfort push against the unlifted floor 1 (clipped); null control, the lift is 6 half bands unclipped",
+    np.allclose(_r3_wide["room_lift"], 1.0) and np.allclose(_r3_wide["comfort_floor"], 1.0),
+    f"{ {k: v.tolist() for k, v in _r3_wide.items()} }",
+)
+
+# Null control (i): no lift on the record is today's five rows; a zero lift
+# is the same push table with a zero sixth row, so the five weights match.
+_r3_d_none = _r3_sd.space_drivers(_r3_h(None), _R3_DROOM, 5.0)
+_r3_d_zero = _r3_sd.space_drivers(_r3_h(np.zeros(4)), _R3_DROOM, 5.0)
+_r3_fl_zero = _rm.floor_limits(_rm.HeldLift(0.0, "climate.a", None, 0.1), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_r3_fl_none = _rm.floor_limits(None, None, _rl_cfg, _RM_NOW, _RL_N)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B null control: room_lifts None gives the five pre-3B codes and the room_lift row is "
+    "absent; a zero lift array gives the same five weights byte-equal and a 0.0 room_lift; floor_limits with "
+    "a zero or absent held lift hands back the base and no room lifts",
+    tuple(_r3_d_none) == ("price_rank", "comfort_floor", "mold_guard", "away", "forecast")
+    and all(_r3_d_none[c] == _r3_d_zero[c] for c in _r3_d_none) and _r3_d_zero["room_lift"] == [0.0] * 4
+    and _r3_fl_zero["min_temp_margins"] is _rl_base and _r3_fl_zero["room_lifts"] is None
+    and _r3_fl_none == {"min_temp_margins": None, "room_lifts": None},
+    f"none={_r3_d_none} zero={_r3_d_zero} fl={_r3_fl_zero['room_lifts']}",
+)
+
+# floor_limits: one computation, the margins half equal to P2's lifted array, the
+# lift half the margins less the base; the what-if reads the held lift (P2 r4).
+_r3_fl_wi_base, _r3_fl_wi = _rl_solve(base=_rl_base)
+_r3_fl = _rm.floor_limits(_rm.lift_of(_r3_fl_wi), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_rm.record(_r3_fl_wi, (_rl_room("climate.a", 21.0, 21.0),) + _RL_REST)
+_r3_fl_after = _rm.floor_limits(_rm.lift_of(_r3_fl_wi), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: floor_limits' margins are the P2 solve's array and its room lifts the margins "
+    "less the base, and a what-if's room lifts equal the baseline's after the readings change; null control, "
+    "the lift is 0.2 K (the 0.5 K day band less the 0.3 K base) once the ramp from 0 has caught up",
+    np.array_equal(_r3_fl["min_temp_margins"], _r3_fl_wi_base)
+    and np.allclose(_r3_fl["min_temp_margins"] - _rm._margins(_rl_base, _RL_N), _r3_fl["room_lifts"])
+    and np.array_equal(_r3_fl_after["room_lifts"], _r3_fl["room_lifts"])
+    and np.allclose(_r3_fl["room_lifts"][4:40], 0.2) and float(_r3_fl["room_lifts"][0]) == 0.0,
+    f"{None if _r3_fl['room_lifts'] is None else np.round(_r3_fl['room_lifts'][:6], 3).tolist()}",
+)
+
+# The solve's record: the floor less the floor without the lift, 0 under the
+# mold floor and the ceiling clip, None for no lift.
+_r3_cb_lift = np.array([0.5, 0.5])
+_, _r3_cb_min, _, _r3_cb_fl = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, _r3_cb_lift, None, room_lifts=_r3_cb_lift)
+_, _r3_cb_mold_min, _, _r3_cb_mold = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, _r3_cb_lift, np.array([22.0, -np.inf]), room_lifts=_r3_cb_lift)
+_, _r3_cb_clip_min, _, _r3_cb_clip = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, np.array([4.1, 0.5]), None, room_lifts=_r3_cb_lift)
+_, _r3_cb_none_min, _, _r3_cb_none = _cb_opt._build_comfort_bounds(_cb_hours, 2, _r3_cb_lift, None)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor without the lift (0.5 "
+    "on the open band), 0 where the mold floor (22.0) or the ceiling clip (19 + 4.1 and 19 + 3.6 both past 22.5) covers the lift, and "
+    "None without the input; null control, the held floor is the same array with and without room_lifts",
+    np.allclose(_r3_cb_fl[2], [0.5, 0.5]) and np.allclose(_r3_cb_mold[2], [0.0, 0.5])
+    and np.allclose(_r3_cb_clip[2], [0.0, 0.5]) and _r3_cb_none[2] is None
+    and np.array_equal(_r3_cb_min, _r3_cb_none_min) and bool(np.all(_r3_cb_mold[2] >= 0.0)),
+    f"{_r3_cb_fl[2]} {_r3_cb_mold[2]} {_r3_cb_clip[2]} {_r3_cb_none[2]}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

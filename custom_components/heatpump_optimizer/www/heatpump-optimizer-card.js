@@ -444,6 +444,7 @@ const STRINGS = {
 
     // plan reason codes
     "reasons.comfort_floor": "Holding the minimum temperature",
+    "reasons.room_floor": "Lifting the floor for a room below its target",
     "reasons.cheap_price": "Cheapest hours",
     "reasons.preheat_weather": "Pre-heating before colder weather",
     "reasons.scheduled": "Keeping the house at target",
@@ -923,6 +924,9 @@ const STRINGS = {
     "whynow.driver_comfort_floor": "Comfort floor",
     "whynow.explain_comfort_floor":
       "How far the room is from the middle of its comfort band, above the comfort floor: below the middle pushes toward running, above it toward idle.",
+    "whynow.driver_room_lift": "Room lift",
+    "whynow.explain_room_lift":
+      "How far a room below its target lifts the comfort floor in this slot; it only ever pushes toward running.",
     "whynow.driver_mold_guard": "Mold guard",
     "whynow.explain_mold_guard":
       "How far the mold guard lifts the lowest allowed temperature above the comfort minimum in this slot; it only ever pushes toward running.",
@@ -1315,6 +1319,7 @@ const STRINGS = {
       "tiden delas, inget dubbelbokas.",
 
     "reasons.comfort_floor": "Håller minimitemperaturen",
+    "reasons.room_floor": "Lyfter golvet för ett rum under sin måltemperatur",
     "reasons.cheap_price": "Billigaste timmarna",
     "reasons.preheat_weather": "Förvärmer inför kallare väder",
     "reasons.scheduled": "Håller huset på önskad temperatur",
@@ -1769,6 +1774,9 @@ const STRINGS = {
     "whynow.driver_comfort_floor": "Komfortgolv",
     "whynow.explain_comfort_floor":
       "Hur långt rummet ligger från mitten av sitt komfortintervall, ovanför komfortgolvet: under mitten driver mot drift, över mot vila.",
+    "whynow.driver_room_lift": "Rumslyft",
+    "whynow.explain_room_lift":
+      "Hur mycket ett rum under sin måltemperatur lyfter komfortgolvet i luckan; det driver bara mot drift.",
     "whynow.driver_mold_guard": "Mögelskydd",
     "whynow.explain_mold_guard":
       "Hur mycket mögelskyddet lyfter den lägsta tillåtna temperaturen över komfortminimum i luckan; det driver bara mot drift.",
@@ -2127,6 +2135,7 @@ const STRINGS = {
     "plan.shared_step_tooltip": "Gemeinsamer Schritt: Die Pumpe wechselt zwischen den Kreisen – zuerst Warmwasser. Zusammen {kw} kW bleiben unter dem Maximum der Pumpe.",
     "plan.shared_band_title": "Raumheizung und Warmwasser teilen sich diese Viertelstunden: Die Pumpe wechselt innerhalb jedes Schritts zwischen den Kreisen, zuerst Warmwasser. Deine gemeinsame Leistung überschreitet nie das Maximum der Wärmepumpe – das ist Zeitteilung, keine Doppelbelegung.",
     "reasons.comfort_floor": "Mindesttemperatur halten",
+    "reasons.room_floor": "Untergrenze für einen Raum unter seiner Zieltemperatur anheben",
     "reasons.cheap_price": "Günstigste Stunden",
     "reasons.preheat_weather": "Vorheizen vor kälterem Wetter",
     "reasons.scheduled": "Haus auf Zieltemperatur halten",
@@ -2442,6 +2451,9 @@ const STRINGS = {
     "whynow.driver_comfort_floor": "Komfortuntergrenze",
     "whynow.explain_comfort_floor":
       "Wie weit der Raum von der Mitte seines Komfortbereichs entfernt ist, oberhalb der Komfortuntergrenze: Unterhalb der Mitte drängt es zum Laufen, darüber zum Pausieren.",
+    "whynow.driver_room_lift": "Raumanhebung",
+    "whynow.explain_room_lift":
+      "Wie weit ein Raum unter seiner Zieltemperatur die Komfortuntergrenze in diesem Zeitfenster anhebt; sie drängt immer nur zum Laufen.",
     "whynow.driver_mold_guard": "Schimmelschutz",
     "whynow.explain_mold_guard":
       "Wie weit der Schimmelschutz die niedrigste zulässige Temperatur in diesem Zeitfenster über das Komfortminimum anhebt; er drängt immer nur zum Laufen.",
@@ -3508,6 +3520,7 @@ const SETUP_CONFIGURE_PAGE = {
 // Without these an unexpected slot is indistinguishable from a bug.
 const REASON_LABELS = {
   comfort_floor: "reasons.comfort_floor",
+  room_floor: "reasons.room_floor",
   cheap_price: "reasons.cheap_price",
   preheat_weather: "reasons.preheat_weather",
   scheduled: "reasons.scheduled",

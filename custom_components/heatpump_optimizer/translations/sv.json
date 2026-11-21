@@ -2114,6 +2114,7 @@
           "manual_plan": "Ditt eget schema",
           "preheat_weather": "Förvärmning inför kallare väder",
           "pump_mode": "Blockerat av värmepumpens driftläge",
+          "room_floor": "Lyfter golvet för ett rum under sin måltemperatur",
           "scheduled": "Håller huset på önskad temperatur",
           "solar_surplus": "Täcks av solöverskott",
           "terminal_value": "Lämnar huset varmt",

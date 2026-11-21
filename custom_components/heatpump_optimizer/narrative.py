@@ -44,6 +44,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
     "en": {
         "cheap_price": "{kwh} kWh in the cheapest hours for {cost} {currency}",
         "comfort_floor": "holding the minimum temperature took {kwh} kWh ({cost} {currency})",
+        "room_floor": "lifting the floor for a room below its target took {kwh} kWh ({cost} {currency})",
         "preheat_weather": "pre-heating {kwh} kWh before colder weather ({cost} {currency})",
         "scheduled": "keeping the house at target took {kwh} kWh ({cost} {currency})",
         "terminal_value": "leaving the house warm past the horizon: {kwh} kWh ({cost} {currency})",
@@ -65,6 +66,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
     "sv": {
         "cheap_price": "{kwh} kWh under de billigaste timmarna för {cost} {currency}",
         "comfort_floor": "att hålla minimitemperaturen tog {kwh} kWh ({cost} {currency})",
+        "room_floor": "att lyfta golvet för ett rum under sin måltemperatur tog {kwh} kWh ({cost} {currency})",
         "preheat_weather": "förvärmning med {kwh} kWh inför kallare väder ({cost} {currency})",
         "scheduled": "att hålla huset på önskad temperatur tog {kwh} kWh ({cost} {currency})",
         "terminal_value": "huset lämnas varmt bortom horisonten: {kwh} kWh ({cost} {currency})",
@@ -85,6 +87,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
     },    "de": {
         "cheap_price": "{kwh} kWh in den günstigsten Stunden für {cost} {currency}",
         "comfort_floor": "das Halten der Mindesttemperatur kostete {kwh} kWh ({cost} {currency})",
+        "room_floor": "das Anheben der Untergrenze für einen Raum unter seiner Zieltemperatur kostete {kwh} kWh ({cost} {currency})",
         "preheat_weather": "Vorheizen von {kwh} kWh vor kälterem Wetter ({cost} {currency})",
         "scheduled": "das Halten des Hauses auf Zieltemperatur kostete {kwh} kWh ({cost} {currency})",
         "terminal_value": "Haus über den Horizont hinaus warm gehalten: {kwh} kWh ({cost} {currency})",

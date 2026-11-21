@@ -56,6 +56,9 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 REASON_COMFORT_FLOOR = "comfort_floor"
+#: A step at the comfort floor that the floor without the room lift would not
+#: hold (#3616): the rooms' share of ``comfort_floor``, never an idle code.
+REASON_ROOM_FLOOR = "room_floor"
 REASON_CHEAP_PRICE = "cheap_price"
 REASON_PREHEAT_WEATHER = "preheat_weather"
 #: The neutral fall-through: a step that is none of the specific cases below,
