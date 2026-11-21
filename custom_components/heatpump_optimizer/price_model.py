@@ -1,7 +1,7 @@
 """A learned prior for the part of the price horizon that is not published yet.
 
 Nord Pool and Tibber publish tomorrow's prices around 13:00 local time. Before
-that, a large fraction of a 24-hour-plus horizon has no data, and the
+that, a large fraction of a 24-hour-plus horizon has no data. The
 coordinator used to fill it by repeating the last known value:
 
 .. code-block:: python
@@ -71,10 +71,10 @@ SHAPE_CONFIDENCE_DAYS = 5
 SHAPE_MIN = 0.2
 SHAPE_MAX = 3.0
 
-# The quarter-hour refinement (#19) rides its own confidence ramp: the hourly
+# The quarter-hour refinement (#19) rides its own confidence ramp. The hourly
 # shape may be fully trusted while intra-hour structure is still unseen, and
 # a factor of 1.0 at zero confidence makes the 96-bin model collapse exactly
-# onto the 24-bin one — which is what keeps old stores and fresh installs
+# onto the 24-bin one. That is what keeps old stores and fresh installs
 # byte-identical.
 QUARTER_ALPHA = 0.12
 QUARTER_CONFIDENCE_DAYS = 5
@@ -175,7 +175,7 @@ class PriceShapeModel:
 
     The 24-bin hourly ``shapes`` are the model as it has always been. The
     quarter factors (#19) and residual variance (#34) are strictly additive
-    refinements: absent from an old store they default to "no effect", and
+    refinements. Absent from an old store they default to "no effect", and
     the loader never reshapes ``shapes`` itself — the silent-fallback loader
     would discard a reshaped payload, learned state and all.
     """
@@ -332,7 +332,7 @@ class PriceShapeModel:
         when any requested day type is not yet fully trusted. This is
         load-bearing, not politeness: a damped young shape has its minimum
         pulled toward 1.0, making the "expected minimum" the daily MEAN,
-        and every horizon's cheapest hour beats its mean — so a young
+        and every horizon's cheapest hour beats its mean. So a young
         model would run the cycle at the minimum interval every time, the
         exact opposite of deferring. Shopping is for models that know the
         shape of a day.
@@ -564,7 +564,7 @@ def _entries_by_day(entries: list[dict[str, Any]]) -> dict[str, dict[int, dict[i
 
     A local day whose entries change UTC offset mid-day — a DST transition —
     is dropped entirely, for every learner fed from here. The bucketing is
-    positional (index == wall-clock hour), and on the autumn fold the
+    positional (index == wall-clock hour). On the autumn fold the
     repeated local hour's second occurrence overwrites the first, so a
     25-hour day emerged as a well-formed 24-hour day and trained the shape,
     the quarter factors and the residual variance on a fabricated hour. The
