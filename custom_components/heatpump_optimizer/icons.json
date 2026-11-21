@@ -138,6 +138,9 @@
       "room_average_temperature": {
         "default": "mdi:home-thermometer-outline"
       },
+      "room_separability": {
+        "default": "mdi:home-analytics"
+      },
       "room_temperature_spread": {
         "default": "mdi:thermometer-lines"
       },
