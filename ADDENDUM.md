@@ -19,3 +19,11 @@ Every cloud seat follows this beside its own brief. It adds liveness and an inbo
 5. **The comms ref is liveness only.** `handoff-wip/<topic>-comms` is never your return signal. The script never pushes `handoff/<topic>` or `handoff-wip/<topic>`, and nothing changes how you push those.
 6. **At exit, on every path** (returned, blocked or refused): run `bash $HOME/seat_comms.sh done "<one line>"`.
 7. **A failure of seat_comms.sh never blocks your work.** Name it in your result and go on.
+
+## Open-axis rule (owner-approved 2026-11-21 under mandate 6893738184; RCA R11-RCA-3729-OPEN-AXIS)
+
+Binds every fixer and fix reviewer from this fire until the role files carry it.
+
+8. **Fixer: every quantified set has a rule or a category.** A class claim names, for every set it quantifies over, the rule whose output is that set, or places the whole set in the residue by a category the claim states (e.g. "any record a dependency writes when the package calls it"). A set named only by examples (a list, "such as", a census of one member) is neither: narrow the claim or state the category before handoff.
+9. **Reviewer: block the axis, not its next member.** A seam that belongs to a set the claim quantifies over, read by no named rule and covered by no residue category, is one block for the set: `blocked <sha> class-open: axis <set> unenumerated (e.g. <seam>)`. Name the set; no hunt for further members is owed.
+10. **Second block on the same axis escalates.** A body blocked on `class-open` on an axis already blocked once (as for a repeat `claims` block) goes to the orchestrator, which narrows the claim, splits or closes the fix; neither seat runs another round on that axis.
