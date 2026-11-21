@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_register_number_restore.restorer RETURN_DEL c7a3f20a",
-  "killed_by": "tests/features.py",
-  "old": "        return off_restore.Restorer(str(entity_id), write, baseline_of=reading, restored=restored) if entity_id else None",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}
