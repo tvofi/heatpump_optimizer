@@ -1,5 +1,0 @@
-  ok    failure text: a language switch asks for that language's exceptions once more
-  ok    history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau
-  ok    history: the bound drops nothing the window can show -- every overlay point and the mode at its left edge match an unpruned source
-
-ALL CARD CHECKS PASSED
