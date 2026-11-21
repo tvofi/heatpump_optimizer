@@ -59,7 +59,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { COUNT_RULES, checkCounts, derivations, canonList, excludeMoved, listDir, at, locate } from './counts.mjs'
+import { COUNT_RULES, checkCounts, derivations, canonList, excludeMoved, listDir, at, locate, gitRead } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 export const ROOT = path.resolve(HERE, '..', '..')
@@ -73,7 +73,7 @@ const EXT_SET = new Set(CODE_EXTS)
 
 export function git(args, opts = {}) {
   try {
-    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts })
+    return gitRead(args, { stdio: ['ignore', 'pipe', 'pipe'], ...opts })
   } catch (e) {
     if (opts.allowFail) return null
     throw e
@@ -113,7 +113,7 @@ let _trackedFiles = null
 // paths against the wrong tree.
 export function treeListing(rev, cwd = ROOT) {
   const args = rev ? ['ls-tree', '-r', '--name-only', rev] : ['ls-files']
-  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  return gitRead(args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
 }
 
 // `cwd` is the acceptance probe's repo; it is never memoized, so the checkout's cache is untouched.
