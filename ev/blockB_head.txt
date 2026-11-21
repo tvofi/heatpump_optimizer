@@ -1,0 +1,188 @@
+
+=== features block ===
+  ok   a step that heats at the floor writes strictly above the gate a step that does not heat writes, on every inlet 10-40 degC and every entity minimum
+  ok   an 18 degC tank writes the gate plus the lift at the floor, not the gate
+  ok   null control: a tank above the gate keeps its own lift, full power keeps the ceiling, and no inlet keeps the rated hold
+  ok   a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank writes 31, not 30 (the floor 30.3 is a minimum); null: a whole 26 degC tank writes 31 unchanged
+  ok   the heating floor is capped by the ceiling before the entity's minimum decides: a 30 degC ceiling under a 35 degC entity minimum, with a 40 degC tank putting the floor at 45, writes the minimum 35 at every level, not the floor (pump_arbiter._flow_target's lo=min(floor, heat), whose ceiling the entity's range drops); null: a 20 degC minimum writes the ceiling 30 and a 50 degC ceiling writes 50, with or without the cap
+  ok   a window commanded below the ceiling never engages and learns no maximum: its idle-level readings are the idle draw, not a run
+  ok   null control: the same draws with nothing commanding them (the pump's own choice) engage at the running percentiles of every sample, as before the guard
+  ok   null control: ceiling-commanded samples drawing well under p_max engage, and their 90th percentile is the maximum
+  ok   readings at the learned idle draw are not runs: they set neither the floor nor the share that disagrees
+  ok   a record stored without commands is dropped by the first commanded sample, and kept by an uncommanded one
+  ok   the commands and the idle readings survive the store, and the store's domains accept every cell
+  ok   a gate-held interval folds one idle reading; a heating set-point, hot water asked, or no command at all folds none
+  ok   the per-cycle fold records the held flow set-point and its ceiling under Control
+  ok   null control: Observe, an indoor set-point, or a plan that writes the compressor frequency (an install that can duty-cycle, whose draw is the plan's echo) records no command
+  ok   no decimal reaches the service call on an entity that states no step; a 0.5-step entity keeps its halves; a stated 0.1 step keeps tenths
+  ok   null control: an already-whole write sends the same whole number
+  ok   a floor rounds up, a ceiling down, levels between to nearest, and the written value never falls as the level rises
+  ok   a Fahrenheit entity is quantised in Fahrenheit: 30 degC is 86 degF, whole, and a floor of 30.2 degC rounds up to 87 degF
+  ok   after rounding, a 20 degC tank's floor stays above the gate, both whole
+  ok   the idle window is one day of readings: 60 at 0.20 then 36 at 0.30 learn the newest 48 (0.30), not the whole 96 (0.20); null: 20 readings learn their own value
+  ok   a set-point 0.9 K under the ceiling is not full-power evidence: ten ceiling-commanded draws learn no maximum beside ninety sub-ceiling ones; null: a set-point exactly 0.5 K under the ceiling is full
+  ok   a set-point exactly CEILING_TOLERANCE_K under the ceiling counts as full (the test is inclusive): 48 of them learn their 90th percentile as the maximum
+  ok   a draw exactly IDLE_MARGIN times the learned idle is the idle draw, not a run (the test is strict): 48 of them are no evidence at all
+  ok   a stored idle reading of 0.0 is a reading: six of twelve, the median is 0.15; null: a negative, a NaN and a non-number are dropped
+  ok   a set-point exactly one millionth of a step above a multiple is not snapped to it (the snap is strict), so a floor of it rounds up: one millionth of a whole degree writes 1; null: zero snaps to the multiple
+  ok   a set-point 0.4 K above the gate is not a gate-held interval, so its draw is no idle reading; null: one exactly GATE_TOLERANCE_K above the gate is
+  ok   the guard: a written set-point that is not a number, or an entity range that does not read, commands nothing -- no FlowCommand with a missing end -- and a readable one publishes the held command
+  ok   a return target with headroom publishes the held command in the entity's own terms -- the configured ceiling, not 55, and the gate moved down by the rated spread, 20 degC against a flow target's 25 -- and an indoor one publishes none
+  ok   a return target's ceiling is a max-draw set-point only with the rated lift of headroom over the measured return: at exactly that headroom it is, with less, with no return-side reading, or with only the valve outlet it is reported one lift above the ceiling, where no write reaches; a flow target's never moves
+  ok   draw_range folds a ceiling write on a return target as ceiling-probe evidence and as a full sample only with headroom; without it the probe interval goes to the window and the sample is not full
+  ok   a return target's non-heating duties write the gate in return terms, 20 degC, whatever the lift and ceiling; a flow target's write the 25 degC gate (null control)
+  ok   a 1.5 K lift over a 22 degC return takes the lift from the return, above the 20 degC return gate, and rounds up on a whole-degree entity to 24; a flow target's floor is still taken from its 25 degC gate, 27 -- so a heating step never writes either gate
+  ok   a return below the return gate takes the lift from that gate: 20 + 1.5, rounded up to 22 on a whole-degree entity
+  ok   a return above the ceiling writes the ceiling, never above it, on a return target
+  ok   the hold moves by the rated spread, not by the configured lift: a 1.5 K lift leaves the return baseline at curve - 5 K and the no-curve hold at 30
+  ok   every set-point unit, return included, has a label, and both new fields a label and a description, in strings.json, en and sv
+  ok   D3: a stored ceiling at or below the gate reads as the default heating flow, so a heating step never writes the gate; one above the gate is kept
+  ok   D5: a return target's bare hold (no curve) is capped at its ceiling; a flow target's stays the uncapped rated hold, as on the base
+  ok   D6: a return target's floor never anchors on the valve outlet: alone it leaves the no-inlet floor, behind a tank the tank wins; a flow target still takes it
+  ok   null control: with default options every set-point an indoor or flow unit writes, and every held FlowCommand, is main's, cell for cell
+  ok   an install with no power, energy, frequency or flow signal is told which four classes to add
+  ok   any one of the signals silences the recommendation (null control: each alone)
+  ok   an unrelated entity does not count as feedback
+  ok   guard: with no flow key in const the table emits no flow row, and with it the row appears
+  ok   the gap advisor publishes the probe's list for the card to read
+  ok   L/min, L/s, m3/h and kg/s all convert to kg/s at 0.998 kg/L
+  ok   a planted 0.25 kg/s over a 5 K drop is 5.2325 kW
+  ok   no drop, a rise or a missing temperature is no estimate
+  ok   the estimate follows the sensor: 15 L/min over a 5 K drop
+  ok   doubling the flow doubles the estimate (null control for the follow claim)
+  ok   an unavailable or negative flow reading is absent
+  ok   a power or a frequency signal keeps the estimate off (the signal outranks the flow meter)
+  ok   null control: with the flow key unset nothing is estimated
+  ok   the thermal-output estimate is published on the recommended-power sensor, and absent stays None
+  ok   the options step asks for the flow sensor beside the compressor frequency sensor
+  ok   an unknown flow unit is absent rather than guessed
+  ok   a flow reading 45 min old is stale and gives no estimate (null control: 20 min old gives one)
+  ok   a zero flow reading is a measured 0 kW, not absent
+  ok   a refused flow reading's health record keeps its reason by one precedence, and no value: a negative flow is implausible stale or fresh, an unknown unit is stale when old and unknown_unit when fresh
+  ok   the coordinator publishes an unreadable floor-return sensor as a problem, a live one and an unconfigured slot as none
+  ok   a configured floor-return sensor silent for the sustained period raises one repair, not before, and it clears when readings return
+  ok   the repair names the entity and the period, is a warning and is not fixable
+  ok   the finding is pure: it starts the clock, waits the period, then names the entity
+  ok   the silence period outlasts a restart's or a brief outage's gap and is shorter than three hours of unannounced open-loop slab estimate
+  ok   ninety minutes of silence raises the repair: an owner hears within the hour and a half, read on the clock rather than through the constant
+  ok   a live sensor and an unconfigured slot never raise it, at any age
+  ok   another input's failure beside a live floor-return sensor never raises it
+  ok   a short gap does not accumulate: a reading in between restarts the period
+  ok   a payload that does not carry the input signal leaves the watch alone
+  ok   the entry's notifier setup raises and clears the repair on coordinator updates
+  ok   the floor-return repair is translated in strings.json
+  ok   the floor-return repair is translated in translations/en.json
+  ok   the floor-return repair is translated in translations/de.json
+  ok   the floor-return repair is translated in translations/sv.json
+  ok   the model spends a measured heat output instead of inferring one from the draw, and None is byte-identical to omitting it
+  ok   the two-zone step spends it too, on the same rule (null control: None byte-identical to omitting it)
+  ok   a planted 15 L/min over a 5 K drop reaches the house heat-loss replay as 5.222035 kW
+  ok   and the lower-floor replay, which is the two-zone step's own learner
+  ok   an outranked, stale, negative, unreadable, unknown-unit, hot-water or nothing-commanded interval reaches no learner input (null controls: 20 min old, and the same interval with the hot water at zero, both reach one)
+  ok   null control: with the key unset the replay is handed no measured heat and the prediction is byte-identical to a meter that read nothing
+  ok   a replay that raises costs the sample and nothing else, through the helper both learners now share
+  ok   the two-zone house replay predicts a different upper floor on the measurement than on the commanded draw it replaces
+
+-- early cut-off — a warm room stops a space-heating pump inside the interval
+  ok   _planned_room reads the first step's end (the i == 0 bound is inclusive)
+  ok   _planned_room holds no reading past a trajectory shorter than its timestamps
+  ok   a room past target + margin on a space step switches the pump off once
+  ok   the cut-off is recorded with its reading and threshold
+  ok   a room exactly at target + 0.5 K does not cut (the margin is inclusive)
+  ok   a room 0.1 K past target + 0.5 K cuts
+  ok   the margin is 0.5 K
+  ok   null control: a room at or below target never cuts the pump
+  ok   a room under the plan's own pre-heat + margin is not cut
+  ok   past the plan's own pre-heat + margin it is cut
+  ok   a room warm at the solve is judged against the plan's predicted end, not itself
+  ok   a pump on for less than MIN_ON is not cut
+  ok   with less than MIN_OFF to the next cycle the pump is not cut
+  ok   a second warm reading in the same cycle writes nothing more
+  ok   the next cycle resumes: its arm clears the cut and a warm room may cut again
+  ok   a switch with no change stamp is an unknown run and is not cut
+  ok   a hot-water-only step is never cut, however warm the room
+  ok   a both step is never cut, however warm the room
+  ok   a idle step is never cut, however warm the room
+  ok   a tank below its minimum exempts the step
+  ok   a non-plan mode (comfort) is never cut
+  ok   a stale plan is never cut
+  ok   a step the plan has off is never cut
+  ok   a running defrost is never cut
+  ok   a defrost entity that exists but reads off does not exempt the step
+  ok   a hot-water boost is never cut
+  ok   an early refresh inside MIN_OFF of a cut keeps the pump off
+  ok   past MIN_OFF the plan's on goes through, and an off is never turned on
+  ok   a boost set by that refresh is let through at once
+  ok   null control: with no cut on record allow_on returns the plan's own value
+  ok   the cut-off routes by the target's domain through pump_arbiter.switch_supply
+  ok   the coordinator's cycle inside MIN_OFF of a cut does not turn the switch on
+  ok   null control: the same cycle past MIN_OFF turns it on as the plan says
+  ok   after a cut the arbiter's next tick writes nothing, the switch least of all
+  ok   control: with the supply on, the same arbiter tick writes its slots
+  ok   no switch configured: no listener is registered
+  ok   the room listener is registered once on the room thermometer
+  ok   arming twice registers one unload hook, not one per cycle
+  ok   unloading the entry drops the listener
+  ok   unloading the entry frees the coordinator the cut-off record was keyed by
+  ok   control: an entry never unloaded still pins its coordinator, so the check can fail
+  ok   detach drops the room listener and clears the wiring that reaches the coordinator
+  ok   a room event after detach is a no-op through the wiring guard, not a crash
+  ok   null control: a record never detached still delivers the room event and cuts
+  ok   allow_on returns the plan's value when the record carries no wiring (unloaded)
+  ok   the cut reason outranks the unmetered tail freeze, which this install trips
+  ok   a cut interval freezes the learners under the one early_cutoff reason
+  ok   the coordinator's cycle arms the cut-off (a new cycle end is set)
+  ok   diagnostics expose the cut-off view
+  ok   release unsubscribes the room listener and is idempotent
+  ok   a disinfection hold is never cut, however warm the room
+  ok   a cut is refused when the switch already reads off
+  ok   the min_off guard is a strict < (a cycle exactly MIN_OFF away is not held)
+  ok   a cold lower floor in a two-zone house is never cut
+  ok   _second_zone_cold is False at the exact target-margin boundary (strict <)
+  ok   a room reading above the plausible range is never cut
+  ok   a room reading exactly at the plausible-range high bound is accepted and cut
+  ok   _reading accepts exactly the low plausible bound
+  ok   a reading after the entry is released writes no cut
+  ok   the min_on guard is a strict < (a switch on exactly MIN_ON is not held)
+
+-- °F set-points: one unit rule for every set-point write (D12-s3-01, L1, L2)
+  ok   every arbiter set-point write reaches its entity in that entity's unit, a climate on a degF install included (D12-s3-01)
+  ok   a degF climate with no target attribute is still written in degF
+  ok   the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)
+  ok   a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)
+  ok   a water_heater DHW set-point is read from its temperature attribute, clamped to min_temp/max_temp and written on its target_temp_step
+  ok   a water_heater DHW set-point on a degF instance reads its range in degC and is clamped to it
+  ok   a set-point slot with no entity id reads nothing, before any state lookup, so the consistency check still reaches the space notice
+  ok   #2229: an entry covers [start, next start); the last one its predecessor's span, a lone one the given span -- and nothing covers before the first or past the end
+  ok   #2229: a price list that stopped updating publishes no current price past its last entry's hour; a covered hour (the null control) still reads its entry
+  ok   #2229: no prices, or none started yet, is no current price -- never 0.0, the cheapest price there is, and never the head of a list that covers a later hour
+  ok   #2229: the forecast's outdoor 'now' and the open-loop plan seed end with their series (the sweep's two siblings); inside it they read the covering entry
+  ok   #2233/#2236: a Tibber body with no usable row is a failure reason, a row with no parseable start is dropped, and a good body (null control) keeps all 96 rows
+  ok   #2236: one start rule for both ingress paths -- the entity path drops an unparseable start too
+Tibber returned no usable price rows
+  ok   #2233: an HTTP 200 with empty days fails the fetch and keeps the 96 held rows; the good fetch before it (null control) succeeds
+Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   #2233: a forecast whose rows all fail plausibility is a failed fetch: the held 48 rows stay and are marked stale; the good fetch (null control) is not stale
+  ok   #2226: a held condition warns when it starts, DEBUGs while it holds, INFOs once when it clears, and warns again on recurrence or a changed text
+  ok   #2226: four cycles of no prices, no forecast and malformed peak-tariff options log each WARNING once (it was 4, and 16 for a tariff option)
+  ok   #2226/#2351: the stale-plan hold logs its advancing age and failure count at DEBUG, so a persisting stale plan never warns every cycle
+  ok   #2351: a None owner is logged every call and never raises -- no stable key means no transition to hold, not a cycle-ending exception
+  ok   #2351: a failed solve ERRORs with its traceback once per spell, DEBUGs on repeats, ERRORs again after the success path clears it; forget_held re-arms
+  ok   #2229: an interval no price covered books its energy, no cost and no spot sample -- not a zero-priced kWh and not a 0.0 dragging the month's mean spot
+  ok   #2229 null control: a priced interval still books its cost and spot sample
+  ok   #2229: an accuracy sample with no price records no cost comparison (None, which the tracker's pairing skips), not a 0.0 cost; a priced one (null control) does
+  ok   #2229: an unknown current price never starts a system-identification experiment
+  ok   #2229: an override with no current price is recorded at a neutral relative price
+  ok   #2229: the operation score's day book takes an unpriced interval's kWh nowhere -- counted at 0 SEK it lowered the day's mean paid price; a priced one (null control) books
+  ok   #2239: the external-heat detector's space demand is the whole-house demand the tank's drain law prices, on the learned lower-floor ratio; the single-zone and ratio-1.0 arms are the controls
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/f2eab4be-102f-59c8-ac0b-e94c1b664da8/scratchpad/wt/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/f2eab4be-102f-59c8-ac0b-e94c1b664da8/scratchpad/wt/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/f2eab4be-102f-59c8-ac0b-e94c1b664da8/scratchpad/wt/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 3005, in <module>
+NameError: name '_s5_effective' is not defined
