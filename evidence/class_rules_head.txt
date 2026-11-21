@@ -1,0 +1,16 @@
+## bisect_right
+custom_components/heatpump_optimizer/coordinator.py:7334:                idx = max(0, bisect_right(starts, step_start) - 1)
+custom_components/heatpump_optimizer/plan_step.py:61:    (R10 N-no-expiry, #2229: ``bisect_right(...) - 1`` alone held the last
+custom_components/heatpump_optimizer/plan_step.py:69:    i = bisect_right(starts, now) - 1
+## astimezone(
+custom_components/heatpump_optimizer/drift.py:49:    return value.astimezone(timezone.utc)
+custom_components/heatpump_optimizer/drift.py:73:    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
+custom_components/heatpump_optimizer/drift.py:92:    base = start.astimezone(timezone.utc)
+custom_components/heatpump_optimizer/drift.py:93:    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
+custom_components/heatpump_optimizer/ledger.py:154:        start, end = start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+custom_components/heatpump_optimizer/store.py:168:        clamped = limit.astimezone(when.tzinfo)
+custom_components/heatpump_optimizer/tariff.py:650:    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
+custom_components/heatpump_optimizer/tariff.py:652:    return [s if tz is None else s.astimezone(tz) for s in starts]
+custom_components/heatpump_optimizer/wood_fuel.py:170:    return utc_instant(ts).astimezone(local_tz) if local_tz is not None else ts
+## astimezone()
+rc=1
