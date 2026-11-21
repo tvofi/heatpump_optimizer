@@ -208,7 +208,8 @@ attributes, and the evidence from `machine_evidence`.
 The row also carries **Why now**: the reasons weighing on the current hour's
 plan, one line each, largest first, read from the space-heating plan
 sensor's `why_now` attribute. Each line names the reason — **Price rank**,
-**Comfort floor**, **Mold guard**, **Away** or **Forecast** — with an arrow
+**Comfort floor**, **Room lift** (when a room below its target lifts the
+comfort floor), **Mold guard**, **Away** or **Forecast** — with an arrow
 (↑ pushes the heat pump toward running, ↓ toward idle, · no effect now) and its
 share of the hour's total push in percent; hovering a line explains the
 reason. The plan weighs the whole day's hours together, so the heat pump can

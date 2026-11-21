@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The room lift through the production solver (#3616, R11-OUTSIDE-ROOMS-P2's fixer's instrument).
 
-Owner report, no finder harness. Drives ``rooms.resolve`` and ``rooms.lifted`` with the
+Owner report, no finder harness. Drives ``rooms.resolve`` and ``rooms.floor_limits`` with the
 design note's fixture (room A 18.0 under a 21.0 target, B and C at theirs, D
 colder but switched off) and hands the array it returns to
 ``HeatPumpOptimizer.optimize`` as ``SolveLimits.min_temp_margins``: 24 h at
@@ -18,8 +18,8 @@ Rows, each ``kWh space, lowest and mean planned temperature over hours 3 to
 power schedule``:
   * ``none`` -- no margins: the plan an install with no room list gets.
   * ``zeros`` -- an all-zero margin array: the null control, the same sha1.
-  * ``gated_<name>`` -- the fixture under each gate: ``rooms.lifted`` hands
-    back None, so the sha1 is ``none``'s.
+  * ``gated_<name>`` -- the fixture under each gate: ``rooms.floor_limits`` hands
+    back None margins, so the sha1 is ``none``'s.
   * ``lift`` -- the fixture's lift (ramped from the house's 0.1 K margin, to
     the 0.5 K day band, 1.0 K at night). Expect more space energy, a higher
     lowest temperature, and a lifted floor (the configuration's floor plus
@@ -84,7 +84,7 @@ def margins(**signals: bool) -> np.ndarray | None:
     rooms.record(owner, FIXTURE)
     held = rooms.resolve(rooms.readings_of(owner), None, rooms.gate(**dict(OPEN, **signals)),
                          _config(), HOUSE_C, START)
-    return rooms.lifted(held, None, _config(), START, N)
+    return rooms.floor_limits(held, None, _config(), START, N)["min_temp_margins"]
 
 
 def solve(min_temp_margins: np.ndarray | None, space_pins: np.ndarray | None = None):

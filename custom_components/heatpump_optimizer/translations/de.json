@@ -2114,6 +2114,7 @@
           "manual_plan": "Dein eigener Zeitplan",
           "preheat_weather": "Vorheizen vor kälterem Wetter",
           "pump_mode": "Durch den Modus der Wärmepumpe blockiert",
+          "room_floor": "Untergrenze für einen Raum unter seiner Zieltemperatur angehoben",
           "scheduled": "Haus wird auf Zieltemperatur gehalten",
           "solar_surplus": "Durch Solarüberschuss gedeckt",
           "terminal_value": "Haus wird warm hinterlassen",

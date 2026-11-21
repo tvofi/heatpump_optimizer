@@ -8,7 +8,7 @@ block the room sensors publish. The read itself is ``inputs.read_room``'s.
 
 Phase 2 adds the floor lift: a room short of its own target raises the
 solve's comfort floor, through the margin array the solver already takes, by
-no more than the house's own band (:func:`resolve`, :func:`lifted`).
+no more than the house's own band (:func:`resolve`, :func:`floor_limits`).
 
 Module state: two per-coordinator side tables, the last cycle's readings and
 the lift the last solve was given, ``boost.py``'s ``WeakKeyDictionary``
@@ -24,7 +24,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 from weakref import WeakKeyDictionary
 
 import numpy as np
@@ -177,6 +177,13 @@ class HeldLift:
     anchor_c: float = 0.0
 
 
+class FloorLimits(TypedDict):
+    """The two ``SolveLimits`` keywords :func:`floor_limits` returns, splatted."""
+
+    min_temp_margins: np.ndarray | None
+    room_lifts: np.ndarray | None
+
+
 _LIFTS: WeakKeyDictionary[Any, HeldLift] = WeakKeyDictionary()
 
 
@@ -277,12 +284,14 @@ def resolve(
     return HeldLift(lift_c, worst[1], None, house_c - floor_c)
 
 
-def lifted(
+def floor_limits(
     held: HeldLift | None, base: np.ndarray | None, config: OptimizationConfig,
     start_time: datetime, n_steps: int,
-) -> np.ndarray | None:
-    """A solve's floor margins: ``base`` (the confidence margins, or None)
-    plus ``held``, and ``base`` itself where no step is lifted.
+) -> FloorLimits:
+    """A solve's two ``SolveLimits`` floor arguments from one computation:
+    ``min_temp_margins``, ``base`` (the confidence margins, or None) plus the
+    lift, and ``room_lifts``, the lift alone, read for attribution (#3616).
+    Where no step is lifted they are ``base`` itself and None.
 
     Per step the lift is the smallest of the held lift, the ramp, and what
     the step's band leaves over ``base`` under its comfort target, so the
@@ -299,7 +308,7 @@ def lifted(
     since the baseline into the difference the what-if reports.
     """
     if held is None or not held.lift_c:
-        return base
+        return {"min_temp_margins": base, "room_lifts": None}
     margins = _margins(base, n_steps)
     # ``drift.utc_step_starts`` is the one horizon clock: the solver's steps.
     steps = utc_step_starts(start_time, n_steps, timedelta(hours=config.dt_hours))
@@ -310,4 +319,7 @@ def lifted(
     ramp = max(held.anchor_c - float(margins[0]), 0.0) \
         + ROOM_LIFT_RAMP_C_PER_H * config.dt_hours * np.arange(n_steps)
     lift = np.clip(np.minimum(np.minimum(band, ramp), held.lift_c), 0.0, None)
-    return margins + lift if lift.any() else base
+    if not lift.any():
+        return {"min_temp_margins": base, "room_lifts": None}
+    return {"min_temp_margins": margins + lift, "room_lifts": lift}
+

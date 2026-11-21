@@ -215,6 +215,7 @@
           "manual_plan": "mdi:account-edit",
           "preheat_weather": "mdi:weather-partly-cloudy",
           "pump_mode": "mdi:heat-pump",
+          "room_floor": "mdi:home-thermometer-outline",
           "scheduled": "mdi:calendar-check",
           "solar_surplus": "mdi:solar-power-variant",
           "terminal_value": "mdi:flag-checkered",

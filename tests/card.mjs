@@ -13727,6 +13727,16 @@ check("without an indoor reading the corner now label is absent",
     /data-part="price_rank"[\s\S]*?sb-text">pushes toward running</.test(fed)
     && /data-part="away"[\s\S]*?sb-text">pushes toward idle</.test(fed)
     && /data-part="mold_guard"[\s\S]*?sb-text">no effect now</.test(fed), fed);
+  // R11-OUTSIDE-ROOMS-3B: a solve whose record carries a room lift publishes a
+  // sixth driver, room_lift; a solve without one publishes the five above.
+  const lifted = withWhy({ t: why.t, drivers: [
+    { code: "comfort_floor", direction: "run", weight: 30.0 },
+    { code: "room_lift", direction: "run", weight: 25.0 },
+    { code: "price_rank", direction: "idle", weight: -45.0 }] });
+  check("why-now: a room_lift driver renders its own row with its label and explanation; null control, the five-driver feed names no room lift",
+    /data-part="comfort_floor"[\s\S]*sb-val">↑ \+30%<[\s\S]*data-part="room_lift"[\s\S]*sb-val">↑ \+25%</.test(lifted)
+    && lifted.includes(fn("esc")(`Room lift: pushes toward running, ↑ +25%\n${EN["whynow.explain_room_lift"]}`))
+    && !/room_lift|Room lift/.test(fed), lifted);
   const absent = withWhy(undefined);
   check("why-now: no why_now attribute renders the no-data line and no rows",
     absent.includes(`<div class="sb-text">${EN["whynow.no_data"]}</div>`) && !/sb-row/.test(absent), absent);
@@ -13749,10 +13759,12 @@ check("without an indoor reading the corner now label is absent",
   const whyLangs = Object.keys(fn("STRINGS"));
   check("why-now: every en string has its twin in every card language, and every driver code has a label and an explanation",
     whyLangs.every((lang) => JSON.stringify(whyKeys("en")) === JSON.stringify(whyKeys(lang)))
-    && ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].every((c) => EN[`whynow.driver_${c}`] && EN[`whynow.explain_${c}`])
-    // The roster brief's wording, verbatim (R10-WHY-NOW-WIDGET carry 1).
-    && ["Price rank", "Comfort floor", "Mold guard", "Away", "Forecast"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => EN[`whynow.driver_${c}`]).join()
-    && ["Prisrang", "Komfortgolv", "Mögelskydd", "Bortaläge", "Prognos"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => fn("STRINGS.sv")[`whynow.driver_${c}`]).join()
+    && ["price_rank", "comfort_floor", "room_lift", "mold_guard", "away", "forecast"].every((c) => EN[`whynow.driver_${c}`] && EN[`whynow.explain_${c}`])
+    // The roster brief's wording, verbatim (R10-WHY-NOW-WIDGET carry 1), and
+    // the room lift's (R11-OUTSIDE-ROOMS-3B), in slot_drivers.DRIVER_CODES order.
+    && ["Price rank", "Comfort floor", "Room lift", "Mold guard", "Away", "Forecast"].join() === ["price_rank", "comfort_floor", "room_lift", "mold_guard", "away", "forecast"].map((c) => EN[`whynow.driver_${c}`]).join()
+    && ["Prisrang", "Komfortgolv", "Rumslyft", "Mögelskydd", "Bortaläge", "Prognos"].join() === ["price_rank", "comfort_floor", "room_lift", "mold_guard", "away", "forecast"].map((c) => fn("STRINGS.sv")[`whynow.driver_${c}`]).join()
+    && ["Preisrang", "Komfortuntergrenze", "Raumanhebung", "Schimmelschutz", "Abwesenheit", "Prognose"].join() === ["price_rank", "comfort_floor", "room_lift", "mold_guard", "away", "forecast"].map((c) => fn("STRINGS.de")[`whynow.driver_${c}`]).join()
     && EN["whynow.metric"].startsWith("The reasons weighing on this hour's plan.") && fn("STRINGS.sv")["whynow.metric"].startsWith("Skälen som väger på den här timmens plan.")
     // The rows are pushes on the plan, not the decision: the text may not
     // claim a share decides the hour (fix review of #3274, finding 1).
