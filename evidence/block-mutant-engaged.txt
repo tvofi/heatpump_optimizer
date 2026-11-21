@@ -1,0 +1,36 @@
+
+=== features block ===
+
+-- R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed on the planner's own store
+  FAIL acceptance: on an install that can duty-cycle, with a start priced, no shipped hot-water step lies between the running rule and the floor but a charge's last; the same solves with the planner handed no ChargeRuns ship such steps (the plan before this group, the control)  [{'cycling_cost': (14, 14), 'everything_on': (10, 10)}]
+  ok   the committed plans hold the tank no further under its floor than the uncommitted ones (0.05 K, the planners' tolerance), and the combined draw starts no more often
+  FAIL unengaged (no start priced, an install that can duty-cycle) the optimizer hands the planner no ChargeRuns, engaged it hands the start price the solve plans with (a clamped install configured at zero: the clamped default, never the raw configured zero), the running reading and the clamp; a planner handed none returns the plan it was given, the same object  [None]
+  ok   ruling b: the store program is handed where the pump would start; a charge its own walk refuses clears that step and the program runs again, and what ships is the program's last plan, committed, in more than one round and fewer than STARTABLE_ROUNDS
+  ok   with no start condition known the program runs once and its plan ships (null of the rounds above)
+  ok   the acceptance refuses a plan whose second charge opens at its start temperature on the supplied walk, at that step; one degree lower it passes
+  ok   the lifted plan ships only through the acceptance: where raising a charge to the floor leaves a later one unstartable the uncommitted plan ships, the same object; with a floor the lift does not carry that far the lifted plan ships
+  ok   the acceptance refuses a lifted plan whose clamped tail leaves the tank under a floor the uncommitted plan held, and the uncommitted plan ships; against no floor the same plan passes
+  ok   the generalised kernel's cost equals an exhaustive search's on every feasible nine-step case with two levels and hard bounds at 800 cells, and the cost of the path its read-back returns (mask and action index) is that cost; the kernel never beats the search, and declares no plan only where the search finds none
+  ok   null control: a search that ignores the bounds finds a cheaper plan than the kernel in most cases, so the agreement above is the bounds' and not the search's
+  ok   the move rule begins no run on a free step it is told the pump would not start, and still does on a forced-on step; told nothing it is the rule commit always had
+  ok   a second level at the floor: the long charge at the floor ships where it is the cheaper one (every step at the floor, more than one step), and with the floor level taken from the program the plan that ships buys more energy
+  ok   the commit ranks its candidates by energy plus the starts of the combined draw: beside a space run the charge that follows it ships though it buys more energy (no start of its own), with no space plan the cheaper late charge ships (each is one start), and with no start priced the cheaper ships beside the space run too
+  ok   the store program prices a start by the share of it the space plan's step before leaves open: beside a space run its charge begins inside or straight after the run and adds no start to the combined draw; with no space plan it stays on the plan's own steps
+  ok   the tail: on an install that can end a run at any moment a charge that would pass the ceiling ends inside its last step, under the floor, after a step at the floor; an install that cannot ships no step under the floor for the same tank
+  ok   a forced-off step stays off in the committed plan; the same tank with none forced charges on one of those steps (the control)
+  ok   at a 5-minute step every committed charge and every pause between two is at least the two steps MIN_RUN and MIN_PAUSE cover, where the uncommitted plan's charges were one step each
+  ok   with no start priced a plan whose charges already run ships as it is, the same object, and the program is not asked; one with a step under the floor, or with a start priced, is committed
+  ok   charges_run: a step under the floor is a charge that runs only as the last step of a charge whose step before ran at the floor or above, and only where a run may end inside a step
+  FAIL combi: the exchange's rounds build with a planner handed no runs to commit, the same number and the same last plan as the same exchange with no ChargeRuns at all; that one and an unengaged solve make no committed build, an engaged one makes one, after the rounds  [rounds 4 and 4, committed builds 0]
+Traceback (most recent call last):
+  File "/tmp/tmp.7VbeJ7a6yl/mut/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/tmp/tmp.7VbeJ7a6yl/mut/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/tmp/tmp.7VbeJ7a6yl/mut/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 501, in <module>
+IndexError: list index out of range
+rc=1

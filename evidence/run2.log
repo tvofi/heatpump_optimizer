@@ -1,8 +1,0 @@
-===== daemonize pid=58871 2026-11-20T21:32:34Z argv: bash /Users/timmalmstrom/hpo-seats/r11/rev3805-delta-ev/run_mutant2.sh
-gate_lock: waiting for a heavy slot (0:prepr-70450 until 2026-11-20 21:14:34.807993+00:00; 1:run.sh-74951 until 2026-11-20 20:38:43.330143+00:00; 2:run.sh-16642 until 2026-11-20 20:14:41.644108+00:00; 3:fix3825-local-slot until 2026-11-20 22:00:35.627755+00:00)
-taken slot=3 label=rev3805-delta expires_at=2026-11-20T22:45:45.532284+00:00
- custom_components/heatpump_optimizer/optimizer.py | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-== mutant (commit every descent, ship the first)
-mutant rc=1
-released

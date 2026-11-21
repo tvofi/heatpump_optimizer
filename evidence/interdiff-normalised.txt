@@ -1,0 +1,95 @@
+1135,1136c1135,1136
+<     "dev/audit/harnesses/r10_weekday_range_twins.py",
+<     "dev/audit/harnesses/r11_advisor_measures.py",
+---
+>     "dev/audit/harnesses/r11_comments_ratchet_mutants.py",
+>     "dev/audit/harnesses/r11_comments_ratchet_reconcile.py",
+1187a1188
+>  # plan the true objective scores above the one that kept it. Such a solve
+1190c1191
+<  # Two duty-cycle days, one where each descent supplies the plan that ships:
+---
+> -# Two duty-cycle days, one where each descent supplies the plan that ships:
+1196c1197,1198
+< +# the duty-cycle solve at price phase 30 that
+---
+> +# Two duty-cycle days, one where each descent supplies the plan that ships.
+> +# Each is the duty-cycle solve at price phase 30 that
+1200,1204c1202,1206
+< +# non-convex solve per arm (``fixer.md`` step 15), so each day is one whose
+< +# shipping arm stands apart in each of four kernel classes measured
+< +# (OPENBLAS_CORETYPE unset with numpy's own dispatch; Haswell without
+< +# AVX-512; Sandybridge and Nehalem without AVX, numpy narrowed to match by
+< +# NPY_DISABLE_CPU_FEATURES): the checks ask for 0.01.
+---
+> +# non-convex solve per arm (``fixer.md`` step 15). So each day is one whose
+> +# shipping arm stands apart, by the 0.01 the checks ask for, in each of four
+> +# kernel classes measured. They are OPENBLAS_CORETYPE unset with numpy's own
+> +# dispatch, Haswell without AVX-512, and Sandybridge and Nehalem without AVX,
+> +# numpy narrowed to match by NPY_DISABLE_CPU_FEATURES.
+1212,1213c1214,1215
+< +    # Both days moved with R11-OUTSIDE-HONEST-DHW-RUNS: with the hot water
+< +    # committed as runs both descents ship one plan at -4 degC, and at 2 degC
+---
+> +    # Both days moved with R11-OUTSIDE-HONEST-DHW-RUNS. With the hot water
+> +    # committed as runs both descents ship one plan at -4 degC. At 2 degC
+1221c1223
+< +# objective is not that score (stages after the commit move it), so which arm
+---
+> +# objective is not that score: stages after the commit move it. So which arm
+1223,1226c1225,1228
+< +# per arm and moved with the CPU class (``fixer.md`` step 15): with hot water
+< +# committed as runs the 2 degC day's operand arm alone scored under both
+< +# descents on one CI runner class and on arm64 and above them on another, and
+< +# the 1 degC day chosen over four x86 kernel classes failed on arm64.
+---
+> +# per arm, and it moved with the CPU class (``fixer.md`` step 15). With hot
+> +# water committed as runs, the 2 degC day's operand arm alone scored under both
+> +# descents on one CI runner class and on arm64, and above them on another.
+> +# The 1 degC day chosen over four x86 kernel classes failed on arm64.
+1483c1485
+< +# to its ceiling; lifted, the first leaves the second no room, the rating
+---
+> +# to its ceiling. Lifted, the first leaves the second no room, the rating
+1584c1586
+< +# 51.5 degC floor late in the horizon, the steps before them dear; two
+---
+> +# 51.5 degC floor late in the horizon, the steps before them dear. Two
+1955,1956c1957,1958
+< +# The program says so where no mask keeps the store in bounds; a program
+< +# plan refused for anything but a start is not asked for again; and a plan
+---
+> +# The program says so where no mask keeps the store in bounds. A program
+> +# plan refused for anything but a start is not asked for again. A plan
+2106c2108
+< +# short; both plans are the ones the exchange's comparison reads. The
+---
+> +# short. Both plans are the ones the exchange's comparison reads. The
+2171,2173c2173,2175
+< +# the tolerance, is inside it, and the fill to the ceiling sits more than
+< +# the tolerance under the floor there, so it is no stand-in; one float
+< +# lower a ceiling leaves that charge outside, and the start moves off step 0.
+---
+> +# the tolerance, is inside it. The fill to the ceiling sits more than
+> +# the tolerance under the floor there, so it is no stand-in. One float
+> +# lower, a ceiling leaves that charge outside, and the start moves off step 0.
+2211c2213
+< +# 55 degC maximum, in the cheap early hours, ships those steps; a program
+---
+> +# 55 degC maximum, in the cheap early hours, ships those steps. A program
+2224c2226
+< +# divides by a capacity of zero) and the program unasked; the null control,
+---
+> +# divides by a capacity of zero) and the program unasked. The null control,
+2268c2270
+<  # v10.1.0: learned pump minimum, clamped start price, self-setting pump test, valve reference, generic heat-curve text. The stamp empties the list; the
+---
+>  # v10.1.2: one place per config entry key, room history, solver start set, comment ratchet. The stamp empties the list; the
+3176c3178
+<   "max_class_loc": 7875,
+---
+>   "max_class_loc": 7873,
+3182c3184
+<   "recorded_at": "bc658f9ded3da4ce7daf8bb854b6bc24e67a9d5f",
+---
+>   "recorded_at": "8751943e17ef4d3ec699e7859ae829b4528d8ce7",
