@@ -1635,6 +1635,12 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
 // the rule each names, not a restatement of it.
 {
   const ruleOf = cssRule;
+  // Every regex metacharacter, the backslash among them, so a selector
+  // spliced into a RegExp matches itself literally (CodeQL js/incomplete-sanitization).
+  const reEscape = (s) => s.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+  check("a selector spliced into a RegExp matches only itself, backslash included",
+    new RegExp(`^${reEscape("a\\.b c")}$`).test("a\\.b c") && !new RegExp(`^${reEscape("a\\.b c")}$`).test("a\\xb c"),
+    reEscape("a\\.b c"));
   // H1 (b): no caption role on either surface renders under the ramp's
   // smallest step, 12 px.
   const captions = [".legend-note", ".hl-caveat", ".sb-text", ".viewctl button",
@@ -1657,7 +1663,7 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
   check("the layout bar's buttons take the chip's dialog size",
     (() => {
       const tok = (sel) => (/font-size: (var\(--hpo-text-[a-z]+, \d+px\))/.exec(ruleOf(sel)) || [])[1];
-      const phone = (sel) => (new RegExp(`${sel.replace(/\./g, "\\.")} \\{ font-size: (var\\(--hpo-text-[a-z]+, \\d+px\\)); \\}`).exec(cardSrc) || [])[1];
+      const phone = (sel) => (new RegExp(`${reEscape(sel)} \\{ font-size: (var\\(--hpo-text-[a-z]+, \\d+px\\)); \\}`).exec(cardSrc) || [])[1];
       return !!tok("dialog.expanded .chip") && tok("dialog.expanded .layout-bar button") === tok("dialog.expanded .chip") &&
         !!phone("dialog.expanded .legend") && phone("dialog.expanded .layout-bar button") === phone("dialog.expanded .legend");
     })(),
@@ -4814,9 +4820,9 @@ const restartStates = (patch = {}) => {
   }
 
   {
-    // (4b) D4-s1-01: removing a pipe is a click on it, so while editing each
-    // pipe owes the pointer floor (24 px, 44 under touch) at the width the
-    // diagram lands in -- a phone's 375 px here, where its 3.5-unit stroke
+    // (4b) D4-s1-01: removing a pipe is a click on it. So while editing,
+    // each pipe owes the pointer floor (24 px, 44 under touch) at the width
+    // the diagram lands in: a phone's 375 px here, where its 3.5-unit stroke
     // is under 2 px. The band is an invisible twin on the same path,
     // naming its pipe by `data-hit-edge`; the visible path keeps `data-edge`
     // (the drawn topology) and the keyboard stop. A click on the twin
@@ -12119,12 +12125,12 @@ check("without an indoor reading the corner now label is absent",
 
 // --- D4-s1-01 / P9-rca1 / D4-s3-04: one colour per status role ------------
 // Error, success and warning text reads the card's status tokens
-// (--hpo-crit, --hpo-ok, --hpo-warn), the same colour the pills, the setup
-// diagram's invalid pipe and the what-if result use for that role, so a role
+// (--hpo-crit, --hpo-ok, --hpo-warn). The pills, the setup diagram's invalid
+// pipe and the what-if result use the same colour for that role, so a role
 // is one colour on a page (D4-s3-04). The tokens' literals are picked in JS
-// by `hass.themes.darkMode` (tokenDeclarations), never by a
+// by `hass.themes.darkMode` (tokenDeclarations). They are never picked by a
 // `prefers-color-scheme` media query (the OS setting, which HA's own dark
-// mode can disagree with), and never by the theme's own `--error-color` etc:
+// mode can disagree with), nor by the theme's own `--error-color` etc:
 // HA's stock dark theme sets `--error-color` to #db4437, 3.97:1 on #1c1c1c.
 // A filled error control under white text reads --hpo-crit-fill, whose one
 // literal clears 4.5:1 for white in both themes.
@@ -14219,11 +14225,11 @@ check("without an indoor reading the corner now label is absent",
 }
 
 // --- The recorded past is bounded by the pan's own reach (D9-s2-01) ---------
-// A card left open on a wall dashboard, panned into the past once a day for
-// 30 days: HistorySource may only hold what `ensure` can still be asked for
+// A card left open on a wall dashboard is panned into the past once a day for
+// 30 days. HistorySource may only hold what `ensure` can still be asked for
 // (HISTORY_SPAN_MS), so its rows plateau and its covered chunks stay at the
 // 48 h span's 4-5. The control is a twin source whose prune is a no-op,
-// driven with the same calls: everything the window can still show reads the
+// driven with the same calls. Everything the window can still show reads the
 // same from both, so the bound drops nothing a user sees -- the mode band and
 // the held samples at the window's left edge included (each series keeps its
 // last row before the cut).

@@ -261,8 +261,8 @@ function gridStates(plan) {
     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
     S("override_active", { states: override(), config: wi, steps: [["open"]] }),
     S("wood_alert", { states: wood({ cheaper: true, show_whatif: true, ready: true, slots: [] }) }),
-    // The three status notes R11-SEAM-card moved from inline style to rules,
-    // so the colour reach measures them: the space-blocked banner, the
+    // R11-SEAM-card moved three status notes from inline style to rules, so
+    // the colour reach measures them. They are the space-blocked banner, the
     // history line (a recorder that answers nothing for the window panned
     // into), and the savings month withheld under the meter floor.
     S("space_blocked", { states: (() => { const st = planStates(plan); st[DEFAULT_SPACE].attributes.space_blocked = true; return st; })() }),
