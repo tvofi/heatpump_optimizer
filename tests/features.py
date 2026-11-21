@@ -98643,6 +98643,11 @@ R.check(
 )
 
 
+# ``SystemIdentification.step`` books the plan's power x COP as delivered heat
+# while settling and ``_step_power`` x COP while stepping (the step-phase line
+# is sysid.py:1795 at main 78d3b40221, not :1792; review item c4e1a3b1), so an
+# interval whose heat went to the tank must stand the experiment down before
+# that row reaches ``identify()``.
 def _uc_sid_run(rise):
     c = _uc_tank(_t2_coord(), rise)
     c._current_action = {"power": 3.0, "dhw_power": 0.0}

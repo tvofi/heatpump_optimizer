@@ -402,10 +402,6 @@ class SysIdConfig:
     #: selection-biased UA. The fit ridges the intercept toward
     #: gains_prior_kw / thermal_mass_prior instead of toward nothing.
     gains_prior_kw: float = 0.3
-    #: The intercept prior's width, kW: ``gains_prior_sd_kw(plant)``, set
-    #: beside ``gains_prior_kw`` at each arm on a declared plant (D7-s2-02);
-    #: the learned-profile width until one arms.
-    gains_prior_sd_kw: float = 0.1
     thermal_mass_prior: float = 10.0
     #: Prior width for the room sensor's own drift, °C/h. The drift column
     #: is identifiable from a clean window and hopeless from a short noisy
@@ -510,9 +506,6 @@ class SysIdResult:
     #: told (R9-P5): how far one ``SLAB_PAIR_PRIOR_LOG_SD`` of either member
     #: moves the answer. ``None`` on every one-state result. Not serialized.
     ua_told_halfwidth: float | None = None
-    #: The room reading's own noise, a bias on log UA (D2-s3-10):
-    #: :func:`_regressor_noise`'s attenuation, added to the interval linearly.
-    ua_noise_halfwidth: float | None = None
     reason: str = ""
 
     def as_dict(self) -> SysIdResultView:
@@ -566,18 +559,6 @@ FAST_MODE_SETTLE_TAUS = 3.0
 #: both. A DESIGN constant like the prior it ports: it prices the prior's
 #: own uncertainty (±0.1 kW on a 0.3 kW prior), not a tuning knob.
 SLAB_INTERCEPT_PRIOR_SD_KW = 0.1
-#: The same width where the plant carries NO learned internal-gains profile
-#: (D7-s2-02): its night prior is then the configured constant, a figure
-#: nothing measured, and +0.5/+0.8 kW of free heat it was not told about was
-#: admitted biased at 0.1 kW (three cells of the D7-s2-02 harness); the
-#: finder's perturbation width. A DESIGN constant like the one above.
-SLAB_INTERCEPT_UNLEARNED_SD_KW = 0.3
-
-
-def gains_prior_sd_kw(plant: ThermalParameters) -> float:
-    """The intercept prior's width for a night on ``plant``: learned, or only configured."""
-    learned = plant.internal_gains_profile is not None
-    return SLAB_INTERCEPT_PRIOR_SD_KW if learned else SLAB_INTERCEPT_UNLEARNED_SD_KW
 
 #: The adoption bar on the fitted UA's own uncertainty (#1410, supersedes
 #: the #942 residual-scatter precondition): the 95 % profile-likelihood
@@ -605,22 +586,6 @@ UA_ADOPTION_HALFWIDTH_BAR = float(np.log(1.10))
 #: house, noise-free, plant == declaration): 0.10 keeps 28 of the 32 nights
 #: that adopt without the term; 0.15 keeps 10 and 0.25 keeps 3.
 SLAB_PAIR_PRIOR_LOG_SD = 0.1
-#: One-sigma widths of the two other quantities the fit is TOLD (#3767, P5):
-#: the COP ``step`` books every power row through (log units), and the
-#: outdoor reading the rollout runs on (K). Delivered heat is power x COP
-#: and the loss is heat over (indoor - outdoor), so either moves UA about
-#: one for one, and the gate prices them exactly as the slab pair above.
-#: DESIGN constants and a liveness trade, like that width: the values are
-#: the owner's, read from the keep table in the PR that added them
-#: (``decision: owner``); a COP width near 0.05 alone spends the bar.
-TOLD_COP_LOG_SD = 0.03
-TOLD_OUTDOOR_SD_K = 0.5
-
-#: The largest lag-1 autocorrelation of the fit's residual the profile width
-#: is widened for (D2-s3-10): ``sqrt((1 + r) / (1 - r))`` is then at most
-#: ``sqrt(19)``, so a residual near a random walk never makes the width
-#: diverge, and a negative ``r`` never narrows it (clamped at 0).
-NOISE_AUTOCORR_MAX = 0.9
 
 #: The 95 % critical value for a one-degree-of-freedom profile-likelihood
 #: interval (chi-square), the threshold the interval's cost must stay under.
@@ -1013,14 +978,12 @@ def _told_path_error(
     series: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     slab_pair: tuple[float, float],
     two_zone: ThermalParameters | None,
-) -> Callable[..., _PathError]:
-    """:func:`_path_error` with the told slab pair scaled by ``(m, t)`` (R9-P5),
-    the told heat by ``c`` and the told outdoor reading offset by ``o`` K (#3767)."""
-    rooms, outdoors, powers, dts = series
+) -> Callable[[float, float], _PathError]:
+    """:func:`_path_error` with the told slab pair scaled by ``(m, t)`` (R9-P5)."""
 
-    def told(m: float, t: float, c: float = 1.0, o: float = 0.0) -> _PathError:
+    def told(m: float, t: float) -> _PathError:
         return _path_error(
-            rooms, outdoors + o, powers * c, dts, (slab_pair[0] * m, slab_pair[1] * t),
+            *series, (slab_pair[0] * m, slab_pair[1] * t),
             None if two_zone is None else replace(
                 two_zone, slab_thermal_mass=two_zone.slab_thermal_mass * m,
                 slab_heat_transfer=two_zone.slab_heat_transfer * t,
@@ -1036,10 +999,10 @@ def _ridged(error: _PathError, prior_g: float, width_kw: float) -> _PathError:
     A candidate whose rollout left the finite range reads as a huge finite
     cost instead of poisoning the Jacobian with a NaN, or raising out of the
     fit (R6 D7-03 #1396/#1397). The ridge is ONE pseudo-observation on G,
-    weighed against the whole room series through its width
-    (``width_kw``, :func:`gains_prior_sd_kw`); deleting the append is the
-    mutation the ensemble test flips on. The one spelling of the ridge: the
-    fit and every interval the gate reads take it from here (D7-s2-02).
+    weighed against the whole room series through its width ``width_kw``
+    (``SLAB_INTERCEPT_PRIOR_SD_KW`` at every caller); deleting the append is
+    the mutation the ensemble test flips on. The one spelling of the ridge:
+    the fit and every interval the gate reads take it from here.
     """
 
     def residual(x: np.ndarray) -> np.ndarray:
@@ -1170,65 +1133,33 @@ def _slab_ua_prior_halfwidth(
 
 
 def _slab_ua_told_halfwidth(
-    x_hat: np.ndarray, told_error: Callable[..., _PathError], prior_g: float,
+    x_hat: np.ndarray, told_error: Callable[[float, float], _PathError], prior_g: float,
     width_kw: float,
 ) -> float:
-    """The UA interval the told quantities contribute (R9-P5, #1655; #3767).
+    """The UA interval the told slab pair contributes (R9-P5, #1655).
 
-    ``told_error(m, t, c, o)`` is the rollout error with the declared slab
-    mass scaled by ``m``, its transfer by ``t``, the told heat by ``c`` and
-    the told outdoor reading offset by ``o``. Each member is moved one width
-    either way (``SLAB_PAIR_PRIOR_LOG_SD``, ``TOLD_COP_LOG_SD``,
-    ``TOLD_OUTDOOR_SD_K``) and the fit re-solved from the converged point,
-    exactly as :func:`_slab_ua_prior_halfwidth` moves the intercept prior;
-    the four members' largest shifts combine in quadrature, in the same
-    95 % form.
+    ``told_error(m, t)`` is the rollout error with the declared slab mass
+    scaled by ``m`` and its transfer by ``t``. Each member is moved one
+    ``SLAB_PAIR_PRIOR_LOG_SD`` either way and the fit re-solved from the
+    converged point, exactly as :func:`_slab_ua_prior_halfwidth` moves the
+    intercept prior; the two members' largest shifts combine in quadrature,
+    in the same 95 % form.
     """
     up, down = np.exp(SLAB_PAIR_PRIOR_LOG_SD), np.exp(-SLAB_PAIR_PRIOR_LOG_SD)
-    c_up, c_down = np.exp(TOLD_COP_LOG_SD), np.exp(-TOLD_COP_LOG_SD)
     shifts: list[float] = []
-    for members in (
-        ((up, 1.0, 1.0, 0.0), (down, 1.0, 1.0, 0.0)),
-        ((1.0, up, 1.0, 0.0), (1.0, down, 1.0, 0.0)),
-        ((1.0, 1.0, c_up, 0.0), (1.0, 1.0, c_down, 0.0)),
-        ((1.0, 1.0, 1.0, TOLD_OUTDOOR_SD_K), (1.0, 1.0, 1.0, -TOLD_OUTDOOR_SD_K)),
-    ):
+    for scales in (((up, 1.0), (down, 1.0)), ((1.0, up), (1.0, down))):
         moved = 0.0
-        for told in members:
-            x, _cost = _lm_solve(_ridged(told_error(*told), prior_g, width_kw), np.asarray(x_hat, float))
+        for m, t in scales:
+            x, _cost = _lm_solve(_ridged(told_error(m, t), prior_g, width_kw), np.asarray(x_hat, float))
             moved = max(moved, abs(float(x[0]) - float(x_hat[0])))
         shifts.append(moved)
     return _Z_975 * math.hypot(*shifts)
-
-
-def _regressor_noise(rooms: np.ndarray, error: np.ndarray) -> tuple[float, float]:
-    """``(attenuation, r)`` of a slab fit's window, from its own series (D2-s3-10).
-
-    The reading variance is the larger of the fit's white residual variance
-    and a quantised sensor's ``d**2 / 12``, ``d`` the window's smallest
-    non-zero room step: a 0.1 degC sensor reads a still room as flat, so its
-    residual alone under-states the noise. Over the room series' own spread
-    it is the share by which reading noise attenuates the fitted UA, a bias
-    in log units. ``r`` is the residual's lag-1 autocorrelation, clamped to
-    ``[0, NOISE_AUTOCORR_MAX]``.
-    """
-    steps = np.abs(np.diff(rooms))
-    steps = steps[steps > 0.0]
-    quantum_var = float(steps.min()) ** 2 / 12.0 if steps.size else 0.0
-    read_var = max(float(np.var(error)), quantum_var)
-    spread = float(np.var(rooms))
-    attenuation = read_var / spread if spread > 0.0 else float("inf")
-    e = np.asarray(error, dtype=float) - float(np.mean(error))
-    den = float(e @ e)
-    r = float(e[1:] @ e[:-1]) / den if den > 0.0 else 0.0
-    return attenuation, float(np.clip(r, 0.0, NOISE_AUTOCORR_MAX))
 
 
 def slab_ua_adoption_halfwidth(
     profile_halfwidth: float | None,
     prior_halfwidth: float | None,
     told_halfwidth: float | None = None,
-    noise_halfwidth: float | None = None,
 ) -> float | None:
     """The single interval the #1410 adoption gate bounds (D7-01).
 
@@ -1251,10 +1182,8 @@ def slab_ua_adoption_halfwidth(
         return None
     if prior_halfwidth is None:
         return profile_halfwidth
-    # R9-P5: and the told slab pair's term, in the same quadrature; D2-s3-10:
-    # the reading noise's attenuation is a bias, not a spread, so it adds.
-    return float(np.hypot(np.hypot(profile_halfwidth, prior_halfwidth), told_halfwidth or 0.0)) + (
-        noise_halfwidth or 0.0)
+    # R9-P5: and the told slab pair's term, in the same quadrature.
+    return float(np.hypot(np.hypot(profile_halfwidth, prior_halfwidth), told_halfwidth or 0.0))
 
 
 def _declared_night_halfwidth(
@@ -1292,7 +1221,7 @@ def _declared_night_halfwidth(
     )
     told = _told_path_error((rooms, outdoors, np.append(powers, 0.0), dts), slab_pair, two_zone)
     x0 = np.array([np.log(max(ua0, 1e-3)), np.log(max(cr0, 1e-2)), g])
-    w = cfg.gains_prior_sd_kw
+    w = SLAB_INTERCEPT_PRIOR_SD_KW
     return float(np.hypot(
         _slab_ua_prior_halfwidth(x0, told(1.0, 1.0), g, w), _slab_ua_told_halfwidth(x0, told, g, w)
     ))
@@ -1332,7 +1261,7 @@ def adoption_decision(
         return refuse(result.reason)
     hw = slab_ua_adoption_halfwidth(
         result.ua_profile_halfwidth, result.ua_prior_halfwidth,
-        result.ua_told_halfwidth, result.ua_noise_halfwidth,
+        result.ua_told_halfwidth,
     )
     if hw is None:
         return refuse("the fit placed no interval on the heat-loss coefficient")
@@ -1569,7 +1498,6 @@ class SystemIdentification:
             # runs in. An hour the profile never learned reads the configured
             # value (``internal_gains_at``), as does a plant with no profile.
             self.config.gains_prior_kw = night_gains_prior_kw(plant, self.config)
-            self.config.gains_prior_sd_kw = gains_prior_sd_kw(plant)
             self._slab_prior = (
                 float(plant.heat_loss_coefficient)
                 * float(plant.house_heat_loss_scale),
@@ -2440,7 +2368,7 @@ class SystemIdentification:
             series, (slab_mass, slab_transfer), self._two_zone_plant
         )
         error = told_error(1.0, 1.0)
-        residual = _ridged(error, self.config.gains_prior_kw, self.config.gains_prior_sd_kw)
+        residual = _ridged(error, self.config.gains_prior_kw, SLAB_INTERCEPT_PRIOR_SD_KW)
         prior_g = self.config.gains_prior_kw
 
         # Multi-start over the room-capacity decade: the cost surface has a
@@ -2473,7 +2401,7 @@ class SystemIdentification:
         path_error: _PathError,
         slab_mass: float,
         slab_transfer: float,
-        told_error: Callable[..., _PathError],
+        told_error: Callable[[float, float], _PathError],
     ) -> SysIdResult:
         """Guard and package the converged two-state fit (the wave's act 2).
 
@@ -2497,15 +2425,10 @@ class SystemIdentification:
         # clean residual is exactly what a prior-dominated, useless fit
         # looks like, so the interval — not the residual scatter — is the
         # quantity the gate bounds.
-        width = self.config.gains_prior_sd_kw
-        # D2-s3-10: a correlated residual (a quantised or drifting sensor)
-        # holds fewer independent readings than samples, so the profile
-        # width widens by the AR(1) factor; the reading noise's attenuation
-        # of UA is its own term.
-        attenuation, r = _regressor_noise(rooms, np.asarray(error, dtype=float))
+        width = SLAB_INTERCEPT_PRIOR_SD_KW
         profile_halfwidth = _slab_ua_profile_halfwidth(
             best_x, path_error, int(rooms.size), self.config.gains_prior_kw, width
-        ) * float(np.sqrt((1.0 + r) / (1.0 - r)))
+        )
         # ... and the interval the intercept prior itself contributes (round-7
         # D7-01, #1459): the profile term above holds prior_g FIXED, so on the
         # collinear windows this experiment produces it reports ~1e-4 while
@@ -2532,7 +2455,6 @@ class SystemIdentification:
             ua_told_halfwidth=_slab_ua_told_halfwidth(
                 best_x, told_error, self.config.gains_prior_kw, width
             ),
-            ua_noise_halfwidth=attenuation,
             confidence=_slab_confidence(rooms, error),
             reason="ok",
         )
