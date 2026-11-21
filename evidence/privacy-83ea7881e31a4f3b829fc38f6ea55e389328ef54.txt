@@ -1,0 +1,6 @@
+# pr 3814 head 83ea7881e31a4f3b829fc38f6ea55e389328ef54
+$ ref_privacy.py guard --ref fix/... --commits 83ea7881e31a4f3b829fc38f6ea55e389328ef54 --over origin/main
+rc=0
+$ body-lines <added lines>
+rc=0
+added lines with /Users/: 0

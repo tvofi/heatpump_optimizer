@@ -1,0 +1,152 @@
+# box handoff/audit-r11-find-D3-top6 fdd9e2d827 vs pr/3814 83ea7881e31a4f3b829fc38f6ea55e389328ef54 vs origin/main 053c33bcc68292b4331986a3c2b538e89fe17e42
+box fdd9e2d827 files 267; head 83ea7881e31a4f3b829fc38f6ea55e389328ef54 added/changed 147
+  DROPPED: 2
+  identical-on-main: 119
+  main-has-different-bytes(not landed): 1
+  same-path-identical(added): 94
+  same-path-modified: 43
+  suffixed-identical: 3
+  suffixed-modified: 5
+  head-added dev/audit paths not from box: 0
+   DROPPED	CHECK.txt
+   DROPPED	dev/audit/rounds/round11/D3/s1/CHECK.txt
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/REPORT.json
+   same-path-modified	dev/audit/rounds/round11/D3/s1/box_report.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/d931_probe.py
+   main-has-different-bytes(not landed)	dev/audit/rounds/round11/D3/s1/finalize.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/fl183_nonfinite.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/fl47_alpha.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/fullgate.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/gate_chain.sh
+   same-path-modified	dev/audit/rounds/round11/D3/s1/gf173_bare_rate.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/m04_guard_tariff_off.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/m26_probe.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/m31_topk_zero.py
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/m5_solves.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/phase_a.sh
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/prescreen.py
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/state/baselines.json
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/050fdc4a20eba212.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/0911281eca895664.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/0c3e91a6a349409a.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/0e172028a23d9372.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/121362d48b408236.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/22b5ec8775d5bd50.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/2719aef4cbb8b464.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/3885e472b8297a90.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/460217277822d5bd.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/4b3795aece73ba73.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/5e8d48eff7e4fa8d.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/65f121eb047174ad.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/8e82d7a0b3617003-local-aborted.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/8e82d7a0b3617003.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/bdcf7589b0a0a6df.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/d931ab195b940b0c.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/fb16c7b0cbbfc63d.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/null-cloud-partial.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/null-heap2g.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/null-nolease.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/gates/null.log
+   suffixed-modified	dev/audit/rounds/round11/D3/s1/state/null.json
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-top6-local/1579a4d09c6461e8.json
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-top6-local/a45125c6f64eb6e8.json
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/superseded/gate-050fdc4a20eba212-interrupted-by-restart.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/superseded/gates-aborted/bdcf7589b0a0a6df.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/state/superseded/gates-aborted/fb16c7b0cbbfc63d.log
+   same-path-modified	dev/audit/rounds/round11/D3/s1/sy610_pin_blind.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/t3_drive.sh
+   same-path-modified	dev/audit/rounds/round11/D3/s1/tm169_holiday_dhw.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/tm2593_buffer_bound.py
+   same-path-modified	dev/audit/rounds/round11/D3/s1/top6_compose.py
+   same-path-modified	dev/audit/rounds/round11/reports-D3-top6.json
+
+# modified-file classes (scrub = this host home -> ~; trim = first 100 + marker + last 200)
+OTHER	dev/audit/rounds/round11/D3/s1/REPORT.json	299 diff lines; first: ['- "exposure": "Carried REPORT.json/LOCAL-REPORT.json of seat D3-s1 (runs B1 and D3R) read in full, as the brief requires; no G
+OTHER	dev/audit/rounds/round11/D3/s1/box_report.py	14 diff lines; first: ["-REPORT.json (this box's slice) and REPORT.md. Counts are exact; every wall number is provisional.", "-Instrumented symbol: f
+OTHER	dev/audit/rounds/round11/D3/s1/d931_probe.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_components/heat
+OTHER	dev/audit/rounds/round11/D3/s1/fl183_nonfinite.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_components
+OTHER	dev/audit/rounds/round11/D3/s1/fl47_alpha.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_components/heat
+OTHER	dev/audit/rounds/round11/D3/s1/fullgate.py	15 diff lines; first: ['-ROOT = HERE.parents[5]', '+def repo_root(start):', '+    """The directory holding custom_components/heatpump_optimizer/manifes
+scrub-only	dev/audit/rounds/round11/D3/s1/gate_chain.sh
+OTHER	dev/audit/rounds/round11/D3/s1/gf173_bare_rate.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_components
+OTHER	dev/audit/rounds/round11/D3/s1/m04_guard_tariff_off.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_compo
+OTHER	dev/audit/rounds/round11/D3/s1/m26_probe.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_components/heatp
+OTHER	dev/audit/rounds/round11/D3/s1/m31_topk_zero.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_components/h
+OTHER	dev/audit/rounds/round11/D3/s1/m5_solves.py	51 diff lines; first: ['-Run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py [--scripts a,b] [--double-solve]', '+Box D3-
+OTHER	dev/audit/rounds/round11/D3/s1/phase_a.sh	4 diff lines; first: ['-python3 "$P/prescreen.py" null > "$P/state/null-D3top6.out" 2>&1', '-python3 "$P/prescreen.py" run --anchors "$P/posctl_anchors.
+OTHER	dev/audit/rounds/round11/D3/s1/prescreen.py	96 diff lines; first: ['-Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: owner macOS arm64, shared box.', '+Box D3-m5 (D3.M5(b), the kill
+OTHER	dev/audit/rounds/round11/D3/s1/state/baselines.json	2 diff lines; first: ['-{"tests/boost_drift_replay.py": {"run": {"rc": 0, "failed": 0, "seconds": 128.6, "timed_out": false, "checks": [], "st
+trim	dev/audit/rounds/round11/D3/s1/state/gates/050fdc4a20eba212.log	15973->301 marker="[... 15673 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/0911281eca895664.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/0c3e91a6a349409a.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/0e172028a23d9372.log	16256->301 marker="[... 15956 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/121362d48b408236.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/22b5ec8775d5bd50.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/2719aef4cbb8b464.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/3885e472b8297a90.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/460217277822d5bd.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/4b3795aece73ba73.log	15984->301 marker="[... 15684 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/5e8d48eff7e4fa8d.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/65f121eb047174ad.log	15978->301 marker="[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/8e82d7a0b3617003-local-aborted.log	11865->301 marker="[... 11565 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/8e82d7a0b3617003.log	13683->301 marker="[... 13383 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/bdcf7589b0a0a6df.log	16249->301 marker="[... 15949 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/d931ab195b940b0c.log	16242->301 marker="[... 15942 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/fb16c7b0cbbfc63d.log	15970->301 marker="[... 15670 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/null-cloud-partial.log	3269->301 marker="[... 2969 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fin"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/null-heap2g.log	15974->301 marker="[... 15674 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/null-nolease.log	15965->301 marker="[... 15665 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+trim	dev/audit/rounds/round11/D3/s1/state/gates/null.log	16248->301 marker="[... 15948 lines trimmed; full log in the box's handoff ref handoff/audit-r11-fi"
+OTHER	dev/audit/rounds/round11/D3/s1/state/null.json	2 diff lines; first: ['-{"mutant": {"kind": "NULL_COMMENT", "file": "custom_components/heatpump_optimizer/batchmath.py", "line": 19, "old": "#: The
+scrub-only	dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-top6-local/1579a4d09c6461e8.json
+scrub-only	dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-top6-local/a45125c6f64eb6e8.json
+trim	dev/audit/rounds/round11/D3/s1/state/superseded/gate-050fdc4a20eba212-interrupted-by-restart.log	13793->301 marker="[... 13493 lines trimmed; full log in the box's handoff ref handoff/audit-r11-f
+scrub-only	dev/audit/rounds/round11/D3/s1/state/superseded/gates-aborted/bdcf7589b0a0a6df.log
+scrub-only	dev/audit/rounds/round11/D3/s1/state/superseded/gates-aborted/fb16c7b0cbbfc63d.log
+OTHER	dev/audit/rounds/round11/D3/s1/sy610_pin_blind.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_components
+OTHER	dev/audit/rounds/round11/D3/s1/t3_drive.sh	4 diff lines; first: ['-# T3 driver: prescreen.py complete (full net, no early stop, no relaxation) over the owed survivors, by source.', '+# T3 driver
+OTHER	dev/audit/rounds/round11/D3/s1/tm169_holiday_dhw.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_componen
+OTHER	dev/audit/rounds/round11/D3/s1/tm2593_buffer_bound.py	15 diff lines; first: ['-ROOT = Path(__file__).resolve().parents[6]', '+def repo_root(start):', '+    """The directory holding custom_compon
+OTHER	dev/audit/rounds/round11/D3/s1/top6_compose.py	21 diff lines; first: ['-state/gates/ and the two step-4 probes, then box_report.py builds REPORT.json/REPORT.md.', '+state/gates/ and the two step
+OTHER	dev/audit/rounds/round11/reports-D3-top6.json	2 diff lines; first: ['-      "report_path": "dev/audit/rounds/round11/D3/s1/REPORT.md",', '+      "report_path": "dev/audit/rounds/round11/D3/s1/RE
+
+# the five suffixed-modified files, box (scrubbed) vs the landed -D3-top6 copy (the OTHER lines above for these compare against main's #3810 copy)
+== REPORT.json -> REPORT-D3-top6.json
+4c4
+<  "report_path": "dev/audit/rounds/round11/D3/s1/REPORT.md",
+---
+>  "report_path": "dev/audit/rounds/round11/D3/s1/REPORT-D3-top6.md",
+== m5_solves.py -> m5_solves-D3-top6.py
+18c18
+< Run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves.py [--scripts a,b] [--double-solve]
+---
+> Run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_solves-D3-top6.py [--scripts a,b] [--double-solve]
+121c121
+<         base = json.loads((here / "state" / "baselines.json").read_text())
+---
+>         base = json.loads((here / "state" / "baselines-D3-top6.json").read_text())
+== prescreen.py -> prescreen-D3-top6.py
+22,27c22,27
+<   python3 dev/audit/rounds/round11/D3/s1/prescreen.py baseline --workers 3
+<   python3 dev/audit/rounds/round11/D3/s1/prescreen.py run --workers 3 [--limit N] [--anchors FILE]
+<   python3 dev/audit/rounds/round11/D3/s1/prescreen.py run --full --anchors FILE   # no early stop (kill matrix)
+<   python3 dev/audit/rounds/round11/D3/s1/prescreen.py null
+<   python3 dev/audit/rounds/round11/D3/s1/prescreen.py reach      # whole-universe reach table
+<   python3 dev/audit/rounds/round11/D3/s1/prescreen.py report
+---
+>   python3 dev/audit/rounds/round11/D3/s1/prescreen-D3-top6.py baseline --workers 3
+>   python3 dev/audit/rounds/round11/D3/s1/prescreen-D3-top6.py run --workers 3 [--limit N] [--anchors FILE]
+>   python3 dev/audit/rounds/round11/D3/s1/prescreen-D3-top6.py run --full --anchors FILE   # no early stop (kill matrix)
+>   python3 dev/audit/rounds/round11/D3/s1/prescreen-D3-top6.py null
+>   python3 dev/audit/rounds/round11/D3/s1/prescreen-D3-top6.py reach      # whole-universe reach table
+>   python3 dev/audit/rounds/round11/D3/s1/prescreen-D3-top6.py report
+57c57
+< BASE_FILE = STATE / "baselines.json"
+---
+> BASE_FILE = STATE / "baselines-D3-top6.json"
+481c481
+<     (STATE / ("null-full.json" if args.full else "null.json")).write_text(json.dumps(r))
+---
+>     (STATE / ("null-full.json" if args.full else "null-D3-top6.json")).write_text(json.dumps(r))
+== state/baselines.json -> state/baselines-D3-top6.json
+== state/null.json -> state/null-D3-top6.json
