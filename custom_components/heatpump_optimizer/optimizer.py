@@ -3103,8 +3103,8 @@ class _Horizon:
     extra_starts: tuple[np.ndarray, ...] | None = None
     #: What ``slot_drivers`` reads and the solve does not (R10-WHY-NOW-WIDGET):
     #: the comfort floor before the mold guard, the mold floor padded to the
-    #: horizon, the floor the away setback and holiday profile took off, and
-    #: the part of ``temp_min_bounds`` the room lift raised (#3616).
+    #: horizon, and the floor the away setback and holiday profile took off.
+    #: ``room_lifts`` is the part of ``temp_min_bounds`` the room lift raised (#3616).
     comfort_floors: np.ndarray | None = None
     mold_floors: np.ndarray | None = None
     away_floor_drops: np.ndarray | None = None
