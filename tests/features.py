@@ -98747,17 +98747,28 @@ _cr_now = datetime.now(timezone.utc)
 _cr_ctx._optimization_result = _CrNS(timestamps=[_cr_now - timedelta(minutes=15), _cr_now + timedelta(minutes=15)],
                                      room_temp_trajectory=[5.0, 5.0, 5.0])
 _cr_aio.run(_cr_ec.arm(_cr_held_ec, _cr_ctx.arbiter_inputs, None, lambda _f: None))
-_cr_before = _cr_ec.threshold(_cr_held_ec.wiring.inputs(), _cr_now)
+
+
+def _cr_threshold():
+    """The held cutoff's threshold now; a mutant that drops the config fails the check below."""
+    try:
+        return _cr_ec.threshold(_cr_held_ec.wiring.inputs(), _cr_now)
+    except AttributeError as err:
+        return repr(err)
+
+
+_cr_before = _cr_threshold()
 _cr_cfg_now = _cr_ctx._ctx._opt_config
 _cr_ctx._ctx.publish_config(_cr_ctx, comfort_temp_day=_cr_cfg_now.comfort_temp_day + 3.0,
                             comfort_temp_night=_cr_cfg_now.comfort_temp_night + 3.0)
 _cr_seen = _cr_held_ec.wiring.inputs().opt_config
-_cr_after = _cr_ec.threshold(_cr_held_ec.wiring.inputs(), _cr_now)
+_cr_after = _cr_threshold()
 R.check(
     "ADR-003 stale holder: after the cutoff is armed, a published configuration change is what the "
     "held cutoff reads at the next reading (its threshold rises by the 3.0 K the comfort target "
     "rose); null control, the threshold read before the change is the old target's",
     _cr_seen is _cr_ctx._ctx._opt_config and _cr_seen is not _cr_cfg_now
+    and isinstance(_cr_before, float) and isinstance(_cr_after, float)
     and abs((_cr_after - _cr_before) - 3.0) < 1e-9,
     f"before={_cr_before} after={_cr_after} seen_is_live={_cr_seen is _cr_ctx._ctx._opt_config}",
 )
