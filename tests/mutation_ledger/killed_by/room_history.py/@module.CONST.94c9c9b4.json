@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:<module> CONST 94c9c9b4",
+  "killed_by": "tests/features.py",
+  "old": "ALWAYS_FRACTION = 0.95",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`ALWAYS_FRACTION = 1.9`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
