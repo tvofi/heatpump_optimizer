@@ -80,9 +80,9 @@ class Restorer:
     ``restored(entry, entity_id, value)``, when given, is told each restore
     write that succeeded, so the consumer's own write record names what the
     entity was last told; the restore never edits that record itself.
-    ``write_unread``: an unreadable baseline arms a restore of nothing and the
-    write proceeds, rather than refusing it until a person acts; that entry
-    is kept until a restore drops it, so the optimizer's own write is never
+    ``write_unread``: an unreadable baseline arms a restore of nothing, and
+    the write proceeds rather than waiting for a person to act. That entry is
+    kept until a restore drops it, so the optimizer's own write is never
     captured as the baseline.
     """
 

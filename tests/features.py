@@ -82412,13 +82412,13 @@ R.check(
 )
 
 
-# A baseline that cannot be read never parks the write until a person acts:
-# the entity is written and arms a restore of nothing, kept while armed so the
-# optimizer's own write is never captured as the baseline; the next arm after
-# that restore drops it captures the entity's reading, not before it, when
-# the entity reads the optimizer's own write. Driven from "no
-# baseline" to the first write that lands, for the valve on a climate that is
-# off with no target and the frequency entity with no readable state.
+# A baseline that cannot be read never parks the write until a person acts.
+# The entity is written and arms a restore of nothing. That entry is kept while
+# armed, so the optimizer's own write is never captured as the baseline. The
+# next arm after the restore drops it captures the entity's reading, and no arm
+# before it does, while the entity reads the optimizer's own write. Driven from
+# "no baseline" to the first write that lands, for the valve on a climate that
+# is off with no target and the frequency entity with no readable state.
 def _nb_drive(key, entity, first, written, second, entry_data):
     from heatpump_optimizer import off_restore as _nb_or
     hass = FakeHass({entity: first})
