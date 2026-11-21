@@ -15,7 +15,7 @@
 set -u
 ROOT=$(git rev-parse --show-toplevel) || exit 2
 W=$(mktemp -d) || exit 2
-trap 'git -C "$ROOT" worktree remove --force "$W/wt" >/dev/null 2>&1; rm -rf "$W"' EXIT
+trap 'cd "$ROOT"; git -C "$ROOT" worktree remove --force "$W/wt" >/dev/null 2>&1; rm -rf "$W"' EXIT
 git -C "$ROOT" worktree add -q --detach "$W/wt" HEAD || exit 2
 cd "$W/wt" || exit 2
 K=0; S=0

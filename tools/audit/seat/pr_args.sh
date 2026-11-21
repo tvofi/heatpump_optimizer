@@ -1484,7 +1484,7 @@ STUBF
   ck "update_pr: a failing strip at the head to push refuses and pushes nothing" $?
   ufresh; ufig - "$codeF" block; rm -f "$t/ubp.log"
   ufig - - block
-  [ "$(cat "$t/rc")" = 0 ] && [ "$(cat "$t/ubefore")" = "$(cat "$t/uafter")" ] && grep -qF "update_pr: BODY-ONLY" "$t/out" && [ "$(ubody)" = 0 ] && [ "$(wc -l < "$t/ubp.log")" = 1 ]
+  [ "$(cat "$t/rc")" = 0 ] && [ "$(cat "$t/ubefore")" = "$(cat "$t/uafter")" ] && grep -qF "update_pr: BODY-ONLY" "$t/out" && [ "$(ubody)" = 0 ] && [ "$(wc -l < "$t/ubp.log" | tr -d ' ')" = 1 ]
   ck "update_pr: a body-only run over a stored block patches the body with the block cut" $?
   ufig updfig2 - block
   [ "$(cat "$t/rc")" != 0 ] && grep -qF "body_patch: REFUSE: the body carries a stored figure block" "$t/out"
