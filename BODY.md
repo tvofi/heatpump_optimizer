@@ -12,6 +12,12 @@ Alternatives: keeping `coordinator._covering_index`, `pump_arbiter._step_index` 
 
 ## Head
 
+`0bfce347d8aa2d26f8401f656576a044ef6e815f` merges the authored code head `00b60ee41761bbf04f7965972880a4c58da7228b`.
+
+`8e9886731eac90a687b0207c82a40431fa67ed24` is one authored commit on `dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20`, the previous head, with no merge of main. It changes `tests/features.py` alone, comment lines only (`git diff --name-only dd7149fe 8e988673`). Delta review base: dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20.
+
+`dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
 `d646047469146c05d7f2fb667082b22998840675` is one authored commit on `224f5007fe7cdc79dcb7c1142d6d284851240c00`, the previous handoff, with no merge of main. It changes `tests/features.py` alone (`git diff --name-only 224f5007 d6460474`): the `D7-s3-04 water` check drives `sensor._gap_probe_terms` with `{CONF_DHW_ENABLED: True}`, because the D8-s1-01 guard that 2385016abd kept from main prices no tank for an install without hot water, and the check's empty config read the gap advisor as 0.0 (`## Red checks`, `tests / fast (3.14)` at 4fd8d2a2). No production line changes. Delta review base: 4fd8d2a2ed3e399a7ab6ab1671f4c1ec59b20f8b (its tree equals 224f5007's).
 
 `224f5007fe7cdc79dcb7c1142d6d284851240c00` is one authored commit on `23003a38d7675d8777b4f72b8f59b94d6d2f99ba`, the previous PR head (2999486b plus the bot's `ci: pin killed mutants`), with no merge of main. It changes `custom_components/heatpump_optimizer/manual_plan.py` and `tests/features.py` (`git diff --name-only 23003a38 224f5007`). Delta review base: 23003a38d7675d8777b4f72b8f59b94d6d2f99ba, measured 2026-11-19T15:10Z.
@@ -60,7 +66,7 @@ prepr.sh's own diff-mutant step was skipped under `PREPR_SKIP_CODE=1`, which the
 
 ## Figures
 
-<!-- figure-block: scope-line mb=e83a2c919f5378f41975b03c1315c226a6be6002 head=d646047469146c05d7f2fb667082b22998840675 -->
+<!-- figure-block: scope-line mb=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b head=00b60ee41761bbf04f7965972880a4c58da7228b -->
 ~~~text
 MODE: SCOPED -- 29 script(s) run, 4 scoped out.
 ~~~
@@ -113,6 +119,12 @@ The 23 mutation sites the diff adds (`tools/pr/ci_predict.py`'s `ADDED UNPINNED`
 
 ## Red checks
 
+- `tests / fast (3.14)` at 8e988673 (run 44920050769, job 136895760003, step `Run the suite`): `tests/doc_claims.py` failed the comment ratchet on the synthetic merge into main e698fc8a, `REFUSE custom_components/heatpump_optimizer/drift.py: long units 4 -> 5` and `REFUSE custom_components/heatpump_optimizer/plan_step.py: long units 1 -> 2`. Cause: this branch's. The two new docstring sentences (`drift.py` line 42, `plan_step.py` line 58) run over 40 words; it reproduces locally by merging main into 8e988673 and running `python3 tests/doc_claims.py`, and it still fails against main a8efe1d1. Not yet repaired: it needs a fixer commit that splits those sentences.
+- `tests / replay` at 8e988673 (run 44920050769, job 136895759832): cancelled, not failed. A timeout cancel at 30m14s against the 30-minute cap. It re-runs at the next head.
+- `pr-contract / pr-contract` at 8e988673 (run 44920050769, job 136923005903): `figure_block.py verify` refused line 67, block `scope-line` printed `MODE: FULL` where the instrument prints `MODE: SCOPED -- 29 script(s) run, 4 scoped out.` Cause: the body's. Repaired by `figure_block.py refresh` in this body edit.
+- `gate` at 8e988673: aggregates the three reds above.
+- `tests / fast (3.14)` at dd7149fe (run 44898914083, job 136840014651): `tests/doc_claims.py`'s comment ratchet failed on the comment above the `D7-s3-04 water` check in `tests/features.py`, which this PR's diff rewrote into one sentence of over 40 words. Cause: this branch's. Repaired by 8e988673, which splits it into sentences of at most 40 words with no content change; `python3 tests/doc_claims.py` gave ALL 439 checks PASSED and `python3 tests/structure.py` STRUCTURE RATCHET PASSED. Cheaper detector: `tests/doc_claims.py`, which was not run at dd7149fe.
+- `tests / replay` at dd7149fe (run 44898914083, job 136840014678): cancelled, not failed. A timeout cancel at 30m: the job ran 30m14s against its 30-minute cap (`tests.yml` `timeout-minutes: 30`). It re-runs at the new head.
 - `tests / fast (3.14)` at 4fd8d2a2 (run 44582389017, job 135777543589): `tests/features.py` failed `D7-s3-04 water: the tank model, the flow meter and the gap advisor read one heat capacity` (1 of 5939), detail `'gap advisor': 0.0`. Cause: this branch's, not main's. The merge 2385016abd kept main's D8-s1-01 guard in `sensor._gap_probe_terms` (no DHW-coast term without hot water) and left this branch's check calling it with `{}`. Reproduced locally at 4fd8d2a2 with the same detail through `features_block.py` on `# D7-s3-04, water` up to `# D7-s3-04, naive instant`; passes at d6460474. Process state (b): the full `tests/features.py` was owed on each head before handoff (the df913be8 row below) and ran at 16ad79b1, a different merge resolution that carried this config change; the round-3 figures transferred that run to 224f5007. Cheaper detector: that block through `features_block.py` after a conflict resolution, about 10 s; it exists, and this row records it was not run on 2385016abd.
 - `governance / env-matrix` at 4fd8d2a2 (run 44582389017, job 135773192445): cancelled, not failed. It re-runs at the new head.
 
@@ -136,6 +148,10 @@ The 23 mutation sites the diff adds (`tools/pr/ci_predict.py`'s `ADDED UNPINNED`
 ## Friction
 
 - carry-audit: contradiction: `tools/audit/carry_audit.py`'s `GROUP_TOK` (`\A[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\Z`) cannot tokenize a round-11 seam group such as R11-SEAM-actuation-writes, whose parts after `SEAM` are lower case, while prepr's `carry targets` line lists exactly those as valid. Measured: a one-line test body with `Carry: R11-SEAM-inputs-freshness` reads UNROUTED, and `Carry: R11-OUTSIDE-ROOMS-P3` routes. No `R11-SEAM-*` group can receive a carry by marker. Carry: dismissed: reported in this seat's return to the orchestrator, which owns the instrument
+
+
+
+
 
 
 
