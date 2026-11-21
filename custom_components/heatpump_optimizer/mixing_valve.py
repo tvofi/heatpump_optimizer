@@ -21,6 +21,7 @@ produced a plan byte-identical to one that could not store at all.
 """
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -206,3 +207,42 @@ def recommend_target(
             "so the optimizer's comfort limits are what hold the house down."
         ),
     )
+
+
+@dataclass
+class ValveTarget:
+    """The valve target's write record, with the tail of its write (ADR-004).
+
+    ``commanded_c`` is the target last written, degC, ``None`` before any
+    write and after a restore handed the valve back; ``problem`` is why the
+    last attempt was not written, ``None`` when it was.
+    """
+
+    #: A target closer than this to the last write is not written again, K.
+    epsilon_k: float
+    commanded_c: float | None = None
+    problem: str | None = None
+
+    async def command(
+        self, target_c: float, arm: Callable[[], Awaitable[bool]],
+        send: Callable[[float], Awaitable[str | None]],
+    ) -> bool:
+        """Dedupe against the last write, arm, send, record; True when a write was attempted.
+
+        Skipped when ``target_c`` moved by less than ``epsilon_k``
+        (flash wear on every cycle) or when
+        ``arm``, which arms the entity's restore, refuses. ``send`` answers
+        ``None`` when written, else why not, kept as ``problem``.
+        """
+        if self.commanded_c is not None and abs(target_c - self.commanded_c) < self.epsilon_k:
+            return False
+        if not await arm():
+            return False
+        self.problem = await send(target_c)
+        if self.problem is None:
+            self.commanded_c = target_c
+        return True
+
+    def handed_back(self) -> None:
+        """A restore wrote the entity's baseline: no target stands."""
+        self.commanded_c = None
