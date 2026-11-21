@@ -98701,6 +98701,25 @@ R.check(
     f"logs={_cr_dx_none_log.rows} {_cr_dx_wind_log.rows}",
 )
 
+# diagnosis.attribute: a baseline the model cannot simulate is no report (None), recorded.
+from heatpump_optimizer import diagnosis as _cr_dg  # noqa: E402
+
+
+def _cr_attribute():
+    try:
+        return _cr_dg.attribute(_CrNS(simulate_step=lambda *a, **k: 1 / 0), _cr_dx_state, {}, {}, 21.0)
+    except Exception as err:  # a mutant that runs on without its baseline fails the check
+        return repr(err)
+
+
+_cr_dg_log = _cr_logged(lambda: _cr_landed.append(_cr_attribute()))
+R.check(
+    "D1-s3-07 seam rule: a diagnosis whose baseline cannot be simulated is no report (None), and "
+    "leaves a DEBUG record with its traceback",
+    _cr_landed[-1] is None and _cr_dg_log.count("DEBUG", "Diagnosis baseline not simulated", traced=True) == 1,
+    f"{_cr_landed[-1]!r} {_cr_dg_log.rows}",
+)
+
 
 def _cr_silent(path, func):
     """The broad handlers of ``func`` in ``path`` that neither raise nor call anything logging."""
