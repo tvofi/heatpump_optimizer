@@ -4655,6 +4655,7 @@
    "dev/audit/harnesses/r11_relay_3358_skip.py",
    "dev/audit/harnesses/r11_seam_config_silent_prefill.py",
    "dev/audit/harnesses/r11_selftest_static_edge.py",
+   "dev/audit/harnesses/r11_shared_files_p2_mutants.sh",
    "dev/audit/harnesses/r11_toolchain_mutants.py",
    "dev/audit/harnesses/r11_why_hover_fit.mjs",
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
