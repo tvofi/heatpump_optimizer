@@ -6129,7 +6129,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ))
 
             payload = await _with_sensor_advisor(self, self._build_data_dict())
-            log_held(self, _UPDATE_FAILED, False)
+            log_held(self.hass, _UPDATE_FAILED + self.entry.entry_id, False)
             return payload
         except (UpdateFailed, ConfigEntryAuthFailed):
             # #216 (D10-09): the raiser — the Tibber outage latch — already
@@ -6176,7 +6176,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "follows in the background"
             )
             payload = self._build_data_dict()
-            log_held(self, _UPDATE_FAILED, False)
+            log_held(self.hass, _UPDATE_FAILED + self.entry.entry_id, False)
             return payload
         except (UpdateFailed, ConfigEntryAuthFailed):
             # #216, same as _async_update_data's wrapper: this path also
@@ -11373,8 +11373,10 @@ def _raise_auth_failed(key: str, message: str, **placeholders: str) -> NoReturn:
     )
 
 
-#: The latch key of an unexpected exception in the update cycle (D1-s3-06).
-_UPDATE_FAILED = "update_failed"
+#: The latch key prefix of an unexpected exception in the update cycle, per
+#: entry and held on ``hass`` (D1-s3-06): each setup retry builds a new
+#: coordinator, and a latch on the coordinator logged every retry again.
+_UPDATE_FAILED = "update_failed_"
 
 
 def _fail_update_held(coord: Any, err: Exception) -> NoReturn:
@@ -11384,7 +11386,8 @@ def _fail_update_held(coord: Any, err: Exception) -> NoReturn:
     persisting failure, beside #216's latched UpdateFailed arm; now only when
     it starts or its text changes (``log_held``), each path's success clears it.
     """
-    log_held(coord, _UPDATE_FAILED, True, "Error updating Heat Pump Optimizer: %s", err, exc_info=err)
+    log_held(coord.hass, _UPDATE_FAILED + coord.entry.entry_id, True,
+             "Error updating Heat Pump Optimizer: %s", err, exc_info=err)
     _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
 
 

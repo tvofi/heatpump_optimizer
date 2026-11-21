@@ -98605,7 +98605,26 @@ for _cr_name in ("_fetch_tibber_prices", "_fetch_weather_forecast", "_fetch_sola
                  "_async_learn_price_shape"):
     setattr(_cr_up, _cr_name, _cr_noop)
 _cr_up._update_current_state = _cr_broken
-_cr_up_log = _cr_logged(_cr_update_run)
+
+
+def _cr_retry_run():
+    """Two cycles and a setup-time refresh, then a setup retry: a new coordinator, same entry."""
+    global _cr_up
+    _cr_update_run()
+    first = _cr_up
+    _cr_up = Coord(first.hass, first.entry)
+    for _name in ("_fetch_tibber_prices", "_fetch_weather_forecast", "_fetch_solar_forecast",
+                  "_async_learn_price_shape"):
+        setattr(_cr_up, _name, _cr_noop)
+    _cr_up._update_current_state = _cr_broken
+    _cr_up._skip_solve_once = True
+    try:
+        _cr_aio.run(_cr_up._async_update_data())
+    except _CrUF as err:
+        _cr_up_outcomes.append(err.translation_key)
+
+
+_cr_up_log = _cr_logged(_cr_retry_run)
 _cr_up._update_current_state = _cr_noop
 _cr_up._build_data_dict = lambda: {"recovered": True}
 
@@ -98619,14 +98638,15 @@ def _cr_recover_run():
 
 _cr_rec_log = _cr_logged(_cr_recover_run)
 R.check(
-    "D1-s3-06: an unexpected failure persisting over two cycles and a setup-time refresh logs one "
-    "ERROR with its traceback (it was ERROR on every cycle), each a translated UpdateFailed; the "
+    "D1-s3-06: an unexpected failure persisting over two cycles, a setup-time refresh and a setup "
+    "retry's new coordinator logs one ERROR with its traceback (it was ERROR on every cycle and "
+    "every retry), each a translated UpdateFailed; the "
     "refresh that succeeds logs Resolved, and the recurrence is an ERROR again (null control: "
     "the transition is still reported)",
-    _cr_up_outcomes[:3] == ["update_failed"] * 3
+    _cr_up_outcomes[:4] == ["update_failed"] * 4
     and _cr_up_log.count("ERROR", "Error updating Heat Pump Optimizer: sensor bus down", traced=True) == 1
     and len(_cr_up_log.above_debug()) == 1
-    and _cr_up_outcomes[3] == {"recovered": True}
+    and _cr_up_outcomes[4] == {"recovered": True}
     and _cr_rec_log.count("INFO", "Resolved: update failed") == 1
     and _cr_rec_log.count("ERROR", "Error updating Heat Pump Optimizer: sensor bus down") == 1,
     f"outcomes={_cr_up_outcomes} first={_cr_up_log.rows} recover={_cr_rec_log.rows}",
