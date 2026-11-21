@@ -72630,11 +72630,15 @@ def _r9egb9_borrow_arm(borrower, kind):
                 # The window has now been open past the 3 s limiter (S2 held
                 # it 3.2 s of real time; the stamp is the same knob).
                 _coord_mod.whatif.state_for(coord).last_at = _coord_mod.whatif.state_for(coord).last_at - timedelta(seconds=4)
-            u1 = await coord.async_simulate({"target_temp": 22.0})
+            # Bounded and never cancelled: a borrower holding the user slot
+            # would hold U1 behind the gate this rig opens only after it.
+            u1_task = _r9egb9_aio.ensure_future(coord.async_simulate({"target_temp": 22.0}))
+            done, _ = await _r9egb9_aio.wait({u1_task}, timeout=60)
             u1_stamp = _coord_mod.whatif.state_for(coord).last_at
-            out["U1"] = _r9egb9_ov(u1)
+            out["U1"] = _r9egb9_ov(u1_task.result()) if done else "blocked behind the borrower"
             _R9EGB9Gate.release.set()
             await task
+            await u1_task
             _R9EGB9Gate.disarm()
             # The unconditional restore is the defect: it reverts the cache
             # to U0's answer and the stamp to U0's slot.
