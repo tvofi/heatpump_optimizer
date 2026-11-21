@@ -1203,15 +1203,12 @@ SOLAR_APERTURE_MIN_SAMPLES: Final = 30
 #: capacity turns into 0.012 K, under 0.02 K of residual against the
 #: learner's 1.0 K rejection.
 HEAT_LOSS_MAX_SOLAR_W_M2: Final = 50.0
-#: #53 — per-hour internal gains, ridge-regularised toward the constant.
+#: #53 — per-hour internal gains, started at the constant (D2-s3-11: no ridge).
 CONF_INTERNAL_GAINS_LEARNING_ENABLED: Final = (
     "internal_gains_learning_enabled"
 )
 DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED: Final = False
 INTERNAL_GAINS_ALPHA: Final = 0.05
-#: Pull toward the configured constant per fold — the profile is a
-#: perturbation of the prior, not a replacement for it.
-INTERNAL_GAINS_RIDGE: Final = 0.02
 #: Per-hour ceiling as a multiple of the configured constant.
 INTERNAL_GAINS_MAX_FACTOR: Final = 3.0
 #: #2223: the share of the heat-loss walk the level must have traversed

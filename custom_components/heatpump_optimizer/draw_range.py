@@ -112,6 +112,185 @@ CEILING_LAPSE_DAYS = 45.0
 #: AGREE_TOLERANCE above the learned top is an overdraw; this many since the
 #: store's newest sample drop the store: the pump has shown it draws more.
 CEILING_OVERDRAWS = 2
+#: The steady-run map rows (``MapRows``): one per steady run of arbiter
+#: passes holding one written set-point, level, duty and origin. Kept apart
+#: from the window: the latch and the draw-floor judgement read the window's
+#: interval pairs, never a row. Two weeks of half-hour rows, a design
+#: constant not keyed to the configured range.
+MAP_ROWS = 672
+#: A run closes after this long, minutes, and the next pass opens another ...
+SEGMENT_MAX_MIN = 30
+#: ... its first minutes are the response settling, and dropped ...
+SEGMENT_SETTLE_MIN = 3
+#: ... and it is a row only with at least this many steady minutes left.
+SEGMENT_STEADY_MIN = 2
+#: A row's fields, each stored as one comma-separated column string.
+MAP_COLUMNS = (
+    "start_min", "steady_min", "written_c", "gate_c", "ceiling_c", "floor_c",
+    "level_kw", "band_low_kw", "band_high_kw", "heat_ceiling_c", "inlet_mean_c",
+    "inlet_change_k", "outdoor_c", "drawn_mean_kw", "drawn_spread_kw", "origin", "duty",
+)
+#: The two text columns; every other cell is a number or empty (unread).
+_MAP_TEXT = ("origin", "duty")
+
+
+@dataclass(frozen=True)
+class PassRecord:
+    """One arbitration pass under Control on a flow set-point install.
+
+    Built by ``pump_arbiter`` (its ``ArbiterState.last_pass``), which alone
+    decides ``origin``; read here, where it becomes map rows. The map's
+    inputs are the ones ``pump_arbiter._flow_target`` mapped the level on:
+    the level and band, kW, the heat ceiling and the modulation floor, °C.
+    ``None`` is a value not read.
+    """
+
+    at: Any
+    written_c: float
+    gate_c: float
+    ceiling_c: float
+    floor_c: float | None
+    level_kw: float | None
+    band_low_kw: float | None
+    band_high_kw: float | None
+    heat_ceiling_c: float | None
+    inlet_c: float | None
+    drawn_kw: float | None
+    outdoor_c: float | None
+    duty: str | None
+    mode: str | None
+    defrost: bool
+    origin: str
+
+    def run_key(self) -> tuple[Any, ...]:
+        """What one run holds fixed: a change in any of it closes the run."""
+        return (self.written_c, self.level_kw, self.duty, self.origin)
+
+
+def _mean(values: list[float]) -> float | None:
+    return float(np.mean(values)) if values else None
+
+
+def _segment_row(passes: list[PassRecord]) -> tuple[Any, ...] | None:
+    """The map row of one closed run, or ``None`` with too few steady minutes.
+
+    The map's inputs are the first pass's, the one whose write the run held;
+    inlet, draw and outdoor are over the steady passes, those at least
+    ``SEGMENT_SETTLE_MIN`` after the run opened.
+    """
+    first = passes[0]
+    steady = [p for p in passes if (p.at - first.at).total_seconds() >= SEGMENT_SETTLE_MIN * 60.0]
+    if len(steady) < SEGMENT_STEADY_MIN:
+        return None
+    inlets = [p.inlet_c for p in steady if p.inlet_c is not None]
+    drawn = [p.drawn_kw for p in steady if p.drawn_kw is not None]
+    return (
+        int(first.at.timestamp() // 60), len(steady), first.written_c, first.gate_c,
+        first.ceiling_c, first.floor_c, first.level_kw, first.band_low_kw, first.band_high_kw,
+        first.heat_ceiling_c, _mean(inlets), inlets[-1] - inlets[0] if inlets else None,
+        _mean([p.outdoor_c for p in steady if p.outdoor_c is not None]), _mean(drawn),
+        max(drawn) - min(drawn) if drawn else None, first.origin, first.duty,
+    )
+
+
+def _cell(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    return str(int(value)) if isinstance(value, int) else repr(round(float(value), 3))
+
+
+@dataclass
+class MapRows:
+    """The set-point-to-draw map's evidence: closed steady runs as rows.
+
+    ``take_pass`` takes each pass and closes runs on a change of ``PassRecord.run_key``,
+    a defrost pass, a compressor stop (a draw at or under ``RUNNING_FLOOR_KW``,
+    or none read) and ``SEGMENT_MAX_MIN``. A closed run waits in ``closed``
+    for the next ``fold``, which keeps the space-only ones as ``rows`` unless
+    its interval was frozen or distorted. The open run and ``closed`` are not
+    persisted: a reload drops them.
+    """
+
+    rows: Deque[tuple[Any, ...]] = field(default_factory=lambda: deque(maxlen=MAP_ROWS))
+    open: list[PassRecord] = field(default_factory=list)
+    closed: Deque[tuple[Any, ...]] = field(default_factory=lambda: deque(maxlen=MAP_ROWS))
+
+    def _close(self) -> None:
+        row = _segment_row(self.open) if self.open else None
+        if row is not None:
+            self.closed.append(row)
+        self.open = []
+
+    def take_pass(self, rec: PassRecord | None) -> None:
+        """Fold one pass (``None``: no Control pass on a set-point) into the open run."""
+        if rec is None:
+            self._close()
+            return
+        stopped = rec.defrost or rec.drawn_kw is None or rec.drawn_kw <= RUNNING_FLOOR_KW
+        first = self.open[0] if self.open else None
+        if stopped or first is None or first.run_key() != rec.run_key() or (
+                (rec.at - first.at).total_seconds() >= SEGMENT_MAX_MIN * 60.0):
+            self._close()
+        if stopped:
+            return
+        if self.open and int(rec.at.timestamp() // 60) == int(self.open[-1].at.timestamp() // 60):
+            return  # one pass a minute: a listener's extra pass weighs nothing
+        self.open.append(rec)
+
+    def commit_runs(self, keep: bool) -> None:
+        """The next fold's commit: the closed space-only runs become rows,
+        unless ``keep`` is False (the interval was frozen or distorted)."""
+        if keep:
+            self.rows.extend(r for r in self.closed if r[-1] == "space")
+        self.closed.clear()
+
+    def as_columns(self) -> dict[str, str]:
+        return {name: ",".join(_cell(r[i]) for r in self.rows) for i, name in enumerate(MAP_COLUMNS)}
+
+
+def _stored_map(data: Any) -> MapRows:
+    """A stored record's map rows; a record without them reads empty.
+
+    Every column is split, an empty string being one unread cell (the record
+    is written only with rows). Columns of unequal length cannot be aligned
+    and are all dropped; a row with an unreadable number is dropped alone.
+    """
+    out = MapRows()
+    raw = data.get("map_rows") if isinstance(data, dict) else None
+    cols = [raw.get(name) if isinstance(raw, dict) else None for name in MAP_COLUMNS]
+    split = [c.split(",") for c in cols if isinstance(c, str)]
+    if len(split) != len(MAP_COLUMNS):
+        return out
+    if len({len(c) for c in split}) != 1:
+        return out
+    for cells in zip(*split):
+        try:
+            out.rows.append(tuple(_map_cell(name, cell) for name, cell in zip(MAP_COLUMNS, cells)))
+        except (ValueError, OverflowError):
+            continue
+    return out
+
+
+def _map_cell(name: str, cell: str) -> Any:
+    """One stored cell: text kept, empty unread, else a finite number (the
+    first two columns whole minutes, never unread); anything else raises
+    ``ValueError``."""
+    if name in _MAP_TEXT:
+        return cell
+    if cell == "" and name not in MAP_COLUMNS[:2]:
+        return None
+    value = int(cell) if name in MAP_COLUMNS[:2] else float(cell)
+    if not np.isfinite(value):
+        raise ValueError(cell)
+    return value
+
+
+def note_pass(draw: "DrawRange | None", rec: PassRecord | None) -> None:
+    """Hand one arbitration pass to ``draw``'s map rows (none: nothing kept)."""
+    if draw is not None:
+        draw.map.take_pass(rec)
 
 
 @dataclass
@@ -159,6 +338,8 @@ class DrawRange:
     floor_kw: float | None = None
     #: Samples appended since ``floor_kw`` last moved, at most ``WINDOW``.
     floor_since: int = 0
+    #: The steady-run map rows: never read by the window or the latch.
+    map: MapRows = field(default_factory=MapRows)
 
     def idle_kw(self) -> float | None:
         """The learned idle draw, or ``None`` while too few readings."""
@@ -370,6 +551,8 @@ class DrawRange:
             "overdraws": self.overdraws,
             "floor_since": self.floor_since,
             **({} if self.floor_kw is None else {"floor_kw": self.floor_kw}),
+            # Absent with no rows: a store that never kept one is unchanged.
+            **({"map_rows": self.map.as_columns()} if self.map.rows else {}),
         }
 
     @classmethod
@@ -385,6 +568,7 @@ class DrawRange:
         out = cls()
         out.ceiling.extend(_stored_ceiling(data))
         out.overdraws = _stored_overdraws(data)
+        out.map = _stored_map(data)
         try:
             lo, hi = (float(v) for v in data["config"])
         except (TypeError, ValueError, OverflowError, KeyError, IndexError):
@@ -592,6 +776,18 @@ def floor_in_force_kw(draw: DrawRange) -> float:
     return cfg_min if draw.floor_kw is None else draw.floor_kw
 
 
+def at_running_floor(draw: DrawRange, drawn_kw: float | None) -> bool:
+    """Whether an experiment's draw sat at the running floor in force (D2-s3-09).
+
+    Within ``AGREE_TOLERANCE`` above :func:`floor_in_force_kw`, or under it:
+    the house's load was below the pump's minimum, so the compressor ran its
+    floor whatever the ceiling set-point asked, and the draw says nothing of
+    the top. Stored as one, it narrowed the band every solve books.
+    """
+    floor = floor_in_force_kw(draw)
+    return drawn_kw is not None and floor > 0.0 and drawn_kw <= (1.0 + AGREE_TOLERANCE) * floor
+
+
 def floor_evidence(draw: DrawRange) -> tuple[float | None, int]:
     """``(low end, pairs)`` of the runs asked at the floor in force since it
     last moved (``floor_since``): asks within ``AGREE_TOLERANCE`` of it.
@@ -673,6 +869,7 @@ def fold(
     defrost: bool,
     command: Any = None,
     experiment_s: float | None = None,
+    ceiling_frozen: bool = False,
 ) -> None:
     """Fold one interval into ``draw`` when it is a running sample.
 
@@ -689,9 +886,16 @@ def fold(
     action adopted since -- else ``None``. Such an interval that
     ``takes_ceiling`` goes to the ceiling store and NOT to the window, so no
     experiment's draw can trip the window's latch; every other interval
-    folds into the window as before.
+    folds into the window as before. ``ceiling_frozen`` refuses that store
+    sample alone (D2-s3-09, :func:`at_running_floor`): it is dropped, never
+    handed to the window either.
+
+    First, whatever this interval: the map runs closed since the last fold
+    become rows (``MapRows.commit_runs``) unless ``frozen`` or ``distorted``;
+    they never reach the window.
     """
     space, dhw = split
+    draw.map.commit_runs(keep=not (frozen or distorted))
     if drawn_kw is not None and not (frozen or distorted or defrost) and command is not None and command.written_c <= command.gate_c + GATE_TOLERANCE_K and not planned_draw_runs(dhw, modulation_floor=0.0):
         draw.observe_idle(drawn_kw)
     if drawn_kw is None or not is_running_space(
@@ -699,7 +903,8 @@ def fold(
     ):
         return
     if experiment_s is not None and draw.takes_ceiling(drawn_kw, command):
-        draw.observe_ceiling(drawn_kw, experiment_s)
+        if not ceiling_frozen:
+            draw.observe_ceiling(drawn_kw, experiment_s)
     else:
         draw.observe(
             drawn_kw, space, params.min_electrical_power, params.max_electrical_power,

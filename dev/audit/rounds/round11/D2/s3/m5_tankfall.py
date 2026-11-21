@@ -71,18 +71,20 @@ def trace(shape, learner, t0, T0):
     T = T0
     t = t0
     dt = timedelta(minutes=10)
-    heat_on = {"short": (2, 2), "long_a": (2, 7), "long_b": (2, 7)}[shape]
+    # unplanned (R11-SEAM-learners, design section 5): long_a's charge with the plan's
+    # flag never set -- the pump charged on its own; the learner sees every sample unheated.
+    heat_on = {"short": (2, 2), "long_a": (2, 7), "long_b": (2, 7), "unplanned": (-1, -1)}[shape]
     for k in range(30):
         heating = heat_on[0] <= k <= heat_on[1]
         rows.append((t, T, heating))
         # evolve to next sample
         sb = learner._standby_rate(T) * (dt.total_seconds() / 3600.0)
         nxt = T - sb
-        if shape == "long_a" and k == 1:
+        if shape in ("long_a", "unplanned") and k == 1:
             nxt -= 4.0          # the dip lands at the first heated sample (k=2)
         if shape == "long_b" and k == 2:
             nxt -= 4.0          # the dip lands at the second heated sample (k=3)
-        if shape in ("long_a", "long_b") and 3 <= k <= 6:
+        if shape in ("long_a", "long_b", "unplanned") and 3 <= k <= 6:
             nxt += 3.0          # the charge climbs, heated
         if shape == "short" and k == 2:
             nxt -= 4.0          # the dip after the one-sample slot (settling)
@@ -93,13 +95,24 @@ def trace(shape, learner, t0, T0):
     return rows
 
 
+def _frozen(key, **kw):
+    """The production predicate on a clean cycle (R11-SEAM-learners), so a refusal the
+    learner asks for reaches it; a baseline export has neither and answers None, as its
+    one-argument fake did."""
+    try:
+        from heatpump_optimizer import learning_freeze as lf
+    except ImportError:
+        return None
+    return lf.reason(lf.Facts(), (key,), kw.get("sample", lf.Sample.ROOM_AIR), kw.get("evidence", lf.NO_EVIDENCE))
+
+
 async def run_cell(kind, shape):
     p = params_for(kind)
     assert p.combi_tank_active, kind
     state = {"heating": False}
     learner = dhw_learning.DhwProfileLearner(
         harness.FakeHass(), "e", lambda: p, publish=lambda **k: None,
-        frozen=lambda _e: None, heating_active=lambda: state["heating"],
+        frozen=_frozen, heating_active=lambda: state["heating"],
         external_heat_active=lambda: False)
 
     async def _noop(*a, **k):
@@ -119,17 +132,21 @@ async def run_cell(kind, shape):
 
 worst_long = 0.0
 worst_short = 0.0
+worst_unplanned = 0.0
 for kind in ("external_station", "internal_coil", "tank_in_tank"):
     parts = []
-    for shape in ("short", "long_a", "long_b"):
+    for shape in ("short", "long_a", "long_b", "unplanned"):
         booked, cap = asyncio.run(run_cell(kind, shape))
         parts.append(f"{shape}:booked={booked:.4f}kWh dip_equiv={4.0 * cap:.4f}kWh")
         if shape == "short":
             worst_short = max(worst_short, abs(booked))
+        elif shape == "unplanned":
+            worst_unplanned = max(worst_unplanned, booked)
         else:
             worst_long = max(worst_long, booked)
     print(f"CELL tank-fall-after-charge combi_tank={kind} cap={cap:.4f}kWh/K " + " ".join(parts))
 dt_util.freeze(None)
 print(f"RESULT booked_kwh_long_max={worst_long:.4f} kWh")
 print(f"RESULT booked_kwh_short_max={worst_short:.4f} kWh")
+print(f"RESULT booked_kwh_unplanned_max={worst_unplanned:.4f} kWh")
 footer()

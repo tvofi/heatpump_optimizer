@@ -4214,13 +4214,19 @@ def _p2_registry(sources):
              match=_p2_match_defrost_decides,
              owners=["freq_control.py::defrost_interval"],
              dispositions={
-                 "coordinator.py::HeatPumpOptimizerCoordinator._learning_frozen":
+                 # R11-SEAM-learners (ADR-008): the gate moved out of
+                 # ``_learning_frozen``; the coordinator reads the flag into
+                 # the facts, and the predicate module decides on it.
+                 "learning_freeze.py::_shared":
                      "the plant-wide gate: it decides whether ANY learner "
                      "ingests the interval and owns the reason string it "
                      "returns. The frequency map deliberately folds intervals "
                      "that gate freezes (external heat, #781), so the "
                      "frequency pair's own predicate decides the two "
                      "frequency questions the gate cannot express",
+                 "coordinator.py::_freeze_facts":
+                     "the gate's input: it copies the pump's defrost flag into "
+                     "the facts learning_freeze._shared decides on, deciding nothing",
              }),
         # R10-CLONE-2238 (#2238): the F5_clone instances, one fact per entry,
         # each routed through one owner in the module that held both copies.

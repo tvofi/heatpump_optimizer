@@ -261,10 +261,14 @@ def swing(n: int, kw: float, parts, seed: int, phase: float = 0.0) -> list[tuple
     return out
 
 
-def derate(pairs, outdoor: float) -> str:
+def derate(pairs, outdoor: float, verdict: str | None = None) -> str:
     """The defrost derate's inferred factor at ``outdoor`` °C after ``pairs``
-    (asked, drawn) intervals settle with no defrost flag, and its count."""
+    (asked, drawn) intervals settle with no defrost flag, and its count.
+    ``verdict`` plants the heat-ask probe's scale-response verdict first (the
+    state the ``selfset_2.2_swing*`` rows reach); ``None`` leaves it pending."""
     c = coord(p_max=4.0)
+    if verdict is not None:
+        c._measured_cop.probe.response = verdict
     t0 = datetime(2026, 1, 10, tzinfo=timezone.utc)
     for i, (ask, kw) in enumerate(pairs):
         window = c._defrost_window.close(t0 + timedelta(minutes=30 * i))
@@ -416,6 +420,10 @@ def main() -> None:
     for outdoor in (2.0, 8.0):
         for name, kw in (("selfset_2.2", 2.2), ("matched", None)):
             print(f"RESULT defrost_inferred_{name}_{outdoor:g}C={derate(flat(96, kw), outdoor)}")
+    # R11-SEAM-learners (carries 0-1): the same settles once the probe reads the ask
+    # ignored, the delivered-ratio ask's evidence; matched is the control.
+    for name, kw in (("selfset_2.2", 2.2), ("matched", None)):
+        print(f"RESULT defrost_inferred_{name}_2C_ignored={derate(flat(96, kw), 2.0, draw_range.ASK_IGNORED)}")
     for name, n in (("full", draw_range.WINDOW), ("filling", draw_range.WINDOW - 48)):
         print(f"RESULT held_{name}_heatled_true_0.8={run(depart, p_max=4.0, p_min=3.0, true=0.8, warm=[(2.6, 3.2)] * n).replace(' ', '_scale=')}")
 

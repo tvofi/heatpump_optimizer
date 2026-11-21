@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:pass_origin RETURN_DEL f3bc64b6",
+  "killed_by": "tests/structure.py",
+  "old": "    return ORIGIN_FEEDBACK_START if held_start else ORIGIN_FEEDBACK",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

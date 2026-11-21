@@ -967,7 +967,7 @@ R.check(
 # it is the null control: learning proceeds exactly as before.
 _np_dhw = DhwProfileLearner(
     FakeHass(), "np", **_owned_params(ThermalParameters()),
-    frozen=lambda *a: None, heating_active=lambda: False,
+    frozen=lambda *a, **_kw: None, heating_active=lambda: False,
     external_heat_active=lambda: False,
 )
 _np_refusal = _np_aio.run(_np_dhw.async_learn_dynamics(-127.0))
@@ -2580,7 +2580,7 @@ R.check(
 
 # D2-s4-02: the step is sized under the abort bound by the noise headroom, on
 # the heavy default house (#779's own cell), and still uses the rest of it.
-_r9f41_sid = SystemIdentification(SysIdConfig(enabled=True))
+_r9f41_sid = SystemIdentification(SysIdConfig())
 _r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, HousePlant(ua=0.20, capacity=8.0, gains=0.3))
 _r9f41_peak, _r9f41_final = _r9f41_sysid._predict_step_excursion_plant(
     HousePlant(ua=0.20, capacity=8.0, gains=0.3), 21.0, 2.0,
@@ -7741,12 +7741,12 @@ R.check(
 # ===========================================================================
 R.section("Active system identification (item 18)")
 
-sysid = SystemIdentification(SysIdConfig(enabled=True))
+sysid = SystemIdentification(SysIdConfig())
 R.check("arming works when enabled", sysid.arm(NOW) and sysid.phase == PHASE_ARMED)
 R.check("arming twice is a no-op", not sysid.arm(NOW))
 
-disabled_sysid = SystemIdentification(SysIdConfig(enabled=False))
-R.check("a disabled experiment cannot be armed", not disabled_sysid.arm(NOW))
+disabled_sysid = SystemIdentification(SysIdConfig())
+R.check("a disabled experiment cannot be armed", not disabled_sysid.arm(NOW, enabled=False))
 
 night = datetime(2026, 2, 1, 1, 0, tzinfo=UTC)
 cheap = np.linspace(0.5, 2.0, 96)
@@ -7774,7 +7774,6 @@ R.check(
 # A synthetic house, driven through a whole experiment.
 run_sysid = SystemIdentification(
     SysIdConfig(
-        enabled=True,
         settle_hours=0.5,
         step_hours=2.0,
         relax_hours=2.0,
@@ -7828,7 +7827,7 @@ if result.completed:
 
 # Comfort is a hard constraint on the experiment, not a cost term.
 strict = SystemIdentification(
-    SysIdConfig(enabled=True, settle_hours=0.0, max_excursion_c=0.2)
+    SysIdConfig(settle_hours=0.0, max_excursion_c=0.2)
 )
 strict.arm(night)
 strict.step(
@@ -7845,7 +7844,7 @@ R.check(
 )
 R.check("the abort is recorded with a reason", "excursion" in strict.result.reason)
 
-no_data = SystemIdentification(SysIdConfig(enabled=True))
+no_data = SystemIdentification(SysIdConfig())
 R.check(
     "a fit with no samples fails cleanly",
     not no_data.identify().completed,
@@ -7863,7 +7862,7 @@ from heatpump_optimizer.sysid import (
     SysIdSample as _SID_SAMPLE,
 )
 
-_impossible = SystemIdentification(SysIdConfig(enabled=True))
+_impossible = SystemIdentification(SysIdConfig())
 _impossible.samples = []
 _imp_room, _imp_when = 20.7, datetime(2026, 2, 1, 0, 0, tzinfo=UTC)
 for _imp_phase, _imp_power, _imp_steps in (
@@ -7886,7 +7885,7 @@ R.check(
     f"ua={_impossible_res.heat_loss_kw_per_c}",
 )
 
-repeat = SystemIdentification(SysIdConfig(enabled=True, min_days_between_runs=30))
+repeat = SystemIdentification(SysIdConfig(min_days_between_runs=30))
 repeat.last_run = NOW - timedelta(days=2)
 R.check("a recent run blocks another", not repeat.arm(NOW))
 
@@ -7904,7 +7903,7 @@ from heatpump_optimizer.sysid import slab_mode_identifiability as _sid_idable
 _sid_plant = ThermalParameters()
 R.check(
     "the default plant passes the arm-time identifiability gate",
-    _sid_idable(_sid_plant, SysIdConfig(enabled=True))[0],
+    _sid_idable(_sid_plant, SysIdConfig())[0],
     "production arms with a declared plant; the gate must accept it, or the "
     "production sequence the pin below drives is not the production one",
 )
@@ -7929,7 +7928,6 @@ SystemIdentification.identify_slab = _sid_count(_sid_identify_slab, "identify_sl
 def _sid_drive(with_plant):
     experiment = SystemIdentification(
         SysIdConfig(
-            enabled=True,
             settle_hours=0.5,
             step_hours=2.0,
             relax_hours=2.0,
@@ -8429,7 +8427,7 @@ class _CopGate:
         self._flow_bias = flow_lift.FlowCurveBias()
         self.cop_health_calls: list = []
 
-    def _learning_frozen(self, *entities, room_air=True):
+    def _learning_frozen(self, *entities, **_kw):
         return None
 
     def _observe_cop_health(self, observed_cop, dhw_curve=False):
@@ -8516,7 +8514,7 @@ class _DhwUsage(DhwProfileLearner):
             FakeHass(),
             "dhw-usage",
             **_owned_params(ThermalParameters()),
-            frozen=lambda *_: None,
+            frozen=lambda *_, **_kw: None,
             heating_active=lambda: False,
             external_heat_active=lambda: False,
         )
@@ -9147,7 +9145,7 @@ _nf_learner = _DhwUsage()
 # (_DhwUsage overwrites its own seed with a flat profile).
 _nf_default = DhwProfileLearner(
     FakeHass(), "nf", **_owned_params(ThermalParameters()),
-    frozen=lambda *a: None, heating_active=lambda: False,
+    frozen=lambda *a, **_kw: None, heating_active=lambda: False,
     external_heat_active=lambda: False,
 ).hourly_profile
 _nf_profile = _nf_learner.normalize_profile(
@@ -23295,9 +23293,11 @@ _before53 = _c53._internal_gains_profile[19]
 for _ in range(200):
     _c53._fold_internal_gains(_when53, _st53d, 0.0, 0.5)
 R.check(
-    "with the evidence gone the ridge pulls the hour back toward the prior",
-    _c53._internal_gains_profile[19] < _before53
-    and _c53._internal_gains_profile[19] < _g0 + 0.05,
+    "with the evidence gone the hour holds what it learned: no ridge pulls it back toward the "
+    "prior, whose fixed point was alpha/(alpha+ridge) of the true gain (D2-s3-11); the clip "
+    "above and the convergence gate tether it",
+    _c53._internal_gains_profile[19] == _before53 and _before53 > _g0 + 0.1,
+    f"hour 19 {_c53._internal_gains_profile[19]} vs learned {_before53} prior {_g0}",
 )
 _st53s = replace(_c53._current_state)
 _st53s.solar_radiation = 300.0
@@ -29580,7 +29580,7 @@ def _drifting_sid_samples(
 
 
 def _sid_on(samples, **cfg):
-    _s = SystemIdentification(SysIdConfig(enabled=True, **cfg))
+    _s = SystemIdentification(SysIdConfig(**cfg))
     _s.samples = samples
     return _s.identify()
 
@@ -29675,7 +29675,7 @@ def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30, size=True
     The sizer (#779) uses the two-state plant; these historical pins
     characterize ``identify()``, which is still a room-only lumped UA.
     """
-    sid = SystemIdentification(SysIdConfig(enabled=True))
+    sid = SystemIdentification(SysIdConfig())
     t0 = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
     sid.arm(t0)
     temp, tout = 21.0, 2.0
@@ -29715,7 +29715,7 @@ from heatpump_optimizer.thermal_model import ThermalState as _SidPlantState
 
 def _drive_sysid_step_plant(ua, cap, gains, cop, max_el=5.0, cadence_min=15, size=True):
     """Drive an experiment on the two-state plant the sizer uses (#779)."""
-    sid = SystemIdentification(SysIdConfig(enabled=True))
+    sid = SystemIdentification(SysIdConfig())
     t0 = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
     sid.arm(t0)
     tout = 2.0
@@ -29782,7 +29782,7 @@ R.check(
 )
 _g5_null = _drive_sysid_step(0.20, 8.0, 0.3, 1.0, max_el=6.0)
 _g5_sr = [s for s in _g5_null.samples if s.phase in (_PH_STEP, _PH_RELAX)]
-_g5_sr_sid = SystemIdentification(SysIdConfig(enabled=True))
+_g5_sr_sid = SystemIdentification(SysIdConfig())
 _g5_sr_sid.samples = _g5_sr
 _g5_sr_res = _g5_sr_sid.identify()
 _g5_full = _g5_null.identify()
@@ -29829,7 +29829,7 @@ R.check(
 
 # --- #779: size on the two-state plant, not the one-state exponential ------
 R.section("sysid step sized on the two-state plant (#779)")
-_779_sid = SystemIdentification(SysIdConfig(enabled=True))
+_779_sid = SystemIdentification(SysIdConfig())
 _779_el = _779_sid._size_step_power(6.0, 3.0, 21.0, 2.0, HousePlant(ua=0.20, capacity=8.0, gains=0.3))
 _779_q = (_779_el or 0.0) * 3.0
 _779_plant, _779_final = _predict_step_excursion_plant(
@@ -29852,7 +29852,7 @@ R.check(
     f"one-state {_779_one:.3f} plant {_779_plant:.3f}",
 )
 _settle_sid = SystemIdentification(
-    SysIdConfig(enabled=True, settle_hours=0.5, step_hours=2.0, relax_hours=2.0)
+    SysIdConfig(settle_hours=0.5, step_hours=2.0, relax_hours=2.0)
 )
 _settle_sid.arm(datetime(2026, 2, 1, 23, 0, tzinfo=UTC))
 _settle_t = datetime(2026, 2, 1, 23, 0, tzinfo=UTC)
@@ -38428,8 +38428,10 @@ _PKG_DIR = _Path("custom_components/heatpump_optimizer")
 class _SysIdHost:
     _run_system_identification = Coord._run_system_identification
     # #1523: the experiment consults the production freeze predicate, which
-    # reads these three besides the pump signals; all clear here.
+    # reads these four besides the pump signals; all clear here. Its ask is a
+    # space-heat one, so it reads the commanded split too (R11-SEAM-learners).
     _learning_frozen = Coord._learning_frozen
+    _commanded_split = Coord._commanded_split
 
     def __init__(self, signals) -> None:
         self.hass = FakeHass()  # #1658: the step is awaited off the loop
@@ -38437,8 +38439,9 @@ class _SysIdHost:
         self._external_heat_active = False
         self._input_health = None
         self._vent_cusum = type("_Vent", (), {"tripped": False})()
+        self._away_state = away_mode.AwayState()
         self._sysid = _SysIdModule.SystemIdentification(
-            _SysIdModule.SysIdConfig(enabled=True)
+            _SysIdModule.SysIdConfig()
         )
         self._sysid.arm(datetime(2026, 1, 5, 2, 0, tzinfo=UTC))
         self._current_action = {"power": 0.0, "heat_pump_on": False}
@@ -54532,7 +54535,7 @@ R.check(
     _g1401_short is None,
 )
 _g1401_window = SystemIdentification(
-    _SysIdModule.SysIdConfig(enabled=True, start_hour=1, end_hour=5)
+    _SysIdModule.SysIdConfig(start_hour=1, end_hour=5)
 )
 _g1401_window_ok, _g1401_window_why = _g1401_window.conditions_met(
     datetime(2026, 2, 1, 3, 0, tzinfo=UTC), 2.0, 0.55, np.linspace(0.5, 2.0, 96), 5
@@ -54547,7 +54550,7 @@ _g1401_plant = ThermalParameters()
 # non-positive room mass up on construction, so only the slab coupling can be
 # driven to zero here.
 _g1401_plant.slab_heat_transfer = 0.0
-_g1401_unseedable = SystemIdentification(_SysIdModule.SysIdConfig(enabled=True))
+_g1401_unseedable = SystemIdentification(_SysIdModule.SysIdConfig())
 _g1401_arm = _g1401_unseedable.arm(NOW, _g1401_plant)
 R.check(
     "#1401: arming on a plant whose slab pair cannot be seeded is refused, "
@@ -54713,7 +54716,7 @@ R.check(
 # regression -- which is exactly the fit the #991 predicate exists to keep off
 # a slow-slab plant. Admitting the arm above makes that fallback REACHABLE, so
 # it must refuse BY NAME rather than hand the plant to the regression.
-_fb1329 = SystemIdentification(_SysIdModule.SysIdConfig(enabled=True))
+_fb1329 = SystemIdentification(_SysIdModule.SysIdConfig())
 assert _fb1329.arm(_C1329_NOW)  # ungated: the pair is set by hand below
 _fb1329_p = _p942("typical_slab")
 _fb1329._slab_pair = (
@@ -54794,7 +54797,7 @@ def _ridge_drive(params, sigma_c, seed, declare_plant=True, gap_tick=None):
     ua_true = params.heat_loss_coefficient * params.house_heat_loss_scale
     gains = float(params.internal_gains)
     sid = SystemIdentification(
-        _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
+        _SysIdModule.SysIdConfig(min_days_between_runs=0.0)
     )
     assert sid.arm(_RIDGE_NOW, plant=params if declare_plant else None)
     outdoor = 0.0
@@ -55123,7 +55126,7 @@ def _r6_drift_drive(drift_c_per_h, seconds=30):
     ua_true = float(params.heat_loss_coefficient * params.house_heat_loss_scale)
     gains = float(params.internal_gains)
     sid = SystemIdentification(
-        _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
+        _SysIdModule.SysIdConfig(min_days_between_runs=0.0)
     )
     assert sid.arm(_RIDGE_NOW, plant=params)
     outdoor = 2.0
@@ -55269,7 +55272,7 @@ def _drift_drive(seed, cadence_min=30, sigma_c=0.02, drift_c_per_h=0.0):
     rng = np.random.default_rng(seed)
     sid = SystemIdentification(
         _SysIdModule.SysIdConfig(
-            enabled=True, settle_hours=1.0, step_hours=2.0, relax_hours=2.0,
+            settle_hours=1.0, step_hours=2.0, relax_hours=2.0,
             max_excursion_c=0.8, gains_prior_kw=_DRIFT_G,
             thermal_mass_prior=_DRIFT_C,
         )
@@ -55447,7 +55450,6 @@ _t4_arm_on = _t4_coord(system_identification_enabled=False)
 # the fast slab, because this check pins the option re-read and the arm.
 _t4_arm_on._thermal_params.slab_heat_transfer *= 100.0
 _t4_count_refresh(_t4_arm_on)
-_t4_arm_on_built = _t4_arm_on._sysid.config.enabled
 with_config(_t4_arm_on, {"system_identification_enabled": True})
 _t4_drive(_t4_arm_on, "async_arm_system_identification")
 _t4_arm_off = _t4_coord(system_identification_enabled=True)
@@ -55456,17 +55458,10 @@ with_config(_t4_arm_off, {"system_identification_enabled": False})
 _t4_drive(_t4_arm_off, "async_arm_system_identification")
 R.check(
     "arming re-reads the option at call time, so an edit needs no reload",
-    _t4_arm_on_built is False
-    and _t4_arm_on._sysid.config.enabled is True
-    and _t4_arm_on._sysid.phase == "armed"
-    and _t4_arm_off._sysid.config.enabled is False
-    and _t4_arm_off._sysid.phase == "idle",
-    f"built {_t4_arm_on_built!r} then edited to True -> config "
-    f"{_t4_arm_on._sysid.config.enabled!r}, phase "
-    f"{_t4_arm_on._sysid.phase!r}; built True then edited to False -> config "
-    f"{_t4_arm_off._sysid.config.enabled!r}, phase "
-    f"{_t4_arm_off._sysid.phase!r} -- both directions, because the push is "
-    "invisible whenever the constructed value already agrees",
+    _t4_arm_on._sysid.phase == "armed" and _t4_arm_off._sysid.phase == "idle",
+    f"built False then edited to True -> phase {_t4_arm_on._sysid.phase!r}; built True then "
+    f"edited to False -> phase {_t4_arm_off._sysid.phase!r} -- both directions, because the "
+    "re-read is invisible whenever the constructed value already agrees",
 )
 R.check(
     "a refused arm still refreshes, which is what publishes the refusal",
@@ -56615,7 +56610,6 @@ R.check(
     "integer-typed",
 )
 _t6_sysid_on = _t6_coord()
-_t6_sysid_on._sysid.config.enabled = True
 _t6_sysid_on._sysid.arm(datetime(2026, 2, 1, 12, 0, 0))
 R.check(
     "the system-identification property follows the experiment, not a copy",
@@ -60228,7 +60222,7 @@ _G8_SID_FLAT = np.full(24, 1.0)
 
 
 def _g8_sid_new(**cfg):
-    return _G8Sid(_G8SidCfg(enabled=True, **cfg))
+    return _G8Sid(_G8SidCfg(**cfg))
 
 
 def _g8_sid_step(sid, when, room=21.0, outdoor=0.0, **kw):
@@ -63968,26 +63962,32 @@ R.check(
 # the settle window: 5 K is taken and 3 K stays booked, as in "draw".
 _chg_esc = _chg_seq((50.0, 47.0, 47.0, 46.0, 47.0, 48.0, 48.0), heated_at=(2,))
 _chg_cap3 = _chg_seq((50.0, 50.0, 42.0, 45.0, 48.0, 51.0, 51.0))
+# R11-SEAM-learners (D2-s3-08, design section 3.1): a charge-open interval books
+# no draw. Cap3's 8 K fall opens on the charge's heated sample. So it books
+# nothing, and the rises find nothing to take.
 R.check(
     "a charge's take-back stops at the energy its charge folded and at the dip bound",
-    abs(_chg_esc[0] - _chg_reheat_ctl[0]) < 0.01 and abs(_chg_cap3[0] - _chg_draw[0]) < 0.01,
+    abs(_chg_esc[0] - _chg_reheat_ctl[0]) < 0.01 and _chg_cap3[0] == 0.0 and _chg_cap3[1] == 0,
     f"(open kWh, ...) a 1 K dip recovering 2 K after a draw {_chg_esc} vs no dip (control) "
     f"{_chg_reheat_ctl}; three 3 K rises after an 8 K fall {_chg_cap3} vs a 3 K draw {_chg_draw}",
 )
 
+# R11-SEAM-learners (D2-s3-08, design section 3.1): a fall over a charge-open
+# interval books nothing, a real draw in it included (the design's cost). A fall
+# after the charge-open intervals still books. So does every fall with no charge
+# on record (the controls).
 R.check(
     "a charge-start dip that recovers is learned as neither a draw nor usage, "
-    "and a draw that does not recover keeps what main booked",
+    "a fall over a charge-open interval books nothing, and the fall after it books",
     _chg_dip[0] < 0.05 and _chg_dip[1] == 0
     and _chg_edge[0] < 0.05 and _chg_edge[1] == 0
-    and _chg_draw[0] > 0.5 and _chg_draw[1] == 1
+    and 0.0 < _chg_draw[0] < _chg_space_draw[0] - 0.3 and _chg_draw[1] == 1
     and _chg_space[0] > 0.5 and _chg_space[1] == 2
-    and abs(_chg_draw[0] - _chg_space_draw[0]) < 0.05
-    and _chg_midnight[0] == 0.0 and 0.0 < _chg_midnight[2][0] < _chg_draw[0]
+    and _chg_space_draw[0] > 0.5
+    and _chg_midnight[0] == 0.0 and _chg_midnight[2] == [0.0]
     and _chg_reheat[0] > 0.5 and abs(_chg_reheat[0] - _chg_reheat_ctl[0]) < 0.05
-    and abs(_chg_cap[0] - _chg_draw[0]) < 0.05
-    and _chg_heated_rise[0] > _chg_draw[0] + 0.1
-    and _chg_partial[1] == 1 and 0.0 < _chg_partial[0] < _chg_draw[0]
+    and _chg_cap[0] == 0.0 and _chg_heated_rise[0] == 0.0
+    and _chg_partial[1] == 1 and 0.0 < _chg_partial[0] < _chg_space_draw[0]
     and abs(_chg_late[0] - _chg_draw[0]) < 0.05
     and _chg_partial[3] == [1, 0] and _chg_partial_sat[3] == [0, 1]
     and _chg_dip[4] and _chg_partial[4],
@@ -67575,7 +67575,6 @@ def _p5_night(how):
         # price never starts an experiment -- so hourly rows span it.
         c._prices = [{"total": 1.0, "starts_at": (_P5_T0 + timedelta(hours=h)).isoformat()}
                      for h in range(-12, 13)]
-        c._sysid.config.enabled = True
         c._sysid.config.min_days_between_runs = 0.0
         c._sysid.arm(_P5_T0, plant=c._thermal_params)
         prices = np.full(48, 1.0)
@@ -68032,7 +68031,12 @@ R.check(
 # with the experiment's freeze consult removed finds #1523's seam.
 # The consult is hold_reason's frozen argument (sysid.hold_reason, this PR's
 # move of the stand-down decision): the mutant passes None in its place.
-_P5_CONSULT = "self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)"
+# R11-SEAM-learners: the consult asks the space-heat kind with the cycle's evidence.
+_P5_CONSULT = (
+    "self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, "
+    "sample=learning_freeze.Sample.SPACE_HEAT,\n"
+    "                                  evidence=_space_evidence(self, self._commanded_split()))"
+)
 _p5_src_now = _p5_inspect.getsource(_p5_coord_mod)
 _p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "None"))
 R.check(
@@ -70797,6 +70801,8 @@ def _z1524_learned(declared, free_kw, hours=range(24)):
         _thermal_params=declared, _internal_gains_profile=None,
         # #2223: the profile folds only behind an identified heat-loss level.
         _house_heat_loss_samples=400,
+        # D7-s2-01: the fold asks the freeze predicate; this house is occupied and clean.
+        _learning_frozen=lambda *keys, **ask: None,
     )
     cap = (declared.upper_floor_thermal_mass if declared.two_zone_enabled
            else declared.room_thermal_mass)
@@ -70868,7 +70874,7 @@ def _z1524_run(
     for _ in range(2400):
         st = plant.simulate_step(st, electrical_power=hold, outdoor_temp=0.0)
     sid = _SysIdModule.SystemIdentification(
-        _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
+        _SysIdModule.SysIdConfig(min_days_between_runs=0.0)
     )
     sid.arm(_z1524_night, plant=_z1524_replace(
         declared, internal_gains_profile=_z1524_learned(
@@ -71900,7 +71906,7 @@ _r9p5_decl = _z1524_replace(
     internal_gains=0.3,
 )
 _r9p5_sid = _SysIdModule.SystemIdentification(_SysIdModule.SysIdConfig(
-    enabled=True, min_days_between_runs=0.0, gains_prior_kw=0.3,
+    min_days_between_runs=0.0, gains_prior_kw=0.3,
 ))
 _r9p5_priors = []
 for _r9p5_hours in ((23, 0, 1, 2, 3, 4), range(9, 18), None):
@@ -71969,7 +71975,7 @@ def _r9p5_derived_night(structure, era):
     model.params.two_zone_enabled = False
     ua = float(decl.heat_loss_coefficient * decl.house_heat_loss_scale)
     sid = _SysIdModule.SystemIdentification(_SysIdModule.SysIdConfig(
-        enabled=True, min_days_between_runs=0.0,
+        min_days_between_runs=0.0,
         gains_prior_kw=float(decl.internal_gains),
     ))
     if not sid.arm(_z1524_night, plant=decl):
@@ -72030,7 +72036,7 @@ R.check(
 # would stop the learners removing. The open-window CUSUM read the heat-loss
 # replay residual against zero, so a model bias tripped it and the freeze
 # self-latched. The barrier the round-10 P5 sweep proposed, as a census: every
-# CUSUM whose trip ``_learning_frozen`` reads is found in the source (the scan
+# CUSUM whose trip ``_learning_frozen`` reads (through ``_freeze_facts``) is found in the source (the scan
 # refuses if it finds none, or loses the open-window one), must measure from a
 # tracked level, and is driven -- on a live coordinator, its own construction
 # -- with a constant cold bias across the range the heat-loss learner folds (up
@@ -72047,7 +72053,9 @@ _r10p5_tree = _r10p5_ast.parse(_r10p5_inspect.getsource(_r10p5_cmod))
 _r10p5_gated = {
     a.value.attr
     for f in _r10p5_ast.walk(_r10p5_tree)
-    if isinstance(f, _r10p5_ast.FunctionDef) and f.name == "_learning_frozen"
+    # R11-SEAM-learners (ADR-008): ``_learning_frozen`` asks ``_freeze_facts``,
+    # the one reader of the coordinator's trips; both are scanned.
+    if isinstance(f, _r10p5_ast.FunctionDef) and f.name in ("_learning_frozen", "_freeze_facts")
     for a in _r10p5_ast.walk(f)
     if isinstance(a, _r10p5_ast.Attribute) and a.attr == "tripped"
     and isinstance(a.value, _r10p5_ast.Attribute)
@@ -73298,12 +73306,14 @@ def _r9egb1_h2(**arm):
 
 _r9egb1_h2_e = _r9egb1_h2(economy=True)
 _r9egb1_h2_a = _r9egb1_h2(away=True)
+# R11-SEAM-learners (D7-s2-01): an away solve records no quiet period at all,
+# since away refuses the occupancy kind, so only the economy solve hands a band.
 R.check(
-    "#1736 H2: economy and away solves hand the quiet-period learner the "
-    "configured comfort band",
+    "#1736 H2: an economy solve hands the quiet-period learner the configured "
+    "comfort band, and an away solve hands it none (an empty house complains about nothing)",
     _r9egb1_h2_e[0] is None and _r9egb1_h2_a[0] is None
-    and len(_r9egb1_bands) == 2
-    and [b for _, b in _r9egb1_bands] == [_r9egb1_h2_e[1], _r9egb1_h2_a[1]],
+    and [b for _, b in _r9egb1_bands] == [_r9egb1_h2_e[1]]
+    and [arm for arm, _ in _r9egb1_bands] == [(("economy", True),)],
     f"bands {_r9egb1_bands}; configured {_r9egb1_h2_e[1]}, {_r9egb1_h2_a[1]}",
 )
 
@@ -78941,6 +78951,7 @@ from types import SimpleNamespace as _BstNS  # noqa: E402
 from heatpump_optimizer import pump_arbiter as _bst_pa  # noqa: E402
 from heatpump_optimizer import store as _bst_store  # noqa: E402
 from heatpump_optimizer.const import CONF_BUFFER_TANK_TEMP_ENTITY as _BST_TANK  # noqa: E402
+from heatpump_optimizer.const import CONF_FLOW_HEAT_C as _BST_CEIL_KEY  # noqa: E402
 from heatpump_optimizer.thermal_model import (  # noqa: E402
     FLOW_MIN_LIFT_K as _BST_LIFT,
     modulation_floor_flow_c as _bst_floor_of,
@@ -78950,9 +78961,12 @@ _BST_ENTITY = "number.bst_flow"
 _BST_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
 
 
-def _bst_write(kw, tank, entity_min=20, duty="space"):
-    """What the arbiter writes for a ``duty`` step at ``kw`` on a tank at ``tank``."""
+def _bst_write(kw, tank, entity_min=20, duty="space", ceiling=None):
+    """What the arbiter writes for a ``duty`` step at ``kw`` on a tank at ``tank``
+    (``ceiling``: a configured heating ceiling, degC; ``None`` stores none)."""
     config = {"space_setpoint_entity": _BST_ENTITY, _BST_TANK: "sensor.bst_tank"}
+    if ceiling is not None:
+        config[_BST_CEIL_KEY] = ceiling
     attrs = {"max": 70} if entity_min is None else {"min": entity_min, "max": 70}
     states = {_BST_ENTITY: FakeState("40", attributes=attrs)}
     if tank is not None:
@@ -79010,6 +79024,21 @@ R.check(
     _bst_write(1.5, 25.3) == 31 and _bst_write(1.5, 25.9) == 31
     and _bst_write(1.5, 26.0) == 31,
     f"{_bst_write(1.5, 25.3)} {_bst_write(1.5, 25.9)} {_bst_write(1.5, 26.0)}",
+)
+R.check(
+    "the heating floor is capped by the ceiling before the entity's minimum "
+    "decides: a 30 degC ceiling under a 35 degC entity minimum, with a 40 degC "
+    "tank putting the floor at 45, writes the minimum 35 at every level, not the "
+    "floor (pump_arbiter._flow_target's lo=min(floor, heat), whose ceiling the "
+    "entity's range drops); null: a 20 degC minimum writes the ceiling 30 and a "
+    "50 degC ceiling writes 50, with or without the cap",
+    [_bst_write(kw, 40.0, entity_min=35, ceiling=30.0) for kw in (1.5, 3.5, 5.5)]
+    == [35.0, 35.0, 35.0]
+    and _bst_write(5.5, 40.0, entity_min=20, ceiling=30.0) == 30.0
+    and _bst_write(5.5, 40.0, entity_min=35, ceiling=50.0) == 50.0,
+    f"{[_bst_write(kw, 40.0, entity_min=35, ceiling=30.0) for kw in (1.5, 3.5, 5.5)]} "
+    f"{_bst_write(5.5, 40.0, entity_min=20, ceiling=30.0)} "
+    f"{_bst_write(5.5, 40.0, entity_min=35, ceiling=50.0)}",
 )
 
 # (B) The window. ``observe`` takes the sample's command where the tree has
@@ -83582,7 +83611,7 @@ R.check(
 
 
 # --- R10-COP-GATE item E: the open-window latch freezes only room-air learners --
-# ``_learning_frozen(room_air=False)`` skips the ventilation reason alone. The
+# ``_learning_frozen(sample=Sample.PLANT)`` skips the ventilation reason alone. The
 # measured-heat COP paths (a counter span, a measured flow heat) and hot water
 # lift; the inferred COP, the flow-curve bias and every room-air learner keep
 # the freeze (dev/audit/harnesses/r10_cop_gate_vent.py measures each arm).
@@ -85145,20 +85174,24 @@ R.check(
     f"{_bt_tails}",
 )
 
-# Null control: the order of the freeze reasons in ``_learning_frozen`` is main's.
+# Null control: the order of the shared freeze reasons is main's. They live in
+# ``learning_freeze._shared`` since R11-SEAM-learners (ADR-008); the coordinator
+# supplies each as a fact (``_freeze_facts``: the boost from boost.FREEZE_REASON,
+# the tail from _tail_freeze).
 import ast as _bt_ast  # noqa: E402
 import inspect as _bt_inspect  # noqa: E402
 import textwrap as _bt_tw  # noqa: E402
+from heatpump_optimizer import learning_freeze as _bt_lf  # noqa: E402
 _bt_returns = [
     _bt_ast.unparse(n.value) for n in sorted(_bt_ast.walk(_bt_ast.parse(_bt_tw.dedent(_bt_inspect.getsource(
-        _he_cm.HeatPumpOptimizerCoordinator._learning_frozen)))), key=lambda n: getattr(n, "lineno", 0))
+        _bt_lf._shared)))), key=lambda n: getattr(n, "lineno", 0))
     if isinstance(n, _bt_ast.Return)
 ]
 R.check(
     "the freeze reasons keep main's order, the boost's after ventilation and before the tail freeze",
-    _bt_returns == ["'external_heat_source'", "signals.freeze_reason", "'defrosting'",
-                    "f'{reading.problem}:{key}'", "'ventilation'", "boost.FREEZE_REASON",
-                    "_tail_freeze(self)"],
+    _bt_returns == ["REASON_EXTERNAL_HEAT", "facts.signals", "REASON_DEFROSTING",
+                    "f'{problem}:{key}'", "REASON_VENTILATION", "facts.boost",
+                    "facts.tail"],
     f"{_bt_returns}",
 )
 
@@ -88963,7 +88996,7 @@ _CP_WEE = _cp_sid.HousePlant(ua=0.05, capacity=1.2, gains=0.3)
 
 
 def _cp_cfg(**kw):
-    return _cp_sid.SysIdConfig(enabled=True, **kw)
+    return _cp_sid.SysIdConfig(**kw)
 
 
 R.check(
@@ -89189,7 +89222,7 @@ def _cp_sysid_cycle(host):
 
 
 _cp_frz = _cp_coord(**_CP_PROBE_CFG)
-_cp_frz._learning_frozen = lambda *keys: "an open window"
+_cp_frz._learning_frozen = lambda *keys, **_kw: "an open window"
 _cp_sysid_cycle(_cp_frz)
 _cp_frz_armed = (_cp_frz._sysid.phase, _cp_frz._sysid.held)
 _cp_frz._sysid.phase = _cp_sid.PHASE_STEP
@@ -89766,7 +89799,7 @@ try:
     _cp_quiet = _cp_coord(**_CP_PROBE_CFG, **_CP_ROOM, quiet_off_windows="22:00-23:30")
     _cp_loud = _cp_coord(**_CP_PROBE_CFG, **_CP_ROOM, quiet_off_windows="09:00-09:30")
     for _cp_c in (_cp_quiet, _cp_loud):
-        _cp_c._learning_frozen = lambda *keys: None  # the freeze is the check above's
+        _cp_c._learning_frozen = lambda *keys, **_kw: None  # the freeze is the check above's
     _cp_sysid_cycle(_cp_quiet)
     _cp_quiet_armed = (_cp_quiet._sysid.phase, _cp_quiet._sysid.held)
     _cp_quiet._sysid.phase = _cp_sid.PHASE_STEP
@@ -89802,17 +89835,20 @@ R.check(
     and _cp_hold(False, None, None) is None,
 )
 _cp_armed = _cp_sid.SystemIdentification(_cp_cfg())
-_cp_armed.config.enabled = False
+_cp_armed_before = dataclasses.asdict(_cp_armed.config)
+
+
 class _CpOffCfg(dict):
     system_identification_enabled = False
 
 
 _cp_off_cfg = _CpOffCfg()
 R.check(
-    "arm_from_config takes the switch from the entry's configuration: off arms nothing, whatever the sysid "
-    "config held before",
+    "arm_from_config hands the entry's switch to arm as its argument (ADR-003): off arms nothing and "
+    "writes nothing onto the collaborator's config",
     _cp_sid.arm_from_config(_cp_armed, _CP_T0, _cp_off_cfg, None, 0, None) is False
-    and _cp_armed.config.enabled is False and _cp_armed.phase == _cp_sid.PHASE_IDLE,
+    and _cp_armed.phase == _cp_sid.PHASE_IDLE and not hasattr(_cp_armed.config, "enabled")
+    and dataclasses.asdict(_cp_armed.config) == _cp_armed_before,
 )
 
 
@@ -97714,6 +97750,580 @@ R.check(
 )
 
 
+# --- R10-DRAW-MAP-EVIDENCE part A (design/R10-DRAW-MAP-EVIDENCE at 9aa450f5,
+# approved at design-verdict f10dd418). Each Control pass on a flow set-point
+# is recorded with where its write came from (``pump_arbiter.pass_origin``,
+# the one place that decides it); steady runs of passes become map rows kept
+# beside the running-draw window and never in it, stored as one string per
+# column; and an experiment's interval is no efficiency reading for the COP
+# learner (``MeasuredCop.judge_floor``). Synthetic fixtures throughout.
+R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")
+import asyncio as _mr_aio  # noqa: E402
+from heatpump_optimizer import draw_range as _mr_dr  # noqa: E402
+from heatpump_optimizer import heat_energy as _mr_he  # noqa: E402
+from heatpump_optimizer import coordinator as _mr_cm  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _mr_pa  # noqa: E402
+from heatpump_optimizer import store as _mr_store  # noqa: E402
+from heatpump_optimizer.accuracy import (  # noqa: E402
+    COP_REFUSED_OFF_ASK as _MR_OFF,
+    COP_REFUSED_SPAN_OPEN as _MR_OPEN,
+    MeasuredCop as _MR_MC,
+)
+from dataclasses import replace as _mr_dc_replace  # noqa: E402
+from heatpump_optimizer.sysid import KIND_FIT as _MR_FIT, KIND_PROBE as _MR_PROBE  # noqa: E402
+
+_MR_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=timezone.utc)
+_MR_MIN0 = int(_MR_T0.timestamp() // 60)
+
+
+def _mr_pass(minute, written=35.0, drawn=2.0, *, level=2.0, duty="space", origin="plan",
+             inlet=30.0, defrost=False):
+    return _mr_dr.PassRecord(
+        _MR_T0 + timedelta(minutes=minute), written, 25.0, 45.0, 31.0, level, 0.5, 4.0, 45.0,
+        inlet, drawn, 4.0, duty, "heat", defrost, origin)
+
+
+def _mr_rows(passes, keep=True):
+    rows = _mr_dr.MapRows()
+    for p in passes:
+        rows.take_pass(p)
+    rows.take_pass(None)
+    rows.commit_runs(keep)
+    return list(rows.rows)
+
+
+# Segments: the first SEGMENT_SETTLE_MIN minutes dropped, at least
+# SEGMENT_STEADY_MIN steady minutes, closed at SEGMENT_MAX_MIN.
+_mr_ten = _mr_rows([_mr_pass(m, inlet=30.0 + 0.1 * m, drawn=2.0 + 0.1 * (m % 2)) for m in range(10)])
+R.check(
+    "a ten-minute run at one set-point is one row: started at its first pass, 7 "
+    "steady minutes (3 to 9), its map inputs the first pass's, inlet mean and "
+    "change and draw mean and spread over the steady minutes",
+    len(_mr_ten) == 1 and _mr_ten[0][:2] == (_MR_MIN0, 7)
+    and _mr_ten[0][2:10] == (35.0, 25.0, 45.0, 31.0, 2.0, 0.5, 4.0, 45.0)
+    and abs(_mr_ten[0][10] - 30.6) < 1e-9 and abs(_mr_ten[0][11] - 0.6) < 1e-9
+    and _mr_ten[0][12] == 4.0 and abs(_mr_ten[0][13] - (2.0 + 0.1 * 4 / 7)) < 1e-9
+    and abs(_mr_ten[0][14] - 0.1) < 1e-9 and _mr_ten[0][15:] == ("plan", "space"),
+    f"{_mr_ten}",
+)
+R.check(
+    "a run of five passes keeps two steady minutes and is a row; one of four "
+    "keeps one and is none",
+    [len(_mr_rows([_mr_pass(m) for m in range(n)])) for n in (4, 5)] == [0, 1]
+    and _mr_rows([_mr_pass(m) for m in range(5)])[0][1] == 2,
+)
+R.check(
+    "a forty-minute run closes at thirty minutes and the next pass opens a new "
+    "run: steady minutes 27 and 7",
+    [r[1] for r in _mr_rows([_mr_pass(m) for m in range(40)])] == [27, 7],
+)
+_mr_cut = {
+    "written": [_mr_pass(m, written=35.0 if m < 10 else 36.0) for m in range(20)],
+    "level": [_mr_pass(m, level=2.0 if m < 10 else 2.5) for m in range(20)],
+    "origin": [_mr_pass(m, origin="plan" if m < 10 else "feedback") for m in range(20)],
+    "duty": [_mr_pass(m, duty="space" if m < 10 else "both") for m in range(20)],
+}
+R.check(
+    "a change of written set-point, level, origin or duty closes the run (the "
+    "duty case keeps only its space-only run)",
+    {k: [r[1] for r in _mr_rows(v)] for k, v in _mr_cut.items()}
+    == {"written": [7, 7], "level": [7, 7], "origin": [7, 7], "duty": [7]},
+    f"{ {k: [r[:2] for r in _mr_rows(v)] for k, v in _mr_cut.items()} }",
+)
+_mr_stops = {
+    "defrost": [_mr_pass(m, defrost=m == 10) for m in range(20)],
+    "stop": [_mr_pass(m, drawn=0.25 if m == 10 else 2.0) for m in range(20)],
+    "unread": [_mr_pass(m, drawn=None if m == 10 else 2.0) for m in range(20)],
+}
+R.check(
+    "a defrost pass, a draw at RUNNING_FLOOR_KW and an unread draw each close the "
+    "run and join none: steady minutes 7 and 6 (minutes 0-9, 11-19)",
+    all([r[1] for r in _mr_rows(v)] == [7, 6] for v in _mr_stops.values()),
+    f"{ {k: [r[1] for r in _mr_rows(v)] for k, v in _mr_stops.items()} }",
+)
+_mr_dup = [_mr_pass(m) for m in range(10)]
+_mr_dup.insert(6, _mr_dc_replace(_mr_dup[5], at=_mr_dup[5].at + timedelta(seconds=30), drawn_kw=9.0))
+R.check(
+    "a second pass inside a minute (a listener's) weighs nothing",
+    _mr_rows(_mr_dup) == _mr_rows([_mr_pass(m) for m in range(10)]),
+)
+_mr_mixed = _mr_dr.MapRows()
+for _mr_p in _mr_cut["duty"]:
+    _mr_mixed.take_pass(_mr_p)
+_mr_mixed.take_pass(None)
+_mr_mixed_closed = len(_mr_mixed.closed)
+_mr_mixed.commit_runs(True)
+_mr_frozen = _mr_dr.MapRows()
+for _mr_p in _mr_cut["duty"]:
+    _mr_frozen.take_pass(_mr_p)
+_mr_frozen.take_pass(None)
+_mr_frozen.commit_runs(False)
+R.check(
+    "the fold commits the closed space-only runs and clears the rest; a frozen "
+    "or distorted interval commits none",
+    _mr_mixed_closed == 2 and [r[-1] for r in _mr_mixed.rows] == ["space"] and not _mr_mixed.closed
+    and not _mr_frozen.rows and not _mr_frozen.closed,
+    f"{list(_mr_mixed.rows)} / {list(_mr_frozen.rows)}",
+)
+_mr_cap = _mr_dr.MapRows()
+_mr_cap.closed.extend((_MR_MIN0 + i, 2) + (None,) * 13 + ("plan", "space") for i in range(700))
+_mr_cap.commit_runs(True)
+R.check(
+    "the rows are capped at MAP_ROWS (672), oldest dropped",
+    _mr_dr.MAP_ROWS == 672 and len(_mr_cap.rows) == 672 and _mr_cap.rows[0][0] == _MR_MIN0 + 28,
+    f"{len(_mr_cap.rows)}",
+)
+
+# Storage: one string per column, read back without a migration.
+_mr_win = _mr_dr.DrawRange()
+_mr_win.map.rows.append((_MR_MIN0, 2) + (None,) * 13 + ("hold", "space"))
+_mr_win.map.rows.extend(_mr_rows([_mr_pass(m, inlet=30.0 + 0.25 * m) for m in range(25)])
+                        + _mr_rows([_mr_pass(m, written=40.5, origin="probe") for m in range(8)]))
+_mr_doc = _mr_win.as_dict()
+_mr_back = _mr_dr.DrawRange.from_dict(_mr_doc)
+R.check(
+    "the rows are stored as one comma-separated string per column, every column, "
+    "and read back as the same rows",
+    tuple(_mr_doc["map_rows"]) == _mr_dr.MAP_COLUMNS
+    and all(isinstance(v, str) for v in _mr_doc["map_rows"].values())
+    and _mr_doc["map_rows"]["origin"] == "hold,plan,probe"
+    and list(_mr_back.map.rows) == list(_mr_win.map.rows),
+    f"{_mr_doc['map_rows']} / {list(_mr_back.map.rows)}",
+)
+_mr_plain = _mr_dr.DrawRange()
+_mr_plain.observe(2.0, 2.0, 0.5, 4.0, (35.0, 45.0))
+R.check(
+    "with no rows the record keeps no map key, so a store that never held one is "
+    "unchanged; a record stored before the rows reads empty, its window intact",
+    "map_rows" not in _mr_plain.as_dict()
+    and not _mr_dr.DrawRange.from_dict(_mr_plain.as_dict()).map.rows
+    and list(_mr_dr.DrawRange.from_dict(_mr_plain.as_dict()).samples) == [(2.0, 2.0)],
+)
+_mr_bad = {k: v for k, v in _mr_doc["map_rows"].items()}
+_mr_bad["written_c"] = "x," + _mr_bad["written_c"].split(",", 1)[1]
+_mr_nan = dict(_mr_doc["map_rows"], drawn_mean_kw="nan," + _mr_doc["map_rows"]["drawn_mean_kw"].split(",", 1)[1])
+_mr_short = dict(_mr_doc["map_rows"], gate_c="25.0")
+R.check(
+    "an unreadable or non-finite cell drops its row alone; columns of unequal "
+    "length cannot be aligned and drop every row; a column that is not a string "
+    "drops every row",
+    [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": _mr_bad}).map.rows] == ["plan", "probe"]
+    and [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": _mr_nan}).map.rows] == ["plan", "probe"]
+    and not _mr_dr.DrawRange.from_dict({"map_rows": _mr_short}).map.rows
+    and not _mr_dr.DrawRange.from_dict({"map_rows": dict(_mr_doc["map_rows"], duty=None)}).map.rows
+    and not _mr_dr.DrawRange.from_dict({"map_rows": "x"}).map.rows
+    and not _mr_dr.DrawRange.from_dict({"map_rows": dict(_mr_doc["map_rows"], duty=["space"] * 3)}).map.rows,
+)
+_mr_round = _mr_dr.MapRows()
+_mr_round.rows.append((_MR_MIN0, 2, 31.6875) + (None,) * 12 + ("plan", "space"))
+R.check(
+    "a number is stored to three decimals",
+    _mr_round.as_columns()["written_c"] == "31.688",
+    f"{_mr_round.as_columns()['written_c']}",
+)
+R.check(
+    "store.DOMAINS declares every column leaf, an empty one included (null: an "
+    "undeclared column is reported, as its key and its value)",
+    _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _mr_doc}}) == []
+    and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": {
+        **_mr_doc, "map_rows": dict(_mr_doc["map_rows"], bogus="1")}}}) == ["accuracy/draw/map_rows/bogus"] * 2,
+    f"{_mr_store.off_domain('hpo_accuracy', {'accuracy': {'draw': _mr_doc}})}",
+)
+_mr_one_row = _mr_dr.DrawRange()
+_mr_one_row.map.rows.append((_MR_MIN0, 2) + (None,) * 13 + ("hold", "space"))
+R.check(
+    "a single row with unread cells stores empty column strings, which the "
+    "domain admits",
+    _mr_one_row.as_dict()["map_rows"]["written_c"] == ""
+    and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _mr_one_row.as_dict()}}) == [],
+)
+_mr_a = [_mr_pass(m, inlet=None) for m in range(6)]
+_mr_b = [_mr_pass(m, written=40.0, inlet=inl) for m, inl in ((6, None), (7, None), (8, 31.0), (9, 31.0), (10, 31.0))]
+_mr_no_inlet = [_mr_rows(_mr_a), _mr_rows(_mr_a + [_mr_dc_replace(p, inlet_c=None) for p in _mr_b]), _mr_rows(_mr_a + _mr_b)]
+
+
+def _mr_reload(rows):
+    held = _mr_dr.DrawRange()
+    held.map.rows.extend(rows)
+    return list(_mr_dr.DrawRange.from_dict(held.as_dict()).map.rows)
+
+
+R.check(
+    "an unread cell is a stored value: a single row with unread cells, a column "
+    "unread in every row (no inlet sensor) and one row unread among read ones "
+    "each read back as the same rows",
+    _mr_reload(_mr_one_row.map.rows) == list(_mr_one_row.map.rows)
+    and [len(r) for r in _mr_no_inlet] == [1, 2, 2]
+    and [r[-1][10] is None for r in _mr_no_inlet] == [True, True, False]
+    and all(r[0][10] is None for r in _mr_no_inlet)
+    and all(_mr_reload(r) == r for r in _mr_no_inlet),
+    f"{[_mr_reload(r) for r in _mr_no_inlet]} / {_mr_reload(_mr_one_row.map.rows)}",
+)
+R.check(
+    "an unread start or steady minute is a bad cell and drops its row alone; a "
+    "record of empty columns holds no row",
+    [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": dict(
+        _mr_doc["map_rows"], start_min="," + _mr_doc["map_rows"]["start_min"].split(",", 1)[1])}).map.rows]
+    == ["plan", "probe"]
+    and [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": dict(
+        _mr_doc["map_rows"], steady_min="," + _mr_doc["map_rows"]["steady_min"].split(",", 1)[1])}).map.rows]
+    == ["plan", "probe"]
+    and not _mr_dr.DrawRange.from_dict({"map_rows": dict.fromkeys(_mr_dr.MAP_COLUMNS, "")}).map.rows,
+)
+
+
+# The window is untouched: the same intervals folded with and without map
+# rows leave every reader of the window identical.
+class _MrParams:
+    min_electrical_power, max_electrical_power, flow_lift_power_floor_kw = 0.5, 4.0, 0.4
+
+
+# The fold's own wiring of the exclusion: each flag alone, through draw_range.fold.
+def _mr_fold_flags(frozen, distorted):
+    draw = _mr_dr.DrawRange()
+    for m in range(10):
+        _mr_dr.note_pass(draw, _mr_pass(m))
+    _mr_dr.note_pass(draw, None)
+    _mr_dr.fold(draw, 2.0, (2.0, 0.0), _MrParams(), frozen=frozen, distorted=distorted,
+                defrost=False, command=_mr_pa.FlowCommand(35.0, 25.0, 45.0))
+    return len(draw.map.rows), len(draw.map.closed)
+
+
+_mr_flag_rows = {f: _mr_fold_flags(*f) for f in ((False, False), (True, False), (False, True), (True, True))}
+R.check(
+    "fold commits a closed space run as a row only when the interval is neither "
+    "frozen nor distorted: frozen alone, distorted alone and both commit none and "
+    "clear the closed runs (control: neither flag commits one)",
+    _mr_flag_rows == {(False, False): (1, 0), (True, False): (0, 0), (False, True): (0, 0), (True, True): (0, 0)},
+    f"{_mr_flag_rows}",
+)
+
+
+def _mr_fold_run(with_rows):
+    draw = _mr_dr.DrawRange()
+    for i in range(240):
+        ask = (0.5, 1.6, 2.4, 3.2)[i % 4]  # asks at the configured minimum draw 0.8: the floor moves
+        drawn = 0.8 if i % 4 == 0 else ask * 1.1
+        cmd = _mr_pa.FlowCommand(30.0 + 2 * (i % 4), 25.0, 45.0)
+        if with_rows:
+            for m in range(30):
+                _mr_dr.note_pass(draw, _mr_pass(30 * i + m, written=cmd.written_c, level=ask, drawn=drawn))
+        _mr_dr.fold(draw, drawn if i % 9 else 0.1, (ask, 0.0), _MrParams(), frozen=False,
+                    distorted=False, defrost=False, command=cmd)
+    return draw
+
+
+_mr_with, _mr_without = _mr_fold_run(True), _mr_fold_run(False)
+_MR_CAP = __import__("heatpump_optimizer.thermal_model", fromlist=["InstallCapability"]).InstallCapability(
+    frozenset({"power"}), True, False)
+_mr_band = lambda d: _mr_dr.solve_band(d, _MrParams(), _MR_CAP, 0.0, applies_floor=True)  # noqa: E731
+_mr_readers = lambda d: (list(d.samples), list(d.commands), d.engaged, list(d.idle), list(d.ceiling),  # noqa: E731
+                         _mr_dr.ask_evidence(d), _mr_dr.power_floor_kw(d, _MrParams()), d.observed(),
+                         d.floor_kw, d.floor_since, _mr_band(d),
+                         {k: v for k, v in d.as_dict().items() if k != "map_rows"})
+R.check(
+    "null: DrawRange.samples, engaged, ask_evidence, the floor, the learned floor and its "
+    "count, the solve band's bottom and the stored window are identical with and without map "
+    "rows, and the rows were kept",
+    _mr_readers(_mr_with) == _mr_readers(_mr_without) and len(_mr_with.map.rows) > 0
+    and not _mr_without.map.rows and _mr_without.floor_kw is not None
+    and _mr_band(_mr_without).min_source != "configured",
+    f"rows {len(_mr_with.map.rows)} floor {_mr_with.floor_kw} since {_mr_with.floor_since} "
+    f"band min {_mr_band(_mr_with).min_kw} {_mr_band(_mr_with).min_source}",
+)
+
+# Origin: decided once, in pump_arbiter.pass_origin.
+_mr_in = _FbCoord().arbiter_inputs()
+_mr_exp = lambda kind: _mr_dc_replace(_mr_in, action={"mode": "system_identification", "power": 2.0, **kind})  # noqa: E731
+_mr_now = _MR_T0 + timedelta(hours=1)
+_mr_run_at = lambda s, running=True: _mr_dc_setrun(  # noqa: E731
+    _mr_pa.FeedbackRun(_mr_now - timedelta(seconds=s), 30.0, _mr_now), running)
+
+
+def _mr_dc_setrun(run, running):
+    run.running = running
+    return run
+
+
+_MR_HOLD_S = _mr_pa.FEEDBACK_START_HOLD.total_seconds()
+_mr_origins = [
+    _mr_pa.pass_origin(_mr_exp({"kind": _MR_PROBE}), "space", False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_exp({"kind": _MR_FIT}), "space", True, _mr_run_at(600), _mr_now),
+    _mr_pa.pass_origin(_mr_exp({}), "idle", False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, None, False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, "dhw", True, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, "idle", False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, "space", True, _mr_run_at(600), _mr_now),
+    _mr_pa.pass_origin(_mr_in, "both", False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, "space", False, _mr_run_at(600, False), _mr_now),
+    _mr_pa.pass_origin(_mr_in, "space", False, _mr_run_at(_MR_HOLD_S - 1), _mr_now),
+    _mr_pa.pass_origin(_mr_in, "space", False, _mr_run_at(_MR_HOLD_S), _mr_now),
+]
+R.check(
+    "pass_origin: the experiment's kind first (probe, fit, and fit with no "
+    "kind); the baseline holds; a step that does not heat writes the gate; a "
+    "boost's ceiling; the plan open-loop with no running loop; the loop's start "
+    "hold until FEEDBACK_START_HOLD, then its moved target",
+    _mr_origins == ["probe", "fit", "fit", "hold", "gate", "gate", "boost", "plan", "plan",
+                    "feedback_start", "feedback"],
+    f"{_mr_origins}",
+)
+
+
+# Through the production _arbitrate: the feedback option on gives the loop's
+# origins, off gives none (the design's origin null).
+def _mr_sim(**kw):
+    seen = []
+    note, inputs = _mr_dr.note_pass, _FbCoord.arbiter_inputs
+
+    def _note(draw, rec):
+        seen.append(rec)
+        note(draw, rec)
+
+    def _inputs(self):
+        if self.__dict__.get("draw") is None:
+            self.draw = _mr_dr.DrawRange()
+        return _mr_dc_replace(inputs(self), draw=self.draw)
+
+    _mr_dr.note_pass, _FbCoord.arbiter_inputs = _note, _inputs
+    try:
+        sim = _fb_sim(minutes=90, **kw)
+    finally:
+        _mr_dr.note_pass, _FbCoord.arbiter_inputs = note, inputs
+    return sim, seen
+
+
+_mr_on, _mr_on_seen = _mr_sim()
+_mr_off, _mr_off_seen = _mr_sim(feedback=False)
+_mr_on_o = {r.origin for r in _mr_on_seen if r is not None}
+_mr_off_o = {r.origin for r in _mr_off_seen if r is not None}
+_mr_last = _mr_pa.state_for(_mr_on["coord"]).last_pass
+R.check(
+    "with the feedback option on the passes carry the loop's start hold and "
+    "moved target; off, none does and the plan's open-loop write is the origin; "
+    "the last pass is on the arbiter state, its written set-point the held one, "
+    "and closed runs reached the coordinator's window",
+    {"feedback_start", "feedback"} <= _mr_on_o and not _mr_off_o & {"feedback_start", "feedback"}
+    and "plan" in _mr_off_o
+    and _mr_last is _mr_on_seen[-1]
+    and _mr_last.written_c == _mr_pa.state_for(_mr_on["coord"]).written["space_setpoint"][0]
+    and len(_mr_off["coord"].draw.map.closed) > 0,
+    f"on {_mr_on_o} off {_mr_off_o} closed {len(_mr_off['coord'].draw.map.closed)}",
+)
+_mr_boost_in = _mr_dc_replace(_mr_in, mode=_mr_pa.MODE_BOOST)
+_mr_indoor = _FbCoord()
+_mr_indoor._config = EntryConfig.from_mapping({**_mr_indoor._config.raw, "space_setpoint_unit": "indoor"})
+R.check(
+    "the boost fact (_boosted): the global boost mode on a water set-point is "
+    "live, outside it with no boost set it is not, and an indoor set-point is "
+    "never boosted",
+    _mr_pa._boosted(_FbCoord(), _mr_boost_in, _mr_now) is True
+    and _mr_pa._boosted(_FbCoord(), _mr_in, _mr_now) is False
+    and _mr_pa._boosted(_mr_indoor, _mr_dc_replace(_mr_indoor.arbiter_inputs(), mode=_mr_pa.MODE_BOOST), _mr_now)
+    is False,
+)
+_mr_fresh = _FbCoord()
+R.check(
+    "a fresh arbiter state holds no pass record",
+    _mr_pa.ArbiterState().last_pass is None,
+)
+R.check(
+    "no pass record where no flow set-point is held (nothing written yet)",
+    _mr_pa._pass_record(_mr_pa.state_for(_mr_fresh), _mr_fresh.arbiter_inputs(), "space", False,
+                        _MR_T0) is None,
+)
+
+# The learner exclusion [R3]: the first judgement refuses an experiment's
+# interval with the existing literal, before any ratio is walked.
+_mr_p = _cf_coord()._thermal_params
+R.check(
+    "judge_floor: an experiment interval is draw_off_ask whatever its figures, "
+    "with or without a per-cycle draw; a plan interval with no draw is judged on "
+    "nothing and passes",
+    _MR_MC.judge_floor(2.0, 2.0, _mr_p, None, True) == _MR_OFF
+    and _MR_MC.judge_floor(2.0, None, _mr_p, None, True) == _MR_OFF
+    and _MR_MC.judge_floor(2.0, 2.0, _mr_p, None, False) is None
+    and _MR_MC.judge_floor(2.0, None, _mr_p, None) is None,
+)
+_mr_floor = _mr_dr.power_floor_kw(None, _mr_p)
+R.check(
+    "judge_floor: a plan interval drawing under the duty floor still reads "
+    "duty_floor, and one drawing exactly the floor passes",
+    _MR_MC.judge_floor(2.0, 0.5 * _mr_floor, _mr_p, None) == "duty_floor"
+    and _MR_MC.judge_floor(_mr_floor, _mr_floor, _mr_p, None) is None,
+    f"floor {_mr_floor}",
+)
+_mr_live = _cf_coord()
+R.check(
+    "the coordinator hands its own running-draw window to the arbiter on every "
+    "pass (ArbiterInputs.draw)",
+    _mr_live.arbiter_inputs().draw is _mr_live._accuracy.draw,
+)
+# The sysid override names its kind on the action (moved from part B: the
+# arbiter's origin reads it and cannot reach the coordinator's _sysid).
+_mr_si = _SysIdHost(PumpSignals())
+_mr_si._sysid.phase = _SysIdModule.PHASE_STEP
+_sysid_cycle(_mr_si, np.full(48, 0.2))
+R.check(
+    "the experiment's override action carries its kind",
+    _mr_si._current_action.get("mode") == "system_identification"
+    and _mr_si._current_action.get("kind") == _mr_si._sysid.kind == _MR_FIT,
+    f"{_mr_si._current_action}",
+)
+# The hot-water window clock moved to module level unchanged: 13:30 local is
+# 13.5, inside a 13:00-14:00 window, and 30 minutes before a 14:00 one.
+_mr_hw = _cf_coord()
+_mr_clock = _mr_cm.dt_util.now
+_mr_cm.dt_util.now = lambda: datetime(2026, 1, 12, 13, 30, tzinfo=timezone.utc)
+try:
+    _mr_hw._optimization_result = __import__("types").SimpleNamespace(predictive_info={"dhw_windows": "13:00-14:00"})
+    _mr_hw_in = (_mr_cm._dhw_current_hour(), _mr_hw._dhw_in_demand_window())
+    _mr_hw._optimization_result.predictive_info = {"dhw_windows": "14:00-15:00"}
+    _mr_hw_next = (_mr_hw._dhw_in_demand_window(), _mr_hw._dhw_next_window_in_hours())
+finally:
+    _mr_cm.dt_util.now = _mr_clock
+R.check(
+    "the hot-water windows read the local hour: 13:30 is 13.5, inside "
+    "13:00-14:00, outside 14:00-15:00 and 0.5 h before it",
+    _mr_hw_in == (13.5, True) and _mr_hw_next == (False, 0.5),
+    f"{_mr_hw_in} {_mr_hw_next}",
+)
+_MR_SYSID = {"mode": "system_identification", "kind": _MR_PROBE}
+
+
+def _mr_cop(coord, cycles, freeze=()):
+    """``cycles`` of (action extra, asked kW, drawn kW) on ``coord``; the
+    learner state the exclusion must leave as a frozen cycle would."""
+    _cf_learn(coord, 2.0, 0)  # the window's follow evidence, as _cf_learn builds it
+    for i, (extra, asked, drawn) in enumerate(cycles):
+        coord._current_action = {"power": asked, "dhw_power": 0.0, **extra}
+        coord._measured_power = drawn
+        if i in freeze:
+            coord._learning_frozen = lambda *a, **k: "frozen"
+        coord._learn_measured_cop(coord._accuracy.draw)
+        coord.__dict__.pop("_learning_frozen", None)
+    m = coord._measured_cop
+    return (coord._cop_samples, repr(coord._cop_scale), m.ratio_ewma, list(m.held),
+            dict(coord._capacity_envelope), dict(coord._cop_baseline), m.cop)
+
+
+_mr_seq = [({}, 2.0, 2.0), (_MR_SYSID, 4.0, 5.2), ({}, 2.4, 2.4), ({}, 2.0, 2.1)]
+_mr_excl = _mr_cop(_cf_coord(), _mr_seq)
+_mr_froz = _mr_cop(_cf_coord(), _mr_seq, freeze={1})
+_mr_noexp = _mr_cop(_cf_coord(), [c for c in _mr_seq if not c[0]])
+R.check(
+    "null: a run with an experiment interval leaves the sample count, the COP "
+    "scale, the walking ratio, the hold, the envelope and the health baseline "
+    "byte-identical to the same run with that interval frozen, and to the run "
+    "without it; the first plan interval after it folds none of its draw",
+    _mr_excl == _mr_froz == _mr_noexp and _mr_excl[0] == 3,
+    f"{_mr_excl} / {_mr_froz} / {_mr_noexp}",
+)
+
+
+# The dither's first experiment cycle (design R11-CARRY-DRAWMAP, item 1 and
+# the verdict's dither-first-cycle note): owed_scale reads the cycle before's
+# admission, so a plan row admitted just ahead of an experiment would step the
+# scale inside it. An experiment cycle moves no scale, as a frozen one does not.
+def _mr_dither(k, arm, n=70):
+    """``n`` heat-led cycles on ``_ss_coord``; cycle ``k`` is ``arm`` ("plan",
+    "experiment" or "frozen"). Per cycle: the scale in force, the probe's level,
+    the dither's state and the verdict; and whether the row before ``k`` was admitted."""
+    coord, trace, admitted_before = _ss_coord(), [], None
+    for i, (asked, _) in enumerate(_ss_flat(n, seed=11)):
+        if i == k:
+            admitted_before = coord._measured_cop.probe.dither.admitted
+        drawn = asked * coord._cop_scale / 1.1
+        coord._current_action = {"power": asked, "dhw_power": 0.0,
+                                 **(_MR_SYSID if i == k and arm == "experiment" else {})}
+        coord._measured_power = drawn
+        coord._current_state.outdoor_temperature = 8.0
+        _cf_drm.fold(coord._accuracy.draw, drawn, coord._commanded_split(), coord._thermal_params,
+                     frozen=False, distorted=False, defrost=False)
+        if i == k and arm == "frozen":
+            coord._learning_frozen = lambda *a, **kw: "frozen"
+        coord._learn_measured_cop(coord._accuracy.draw)
+        coord.__dict__.pop("_learning_frozen", None)
+        d, p = coord._measured_cop.probe.dither, coord._measured_cop.probe
+        trace.append((repr(coord._cop_scale), p.level, p.base, d.rows, list(d.contrasts), d.reading,
+                      d.ahead, d.admitted, coord._measured_cop.scale_response))
+    return trace, admitted_before
+
+
+_mr_dk = 55  # past the probe arming (cycle 47 on this run), the row before admitted
+_mr_d_exp, _mr_d_froz, _mr_d_plan = (_mr_dither(_mr_dk, a) for a in ("experiment", "frozen", "plan"))
+R.check(
+    "the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the "
+    "row before it admitted, takes no dither step inside it -- the scale in force is the probe's "
+    "base and the dither holds no reading -- and from the next cycle to the run's end is "
+    "byte-identical to the same run with that cycle frozen; null control, the same cycle under "
+    "the plan steps the dither off its base",
+    _mr_d_exp[1] is True and _mr_d_exp[0][_mr_dk][2] is not None
+    and float(_mr_d_exp[0][_mr_dk][0]) == _mr_d_exp[0][_mr_dk][2]
+    and _mr_d_exp[0][_mr_dk][5:7] == (None, None)
+    and _mr_d_exp[0][_mr_dk + 1:] == _mr_d_froz[0][_mr_dk + 1:]
+    and float(_mr_d_plan[0][_mr_dk][0]) != _mr_d_plan[0][_mr_dk][2],
+    f"admitted before {_mr_d_exp[1]}; cycle {_mr_dk}: experiment {_mr_d_exp[0][_mr_dk][:3]} "
+    f"plan {_mr_d_plan[0][_mr_dk][:3]}; first diverging cycle after it "
+    f"{next((i for i, (a, b) in enumerate(zip(_mr_d_exp[0], _mr_d_froz[0])) if a != b and i > _mr_dk), None)}",
+)
+_mr_one = _cf_coord()
+_mr_cop(_mr_one, [(_MR_SYSID, 2.0, 2.0)])
+_mr_plan_one = _cf_coord()
+_mr_cop(_mr_plan_one, [({}, 2.0, 2.0)])
+R.check(
+    "an experiment interval drawing exactly its ask reads draw_off_ask and "
+    "folds nothing; the same interval under the plan folds",
+    (_mr_one._cop_samples, _mr_one._measured_cop.refusal) == (0, _MR_OFF)
+    and (_mr_plan_one._cop_samples, _mr_plan_one._measured_cop.refusal) == (1, None),
+)
+# r13: on a heat-metered install the COP is heat over the draw; the refusal
+# stands there for the scale's reason (judge_floor's docstring), tested.
+_mr_met, _mr_met_plan = _cf_metered(), _cf_metered()
+for _mr_c, _mr_a in ((_mr_met, _MR_SYSID), (_mr_met_plan, {})):
+    _mr_c._current_action = {"power": 2.0, "dhw_power": 0.0, **_mr_a}
+    _mr_c._measured_power = 2.0
+    _mr_c._current_state.outdoor_temperature = 8.0
+    _mr_c._learn_measured_cop(_mr_c._accuracy.draw)
+R.check(
+    "r13: on a heat-metered install an experiment interval is refused too, and "
+    "the same interval under the plan folds its measured COP",
+    (_mr_met._cop_samples, _mr_met._measured_cop.refusal, _mr_met._measured_cop.cop) == (0, _MR_OFF, None)
+    and _mr_met_plan._cop_samples == 1 and _mr_met_plan._measured_cop.cop is not None,
+    f"{_mr_met._cop_samples} {_mr_met._measured_cop.refusal} / {_mr_met_plan._cop_samples}",
+)
+
+
+# A heat counter with no power entity: a span holding an experiment cycle
+# fails the cycle's gate, so its COP never folds (null: the same span with no
+# experiment folds, as #2854's test does).
+def _mr_span(experiment_cycle=None, cycles=3, elec_kw=2.0):
+    c = _t2_coord(**{"heat_pump_energy_entity": "sensor.e"}, **{_HE_KEY: "sensor.he"})
+    c._current_state.outdoor_temperature = 8.0
+    c._measured_power = None
+    m = _mr_he.meter_of(c)
+    refusals = []
+    for i in range(cycles):
+        c._current_action = {"power": elec_kw, **(_MR_SYSID if i == experiment_cycle else {})}
+        at = NOW + timedelta(hours=0.5 * i)
+        m.observe_counters(at, 100.0 + 3.7 * elec_kw * 0.5 * i, 50.0 + elec_kw * 0.5 * i,
+                           configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        c._last_house_sample, c._last_house_sample_time = _mr_dc_replace(c._current_state), at
+        c._learn_measured_cop()
+        refusals.append(c._measured_cop.refusal)
+        _mr_aio.run(_mr_cm._async_learn_heat_span(c, {"cop": c._measured_cop.refusal == _MR_OPEN}))
+    return c._cop_samples, refusals
+
+
+_mr_span_exp, _mr_span_plan = _mr_span(1), _mr_span()
+R.check(
+    "a heat counter span holding an experiment cycle folds no COP, that cycle "
+    "reading draw_off_ask; the same span with none folds one",
+    _mr_span_exp[0] == 0 and _mr_span_exp[1][1] == _MR_OFF and _mr_span_plan[0] == 1,
+    f"{_mr_span_exp} / {_mr_span_plan}",
+)
+
+
 # -- The plan peak under the lift: accepted, never clipped (round-11 ruling, 2026-11-18,
 # option A). The lifted floor reaches the comfort target and the plan may store heat above
 # it, so its peak may pass the unlifted plan's. These checks encode that choice: a clip of
@@ -98389,5 +98999,525 @@ R.check(
     and _rh_ul_doc.get("data", _rh_ul_doc).get("times", "").split(",") == [str(_RH_M0), str(_RH_M0 + 30)],
     f"before={_rh_ul_before} after={_rh_ul_doc}",
 )
+
+
+# --- R11-SEAM-learners: one freeze predicate (ADR-008, design/R11-SEAM-learners
+# at bee723ac). ``learning_freeze.reason`` owns which interval a learner may
+# ingest; the coordinator only builds the facts. Every check drives the
+# production predicate or a production learner through it.
+R.section("R11-SEAM-learners: the one freeze predicate")
+import asyncio as _lf_aio  # noqa: E402
+from datetime import timedelta as _lf_td  # noqa: E402
+from types import SimpleNamespace as _lf_NS  # noqa: E402
+from heatpump_optimizer import learning_freeze as _lf  # noqa: E402
+from heatpump_optimizer import coordinator as _lf_cm  # noqa: E402
+from homeassistant.util import dt as _lf_dt  # noqa: E402
+from heatpump_optimizer.const import CONF_DHW_TEMP_ENTITY as _LF_DHW  # noqa: E402
+
+_LF_K = _lf.Sample
+_LF_ALL = tuple(_LF_K)
+# The nine shared reasons in today's order, each alone, and the kinds each refuses:
+# every kind but the delivered ratio, ventilation only the room-air ones.
+_LF_ROOM = {_LF_K.ROOM_AIR, _LF_K.OCCUPANCY, _LF_K.COMFORT, _LF_K.SPACE_HEAT, _LF_K.CEILING}
+_LF_SHARED = [
+    (_lf.Facts(external_heat=True), "external_heat_source", set(_LF_ALL) - {_LF_K.DELIVERED_RATIO}),
+    (_lf.Facts(signals="heat_pump_fault"), "heat_pump_fault", set(_LF_ALL) - {_LF_K.DELIVERED_RATIO}),
+    (_lf.Facts(defrosting=True), "defrosting", set(_LF_ALL) - {_LF_K.DELIVERED_RATIO}),
+    (_lf.Facts(unusable={"k": "stale"}), "stale:k", set(_LF_ALL) - {_LF_K.DELIVERED_RATIO}),
+    (_lf.Facts(ventilation=True), "ventilation", _LF_ROOM),
+    (_lf.Facts(boost="boost_space"), "boost_space", set(_LF_ALL) - {_LF_K.DELIVERED_RATIO}),
+    (_lf.Facts(tail="early_cutoff"), "early_cutoff", set(_LF_ALL) - {_LF_K.DELIVERED_RATIO}),
+]
+_lf_table_bad = [
+    (want, kind.value) for facts, want, kinds in _LF_SHARED for kind in _LF_ALL
+    if _lf.reason(facts, ("k",), kind) != (want if kind in kinds else None)
+]
+# The order: every pair of shared facts answers the earlier one.
+_LF_FULL = _lf.Facts(external_heat=True, signals="heat_pump_fault", defrosting=True,
+                     unusable={"k": "stale"}, ventilation=True, boost="boost_space",
+                     tail="early_cutoff", away=True, away_recovery=True)
+_lf_order = []
+_lf_f = _LF_FULL
+for _lf_field, _lf_off in (("external_heat", False), ("signals", None), ("defrosting", False),
+                           ("unusable", {}), ("ventilation", False), ("boost", None), ("tail", None),
+                           ("away", False), ("away_recovery", False)):
+    _lf_order.append(_lf.reason(_lf_f, ("k",), _LF_K.COMFORT))
+    _lf_f = dataclasses.replace(_lf_f, **{_lf_field: _lf_off})
+_lf_order.append(_lf.reason(_lf_f, ("k",), _LF_K.COMFORT))
+R.check(
+    "each shared freeze reason refuses exactly its kinds, and the reasons rank in today's "
+    "order (external heat, signals, defrost, unusable key, ventilation, boost, tail), then "
+    "away and away recovery; an unusable key the ask does not name refuses nothing",
+    not _lf_table_bad
+    and _lf_order == ["external_heat_source", "heat_pump_fault", "defrosting", "stale:k",
+                      "ventilation", "boost_space", "early_cutoff", "away", "away_recovery", None]
+    and _lf.reason(_lf.Facts(unusable={"k": "stale"}), ("other",), _LF_K.ROOM_AIR) is None,
+    f"bad={_lf_table_bad} order={_lf_order}",
+)
+# The additive reasons: each refuses its own kind alone, never a plant or room-air ask.
+_LF_ADD = [
+    (_lf.Facts(away=True), _lf.NO_EVIDENCE, "away", {_LF_K.OCCUPANCY, _LF_K.COMFORT, _LF_K.TANK_DRAW}),
+    (_lf.Facts(away_recovery=True), _lf.NO_EVIDENCE, "away_recovery", {_LF_K.COMFORT}),
+    (_lf.Facts(), _lf.Evidence(unplanned_charge=True), "unplanned_charge",
+     {_LF_K.SPACE_HEAT, _LF_K.METERED_SPACE_HEAT}),
+    (_lf.Facts(), _lf.Evidence(at_running_floor=True), "at_running_floor", {_LF_K.CEILING}),
+    (_lf.Facts(), _lf.Evidence(charge_open=True), "charge_open", {_LF_K.TANK_DRAW}),
+    (_lf.Facts(), _lf.Evidence(ask_ignored=True), "ask_ignored", {_LF_K.DELIVERED_RATIO}),
+]
+_lf_add_bad = [
+    (want, kind.value) for facts, ev, want, kinds in _LF_ADD for kind in _LF_ALL
+    if _lf.reason(facts, ("k",), kind, ev) != (want if kind in kinds else None)
+]
+R.check(
+    "each additive reason refuses only its own kinds; a clean interval refuses nothing, and a "
+    "defrosting interval still reaches the delivered-ratio ask (#944)",
+    not _lf_add_bad
+    and all(_lf.reason(_lf.Facts(), ("k",), k) is None for k in _LF_ALL)
+    and _lf.reason(_lf.Facts(defrosting=True), ("k",), _LF_K.DELIVERED_RATIO) is None,
+    f"bad={_lf_add_bad}",
+)
+
+# Away on a real coordinator: the gains fold and the quiet-comfort record are
+# held, the curve tracker is held through the recovery; the home arm is the null.
+_lf_gate_n = next(n for n in range(10_000) if _lf_cm.internal_gains_gate_open(n))
+
+
+def _lf_gains(away):
+    c = _t2_coord(internal_gains_learning_enabled=True)
+    c._house_heat_loss_samples = _lf_gate_n
+    c._away_state.active = away
+    t = datetime(2026, 1, 12, 2, 0, tzinfo=UTC)
+    c._fold_internal_gains(t, _lf_NS(solar_radiation=0.0), 0.05, 0.25)
+    return c._internal_gains_profile
+
+
+def _lf_ask(kind, **away):
+    c = _t2_coord()
+    for k, v in away.items():
+        setattr(c._away_state, k, v)
+    return c._learning_frozen(_lf_cm.CONF_INDOOR_TEMP_ENTITY, sample=kind)
+
+
+R.check(
+    "away holds the internal-gains fold; at home the same interval folds (D7-s2-01)",
+    _lf_gains(True) is None and _lf_gains(False) is not None,
+    f"away={_lf_gains(True)} home={(_lf_gains(False) or [None])[:3]}",
+)
+R.check(
+    "on a real coordinator away refuses the occupancy and comfort asks and not a room-air or "
+    "plant one, and the recovery refuses the comfort ask alone (the curve tracker's own test, "
+    "moved into the predicate)",
+    _lf_ask(_LF_K.OCCUPANCY, active=True) == "away" and _lf_ask(_LF_K.COMFORT, active=True) == "away"
+    and _lf_ask(_LF_K.ROOM_AIR, active=True) is None and _lf_ask(_LF_K.PLANT, active=True) is None
+    and _lf_ask(_LF_K.COMFORT, recovery_active=True) == "away_recovery"
+    and _lf_ask(_LF_K.OCCUPANCY, recovery_active=True) is None
+    and _lf_ask(_LF_K.COMFORT) is None,
+    f"occ={_lf_ask(_LF_K.OCCUPANCY, active=True)} rec={_lf_ask(_LF_K.COMFORT, recovery_active=True)}",
+)
+
+
+def _lf_quiet(away):
+    c = _t2_coord(comfort_learning_enabled=True)
+    c._away_state.active = away
+    seen = []
+    c._optimization_result = _lf_NS(room_temp_trajectory=None)
+    real = c._learning_frozen
+
+    def spy(*keys, **kw):
+        seen.append(real(*keys, **kw))
+        return seen[-1]
+
+    c._learning_frozen = spy
+    c._record_quiet_comfort_period()
+    return seen
+
+
+R.check(
+    "the quiet-comfort record asks the occupancy kind: away refuses it, home does not",
+    _lf_quiet(True) == ["away"] and _lf_quiet(False) == [None],
+    f"away={_lf_quiet(True)} home={_lf_quiet(False)}",
+)
+
+
+def _lf_dhw(facts, fall_k):
+    """One interval of the production DHW learner, frozen through the real predicate."""
+    lrn = DhwProfileLearner(
+        FakeHass(), "lf", **_owned_params(ThermalParameters(dhw_enabled=True)),
+        frozen=lambda key, sample=_LF_K.ROOM_AIR, evidence=_lf.NO_EVIDENCE: _lf.reason(
+            facts, (key,), sample, evidence),
+        heating_active=lambda: False, external_heat_active=lambda: False,
+    )
+    lrn.last_temp_sample = 55.0
+    lrn.last_sample_time = _lf_dt.now() - _lf_td(hours=1)
+    lrn.heating_since_sample = False
+    profile, cooling = list(lrn.hourly_profile), lrn.cooling_samples
+    why = _lf_aio.run(lrn.async_learn_dynamics(55.0 - fall_k))
+    return why, lrn.cooling_samples - cooling, list(lrn.hourly_profile) != profile, lrn.draw_stats.as_dict()
+
+
+_lf_dhw_away = _lf_dhw(_lf.Facts(away=True), 2.0)
+_lf_dhw_home = _lf_dhw(_lf.Facts(), 2.0)
+_lf_sb_away = _lf_dhw(_lf.Facts(away=True), 0.3)
+_lf_sb_ext = _lf_dhw(_lf.Facts(external_heat=True), 0.3)
+R.check(
+    "away holds the tank's usage hours and draw booking, and returns the reason; the same "
+    "fall at home moves both (D7-s2-01)",
+    _lf_dhw_away[0] == "away" and not _lf_dhw_away[2] and _lf_dhw_away[3]["open_kwh"] == 0.0
+    and _lf_dhw_home[0] is None and _lf_dhw_home[2] and _lf_dhw_home[3]["open_kwh"] > 0.1,
+    f"away={_lf_dhw_away[:3]} {_lf_dhw_away[3]['open_kwh']} kWh home={_lf_dhw_home[:3]} "
+    f"{_lf_dhw_home[3]['open_kwh']} kWh",
+)
+R.check(
+    "away leaves the tank's standby cooling learning (a plant sample); external heat, a "
+    "shared reason, holds it",
+    _lf_sb_away[1] == 1 and _lf_sb_ext[1] == 0 and _lf_sb_ext[0] == "external_heat_source",
+    f"away cooling+={_lf_sb_away[1]} external cooling+={_lf_sb_ext[1]}",
+)
+
+
+
+def _lf_gains_step(residual):
+    """One dark gains fold on an hour already at a learned 0.6 kW, g0 the default."""
+    c = _t2_coord(internal_gains_learning_enabled=True)
+    c._house_heat_loss_samples = _lf_gate_n
+    g0 = float(c._ctx._thermal_params.internal_gains)
+    c._internal_gains_profile = [g0] * 24
+    c._internal_gains_profile[2] = 0.6
+    c._fold_internal_gains(datetime(2026, 1, 12, 2, 0, tzinfo=UTC), _lf_NS(solar_radiation=0.0),
+                           residual, 0.25)
+    return g0, c._internal_gains_profile[2]
+
+
+_lf_g0, _lf_g_still = _lf_gains_step(0.0)
+_lf_g_moved = _lf_gains_step(0.01)[1]
+R.check(
+    "the gains step's expectation is zero at the genuine gain: a zero residual leaves a learned "
+    "hour where it is, with no pull back to the configured constant (D2-s3-11); null control, "
+    "a nonzero residual moves it",
+    _lf_g0 != 0.6 and _lf_g_still == 0.6 and _lf_g_moved > 0.6,
+    f"g0={_lf_g0} after zero residual={_lf_g_still} after +0.01 K={_lf_g_moved}",
+)
+
+
+# --- R11-SEAM-learners: an unplanned charge is no space sample (#3760, D12-s3-03).
+# An unobserved interval the plan put no hot water in, over which the tank
+# thermometer rose past heat_energy.UNPLANNED_CHARGE_RISE_K, was a charge the
+# plan never asked for: every space-heat ask refuses it, the energy totals
+# book it as hot water. Each arm has its null: no rise, and (where the plan's
+# split decides) a planned hot-water share.
+R.section("R11-SEAM-learners: the unplanned-charge evidence")
+from unittest import mock as _uc_mock  # noqa: E402
+from heatpump_optimizer import heat_energy as _uc_he  # noqa: E402
+from heatpump_optimizer import sysid as _uc_sysid  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracySample as _UcSample  # noqa: E402
+from heatpump_optimizer.accuracy import COP_REFUSED_FROZEN as _UC_FROZEN  # noqa: E402
+
+_UC_RISE = _uc_he.UNPLANNED_CHARGE_RISE_K + 2.0
+
+
+def _uc_tank(c, rise):
+    """This cycle's two tank reads, ``rise`` apart; no dwell: the interval is unobserved."""
+    _uc_he.meter_of(c).tank_c = (50.0, 50.0 + rise)
+    return c
+
+
+def _uc_flow(rise, dhw_kw=0.0, observed=False):
+    c = _uc_tank(_fl_coord(action={"power": 3.0, "dhw_power": dhw_kw}), rise)
+    if observed:
+        m, t0 = _uc_he.meter_of(c), datetime(2026, 1, 12, 2, 0, tzinfo=UTC)
+        m.dwell.observe(t0, _uc_he.SPACE, t0)
+        m.cycle = (t0, t0 + _lf_td(minutes=30))
+    c._flow_bias.observe_temps(flow_lift.curve_supply_temp(c._thermal_model, -5.0, c.target_temperature) + 6.0, 47.0)
+    _fold_flow_lift(c, _T6)
+    return c._flow_bias.samples, round(c._flow_bias.bias_k, 6)
+
+
+_uc_fl = {k: _uc_flow(*a) for k, a in {
+    "charge": (_UC_RISE,), "no_rise": (0.0,), "planned_share": (_UC_RISE, 0.3),
+    "observed": (_UC_RISE, 0.0, True)}.items()}
+R.check(
+    "an unobserved, plan-space-only cycle whose tank rose past the band folds no flow-curve bias "
+    "(its supply is the tank's charge temperature); null controls: no rise folds, a planned "
+    "hot-water share under the curve share folds (the plan put hot water in it), an observed "
+    "space cycle folds",
+    _uc_fl["charge"] == (0, 0.0) and _uc_fl["no_rise"][0] == 1
+    and _uc_fl["planned_share"][0] == 1 and _uc_fl["observed"][0] == 1,
+    f"{_uc_fl}",
+)
+
+
+def _uc_cop(rise, dhw_kw=0.0):
+    c = _uc_tank(_t2_coord(heat_pump_power_entity="sensor.hp_power"), rise)
+    c._current_action = {"power": 3.0, "dhw_power": dhw_kw}
+    c._measured_power = 2.6
+    return c._fold_measured_cop(None)
+
+
+_uc_cops = (_uc_cop(_UC_RISE), _uc_cop(0.0), _uc_cop(_UC_RISE, 1.0))
+R.check(
+    "the measured-COP fold refuses an unplanned charge as frozen; no rise, or a planned "
+    "hot-water share, is not frozen (null controls)",
+    _uc_cops[0] == _UC_FROZEN and _uc_cops[1] != _UC_FROZEN and _uc_cops[2] != _UC_FROZEN,
+    f"{_uc_cops}",
+)
+
+
+def _uc_totals(rise, pending_dhw=0.0):
+    """One settled interval's energy split; the NEXT interval's plan asks hot water."""
+    c = _uc_tank(_t2_coord(), rise)
+    c._current_action = {"power": 1.0, "dhw_power": 2.0}
+    pending = {"price": 2.0, "space_power": 2.0, "dhw_power": pending_dhw, "when": _T6}
+    c._accumulate_energy(_UcSample(when=_T6, actual_power_kw=2.0), 1.0, pending)
+    return round(c._energy_totals["space_energy_kwh"], 9), round(c._energy_totals["dhw_energy_kwh"], 9)
+
+
+_uc_tot = (_uc_totals(_UC_RISE), _uc_totals(0.0), _uc_totals(_UC_RISE, 0.5))
+R.check(
+    "the energy totals book an unplanned charge as hot water, read on the settled interval's own "
+    "split (the next interval's hot-water ask does not decide it); null controls: no rise books "
+    "space, a planned share books by the plan (review item c4e1a3b2)",
+    _uc_tot[0] == (0.0, 2.0) and _uc_tot[1] == (2.0, 0.0) and _uc_tot[2] == (1.6, 0.4),
+    f"{_uc_tot}",
+)
+
+
+# ``SystemIdentification.step`` books the plan's power x COP as delivered heat
+# while settling, and ``_step_power`` x COP while stepping. The step-phase line
+# is sysid.py:1795 at main 78d3b40221, not :1792 (review item c4e1a3b1). So an
+# interval whose heat went to the tank stands the experiment down first.
+def _uc_sid_run(rise):
+    c = _uc_tank(_t2_coord(), rise)
+    c._current_action = {"power": 3.0, "dhw_power": 0.0}
+    seen, downs = [], []
+    host = _lf_NS(active=True, stand_down=downs.append)
+    c._sysid = host
+    with _uc_mock.patch.object(_uc_sysid, "hold_reason", lambda s, frozen, cfg, now: seen.append(frozen) or frozen or "held"):
+        _lf_aio.run(c._run_system_identification(np.array([1.0])))
+    return seen, downs
+
+
+_uc_sid = (_uc_sid_run(_UC_RISE), _uc_sid_run(0.0))
+R.check(
+    "an unplanned charge during an experiment reaches its hold as the freeze and stands it down "
+    "through stand_down; no rise reaches it as no freeze (null control)",
+    _uc_sid[0] == (["unplanned_charge"], ["unplanned_charge"]) and _uc_sid[1][0] == [None],
+    f"{_uc_sid}",
+)
+
+
+def _uc_span(per_cycle_k, cycles=4):
+    """A heat counter's span over ``cycles`` half-hour reads, the tank rising ``per_cycle_k`` each."""
+    m = _uc_he.HeatEnergyMeter()
+    sig = _lf_NS(mode=_lf_NS(key=None), mode_live=False, mode_changed_at=None)
+    prm = _lf_NS(max_electrical_power=6.0, cop_nominal_floored=3.0)
+    t0, closes, cycle_evidence = datetime(2026, 1, 12, 2, 0, tzinfo=UTC), [], []
+    for i in range(cycles + 1):
+        at = t0 + _lf_td(minutes=30 * i)
+        m.observe_cycle(at, sig, _lf_NS(ok=True, value=10.0 + 2.5 * i, entity_id="sensor.heat"), 5.0 + 0.8 * i,
+                        30.0, (0.5, 2.0), prm, 50.0 + per_cycle_k * i)
+        cycle_evidence.append(m.unplanned_charge((2.0, 0.0)))
+        close = _uc_he.close_span(m, {"cop": True, "house": True, "lower": False}, (2.0, 0.0), "state", at,
+                                  3.0, "unaligned", lambda *a: a)
+        if close is not _uc_he.NO_SPAN:
+            closes.append(close.unplanned_charge)
+    return closes, any(cycle_evidence)
+
+
+_uc_spans = (_uc_span(0.8), _uc_span(0.0))
+R.check(
+    "a counter span whose tank rise is spread under the band on every cycle but past it over the "
+    "span is an unplanned charge at its close; a span with no rise is not (null control)",
+    _uc_spans[0] == ([True], False) and _uc_spans[1] == ([False], False),
+    f"{_uc_spans}",
+)
+
+
+def _uc_span_fold(rise):
+    """The span close on a real coordinator: what it hands the COP and house learners."""
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power")
+    reached = []
+    c._async_learn_house_heat_loss = lambda *a: reached.append("house") or _lf_aio.sleep(0)
+    c._fold_cop_evidence = lambda *a, **k: reached.append("cop")
+    close = _uc_he.SpanClose("interval", 2.0, 2.0, 6.0, 2.0, None,
+                             (6.0, _uc_he.Attribution(2.0, 0.0, False)), False, True, True, rise)
+    with _uc_mock.patch.object(_uc_he, "close_span", lambda *a, **k: close):
+        _lf_aio.run(_lf_cm._async_learn_heat_span(c, {}))
+    return reached, c._measured_cop.refusal, dict(c._learner_freezes)
+
+
+_uc_sf = (_uc_span_fold(True), _uc_span_fold(False))
+R.check(
+    "a span closed on an unplanned charge reaches neither the house learner nor the COP fold, "
+    "refuses the COP as frozen and notes the freeze once; the same span with no charge reaches "
+    "both (null control)",
+    _uc_sf[0] == ([], _UC_FROZEN, {"house": "unplanned_charge"})
+    and _uc_sf[1][0] == ["house", "cop"] and _uc_sf[1][2] == {},
+    f"{_uc_sf}",
+)
+
+
+
+def _uc_gate(rise, pending_dhw=0.0):
+    """The draw-range gate in ``_record_accuracy``: the ``frozen=`` it hands the fold."""
+    c = _uc_tank(_t2_coord(heat_pump_power_entity="sensor.hp_power"), rise)
+    c._measured_power = 2.6
+    c._pending_prediction = {"when": _lf_dt.now() - _lf_td(minutes=30), "split": (2.0, pending_dhw),
+                             "power": 2.0 + pending_dhw, "space_power": 2.0, "dhw_power": pending_dhw}
+    seen = []
+    with _uc_mock.patch.object(_lf_cm.draw_range, "fold", lambda *a, **k: seen.append(k["frozen"])):
+        try:
+            c._record_accuracy()
+        except Exception as err:  # noqa: BLE001 - only the fold's argument is judged
+            seen.append(type(err).__name__)
+    return seen
+
+
+_uc_gates = (_uc_gate(_UC_RISE), _uc_gate(0.0), _uc_gate(_UC_RISE, 0.5))
+R.check(
+    "the draw-range window refuses an unplanned charge on the pending interval's own split "
+    "(frozen=True, so no window sample and no map run commits); null controls: no rise, or a "
+    "planned hot-water share, hands frozen=False",
+    _uc_gates == ([True], [False], [False]),
+    f"{_uc_gates}",
+)
+
+
+
+# D2-s3-09: a draw-range experiment's ceiling sample at the running floor in
+# force says nothing of the top; ``ceiling_frozen`` drops it from the ceiling
+# store and from the window alike.
+from heatpump_optimizer import draw_range as _cf_dr  # noqa: E402
+
+_CF_P = dataclasses.replace(ThermalParameters(), min_electrical_power=1.0, max_electrical_power=6.0)
+_CF_CEIL = _lf_NS(written_c=55.0, gate_c=20.0, ceiling_c=55.0)
+
+
+def _cf_fold(drawn, floor_kw=None):
+    """One experiment interval at the ceiling set-point, its ceiling ask through the predicate."""
+    d = _cf_dr.DrawRange()
+    _cf_dr.fold(d, 3.0, (3.0, 0.0), _CF_P, frozen=False, distorted=False, defrost=False)  # keys the window
+    d.floor_kw = floor_kw
+    window = len(d.samples)
+    frozen = _lf.reason(_lf.Facts(), (), _LF_K.CEILING,
+                        _lf.Evidence(at_running_floor=_cf_dr.at_running_floor(d, drawn))) is not None
+    _cf_dr.fold(d, drawn, (6.0, 0.0), _CF_P, frozen=False, distorted=False, defrost=False,
+                command=_CF_CEIL, experiment_s=1.0e9, ceiling_frozen=frozen)
+    return frozen, len(d.ceiling), len(d.samples) - window
+
+
+_cf = {k: _cf_fold(*a) for k, a in {"at_learned_floor": (1.5, 1.5), "at_configured_floor": (1.1,),
+                                     "top_4": (4.0, 1.5), "top_4_cfg": (4.0,)}.items()}
+R.check(
+    "a ceiling sample at the floor in force (learned 1.5 kW, or the configured 1.0 kW unlearned) "
+    "is ceiling-frozen and reaches neither the ceiling store nor the window; a 4.0 kW ceiling "
+    "sample is kept in the store (null control) (D2-s3-09, note 9b3d1e15)",
+    _cf["at_learned_floor"] == (True, 0, 0) and _cf["at_configured_floor"] == (True, 0, 0)
+    and _cf["top_4"] == (False, 1, 0) and _cf["top_4_cfg"] == (False, 1, 0),
+    f"{_cf}",
+)
+
+
+# The coordinator's ceiling ask (``_ceiling_frozen``, what ``_record_accuracy``
+# hands ``draw_range.fold``): the metered draw at the learned floor is frozen,
+# a 4.0 kW draw is not, and with no draw read nothing is at the floor.
+from heatpump_optimizer.coordinator import _ceiling_frozen as _cf_ask  # noqa: E402
+
+
+def _cf_coord_ask(drawn):
+    c = _t2_coord()
+    c._accuracy.draw.floor_kw = 1.5
+    c._measured_power = drawn
+    return _cf_ask(c)
+
+
+_cf_asks = {k: _cf_coord_ask(v) for k, v in {"floor": 1.5, "top_4": 4.0, "unread": None}.items()}
+R.check(
+    "the coordinator's ceiling ask freezes a draw at the floor in force and keeps a 4.0 kW draw "
+    "and an unread one (null controls)",
+    _cf_asks == {"floor": True, "top_4": False, "unread": False},
+    f"{_cf_asks}",
+)
+
+
+# _interval_space_power on a commanded-only install: an unplanned charge leaves
+# the interval no space figure; no rise, or a planned hot-water share, leaves
+# the commanded space draw (the null controls).
+def _uc_space(rise, dhw_kw=0.0):
+    c = _uc_tank(_t2_coord(), rise)
+    c._current_action = {"power": 3.0, "dhw_power": dhw_kw}
+    return c._interval_space_power()
+
+
+_uc_spaces = (_uc_space(_UC_RISE), _uc_space(0.0), _uc_space(_UC_RISE, 1.0))
+R.check(
+    "the interval's space power is None on an unplanned charge; no rise, or a planned hot-water "
+    "share, gives the commanded space draw (null controls)",
+    _uc_spaces[0] is None and _uc_spaces[1] is not None and _uc_spaces[1] > 0.0
+    and _uc_spaces[2] is not None,
+    f"{_uc_spaces}",
+)
+
+
+
+def _ch_trace(heated_k):
+    """The production DHW learner over a 10-minute trace: a 4 K fall reaching sample 2, then
+    three 3 K climbs; ``heated_k`` the samples the plan's flag marks. Booked kWh after it."""
+    state = {"heating": False}
+    lrn = DhwProfileLearner(
+        FakeHass(), "ch", **_owned_params(ThermalParameters(dhw_enabled=True)),
+        frozen=lambda key, sample=_LF_K.ROOM_AIR, evidence=_lf.NO_EVIDENCE: _lf.reason(
+            _lf.Facts(), (key,), sample, evidence),
+        heating_active=lambda: state["heating"], external_heat_active=lambda: False,
+    )
+    t0 = datetime(2026, 1, 14, 6, 0, tzinfo=UTC)
+    temps = [50.0, 50.0, 46.0, 49.0, 52.0, 55.0, 55.0]
+    try:
+        for k, temp in enumerate(temps):
+            _lf_dt.freeze(t0 + _lf_td(minutes=10 * k))
+            state["heating"] = k in heated_k
+            _lf_aio.run(lrn.async_learn_dynamics(temp))
+    finally:
+        _lf_dt.freeze(None)
+    return round(lrn.draw_stats.as_dict()["open_kwh"] + sum(sum(v) for v in lrn.draw_stats.reservoirs.values()), 4)
+
+
+_ch_charge, _ch_draw = _ch_trace({2, 3, 4, 5}), _ch_trace(set())
+R.check(
+    "a 60-minute charge whose start dip reaches a heated sample books no draw (the interval "
+    "ending on it is charge-open: no unheated rise ever takes the dip back) (D2-s3-08); null "
+    "control, the same 4 K fall with no charge flag books it",
+    _ch_charge == 0.0 and _ch_draw > 0.5,
+    f"charge={_ch_charge} kWh unflagged={_ch_draw} kWh",
+)
+
+
+
+# Carries 0-1 (item 0116e1a6): the defrost derate's inference reads drawn over
+# asked; once the heat-ask probe reads the ask ignored (a pump that sets its own
+# power) that ratio is no delivery ratio, so the delivered-ratio ask refuses it.
+from heatpump_optimizer.draw_range import ASK_IGNORED as _DF_IGNORED  # noqa: E402
+
+
+def _df_settle(verdict=None, defrosting=False):
+    c = _t2_coord()
+    if verdict is not None:
+        c._measured_cop.probe.response = verdict
+    if defrosting:
+        c._pump_signals = dataclasses.replace(c._pump_signals, defrosting=True)
+    window = c._defrost_window.close(_lf_dt.now())
+    seen = []
+    c._defrost.observe = lambda *a: seen.append(a)
+    c._settle_defrost(_UcSample(when=_T6, predicted_power_kw=4.0, actual_power_kw=2.2, outdoor_temp=2.0), window)
+    return len(seen)
+
+
+R.check(
+    "the defrost inference folds no ratio once the probe reads the ask ignored; pending folds "
+    "it (null control), and so does a defrosting interval, the derate's own evidence (#944, "
+    "note 9b3d1e16)",
+    _df_settle(_DF_IGNORED) == 0 and _df_settle() == 1 and _df_settle(defrosting=True) == 1,
+    f"ignored={_df_settle(_DF_IGNORED)} pending={_df_settle()} defrosting={_df_settle(defrosting=True)}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
