@@ -1611,6 +1611,77 @@ function gridScope(env = process.env) {
   return { run: false, line: `P9 grid MODE: SCOPED -- SKIPPED, NOT A PASS (none of ${files.length} changed file(s) is on the card surface or in ${GRID_PAYLOAD}'s ${closure.length}-file closure)` };
 }
 
+/** D4-s3-02: the numbers of one row of tiles or stats share a line however
+ * their labels wrap. The P9 grid's cells (en and sv-SE) wrap no label
+ * unevenly, so they cannot tell a subgrid row from a block one; German does.
+ * The states are the grid's own, mounted as the grid mounts them, with
+ * `hass.localize` reading the integration's translations. The check also asks
+ * that rows with unevenly wrapped labels were measured, its own null control. */
+const ROW_STATES = ["score_open", "score_open_typical", "score_open_no_evidence", "score_open_graded_pump", "savings_open", "folds_open"];
+async function tileRows({ browser, check, plan, cardSrc }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const states = gridStates(plan).filter((s) => ROW_STATES.includes(s.name));
+  const tr = Object.fromEntries(["en", "de", "sv"].map((l) => [l, JSON.parse(readFileSync(
+    path.join(repo, `custom_components/heatpump_optimizer/translations/${l}.json`), "utf8"))]));
+  const PAGE = `<!doctype html><html><head><meta charset="utf-8"><style id="theme"></style></head><body></body></html>`;
+  const misaligned = [], missed = [];
+  let rows = 0, uneven = 0;
+  for (const [vw, vh] of VIEWPORTS) {
+    const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, colorScheme: "light", reducedMotion: "reduce" });
+    await ctx.clock.setFixedTime(FROZEN);
+    await ctx.route("http://hpo.test/**", (r) => r.fulfill({ contentType: "text/html", body: PAGE }));
+    const page = await ctx.newPage();
+    try {
+      for (const lang of ["en", "de-DE", "sv-SE"]) for (const st of states) {
+        const tag = `${st.name}/${vw}/${lang}`;
+        await page.goto("http://hpo.test/");
+        await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+        await page.addScriptTag({ content: cardSrc });
+        await page.addScriptTag({ content: `(${instrument.toString()})();` });
+        await page.evaluate(([themeCss, w, cfg, states2, lang2, t]) => {
+          document.getElementById("theme").textContent =
+            `html{${themeCss};background:var(--primary-background-color)}` +
+            `body{margin:0;padding:8px;font-family:"Liberation Sans",Arial,sans-serif;color:var(--primary-text-color)}` +
+            `heatpump-optimizer-card{display:block;width:${w}px}`;
+          if (!customElements.get("ha-card")) {
+            customElements.define("ha-card", class extends HTMLElement {
+              constructor() {
+                super();
+                this.attachShadow({ mode: "open" }).innerHTML =
+                  "<style>:host{display:block;box-sizing:border-box;border:1px solid var(--divider-color,#e0e0e0);border-radius:12px}</style><slot></slot>";
+              }
+            });
+          }
+          const c = document.createElement("heatpump-optimizer-card");
+          c.setConfig({ type: "custom:heatpump-optimizer-card", ...cfg });
+          const look = (key) => key.split(".").reduce((o, k) => (o && o[k]), t);
+          const hass = { states: states2, language: lang2, themes: { darkMode: false } };
+          hass.localize = (key, ph) => {
+            const m = key.match(/^component\.heatpump_optimizer\.(.*)$/);
+            const text = m ? look(m[1]) : "";
+            return typeof text === "string" ? text.replace(/\{(\w+)\}/g, (x, k) => (ph && k in ph ? String(ph[k]) : x)) : "";
+          };
+          hass.loadBackendTranslation = async () => hass.localize;
+          c.hass = hass;
+          document.body.appendChild(c);
+        }, [THEMES.light, vw - 16, st.config, st.states, lang, tr[lang.slice(0, 2)]]);
+        await page.waitForTimeout(40);
+        const drove = await page.evaluate((s) => window.__p9.drive(s), st.steps);
+        for (const m of drove.missed) missed.push(`${tag}: ${m}`);
+        const r = await page.evaluate(() => window.__p9.rows());
+        rows += r.rows; uneven += r.uneven;
+        for (const x of r.misaligned) misaligned.push(`${tag}: ${x}`);
+      }
+    } finally {
+      await ctx.close();
+    }
+  }
+  console.log(`        tile and stat rows: ${rows} measured, ${uneven} with unevenly wrapped labels, ${misaligned.length} misaligned`);
+  check(`D4-s3-02 the numbers of one tile or stat row share a line however their labels wrap (${ROW_STATES.length} states, 3 widths, en/de/sv)`,
+    states.length === ROW_STATES.length && missed.length === 0 && misaligned.length === 0 && uneven > 0,
+    `${misaligned.length} misaligned: ${misaligned.slice(0, 4).join(" | ")}; ${rows} row(s) measured, ${uneven} with unevenly wrapped labels; missed ${missed.slice(0, 2).join(" | ")}`);
+}
+
 // ---- the host side -----------------------------------------------------------
 async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
@@ -1629,9 +1700,9 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "dark", os: "light" });
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "light", os: "dark" });
   const PAGE = `<!doctype html><html><head><meta charset="utf-8"><style id="theme"></style></head><body></body></html>`;
-  const bad = { contrast: [], overflow: [], overlap: [], small: [], popups: [], options: [], missed: [], threw: [], misaligned: [] };
+  const bad = { contrast: [], overflow: [], overlap: [], small: [], popups: [], options: [], missed: [], threw: [] };
   const reach = {};
-  let measuredRuns = 0, candidates = 0, unknown = 0, n = 0, valueRows = 0, unevenRows = 0;
+  let measuredRuns = 0, candidates = 0, unknown = 0, n = 0;
   const t0 = Date.now();
   // The clip walk's own witness (carry 7c609975): a run clipped by its own
   // box is clipped all the same, so the walk starts at the run's element. A
@@ -1703,9 +1774,6 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
         n += 1; measuredRuns += m.runs; unknown += m.unknownColour; candidates += m.boxPairs.length;
         for (const k of ["contrast", "overflow", "small", "popups", "options"]) for (const x of m[k]) bad[k].push(`${tag}: ${x}`);
         for (const [k, v] of Object.entries(await page.evaluate(() => window.__p9.colourRules()))) reach[k] = reach[k] || v;
-        const rows = await page.evaluate(() => window.__p9.rows());
-        valueRows += rows.rows; unevenRows += rows.uneven;
-        for (const x of rows.misaligned) bad.misaligned.push(`${tag}: ${x}`);
         for (const p of m.boxPairs) {
           const { clip, why } = await page.evaluate((q) => window.__p9.reveal(q), p);
           if (!clip) { bad.threw.push(`${tag}: ${p.at} x ${p.bt} cannot be inked: ${why}`); continue; }
@@ -1739,11 +1807,6 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   check("P9 grid: every listbox option reads differently from its siblings as shown", bad.options.length === 0, show(bad.options));
   check("P9 grid: no text is clipped where its ancestor cannot scroll to it", bad.overflow.length === 0, show(bad.overflow));
   check("P9 grid: every target clears 24 px or the 2.5.8 spacing exception", bad.small.length === 0, show(bad.small));
-  // A grid with no row whose labels wrap unevenly cannot tell a subgrid row
-  // from a block one, so the check also asks that such rows were measured.
-  check("P9 grid: the numbers of one tile or stat row share a line however their labels wrap",
-    bad.misaligned.length === 0 && unevenRows > 0,
-    `${show(bad.misaligned)}; ${valueRows} row(s) measured, ${unevenRows} with unevenly wrapped labels`);
   // P9_DEBUG prints every failure with its cell, where the checks above
   // print the first few, de-duplicated across cells.
   if (process.env.P9_DEBUG) console.log(JSON.stringify(bad, null, 1));
@@ -3371,6 +3434,7 @@ try {
 
   // R9-UX-8: the narrative rows lay out on a phone and on a desktop.
   await narrativeLayout({ browser, check, plan, out: process.env.HPO_NL_OUT });
+  await tileRows({ browser, check, plan, cardSrc: readFileSync(CARD_SRC, "utf8") });
   await cardCollapse({ browser, check, plan, out: process.env.HPO_NL_OUT });
 } finally {
   await browser.close();
