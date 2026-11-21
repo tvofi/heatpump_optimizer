@@ -11,3 +11,4 @@
 1795290223 DONE verdict pushed: blocked 55508355 class-open (HA frame.report_usage), probe/rev-3729-6f5e0e80 at 5a8253b9
 1795300060 HB alive
 1795300133 CKPT setup ok, packet rendered, classify waiter started snapshot 01a2737b6fa5
+1795300420 CKPT mutants r8 all killed, probes done, figures re-derived; waiting on CI classify snapshot a2cbd7679b72
