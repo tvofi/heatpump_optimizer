@@ -202,10 +202,10 @@ custom_components/heatpump_optimizer/
 ├── supply_hold.py        # The supply switch's minimum run and pause, held
 │                         #   across a re-solve, a cycle or a restart
 ├── duty_switch.py        # Learns per direction whether a duty switch stops
-│                         #   the running compressor; a latched direction's
-│                         #   estimate is what the solve prices that switch by
-│                         #   and what orders the legs of a both step the
-│                         #   arbiter serves
+│                         #   the running compressor; its estimate, shrunk
+│                         #   until a direction latches, is what the solve
+│                         #   prices that switch by; a latched one also orders
+│                         #   the legs of a both step the arbiter serves
 ├── heat_curve.py         # The heat-curve displace's outputs: the MQTT topics
 │                         #   and a number entity, kind offset or persistent
 ├── off_restore.py        # The one owner of the off and unload restore: what

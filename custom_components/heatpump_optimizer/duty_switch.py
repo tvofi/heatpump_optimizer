@@ -9,8 +9,10 @@ recorded, persisted and published on the compressor-starts sensor. Its
 latches are read twice, through one leg rule: the arbiter's split of a both
 step (:func:`both_step_duty`, part B) and the planner (:func:`planner_fields`),
 which prices the switch through ``duty_legs``; both feed
-``duty_legs.leg_rule`` the same pairs (:meth:`DutySwitchLearner.split`), so
-the plan prices the legs the arbiter serves. A factory reset voids the store
+``duty_legs.leg_rule`` the same pairs and unlatched mask
+(:meth:`DutySwitchLearner.split`), so the plan prices the legs the arbiter
+serves. The planner prices a direction before its latch too, at the shrunk
+estimate (:attr:`Direction.priced`, issue 3849); the legs move on a latch only. A factory reset voids the store
 like every other learned estimate.
 
 **Observe** (:class:`DutySwitchLearner`, no Home Assistant object). An
@@ -90,6 +92,11 @@ SPAN_DAYS_ON = 2
 #: episode a half-life old. Without it the first day never moved, and a year-old
 #: episode made six stops on one day read as a year's span.
 SPAN_FLOOR_N = 0.5
+#: Kept episodes the price of an unlatched direction is shrunk by,
+#: ``k / (n + PRIOR_N)``: no evidence prices nothing, and a direction that
+#: stopped at every switch is priced at half when it reaches the latch's
+#: weight, :data:`N_ON`, which this is.
+PRIOR_N = N_ON
 OFF_SAMPLES_MAX = 32
 #: Load bounds: a count or an off time past these was not written here.
 _N_MAX = 1e6
@@ -177,6 +184,13 @@ class Direction:
     @property
     def p(self) -> float:
         return self.k / self.n if self.n > 0.0 else 0.0
+
+    @property
+    def priced(self) -> float:
+        """The stop probability the planner prices: ``p`` once latched, else
+        ``k`` shrunk by :data:`PRIOR_N` kept episodes (issue 3849: three stops
+        in three switches priced nothing until the latch)."""
+        return self.p if self.usable else self.k / (self.n + PRIOR_N)
 
     @property
     def span_days(self) -> int:
@@ -392,21 +406,27 @@ class DutySwitchLearner:
 
     def planner_pairs(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Per direction, in :data:`DIRECTIONS`' order: the stop probability
-        and the median off seconds the planner prices a switch by. Zeros
-        unless the direction's latch is on, and no off time while every
-        stop's was censored."""
-        read = [d if d.usable else Direction() for d in map(self.directions.__getitem__, DIRECTIONS)]
-        return (read[0].p, read[1].p), (read[0].median_off_s or 0.0, read[1].median_off_s or 0.0)
+        (:attr:`Direction.priced`) and the median off seconds the planner
+        prices a switch by. No off time unless the direction's latch is on,
+        nor while every stop's was censored."""
+        ds: Direction = self.directions[DIRECTIONS[0]]
+        sd: Direction = self.directions[DIRECTIONS[1]]
+        offs = [(d.median_off_s or 0.0) if d.usable else 0.0 for d in (ds, sd)]
+        return (ds.priced, sd.priced), (offs[0], offs[1])
+
+    def unlatched(self) -> tuple[bool, bool]:
+        """Per direction, whether its latch is off: priced, never leg-moving."""
+        return not self.directions[DIRECTIONS[0]].usable, not self.directions[DIRECTIONS[1]].usable
 
     def split(self) -> duty_legs.LegRule:
         """The leg rule a both step is served by: ``duty_legs.leg_rule`` of
-        :meth:`planner_pairs`, the pairs the planner prices, so planner and
-        arbiter read one rule. Read only through the latches: ``n``, the
-        tallies and ``span_days`` are not read, so evidence accruing faster on
-        one set-point unit than another moves nothing here until a latch
-        moves. With no latch on this is ``duty_legs.DEFAULT_RULE``: hot water
-        first for its share."""
-        return duty_legs.leg_rule(*self.planner_pairs())
+        :meth:`planner_pairs` and :meth:`unlatched`, what the planner prices,
+        so planner and arbiter read one rule. It moves on the latches only: an
+        unlatched direction's shrunk estimate is priced and masked, so
+        evidence accruing faster on one set-point unit than another moves
+        nothing here until a latch moves. With no latch on this is
+        ``duty_legs.DEFAULT_RULE``: hot water first for its share."""
+        return duty_legs.leg_rule(*self.planner_pairs(), self.unlatched())
 
     def stored_record(self) -> dict[str, Any]:
         return {"directions": {name: d.stored_row() for name, d in self.directions.items()}}
@@ -559,8 +579,10 @@ def running_now(rec: _Record, action: Any) -> bool:
     return running
 
 
-def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:
+def planner_fields(coord: Any) -> dict[str, tuple[Any, Any]]:
     """The ``OptimizationConfig`` fields a solve prices a duty switch by; a pump never arbitrated reads zeros."""
     rec = _RECORDS.get(coord)
-    stops, off_s = (rec.learner if rec is not None else DutySwitchLearner()).planner_pairs()
-    return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s}
+    learner = rec.learner if rec is not None else DutySwitchLearner()
+    stops, off_s = learner.planner_pairs()
+    return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s,
+            "duty_switch_unlatched": learner.unlatched()}

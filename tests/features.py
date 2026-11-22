@@ -27856,6 +27856,26 @@ R.check(
     f"never {_dsp_cfg_never.duty_switch_stop_probability}, read "
     f"{_dsp_cfg_read.duty_switch_stop_probability} {_dsp_cfg_read.duty_switch_off_seconds}",
 )
+# R11-OUTSIDE-3849: an unlatched record is priced shrunk and masked from the legs.
+_dsp_push_u = _dsp_push_ds.DutySwitchLearner({
+    "dhw_space": _dsp_push_d(k=2.0, kept_w=0.0, first_day=_dsp_push_day, last_day=_dsp_push_day,
+                             usable=False, off_s=[501.0]),
+    "space_dhw": _dsp_push_d(),
+})
+_dsp_cfg_unever, _dsp_cfg_uread, _ = _dsp_pushed(_dsp_push_u)
+R.check(
+    "the coordinator passes the unlatched mask with the pairs: none on a pump "
+    "never arbitrated (both directions unlatched, priced zero), the latched "
+    "learner's read latched, and an unlatched record's stop priced at "
+    "k / (n + PRIOR_N) beside its mask, its off time unread",
+    _dsp_cfg_never.duty_switch_unlatched == (True, True)
+    and _dsp_cfg_read.duty_switch_unlatched == (False, False)
+    and _dsp_cfg_uread.duty_switch_unlatched == (True, True)
+    and _dsp_cfg_uread.duty_switch_stop_probability == (2.0 / (2.0 + _dsp_push_ds.PRIOR_N), 0.0)
+    and _dsp_cfg_uread.duty_switch_off_seconds == (0.0, 0.0),
+    f"never {_dsp_cfg_never.duty_switch_unlatched} read {_dsp_cfg_read.duty_switch_unlatched} "
+    f"unlatched {_dsp_cfg_uread.duty_switch_stop_probability} {_dsp_cfg_uread.duty_switch_unlatched}",
+)
 
 _svc_sim_hass = FakeHass()
 _seed_prices(_svc_sim_hass)  # #924
@@ -93038,7 +93058,8 @@ R.check(
 )
 
 
-def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5.5, cyc=0.3):
+def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5.5, cyc=0.3,
+             unlatched=(False, False)):
     params = _DspTP()
     params.mixing_valve_mode = "none"
     params.buffer_tank_volume = 750.0
@@ -93047,6 +93068,7 @@ def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5
     cfg = _DspCfg(clamp_planned_levels=clamp, cycling_cost=cyc)
     if pair is not None:
         cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = pair, off
+        cfg.duty_switch_unlatched = unlatched
     return _DspOpt(_DspTM(params), cfg)
 
 
@@ -93438,10 +93460,11 @@ R.check(
 )
 
 
-def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, out_mean=2.0, **install):
+def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, out_mean=2.0,
+               unlatched=(False, False), **install):
     """One full ``optimize``; the planner builds, the published simulation's
     inputs and the objective closures are recorded beside the result."""
-    opt = _dsp_opt(pair, off, **install)
+    opt = _dsp_opt(pair, off, unlatched=unlatched, **install)
     seen = _DspNS(
         builds=[], sims=[], objectives=[], solves=[], solved=[], min_runs=[],
         energy=[None], vectors=[0], vectors_outside=[0], solving=[0], stages=[], opt=opt,
@@ -94539,7 +94562,8 @@ R.check(
     f"{_dsp_rt_back.directions}",
 )
 
-# The read: both pairs in the leaf's order, zeros unless the stored latch is on.
+# The read: both pairs in the leaf's order; an off time only once the stored
+# latch is on, a stop probability shrunk by PRIOR_N before it (R11-OUTSIDE-3849).
 _dsp_table = _dsp_ds.DutySwitchLearner()
 for _dsp_i in range(6):
     _dsp_stop(_dsp_table, _DSP_DAY + timedelta(hours=7 * _dsp_i), 501)
@@ -94557,9 +94581,17 @@ _DSP_LEARNERS = {
     "an install whose every switch was kept": _dsp_ds.DutySwitchLearner(
         {"dhw_space": _dsp_dir(0.0, 10.0, usable=False), "space_dhw": _dsp_dir(0.0, 10.0, usable=False)}),
 }
+_DSP_NULL_LEARNERS = ("an empty learner", "an install whose every switch was kept")
+_DSP_UNDER = _DSP_LEARNERS["a learner under its on-threshold, off times stored"]
 R.check(
-    "the read returns zeros while a direction is unlatched, its off times with it",
-    all(l.planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for l in _DSP_LEARNERS.values()),
+    "the read returns no off time while a direction is unlatched, and its stop "
+    "probability shrunk to k / (n + PRIOR_N): zeros with no evidence and with "
+    "every switch kept, 4 / 9 for four stops under the on-threshold; every "
+    "direction of the three reads unlatched",
+    all(_DSP_LEARNERS[n].planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for n in _DSP_NULL_LEARNERS)
+    and _DSP_UNDER.planner_pairs() == ((4.0 / (4.0 + _dsp_ds.PRIOR_N), 0.0), (0.0, 0.0))
+    and _dsp_ds.PRIOR_N == 5.0
+    and all(l.unlatched() == (True, True) for l in _DSP_LEARNERS.values()),
     f"{ {n: l.planner_pairs() for n, l in _DSP_LEARNERS.items()} }",
 )
 _dsp_two = _dsp_ds.DutySwitchLearner({
@@ -94576,8 +94608,9 @@ R.check(
 # 4, the learner arm: each null state's read, handed to a full optimize.
 _dsp_arm_bad = []
 for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
-    for _dsp_label, _dsp_l in _DSP_LEARNERS.items():
-        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), **_dsp_kw)
+    for _dsp_label in _DSP_NULL_LEARNERS:
+        _dsp_l = _DSP_LEARNERS[_dsp_label]
+        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), unlatched=_dsp_l.unlatched(), **_dsp_kw)
         if (
             not _dsp_same_plan(_dsp_null, _dsp_base[_dsp_name])
             or _dsp_null.bans or _dsp_null.opt._space_avail is not None
@@ -94585,9 +94618,9 @@ for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
         ):
             _dsp_arm_bad.append((_dsp_name, _dsp_label))
 R.check(
-    "null controls from learner state: an empty learner, one under its "
-    "on-threshold and an install whose every switch was kept each read a plan "
-    "identical to today's on all three install classes",
+    "null controls from learner state: an empty learner and an install whose "
+    "every switch was kept each read a plan identical to today's on all three "
+    "install classes (one under its on-threshold is priced since R11-OUTSIDE-3849)",
     not _dsp_arm_bad,
     f"{_dsp_arm_bad}",
 )
@@ -94598,6 +94631,136 @@ R.check(
         for n, kw in _DSP_INSTALLS.items()),
 )
 
+
+# R11-OUTSIDE-3849 (issue 3849, Bankaifan): the hot water to heating stop was
+# priced at zero until the learner latched (n >= N_ON over two days), so an
+# install whose switch stopped the compressor three times in three was planned
+# as if it never did. Before the latch the planner now prices k / (n + PRIOR_N)
+# (``Direction.priced``); the arbiter's leg order and merge still move on a
+# latch only (``duty_legs.leg_rule``'s unlatched mask), so the plan prices the
+# legs the arbiter serves whatever the latch.
+def _dsp_3849(usable=False, k=2.0, kept_w=0.0, off_s=(501.0, 492.0, 530.0)):
+    """The issue's record: hot water to heating stopped 3, kept 0, n = 2."""
+    d = _dsp_dir(k, kept_w, usable=usable, off_s=off_s)
+    d.stopped = 3
+    return _dsp_ds.DutySwitchLearner({"dhw_space": d, "space_dhw": _dsp_ds.Direction()})
+
+
+_dsp_i49, _dsp_i49_on = _dsp_3849(), _dsp_3849(usable=True)
+R.check(
+    "issue 3849's record (three stops in three switches, n = 2, unlatched) prices "
+    "hot water to heating at 2 / (2 + PRIOR_N) and reads no off time; control: "
+    "the same record latched prices p = 1 and its median off time",
+    _dsp_i49.planner_pairs() == ((2.0 / (2.0 + _dsp_ds.PRIOR_N), 0.0), (0.0, 0.0))
+    and _dsp_i49.unlatched() == (True, True)
+    and _dsp_i49_on.planner_pairs() == ((1.0, 0.0), (501.0, 0.0))
+    and _dsp_i49_on.unlatched() == (False, True),
+    f"unlatched {_dsp_i49.planner_pairs()} latched {_dsp_i49_on.planner_pairs()}",
+)
+_dsp_grid = [(k / 2.0, w / 2.0) for k in range(int(2 * _dsp_ds.N_CAP) + 1)
+             for w in range(int(2 * _dsp_ds.N_CAP) + 1)]
+_dsp_shrunk_bad = [
+    (k, w, d.priced, d.p) for k, w in _dsp_grid
+    for d in [_dsp_dir(k, w, usable=False)]
+    if not (0.0 <= d.priced < 1.0 and (d.priced == 0.0) == (k == 0.0)
+            and (k == 0.0 or d.priced < d.p) and d.priced == k / (k + w + _dsp_ds.PRIOR_N))
+]
+_dsp_cap = _dsp_dir(_dsp_ds.N_CAP, 0.0, usable=False)
+R.check(
+    f"the shrunk price over every unlatched record on a half-episode grid to the "
+    f"cap ({len(_dsp_grid)} records): zero exactly where no stop weighs, under p "
+    "wherever one does, never a whole start; at the cap with every switch a stop "
+    "it is N_CAP / (N_CAP + PRIOR_N); latched it is p",
+    len(_dsp_grid) == (2 * int(_dsp_ds.N_CAP) + 1) ** 2 and not _dsp_shrunk_bad
+    and _dsp_cap.priced == _dsp_ds.N_CAP / (_dsp_ds.N_CAP + _dsp_ds.PRIOR_N)
+    and _dsp_dir(3.0, 1.0).priced == 0.75,
+    f"{_dsp_shrunk_bad[:5]} cap {_dsp_cap.priced!r}",
+)
+R.check(
+    "an unlatched direction moves neither the order nor the merge: issue "
+    "3849's read is DEFAULT_RULE, hot water first and never merged; control: "
+    "the same pairs read as latched serve space first",
+    _dsp_i49.split() == _dsp_dl.DEFAULT_RULE
+    and _dsp_dl.leg_rule(*_dsp_i49.planner_pairs()) == ("space", None)
+    and _dsp_i49_on.split() == ("space", None),
+    f"{_dsp_i49.split()} {_dsp_dl.leg_rule(*_dsp_i49.planner_pairs())} {_dsp_i49_on.split()}",
+)
+R.check(
+    "the mask is per direction: hot water to heating latched beside an unlatched, "
+    "priced switch the other way serves space first, as with that switch unpriced; "
+    "control: both latched serve hot water first and merge into heating",
+    _dsp_dl.leg_rule((1.0, 0.4), (501.0, 0.0), (False, True))
+    == _dsp_dl.leg_rule((1.0, 0.0), (501.0, 0.0)) == ("space", None)
+    and _dsp_dl.leg_rule((1.0, 0.4), (501.0, 0.0)) == ("dhw", 501.0 / 60.0)
+    and _dsp_dl.leg_rule((0.4, 1.0), (0.0, 300.0), (True, False)) == ("dhw", None)
+    and _dsp_dl.leg_rule((0.4, 1.0), (0.0, 300.0)) == ("dhw", 0.0),
+)
+# One rule, read twice: every learner state the census enumerates (each
+# direction empty, unlatched with a stop, latched with a stop, latched all kept)
+# gives the configuration the coordinator builds the leg rule the arbiter splits by.
+_dsp_states = {
+    "empty": lambda: _dsp_ds.Direction(),
+    "unlatched": lambda: _dsp_dir(2.0, 0.0, usable=False, off_s=[501.0]),
+    "latched": lambda: _dsp_dir(3.0, 1.0, off_s=[400.0, 620.0]),
+    "latched kept": lambda: _dsp_dir(0.0, 6.0),
+}
+_dsp_rule_pairs = [
+    (a, b, _dsp_ds.DutySwitchLearner({"dhw_space": _dsp_states[a](), "space_dhw": _dsp_states[b]()}))
+    for a in _dsp_states for b in _dsp_states
+]
+_dsp_rule_bad = [
+    (a, b) for a, b, l in _dsp_rule_pairs
+    if _dsp_om._leg_rule(_dsp_opt(*l.planner_pairs(), unlatched=l.unlatched())) != l.split()
+]
+_dsp_rule_nomask = [
+    (a, b) for a, b, l in _dsp_rule_pairs
+    if _dsp_om._leg_rule(_dsp_opt(*l.planner_pairs())) != l.split()
+]
+R.check(
+    f"the planner's leg rule is the arbiter's on all {len(_dsp_rule_pairs)} learner "
+    "states the census enumerates (four per direction); control: a configuration "
+    "without the mask disagrees exactly where an unlatched stop would move the "
+    "rule: hot water to heating unlatched beside anything, and heating to hot "
+    "water unlatched beside a latched stop the other way",
+    len(_dsp_rule_pairs) == len(_dsp_states) ** 2 and not _dsp_rule_bad
+    and sorted(_dsp_rule_nomask)
+    == sorted([("unlatched", b) for b in _dsp_states] + [("latched", "unlatched")]),
+    f"bad {_dsp_rule_bad} nomask {_dsp_rule_nomask}",
+)
+_dsp_i49_rec = _dsp_ds._Record(None, None, learner=_dsp_i49, loaded=True)
+_dsp_i49_start = datetime(2026, 11, 21, 12, 30, tzinfo=UTC)
+_dsp_i49_legs = [
+    _dsp_ds.both_step_duty(_dsp_i49_rec, _dsp_i49_start, _dsp_i49_start + timedelta(minutes=m),
+                           2.0, 2.0, 15.0, "space")
+    for m in (0, 7, 8, 14)
+]
+R.check(
+    "the arbiter serves issue 3849's both step as before the learner existed: "
+    "hot water for its share, then heating",
+    _dsp_i49_legs == ["dhw", "dhw", "space", "space"]
+    and _dsp_i49_rec.order[1] == _dsp_dl.both_step_legs(2.0, 2.0, 15.0),
+    f"{_dsp_i49_legs}",
+)
+_dsp_i49_solved = {
+    name: _dsp_solve(*_dsp_i49.planner_pairs(), unlatched=_dsp_i49.unlatched(), **kw)
+    for name, kw in _DSP_INSTALLS.items()
+}
+_dsp_i49_moved = [n for n, seen in _dsp_i49_solved.items() if not _dsp_same_plan(seen, _dsp_base[n])]
+_dsp_i49_w = {
+    n: (_dsp_dl.switch_weight(_dsp_base[n].space, _dsp_base[n].dhw, (1.0, 0.0), 5.5),
+        _dsp_dl.switch_weight(seen.space, seen.dhw, (1.0, 0.0), 5.5))
+    for n, seen in _dsp_i49_solved.items()
+}
+R.check(
+    "issue 3849's read reaches a full optimize: the switch is an operand of the "
+    "objective, the solve's leg rule is DEFAULT_RULE, and it moves the plan on "
+    "every install class (null control: the empty learner's read moves none, above)",
+    all(_dsp_om._switch_cost_fn(seen.opt)(seen.space, seen.dhw) is not None
+        and _dsp_om._leg_rule(seen.opt) == _dsp_dl.DEFAULT_RULE
+        for seen in _dsp_i49_solved.values())
+    and sorted(_dsp_i49_moved) == sorted(_DSP_INSTALLS),
+    f"moved {_dsp_i49_moved}; hot water to heating weight base -> priced {_dsp_i49_w}",
+)
 
 # R11-OUTSIDE-HONEST-STARTS-RUNS, the descents of a solve that prices a stop.
 # The relaxed descent weighs a switch at the combined draw and the true

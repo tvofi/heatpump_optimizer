@@ -255,7 +255,7 @@ def _relaxed_plans(
 
 
 def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
-    """The learned stop probability per switch direction, ``None`` when no direction stops.
+    """The learned stop probability per switch direction, latched or not, ``None`` when none stops.
 
     The lost running time is charged on this alone; the price is this times
     ``start_price``, so an install that prices no start prices no switch.
@@ -265,11 +265,10 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
 
 
 def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
-    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
+    """The leg rule the arbiter serves a both step by: the latched of the pairs this solve prices."""
     return duty_legs.leg_rule(
-        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
-        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
-    )
+        _priced_stops(opt) or (0.0, 0.0), duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
+        opt.config.duty_switch_unlatched)
 
 
 def _stop_availability(
@@ -2775,11 +2774,12 @@ class OptimizationConfig:
     #: measuring a slightly different optimizer from the integration.
     cycling_cost: float = DEFAULT_CYCLING_COST
     #: Per direction (hot water to heating, heating to hot water): the learned
-    #: probability that a duty switch stops the compressor, and the seconds it
-    #: then stays off. Zeros price nothing and leave every plan as it was;
-    #: ``duty_legs`` owns what they mean.
+    #: probability that a duty switch stops the compressor, the seconds it then
+    #: stays off, and whether its latch is off (priced, moving no leg). Zeros
+    #: price nothing and leave every plan as it was; ``duty_legs`` owns them.
     duty_switch_stop_probability: tuple[float, float] = (0.0, 0.0)
     duty_switch_off_seconds: tuple[float, float] = (0.0, 0.0)
+    duty_switch_unlatched: tuple[bool, bool] = (False, False)
 
     # --- Capacity tariff (item 8) --------------------------------------
     #: Currency per kW of new monthly peak, already divided by the number of
@@ -4506,9 +4506,8 @@ class HeatPumpOptimizer:
 
         dhw_enabled = self.model.params.dhw_enabled
 
-        # Hour of day at each step. Computed once: the comfort target, both
-        # temperature bounds and the DHW draw pattern all key off it, and it
-        # was previously rebuilt from scratch for each of the four.
+        # Hour of day at each step, computed once: the comfort target, both
+        # temperature bounds and the DHW draw pattern all key off it.
         step_datetimes, step_hours = _step_clock(start_time, n_steps, dt)
         # Weekday per step, for weekly DHW windows (#3) and the per-weekday
         # overrides (#1260); the helper returns None unless either is
