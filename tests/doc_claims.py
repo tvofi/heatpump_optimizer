@@ -938,9 +938,10 @@ def _late_delta_facts() -> dict[str, object]:
     Read by driving the deciding symbol, never a comment: the disinfection
     write on a 5 degC step, the wood tank's one-probe means, the flow-bias
     bounds, the both-step leg order with only hot water to heating stopping
-    the compressor, and the fixed transfer fee with no fee mode.
+    the compressor, the fixed transfer fee with no fee mode, and the price of
+    a switch that stopped the compressor three times in three, unlatched.
     """
-    from heatpump_optimizer import const, duty_legs, external_heat, flow_lift, grid_fee
+    from heatpump_optimizer import const, duty_legs, duty_switch, external_heat, flow_lift, grid_fee
     from heatpump_optimizer.inputs import SetpointGrid
     from heatpump_optimizer.thermal_model import ThermalParameters, dhw_step_target_c
 
@@ -956,6 +957,8 @@ def _late_delta_facts() -> dict[str, object]:
         "first_leg": duty_legs.leg_rule((1.0, 0.0), (60.0, 60.0))[0],
         "default_first": duty_legs.leg_rule((0.0, 0.0), (0.0, 0.0))[0],
         "fixed_fee_no_mode": fee.fixed,
+        "prior_n": duty_switch.PRIOR_N,
+        "three_of_three": duty_switch.Direction(k=3.0, usable=False).priced,
     }
 
 
@@ -970,6 +973,10 @@ _LATE_DELTA_BAD = {
              "minutes, then heating for the rest.",
     "fee": "| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every "
            "hour, on top of any rules. |",
+    "switch_price": "Once a direction has stopped the compressor on at least half of a weighted "
+                    "5 or more switches, seen on at least two calendar days (a switch weighs half "
+                    "after 14 days), the plan charges that switch a share of the **Cost of one "
+                    "compressor start**",
 }
 
 
@@ -985,6 +992,10 @@ def _late_delta_true(facts: dict[str, object]) -> dict[str, object]:
             "Hot water runs first, unless the switch from hot water to heating" in t
             and "then heating runs first" in t),
         "fee": lambda t: facts["fixed_fee_no_mode"] == 0.0 and "Ignored while the grid transfer fee is None" in t,
+        "switch_price": lambda t: facts["three_of_three"] == 3.0 / (3.0 + facts["prior_n"]) == 3.0 / 8.0 and all(
+            phrase in " ".join(t.split()) for phrase in (
+                "From the first counted stop the plan charges",
+                f"the stops over the counted switches plus {facts['prior_n']:g}", "3/8 of a start")),
     }
 
 
@@ -994,12 +1005,14 @@ def check_late_delta_claims() -> None:
     says = _late_delta_true(facts)
     config = DOCS["configuration.md"]
     split = re.search(r"- \*\*A step the plan gives both duties is split\*\*.*?\n- ", config, re.S)
+    price = re.search(r"- \*\*A switch that stops the compressor is priced\.\*\*.*?\n- ", config, re.S)
     texts = {
         "cycle": next(iter(_sentences_with(config, "62 °C cycle")), ""),
         "wood": _row("configuration.md", "Wood tank bottom sensor"),
         "bias": _row("configuration.md", "Price the supply temperature lift (no mixing valve)"),
         "split": split.group(0) if split else "",
         "fee": _row("configuration.md", "Fixed transfer fee"),
+        "switch_price": price.group(0) if price else "",
     }
     for key, text in texts.items():
         R.check(f"docs/configuration.md {key}: the sentence states what the code decides",
