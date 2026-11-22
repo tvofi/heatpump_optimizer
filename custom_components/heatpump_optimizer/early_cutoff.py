@@ -81,7 +81,7 @@ from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
 from .plan_step import plan_step_index
-from .pump_arbiter import ArbiterInputs, reads_cooling, step_duty, supply_switch, switch_supply
+from .pump_arbiter import ArbiterInputs, cooling_mode, step_duty, supply_switch, switch_supply
 from .runs import MIN_PAUSE, MIN_RUN
 from .supply_hold import switch_age, tank_reason
 
@@ -220,7 +220,7 @@ def release(held: CutoffState) -> None:
 
 def _exempt(inp: ArbiterInputs, boosts: BoostState, now: datetime) -> str | None:
     """Why this step is not one the cut-off may touch, or ``None``."""
-    if reads_cooling(inp):  # the switch is the user's in cooling (``supply_write``)
+    if cooling_mode(inp):  # the switch is the user's in cooling (``supply_write``)
         return "cooling"
     if inp.mode not in (MODE_AUTO, MODE_ECONOMY):
         return "mode"

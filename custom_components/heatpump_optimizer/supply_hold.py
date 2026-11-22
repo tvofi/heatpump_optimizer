@@ -1,4 +1,9 @@
-"""The supply switch's minimum run and minimum pause.
+"""The supply switch's gate: a cooling mode, a blocked mode, the minimum run and pause.
+
+While the pump's mode reads cooling the gate writes the switch in neither
+direction (:func:`supply_write`): cooling is the user's season, as every
+other writer keeps its hands off it. A plan or a boost asking for heat then
+raises :data:`ISSUE_COOLING`, once per episode (:func:`note_cooling`).
 
 The plan switches the supply at its 15-minute step boundaries, but a
 re-solve, a cycle, a restart or a late write can land inside a step, and the
@@ -46,11 +51,13 @@ optimizer read too.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.util import dt as dt_util
 
+from . import issues, pump_arbiter
 from .boost import CHANNEL_DHW, CHANNEL_SPACE
 from .const import MODE_AUTO, MODE_ECONOMY
 from .entry_config import EntryConfig
@@ -63,6 +70,10 @@ FREEZE_HELD = "supply_held"
 
 #: Switch states that say nothing about the pump.
 _UNREADABLE = (None, "unavailable", "unknown")
+#: Raised once per episode of the mode reading cooling while asked for heat.
+ISSUE_COOLING = "pump_mode_cooling"
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def hold_supply(held: ArbiterState, inputs: Any, boosts: Any, value: bool | None,
@@ -152,3 +163,37 @@ def _ends_soon(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool:
     if nxt - now >= MIN_RUN or step_supply(inp, boosts, nxt) is not False:
         return False
     return not (step_duty(inp.plan, now) in ("dhw", "both") and tank_reason(inp))
+
+
+def supply_write(coord: Any, on: bool, signals: Any) -> bool | None:
+    """The switch value to write for ``on``, or ``None`` to leave the switch.
+
+    Neither direction while the mode reads cooling (:func:`note_cooling`).
+    OFF is also skipped when the mode blocks both channels: an empty plan is
+    then this integration's doing, not a decision to stop the pump. A
+    single-channel block (DHW-only, heating-only) still commands OFF, or a
+    summer DHW pulse would leave the supply latched while the tank is
+    supposed to drift.
+    """
+    if note_cooling(coord, signals, on) is None and (on or not (signals.space_blocked and signals.dhw_blocked)):
+        return on
+    _LOGGER.debug("Not switching %s: mode %s is cooling or blocks both channels", "on" if on else "off", signals.mode.label)
+    return None
+
+
+def note_cooling(coord: Any, signals: Any, asks_heat: bool = False) -> Any:
+    """``pump_arbiter.cooling_mode``; :data:`ISSUE_COOLING` once per episode asked for heat.
+
+    The supply gate passes ``asks_heat``; the cycle calls it without, so the
+    notice clears when the mode leaves cooling whatever the optimizer's mode.
+    """
+    held, mode = pump_arbiter.state_for(coord), pump_arbiter.cooling_mode(coord.arbiter_inputs(), signals)
+    if mode is None and held.cooling_asked:
+        issues.clear_issue(coord.hass, ISSUE_COOLING)
+    elif mode is not None and asks_heat and not held.cooling_asked:
+        _LOGGER.warning("Pump duty: the pump's mode reads %s while asked for heat; leaving it alone", mode.label)
+        issues.set_issue(coord.hass, ISSUE_COOLING, True, placeholders={"mode": mode.label})
+    else:
+        return mode
+    held.cooling_asked = mode is not None
+    return mode

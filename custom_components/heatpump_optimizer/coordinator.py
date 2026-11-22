@@ -6761,7 +6761,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._pump_mode_last_good_at = _mode_now
         _observe_heat_energy(self, reader, _mode_now)
         self._check_pump_mode_expired()
-        pump_arbiter.note_cooling(self, self._pump_signals)  # clears once cooling is left
+        supply_hold.note_cooling(self, self._pump_signals)  # clears once cooling is left
         # The arbiter's own gate, wired here: the coordinator owns both
         # sides of the seam, so setpoint_check needs no import-time hook
         # back into pump_arbiter (#1739).
@@ -7781,22 +7781,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _write_supply(self, on: bool) -> None:
         """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
-        held, on = pump_arbiter.state_for(self), early_cutoff.allow_on(early_cutoff.state_for(self), on)
-        pump_arbiter.note_cooling(self, self._pump_signals, asks_heat=on)
-        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
-            on, self._pump_signals, self.arbiter_inputs()))
+        held = pump_arbiter.state_for(self)
+        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), supply_hold.supply_write(
+            self, early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
             await pump_arbiter.write_supply(self, switch_entity, value)
-        elif switch_entity and not held.supply_held:
-            _LOGGER.debug(
-                "Not switching %s %s: mode %s is cooling, which is the "
-                "user's season, or blocks both channels, where an empty plan "
-                "is this integration's doing rather than a decision to stop "
-                "the pump",
-                switch_entity, "on" if on else "off",
-                self._pump_signals.mode.label,
-            )
     # ------------------------------------------------------------------
     # Published state
     # ------------------------------------------------------------------

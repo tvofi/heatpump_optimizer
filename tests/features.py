@@ -87153,14 +87153,14 @@ class _ShLog(logging.Handler):
         self.seen.append(record.getMessage())
 
 
-_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh_log, _sh_level = _ShLog(), _sh._LOGGER.level
+_sh._LOGGER.addHandler(_sh_log)
+_sh._LOGGER.setLevel(logging.DEBUG)
 try:
     _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh._LOGGER.removeHandler(_sh_log)
+    _sh._LOGGER.setLevel(_sh_level)
 _sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "a held OFF is not logged as the cooling or blocked-mode skip",
@@ -87184,13 +87184,13 @@ async def _sh_blocked_write():
 
 
 _sh_log.seen.clear()
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh._LOGGER.addHandler(_sh_log)
+_sh._LOGGER.setLevel(logging.DEBUG)
 try:
     _sh_bcalls = _asyncio.run(_sh_blocked_write())
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh._LOGGER.removeHandler(_sh_log)
+    _sh._LOGGER.setLevel(_sh_level)
 _sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
@@ -87294,7 +87294,7 @@ except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
 R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
         _sh_ns == ([], False), f"{_sh_ns}")
 
-# Cooling is the user's season (``pump_arbiter.reads_cooling``): while the
+# Cooling is the user's season (``pump_arbiter.cooling_mode``): while the
 # pump's mode reads Cooling or Cooling + DHW the cycle's supply gate writes
 # the power switch in neither direction, a live space boost included, and
 # raises ``ISSUE_COOLING`` once per episode, cleared when the mode leaves

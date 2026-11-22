@@ -253,8 +253,6 @@ SETPOINT_TOLERANCE = 0.3
 #: The v6.6.12 stand-down repair, cleared wherever a record from then loads.
 ISSUE_MANUAL = "pump_manual_change"
 ISSUE_IGNORED = "pump_write_ignored"
-#: Raised once per episode of the mode reading cooling while asked for heat.
-ISSUE_COOLING = "pump_mode_cooling"
 #: How long an ignored write waits before it is sent again.
 RETRY_MINUTES = 5.0
 TANK_RISE_C = 0.5
@@ -399,7 +397,7 @@ class ArbiterState:
     supply_held: bool = False
     #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
     held_until: datetime | None = None
-    #: :data:`ISSUE_COOLING` is raised for this cooling episode (:func:`note_cooling`).
+    #: ``supply_hold.ISSUE_COOLING`` is raised for this cooling episode.
     cooling_asked: bool = False
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
@@ -1320,7 +1318,7 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = inp.plan
     dhw = _dhw_write(inp)
-    if reads_cooling(inp):  # hands off, the silent switch included
+    if cooling_mode(inp):  # hands off, the silent switch included
         return PumpCommand(None, None, None)
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
@@ -1404,7 +1402,7 @@ def _mode_for(inp: ArbiterInputs, duty: str | None) -> str | None:
     A single duty the select does not offer is Heating + DHW, where offered.
     """
     mode_state, duty = _slot_state(inp, "mode"), _disinfecting(inp, duty)
-    if duty == "idle" or reads_cooling(inp):
+    if duty == "idle" or cooling_mode(inp):
         return None
     single = {"space": pump_mode.MODE_HEAT, "dhw": pump_mode.MODE_DHW}.get(duty or "")
     if single is not None and _option_for(mode_state, single):
@@ -2060,66 +2058,15 @@ async def write_supply(coord: Any, entity_id: str, on: bool) -> None:
     await switch_supply(coord.hass, entity_id, on)
 
 
-def reads_cooling(inp: ArbiterInputs) -> bool:
-    """Whether the pump's mode select reads Cooling or Cooling + DHW now.
+def cooling_mode(inp: ArbiterInputs, signals: Any = None) -> Any:
+    """The cooling mode the pump reads, or ``None``: the user's season, which no writer touches.
 
-    Cooling is the user's season, not a duty the plan chose, so every writer
-    keeps its hands off while it reads so: :func:`desired`, :func:`_mode_for`,
-    :func:`supply_write` and the early cut-off. Nothing writes Heating back
-    over it (an owner ruling, not this module's to make).
+    The live select, else ``signals``, the cycle's reading, which keeps the
+    last good mode across a dropout. Nothing writes Heating back over it.
     """
-    return pump_mode.capability(getattr(_slot_state(inp, "mode"), "state", None)).cooling
-
-
-def cooling_mode(signals: Any, inp: ArbiterInputs) -> Any:
-    """The cooling mode the pump reads, or ``None``: live, else the cycle's reading.
-
-    The cycle's ``signals`` carry the last good mode across a dropout of the
-    entity; the live read sees a change since the cycle, as the step tick and
-    a boost write between cycles.
-    """
-    if reads_cooling(inp):
-        return pump_mode.capability(_slot_state(inp, "mode").state)
-    return signals.mode if signals.mode.cooling else None
-
-
-def supply_write(on: bool, signals: Any, inp: ArbiterInputs) -> bool | None:
-    """The switch value to write for ``on``, or ``None`` to leave the switch.
-
-    Neither direction is written while the mode reads cooling
-    (:func:`cooling_mode`): a boost or a plan step asks for heat, which that
-    mode does not make, and an OFF would stop the user's cooling. OFF is also
-    skipped when the mode blocks both channels: an empty plan is then this
-    integration's doing, not a decision to stop the pump. A single-channel
-    block (DHW-only, heating-only) still commands OFF, or a summer DHW pulse
-    would leave the supply latched while the tank is supposed to drift.
-    """
-    if cooling_mode(signals, inp) is not None:
-        return None
-    if on or not (signals.space_blocked and signals.dhw_blocked):
-        return on
-    return None
-
-
-def note_cooling(coord: Any, signals: Any, asks_heat: bool = False) -> None:
-    """Raise :data:`ISSUE_COOLING` once per cooling episode asked for heat; clear it after.
-
-    Called with ``asks_heat`` from the supply gate, where the plan or a boost
-    asks for an ON, and without it each cycle, so the notice clears when the
-    mode leaves cooling whatever the optimizer's mode. A device-side reset
-    into Cooling is then visible rather than a pump that silently stays cold.
-    """
-    held, mode = state_for(coord), cooling_mode(signals, coord.arbiter_inputs())
-    if mode is None:
-        if held.cooling_asked:
-            held.cooling_asked = False
-            issues.clear_issue(coord.hass, ISSUE_COOLING)
-        return
-    if not asks_heat or held.cooling_asked:
-        return
-    held.cooling_asked = True
-    _LOGGER.warning("Pump duty: the pump's mode reads %s while asked for heat; leaving it alone", mode.label)
-    issues.set_issue(coord.hass, ISSUE_COOLING, True, placeholders={"mode": mode.label})
+    live = pump_mode.capability(getattr(_slot_state(inp, "mode"), "state", None))
+    mode = live if live.cooling else getattr(signals, "mode", live)
+    return mode if mode.cooling else None
 
 
 def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
