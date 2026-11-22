@@ -99788,6 +99788,37 @@ R.check(
 )
 
 
+def _ch_gap(minutes):
+    """The production DHW learner over one unheated 4 K fall sampled ``minutes`` apart: what it learned
+    (booked kWh, usage profile moved)."""
+    lrn = DhwProfileLearner(
+        FakeHass(), "gap", **_owned_params(ThermalParameters(dhw_enabled=True)),
+        frozen=lambda key, sample=_LF_K.ROOM_AIR, evidence=_lf.NO_EVIDENCE: _lf.reason(
+            _lf.Facts(), (key,), sample, evidence),
+        heating_active=lambda: False, external_heat_active=lambda: False,
+    )
+    t0, before = datetime(2026, 1, 14, 6, 0, tzinfo=UTC), list(lrn.hourly_profile)
+    try:
+        for at, temp in ((t0, 50.0), (t0 + _lf_td(minutes=minutes), 46.0)):
+            _lf_dt.freeze(at)
+            _lf_aio.run(lrn.async_learn_dynamics(temp))
+    finally:
+        _lf_dt.freeze(None)
+    booked = lrn.draw_stats.as_dict()["open_kwh"] + sum(sum(v) for v in lrn.draw_stats.reservoirs.values())
+    return round(booked, 4), lrn.hourly_profile != before
+
+
+_ch_gaps = {m: _ch_gap(m) for m in (0.5, 7 * 60, 10)}
+R.check(
+    "an unheated fall over an interval outside the sample window (30 s, or past "
+    "DHW_COOLING_MAX_SAMPLE_HOURS) teaches neither a draw nor the usage hours; null control, the "
+    "same 4 K fall over 10 minutes teaches both",
+    _ch_gaps[0.5] == (0.0, False) and _ch_gaps[420] == (0.0, False)
+    and _ch_gaps[10][0] > 0.0 and _ch_gaps[10][1],
+    f"{_ch_gaps}",
+)
+
+
 
 # Carries 0-1 (item 0116e1a6): the defrost derate's inference reads drawn over
 # asked; once the heat-ask probe reads the ask ignored (a pump that sets its own
