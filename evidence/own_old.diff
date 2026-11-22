@@ -1,0 +1,1436 @@
+diff --git a/dev/programme/delivery/3825.md b/dev/programme/delivery/3825.md
+new file mode 100644
+index 0000000000..4fd7d9644e
+--- /dev/null
++++ b/dev/programme/delivery/3825.md
+@@ -0,0 +1 @@
++- [#3825](https://github.com/tvofi/heatpump_optimizer/pull/3825) — **open**, R11-SEAM-tests: tests (R11-SEAM-tests)
+diff --git a/tests/ci_budgets.json b/tests/ci_budgets.json
+index 82c10dd687..5dee68b7d1 100644
+--- a/tests/ci_budgets.json
++++ b/tests/ci_budgets.json
+@@ -25,8 +25,8 @@
+  "archscore.untyped_payload_keys": 0,
+  "archscore.unused_boundary_imports": 0,
+  "critical_path_minutes": 23.574,
+- "reason": "critical_path_minutes made report-only and critical_path_minutes_band deleted (R10-CI-SLIM card C2, owner ruling 2026-11-05): the ratchet prints it against this reference and never grades it; no value re-recorded. Previous reason: critical_path_minutes re-recorded 21.983 -> 23.574, the value CI printed at 8bf45e5dc (run 42038071453; also 23.351 at 788e8ceed, 23.43 at 7af0c2a79, 23.574 at b707d8932). No job's work grew in the diff: the 0ae75bf31 window already read at the band edge (23.287 against 21.983+1.3=23.283 when replayed from its job timings), and the chain prelude -> tests / closures -> tests / ci-ratchet is priced on `closures` at a 1318 s probed median (1191..1455 over the window) with ci-ratchet at 77 s. The same change runs the ratchet job's two independent fetches concurrently (a real cut of the chain's tail). Band 1.3 unchanged. Previous reason: critical_path_minutes re-recorded at 21.983 under a new statistic (R10-HOTFIX-CI-CRITPATH-3): main went red from 8f286293b, a diff of seven delivery-row .md files, at GREW 40.817 on 34.267+1.3. No job's work grew and no runner queue moved it: each heavy tests lane draws hosted runners of different speed on the same work (per-script ratios 1.6-2.9, one reference solve 45.0 ms against 18.8 ms), so the median of per-run critical paths read the host draw. The metric is now window_work_minutes over the newest 16 push runs: every job priced at its fastest success run in the window (a run under a third of the job's window median did other work and never prices it), summed along each run's own critical chain, the longest kept. 21.983 is critical_path_minutes(stat=record) over the 40 completed ci.yml push runs 41363452534..41577822624 (dev/audit/harnesses/r10_hotfix_ci_critpath_3/runs.json), the largest of its 25 sixteen-run windows (19.967..21.983). critical_path_minutes_band stays 1.3: the most any window read past the record of every window before it is 0.55 (replay.py beside that runs.json); every other row is unchanged and at zero tolerance (previous reason: band added at 1.3, R10-HOTFIX-CI-CRITPATH-2, owner ruling 2026-10-31 under mandate 6329234399).",
++ "reason": "script_runs_per_push 54 -> 56 (R11-SEAM-tests): tests/cycle_lane.py, the coordinator-cycle lane (D9-s3-02), is a new script measured once by the closures instrument and once by the coverage fast stage, the every-script-once count tests/entities.py derives (34+20 -> 35+21); no other row re-recorded. Previous reason: critical_path_minutes made report-only and critical_path_minutes_band deleted (R10-CI-SLIM card C2, owner ruling 2026-11-05): the ratchet prints it against this reference and never grades it; no value re-recorded. Previous reason: critical_path_minutes re-recorded 21.983 -> 23.574, the value CI printed at 8bf45e5dc (run 42038071453; also 23.351 at 788e8ceed, 23.43 at 7af0c2a79, 23.574 at b707d8932). No job's work grew in the diff: the 0ae75bf31 window already read at the band edge (23.287 against 21.983+1.3=23.283 when replayed from its job timings), and the chain prelude -> tests / closures -> tests / ci-ratchet is priced on `closures` at a 1318 s probed median (1191..1455 over the window) with ci-ratchet at 77 s. The same change runs the ratchet job's two independent fetches concurrently (a real cut of the chain's tail). Band 1.3 unchanged. Previous reason: critical_path_minutes re-recorded at 21.983 under a new statistic (R10-HOTFIX-CI-CRITPATH-3): main went red from 8f286293b, a diff of seven delivery-row .md files, at GREW 40.817 on 34.267+1.3. No job's work grew and no runner queue moved it: each heavy tests lane draws hosted runners of different speed on the same work (per-script ratios 1.6-2.9, one reference solve 45.0 ms against 18.8 ms), so the median of per-run critical paths read the host draw. The metric is now window_work_minutes over the newest 16 push runs: every job priced at its fastest success run in the window (a run under a third of the job's window median did other work and never prices it), summed along each run's own critical chain, the longest kept. 21.983 is critical_path_minutes(stat=record) over the 40 completed ci.yml push runs 41363452534..41577822624 (dev/audit/harnesses/r10_hotfix_ci_critpath_3/runs.json), the largest of its 25 sixteen-run windows (19.967..21.983). critical_path_minutes_band stays 1.3: the most any window read past the record of every window before it is 0.55 (replay.py beside that runs.json); every other row is unchanged and at zero tolerance (previous reason: band added at 1.3, R10-HOTFIX-CI-CRITPATH-2, owner ruling 2026-10-31 under mandate 6329234399).",
+  "recorded_at": "8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc",
+  "script_runs_full_case_pr": 68,
+- "script_runs_per_push": 54
++ "script_runs_per_push": 56
+ }
+diff --git a/tests/closures.json b/tests/closures.json
+index 8658ec4177..38d012d4bc 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -984,6 +984,114 @@
+    "tests/profiles.py",
+    "tools/devices/gen_device_fixtures.py"
+   ],
++  "tests/cycle_lane.py": [
++   "custom_components/heatpump_optimizer/__init__.py",
++   "custom_components/heatpump_optimizer/accuracy.py",
++   "custom_components/heatpump_optimizer/away.py",
++   "custom_components/heatpump_optimizer/batchmath.py",
++   "custom_components/heatpump_optimizer/battery.py",
++   "custom_components/heatpump_optimizer/boost.py",
++   "custom_components/heatpump_optimizer/comfort_band.py",
++   "custom_components/heatpump_optimizer/comfort_learning.py",
++   "custom_components/heatpump_optimizer/const.py",
++   "custom_components/heatpump_optimizer/coordinator.py",
++   "custom_components/heatpump_optimizer/currency.py",
++   "custom_components/heatpump_optimizer/curve_learning.py",
++   "custom_components/heatpump_optimizer/defrost.py",
++   "custom_components/heatpump_optimizer/dhw_draws.py",
++   "custom_components/heatpump_optimizer/dhw_learning.py",
++   "custom_components/heatpump_optimizer/dhw_planner.py",
++   "custom_components/heatpump_optimizer/dhw_schedule.py",
++   "custom_components/heatpump_optimizer/diagnosis.py",
++   "custom_components/heatpump_optimizer/disinfection.py",
++   "custom_components/heatpump_optimizer/draw_range.py",
++   "custom_components/heatpump_optimizer/drift.py",
++   "custom_components/heatpump_optimizer/driving_grade.py",
++   "custom_components/heatpump_optimizer/duty_legs.py",
++   "custom_components/heatpump_optimizer/duty_switch.py",
++   "custom_components/heatpump_optimizer/early_cutoff.py",
++   "custom_components/heatpump_optimizer/entity.py",
++   "custom_components/heatpump_optimizer/entry_config.py",
++   "custom_components/heatpump_optimizer/external_heat.py",
++   "custom_components/heatpump_optimizer/flow_lift.py",
++   "custom_components/heatpump_optimizer/flow_meter.py",
++   "custom_components/heatpump_optimizer/freq_control.py",
++   "custom_components/heatpump_optimizer/grid_fee.py",
++   "custom_components/heatpump_optimizer/heat_curve.py",
++   "custom_components/heatpump_optimizer/heat_energy.py",
++   "custom_components/heatpump_optimizer/inputs.py",
++   "custom_components/heatpump_optimizer/issues.py",
++   "custom_components/heatpump_optimizer/learner_progress.py",
++   "custom_components/heatpump_optimizer/ledger.py",
++   "custom_components/heatpump_optimizer/legionella.py",
++   "custom_components/heatpump_optimizer/log_latch.py",
++   "custom_components/heatpump_optimizer/manual_plan.py",
++   "custom_components/heatpump_optimizer/mixing_valve.py",
++   "custom_components/heatpump_optimizer/modbus_prefill.py",
++   "custom_components/heatpump_optimizer/narrative.py",
++   "custom_components/heatpump_optimizer/off_restore.py",
++   "custom_components/heatpump_optimizer/open_meteo.py",
++   "custom_components/heatpump_optimizer/optimizer.py",
++   "custom_components/heatpump_optimizer/payload.py",
++   "custom_components/heatpump_optimizer/plan_slots.py",
++   "custom_components/heatpump_optimizer/plan_step.py",
++   "custom_components/heatpump_optimizer/power_guard.py",
++   "custom_components/heatpump_optimizer/presets.py",
++   "custom_components/heatpump_optimizer/price_model.py",
++   "custom_components/heatpump_optimizer/price_tiles.py",
++   "custom_components/heatpump_optimizer/pump_arbiter.py",
++   "custom_components/heatpump_optimizer/pump_mode.py",
++   "custom_components/heatpump_optimizer/pump_schedule.py",
++   "custom_components/heatpump_optimizer/pump_signals.py",
++   "custom_components/heatpump_optimizer/pv.py",
++   "custom_components/heatpump_optimizer/quiet_windows.py",
++   "custom_components/heatpump_optimizer/room_history.py",
++   "custom_components/heatpump_optimizer/room_record.py",
++   "custom_components/heatpump_optimizer/rooms.py",
++   "custom_components/heatpump_optimizer/running_signal.py",
++   "custom_components/heatpump_optimizer/runs.py",
++   "custom_components/heatpump_optimizer/setpoint_check.py",
++   "custom_components/heatpump_optimizer/silent_mode.py",
++   "custom_components/heatpump_optimizer/slab_seed.py",
++   "custom_components/heatpump_optimizer/slot_drivers.py",
++   "custom_components/heatpump_optimizer/snapshots.py",
++   "custom_components/heatpump_optimizer/store.py",
++   "custom_components/heatpump_optimizer/supply_hold.py",
++   "custom_components/heatpump_optimizer/sysid.py",
++   "custom_components/heatpump_optimizer/tariff.py",
++   "custom_components/heatpump_optimizer/thermal_model.py",
++   "custom_components/heatpump_optimizer/topology.py",
++   "custom_components/heatpump_optimizer/wear.py",
++   "custom_components/heatpump_optimizer/whatif.py",
++   "custom_components/heatpump_optimizer/wood_fuel.py",
++   "tests/cycle_budgets.json",
++   "tests/cycle_lane.py",
++   "tests/harness.py",
++   "tests/hastub/homeassistant/__init__.py",
++   "tests/hastub/homeassistant/components/__init__.py",
++   "tests/hastub/homeassistant/components/mqtt.py",
++   "tests/hastub/homeassistant/config_entries.py",
++   "tests/hastub/homeassistant/const.py",
++   "tests/hastub/homeassistant/core.py",
++   "tests/hastub/homeassistant/exceptions.py",
++   "tests/hastub/homeassistant/helpers/__init__.py",
++   "tests/hastub/homeassistant/helpers/aiohttp_client.py",
++   "tests/hastub/homeassistant/helpers/config_validation.py",
++   "tests/hastub/homeassistant/helpers/device_registry.py",
++   "tests/hastub/homeassistant/helpers/entity.py",
++   "tests/hastub/homeassistant/helpers/entity_registry.py",
++   "tests/hastub/homeassistant/helpers/event.py",
++   "tests/hastub/homeassistant/helpers/issue_registry.py",
++   "tests/hastub/homeassistant/helpers/storage.py",
++   "tests/hastub/homeassistant/helpers/typing.py",
++   "tests/hastub/homeassistant/helpers/update_coordinator.py",
++   "tests/hastub/homeassistant/loader.py",
++   "tests/hastub/homeassistant/util/__init__.py",
++   "tests/hastub/homeassistant/util/dt.py",
++   "tests/profiles.py",
++   "tests/stress.py",
++   "tests/structure.py"
++  ],
+   "tests/debug_collect.py": [
+    "custom_components/heatpump_optimizer/__init__.py",
+    "custom_components/heatpump_optimizer/accuracy.py",
+@@ -1427,6 +1535,7 @@
+    "tests/comment_ratchet.py",
+    "tests/config_flow_steps.py",
+    "tests/coverage_ratchet.py",
++   "tests/cycle_lane.py",
+    "tests/debug_collect.py",
+    "tests/delivery_status.py",
+    "tests/deployment_shape.py",
+@@ -1842,6 +1951,7 @@
+    "tests/config_flow_steps.py",
+    "tests/coverage_budgets.json",
+    "tests/coverage_ratchet.py",
++   "tests/cycle_lane.py",
+    "tests/debug_collect.py",
+    "tests/delivery_status.py",
+    "tests/deployment_shape.py",
+@@ -5972,6 +6082,10 @@
+    "rc": 0,
+    "seconds": 32.5
+   },
++  "tests/cycle_lane.py": {
++   "rc": 0,
++   "seconds": 61.7
++  },
+   "tests/debug_collect.py": {
+    "rc": 0,
+    "seconds": 1.5
+@@ -6026,7 +6140,7 @@
+   },
+   "tests/harness_headers.py": {
+    "rc": 0,
+-   "seconds": 327.6
++   "seconds": 159.7
+   },
+   "tests/layout.py": {
+    "rc": 0,
+diff --git a/tests/config_flow_steps.py b/tests/config_flow_steps.py
+index 1ce16fb27b..5e58530211 100644
+--- a/tests/config_flow_steps.py
++++ b/tests/config_flow_steps.py
+@@ -467,13 +467,117 @@ async def submit_reconfigure(flow, answers):
+     return result
+ 
+ 
++GOOD_TOKEN = TIBBER_VIEWER_OK
++
++
++def use_good_token():
++    """Tibber answers 200 from here on: the user has fixed the token."""
++    install_session(config_flow, FakeSession([GOOD_TOKEN]))
++
++
++# The tail a credentials-screen recovery walks, and an options page's save-and-close.
++USER_FINISH = (("user_sensors", USER_SENSORS), ("setup_overview", {}))
++SETUP_FINISH = (("setup_overview", {}),)
++DHW_FINISH = (("weather_sensitivity", WEATHER_ANSWERS), ("setup_overview", {}))
++SAVE_CLOSE = {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
++
++
++async def recover(flow, step, fixed, rest=()):
++    """The user fixes the cause of an error shown by ``flow`` and finishes THE SAME flow.
++
++    ``fixed`` is resubmitted to ``step`` on the instance that rendered the error,
++    then ``rest`` -- (step, answers) pairs -- is walked; the last result is returned.
++    """
++    result = await submit(flow, step, fixed)
++    for next_step, answers in rest:
++        result = await submit(flow, next_step, answers)
++    check(
++        "_recovery",
++        "error",
++        f"after its {step} error the same flow finishes",
++        result.get("type") == "create_entry"
++        or (result.get("type") == "abort" and result.get("reason") in Ledger._OK_ABORTS),
++        str(result)[:160],
++    )
++    return result
++
++
++async def recover_reconfigure(flow, answers):
++    """``recover`` for a reconfigure flow: the credentials screen, then the sensors."""
++    creds = {k: v for k, v in answers.items() if k in FIRST_SCREEN}
++    sensors = {k: v for k, v in answers.items() if k not in FIRST_SCREEN}
++    return await recover(flow, "reconfigure", creds, (("user_sensors", sensors),))
++
++
+ # ---------------------------------------------------------------------------
+ # The coverage ledger: one row per step, happy checks and error branches.
+ # ---------------------------------------------------------------------------
+ class Ledger:
++    _OK_ABORTS = ("reauth_successful", "reconfigure_successful")
++
+     def __init__(self):
+         self.rows = {}
+ 
++    def install_tracker(self):
++        """Record, per flow instance, every error form it renders and whether it finished.
++
++        Installed once on the two production classes, so every flow the script
++        builds registers -- the construction sites and async_get_options_flow alike.
++        """
++        ledger = self
++
++        def rec(flow):
++            kind = "options" if isinstance(flow, config_flow.HeatPumpOptimizerOptionsFlow) else "config"
++            if kind == "config":
++                if getattr(flow, "_reauth_entry", None) is not None:
++                    kind = "reauth"
++                elif getattr(flow, "_reconfigure_entry", None) is not None:
++                    kind = "reconfigure"
++            r = flow.__dict__.setdefault("_ledger_track", {"kind": "config", "errors": set(), "done": False})
++            if kind != "config":
++                r["kind"] = kind
++            if flow not in ledger.flows:
++                ledger.flows.append(flow)
++            return r
++
++        def wrap(cls):
++            show, create, abort = cls.async_show_form, cls.async_create_entry, cls.async_abort
++
++            def async_show_form(self, *a, **k):
++                r = rec(self)
++                for code in (k.get("errors") or {}).values():
++                    r["errors"].add((k.get("step_id"), code))
++                return show(self, *a, **k)
++
++            def async_create_entry(self, *a, **k):
++                rec(self)["done"] = True
++                return create(self, *a, **k)
++
++            def async_abort(self, *a, **k):
++                reason = k.get("reason") if "reason" in k else (a[0] if a else None)
++                r = rec(self)
++                if reason in ledger._OK_ABORTS:
++                    r["done"] = True
++                return abort(self, *a, **k)
++
++            cls.async_show_form, cls.async_create_entry, cls.async_abort = (
++                async_show_form, async_create_entry, async_abort)
++
++        self.flows = []
++        wrap(config_flow.HeatPumpOptimizerConfigFlow)
++        wrap(config_flow.HeatPumpOptimizerOptionsFlow)
++
++    def error_triples(self):
++        """(rendered, recovered): (kind, step, code) triples, recovered = some instance finished."""
++        rendered, recovered = set(), set()
++        for flow in self.flows:
++            r = flow.__dict__["_ledger_track"]
++            for step, code in r["errors"]:
++                rendered.add((r["kind"], step, code))
++                if r["done"]:
++                    recovered.add((r["kind"], step, code))
++        return rendered, recovered
++
+     def record(self, step, kind, name, ok):
+         row = self.rows.setdefault(
+             step, {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0}
+@@ -634,6 +738,8 @@ async def user_error_branches():
+         not refused._data,
+         str(sorted(refused._data)),
+     )
++    use_good_token()
++    await recover(refused, "user", FIRST_SCREEN, USER_FINISH)
+ 
+     # cannot_connect: the POST raises. A network failure must NOT call the
+     # token invalid -- that message sends the user to retype a correct
+@@ -652,6 +758,8 @@ async def user_error_branches():
+         == "cannot_connect",
+         str(result.get("errors")),
+     )
++    use_good_token()
++    await recover(unreachable, "user", FIRST_SCREEN, USER_FINISH)
+ 
+     # The fourth status class (#304): neither 200 nor 401/403. A server
+     # fault is the API failing, not the token being wrong, so it belongs
+@@ -677,6 +785,8 @@ async def user_error_branches():
+         not server_fault._data,
+         str(sorted(server_fault._data)),
+     )
++    use_good_token()
++    await recover(server_fault, "user", FIRST_SCREEN, USER_FINISH)
+ 
+     # The errors payload Tibber answers a bad token with, on HTTP 200.
+     errors_payload = fresh_flow()
+@@ -693,6 +803,8 @@ async def user_error_branches():
+         == "invalid_tibber_token",
+         str(result.get("errors")),
+     )
++    use_good_token()
++    await recover(errors_payload, "user", FIRST_SCREEN, USER_FINISH)
+ 
+     # Weather stays Required. The token is Optional in the schema: Tibber
+     # still needs one, but that is a handler error so an entity price
+@@ -715,8 +827,9 @@ async def user_error_branches():
+         (not token_schema_rejected) and weather_rejected,
+         f"token={token_schema_rejected} weather={weather_rejected}",
+     )
++    missing_token_flow = fresh_flow()
+     missing_token = await submit(
+-        fresh_flow(),
++        missing_token_flow,
+         "user",
+         {"name": "x", "weather_entity": "weather.home"},
+     )
+@@ -729,8 +842,11 @@ async def user_error_branches():
+         == "tibber_token_required",
+         str(missing_token.get("errors")),
+     )
++    use_good_token()
++    await recover(missing_token_flow, "user", FIRST_SCREEN, USER_FINISH)
++    missing_entity_flow = fresh_flow()
+     missing_entity = await submit(
+-        fresh_flow(),
++        missing_entity_flow,
+         "user",
+         {
+             "name": "x",
+@@ -747,6 +863,17 @@ async def user_error_branches():
+         == "price_entity_required",
+         str(missing_entity.get("errors")),
+     )
++    await recover(
++        missing_entity_flow,
++        "user",
++        {
++            "name": "x",
++            const.CONF_WEATHER_ENTITY: "weather.home",
++            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
++            const.CONF_PRICE_ENTITY: "sensor.nordpool",
++        },
++        USER_FINISH,
++    )
+     entity_ok = await submit(
+         fresh_flow(),
+         "user",
+@@ -990,7 +1117,8 @@ async def walk_questionnaire():
+     # seeded exactly as the walk had it, each still standing on dhw.
+     seeded = lambda: fresh_flow(data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS, **EXTRAS_ANSWERS, **derived_into(flow)})  # noqa: E731
+ 
+-    bad_spec = await submit(seeded(), "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"})
++    bad_spec_flow = seeded()
++    bad_spec = await submit(bad_spec_flow, "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"})
+     check(
+         "dhw",
+         "error",
+@@ -1000,8 +1128,10 @@ async def walk_questionnaire():
+         == "invalid_dhw_windows",
+         str(bad_spec.get("errors")),
+     )
++    await recover(bad_spec_flow, "dhw", DHW_ANSWERS, DHW_FINISH)
++    too_short_flow = seeded()
+     too_short = await submit(
+-        seeded(), "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "06:05-06:10"}
++        too_short_flow, "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "06:05-06:10"}
+     )
+     check(
+         "dhw",
+@@ -1012,8 +1142,10 @@ async def walk_questionnaire():
+         == "dhw_window_too_short",
+         str(too_short.get("errors")),
+     )
++    await recover(too_short_flow, "dhw", DHW_ANSWERS, DHW_FINISH)
++    too_close_flow = seeded()
+     too_close = await submit(
+-        seeded(),
++        too_close_flow,
+         "dhw",
+         {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
+     )
+@@ -1026,6 +1158,7 @@ async def walk_questionnaire():
+         == "dhw_min_too_close",
+         str(too_close.get("errors")),
+     )
++    await recover(too_close_flow, "dhw", DHW_ANSWERS, DHW_FINISH)
+ 
+     # The legionella pair is a WARNING: 60 over 52 proceeds, and says so.
+     warnings: list[str] = []
+@@ -1225,8 +1358,9 @@ async def walk_expert():
+     extras_seeded = lambda: fresh_flow(  # noqa: E731
+         data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS}
+     )
++    extras_flow = extras_seeded()
+     inverted = await submit(
+-        extras_seeded(),
++        extras_flow,
+         "building_extras",
+         {**EXTRAS_ANSWERS, const.CONF_HEAT_PUMP_MAX_POWER: 3.0, const.CONF_HEAT_PUMP_MIN_POWER: 6.0},
+     )
+@@ -1239,9 +1373,11 @@ async def walk_expert():
+         == "min_power_above_max",
+         str(inverted.get("errors")),
+     )
++    await recover(extras_flow, "building_extras", EXTRAS_ANSWERS, DHW_FINISH)
+ 
++    inverted_flow = seeded()
+     inverted = await submit(
+-        seeded(), "thermal", {**THERMAL_ANSWERS, const.CONF_HEAT_PUMP_MAX_POWER: 4.0, const.CONF_HEAT_PUMP_MIN_POWER: 8.0}
++        inverted_flow, "thermal", {**THERMAL_ANSWERS, const.CONF_HEAT_PUMP_MAX_POWER: 4.0, const.CONF_HEAT_PUMP_MIN_POWER: 8.0}
+     )
+     check(
+         "thermal",
+@@ -1252,6 +1388,7 @@ async def walk_expert():
+         == "min_power_above_max",
+         str(inverted.get("errors")),
+     )
++    await recover(inverted_flow, "thermal", THERMAL_ANSWERS, SETUP_FINISH)
+ 
+     flow = seeded()
+     result = await submit(flow, "thermal", THERMAL_ANSWERS)
+@@ -1379,6 +1516,7 @@ async def temperature_error_branches():
+             const.CONF_TARGET_TEMP not in flow._data,
+             str(sorted(flow._data)),
+         )
++        await recover(flow, "temperature", TEMPERATURE_ANSWERS, SETUP_FINISH)
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -1587,6 +1725,7 @@ async def options_room_list():
+         and entry4.options.get(key) == too_many[:32],
+         f"errors={refused.get('errors')!r}",
+     )
++    await recover(flow4, "rooms", {key: too_many[:32], **SAVE_CLOSE})
+     # R11-OUTSIDE-ROOMS-P2: the page's opt-in toggle for the floor lift.
+     lift = const.CONF_ROOM_LIFT_ENABLED
+     lift_default = next(k for k in shown["data_schema"].schema if str(k) == lift).default()
+@@ -1925,6 +2064,12 @@ async def options_advanced_pages():
+ 
+     # entities: the token verdicts, the clearing, and the roster scope.
+     real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
++    # The fixed page keeps the stored token: unchanged, so it is never probed.
++    ENTITIES_FIXED = {
++        const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
++        const.CONF_WEATHER_ENTITY: "weather.home",
++        **SAVE_CLOSE,
++    }
+     refused = fresh_options()
+     config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession([(401, None)])
+     result = await submit(
+@@ -1941,6 +2086,7 @@ async def options_advanced_pages():
+         and not refused[1].options,
+         str(result.get("errors")),
+     )
++    await recover(refused[0], "entities", ENTITIES_FIXED)
+     unreachable = fresh_options()
+     config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+         [OSError("router rebooting")]
+@@ -1959,6 +2105,7 @@ async def options_advanced_pages():
+         and not unreachable[1].options,
+         str(result.get("errors")),
+     )
++    await recover(unreachable[0], "entities", ENTITIES_FIXED)
+ 
+     # An UNCHANGED token skips the probe entirely (the session counts zero
+     # POSTs); cleared slots stick as None; and the entities this page does
+@@ -2175,6 +2322,7 @@ async def options_advanced_pages():
+         and not entry.options,
+         f"errors={result.get('errors')} options={sorted(entry.options)}",
+     )
++    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
+ 
+     # With the two-zone model present, the same choice saves.
+     flow, entry, _ = fresh_options(
+@@ -2236,6 +2384,7 @@ async def options_advanced_pages():
+         and const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in entry.options,
+         f"errors={result.get('errors')} options={sorted(entry.options)}",
+     )
++    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
+ 
+     # Null control: an explicit two_zone_mode="on" is two-zone to the model
+     # even without the mass keys, so "flow" saves cleanly under it -- the fix
+@@ -2333,6 +2482,7 @@ async def options_advanced_pages():
+         and not entry.options,
+         f"errors={result.get('errors')} options={sorted(entry.options)}",
+     )
++    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
+     # #3225 (R10-COMBI-TANK): the combi switch is judged by the model's own
+     # predicate over what would be stored, so a switch the model would ignore
+     # (here: no throttling valve) is refused rather than saved.
+@@ -2352,6 +2502,7 @@ async def options_advanced_pages():
+         and const.CONF_DHW_COMBI_TANK_ENABLED not in entry.options,
+         f"errors={result.get('errors')} options={sorted(entry.options)}",
+     )
++    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
+     # Null control: the same switch over a store (a throttling valve, 504 l)
+     # is saved, and a changed type writes its preset's two numbers.
+     flow, entry, _ = fresh_options({const.CONF_DHW_ENABLED: True})
+@@ -2630,6 +2781,9 @@ async def options_advanced_pages():
+             _got == _want and (shows_menu(result, "advanced") == (_want is None)),
+             f"errors={result.get('errors')!r} type={result.get('type')!r}",
+         )
++        if _want:
++            hass.states.set(_offset, _ghc_fs("0", unit="K", attributes={"min": -20.0, "max": 20.0}))
++            await recover(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset, **SAVE_CLOSE})
+     # The check's own return value, not the page's: the page reads a None
+     # from a deleted fall-through as "no errors", so only an equality with {}
+     # on the check itself tells "no error" from "no answer". The refusal row
+@@ -2662,6 +2816,7 @@ async def options_advanced_pages():
+         (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
+         repr(result.get("errors")),
+     )
++    await recover(flow, "heat_curve", SAVE_CLOSE)
+     flow, entry, hass = fresh_options({const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset})
+     await flow.async_step_building(None)
+     result = await submit(flow, "building", {const.CONF_MIXING_VALVE_WRITE_ENTITY: _offset})
+@@ -2671,6 +2826,7 @@ async def options_advanced_pages():
+         (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
+         repr(result.get("errors")),
+     )
++    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
+     # R10-GENERIC-HEAT-CURVE-PERSISTENT: kind persistent, its three rows and P7.
+     _persistent = {const.CONF_HEAT_CURVE_TARGET_KIND: const.HEAT_CURVE_KIND_PERSISTENT}
+     _rows = (const.CONF_HEAT_CURVE_PERSISTENT_BAND_K, const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY,
+@@ -2770,6 +2926,8 @@ async def options_advanced_pages():
+         and const.CONF_HEAT_CURVE_DISPLACE_ENTITY not in entry.options,
+         f"errors={result.get('errors')!r}",
+     )
++    hass.states.set(_stored, _ghc_fs("22", unit="°C", attributes={"min": 5.0, "max": 35.0}))
++    await recover(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _stored, **SAVE_CLOSE})
+ 
+ 
+ #: Distinguishable from every value a field could legitimately default to,
+@@ -3171,6 +3329,7 @@ async def options_error_branches():
+         and result.get("errors") == {const.CONF_MIN_TEMP: "min_above_target"},
+         str(result.get("errors")),
+     )
++    await recover(flow, "comfort", {**COMFORT_PAGE_ANSWERS, **SAVE_CLOSE})
+     check(
+         "opt_comfort",
+         "error",
+@@ -3192,6 +3351,7 @@ async def options_error_branches():
+         and result.get("errors", {}).get(const.CONF_DHW_WINDOWS) == "invalid_dhw_windows",
+         str(result.get("errors")),
+     )
++    await recover(flow, "hot_water", {**HOT_WATER_PAGE_ANSWERS, **SAVE_CLOSE})
+     flow, entry, _ = fresh_options()
+     result = await submit(
+         flow,
+@@ -3207,6 +3367,7 @@ async def options_error_branches():
+         and not entry.options,
+         str(result.get("errors")),
+     )
++    await recover(flow, "hot_water", {**HOT_WATER_PAGE_ANSWERS, **SAVE_CLOSE})
+ 
+     # thermal_model: the power pair, whole and half (the effective-pair rule).
+     flow, entry, _ = fresh_options()
+@@ -3223,6 +3384,7 @@ async def options_error_branches():
+         and result.get("errors") == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"},
+         str(result.get("errors")),
+     )
++    await recover(flow, "thermal_model", {const.CONF_HEAT_PUMP_MAX_POWER: 8.0, const.CONF_HEAT_PUMP_MIN_POWER: 4.0, **SAVE_CLOSE})
+     flow, entry, _ = fresh_options()
+     result = await submit(flow, "thermal_model", {const.CONF_HEAT_PUMP_MIN_POWER: 6.0})
+     check(
+@@ -3234,6 +3396,7 @@ async def options_error_branches():
+         and not entry.options,
+         str(result.get("errors")),
+     )
++    await recover(flow, "thermal_model", {const.CONF_HEAT_PUMP_MIN_POWER: 1.0, **SAVE_CLOSE})
+ 
+     # grid: three validators, each pinned on its own field.
+     probes = [
+@@ -3274,6 +3437,7 @@ async def options_error_branches():
+             and not entry.options,
+             f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
+         )
++        await recover(flow, "grid", {**GRID_PEAK_ANSWERS, **SAVE_CLOSE})
+     for name, override, field, expected in probes[2:]:
+         flow, entry, _ = fresh_options()
+         result = await submit(flow, "grid_fees", {**GRID_FEES_ANSWERS, **override})
+@@ -3286,6 +3450,7 @@ async def options_error_branches():
+             and not entry.options,
+             f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
+         )
++        await recover(flow, "grid_fees", {**GRID_FEES_ANSWERS, **SAVE_CLOSE})
+ 
+     # grid: the documented peak-hours form, saved through the page and then
+     # READ BACK through the coordinator (#327, see the note above
+@@ -3656,6 +3821,8 @@ async def residual_statement_branches():
+         and not tokenless_entry.options,
+         f"errors={result.get('errors')} options={sorted(tokenless_entry.options)}",
+     )
++    use_good_token()
++    await recover(tokenless, "entities", {const.CONF_TIBBER_TOKEN: "tok-new", const.CONF_WEATHER_ENTITY: "weather.home", **SAVE_CLOSE})
+     entityless_entry = FakeEntry(data={})
+     entityless = options_over(entityless_entry, FakeHass())
+     await entityless.async_step_entities(None)
+@@ -3677,6 +3844,16 @@ async def residual_statement_branches():
+         and not entityless_entry.options,
+         f"errors={result.get('errors')} options={sorted(entityless_entry.options)}",
+     )
++    await recover(
++        entityless,
++        "entities",
++        {
++            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
++            const.CONF_PRICE_ENTITY: "sensor.nordpool",
++            const.CONF_WEATHER_ENTITY: "weather.home",
++            **SAVE_CLOSE,
++        },
++    )
+     stored_price_entry = FakeEntry(
+         data={},
+         options={
+@@ -3730,6 +3907,7 @@ async def residual_statement_branches():
+         and not entry.options,
+         f"errors={result.get('errors')}",
+     )
++    await recover(flow, "hot_water", {**HOT_WATER_PAGE_ANSWERS, **SAVE_CLOSE})
+     flow, entry, _ = fresh_options()
+     await flow.async_step_hot_water(None)
+     result = await submit(
+@@ -3826,6 +4004,11 @@ async def residual_statement_branches():
+             ),
+             f"errors={result.get('errors')}",
+         )
++        await recover(
++            flow,
++            "hot_water",
++            {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_WINDOWS_BY_DAY: True, key: "06:00-08:30", **SAVE_CLOSE},
++        )
+     flow, entry, _ = fresh_options()
+     await flow.async_step_hot_water(None)
+     result = await submit(flow, "hot_water", {
+@@ -3896,6 +4079,7 @@ async def residual_statement_branches():
+             and not entry.options,
+             f"errors={result.get('errors')}",
+         )
++        await recover(flow, "grid_connection", {**GRID_CONNECTION_ANSWERS, **SAVE_CLOSE})
+     flow, entry, _ = fresh_options()
+     await flow.async_step_grid_connection(None)
+     result = await submit(
+@@ -3953,6 +4137,16 @@ async def residual_statement_branches():
+         and not entry.options,
+         f"errors={result.get('errors')} options={sorted(entry.options)}",
+     )
++    await recover(
++        flow,
++        "hot_water_tank",
++        {
++            **HOT_WATER_TANK_ANSWERS,
++            const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection",
++            const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_CONTROL,
++            **SAVE_CLOSE,
++        },
++    )
+     flow, entry, _ = fresh_options()
+     await flow.async_step_hot_water_tank(None)
+     result = await submit(
+@@ -4006,6 +4200,11 @@ async def residual_statement_branches():
+         and entry.options.get(const.CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_OBSERVE,
+         f"errors={result.get('errors')} options={dict(entry.options)}",
+     )
++    await recover(
++        flow,
++        "hot_water_tank",
++        {**HOT_WATER_TANK_ANSWERS, const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_OBSERVE, **SAVE_CLOSE},
++    )
+ 
+     # #1067 W1067-G6: a compressor-frequency SENSOR alone observes, but only
+     # a number entity can be written, so choosing control without one is
+@@ -4031,6 +4230,11 @@ async def residual_statement_branches():
+         and not entry.options,
+         f"type={result.get('type')} errors={result.get('errors')} options={entry.options!r}",
+     )
++    await recover(
++        flow,
++        "entities_metering",
++        {const.CONF_COMPRESSOR_FREQ_ENTITY: "number.freq", const.CONF_FREQ_CONTROL_MODE: "control", **SAVE_CLOSE},
++    )
+     flow, entry, _ = fresh_options()
+     await flow.async_step_entities_metering(None)
+     result = await submit(
+@@ -5016,6 +5220,8 @@ async def reconfigure_flow():
+         and not hass.config_entries.updated,
+         f"{result.get('errors')} updated={hass.config_entries.updated}",
+     )
++    use_good_token()
++    await recover_reconfigure(flow, RC_SAME)
+     config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+         [OSError("router rebooting")]
+     )
+@@ -5030,6 +5236,8 @@ async def reconfigure_flow():
+         and not hass.config_entries.updated,
+         str(result.get("errors")),
+     )
++    use_good_token()
++    await recover_reconfigure(flow, RC_SAME)
+ 
+     # Re-submitting this entry's OWN identity is the case the plain duplicate
+     # guard would get wrong: the registry finds THIS entry, and the guard's
+@@ -5235,15 +5443,20 @@ async def self_check():
+     # REAL identity before delegating, which is exactly what deleting the
+     # ``self._reconfigure_entry is None or ...`` condition does to the
+     # reconfigure path (the production-edit proof is in the PR body).
+-    real_user = config_flow.HeatPumpOptimizerConfigFlow.async_step_user
++    # The guard sits on the sensors screen since the credentials/sensors
++    # split (#198): wrapping async_step_user ran it on the credentials
++    # alone, whose identity is not the entry's, and the mutation survived.
++    real_sensors = config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors
+ 
+     async def guard_before_exemption(self, user_input=None):
+         if user_input is not None and self._reconfigure_entry is not None:
+-            await self.async_set_unique_id(config_flow.entry_identity(user_input))
++            await self.async_set_unique_id(
++                config_flow.entry_identity({**self._data, **user_input})
++            )
+             self._abort_if_unique_id_configured()
+-        return await real_user(self, user_input)
++        return await real_sensors(self, user_input)
+ 
+-    config_flow.HeatPumpOptimizerConfigFlow.async_step_user = guard_before_exemption
++    config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors = guard_before_exemption
+     try:
+         real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+         flow, _, _, _ = rc_setup()
+@@ -5259,7 +5472,7 @@ async def self_check():
+         )
+         config_flow.async_get_clientsession = real
+     finally:
+-        config_flow.HeatPumpOptimizerConfigFlow.async_step_user = real_user
++        config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors = real_sensors
+ 
+     # Mutation 5: the peak-hours field validated with the fee-RULES grammar
+     # instead of the window one -- the defect #327 reported, which did not
+@@ -6355,6 +6568,7 @@ async def options_modbus_prefill():
+         and entry.options == {},
+         f"errors={unreadable.get('errors')}",
+     )
++    await recover(flow, step, {const.CONF_DHW_SETPOINT: 52.0, **SAVE_CLOSE})
+     flow_low, entry_low, _ = _g7_flow(_g7_states(), options={const.CONF_HEAT_PUMP_MIN_POWER: 2.0})
+     await submit(flow_low, step, {prefix_key: "hp"})
+     power = await submit(flow_low, step, {const.CONF_HEAT_PUMP_MAX_POWER: 1.0})
+@@ -6364,6 +6578,7 @@ async def options_modbus_prefill():
+         and entry_low.options == {const.CONF_HEAT_PUMP_MIN_POWER: 2.0},
+         f"errors={power.get('errors')} options={entry_low.options}",
+     )
++    await recover(flow_low, step, {const.CONF_HEAT_PUMP_MAX_POWER: 5.0, **SAVE_CLOSE})
+ 
+     # D12-01: the pre-fill save path must carry the same two-zone rule as the
+     # building page. A GCHV pump under water control (register 4109 == 0)
+@@ -6414,6 +6629,7 @@ async def options_modbus_prefill():
+         and const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in entry.options,
+         f"errors={refused.get('errors')} options={sorted(entry.options)}",
+     )
++    await recover(flow, step, {const.CONF_DHW_SETPOINT: 52.0, **SAVE_CLOSE})
+ 
+     # Null control: an explicit two_zone_mode=on is two-zone to the model, so
+     # the same pre-fill save of a flow target is accepted, not refused.
+@@ -6659,6 +6875,8 @@ async def options_device_prefill():
+         and entry.options == {},
+         f"errors={nothing.get('errors')} options={entry.options}",
+     )
++    # The user types the package's prefix instead, and keeps one suggestion.
++    await recover(flow, step, {const.CONF_MODBUS_PREFILL_PREFIX: "hp"}, ((step, {const.CONF_DHW_SETPOINT: 52.0, **SAVE_CLOSE}),))
+ 
+     # A picked device wins over a prefix typed beside it, and the prefix is
+     # not written when the device route answered.
+@@ -7259,6 +7477,7 @@ async def config_flow_device_prefill_offer():
+         and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+         f"errors={refused_pair.get('errors')} data={sorted(flow._data)}",
+     )
++    await recover(flow, "device_prefill", {}, (("finish_now", {}), ("setup_overview", {})))
+ 
+     # A device that fills too few roles is refused on the page rather than
+     # opened empty -- the offer is a prompt, not an empty form.
+@@ -7276,6 +7495,7 @@ async def config_flow_device_prefill_offer():
+         and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+         f"errors={refused.get('errors')} data={sorted(flow._data)}",
+     )
++    await recover(flow, "device_prefill", {}, (("finish_now", {}), ("setup_overview", {})))
+     # …and an install whose devices all resolve nothing is never offered the
+     # page in the first place, whatever it has in the registry.
+     hass = FakeHass(states={})
+@@ -7843,6 +8063,18 @@ PAGE_REJECTIONS = {
+     "grid_connection": ({}, {const.CONF_SILENT_MODE_WINDOWS: "nonsense"}),
+     "grid_fees": ({}, {const.CONF_GRID_FEE_RULES: "nonsense"}),
+ }
++#: page -> the answers that clear that page's rejection above.
++PAGE_FIXES = {
++    "entities": {const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_TIBBER, const.CONF_TIBBER_TOKEN: "tok-new"},
++    "entities_metering": {const.CONF_FREQ_CONTROL_MODE: "observe"},
++    "comfort": COMFORT_PAGE_ANSWERS,
++    "hot_water": HOT_WATER_PAGE_ANSWERS,
++    "hot_water_tank": {const.CONF_DHW_DISINFECTION_MODE: "observe"},
++    "building": {const.CONF_WOOD_FURNACE_ENABLED: True},
++    "grid": GRID_PEAK_ANSWERS,
++    "grid_connection": {const.CONF_SILENT_MODE_WINDOWS: ""},
++    "grid_fees": GRID_FEES_ANSWERS,
++}
+ 
+ 
+ def _page_stored_entities(step, base):
+@@ -7875,6 +8107,8 @@ async def options_rejected_page_rerenders_the_clear():
+             shows(result, step) and bool(result.get("errors")) and not stale,
+             f"errors={result.get('errors')} rows={len(stored)} still_stored={stale}",
+         )
++        use_good_token()
++        await recover(flow, step, {**PAGE_FIXES[step], **SAVE_CLOSE})
+         # Null control: the same rejection with nothing cleared shows every
+         # stored entity as stored, so the empty fields above are the clear's.
+         flow = options_over(FakeEntry(data={**base, **stored}), FakeHass())
+@@ -7888,6 +8122,8 @@ async def options_rejected_page_rerenders_the_clear():
+                 kept == sorted(stored),
+                 f"shown_stored={len(kept)}/{len(stored)}",
+             )
++            use_good_token()
++            await recover(flow, step, {**stored, **PAGE_FIXES[step], **SAVE_CLOSE})
+     # The census asserts its own reach: a page whose _STORED rows vanished
+     # would pass the loop above vacuously.
+     check(
+@@ -8205,6 +8441,9 @@ async def seam_config_one_place():
+           f"errors={cleared.get('errors')} "
+           f"fraction={suggested_value(cleared, const.CONF_SILENT_MODE_FRACTION)!r} "
+           f"windows={suggested_value(cleared, const.CONF_SILENT_MODE_WINDOWS)!r}")
++    await recover(cleared_flow, "device_prefill", {
++        const.CONF_SILENT_MODE_WINDOWS: "06:00-10:00", const.CONF_SILENT_MODE_FRACTION: 0.6},
++        (("finish_now", {}), ("setup_overview", {})))
+     check("device_prefill", "happy",
+           "the setup pre-fill page posts no after_save: its navigation is always finish_setup",
+           const.CONF_AFTER_SAVE not in schema_keys(refused),
+@@ -8218,6 +8457,7 @@ async def seam_config_one_place():
+           and flow._data.get(const.CONF_SILENT_MODE_FRACTION) == 0.6
+           and const.CONF_AFTER_SAVE not in flow._data,
+           f"result={accepted.get('type')}/{accepted.get('step_id')} data={flow._data}")
++    await recover(flow, "finish_now", {}, (("setup_overview", {}),))
+ 
+ 
+ async def main() -> int:
+@@ -8230,6 +8470,7 @@ async def main() -> int:
+     sink.emit = lambda record: None
+     logging.getLogger().addHandler(sink)
+ 
++    LEDGER.install_tracker()
+     pin_number_selector_convention()
+     await token_surfaces_agree()
+     await seed_base_entry()
+@@ -8272,6 +8513,15 @@ async def main() -> int:
+     await options_cleared_price_entity_is_refused()
+     await options_room_list()
+ 
++    rendered, recovered = LEDGER.error_triples()
++    residual = sorted(f"{k}/{s}/{c}" for k, s, c in rendered - recovered)
++    check("_recovery", "error", "every rendered flow error is recovered on the flow that rendered it",
++          not residual, "; ".join(residual))
++    print(f"RESULT flow_error_triples={len(rendered)}")
++    print(f"RESULT unrecovered_flow_error_triples={len(residual)}")
++    for triple in residual:
++        print(f"UNRECOVERED {triple}")
++
+     print()
+     LEDGER.print_result_lines()
+     return R.close("checks")
+diff --git a/tests/cycle_budgets.json b/tests/cycle_budgets.json
+new file mode 100644
+index 0000000000..ed5854bc97
+--- /dev/null
++++ b/tests/cycle_budgets.json
+@@ -0,0 +1,38 @@
++{
++ "heavy_old/shoulder": {
++  "loop_calls": 2447,
++  "payload_b": 89274,
++  "retained_b_per_cycle": 2203,
++  "solves": 1,
++  "yields": 360
++ },
++ "recorded_at": "4504dd9856",
++ "winter/1z/dhw": {
++  "loop_calls": 2448,
++  "payload_b": 88678,
++  "retained_b_per_cycle": 2122,
++  "solves": 2,
++  "yields": 495
++ },
++ "winter/1z/space": {
++  "loop_calls": 2436,
++  "payload_b": 86417,
++  "retained_b_per_cycle": 2636,
++  "solves": 1,
++  "yields": 429
++ },
++ "winter/2z/dhw": {
++  "loop_calls": 2448,
++  "payload_b": 90360,
++  "retained_b_per_cycle": 2985,
++  "solves": 1,
++  "yields": 380
++ },
++ "winter/cycle": {
++  "loop_calls": 2448,
++  "payload_b": 90360,
++  "retained_b_per_cycle": 2043,
++  "solves": 1,
++  "yields": 380
++ }
++}
+diff --git a/tests/cycle_lane.py b/tests/cycle_lane.py
+new file mode 100644
+index 0000000000..b966efce90
+--- /dev/null
++++ b/tests/cycle_lane.py
+@@ -0,0 +1,331 @@
++#!/usr/bin/env python3
++"""The coordinator-cycle lane: per-cycle cost of a real coordinator update.
++
++Finding D9-s3-02: the stress gate reads the solver and one-shot peaks, so a
++2x regression in a PER-CYCLE quantity of
++``HeatPumpOptimizerCoordinator._async_update_data`` (solves per cycle, bytes
++published, bytes retained between cycles, GIL yields, loop-side Python calls)
++left every gate reading unchanged. This script drives one warm-up cycle and
++four measured cycles of a real coordinator on five sweep scenarios. The
++coordinator runs on FakeHass with the three fetchers no-ops, and the worker
++pipe ``_run_in_process`` is replaced by an inline call so the solve is
++countable. Five readings are compared with ``tests/cycle_budgets.json``:
++
++    solves      entries to optimizer._multi_start_minimize; FAIL above record
++    payload_b   bytes of json.dumps(returned dict); FAIL above 1.5 x record
++    retained_b_per_cycle
++                tracemalloc current after gc.collect(), mean consecutive
++                difference after warm-up; FAIL above max(1.5 x record,
++                RETAIN_FLOOR_B)
++    yields      optimizer sleep calls; FAIL below record / 1.5
++    loop_calls  Python calls in coordinator.py frames, solve excluded;
++                FAIL above 1.5 x record
++
++Every channel is a count or bytes, never a time, so the lane is
++contention-immune and runs with the parallel lanes. The clock is frozen at
++FROZEN_NOW for every cycle: the solve count reads the wall clock otherwise
++(see FROZEN_NOW).
++
++    PYTHONPATH=tests/hastub python3 tests/cycle_lane.py [--record|--self-check|--arm X]
++
++``--record`` writes the budgets. ``--arm`` (clean, solves2x, payload2x,
++retain, noyield) injects a 2x regression that must redden its own channel.
++``--self-check`` runs every arm in a subprocess and passes only if each arm
++fails on its own channel and the clean arm passes.
++"""
++import os
++
++for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
++           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
++    os.environ.setdefault(_v, "1")
++
++import argparse  # noqa: E402
++import asyncio  # noqa: E402
++import contextlib  # noqa: E402
++import copy  # noqa: E402
++import gc  # noqa: E402
++import json  # noqa: E402
++import subprocess  # noqa: E402
++import sys  # noqa: E402
++import time  # noqa: E402
++import tracemalloc  # noqa: E402
++from datetime import datetime, timedelta, timezone  # noqa: E402
++
++_argv = sys.argv
++sys.argv = [_argv[0]]
++sys.path.insert(0, "tests")
++sys.path.insert(0, "custom_components")
++import stress  # noqa: E402
++from harness import FakeEntry, FakeHass, FakeState  # noqa: E402
++from heatpump_optimizer import coordinator as cm  # noqa: E402
++from heatpump_optimizer import optimizer as opt  # noqa: E402
++from homeassistant.util import dt as dt_util  # noqa: E402
++
++sys.argv = _argv
++
++BUDGETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cycle_budgets.json")
++LABELS = ["winter/1z/space", "winter/1z/dhw", "winter/2z/dhw",
++          "heavy_old/shoulder", "winter/cycle"]
++LANE_CHANNELS = ("solves", "payload_b", "retained_b_per_cycle", "yields", "loop_calls")
++ARMS = ("clean", "solves2x", "payload2x", "retain", "noyield")
++OWN_CHANNEL = {"solves2x": "solves", "payload2x": "payload_b",
++               "retain": "retained_b_per_cycle", "noyield": "yields"}
++WARMUP, MEASURED = 1, 4
++#: Every cycle runs at this instant. Unfrozen, the readings follow the wall
++#: clock, which places the price and forecast series and the DHW draw hours.
++#: On one M1, ``winter/2z/dhw`` read 2 solves frozen at 2026-11-19 00:57 and
++#: 00:59 UTC, and 1 at 00:07, 01:07, 18:55 and 19:30; the second solve is the
++#: DHW/space co-optimization's (``HeatPumpOptimizer._co_optimize``). CI's run at 00:57
++#: read 2 against a record of 1 made at another time of day.
++FROZEN_NOW = datetime(2026, 1, 15, 12, 7, tzinfo=timezone.utc)
++RATIO = 1.5
++# Set from the maximum of five clean runs plus the record run, 1184-3393
++# B/cycle here; percycle's own clean arms read up to 8406. The floor is 2x the
++# larger of those, so a clean run never flaps; the `retain` arm reads ~190
++# kB/cycle.
++RETAIN_FLOOR_B = 16384
++
++_C = {"msm": 0, "yield": 0, "calls": 0, "in_solve": False, "noyield": False,
++      "replay": None, "record": []}
++_LEAK: list = []
++_real_sleep = time.sleep
++
++
++def _sleep(s):
++    """Count sleeps whose caller is optimizer.py (covers `_time_mod.sleep`,
++    the same module attribute, and the function-local `import time` site)."""
++    if sys._getframe(1).f_code.co_filename.endswith("optimizer.py"):
++        if _C["noyield"]:
++            return
++        _C["yield"] += 1
++    _real_sleep(s)
++
++
++def _profile(frame, event, _arg):
++    if (event == "call" and not _C["in_solve"]
++            and frame.f_code.co_filename.endswith("coordinator.py")):
++        _C["calls"] += 1
++
++
++def _inline_run(fn, a):
++    """Run the worker call inline. In the memory pass the solves recorded by
++    the counting pass are replayed instead: tracemalloc slows a solve ~13x
++    and the retained bytes concern the coordinator, not the solver."""
++    if _C["replay"] is not None:
++        return copy.deepcopy(_C["replay"].pop(0))
++    _C["in_solve"] = True
++    try:
++        r = fn(*a)
++        _C["record"].append(r)
++        return r
++    finally:
++        _C["in_solve"] = False
++
++
++@contextlib.contextmanager
++def instrument(arm_name):
++    orig_msm = opt._multi_start_minimize
++
++    def msm(*a, **k):
++        _C["msm"] += 1
++        return orig_msm(*a, **k)
++
++    saved = [(opt, "_multi_start_minimize", orig_msm), (time, "sleep", _real_sleep),
++             (cm, "_run_in_process", cm._run_in_process)]
++    opt._multi_start_minimize = msm
++    time.sleep = _sleep
++    cm._run_in_process = _inline_run
++    C = cm.HeatPumpOptimizerCoordinator
++
++    def swap(obj, attr, val):
++        saved.append((obj, attr, getattr(obj, attr)))
++        setattr(obj, attr, val)
++
++    if arm_name == "solves2x":
++        orig = cm.optimize_in_process
++
++        def twice(optimizer, inputs):
++            orig(optimizer, inputs)
++            return orig(optimizer, inputs)
++        swap(cm, "optimize_in_process", twice)
++    elif arm_name in ("payload2x", "retain"):
++        orig_b = C._build_data_dict
++
++        def build(self, *a, **k):
++            d = orig_b(self, *a, **k)
++            if arm_name == "payload2x":
++                d["_dup"] = copy.deepcopy(dict(d))
++            else:
++                _LEAK.append(copy.deepcopy(d))
++            return d
++        swap(C, "_build_data_dict", build)
++    elif arm_name == "noyield":
++        _C["noyield"] = True
++    try:
++        yield
++    finally:
++        _C["noyield"] = False
++        for obj, attr, val in reversed(saved):
++            setattr(obj, attr, val)
++        _LEAK.clear()
++
++
++def measure(label: str, trace: bool) -> dict:
++    """One label's readings, with the clock frozen at FROZEN_NOW."""
++    dt_util.freeze(FROZEN_NOW)
++    try:
++        return _measure(label, trace)
++    finally:
++        dt_util.freeze(None)
++
++
++def _measure(label: str, trace: bool) -> dict:
++    combo = next(c for c in stress.sweep_combinations() if c["label"] == label)
++    cold = combo.get("season", "winter") == "winter"
++    t_out = -3.0 if cold else 6.0
++    cfg = {"tibber_token": "x", "weather_entity": "weather.home",
++           "dhw_tank_volume": 200.0 if combo.get("dhw") else 0.0,
++           "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
++           "two_zone_mode": "on" if combo.get("two_zone") else "off"}
++    hass = FakeHass()
++    hass.states.set("sensor.indoor", FakeState("21.0"))
++    hass.states.set("sensor.outdoor", FakeState(str(t_out)))
++    coord = cm.HeatPumpOptimizerCoordinator(hass, FakeEntry(data=cfg))
++    hour = dt_util.now().replace(minute=0, second=0, microsecond=0)
++    coord._prices = [{"total": round(0.6 + 0.5 * (h % 12) / 12, 4), "level": "NORMAL",
++                      "starts_at": (hour + timedelta(hours=h - 2)).isoformat()}
++                     for h in range(50)]
++    coord._weather_forecast = [
++        {"datetime": (hour + timedelta(hours=h)).isoformat(), "temperature": t_out - 2.0,
++         "wind_speed": 3.0, "precipitation": 0.0, "humidity": 85.0} for h in range(48)]
++
++    async def nf():
++        return None
++    coord._fetch_tibber_prices = coord._fetch_weather_forecast = nf
++    coord._fetch_solar_forecast = nf
++    rows, mem = [], []
++
++    async def go():
++        await asyncio.gather(*getattr(hass, "_tasks", []))
++        if trace:
++            tracemalloc.start()
++        for _ in range(WARMUP + MEASURED):
++            m0, y0, c0 = _C["msm"], _C["yield"], _C["calls"]
++            sys.setprofile(_profile)
++            try:
++                d = await coord._async_update_data()
++            finally:
++                sys.setprofile(None)
++            rows.append((_C["msm"] - m0, len(json.dumps(d, default=str).encode()),
++                         _C["yield"] - y0, _C["calls"] - c0))
++            del d
++            gc.collect()
++            if trace:
++                mem.append(tracemalloc.get_traced_memory()[0])
++        if trace:
++            tracemalloc.stop()
++    asyncio.run(go())
++    rows = rows[WARMUP:]
++    mem = mem[WARMUP:]
++    diffs = [b - a for a, b in zip(mem, mem[1:])]
++    return {"solves": max(r[0] for r in rows), "payload_b": max(r[1] for r in rows),
++            "retained_b_per_cycle": int(sum(diffs) / len(diffs)) if diffs else 0,
++            "yields": max(r[2] for r in rows), "loop_calls": max(r[3] for r in rows)}
++
++
++def measure_label(label: str) -> dict:
++    """Counting pass (real solves, no tracemalloc), then the memory pass."""
++    _C["record"], _C["replay"] = [], None
++    out = measure(label, False)
++    _C["replay"] = _C["record"]
++    try:
++        out["retained_b_per_cycle"] = measure(label, True)["retained_b_per_cycle"]
++    finally:
++        _C["replay"] = None
++    return out
++
++
++def limit_and_ok(ch: str, v, rec):
++    """(limit, ok) for one reading against its record."""
++    if ch == "solves":
++        return rec, v <= rec
++    if ch == "yields":
++        lim = rec / RATIO
++        return round(lim, 1), v >= lim
++    lim = RATIO * rec
++    if ch == "retained_b_per_cycle":
++        lim = max(lim, RETAIN_FLOOR_B)
++    return round(lim), v <= lim
++
++
++def run(arm_name: str, record: bool) -> tuple[int, int, list]:
++    budgets = {}
++    if not record:
++        with open(BUDGETS) as f:
++            budgets = json.load(f)
++    out, results, bad, total = {}, [], 0, 0
++    with instrument(arm_name):
++        for label in LABELS:
++            out[label] = measure_label(label)
++    for label in LABELS:
++        for ch in LANE_CHANNELS:
++            v = out[label][ch]
++            if record:
++                continue
++            total += 1
++            row = budgets.get(label)
++            if row is None:
++                print(f"RESULT {label} {ch}={v} record=MISSING limit=- FAIL")
++                bad += 1
++                results.append((label, ch, False))
++                continue
++            lim, ok = limit_and_ok(ch, v, row[ch])
++            bad += not ok
++            results.append((label, ch, ok))
++            print(f"RESULT {label} {ch}={v} record={row[ch]} limit={lim} {'ok' if ok else 'FAIL'}")
++    if record:
++        rev = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,
++                             text=True).stdout.strip()
++        with open(BUDGETS, "w") as f:
++            json.dump({**out, "recorded_at": rev}, f, indent=1, sort_keys=True)
++            f.write("\n")
++        print(f"recorded {len(out)} scenarios to {BUDGETS}")
++    return total, bad, results
++
++
++def self_check() -> int:
++    fails = 0
++    for arm_name in ARMS:
++        p = subprocess.run([sys.executable, __file__, "--arm", arm_name],
++                           capture_output=True, text=True, env=os.environ)
++        failed = {ln.split()[2].split("=")[0] for ln in p.stdout.splitlines()
++                  if ln.startswith("RESULT") and ln.endswith("FAIL")}
++        want = OWN_CHANNEL.get(arm_name)
++        ok = (p.returncode == 0 and not failed) if want is None else want in failed
++        fails += not ok
++        print(f"SELF-CHECK {arm_name}: failed channels={sorted(failed) or 'none'} "
++              f"{'ok' if ok else 'FAIL'}")
++    print("SELF-CHECK PASSED" if not fails else f"SELF-CHECK FAILED {fails} arm(s)")
++    return 1 if fails else 0
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--record", action="store_true")
++    ap.add_argument("--self-check", action="store_true")
++    ap.add_argument("--arm", choices=ARMS, default="clean")
++    args = ap.parse_args()
++    if args.self_check:
++        return self_check()
++    total, bad, _ = run(args.arm, args.record)
++    if args.record:
++        return 0
++    if bad:
++        print(f"FAILED {bad} of {total} checks")
++        return 1
++    print(f"ALL {total} checks PASSED")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/tests/deployment_shape.py b/tests/deployment_shape.py
+index 35be7f2db5..74a0d38e71 100644
+--- a/tests/deployment_shape.py
++++ b/tests/deployment_shape.py
+@@ -57,13 +57,14 @@ which drives the CI ratchet's archscore measurement and so opens the package
+ the way this lane's recorder does. A diff touching any production file
+ therefore selects this lane. That is a selection cost, not a
+ duplicate-assertion one: the same
+-recording finds 167 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+-of their production-module closure (164 on each side before the merge joining
++recording finds 180 of the 561 script pairs (34 choose 2) sharing 0.80 or more
++of their production-module closure (167 of 528 before R11-SEAM-tests's
++cycle_lane.py, whose closure opens the whole package; 164 on each side before the merge joining
+ R11-OUTSIDE-ROOMS-P1's rooms.py, read by every closure that imports the
+ coordinator, the input reader, the config flow or the sensor platform, and
+ R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which joined
+ config_flow_steps.py/debug_collect.py at 0.80; 162 before #3616 re-recorded the
+-closures that import the coordinator), all 167 among the 406 pairs whose two
++closures that import the coordinator), all 180 among the 435 pairs whose two
+ scripts each have a non-empty production closure (``tests/arch_score.py``,
+ ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
+ ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
+diff --git a/tests/features.py b/tests/features.py
+index 54c6e99697..242e6d8ff1 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -48580,6 +48580,29 @@ R.check(
+         "meter_calibration": None, "calibration_basis": None, "stored_heat_sek": 0.0, "comfort_sek": 0.0},
+     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
+ )
++def _st_cal_row(planned_kw):
++    led = _SavLedger()
++    for _hh in range(2):
++        led.add_savings_settlement(
++            _SavDT(2026, 1, 3, _hh), baseline_kw=1.0, actual_kwh=3.0, spot=2.0, dt=1.0,
++            planned_kw=planned_kw, stored_kw_th=-1.0, steady_cop=2.0, comfort_kw=0.25,
++        )
++    return led.savings_months(_SavDT(2026, 2, 10))[0]
++
++
++_st_c1, _st_c15 = _st_cal_row(3.0), _st_cal_row(2.0)  # meter calibration 1.0 and 1.5
++R.check(
++    "R11-SEAM-tests (carry 0, M9): a calibrated month scales the stored-heat line as it scales the thermostat",
++    _st_c1["meter_calibration"] == 1.0 and _st_c15["meter_calibration"] == 1.5
++    and _st_c1["stored_heat_sek"] < 0.0
++    and _st_c15["stored_heat_sek"] == round(1.5 * _st_c1["stored_heat_sek"], 2),
++    f"{_st_c1} / {_st_c15}",
++)
++R.check(
++    "R11-SEAM-tests (carry 0, M10): a calibrated month scales the comfort line as it scales the thermostat",
++    _st_c1["comfort_sek"] > 0.0 and _st_c15["comfort_sek"] == round(1.5 * _st_c1["comfort_sek"], 2),
++    f"{_st_c1} / {_st_c15}",
++)
+ _st_z = _SavLedger()
+ _st_z.add_savings_settlement(
+     _SavDT(2026, 1, 3), baseline_kw=2.0, actual_kwh=1.0, spot=2.0, dt=1.0,
+diff --git a/tests/run.sh b/tests/run.sh
+index 049b74c747..ba9ab87996 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -559,6 +559,11 @@ lane_units() {
+   # and invalid submissions, the duplicate abort and the reauth round
+   # trip, against the real validation code over the fake Tibber session.
+   run "$PYTHON" tests/config_flow_steps.py
++  # The coordinator-cycle lane (D9-s3-02): solves, payload and retained
++  # bytes, optimizer yields and loop-side calls per _async_update_data
++  # cycle, against tests/cycle_budgets.json. Counts and bytes only, so it
++  # runs here with the parallel lanes, not in the stress tail.
++  run "$PYTHON" tests/cycle_lane.py
+   # The structural ratchet of the coordinator decomposition program (#193,
+   # PR-0): AST counts -- god classes, monster methods, attr bags, seam cut
+   # costs -- over the whole integration, each held at or below the budget
+diff --git a/tools/audit/seat/beatd.py b/tools/audit/seat/beatd.py
+index f029674938..744ae59fe3 100644
+--- a/tools/audit/seat/beatd.py
++++ b/tools/audit/seat/beatd.py
+@@ -476,8 +476,6 @@ class Beat:
+         self.journal(f"START {utc()} beatd pid={os.getpid()} code={self.code()} supervisor={sup}")
+         threads = [threading.Thread(target=self.loop, args=(j, once), daemon=True)
+                    for j in self.table["jobs"]]
+-        for t in threads:
+-            t.start()
+ 
+         def term(*_):
+             self.stop.set()
+@@ -486,7 +484,10 @@ class Beat:
+                     os.killpg(p.pid, signal.SIGTERM)
+                 except OSError:
+                     pass
++        # Before the first job starts: a TERM that finds a RUNNING job must find the handler.
+         signal.signal(signal.SIGTERM, term)
++        for t in threads:
++            t.start()
+         if for_s is not None:
+             tm = threading.Timer(for_s, self.stop.set)
+             tm.daemon = True
+@@ -1398,6 +1399,11 @@ MUTANTS = {
+     "m2_sigterm_handler_off": (
+         "beatd", "        signal.signal(signal.SIGTERM, term)", "        pass", "2",
+         "SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP"),
++    "m2_sigterm_handler_after_jobs": (
++        "beatd", "        signal.signal(signal.SIGTERM, term)\n        for t in threads:\n"
++        "            t.start()\n", "        for t in threads:\n            t.start()\n"
++        "        time.sleep(2)\n        signal.signal(signal.SIGTERM, term)\n", "2",
++        "SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP"),
+     "m4_serial_jobs": (
+         "beatd", "        for t in threads:\n            t.start()",
+         "        for t in threads:\n            t.start(); t.join()", "4",
+diff --git a/tools/ci/selftest_closures.json b/tools/ci/selftest_closures.json
+index c6d5cada59..e3c478857d 100644
+--- a/tools/ci/selftest_closures.json
++++ b/tools/ci/selftest_closures.json
+@@ -2844,6 +2844,7 @@
+     "dev/governance/config/policy_budgets.json",
+     "tests/ci_budgets.json",
+     "tests/coverage_budgets.json",
++    "tests/cycle_budgets.json",
+     "tests/layout.json",
+     "tests/layout.py",
+     "tests/mutation_budgets.json",
+diff --git a/tools/policy/budget_raise_gate.py b/tools/policy/budget_raise_gate.py
+index 2424ef2237..823be80aa2 100644
+--- a/tools/policy/budget_raise_gate.py
++++ b/tools/policy/budget_raise_gate.py
+@@ -202,6 +202,16 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
+         (("*", "rss_attrib_mb"), MAX),
+         (("*", "traced_peak_mb"), MAX),
+     ],
++    # The coordinator-cycle lane (tests/cycle_lane.py): four ceilings and
++    # one floor, the yields, which may only rise.
++    "tests/cycle_budgets.json": [
++        (("recorded_at",), FREE),
++        (("*", "solves"), MAX),
++        (("*", "payload_b"), MAX),
++        (("*", "retained_b_per_cycle"), MAX),
++        (("*", "loop_calls"), MAX),
++        (("*", "yields"), MIN),
++    ],
+     "tests/typing_budgets.json": [
+         (("_comment",), FREE),
+         (("recorded_at",), FREE),
+@@ -820,6 +830,19 @@ def self_test() -> int:
+     check("coverage: the ceiling down is a raise", raised(C, c0, {**c0, "package_percent_ceiling": 95.0}), True)
+     check("coverage: a pragma added is a raise", raised(C, c0, {**c0, "pragmas": 13}), True)
+ 
++    Y = "tests/cycle_budgets.json"
++    y0 = {"recorded_at": "t", "winter/cycle": {"solves": 1, "payload_b": 89621,
++                                               "retained_b_per_cycle": 1901, "yields": 517,
++                                               "loop_calls": 2444}}
++    check("cycle: null control", raised(Y, y0, y0), False)
++    check("cycle: the file new at the head is routine", raised(Y, None, y0), False)
++    check("cycle: fewer solves, more yields is routine",
++          raised(Y, y0, {**y0, "winter/cycle": {**y0["winter/cycle"], "solves": 0, "yields": 600}}), False)
++    check("cycle: a solve ceiling up is a raise",
++          raised(Y, y0, {**y0, "winter/cycle": {**y0["winter/cycle"], "solves": 2}}), True)
++    check("cycle: the yields floor down is a raise",
++          raised(Y, y0, {**y0, "winter/cycle": {**y0["winter/cycle"], "yields": 400}}), True)
++
+     T = "tests/stress_budgets.json"
+     t0 = {"coverage_floor_override": {"cites": "ruling", "floor": 38},
+           "flat/1z/dhw": {"ratio": 47.85, "rss_attrib_mb": 8.5, "rss_peak_mb": 84.3, "traced_peak_mb": 2.04}}

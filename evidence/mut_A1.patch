@@ -1,0 +1,21 @@
+diff --git a/tests/config_flow_steps.py b/tests/config_flow_steps.py
+index 5e58530211..099053f8be 100644
+--- a/tests/config_flow_steps.py
++++ b/tests/config_flow_steps.py
+@@ -550,14 +550,14 @@ class Ledger:
+                 return show(self, *a, **k)
+ 
+             def async_create_entry(self, *a, **k):
+-                rec(self)["done"] = True
++                rec(self)["done"] = False
+                 return create(self, *a, **k)
+ 
+             def async_abort(self, *a, **k):
+                 reason = k.get("reason") if "reason" in k else (a[0] if a else None)
+                 r = rec(self)
+                 if reason in ledger._OK_ABORTS:
+-                    r["done"] = True
++                    r["done"] = False
+                 return abort(self, *a, **k)
+ 
+             cls.async_show_form, cls.async_create_entry, cls.async_abort = (
