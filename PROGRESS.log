@@ -2,3 +2,4 @@
 1795383446 HB alive
 1795383488 CKPT packet rendered snapshot f9b3e0dfaf6b
 1795383681 CKPT boost mutants killed; P3 killed; running debug_collect snapshot 5138fd449449
+1795383940 CKPT debug_collect: M7 killed, M8 (view drops mode) survived; running entities under M8 snapshot 131125d9d6dd
