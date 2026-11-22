@@ -4216,11 +4216,24 @@ step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
   case "$out" in *'| AssertionError: the failing line'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and the refusal's failing lines"
   lg=$(sed -n '$s/.*full log: \([^ ]*\) .*/\1/p' <<<"$out")
-  case "$(tail -1 <<<"$out")" in 'PRE-PR: deadbeef 01 rc=1; full log: '"$SM"/prepr-log.*) r=0 ;; *) r=1 ;; esac
+  case "$(tail -1 <<<"$out")" in 'PRE-PR: deadbeef 01 rc=1 elapsed='[0-9]*'s; full log: '"$SM"/prepr-log.*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "the last line is the result with rc, naming a unique log under TMPDIR"
   [ -f "$lg" ] && [ -n "$(sed -n '/test_one PASSED/p' "$lg")" ]; st $? 0 "and that log holds the full output"
   out=$(sdrv 1); case "$out" in *'test_one PASSED'*'REFUSE   loud'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "PREPR_VERBOSE=1 prints the full output on stdout"
+  # C3 (dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md): each step line leads its
+  # detail with the step's elapsed seconds, measured from the verdict line
+  # before it, and the result line carries the run's.
+  out=$(TMPDIR="$SM" bash -c "$sfn"'
+    rc=0 digest="" ORDER="" PREPR_LOG="" LOG_MARK=0 STEP_MARK=$SECONDS; summary_start
+    sleep 2; step "slow" 0 "slept"; step "noop" 0 "did nothing"; summary_end deadbeef')
+  t=$(sed -nE 's/^  ok +slow +\[([0-9]+)s\] slept$/\1/p' <<<"$out")
+  [ "${t:-0}" -ge 2 ]; st $? 0 "a step stubbed to sleep 2 s prints an elapsed of at least 2 (C3)"
+  t=$(sed -nE 's/^  ok +noop +\[([0-9]+)s\] did nothing$/\1/p' <<<"$out")
+  case "$t" in 0|1) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and a no-op step after it prints 0 or 1, so the field times the step, not the run (C3's null control)"
+  t=$(sed -nE 's/^PRE-PR: deadbeef 00 rc=0 elapsed=([0-9]+)s; .*/\1/p' <<<"$out")
+  [ "${t:-0}" -ge 2 ]; st $? 0 "and the result line carries the run's elapsed, at least the 2 s slept"
   case "$flow" in *'step "merge-base" 0 "$BASE"
 summary_start'*'summary_end "$(git rev-parse HEAD)"
 exit $rc'*) r=0 ;; *) r=1 ;; esac
@@ -4372,19 +4385,24 @@ ORDER=""
 # verdict line, each refusal's own log lines (`refusal_lines`), and the result
 # line naming the log. `PREPR_VERBOSE=1` or `--verbose` keeps today's stdout.
 # Both pushers that run this mode read its rc alone, never its stdout.
-PREPR_LOG="" LOG_MARK=0
+# STEP_MARK is bash's $SECONDS at the last verdict line, so a step line's
+# elapsed field (`step`) is the time since the line before it, read with no
+# spawn: the step's own cost, not the run's (R10-RCA-OPEN-PREPR-SLOW, C3).
+PREPR_LOG="" LOG_MARK=0 STEP_MARK=$SECONDS
 say() {
   local l; l=$(printf '  %-8s %-22s %s' "$1" "$2" "${3:-}")
   printf '%s\n' "$l"; [ -z "$PREPR_LOG" ] || printf '%s\n' "$l" >&3
   [ -z "$PREPR_LOG" ] || LOG_MARK=$(wc -l <"$PREPR_LOG")
+  STEP_MARK=$SECONDS
 }
 refusal_lines() { # -> fd 3: the last 40 log lines since the previous verdict
   [ -n "$PREPR_LOG" ] || return 0
   tail -n +"$((LOG_MARK + 1))" "$PREPR_LOG" | tail -40 | sed 's/^/    | /' >&3
 }
-step() { # name, rc, detail
+step() { # name, rc, detail; the detail is led by the step's elapsed seconds
+  local t="[$((SECONDS - ${STEP_MARK:-0}))s]"
   digest="${digest}$2"
-  if [ "$2" -eq 0 ]; then say ok "$1" "${3:-}"; else refusal_lines; say REFUSE "$1" "${3:-}"; rc=1; fi
+  if [ "$2" -eq 0 ]; then say ok "$1" "$t ${3:-}"; else refusal_lines; say REFUSE "$1" "$t ${3:-}"; rc=1; fi
 }
 summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; none under PREPR_VERBOSE=1
   [ "${PREPR_VERBOSE:-}" != 1 ] || return 0
@@ -4394,7 +4412,7 @@ summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; no
 summary_end() { # head sha -> the result line on fd 3, naming the log
   [ -n "$PREPR_LOG" ] || return 0
   [ -z "$ORDER" ] || printf '  !!! %s: the push must follow at once (the full warning is in the log)\n' "$ORDER" >&3
-  echo "PRE-PR: $1 $digest rc=$rc; full log: $PREPR_LOG (PREPR_VERBOSE=1 prints it on stdout)" >&3
+  echo "PRE-PR: $1 $digest rc=$rc elapsed=${SECONDS}s; full log: $PREPR_LOG (PREPR_VERBOSE=1 prints it on stdout)" >&3
 }
 
 # --- 0. the body is not in a root other seats write to (`shared_root` above).
@@ -5024,6 +5042,6 @@ fi
 rm -f "${UNPINNED_SITES:-}"
 receipt_write "$rc" "${BODY:-}" "$RUN_START"
 echo
-echo "PRE-PR: $(git rev-parse HEAD) $digest"
+echo "PRE-PR: $(git rev-parse HEAD) $digest elapsed=${SECONDS}s"
 summary_end "$(git rev-parse HEAD)"
 exit $rc
