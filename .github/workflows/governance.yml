@@ -649,11 +649,17 @@ jobs:
       # The superseded-run canceller (R10-CI-CONCURRENCY): the recorded pair
       # 39090494028/39091600343 it must select, and the runs it must never
       # cancel (a same-SHA twin, the live head, a bot-sent caller, main, a
-      # stale head), over a stub gh.
+      # stale head), over a stub gh; and CI-6's two seat drivers of it and of
+      # the scoped rerun, each over its own stub.
       - name: Show the superseded-run canceller refusing its own fixtures
         id: superseded-run-canceller
         if: steps.scope.outputs.superseded-run-canceller == 'true'
-        run: python3 tools/pr/cancel_superseded.py --self-test
+        run: |
+          set -o pipefail
+          python3 tools/pr/cancel_superseded.py --self-test
+          bash tools/audit/seat/ci_supersede.sh --self-test
+          python3 -I tools/audit/seat/ci_rerun.py --self-test | tee "$RUNNER_TEMP/ci-rerun-self-test.txt"
+          grep -Eq '^ci_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-rerun-self-test.txt"
 
       - name: Show the figure-block renderer refusing its own fixtures
         id: figure-block
@@ -898,6 +904,8 @@ jobs:
         if: ${{ !cancelled() && steps.scope.outputs.regret-oracle == 'true' }}
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
           update-environment: false
 
       - name: Show the regret oracle reading its planted and null controls

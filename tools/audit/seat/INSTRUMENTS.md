@@ -22,7 +22,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR —
 - [`app_comment.sh`](instruments/app_comment.sh.md) — posts one fix-review verdict on a PR as `hpo-approver` and reads the posted comment back byte-identical
 - [`app_push.sh`](instruments/app_push.sh.md) — pushes a branch and opens or re-bodies its pull request as the `hpo-author` App
 - [`depgraph.py` (tools/pr/)](instruments/depgraph.py.md) — compares GitHub's dependency graph with the tree's pins
-- [`figure_block.py` (tools/pr/)](instruments/figure_block.py.md) — renders/refreshes/verifies registered figure blocks in a PR body
+- [`figure_block.py` (tools/pr/)](instruments/figure_block.py.md) — renders the registered figures and refuses a PR body that stores a figure block
 - [`head_note.py` (tools/pr/)](instruments/head_note.py.md) — prefixes a note under a body's `## Head` heading, found as `checkPrBody`'s `sections()` reads it (outside a fence, `##`, whitespace, `Head`)
 - [`outside.py` (tools/pr/)](instruments/outside.py.md) — the outside-contributor contract (decision 0017): admission, the three path classes, the class-O check and its one mandated approval writer
 - [`role_pack.py` (tools/policy/)](instruments/role_pack.py.md) — renders one seat's policy pack: its role contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim, in one file
@@ -95,6 +95,8 @@ standing-seat liveness step keep the seats alive.
 - [`ci_probe.py`](instruments/ci_probe.py.md) — the writes a CI-layout probe needs
 - [`ci_priority.py`](instruments/ci_priority.py.md) — the one CI-priority tier and rank rule over the roster's mapping
 - [`ci_pause.py`](instruments/ci_pause.py.md) — the merge train's pause and resume of the worst-ranked PR's CI while the head's job queues
+- [`ci_rerun.py`](instruments/ci_rerun.py.md) — reruns only the failed required jobs of a PR head's newest runs, capped at attempt 6
+- [`ci_supersede.sh`](instruments/ci_supersede.sh.md) — the cancel-sweep of superseded PR runs, once or on a loop with a STOP file
 - [`closeout.py`](instruments/closeout.py.md) — the round's final act: archive, prune and clean up, a dry plan by default and refused while any other group is open
 - [`prune_refs.py`](instruments/prune_refs.py.md) — reconciles the remote branch refs down to main plus a few development branches at programme closure, archive-as-tags first
 - [`pulse.py`](instruments/pulse.py.md) — says whether the programme is still being driven
