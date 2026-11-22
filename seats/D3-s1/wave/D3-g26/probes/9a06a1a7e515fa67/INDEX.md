@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_9a06a1a7e515fa67.py (+ dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py): step-4 probe for mutant 9a06a1a7e515fa67; pins: whether optimize() adopts the valve hold candidate (result.valve_target_schedule non-empty) and the plan's

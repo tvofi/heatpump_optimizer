@@ -1,0 +1,9 @@
+RESULT grid_cells=13 count
+RESULT cells_moved=1 count  ['empty:values->IndexError']
+RESULT null_cells_moved=0 count
+RESULT reach_solves=4 count
+RESULT reach_pairs=[(96, 96)]
+RESULT reach_distinguishing_calls=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.74
+RESULT swapins=0

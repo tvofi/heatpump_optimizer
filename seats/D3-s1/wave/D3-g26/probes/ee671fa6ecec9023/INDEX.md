@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_ee671fa6ecec9023.py (+ dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py): step-4 probe for mutant ee671fa6ecec9023; pins: how many space steps optimize() reports released when the pin safety repair runs out of rounds and abandons

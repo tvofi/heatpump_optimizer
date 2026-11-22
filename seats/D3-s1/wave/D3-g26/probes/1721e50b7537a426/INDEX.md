@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_1721e50b7537a426.py (+ dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py): step-4 probe for mutant 1721e50b7537a426; pins: how many DHW steps optimize() reports in manual_released_dhw, and how many channel solves it runs, for a

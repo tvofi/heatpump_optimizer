@@ -1,0 +1,8 @@
+RESULT released_space_baseline=4 count
+RESULT released_space_mutant=28 count
+RESULT solves_baseline=2 count
+RESULT solves_mutant=5 count
+RESULT null_released_delta=0 count
+RESULT thread_factor=1.002
+RESULT load1=1.80
+RESULT swapins=0

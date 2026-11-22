@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_ec173cf0e67c0689.py (+ dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py): step-4 probe for mutant ec173cf0e67c0689; pins: channel solves optimize() runs (calls of _optimize_with_dhw/_optimize_space_only on the instance) for a

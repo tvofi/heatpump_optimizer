@@ -1,0 +1,7 @@
+RESULT released_baseline=88 count
+RESULT released_mutant=96 count
+RESULT null_released_delta=0 count
+RESULT reach_half_pins=0 count  (pin values channel_pins can emit: [0.0, 1.0])
+RESULT thread_factor=1.003
+RESULT load1=1.78
+RESULT swapins=0

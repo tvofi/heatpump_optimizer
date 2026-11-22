@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_0fcdd4bdabc205ea.py (+ dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py): step-4 probe for mutant 0fcdd4bdabc205ea; pins: OptimizationConfig._comfort_pair(when) -> (day C, night C, start h, end h), and how many of the 24 hourly

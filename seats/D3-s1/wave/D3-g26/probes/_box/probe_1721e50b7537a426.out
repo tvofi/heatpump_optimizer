@@ -1,0 +1,10 @@
+RESULT released_dhw_baseline=48 count
+RESULT released_dhw_mutant=56 count
+RESULT solves_baseline=2 count
+RESULT solves_mutant=5 count
+RESULT allzero_released_baseline=88 count
+RESULT allzero_released_mutant=96 count
+RESULT null_released_delta=0 count
+RESULT thread_factor=1.004
+RESULT load1=1.79
+RESULT swapins=0

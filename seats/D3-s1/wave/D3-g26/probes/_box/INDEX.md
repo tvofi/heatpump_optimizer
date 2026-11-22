@@ -1,0 +1,3 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py: the shared probe helper (thread pin, in-memory one-line mutant, manual-plan builders, coordinator-cycle reach spy, RESULT trailer) every probe_<key>.py imports.
+- keymeta.py / build_result.py: box scratch -- the per-key step-4 answers (inputs tried, should-fail check, finding fields) and the writer of results/<key>.json from gates/<key>.json + the probe output.
+- probe_<key>.out: each probe's RESULT lines as first run on this box (load1 ~1-2 while the null gate ran).

@@ -1,0 +1,9 @@
+RESULT grid_cells=7 count
+RESULT cells_moved=4 count  ['len0:IndexError', 'len1:IndexError', 'len2:IndexError', 'len3:IndexError']
+RESULT null_cells_moved=0 count
+RESULT reach_solves=4 count
+RESULT reach_pairs=[(96, 96), (96, None)]
+RESULT reach_distinguishing_calls=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.76
+RESULT swapins=0

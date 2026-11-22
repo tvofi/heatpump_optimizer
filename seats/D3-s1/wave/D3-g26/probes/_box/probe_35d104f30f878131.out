@@ -1,0 +1,9 @@
+RESULT predictive_info_keys_in_plan=25 count
+RESULT predictive_keys_baseline=3 count  {'solar_reduction_factor': np.float64(0.99), 'wind_anticipation_factor': 1.06, 'pre_heat_urgency': np.float64(0.16)}
+RESULT predictive_keys_mutant=0 count  {'solar_reduction_factor': None, 'wind_anticipation_factor': None, 'pre_heat_urgency': None}
+RESULT ecl110_context_pre_heat_urgency_baseline=0.16
+RESULT ecl110_context_pre_heat_urgency_mutant=None
+RESULT null_keys_delta=0 count
+RESULT thread_factor=1.011
+RESULT load1=1.81
+RESULT swapins=0

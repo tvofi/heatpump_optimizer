@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_f56e3474baa75dc5.py (+ dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py): step-4 probe for mutant f56e3474baa75dc5; pins: how many space steps optimize() reports in manual_released_space, and how many channel solves it runs,
