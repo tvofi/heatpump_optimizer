@@ -1,0 +1,27 @@
+CTRL {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+numeric keys 7
+FAIL key=day_end_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=day_end_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=day_end_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=day_end_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=day_end_hour_weekend op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=day_end_hour_weekend op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=day_end_hour_weekend op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=day_end_hour_weekend op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=day_start_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=day_start_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=day_start_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=day_start_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=day_start_hour_weekend op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=day_start_hour_weekend op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=day_start_hour_weekend op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=day_start_hour_weekend op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=holiday_day_end_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=holiday_day_end_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=holiday_day_end_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=holiday_day_end_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=holiday_day_start_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=holiday_day_start_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=holiday_day_start_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=holiday_day_start_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+RESULT census_fail=24 of 28

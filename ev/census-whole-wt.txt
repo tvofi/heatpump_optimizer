@@ -1,0 +1,3 @@
+CTRL {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+numeric keys 7
+RESULT census_fail=0 of 28
