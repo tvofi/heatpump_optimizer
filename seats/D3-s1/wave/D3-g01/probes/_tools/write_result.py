@@ -51,8 +51,8 @@ else:
         rec["finding"] = {
             "title": a["title"], "step": "D3.M3", "scope": "D3-s1", "class_guess": "I1",
             "severity_claimed": a["sev"], "stop_rule_class": "bug",
-            "claim": f"Mutant {key} at {file}:{line} ({mut['old'].strip()} -> {mut['new'].strip()}) {verdict} the full "
-                     f"GATE_SCOPE=full GOLDEN_MODE=drift gate (gate_rc {g.get('gate_rc')}, no script beyond this box's null), "
+            "claim": f"Mutant {key} at {file}:{line} ({mut['old'].strip()} -> {mut['new'].strip()}) is not killed by the full "
+                     f"GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict {verdict}, gate_rc {g.get('gate_rc')}, no script red beyond this box's null), "
                      f"yet the probe's number moves: baseline {a['base']}, mutant {a['mut']}.",
             "mechanism": f"Check that should have failed (D3.M4): {a['should']}.",
             "metric_definition": a["metric"],
@@ -69,6 +69,6 @@ else:
             "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value",
         }
     else:
-        rec["non_finding"] = f"mutant {key} at {file}:{line} {verdict} the full gate and is equivalent on every input tried: {a['should']}"
+        rec["non_finding"] = f"mutant {key} at {file}:{line} is not killed by the full gate (verdict {verdict}) and is equivalent on every input tried: {a['should']}"
 (W / "results" / f"{key}.json").write_text(json.dumps(rec, indent=1) + "\n")
 print("WROTE", key, verdict, rec.get("class") or rec.get("cls"))

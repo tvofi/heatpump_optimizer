@@ -50,7 +50,7 @@
   "class_guess": "I1",
   "severity_claimed": "medium",
   "stop_rule_class": "bug",
-  "claim": "Mutant fafb0d2c15e72efb at custom_components/heatpump_optimizer/coordinator.py:822 (SOLVE_FAILURE_ISSUE_COUNT = 3 -> SOLVE_FAILURE_ISSUE_COUNT = 6) RED-AS-NULL the full GATE_SCOPE=full GOLDEN_MODE=drift gate (gate_rc 1, no script beyond this box's null), yet the probe's number moves: baseline issues_after_3=1, first_issue_at=3, mutant issues_after_3=0, first_issue_at=6.",
+  "claim": "Mutant fafb0d2c15e72efb at custom_components/heatpump_optimizer/coordinator.py:822 (SOLVE_FAILURE_ISSUE_COUNT = 3 -> SOLVE_FAILURE_ISSUE_COUNT = 6) is not killed by the full GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict RED-AS-NULL, gate_rc 1, no script red beyond this box's null), yet the probe's number moves: baseline issues_after_3=1, first_issue_at=3, mutant issues_after_3=0, first_issue_at=6.",
   "mechanism": "Check that should have failed (D3.M4): tests/features.py and tests/entities.py execute coordinator.py:705 on the traced baseline but never line 706: no check drives three consecutive failed solves and asserts the solve_failures issue is created on the third.",
   "metric_definition": "repair issues 'solve_failures' raised after 3 consecutive failed solves (and the failure count at which the first is raised)",
   "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:_note_solve_failure",
