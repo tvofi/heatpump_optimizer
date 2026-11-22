@@ -28,6 +28,11 @@ Departures from the note, each made for a measured reason and each open to the r
 
 ## Head
 
+`d427c6a8938aa7f0b78f8c6e0dc23cd009df2726` merges the authored code head `9248b8d6f87db66e9da26c05f2c3bfd491c9f0ba`.
+
+`9248b8d6f87d`, written 2026-11-22T18:30Z (UTC), is `8d63765ef5` plus one commit, on the same merge base `3a98735a7e`, `origin/main` at `baa9a467ac`. `git merge-tree --write-tree origin/main HEAD` exits 0, so main is not merged in. On a local merge of `origin/main` `baa9a467ac` into `8d63765ef5`: `python3 tests/structure.py` rc 0, `ok module_excess_loc 21732 <= 21732`, `STRUCTURE RATCHET PASSED`; `node tools/policy/check-wave-script.mjs` (main's copy, as the job restores it): `296 passed, 0 failed`; `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures, fast, governance or instrument red predicted against baa9a467ac51`, and one unpinned site the move added, `dhw_charges.py:32 GUARD_OFF` (`if TYPE_CHECKING:`).
+- `9248b8d6f8`: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/structure.py` on that merge: `pinned custom_components/heatpump_optimizer/dhw_charges.py:32 GUARD_OFF -- killed by tests/structure.py`, null control `dhw_charges.py:36 NULL_COMMENT survived tests/structure.py`, `PIN KILLED: 1 pinned, 0 left unpinned`; the pin file is the commit.
+
 `8d63765ef5cd9fd038613da76538b6c972e525ee`, written 2026-11-22T14:37Z (UTC), is the PR head `88909c98443c6b35270c671f8babbe708c91a26d` plus two commits, on a merge base of `3a98735a7e` (`git merge-base origin/main HEAD`), `origin/main` at `024895cd9d`. `git merge-tree --write-tree origin/main HEAD` exits 0 with the merge drivers installed, so main is not merged in; `python3 tests/structure.py` on that merge tree, committed as a probe: rc 0, `module_excess_loc 21732 <= 21732`, `methods_over_200 6 <= 6`.
 - `b638f1ce96`: the start condition (`dhw_start_temps`, `startable_steps`, `drop_unstartable`, `place_startable`, `STARTABLE_ROUNDS`) and the commit stage (`charge_refusal`, `charges_run`, `whole_charges`, `ChargeRuns`, `_StoreProgram`, `commit_charges` and the store constants) move whole from `dhw_planner.py` to a new `dhw_charges.py`. The planner imports the names it calls, so its call sites are byte-identical; `optimizer.py` imports `ChargeRuns` from the new module. The shortfall tolerance both modules read is public `SHORTFALL_K` in `dhw_charges.py` (was `_SHORT_K`): imported private, it read as one more `private_cross_module` crossing (`dhw_planner -> dhw_charges._SHORT_K`, archscore `9 -> 10`, WORSENS). Mutation pins of the moved sites are re-keyed to `dhw_charges.py`, digest unchanged (sha1 of the unchanged line). The four pins on `SHORTFALL_K`'s lines take the renamed line's digest; the `old` text and the quoted mutant in each `reason` were renamed with it, and the kill was not re-measured. `dhw_charges.py` is added to every `tests/closures.json` closure that lists `dhw_planner.py` (27), and to the three `tools/ci/selftest_closures.json` lists that name it and the ledger directories. `tests/block_duty.py`, the group's `tests/features.py` block and `dev/audit/harnesses/r10_dhw_start_hysteresis*.py` / `r11_honest_dhw_runs.py` read the moved names from `dhw_charges`. Exceptions are the monkeypatches of a name the planner calls (`whole_charges`, `commit_charges`, `place_startable`): they stay on `dhw_planner`, where the call looks the name up. `docs/architecture.md`'s module map and counts, and `tests/deployment_shape.py`'s file count, take the new module (`tests/entities.py` read them).
 - `8d63765ef5`: `tests/structure.py --record`, `module_excess_loc` 21779 to 21732, no row up.
@@ -141,11 +146,6 @@ All on one box (x86_64), at `36af54c383993b5d7bcdffe8b83e1e9ca76b17dc` unless na
 - Claim figures re-taken at `0850b21ca4` against `origin/main` `053c33bcc6` (the base with #3736's all-off start), the published fixture keys by a scratch reader of the committed fixtures and the head's solve: `cycling_cost` main `predicted_cost 32.074032 starts 4 energy_kwh 40.97`, head `predicted_cost 33.762131 starts 3 energy_kwh 42.45`; `everything_on` main `predicted_cost 60.705118 starts 4 energy_kwh 67.09`, head `predicted_cost 60.390598 starts 3 energy_kwh 66.48`.
 - `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r11_honest_dhw_runs.py fixtures` at `0850b21ca4`: committed `charges 3, hot-water steps under the floor 0, combined 0, worst gap 0.439 K` (`cycling_cost`) and `0.438 K` (`everything_on`); uncommitted `charges 9, under the floor 14, combined 11, worst gap 0.557 K` and `charges 5, under the floor 10, combined 4, worst gap 0.550 K`: the fourteen claimed figures, unchanged. `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 053c33bcc6` there: `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE: 56`, exit 0; `--claims-only 053c33bcc6` at `fd6b5de090`: `claims hygiene: ... ok`.
 
-<!-- figure-block: scope-line mb=3a98735a7ecc59e7ecc095a0429cdf6251d956ec head=8d63765ef5cd9fd038613da76538b6c972e525ee -->
-~~~text
-MODE: FULL -- every test script runs, nothing is scoped out.
-~~~
-<!-- /figure-block -->
 
 ## Architecture score
 
@@ -156,6 +156,8 @@ At `8d63765ef5`: `python3 tools/audit/archscore/score.py --diff 3a98735a7ecc59e7
 `python3 tools/audit/archscore/score.py --diff 2d7161a4b7` at the head. `python3 tests/structure.py`: `methods_over_200` 7 to 6, recorded (the linear program's free walk moved to `_DhwPlanContext.coast`); no metric up.
 
 ## Unpinned sites
+
+At `9248b8d6f8`: the one site the `dhw_charges.py` move added, the module's `if TYPE_CHECKING:` guard (`GUARD_OFF`), is pinned under `tests/mutation_ledger/killed_by/dhw_charges.py/`, killed by `tests/structure.py` (`## Head`).
 
 none added by this diff at the head: every site the two drives found is pinned under `tests/mutation_ledger/killed_by/` or triaged under `tests/mutation_ledger/survivor_triage/`. Enumerator: `tests/mutation_table.py --pin-killed --base origin/main` at `6355738de5` drove `3 new unpinned site(s)` and left 0. The survivors this round, each with its disposition, anchored by function: they sat in `dhw_planner.py` when measured and are in `dhw_charges.py` at this head, their pins re-keyed with them (`## Head`):
 - `_StoreProgram.plan.place`'s charge bound (`CMP_BOUND`) and `commit_charges`' walk ceiling (`CLAMP_DROP`): killed by value (`## Mutation proof (this round)`), pinned.
@@ -204,4 +206,5 @@ New at this round's commits, before the handoff: `tests/features.py` red at `baf
 - `fixer.md`: `unclear`: step 2: `prepr.sh`'s drive mutates the first 40 added lines in file order, which on this diff is `dhw_planner.py`'s first 40 of 237; the survivors that mattered (the build's call of `whole_charges`, the kernel's two flags) were past it and found only by raising `--max-mutants`. Carry: dismissed: one fixer's reading, no second instance
 - `gate-scoping.md`: `cost`: `tests/run.sh` keeps no log of a failed script (the lane log is overwritten), so `tests/features.py`'s seven failures cost a second 15-minute run to read. Carry: dismissed: one occurrence, not measured against a second
 - `finding-propagation.md`: `unclear`: a dependency on a handed-off, unmerged predecessor (P2's mutants file) has no tree to land a carry in; it is named in this body only. Carry: dismissed: one occurrence, its predecessor has since merged
+
 
