@@ -1,0 +1,158 @@
+
+# ---- _fd_steps: an exhaustive boundary search plus a production reach count ----
+F = "_fd_steps"
+base = opt._fd_steps
+mut = mutant(F, OLD, NEW)
+
+
+def steps_differ(r1, r2):
+    """Two _fd_steps results differ where the gradient reads them: the free mask, or a
+    step of a free variable (a fixed variable's step is never read, D9-01)."""
+    (h1, f1), (h2, f2) = r1, r2
+    if not same(f1, f2):
+        return True
+    return not same(np.asarray(h1)[f1], np.asarray(h2)[f2])
+
+
+def _near(v, k=2):
+    """v and its k float neighbours on each side."""
+    out = [v]
+    a = b = v
+    for _ in range(k):
+        a, b = np.nextafter(a, -np.inf), np.nextafter(b, np.inf)
+        out += [float(a), float(b)]
+    return out
+
+
+def candidates():
+    xs = [0.0, -0.0, 0.5, -0.5, 1.0, -1.0, 3.7, 1e-12, -1e-12, 1e8, -1e8, 1e9, -1e9, 1e17, -1e17]
+    es = [opt._LBFGSB_FD_EPS, 1e-8, 0.0, 1.4901161193847656e-08, 1e-3]
+    s = np.finfo(np.float64).eps ** 0.5
+    for x0 in xs:
+        for eps in es:
+            steps = {eps, -eps, s, -s, s * max(1.0, abs(x0)), -s * max(1.0, abs(x0)), 2 * eps, eps / 2}
+            pts = set()
+            for st in steps:
+                for v in _near(x0 + st, 2):
+                    pts.add(v)
+                # bound distances exactly equal to the step, where float arithmetic allows it
+                for v in _near(x0 + st, 6):
+                    if v - x0 == abs(st) or x0 - v == abs(st):
+                        pts.add(v)
+            for v in _near(x0, 1):
+                pts.add(v)
+            pts |= {-np.inf, np.inf, 0.0, x0 - 1.0, x0 + 1.0}
+            # boxes centred on x0, narrower than the step
+            for w in (abs(eps) / 4 or 1e-12, 1e-9, 1e-12):
+                yield x0, eps, x0 - w, x0 + w
+            pts = sorted(pts)
+            for lb in pts:
+                for ub in pts:
+                    if lb <= ub:
+                        yield x0, eps, lb, ub
+
+
+tried = moved = dom_tried = dom_moved = 0
+example = dom_example = None
+PEPS = opt._LBFGSB_FD_EPS
+for x0, eps, lb, ub in candidates():
+    tried += 1
+    a = np.array([x0])
+    hb, fb = base(a, eps, [(lb, ub)])
+    hm, fm = mut(a, eps, [(lb, ub)])
+    differ = steps_differ((hb, fb), (hm, fm))
+    # the production domain: L-BFGS-B's own eps, x0 inside its bounds, all of them a
+    # power in kW (0 <= lb <= x0 <= ub <= 100; L-BFGS-B projects every iterate into the box)
+    dom = eps == PEPS and 0.0 <= lb <= x0 <= ub <= 100.0
+    dom_tried += dom
+    if differ:
+        moved += 1
+        if example is None:
+            example = (x0, eps, lb, ub, float(hb[0]), float(hm[0]))
+        if dom:
+            dom_moved += 1
+            if dom_example is None:
+                dom_example = (x0, eps, lb, ub, float(hb[0]), float(hm[0]))
+rng = np.random.default_rng(11)
+rtried = rmoved = 0
+for _ in range(20000):
+    x0 = float(rng.uniform(-5, 5))
+    w = float(10 ** rng.uniform(-12, 1))
+    lb = x0 - w * float(rng.uniform(-0.2, 1.2))
+    ub = x0 + w * float(rng.uniform(-0.2, 1.2))
+    if lb > ub:
+        continue
+    eps = float(rng.choice([PEPS, 1e-8, 0.0]))
+    rtried += 1
+    a = np.array([x0])
+    if steps_differ(base(a, eps, [(lb, ub)]), mut(a, eps, [(lb, ub)])):
+        rmoved += 1
+
+# production reach: every _fd_steps call of the production solves, both arms on the same input,
+# then the gradient each arm's steps produce, then the whole plan under the mutant
+calls = diff_calls = 0
+
+
+def _rec(x0, eps, bounds):
+    global calls, diff_calls
+    calls += 1
+    rb = base(x0, eps, bounds)
+    if steps_differ(rb, mut(x0, eps, bounds)):
+        diff_calls += 1
+    return rb
+
+
+grad_calls = grad_moved = 0
+_bfd = opt._batch_fd_gradient
+
+
+def _grad(*a, **k):
+    global grad_calls, grad_moved
+    grad_calls += 1
+    g0 = _bfd(*a, **k)
+    with mock.patch.object(opt, F, mut):
+        g1 = _bfd(*a, **k)
+    if not same(g0, g1):
+        grad_moved += 1
+    return g0
+
+
+mp = load_mp()
+run_arms(mp, (F, _rec))
+with mock.patch.object(opt, "_batch_fd_gradient", _grad):
+    production_solves(mp)
+plans_b = production_solves(mp)[0]
+plans_m = run_arms(mp, (F, mut))[0]
+plan_delta = max(float(np.max(np.abs(np.asarray(plans_b[k].power_schedule) - np.asarray(plans_m[k].power_schedule))))
+                 for k in plans_b)
+
+if dom_example is not None:
+    example = dom_example
+if example is not None:
+    x0, eps, lb, ub, hb0, hm0 = example
+    result("example_input", f"x0={float(x0)!r},eps={float(eps)!r},lb={float(lb)!r},ub={float(ub)!r}")
+    result("h_baseline", repr(hb0))
+    result("h_mutant", repr(hm0))
+result("crafted_inputs_tried", tried, "count")
+result("crafted_inputs_moved", moved, "count")
+result("domain_inputs_tried", dom_tried, "count")
+result("domain_inputs_moved", dom_moved, "count")
+result("random_inputs_tried", rtried, "count")
+result("random_inputs_moved", rmoved, "count")
+result("production_fd_calls", calls, "count")
+result("production_fd_calls_moved", diff_calls, "count")
+result("production_gradients", grad_calls, "count")
+result("production_gradients_moved", grad_moved, "count")
+result("production_plan_max_abs_delta_kw", f"{plan_delta:.6g}", "kW")
+
+# null arm: the same function re-compiled with the line unchanged moves nothing, on the grid or the plans
+nul = mutant(F, OLD, OLD)
+null_moved = 0
+for i, (x0, eps, lb, ub) in enumerate(candidates()):
+    a = np.array([x0])
+    null_moved += steps_differ(base(a, eps, [(lb, ub)]), nul(a, eps, [(lb, ub)]))
+plans_n = run_arms(mp, (F, nul))[0]
+null_plan = max(float(np.max(np.abs(np.asarray(plans_b[k].power_schedule) - np.asarray(plans_n[k].power_schedule))))
+                for k in plans_b)
+result("null_inputs_moved", null_moved, "count")
+result("null_plan_max_abs_delta_kw", f"{null_plan:.6g}", "kW")

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0560ccd4eaedbd09.py: pins 0560ccd4eaedbd09 (equivalent-candidate if the full gate survives): moves only on a pins array shorter than the reasons (IndexError, 12 of 54 grid inputs); 0 of 18 production-domain inputs, 0 of 6 production calls had a length mismatch, 0 labels changed

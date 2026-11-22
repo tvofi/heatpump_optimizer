@@ -1,0 +1,17 @@
+key	preliminary_class	step4
+e58e8eb0f54fe274	equivalent-candidate (pending gate)	moves only at pin == 0.5 (a pin of exactly 0.5 becomes an off pin); production pins are 1.0/0.0/NaN, so 0 of 60 production-domain grid inputs and 0 of 4 production calls move
+d128afa0c1ce3d28	candidate (pending gate)	moves on production inputs: 10 of 60 production-domain grid inputs give an inverted box, and the capped pinned production solve's objective moves by 18.0096 (plan max delta 3.05687 kW)
+0a40fc8d3d37f2ba	candidate (pending gate)	moves on production inputs: 51 of 121 finite value pairs flip; the kept objective for (10, 5) goes 5.0 -> 10.0. The probe's four manual_plan solves never call it (0 calls); features.py reaches it
+6af4c3b8f521e3d3	candidate (pending gate)	moves on 4 of 121 finite value pairs, all at the exact tie margin; 0 production calls in the probe's solves
+10e3ee99c90d4d48	equivalent-candidate (pending gate)	moves only on 74 crafted inputs with eps == 0 (x0 == 0); 0 of 4685 production-domain inputs, 0 of 19129 random inputs, 0 of 57 production _fd_steps calls and 0 gradients move
+06f2ef99e24e2e24	equivalent-candidate (pending gate)	moves only where x0 + eps rounds to x0 (eps 0, or |x0| >= 1e12); 0 of 4685 production-domain inputs, 0 production calls, gradients or plan kW move
+c1e66052b2d8090c	equivalent-candidate (pending gate)	moves only for x0 outside its box or a negative fallback step at |x0| ~ 1e17; 0 of 4685 production-domain inputs, 0 production calls, gradients or plan kW move
+f077d8a96cc1e3ed	candidate (pending gate)	moves on 30 of 4685 production-domain inputs (x0 + 1e-4 == ub exactly); 0 of 57 production calls in the probe's solves
+04bfd79fdf465dbf	equivalent-candidate (pending gate)	moves on 7 crafted inputs, all with eps == 0 and a negative x0; 0 of 4685 production-domain inputs, 0 random inputs, 0 production calls, gradients or plan kW move
+6a32950e7b3e62f2	candidate (pending gate)	moves on 29 of 4685 production-domain inputs (centred boxes narrower than 2e-4); 0 of 57 production calls
+c5abe60d7c7ca966	candidate (pending gate)	moves on 29 of 4685 production-domain inputs (centred narrow boxes); 0 of 57 production calls
+ef7b85a510c47950	candidate (pending gate)	moves on 57 of 245 finite grid pairs (all at prior == 0, -0.0); 0 of 12 production decisions
+3067ff76235329e4	candidate (pending gate)	moves on 3 of 245 finite grid pairs, all at exact threshold equality; 0 of 12 production decisions
+0560ccd4eaedbd09	equivalent-candidate (pending gate)	moves only on a pins array shorter than the reasons (IndexError, 12 of 54 grid inputs); 0 of 18 production-domain inputs, 0 of 6 production calls had a length mismatch, 0 labels changed
+b94f040a7b0aed92	candidate (pending gate)	moves on production inputs: 4 of 18 production-domain grid inputs and the published reasons of 2 of 4 production solves (REASON_MANUAL 2 -> 190)
+efea9d49d605beaa	equivalent-candidate (pending gate)	moves only at pin == 0.5 (2 of 54 grid inputs); 0 of 18 production-domain inputs and 0 of 6 production calls move

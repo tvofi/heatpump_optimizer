@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_b94f040a7b0aed92.py: pins b94f040a7b0aed92 (candidate if the full gate survives): moves on production inputs: 4 of 18 production-domain grid inputs and the published reasons of 2 of 4 production solves (REASON_MANUAL 2 -> 190)

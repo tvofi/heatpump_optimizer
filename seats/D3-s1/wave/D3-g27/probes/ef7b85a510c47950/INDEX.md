@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_ef7b85a510c47950.py: pins ef7b85a510c47950 (candidate if the full gate survives): moves on 57 of 245 finite grid pairs (all at prior == 0, -0.0); 0 of 12 production decisions

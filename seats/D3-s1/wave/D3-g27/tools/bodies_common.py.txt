@@ -1,0 +1,53 @@
+
+
+def load_mp():
+    """tests/manual_plan.py's optimizer builder (the module has a __main__ guard)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_mp_probe", str(ROOT / "tests" / "manual_plan.py"))
+    mp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mp)
+    return mp
+
+
+def production_solves(mp):
+    """The production solves every reach count runs: HeatPumpOptimizer.optimize on
+    tests/manual_plan.py's winter house (with DHW): unpinned; space-pinned (on at step 36, off
+    at 40-43, on at every step whose headroom beside the unpinned plan's DHW is below the pin's
+    on-power, free elsewhere); DHW-pinned (on at step 20, off at 60-63, free elsewhere); and
+    space-pinned on at step 36 under a 0.05 kW total power cap there (power_caps_extra), a step
+    whose upper bound is below the pin's on-power."""
+    bundle = mp._build_optimizer("winter_typical", "winter_cold")
+    out = {"plain": mp._solve(bundle)}
+    n = mp.N
+    p_max = bundle[0].model.params.max_electrical_power
+    on_power = bundle[0]._pin_on_power(p_max)
+    full = [i for i, v in enumerate(out["plain"].dhw_power_schedule) if p_max - v < on_power]
+    sp = np.full(n, np.nan)
+    sp[36] = 1.0
+    sp[40:44] = 0.0
+    sp[full] = 1.0
+    out["space_pinned"] = mp._solve(bundle, space_pins=sp)
+    dp = np.full(n, np.nan)
+    dp[20] = 1.0
+    dp[60:64] = 0.0
+    out["dhw_pinned"] = mp._solve(bundle, dhw_pins=dp)
+    cap = np.full(n, 100.0)
+    cap[36] = 0.05
+    sp2 = np.full(n, np.nan)
+    sp2[36] = 1.0
+    out["capped_pinned"] = mp._solve(bundle, space_pins=sp2, power_caps_extra=cap)
+    return out, full, p_max
+
+
+def run_arms(mp, patch_to=None):
+    """production_solves with ``opt.<name>`` replaced by ``fn`` for ``patch_to=(name, fn)``."""
+    if patch_to is None:
+        return production_solves(mp)
+    with mock.patch.object(opt, patch_to[0], patch_to[1]):
+        return production_solves(mp)
+
+
+def same(a, b):
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    return a.shape == b.shape and bool(np.all((a == b) | (np.isnan(a) & np.isnan(b))))

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_06f2ef99e24e2e24.py: pins 06f2ef99e24e2e24 (equivalent-candidate if the full gate survives): moves only where x0 + eps rounds to x0 (eps 0, or |x0| >= 1e12); 0 of 4685 production-domain inputs, 0 production calls, gradients or plan kW move

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_3067ff76235329e4.py: pins 3067ff76235329e4 (candidate if the full gate survives): moves on 3 of 245 finite grid pairs, all at exact threshold equality; 0 of 12 production decisions

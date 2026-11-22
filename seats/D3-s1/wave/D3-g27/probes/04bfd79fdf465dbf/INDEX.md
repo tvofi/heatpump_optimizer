@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_04bfd79fdf465dbf.py: pins 04bfd79fdf465dbf (equivalent-candidate if the full gate survives): moves on 7 crafted inputs, all with eps == 0 and a negative x0; 0 of 4685 production-domain inputs, 0 random inputs, 0 production calls, gradients or plan kW move

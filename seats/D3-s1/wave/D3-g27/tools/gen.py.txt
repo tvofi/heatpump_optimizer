@@ -1,0 +1,19 @@
+"""Assemble the wave's probes: header + prelude + helpers + OLD/NEW + body + tail()."""
+import json, sys
+from pathlib import Path
+SP = Path(__file__).parent
+TR = Path.home() / "audit-r11-D3-s1"
+D = TR / "dev/audit/rounds/round11/D3/s1"
+OUT = Path(sys.argv[1])
+meta = json.loads((SP / "meta.json").read_text())
+headers = json.loads((SP / "headers.json").read_text()) if (SP / "headers.json").exists() else {}
+pre = (SP / "prelude.py").read_text()
+com = (SP / "bodies_common.py").read_text()
+for key, m in meta.items():
+    mut = json.loads((D / "state/results/complete" / f"{key}.json").read_text())["mutant"]
+    body = (SP / "bodies" / m["body"]).read_text()
+    h = headers.get(key, ["# (header pending)"])
+    text = "#!/usr/bin/env python3\n" + "\n".join(h) + "\n" + pre + com + \
+        f"\nOLD = {mut['old']!r}\nNEW = {mut['new']!r}\n" + body + "\ntail()\n"
+    (OUT / f"probe_{key}.py").write_text(text)
+print("wrote", len(meta))

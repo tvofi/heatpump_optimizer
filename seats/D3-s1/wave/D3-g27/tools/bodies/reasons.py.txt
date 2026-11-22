@@ -1,0 +1,95 @@
+
+# ---- _mark_manual_reasons: a grid plus the published reasons of the production solves ----
+F = "_mark_manual_reasons"
+base = opt._mark_manual_reasons
+mut = mutant(F, OLD, NEW)
+MANUAL = opt.REASON_MANUAL
+REASONS = [opt.REASON_IDLE, opt.REASON_COMFORT_FLOOR, opt.REASON_LEGIONELLA, "idle_coasting", "cheap_price", MANUAL]
+PIN_VALUES = [0.0, 1.0, float("nan"), 0.5, 0.49999999999999994, 0.5000000000000001]
+
+
+def call(fn, reasons, pins):
+    try:
+        return ("ok", tuple(fn(list(reasons), pins)))
+    except Exception as exc:
+        return ("raised", type(exc).__name__)
+
+
+tried = moved = dom_tried = dom_moved = 0
+example = dom_example = None
+cases = []
+for r in REASONS:
+    for p in PIN_VALUES:
+        cases.append(([r], np.array([p])))
+# length mismatches (pins shorter / longer than the reasons)
+for r in REASONS:
+    cases.append(([r, r, r], np.array([1.0])))
+    cases.append(([r], np.array([1.0, 0.0, 1.0])))
+    cases.append(([r, r], np.array([], dtype=float)))
+for reasons, pins in cases:
+    tried += 1
+    # the production domain: equal lengths (both are the horizon's n_steps) and pins in {1.0, 0.0, NaN}
+    dom = len(reasons) == len(pins) and all(p in (0.0, 1.0) or p != p for p in pins)
+    dom_tried += dom
+    ob, om = call(base, reasons, pins), call(mut, reasons, pins)
+    if ob != om:
+        moved += 1
+        ex = (list(reasons), [float(p) for p in pins], ob, om)
+        example = example or ex
+        if dom:
+            dom_moved += 1
+            dom_example = dom_example or ex
+
+calls = diff_calls = len_mismatch = 0
+
+
+def _rec(reasons, pins):
+    global calls, diff_calls, len_mismatch
+    calls += 1
+    if pins is not None and len(pins) != len(reasons):
+        len_mismatch += 1
+    ob_ = base(list(reasons), pins)
+    if call(mut, reasons, pins) != ("ok", tuple(ob_)):
+        diff_calls += 1
+    return ob_
+
+
+mp = load_mp()
+run_arms(mp, (F, _rec))
+plans_b = production_solves(mp)[0]
+plans_m = run_arms(mp, (F, mut))[0]
+
+
+def manual_labels(plans):
+    return sum(list(plans[k].space_reasons).count(MANUAL) + list(plans[k].dhw_reasons).count(MANUAL) for k in plans)
+
+
+def label_diff(pb, pm):
+    return sum(sum(a != b for a, b in zip(pb[k].space_reasons, pm[k].space_reasons))
+               + sum(a != b for a, b in zip(pb[k].dhw_reasons, pm[k].dhw_reasons)) for k in pb)
+
+
+if dom_example is not None:
+    example = dom_example
+if example is not None:
+    r, p, ob, om = example
+    result("example_input", f"reasons={r!r},pins={p!r}")
+    result("output_baseline", repr(ob).replace(" ", ""))
+    result("output_mutant", repr(om).replace(" ", ""))
+result("grid_inputs_tried", tried, "count")
+result("grid_inputs_moved", moved, "count")
+result("domain_inputs_tried", dom_tried, "count")
+result("domain_inputs_moved", dom_moved, "count")
+result("production_calls", calls, "count")
+result("production_calls_len_mismatch", len_mismatch, "count")
+result("production_calls_moved", diff_calls, "count")
+result("production_manual_labels_baseline", manual_labels(plans_b), "count")
+result("production_manual_labels_mutant", manual_labels(plans_m), "count")
+result("production_reason_labels_changed", label_diff(plans_b, plans_m), "count")
+
+# null arm: the same function re-compiled with the line unchanged moves nothing, on the grid or the plans
+nul = mutant(F, OLD, OLD)
+null_moved = sum(call(base, r, p) != call(nul, r, p) for r, p in cases)
+plans_n = run_arms(mp, (F, nul))[0]
+result("null_inputs_moved", null_moved, "count")
+result("null_reason_labels_changed", label_diff(plans_b, plans_n), "count")

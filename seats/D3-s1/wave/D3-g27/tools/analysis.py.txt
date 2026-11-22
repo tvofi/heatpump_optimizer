@@ -1,0 +1,254 @@
+"""Per-key step-4 analysis of box D3-g27 (written once the probes ran), and the
+finalizer that joins it with the key's gate record into results/<key>.json."""
+import json, re, sys
+from pathlib import Path
+
+TR = Path.home() / "audit-r11-D3-s1"
+S1 = TR / "dev/audit/rounds/round11/D3/s1"
+W = S1 / "wave/D3-g27"
+WREL = "dev/audit/rounds/round11/D3/s1/wave/D3-g27"
+PY = "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3"
+FD_EXEC = ("tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/doc_claims.py, "
+           "tests/entities.py, tests/env_drift.py, tests/features.py, tests/manual_plan.py, tests/optimality.py, "
+           "tests/plan_view.py, tests/validate.py")
+GRAD = ("tests/features.py::_grad_parity (features.py:6394; per-variable parity with scipy's approx_derivative over "
+        "uniform, capped and DHW-pinned-headroom bounds at rng.uniform(0, 3) powers)")
+RESTART = ("tests/features.py::_d0_restart_keeps_only_a_real_drop (features.py ~6800-6850: an ftol-tick restart is not "
+           "adopted, a 5e-2 relative drop is)")
+
+A = {
+ # ---------------- _apply_pins_to_bounds ----------------
+ "e58e8eb0f54fe274": dict(
+    domain="pins as production builds them: PIN_ON 1.0 / PIN_OFF 0.0 / PIN_FREE NaN (manual_plan.ManualOverride.channel_pins; optimizer.py:565's np.where)",
+    should_fail="tests/manual_plan.py (executes optimizer.py:2417 on the traced baseline; also tests/features.py, tests/optimality.py, tests/env_drift.py) has no _apply_pins_to_bounds check at pin == 0.5; none is owed through production, which never builds a 0.5 pin",
+    reason="moves only at pin == 0.5 (a pin of exactly 0.5 becomes an off pin); production pins are 1.0/0.0/NaN, so 0 of 60 production-domain grid inputs and 0 of 4 production calls move"),
+ "d128afa0c1ce3d28": dict(
+    domain="on-pins (1.0) over upper bounds 0.0..3.0 and on-powers 0..5 kW, the headroom _space_scope (optimizer.py:596) builds beside a DHW block or under power_caps_extra",
+    should_fail="tests/manual_plan.py (executes optimizer.py:2418 on the traced baseline; also tests/features.py, tests/env_drift.py): no check pins a space step forced on where the step's upper bound (headroom under power_caps_extra or beside a DHW block) is below the pin's on-power, asserting lower <= upper or the plan's objective",
+    title="No check forces a step on whose headroom is below the pin's on-power; dropping the min() clamp in _apply_pins_to_bounds is unseen",
+    claim=("Mutant d128afa0c1ce3d28 at optimizer.py:2418 (`min(min_on_power, high)` -> `min_on_power`) survives the full gate, yet "
+           "an optimize() of tests/manual_plan.py's winter house with space pinned on at step 36 under a 0.05 kW total cap "
+           "(power_caps_extra) builds an inverted box (0.1, 0.05) and moves the plan: objective 63.56 -> 81.57 (+18.01), 95 steps "
+           "changed, largest step delta 3.06 kW; the docstring's own warning (a lower bound above the upper makes the solve diverge)."),
+    severity="medium", class_guess="I1",
+    phenomenon="A forced-on step's lower bound never exceeds its upper bound: _apply_pins_to_bounds clamps the on-power to the step's headroom",
+    metric="the optimize() objective of the capped pinned solve and the count of inverted boxes (lower > upper) _apply_pins_to_bounds returns for on-pins",
+    reason="moves on production inputs: 10 of 60 production-domain grid inputs give an inverted box, and the capped pinned production solve's objective moves by 18.0096 (plan max delta 3.05687 kW)",
+    value=18.0096, unit="objective delta of the capped pinned solve (63.56 baseline)"),
+ # ---------------- _better_objective ----------------
+ "0a40fc8d3d37f2ba": dict(
+    domain="any two finite objective values (an OptimizationResult's objective_value)",
+    should_fail="tests/features.py (the one script that executes optimizer.py:2111 on the traced baseline, through _repair_throttled_buffer_caps at optimizer.py:5180) never asserts which plan _better_objective keeps when the second arm (the cap-tighten seeds) is lower",
+    title="No check makes the cap-tighten seed arm win _better_objective; disabling its right-wins branch is unseen",
+    claim=("Mutant 0a40fc8d3d37f2ba at optimizer.py:2111 (the right-wins guard -> `if False:`) survives the full gate, yet the probe's "
+           "kept objective for left=10, right=5 moves 5.0 -> 10.0, and 51 of 121 finite value pairs flip: the buffer-cap repair "
+           "(optimizer.py:5180) would always keep the unseeded solve, so its extra seeds could never win."),
+    severity="low", class_guess="I1",
+    phenomenon="_better_objective keeps the plan with the lower finite objective (ties keep left)",
+    metric="the objective of the plan _better_objective keeps for left=10.0, right=5.0, and the count of finite (left, right) pairs whose kept side flips",
+    reason="moves on production inputs: 51 of 121 finite value pairs flip; the kept objective for (10, 5) goes 5.0 -> 10.0. The probe's four manual_plan solves never call it (0 calls); features.py reaches it",
+    value=10.0, unit="kept objective for left=10, right=5 (baseline 5.0)"),
+ "6af4c3b8f521e3d3": dict(
+    domain="any two finite objective values",
+    should_fail="tests/features.py (executes optimizer.py:2111) has no _better_objective case at the tie margin right == left - 1e-9",
+    title="No check pins _better_objective's 1e-9 tie margin; < -> <= at it is unseen",
+    claim=("Mutant 6af4c3b8f521e3d3 at optimizer.py:2111 (`ro < lo - 1e-9` -> `<=`) survives the full gate, yet at right == left - 1e-9 "
+           "exactly the kept plan flips left -> right (4 of 121 finite pairs, e.g. left=0.0, right=-1e-09)."),
+    severity="low", class_guess="I1",
+    phenomenon="_better_objective keeps left unless right is lower by more than 1e-9",
+    metric="the side _better_objective keeps at right == left - 1e-9 exactly, counted over the finite value grid",
+    reason="moves on 4 of 121 finite value pairs, all at the exact tie margin; 0 production calls in the probe's solves",
+    value=4, unit="finite value pairs whose kept side flips"),
+ # ---------------- _fd_steps ----------------
+ "10e3ee99c90d4d48": dict(
+    domain="L-BFGS-B's own eps (_LBFGSB_FD_EPS = 1e-4) with 0 <= lb <= x0 <= ub <= 100 kW",
+    should_fail=f"{GRAD}; none is owed through production: the sign only matters on the zero-probe fallback at x0 == 0, which needs eps == 0, and production passes 1e-4",
+    reason="moves only on 74 crafted inputs with eps == 0 (x0 == 0); 0 of 4685 production-domain inputs, 0 of 19129 random inputs, 0 of 57 production _fd_steps calls and 0 gradients move"),
+ "06f2ef99e24e2e24": dict(
+    domain="L-BFGS-B's own eps (1e-4) with 0 <= lb <= x0 <= ub <= 100 kW",
+    should_fail=f"{GRAD}; none is owed through production: the zero-probe fallback needs x0 + 1e-4 == x0 (|x0| > ~1e12 kW)",
+    reason="moves only where x0 + eps rounds to x0 (eps 0, or |x0| >= 1e12); 0 of 4685 production-domain inputs, 0 production calls, gradients or plan kW move"),
+ "c1e66052b2d8090c": dict(
+    domain="L-BFGS-B's own eps (1e-4) with 0 <= lb <= x0 <= ub <= 100 kW",
+    should_fail=f"{GRAD}; none is owed through production: x0 + h lands exactly on lb only for a negative fallback step or an x0 below its lower bound",
+    reason="moves only for x0 outside its box or a negative fallback step at |x0| ~ 1e17; 0 of 4685 production-domain inputs, 0 production calls, gradients or plan kW move"),
+ "f077d8a96cc1e3ed": dict(
+    domain="L-BFGS-B's own eps (1e-4) with 0 <= lb <= x0 <= ub <= 100 kW",
+    should_fail=f"{GRAD} lacks an iterate exactly eps below its upper bound (x0 + 1e-4 == ub)",
+    title="No check differences a variable exactly eps below its upper bound; x > ub -> x >= ub in _fd_steps is unseen",
+    claim=("Mutant f077d8a96cc1e3ed at optimizer.py:1577 survives the full gate, yet where x0 + 1e-4 == ub exactly the step flips "
+           "from forward to backward (x0=0.0, lb=0.0, ub=1e-4: h +1e-4 -> -1e-4), departing from scipy's approx_derivative the "
+           "parity check claims to replicate; 30 of 4685 production-domain inputs move, 0 of 57 production calls in the probe's solves."),
+    severity="low", class_guess="I1",
+    phenomenon="_fd_steps reproduces scipy's 2-point step per variable: a forward step landing exactly on ub is feasible and kept forward",
+    metric="the count of production-domain (eps=1e-4, 0<=lb<=x0<=ub<=100) crafted inputs whose _fd_steps step differs where the gradient reads it",
+    reason="moves on 30 of 4685 production-domain inputs (x0 + 1e-4 == ub exactly); 0 of 57 production calls in the probe's solves",
+    value=30, unit="production-domain inputs whose step moves"),
+ "04bfd79fdf465dbf": dict(
+    domain="L-BFGS-B's own eps (1e-4) with 0 <= lb <= x0 <= ub <= 100 kW",
+    should_fail=f"{GRAD}; none is owed through production: at |h| == max(distance) the forward/backward overrides rebuild the same step",
+    reason="moves on 7 crafted inputs, all with eps == 0 and a negative x0; 0 of 4685 production-domain inputs, 0 random inputs, 0 production calls, gradients or plan kW move"),
+ "6a32950e7b3e62f2": dict(
+    domain="L-BFGS-B's own eps (1e-4) with 0 <= lb <= x0 <= ub <= 100 kW",
+    should_fail=f"{GRAD} lacks a free variable at the exact centre of a box narrower than 2*eps",
+    title="No check differences a variable centred in a box narrower than 2*eps; the forward tie in _fd_steps is unpinned",
+    claim=("Mutant 6a32950e7b3e62f2 at optimizer.py:1580 (`upper_dist >= lower_dist` -> `>`) survives the full gate, yet for a free "
+           "variable at the exact centre of a box narrower than 2*eps the step leaves the box (x0=0.5, bounds 0.5+-1e-12: "
+           "h 1e-12 -> 1e-4); 29 of 4685 production-domain inputs move, 0 of 57 production calls in the probe's solves."),
+    severity="low", class_guess="I1",
+    phenomenon="_fd_steps never steps a variable outside its bounds: a non-fitting step at equal distances goes forward to ub",
+    metric="the count of production-domain crafted inputs whose _fd_steps step differs where the gradient reads it",
+    reason="moves on 29 of 4685 production-domain inputs (centred boxes narrower than 2e-4); 0 of 57 production calls",
+    value=29, unit="production-domain inputs whose step moves"),
+ "c5abe60d7c7ca966": dict(
+    domain="L-BFGS-B's own eps (1e-4) with 0 <= lb <= x0 <= ub <= 100 kW",
+    should_fail=f"{GRAD} lacks a free variable at the exact centre of a box narrower than 2*eps",
+    title="No check differences a variable centred in a box narrower than 2*eps; the backward tie in _fd_steps is unpinned",
+    claim=("Mutant c5abe60d7c7ca966 at optimizer.py:1582 (`upper_dist < lower_dist` -> `<=`) survives the full gate, yet for a free "
+           "variable at the exact centre of a box narrower than 2*eps the forward step is overwritten backward (x0=0.5, bounds "
+           "0.5+-1e-12: h +1e-12 -> -1e-12); 29 of 4685 production-domain inputs move, 0 of 57 production calls."),
+    severity="low", class_guess="I1",
+    phenomenon="_fd_steps reproduces scipy's one-sided rule: at equal distances a non-fitting step goes forward",
+    metric="the count of production-domain crafted inputs whose _fd_steps step differs where the gradient reads it",
+    reason="moves on 29 of 4685 production-domain inputs (centred narrow boxes); 0 of 57 production calls",
+    value=29, unit="production-domain inputs whose step moves"),
+ # ---------------- _lbfgsb_restart ----------------
+ "ef7b85a510c47950": dict(
+    domain="any finite (prior, score) objective pair",
+    should_fail=f"{RESTART} has no case at a prior objective of exactly 0",
+    title="No check restarts from a zero objective; dropping _lbfgsb_restart's 1e-12 scale floor is unseen",
+    claim=("Mutant ef7b85a510c47950 at optimizer.py:1870 (`max(abs(prior), 1e-12)` -> `abs(prior)`) survives the full gate, yet at "
+           "prior == 0 a polish gain below 2e-17 is adopted instead of kept out (prior=0.0, score=-2e-17: best -> polished); 57 of "
+           "245 finite grid pairs move, 0 of 12 production decisions in the probe's solves (none had prior 0)."),
+    severity="low", class_guess="I1",
+    phenomenon="_lbfgsb_restart adopts a polish only for a drop above _LBFGSB_RESTART_KEEP_REL x max(|prior|, 1e-12)",
+    metric="which plan _lbfgsb_restart keeps (best/polished), counted over the finite (prior, score) grid",
+    reason="moves on 57 of 245 finite grid pairs (all at prior == 0, -0.0); 0 of 12 production decisions",
+    value=57, unit="finite (prior, score) pairs whose kept plan flips"),
+ "3067ff76235329e4": dict(
+    domain="any finite (prior, score) objective pair",
+    should_fail=f"{RESTART} has no case at a drop of exactly the keep threshold",
+    title="No check restarts with a drop of exactly the keep threshold; > -> >= in _lbfgsb_restart is unseen",
+    claim=("Mutant 3067ff76235329e4 at optimizer.py:1871 (`>` -> `>=`) survives the full gate, yet where prior - score equals "
+           "_LBFGSB_RESTART_KEEP_REL x scale exactly the polish is adopted (prior=0.0, score=-2e-17: best -> polished); 3 of 245 "
+           "finite grid pairs move, 0 of 12 production decisions (closest gap to the threshold 1.39e-3)."),
+    severity="low", class_guess="I1",
+    phenomenon="_lbfgsb_restart adopts a polish only for a drop strictly above the keep threshold",
+    metric="which plan _lbfgsb_restart keeps (best/polished), counted over the finite (prior, score) grid",
+    reason="moves on 3 of 245 finite grid pairs, all at exact threshold equality; 0 of 12 production decisions",
+    value=3, unit="finite (prior, score) pairs whose kept plan flips"),
+ # ---------------- _mark_manual_reasons ----------------
+ "0560ccd4eaedbd09": dict(
+    domain="reasons and pins of equal length (both the horizon's n_steps) with pins 1.0/0.0/NaN",
+    should_fail="tests/manual_plan.py (executes optimizer.py:2492; also tests/block_duty.py, tests/features.py, tests/optimality.py); none is owed through production, where both arrays are n_steps long",
+    reason="moves only on a pins array shorter than the reasons (IndexError, 12 of 54 grid inputs); 0 of 18 production-domain inputs, 0 of 6 production calls had a length mismatch, 0 labels changed"),
+ "b94f040a7b0aed92": dict(
+    domain="reasons and pins of equal length with pins 1.0/0.0/NaN",
+    should_fail="tests/manual_plan.py::test_pins_change_schedule (executes optimizer.py:2494) asserts only that a forced-on step reads manual_plan; no check asserts that a free (NaN) or forced-off step keeps its own reason",
+    title="No check asserts free or forced-off steps keep their reason under a manual plan; disabling _mark_manual_reasons's guard is unseen",
+    claim=("Mutant b94f040a7b0aed92 at optimizer.py:2494 (`if _pin_is_free(pin) or pin < 0.5:` -> `if False:`) survives the full "
+           "gate, yet with a manual plan active every free or forced-off step whose reason is not idle/comfort_floor/legionella is "
+           "published as manual_plan: over the probe's four production solves the REASON_MANUAL labels go 2 -> 190 (188 labels "
+           "changed), e.g. an off-pinned idle_coasting step becomes manual_plan."),
+    severity="medium", class_guess="I1",
+    phenomenon="Only a step the manual plan forces on is labelled manual_plan; free and forced-off steps keep their own reason code",
+    metric="the count of published space/DHW reasons equal to REASON_MANUAL over the probe's four production solves",
+    reason="moves on production inputs: 4 of 18 production-domain grid inputs and the published reasons of 2 of 4 production solves (REASON_MANUAL 2 -> 190)",
+    value=190, unit="published REASON_MANUAL labels over four production solves (baseline 2)"),
+ "efea9d49d605beaa": dict(
+    domain="reasons and pins of equal length with pins 1.0/0.0/NaN",
+    should_fail="tests/manual_plan.py (executes optimizer.py:2494) has no pin == 0.5 case; none is owed through production, which never builds a 0.5 pin",
+    reason="moves only at pin == 0.5 (2 of 54 grid inputs); 0 of 18 production-domain inputs and 0 of 6 production calls move"),
+}
+
+
+def probe_results(key):
+    f = W / "probes" / f"probe_{key}.py"
+    return [l[len("# EXPECTED RESULT "):].strip() for l in f.read_text().splitlines() if l.startswith("# EXPECTED RESULT ")]
+
+
+def get(res, name):
+    for r in res:
+        if r.startswith(name + "="):
+            return r.split("=", 1)[1]
+    return None
+
+
+def finalize(key):
+    keys = {l.split("\t")[0]: l.split("\t") for l in (W / "keys.tsv").read_text().splitlines()[1:] if l.strip()}
+    row = keys[key]
+    g = json.loads((W / "gates" / f"{key}.json").read_text())
+    mut = json.loads((S1 / "state/results/complete" / f"{key}.json").read_text())["mutant"]
+    a = A[key]
+    res = probe_results(key)
+    cmd = f"{PY} {WREL}/probes/probe_{key}.py"
+    gate = {k: g.get(k) for k in ("verdict", "killed_by", "gate_rc", "wall_s", "load1_start", "load1_end")}
+    gate["record"] = f"{WREL}/gates/{key}.json"
+    gate["command"] = f"{PY} dev/audit/rounds/round11/D3/s1/fullgate.py run --src {row[1]} --key {key}"
+    gate["provisional"] = True
+    out = {"key": key, "site": f"{mut['file'].split('/')[-1]}:{mut['line']} {mut['kind']}",
+           "patch": f"{mut['old'].strip()} -> {mut['new'].strip()}", "function": row[4], "cluster": row[5],
+           "slice": row[6], "m4_source": row[10], "gate": gate}
+    v = g.get("verdict")
+    if v == "KILLED":
+        out["class"] = "killed"
+        out["killed_by"] = g.get("killed_by")
+        out["fail_lines"] = g.get("fail_lines")
+        out["non_finding"] = {"claim": f"{out['site']} {key} is pinned by the suite: the full gate KILLED it",
+                              "command": gate["command"],
+                              "value": f"killed_by={','.join(g.get('killed_by') or [])}; gate_rc={g.get('gate_rc')}; wall {g.get('wall_s')} s (provisional)"}
+        out["probe"] = {"path": f"{WREL}/probes/probe_{key}.py", "command": cmd, "results": res,
+                        "note": "probe taken before the verdict; not needed for a killed key"}
+        return out
+    if v == "TIMEOUT" or v is None:
+        out["class"] = "timeout"
+        log = W / "gates" / f"{key}.log"
+        last = None
+        if log.exists():
+            ran = re.findall(r"(tests/[\w./-]+\.(?:py|mjs|sh))", log.read_text(errors="replace"))
+            last = ran[-1] if ran else None
+        out["timeout"] = {"cap_s": g.get("cap_s", 14400), "last_script": last}
+        return out
+    moved = a.get("title") is not None
+    out["class"] = "candidate" if moved else "equivalent-candidate"
+    out["probe"] = {"path": f"{WREL}/probes/probe_{key}.py", "command": cmd,
+                    "baseline_value": get(res, "h_baseline") or get(res, "bounds_baseline") or get(res, "kept_baseline") or get(res, "output_baseline"),
+                    "mutant_value": get(res, "h_mutant") or get(res, "bounds_mutant") or get(res, "kept_mutant") or get(res, "output_mutant"),
+                    "example_input": get(res, "example_input"),
+                    "results": res,
+                    "inputs_tried": f"production domain: {a['domain']}; " + "; ".join(r for r in res if "_tried=" in r),
+                    "null": [r for r in res if r.startswith("null_")]}
+    out["step4"] = a["reason"]
+    out["should_fail"] = a["should_fail"]
+    out["machine"] = "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14"
+    if moved:
+        out["finding"] = {
+            "title": a["title"], "claim": a["claim"] + f" Full gate: {v}, gate_rc={g.get('gate_rc')}.",
+            "step": "D3.M3", "scope": "D3-s1", "class_guess": a["class_guess"], "severity_claimed": a["severity"],
+            "stop_rule_class": "bug", "metric_definition": a["metric"], "phenomenon_property": a["phenomenon"],
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this key's row) with the full gate's verdict in gates/<key>.json",
+            "instrumented_symbol": f"custom_components.heatpump_optimizer.optimizer:{row[4]}",
+            "files": [mut["file"]],
+            "harness_paths": ["dev/audit/rounds/round11/D3/s1/fullgate.py", f"{WREL}/probes/probe_{key}.py"],
+            "evidence_command": cmd,
+            "evidence": {"command": cmd, "harness_path": f"{WREL}/probes/probe_{key}.py", "value": a["value"], "unit": a["unit"],
+                         "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692", "machine": out["machine"],
+                         "tolerance": "exact (counts); solver floats to 1e-3 relative", "cpu_or_wall": "n/a"},
+            "perturbation": {"change": f"the one-line mutant `{mut['old'].strip()}` -> `{mut['new'].strip()}` at {mut['file']}:{mut['line']}, in memory by the probe; on disk by fullgate.py run --key {key}",
+                             "expected_direction": "up", "observed_value": a["value"]},
+            "null_control": {"command": cmd, "value": "; ".join(r for r in res if r.startswith("null_")),
+                             "note": "the function re-compiled with the line unchanged: no grid input, production call or plan moves; the box's full-gate null is gates/null.json"},
+            "should_fail": a["should_fail"],
+            "proposed_fix_scope": "tests only: the check named in should_fail, at the input the probe's example_input names",
+        }
+    else:
+        out["non_finding"] = {"claim": f"{out['site']} {key} survives the full gate but is equivalent at every production-reachable input tried: {a['reason']}",
+                              "command": cmd, "value": "; ".join(r for r in res if "moved" in r or "changed" in r)}
+    return out
+
+
+if __name__ == "__main__":
+    for key in sys.argv[1:]:
+        r = finalize(key)
+        (W / "results" / f"{key}.json").write_text(json.dumps(r, indent=1) + "\n")
+        print(key, r["class"])
