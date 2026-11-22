@@ -208,6 +208,7 @@ class EntryConfig(Mapping[str, Any]):
 
     # A fraction this version cannot read caps nothing: None, not the default.
     silent_mode_power_fraction: float | None = _key(const.DEFAULT_SILENT_MODE_FRACTION, _refused_number)
+    space_setpoint_high_limit_c: float | None = _key(None, _refused_number)
 
     # Optional numbers: None keeps the weekday or ordinary-day value.
     comfort_temp_day_weekend: float | None = _key(None, finite_float)

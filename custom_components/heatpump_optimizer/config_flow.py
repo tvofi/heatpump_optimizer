@@ -218,7 +218,9 @@ from .const import (
     CONF_FLOW_HEAT_C,
     DEFAULT_FLOW_HEAT_C,
     FLOW_HEAT_C_MAX,
+    FLOW_LIMIT_C_MIN,
     CONF_FLOW_MIN_LIFT_K,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_C,
     CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
@@ -658,11 +660,6 @@ def _number(
     slider: bool = False,
 ) -> selector.NumberSelector:
     """A numeric field.
-
-    The nested ``NumberSelector(NumberSelectorConfig(...))`` construction
-    appeared eighty-two times in this file; collapsing it makes each field one
-    readable line, so a form reads as a list of settings rather than as a wall
-    of constructor calls.
 
     A box field takes ``"any"`` as its step (#1679): its increment pinned the
     frontend's validity check, so a default or a derived value off that
@@ -1732,14 +1729,15 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities", CONF_FLOW_MIN_LIFT_K, DEFAULT_FLOW_MIN_LIFT_K, _number(0.5, 15, 0.5, 'K'), when=_water_space_setpoint, group="indoor"),
     # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
     # ceiling at the gate would write "off" on every heating step.
-    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, FLOW_HEAT_C_MAX, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(FLOW_LIMIT_C_MIN, FLOW_HEAT_C_MAX, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
     # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
     # on by default, and it acts only where a power meter is configured too.
     _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),
-    # The controller's own limits on that set-point, where it publishes them
-    # (a Smart Home Interface's inputs 10104 and 10103): the loop stays inside them.
+    # The controller's limits on that set-point where it publishes them (a Smart Home Interface's
+    # inputs 10104 and 10103), and the upper one typed by hand: space writes stay inside (flow_limit).
     _F("entities", CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
     _F("entities", CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_SPACE_SETPOINT_HIGH_LIMIT_C, _STORED, _number(FLOW_LIMIT_C_MIN, FLOW_HEAT_C_MAX, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),

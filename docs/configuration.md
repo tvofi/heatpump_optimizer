@@ -630,7 +630,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written while the plan is in charge. A space boost or Boost mode writes the set-point entity's own maximum instead (up to 70 °C), capped by a value here other than 55 °C. A stored value at or below the 25 °C gate is read as 55 °C. |
 | Follow the planned power on the measured draw (`space_setpoint_power_feedback`) | On | on / off | Shown when the unit above is *Flow* or *Return temperature*; acts only when a heat-pump power sensor is configured too. Closes the heating value on the measured draw (see [Pump duty control](#pump-duty-control)). Off writes the inlet plus the lift. |
 | Controller's minimum set-point sensor (`space_setpoint_low_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the lowest value the controller accepts for the set-point entity (for example a Luxtronik through ha-luxtronik-shi: “Temperature: return target minimum”, input 10104). *Follow the planned power* then never sends a value below it (see [Pump duty control](#pump-duty-control)). Empty changes nothing. |
-| Controller's maximum set-point sensor (`space_setpoint_high_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the controller accepts (for example a Luxtronik: “Temperature: return limit”, input 10103). *Follow the planned power* then never sends a value above it. Empty changes nothing. |
+| Controller's maximum set-point sensor (`space_setpoint_high_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the controller accepts (for example a Luxtronik: “Temperature: return limit”, input 10103). No space water set-point above it is written: *Follow the planned power*, a boost and every heating step stay under it. With a maximum set-point typed in the next row as well, the lower of the two applies. Empty changes nothing. |
+| Controller's maximum set-point (`space_setpoint_high_limit_c`) | none | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the pump accepts, typed by hand, for a set-point entity whose own maximum is higher than what the pump takes. No space water set-point above it is written, a boost's included. With the sensor in the row above as well, the lower of the two applies; one at or below the lowest heating value (the gate plus one step of the set-point entity) is left out, and one below the entity's own minimum holds that minimum. Empty: the entity's own maximum applies. |
 
 ### Power and solar sensors
 
@@ -889,7 +890,7 @@ writes, at every 15-minute plan step:
   write the set-point entity's own maximum on every step they cover,
   whatever power the plan booked for the step, capped by a heating flow
   ceiling set to anything but its 55 °C default and by the controller's
-  maximum set-point sensor when one is configured. An entity whose maximum it cannot read, or one above
+  maximum set-point, its sensor or the value typed by hand, the lower where both are set. An entity whose maximum it cannot read, or one above
   70 °C (a generic number helper), keeps the planned level instead. A boost
   lasts two hours and is not trimmed on the room temperature, so on a
   low-temperature floor heating set the heating flow ceiling to bound it.

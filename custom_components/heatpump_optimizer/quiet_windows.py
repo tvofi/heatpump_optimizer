@@ -51,8 +51,8 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta, time
-from typing import Any, Final
+from datetime import datetime, timedelta, time, timezone
+from typing import Any, Final, TypeGuard
 
 import numpy as np
 
@@ -83,7 +83,7 @@ from .dhw_schedule import (
 from .inputs import state_power_kw
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .drift import utc_step_starts
-from .plan_step import PLAN_STEP_HOURS, plan_step_start
+from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 
 #: The per-step action codes, as one int8 array element per step.
 ACTION_NONE: Final = 0
@@ -150,6 +150,37 @@ def step_actions(
         ):
             out[i] = ACTION_SILENT
     return out if bool(np.any(out)) else None
+
+
+def silent_rows(spec: Any) -> TypeGuard[str]:
+    """Whether ``spec`` names a silent window the week can reach.
+
+    The same ``step_actions`` the solve uses, over seven days from a Monday,
+    so a weekday token and an overnight window are rows and an empty or
+    unreadable spec is not. No rows means the switch is never written.
+    True only for a ``str``, which is what lets the caller pass it to
+    :func:`inside_silent`.
+    """
+    if not isinstance(spec, str) or not spec.strip():
+        return False
+    monday = datetime(2026, 1, 5, tzinfo=timezone.utc)
+    actions = step_actions(
+        monday, 7 * 24 * 60 // PLAN_STEP_MINUTES, PLAN_STEP_HOURS, spec, None,
+    )
+    return actions is not None
+
+
+def inside_silent(silent_spec: str, off_spec: Any, now: datetime) -> bool:
+    """Whether the step covering ``now`` is silent, off winning an overlap.
+
+    The same ``step_actions`` the solve uses, so a hand-edited store whose
+    off row overlaps a silent row holds the switch off: that step is idle,
+    not a silent one.
+    """
+    actions = step_actions(
+        plan_step_start(now), 1, PLAN_STEP_HOURS, silent_spec, off_spec,
+    )
+    return actions is not None and int(actions[0]) == ACTION_SILENT
 
 
 def quiet_reason(config: Mapping[str, Any], now: datetime) -> str | None:

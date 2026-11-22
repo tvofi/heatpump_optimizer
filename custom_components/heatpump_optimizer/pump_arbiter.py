@@ -152,8 +152,8 @@ import math
 from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta, timezone
-from typing import Any, NamedTuple, TypeGuard, cast
+from datetime import datetime, timedelta
+from typing import Any, NamedTuple, cast
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -164,7 +164,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, draw_range, duty_switch, issues, off_restore, pump_mode, quiet_windows
+from . import boost, draw_range, duty_switch, flow_limit, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -198,7 +198,7 @@ from .inputs import (
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
-from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_index, plan_step_start
+from .plan_step import PLAN_STEP_MINUTES, plan_step_index, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
@@ -614,6 +614,24 @@ def _grid(inp: ArbiterInputs, slot: str) -> SetpointGrid | None:
     return setpoint_grid(inp.hass, _entities(inp.config)[slot])
 
 
+def _space_limit_c(inp: ArbiterInputs) -> float | None:
+    """The space water set-point's high limit (:func:`flow_limit.high_limit`), degC, or ``None``,
+    always for an indoor unit; a source set aside is logged. Heating writes, a boost and the loop
+    take it as their ``hi``, under which the entity's own maximum still binds; the gate, the
+    draw-range ceiling (a capped write commands no top draw) and an adopted edit do not read it."""
+    entity = _entities(inp.config)["space_setpoint"]
+    if _grid(inp, "space_setpoint") is None or not _flow_unit(inp.config):
+        return None
+    out = flow_limit.high_limit(
+        _setpoint_limits_c(inp)[1],
+        flow_limit.option_c(EntryConfig.from_mapping(inp.config).space_setpoint_high_limit_c),
+        _heating_floor_c(inp)[1],
+    )
+    log_held(inp.hass, f"space_limit_dropped:{entity}", bool(out.dropped), "Pump duty: the %s high "
+             "limit leaves no heating value on %s; not used", " and ".join(out.dropped), entity)
+    return out.limit_c
+
+
 def _planned_room(
     result: Any, now: datetime, attr: str = "optimal_setpoints"
 ) -> float | None:
@@ -897,8 +915,8 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
 
     The set-point entity's own maximum (tvofi, 2026-11-13: "set at the
     maximum value"), capped by a heating ceiling (``flow_heat_c``) set to
-    anything but its default, and by the controller's upper-limit sensor
-    where it reads (:func:`_setpoint_limits_c`). The default caps nothing: an
+    anything but its default, and by the high limit (:func:`_space_limit_c`:
+    the controller's sensor, the manual option). The default caps nothing: an
     absent key reads as it, and an untouched options page must change
     nothing (``tests/config_flow_steps.py``), so a stored default cannot be
     told from no setting.
@@ -915,8 +933,7 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
     caps = [high]
     if (ceiling := _heat_ceiling_c(inp.config)) != DEFAULT_FLOW_HEAT_C:
         caps.append(ceiling)
-    limit = _setpoint_limits_c(inp)[1]
-    if limit is not None and limit > _gate_floor_c(inp.config):
+    if (limit := _space_limit_c(inp)) is not None:
         caps.append(limit)
     return min(caps)
 
@@ -970,7 +987,7 @@ def _flow_target(
     target = _as_target(inp.config, FLOW_HOLD_C if curve is None else max(curve, FLOW_HOLD_C))
     capped = curve is not None or _return_unit(inp.config)
     hold = min(target, ceiling) if capped else target
-    return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
+    return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config), hi=_space_limit_c(inp))
 
 
 class MapInputs(NamedTuple):
@@ -990,7 +1007,8 @@ def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool) -> MapInputs:
     for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`)."""
     p_min, p_max = _band_kw(inp)
     boost_c = _boost_ceiling_c(inp) if boosted else None
-    heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
+    # The level map's top is one the pump takes: under the high limit.
+    heat_c = min(_heat_ceiling_c(inp.config) if boost_c is None else boost_c, _space_limit_c(inp) or math.inf)
     floor_c = _or_hold(modulation_floor_flow_c(
         _flow_inlet_c(inp), _gate_c(inp),
         start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
@@ -1086,24 +1104,23 @@ def _feedback_bounds(held: ArbiterState, rec: FeedbackRun, inp: ArbiterInputs, i
     never above the ceiling.
 
     The gate is the value a step that does not heat writes, so a heating
-    write at or below it tells the controller the step is off. A
-    controller's upper limit, read from its sensor or from a cut, that
-    sits under the lowest heating write (the gate plus one entity step)
-    leaves no heating value inside it: it is not the limit of a heating
-    set-point (a sensor in the wrong slot, a placeholder, a parked
-    circuit), and it is left out as an unreadable one is.
+    write at or below it tells the controller the step is off. A cut under the lowest heating write
+    (:func:`_heating_floor_c`) is left out; the upper limit is :func:`_space_limit_c`'s, under the same rule.
     """
-    gate = _gate_c(inp) or _gate_floor_c(inp.config)
-    clear = gate + FEEDBACK_GATE_CLEAR_K
-    lowest = _bounded(inp, "space_setpoint", clear, lo=clear) or clear
-    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, clear]
+    clear, lowest = _heating_floor_c(inp)
+    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, clear, _setpoint_limits_c(inp)[0]]
     if held.stop_gap_k is not None:
         lows.append(inlet - held.stop_gap_k + FEEDBACK_STOP_MARGIN_K)
-    low, high = _setpoint_limits_c(inp)
-    lows.append(low)
     highs = [_heat_ceiling_c(inp.config)]
-    highs += [v for v in (rec.cut_hi_c, high) if v is not None and v >= lowest]
+    highs += [v for v in (rec.cut_hi_c, _space_limit_c(inp)) if v is not None and v >= lowest]
     return (max(v for v in lows if v is not None), min(highs))
+
+
+def _heating_floor_c(inp: ArbiterInputs) -> tuple[float, float]:
+    """``(clear, lowest)``, degC: the gate plus :data:`FEEDBACK_GATE_CLEAR_K`, and that on the step, the
+    lowest heating write; a limit below it (a misplaced sensor, a placeholder) leaves no heating value."""
+    clear = (_gate_c(inp) or _gate_floor_c(inp.config)) + FEEDBACK_GATE_CLEAR_K
+    return clear, _bounded(inp, "space_setpoint", clear, lo=clear) or clear
 
 
 def _setpoint_limits_c(inp: ArbiterInputs) -> tuple[float | None, float | None]:
@@ -1206,37 +1223,6 @@ def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: dat
     return True
 
 
-def _silent_rows(spec: Any) -> TypeGuard[str]:
-    """Whether ``spec`` names a silent window the week can reach.
-
-    The same ``step_actions`` the solve uses, over seven days from a Monday,
-    so a weekday token and an overnight window are rows and an empty or
-    unreadable spec is not. No rows means the switch is never written.
-    True only for a ``str``, which is what lets the caller pass it to
-    :func:`_inside_silent`.
-    """
-    if not isinstance(spec, str) or not spec.strip():
-        return False
-    monday = datetime(2026, 1, 5, tzinfo=timezone.utc)
-    actions = quiet_windows.step_actions(
-        monday, 7 * 24 * 60 // PLAN_STEP_MINUTES, PLAN_STEP_HOURS, spec, None,
-    )
-    return actions is not None
-
-
-def _inside_silent(silent_spec: str, off_spec: Any, now: datetime) -> bool:
-    """Whether the step covering ``now`` is silent, off winning an overlap.
-
-    The same ``step_actions`` the solve uses, so a hand-edited store whose
-    off row overlaps a silent row holds the switch off: that step is idle,
-    not a silent one.
-    """
-    actions = quiet_windows.step_actions(
-        plan_step_start(now), 1, PLAN_STEP_HOURS, silent_spec, off_spec,
-    )
-    return actions is not None and int(actions[0]) == quiet_windows.ACTION_SILENT
-
-
 def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None:
     """On inside a silent window, off outside; ``None`` when the slot is not ours.
 
@@ -1248,14 +1234,14 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
         return None
     cfg = EntryConfig.from_mapping(inp.config)
     spec = cfg.quiet_silent_windows
-    if not _silent_rows(spec):
+    if not quiet_windows.silent_rows(spec):
         return None
     if inp.mode == MODE_BOOST:
         return False
     held = boost.held_for(coord)
     if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):
         return False
-    return _inside_silent(spec, cfg.quiet_off_windows, now)
+    return quiet_windows.inside_silent(spec, cfg.quiet_off_windows, now)
 
 
 def _dhw_write(inp: ArbiterInputs) -> float | None:
