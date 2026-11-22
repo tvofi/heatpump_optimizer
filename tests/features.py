@@ -88043,9 +88043,11 @@ R.check(
 )
 
 # The count gates' inputs, read at the mode write. Where the space set-point
-# is a water temperature (unit return or flow; the command's is the 55 degC
-# heating ceiling here) and a return sensor reads, the heated test is the inlet
-# over that set-point, at ``HEATED_MARGIN_K`` exactly. On the default indoor
+# is a water temperature (unit return or flow) and a return sensor reads, the
+# heated test is the inlet over the command's set-point, at ``HEATED_MARGIN_K``
+# exactly. On a return unit that command is the 55 degC heating ceiling here; on
+# a flow unit it is the swap's settled write (R11-OWNER-STEP-KICK), read from
+# the run. On the default indoor
 # unit the set-point is the planned room temperature (21), which any running
 # pump's return is over, so there, and without a return sensor, the test is the
 # age of the mode record the write replaced, at ``SOURCE_LEG_MIN_S`` exactly.
@@ -88060,6 +88062,11 @@ def _ds_plan(*steps):
 def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, unit=None, **run):
     """The dhw->space row of one stop on an install with set-point entities and, optionally, a return
     sensor and a declared space set-point ``unit`` (the default is indoor)."""
+    return _ds_gate_run(freq, plan, return_c, room_c, unit, **run)[0]
+
+
+def _ds_gate_run(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, unit=None, **run):
+    """:func:`_ds_gate`'s whole run: the row, the service calls and the coordinator."""
     c = _DsArb({"space_setpoint_entity": "number.space", "dhw_setpoint_entity": "number.dhw",
                 **({"heat_pump_return_temp_entity": "sensor.ret"} if return_c is not None else {}),
                 **({"space_setpoint_unit": unit} if unit else {})})
@@ -88067,7 +88074,18 @@ def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, unit=None, **
     c.hass.states.set("sensor.ret", FakeState(str(return_c), unit="°C"))
     for entity in ("number.space", "number.dhw"):
         c.hass.states.set(entity, FakeState("30", unit="°C", attributes={"min": 5.0, "max": 70.0, "step": 0.5}))
-    return _ds_episode(freq, c=c, **run)[0]
+    return _ds_episode(freq, c=c, **run)
+
+
+def _ds_swap_write(return_c):
+    """The space set-point a flow install writes with its mode write to Heating."""
+    calls = _ds_gate_run(return_c=return_c, unit="flow")[1]
+    heat = next(i for i, (_d, svc, data) in enumerate(calls)
+                if svc == "select_option" and data.get("option") == "Heating")
+    return next(float(data["value"]) for _d, _svc, data in calls[heat:] if data.get("entity_id") == "number.space")
+
+
+_DS_FLOW_CMD = _ds_swap_write(56.9)
 
 
 _DS_LEG_STOP = {2.25: "0", 9.0: "35"}
@@ -88075,8 +88093,9 @@ _ds_gates = {
     "the room at its planned set-point: no demand": _ds_gate(room_c=21.0),
     "the plan leaves the target duty inside the stop window": _ds_gate(
         plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0), (659, 0.0, 1.0)), every=30),
-    **{f"a {unit} set-point and a return 1.9 K over it, after a seven-minute leg": _ds_gate(return_c=56.9, unit=unit)
-       for unit in ("return", "flow")},
+    "a return set-point and a return 1.9 K over it, after a seven-minute leg": _ds_gate(return_c=56.9, unit="return"),
+    "a flow set-point and a return 1.9 K over it, after a seven-minute leg": _ds_gate(
+        return_c=_DS_FLOW_CMD + 1.9, unit="flow"),
     "an indoor set-point, a return 9 K over the room's, and a 30 s leg": _ds_gate(
         _DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (90, 1.5, 0.0)), return_c=30.0, every=30),
     "no return sensor and a 30 s leg": _ds_gate(_DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (90, 1.5, 0.0)), every=30),
@@ -88085,7 +88104,8 @@ _ds_gates_open = {
     "the room under its planned set-point": _ds_gate(room_c=20.9),
     "the plan stays one second past the window": _ds_gate(
         plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0), (661, 0.0, 1.0), (720, 1.5, 0.0)), every=30),
-    **{f"a {unit} set-point and a return 2.0 K over it": _ds_gate(return_c=57.0, unit=unit) for unit in ("return", "flow")},
+    "a return set-point and a return 2.0 K over it": _ds_gate(return_c=57.0, unit="return"),
+    "a flow set-point and a return 2.0 K over it": _ds_gate(return_c=_DS_FLOW_CMD + 2.0, unit="flow"),
     "an indoor set-point, the same return, and a 60 s leg": _ds_gate(
         _DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (120, 1.5, 0.0)), return_c=30.0, every=30),
     "an indoor set-point and a return only 0.5 K over the room's, after a seven-minute leg": _ds_gate(return_c=21.5),
@@ -88098,6 +88118,16 @@ R.check(
     "return sensor, on a replaced mode record younger than the least source leg",
     _ds_gates == {name: (0, 0, 0, 0, []) for name in _ds_gates},
     f"{_ds_gates}",
+)
+R.check(
+    "R11-OWNER-STEP-KICK: a flow install's swap writes the settled set-point, below the 55 degC ceiling, "
+    "whatever hot return it reads (the gate cells' precondition), so the 56.9 degC return the ceiling "
+    "masked now reads heated and books the stop; a return install's write is the ceiling's and books none",
+    _DS_FLOW_CMD < 55.0 - _fr_ds.HEATED_MARGIN_K
+    and _ds_swap_write(_DS_FLOW_CMD + 1.9) == _ds_swap_write(_DS_FLOW_CMD + 2.0) == _DS_FLOW_CMD
+    and _ds_gate(return_c=56.9, unit="flow")[:3] == (1, 0, 0)
+    and _ds_gate(return_c=56.9, unit="return") == (0, 0, 0, 0, []),
+    f"flow command {_DS_FLOW_CMD} {_ds_gate(return_c=56.9, unit='flow')}",
 )
 R.check(
     "null control: each gate one step the other side of its bound books the stop",
