@@ -7,52 +7,62 @@ On top of the contributor's commit:
 - **Classification**: `tests/closures.json` lists `dhw_start.py` beside `dhw_planner.py` in the 27 closures that list the planner, which imports it at module level. The 17 `killed_by` pins of the moved scopes move to `tests/mutation_ledger/killed_by/dhw_start.py/`, with anchors re-keyed and text and digests unchanged. 16 rows of `dev/audit/harnesses/r10_dhw_start_hysteresis_mutants.py` now name `dhw_start.py`.
 - **Comment ratchet**: two docstring sentences over 40 words are split (`drop_unstartable`, `with_dhw_under_way`).
 - **tests/features.py**: the `_repair_dhw_floor` stand-in `_lg_whole_tail_repair` takes `charge_running`. On #3848 it raised `TypeError` and ended the suite.
-- **docs/architecture.md** and **tests/deployment_shape.py**: the module tree and counts (99 modules, 64 free of `homeassistant`; the #1218 note's 118 package files), and the D6 claims register re-run for them (C32, C33). `tests/doc_claims.py`, `tests/entities.py` and `dev/audit/rounds/round4/D6/claims.py` derive these from the tree.
+- **docs/architecture.md** and **tests/deployment_shape.py**: the module tree and counts (99 modules, 64 free of `homeassistant`; the #1218 note's 118 package files), and the D6 claims register re-run for them (C32, C33).
+
+Repair of the reds at `0814b685339c9d4b598b3abe8812c0734ab24c75` (CI run 45044399082). The production tree is unchanged from that head: `git diff 0814b685 HEAD -- custom_components/` prints nothing.
+- **tests/features.py, the what-if pin**: the check "the what-if solve takes the reading the live plan was solved with, not a fresh one" required the text `compressor_running=duty_switch.running_now(...)` in `_solve_record`. This pull request binds that reading once (`running := duty_switch.running_now(...)`) and hands it to both `compressor_running` and `with_dhw_under_way`, so the keyword spelling was gone while the reading was the same. The `_solve_record` half now reads the call `duty_switch.running_now(duty_switch.record_for(self), self._current_action)`; the `_whatif_solve` half (`solved_running`) is unchanged, and the check above it (`_hsr_wired`) pins the reading by behaviour. Alternative not taken: rewrite `_solve_record` to keep the keyword spelling (the first repair commit here, reverted by the second). It added three coordinator lines and breached `class_excess_loc`, `max_class_loc` and `module_excess_loc` by +3 each, only to satisfy a source-text match.
+- **tests/features.py, a new check**: nothing pinned that the coordinator hands the planner the under-way state. The check "the scheduled solve's state holds a hot-water charge under way only while the compressor runs in a mode serving hot water" drives `Coord._solve_record` with an observed mode and reads `inputs.state.dhw_charge_under_way`.
+- **dev/audit/rounds/round4/D6/claims.py**: the `RESULT arch_modules_on_disk` and `arch_map_listed` header lines read 99, with `dhw_start.py` named in their history.
+- **tests/mutation_ledger/killed_by/**: the six sites this diff added, each killed by `tests/block_duty.py`.
 
 Known residual (documented in the helper): when the running signal is unsettled or missing, `duty_switch.running_now` falls back to the planned draw, so the old behaviour remains there.
 
 ## Head
 
-`1581a49b8bebac19dda827484d80eeddd5316aac`
+`0fdc3d5ff72a065eeee4a4e5c6c65760ce5c97f0`, four commits on `0814b685339c9d4b598b3abe8812c0734ab24c75`, measured against origin/main `1207ee13b0e439a4acefccabace691785af2ebad` at 2026-11-22T19:33:58Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
 
 ## Mutation proof
 
-- `python3 dev/audit/harnesses/r10_dhw_start_hysteresis_mutants.py <worktree of the head>`: all 43 named mutants (M1-M43) print KILLED under `tests/block_duty.py`, none prints ANCHOR, and the NULL comment-only mutant SURVIVES. That includes the 16 rows re-pointed to `dhw_start.py` (M2, M5, M8, M10, M16-M21, M29, M35-M37, M42, NULL) and the planner's own (M4, M13, M22, M27).
-- With the old first-step rule restored and the new signatures kept, `tests/block_duty.py` goes red on "a first-step charge on a warm tank with no charge under way is dropped, and nothing carries it on" (#3848's proof, re-run on the moved code by M19 and M42).
+The block run is `python3 tools/audit/seat/features_block.py --prelude 'exec(open("PRE").read())' "# The coordinator hands the reading" "# What the commit program is told"` with `PYTHONPATH=tests/hastub`. PRE is written by `features_block.py --emit-prelude PRE` with the same two markers.
+- At this head: `ALL 3 FEATURES BLOCK PASSED`.
+- With `coordinator.py` from `0814b685` and the old keyword pin, the what-if check FAILs (`1 of 2 FEATURES BLOCK FAILED`), as in CI.
+- M1: the `with_dhw_under_way(...)` call replaced by `(state, running := ...)[0]`. The new check FAILs: `1 of 3 FEATURES BLOCK FAILED`.
+- M2: the scheduled solve reads `duty_switch.record_for(self).solved_running` in place of `running_now(...)`. All three FAIL: `3 of 3 FEATURES BLOCK FAILED`. The relaxed pin still sees a scheduled solve that stops reading fresh.
+- With `coordinator.py` from the base `8ef450936a` (before this pull request), the new check FAILs.
+- `python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/block_duty.py` printed `PIN KILLED: 6 pinned, 0 left unpinned`. Each of the six sites took `tests/block_duty.py` from `rc=0 failed=0` to `rc=1`, and its comment-only null control at `dhw_start.py:21` survived. An earlier unrestricted `--pin-killed` run used every driver its closure selects. It reached the six sites but hit the 30-minute background limit while still running `tests/config_flow_steps.py`. The run before that one, on the first repair commit, refused as `INCONCLUSIVE` because `tests/structure.py` was red at its baseline.
 
 ## Null control
 
-- On #3848's base `40e513ee`, `tests/block_duty.py` passes 153 checks (the contributor's run); at this head it prints `ALL 156 BLOCK DUTY CHECKS PASSED`. The three new checks are the contributor's.
-- The harness's NULL mutant (a comment-only change in `dhw_start.py`) survives, so the kills are the code's and not the harness's.
-- The move alone changes no score: `python3 tools/audit/archscore/score.py --diff 3a98735a7e HEAD` and `--diff 3a98735a7e b116ae0e7c` (the contributor's commit alone) both print `dS -0.0006`.
+- The finder's harness, `python3 dev/audit/harnesses/r10_dhw_start_hysteresis_mutants.py WORKTREE`, was run on a worktree of `0814b685` and on one of `0fdc3d5f`. Both print 43 KILLED, no ANCHOR, and `NULL comment-only change: SURVIVED`. The two ends read the same because the production tree is identical, and that is the expected result: the repair moves tests and ledger, not code.
+- The new features check passes at this head and fails with the under-way call removed (M1) and at the base.
+- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` prints `RESULT arch_modules_on_disk=99 modules` and `RESULT arch_map_listed=99 modules`. At `0814b685` CI's `tests/harness_headers.py` printed `header='98' printed='99'` for both. `git status --short` after the run is empty, so the committed outputs are byte-identical.
 
 ## Figures
 
-<!-- figure-block: structure-ratchet mb=3a98735a7ecc59e7ecc095a0429cdf6251d956ec head=1581a49b8bebac19dda827484d80eeddd5316aac -->
-~~~text
-STRUCTURE RATCHET PASSED
-~~~
-<!-- /figure-block -->
+- `python3 tests/structure.py` at `0fdc3d5f`: rc 0. At the first repair commit `109cd2350e` it printed `3 STRUCTURE BUDGET(S) BREACHED` (`class_excess_loc`, `max_class_loc`, `module_excess_loc`, +3 each), which is why that rewrite was reverted.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 28 script(s) run, 5 scoped out`.
 
 ## Architecture score
 
-Architecture score: dS -0.0006 (`python3 tools/audit/archscore/score.py --diff 3a98735a7e HEAD`)
+Architecture score: dS -0.0006 (`python3 tools/audit/archscore/score.py --diff 3a98735a7e 0814b685`, carried: the production tree at `0fdc3d5f` is byte-identical to `0814b685`'s)
 
 - `coord_footprint` 2525 -> 2526: the solve record now asks whether a hot-water charge runs as the solve starts. The coordinator is the one place that holds both the pump signals and the running reading, so it makes that one `pump_signals.with_dhw_under_way` call there; the logic itself lives in `pump_signals`. The module move reads neutral (the same dS with and without it).
 
 ## Red checks
 
-- `tests / mutation`: `ci_predict.py` (prepr step 6d) names 6 added unpinned sites, all on the contributor's new lines: `dhw_start.py:70` BOOLOP, `dhw_start.py:126` RETURN_DEL, `pump_signals.py:381` BOOLOP and CMP_BOUND, and `pump_signals.py:382` BOOLOP and RETURN_DEL. mutation-autofix (`tests/mutation_table.py --pin-killed`) records them on this branch after the push (ci-autofix.md). That job is the cheaper detector, at a standing cost of one bot commit.
+- `tests / fast (3.14)` at `0814b685`: `tests/features.py` printed `1 of 6028 FEATURE CHECKS FAILED` on the what-if pin, and `tests/harness_headers.py` printed 2 FAILs on the claims.py header (98 against 99). Both came from this pull request's own tree, and both are repaired above. Cheaper detector: `tools/audit/seat/features_block.py` on the block that holds the check, under one second, and `python3 dev/audit/rounds/round4/D6/claims.py`, about 2 s. Both already exist, so nothing is built.
+- `tests / mutation` at `0814b685`: `MUTATION TABLE REFUSED -- 1929 unpinned site(s) against 1923 ... 6 of them added by this diff`. The six are pinned above. Cheaper detector: `ci_predict.py` (prepr step 6d) names them before the push, at no standing cost; it existed already.
+- `gate` at `0814b685`: derived from the two above.
 - `arch-score`: the `coord_footprint` rise is answered under `## Architecture score`.
 
 ## Unpinned sites
 
-- custom_components/heatpump_optimizer/dhw_start.py:70 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/dhw_start.py:126 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_signals.py:381 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_signals.py:381 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_signals.py:382 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_signals.py:382 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/dhw_start.py:70 BOOLOP: killed_by tests/block_duty.py (`tests/mutation_ledger/killed_by/dhw_start.py/startable_steps.BOOLOP.b3507faf.json`)
+- custom_components/heatpump_optimizer/dhw_start.py:126 RETURN_DEL: killed_by tests/block_duty.py (`tests/mutation_ledger/killed_by/dhw_start.py/place_startable.RETURN_DEL.474cf0a0.json`)
+- custom_components/heatpump_optimizer/pump_signals.py:381 BOOLOP: killed_by tests/block_duty.py (`tests/mutation_ledger/killed_by/pump_signals.py/with_dhw_under_way.BOOLOP.c726e2be.json`)
+- custom_components/heatpump_optimizer/pump_signals.py:381 CMP_BOUND: killed_by tests/block_duty.py (`tests/mutation_ledger/killed_by/pump_signals.py/with_dhw_under_way.CMP_BOUND.c726e2be.json`)
+- custom_components/heatpump_optimizer/pump_signals.py:382 BOOLOP: killed_by tests/block_duty.py (`tests/mutation_ledger/killed_by/pump_signals.py/with_dhw_under_way.BOOLOP.557fbb7b.json`)
+- custom_components/heatpump_optimizer/pump_signals.py:382 RETURN_DEL: killed_by tests/block_duty.py (`tests/mutation_ledger/killed_by/pump_signals.py/with_dhw_under_way.RETURN_DEL.557fbb7b.json`)
 
 ## Forward-carry
 
