@@ -34,7 +34,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
-from weakref import WeakKeyDictionary
 
 import aiohttp
 import numpy as np
@@ -204,17 +203,14 @@ from .inputs import (
     InputReturnWatch,
     age_of,
     normalize_price_per_kwh,
-    number_reading,
     parse_bool,
     read_rooms,
-    read_setpoint,
     read_start_hysteresis,
     price_per_kwh,
     stale_summary,
     state_power_kw,
     state_unit,
     temperature_c,
-    write_setpoint,
     write_setpoint_c,
 )
 from .external_heat import (
@@ -390,6 +386,8 @@ from .optimizer import (
     optimize_in_process,
     slab_settlement_cap,
 )
+# After every other import: the numbers' restores register behind theirs.
+from . import number_restore
 
 if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
     from homeassistant.core import Event
@@ -736,46 +734,6 @@ async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str 
     return (f"is a {entity_id.split('.', 1)[0]}; smart_write can command "
             "number, input_number and climate entities")
 
-
-#: The off-restore keys of the two numbers the cycle writes: each is restored
-#: to its reading before the first write, on a stale plan too (ADR-004).
-FREQUENCY_RESTORE = "compressor_frequency"
-VALVE_RESTORE = "mixing_valve_target"
-
-
-def _register_number_restore(key: str, entity_of: Any, restored: Any, write: Any, reading: Any) -> None:
-    """Register the entity ``entity_of(config)`` under ``key``; ``restored`` empties its owner's record."""
-    def restorer(config: Any) -> off_restore.Restorer | None:
-        entity_id = entity_of(EntryConfig.from_mapping(config))
-        return off_restore.Restorer(
-            str(entity_id), write, baseline_of=reading, restored=restored, write_unread=True) if entity_id else None
-
-    off_restore.register_consumer(key, restorer, write, stale=True)
-
-
-#: Config entry -> the two numbers' write owners, set by the entry's
-#: coordinator, so a restore reaches their records with no coordinator.
-_NUMBER_OWNERS: WeakKeyDictionary[Any, tuple[FrequencyWatchdog, mixing_valve.ValveTarget]] = WeakKeyDictionary()
-
-
-def _frequency_restored(entry: Any, _entity_id: str, _value: float) -> None:
-    if (owners := _NUMBER_OWNERS.get(entry)) is not None:
-        owners[0].stand_easy()
-
-
-def _valve_restored(entry: Any, _entity_id: str, _value: float) -> None:
-    if (owners := _NUMBER_OWNERS.get(entry)) is not None:
-        owners[1].handed_back()
-
-
-def _number_reading(hass: Any, entity_id: str) -> float | None:
-    """The entity's state as a number in its own unit, or ``None`` (``inputs.number_reading``)."""
-    value: float | None = getattr(number_reading(hass, entity_id), "value", None)
-    return value
-
-
-_register_number_restore(FREQUENCY_RESTORE, lambda c: c.compressor_freq_entity, _frequency_restored, write_setpoint, _number_reading)
-_register_number_restore(VALVE_RESTORE, lambda c: c.mixing_valve_write_entity, _valve_restored, write_setpoint_c, read_setpoint)
 
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
@@ -3981,7 +3939,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The valve target's write record (smart_write), so identical answers
         # on consecutive cycles do not re-command the device.
         self._valve_target = mixing_valve.ValveTarget(MIXING_VALVE_WRITE_EPSILON)
-        _NUMBER_OWNERS[self.entry] = (self._freq_watchdog, self._valve_target)
+        number_restore.bind(self.entry, self._freq_watchdog, self._valve_target)
         self._away_state = away_mode.AwayState()
 
         # --- Closed-loop accuracy (item 11) --------------------------------
@@ -7755,7 +7713,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             target = self._thermal_model.flow_target_for_indoor(target, outdoor)
         valve = self._valve_target
         if not await valve.command(
-            target, lambda: off_restore.async_arm(self.hass, self.entry, ctx._config, VALVE_RESTORE),
+            target, lambda: off_restore.async_arm(self.hass, self.entry, ctx._config, number_restore.VALVE_RESTORE),
             lambda target_c: _valve_write_problem(self.hass, entity_id, target_c),
         ):
             return
@@ -10863,7 +10821,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         try:
             if not await self._freq_watchdog.command(
-                target, lambda: off_restore.async_arm(self.hass, self.entry, _ctx_of(self)._config, FREQUENCY_RESTORE),
+                target, lambda: off_restore.async_arm(self.hass, self.entry, _ctx_of(self)._config, number_restore.FREQUENCY_RESTORE),
                 lambda hz: self.hass.services.async_call(
                     "number", "set_value", {"entity_id": entity_id, "value": round(hz, 1)}, blocking=True),
             ):

@@ -139,13 +139,8 @@ cycle's first switch write whatever the option says (:func:`supply_tick`).
 **Observe keeps a ledger**, in observe and in control: per 15-minute step,
 the planned duty against what the pump did, read from what the integration
 already reads -- the measured electrical draw (running or not), the mode
-select (DHW only) and the tank temperature (a rise of :data:`TANK_RISE_C`
-over the step is hot water). Each step is ``delivered``,
-``space-instead``, ``dhw-instead``, ``idle-instead``, ``not-startable`` (a
-hot-water step left idle on a tank at or above the pump's own start
-temperature, the step's target less ``dhw_hysteresis_entity``), ``unknown``
-(no power meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
-reads as hot water; a big draw can hide a tank rise. The last
+select (DHW only) and the tank temperature, closed into one verdict per
+step by :mod:`duty_ledger`. The last
 :func:`log_steps` steps and their counts are in the diagnostics; the ledger
 is not persisted. It is what decides whether control is worth turning on:
 ``delivered`` over the other verdicts is how often the pump already does
@@ -159,8 +154,8 @@ import math
 from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta, timezone
-from typing import Any, NamedTuple, TypeGuard, cast
+from datetime import datetime, timedelta
+from typing import Any, NamedTuple, cast
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -171,7 +166,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, draw_range, duty_switch, issues, off_restore, pump_mode, quiet_windows
+from . import boost, draw_range, duty_ledger, duty_switch, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -205,7 +200,7 @@ from .inputs import (
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
-from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_index, plan_step_start
+from .plan_step import PLAN_STEP_MINUTES, plan_step_index, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
@@ -262,7 +257,6 @@ ISSUE_MANUAL = "pump_manual_change"
 ISSUE_IGNORED = "pump_write_ignored"
 #: How long an ignored write waits before it is sent again.
 RETRY_MINUTES = 5.0
-TANK_RISE_C = 0.5
 _STORE_VERSION = 1
 
 
@@ -1215,37 +1209,6 @@ def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: dat
     return True
 
 
-def _silent_rows(spec: Any) -> TypeGuard[str]:
-    """Whether ``spec`` names a silent window the week can reach.
-
-    The same ``step_actions`` the solve uses, over seven days from a Monday,
-    so a weekday token and an overnight window are rows and an empty or
-    unreadable spec is not. No rows means the switch is never written.
-    True only for a ``str``, which is what lets the caller pass it to
-    :func:`_inside_silent`.
-    """
-    if not isinstance(spec, str) or not spec.strip():
-        return False
-    monday = datetime(2026, 1, 5, tzinfo=timezone.utc)
-    actions = quiet_windows.step_actions(
-        monday, 7 * 24 * 60 // PLAN_STEP_MINUTES, PLAN_STEP_HOURS, spec, None,
-    )
-    return actions is not None
-
-
-def _inside_silent(silent_spec: str, off_spec: Any, now: datetime) -> bool:
-    """Whether the step covering ``now`` is silent, off winning an overlap.
-
-    The same ``step_actions`` the solve uses, so a hand-edited store whose
-    off row overlaps a silent row holds the switch off: that step is idle,
-    not a silent one.
-    """
-    actions = quiet_windows.step_actions(
-        plan_step_start(now), 1, PLAN_STEP_HOURS, silent_spec, off_spec,
-    )
-    return actions is not None and int(actions[0]) == quiet_windows.ACTION_SILENT
-
-
 def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None:
     """On inside a silent window, off outside; ``None`` when the slot is not ours.
 
@@ -1257,14 +1220,14 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
         return None
     cfg = EntryConfig.from_mapping(inp.config)
     spec = cfg.quiet_silent_windows
-    if not _silent_rows(spec):
+    if not quiet_windows.silent_rows(spec):
         return None
     if inp.mode == MODE_BOOST:
         return False
     held = boost.held_for(coord)
     if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):
         return False
-    return _inside_silent(spec, cfg.quiet_off_windows, now)
+    return quiet_windows.inside_silent(spec, cfg.quiet_off_windows, now)
 
 
 def _dhw_write(inp: ArbiterInputs) -> float | None:
@@ -1883,7 +1846,7 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
     row = held.step
     if row is None or row["start"] != start:
         if row is not None:
-            held.log.append(_verdict(row, tank))
+            held.log.append(duty_ledger.step_verdict(row, tank))
         held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
                            "measured": False, "ran": False, "dhw_mode": False}
         row["start_below"] = _dhw_start_below_c(inp)
@@ -1905,44 +1868,6 @@ def _dhw_start_below_c(inp: ArbiterInputs) -> float | None:
     """
     hysteresis = getattr(inp.state, "dhw_start_hysteresis_k", None)
     return None if hysteresis is None else dhw_start_below_c(_dhw_target(inp), hysteresis)
-
-
-def _not_startable(row: dict[str, Any]) -> bool:
-    """Whether the step's tank opened at or above the pump's start temperature.
-
-    Its own hysteresis then kept the pump off, so an idle hot-water step says
-    nothing about whether the pump obeys the plan (Bankaifan, #3440).
-    """
-    start, tank = row.get("start_below"), row["tank"]
-    return start is not None and tank is not None and float(tank) >= start
-
-
-def _missed(row: dict[str, Any], planned: str, actual: str) -> str:
-    """The verdict for a step that did something other than its plan."""
-    if planned == "dhw" and actual == "idle" and _not_startable(row):
-        return "not-startable"
-    return f"{actual}-instead"
-
-
-def _verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
-    """What the pump did over one step, against what the plan wanted."""
-    rose = None not in (tank, row["tank"]) and float(tank) - float(row["tank"]) >= TANK_RISE_C
-    hot = rose or row["dhw_mode"]
-    if row["measured"]:
-        actual: str | None = ("dhw" if hot else "space") if row["ran"] else "idle"
-    else:
-        actual = "dhw" if rose else None
-    planned = row["planned"]
-    if planned is None:
-        verdict = "baseline"
-    elif actual is None:
-        verdict = "unknown"
-    elif actual == planned or (planned == "both" and actual != "idle"):
-        verdict = "delivered"
-    else:
-        verdict = _missed(row, planned, actual)
-    return {"start": row["start"].isoformat(), "planned": planned,
-            "actual": actual, "verdict": verdict}
 
 
 async def apply(coord: Any, now: datetime | None = None) -> None:

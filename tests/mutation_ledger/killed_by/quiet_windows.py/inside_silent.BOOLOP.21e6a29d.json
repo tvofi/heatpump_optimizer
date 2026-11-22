@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:inside_silent BOOLOP 21e6a29d",
+  "killed_by": "tests/features.py",
+  "old": "    return actions is not None and int(actions[0]) == ACTION_SILENT",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: BOOLOP (`return actions is not None or int(actions[0]) == ACTION_SILENT`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
