@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/duty_ledger.py b/custom_components/heatpump_optimizer/duty_ledger.py
+index b165909b43..181623c467 100644
+--- a/custom_components/heatpump_optimizer/duty_ledger.py
++++ b/custom_components/heatpump_optimizer/duty_ledger.py
+@@ -45,7 +45,7 @@ def step_verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
+     planned = row["planned"]
+     if planned is None:
+         verdict = "baseline"
+-    elif actual is None:
++    elif False:
+         verdict = "unknown"
+     elif actual == planned or (planned == "both" and actual != "idle"):
+         verdict = "delivered"

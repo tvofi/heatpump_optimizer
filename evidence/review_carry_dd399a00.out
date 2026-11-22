@@ -1,0 +1,10 @@
+review_carry: dd399a007 -> a11b1a8d1  main=origin/main
+  branch-only commits: 6
+  why: the branch's own commits 30b3f0909 e9922bc1c ea9022f68 change its content: a11b1a8d102e5327f90e457ff5d0006d74837444 is not the reviewed head dd399a0078992afd9d55e6e3d1a0849b575fdb14 merged onto 59b17e97ae1b65bd86c6b5423c0a5e993031c9a0
+  bb2ae006c  ci: merge main
+  ea9022f68  Pin the seven sites tests / mutation refused at dd399a00, and end the #533 shutdown scenario when its refresh raises
+  e9922bc1c  Pay the module span: the numbers' restore, the step verdicts and the silent-window reads leave coordinator.py and pump_arbiter.py
+  3af986ddb  Merge commit 'e9922bc1c300346e885da633cdb3afdfb89c0803' into fix/r11-seam-actuation-release-pr
+  30b3f0909  docs: the HA-free count and the #1218 pair count after this PR's three new modules
+  a11b1a8d1  Merge commit '30b3f09096047eac1908169c158b0f8ceb9fe892' into fix/r11-seam-actuation-release-pr
+review_carry: FRESH-REVIEW

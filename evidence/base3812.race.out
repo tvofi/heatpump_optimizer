@@ -1,7 +1,0 @@
-RACE serial=False fix=False: restore_writes_sent=0 curve_writes=[] doc_after={"armed": {}}
-RESULT hold_not_released=1 count
-RESULT baseline_lost_on_disk=1 count
-RESULT consequences=2 count
-RESULT thread_factor=1.001
-RESULT load1=55.85
-RESULT swapins=584
