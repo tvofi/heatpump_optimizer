@@ -23,7 +23,7 @@ of that tree, `python3 tests/structure.py` prints
 `FAIL module_excess_loc 21779 > 21718 (+61)` and `1 STRUCTURE BUDGET(S) BREACHED`. The tree's
 `recorded_at` is `e698fc8ac3`.
 
-**Which side moved.** The fixer's AST counter `/Users/timmalmstrom/hpo-seats/r11/modex.py`
+**Which side moved.** The fixer's AST counter `modex.py` (the #3735 seat's local scratch, not in the tree)
 (same rule: last top-level node's `end_lineno` past 2000, per module) reads:
 
 | revision | what it is | module_excess_loc |
@@ -183,7 +183,7 @@ It addresses state (d). Rungs in order:
    corrects what it measures.
 
 **Prototype** (local overlay, tooling freeze):
-`/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/RCA-MODEX/local_rows.py`, demonstrated by `demo.sh`
+`proto/RCA-MODEX/local_rows.py` in the round-11 orchestrator's local overlay directory, demonstrated by `demo.sh`
 beside it (output `demo.txt`). Under the freeze it cannot turn CI green. In-round it replaces
 the hand measurement: it proves mechanically that the PR's own delta is zero, and gives the
 re-record value, so two seats need not measure the same move.
@@ -206,6 +206,6 @@ exit 1 with no FAIL line), and an unrecorded gain on a row main carries (exit 2)
 both kept. Measurement time: 84 s per `measure()` on this box at low load, several minutes
 at load average 33.
 
-**Proposal:** P-R11-99, `/Users/timmalmstrom/hpo-orch/r10s6/r11/proposals/P-R11-99-ratchet-pr-local-row-delta.md`,
+**Proposal:** P-R11-99, `proposals/P-R11-99-ratchet-pr-local-row-delta.md` beside that `proto/` directory,
 listed in `R11-PROPOSALS.md`. The owner approves the self-repair and the brief line at
 round-end triage. Until then, each instance of the class is a seat re-record, as now.
