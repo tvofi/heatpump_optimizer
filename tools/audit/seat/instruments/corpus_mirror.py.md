@@ -17,6 +17,15 @@
     `paused` and exits 0; the next run resumes there. Every page is cached
     with its ETag and re-read with `If-None-Match`. It issues no search and no
     write, or stops.
+  - **GraphQL is paced by cost.** Each query asks `rateLimit{cost remaining
+    limit resetAt}`; after one of cost c the next waits c*3600/limit s (at
+    most the hourly limit an hour). When the last cost would take what
+    remains under the floor it sleeps until `resetAt`, and pauses only when
+    that is `RESET_WAIT_CAP_S` or more away. `GRAPHQL_BATCH` items per query,
+    at most `QUERY_COST_CAP` points by `formula_cost` (GitHub's documented
+    formula). A secondary limit naming a `Retry-After` up to
+    `SECONDARY_WAIT_CAP_S` is waited out and the query asked once more; a
+    longer one, a second one, or a spent bucket pauses. REST is unchanged.
   - **`MANIFEST.json`** holds each source's denominator (enumerator,
     universe, examined, not_reached with a reason) and the scan's state. A
     ref namespace outside heads, tags and pull is a `not_reached` line and a
@@ -30,13 +39,15 @@
     error, or that this host failed on, is `not_reached` in its pass and
     is read again by the next; a kept answer that is not `ok` (gone,
     refused) is `not_reached` in every pass and read once.
-  - `cost` prints the scan's own calls per bucket; `gh_calls.py --top --since
-    <scan start>` prints the shim's.
+  - `cost` prints the scan's own calls per bucket and the GraphQL costs the
+    API answered (last, max); `gh_calls.py --top --since <scan start>`
+    prints the shim's.
   - Not yet run against GitHub: the self-test stubs `gh`, `git` and HTTPS. An
     endpoint that does not serve what the script expects becomes a
     `not_reached` line, never a dropped row.
   `--self-test`: pause and exact resume under a secondary limit and a spent
-  bucket, the floor, the namespace assertion, hostile and unreadable
-  archives, the re-read of a unit that answered an error or that this host
-  failed on, and one
-  mutant per predicate.
+  bucket, GraphQL pacing proportional to cost, the sleep to a reset under an
+  hour and the pause past it, the one secondary-limit retry, the cost cap,
+  the floor, the namespace assertion, hostile and unreadable archives, the
+  re-read of a unit that answered an error or that this host failed on, and
+  one mutant per predicate.

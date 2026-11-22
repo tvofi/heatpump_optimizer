@@ -54,6 +54,15 @@ repeating no page. Every page is cached with its ETag and re-read with
 If-None-Match: a 304 costs nothing against the primary limit, so a later round
 pays for what changed. It never calls a search endpoint and never writes: every
 call it issues passes gh_read.is_read or gh_read.is_query, or it stops.
+GraphQL is paced by cost on top (owner request, 2026-11-22): every query asks
+`rateLimit{cost remaining limit resetAt}`, and the next query waits until
+c*3600/limit seconds have passed after one of cost c, so the scan spends at most
+the hourly limit an hour; when the last cost would take what remains under the
+floor it sleeps until resetAt, a reset RESET_WAIT_CAP_S or more away pauses. A
+query of GRAPHQL_BATCH items costs at most QUERY_COST_CAP by formula_cost. A
+secondary limit naming a Retry-After up to SECONDARY_WAIT_CAP_S is waited out
+and the query asked once more; a longer one, a second one, or a spent bucket
+pauses. `cost` prints the costs the API answered.
 `cost` prints the calls per bucket this scan made (its own count; `gh_calls.py
 --top --since <scan start>` prints the shim's, from the log).
 
@@ -91,7 +100,15 @@ import gh_read  # noqa: E402 -- the read rule, the budget and its constants have
 
 REPO = "tvofi/heatpump_optimizer"
 NAMESPACES = ("refs/heads/", "refs/tags/", "refs/pull/")
-GRAPHQL_BATCH = 50
+#: Items per GraphQL query. By GitHub's documented formula (`formula_cost`) one item asks 308 requests -- each
+#: comment's and review's edit list is one request per parent node -- so 50 items cost 154 points and 30 cost 92:
+#: at most QUERY_COST_CAP, a query the secondary limit's compute budget is not fed in one call.
+GRAPHQL_BATCH = 30
+QUERY_COST_CAP = 100
+#: A secondary limit naming a Retry-After up to this is waited out and the query asked once more; past it, a pause.
+SECONDARY_WAIT_CAP_S = 300
+#: A GraphQL reset this far away or more is a pause at the cursor, never a sleep.
+RESET_WAIT_CAP_S = 3600
 RUN_WINDOW = 1000          # the run list serves at most this many rows per filter
 MAX_MEMBER = 64 * 2**20    # one extracted member
 MAX_ARCHIVE = 512 * 2**20  # one archive, extracted
@@ -104,7 +121,7 @@ SAVE_EVERY = 20
 UNSERVED = {"S5": ["a job's step summary: no endpoint (removal route: deleting the run)"],
             "S3": ["status contexts of commits that head no pull request: cost (enumerator: git rev-list --count --all)"]}
 
-ITEM_QUERY = """query($o:String!,$n:String!){repository(owner:$o,name:$n){%s}}"""
+ITEM_QUERY = """query($o:String!,$n:String!){rateLimit{cost remaining limit resetAt} repository(owner:$o,name:$n){%s}}"""
 ITEM_FIELDS = """i%d: issueOrPullRequest(number:%d){__typename
  ... on Issue{userContentEdits(first:50){nodes{editedAt diff}} comments(first:100){pageInfo{hasNextPage} nodes{databaseId userContentEdits(first:20){nodes{editedAt diff}}}}}
  ... on PullRequest{userContentEdits(first:50){nodes{editedAt diff}} comments(first:100){pageInfo{hasNextPage} nodes{databaseId userContentEdits(first:20){nodes{editedAt diff}}}}
@@ -122,6 +139,35 @@ HOST_FAILED = "error: this host failed"
 
 def answered(state: str) -> bool:
     return state in ANSWERED or state.startswith("refused: ")
+
+
+def formula_cost(doc: str) -> int:
+    """GitHub's documented rate-limit cost of a query document: each connection (a field taking `first` or `last`)
+    asks one request per node of its parent, the parent's node count being the product of the first/last values of
+    the connections above it; the requests over 100, rounded, at least 1. Both arms of an inline fragment are
+    counted, so on a union field this is an upper bound; the API's own figure is each answer's `rateLimit.cost`."""
+    requests, scale, pending = 0, [1], None
+    for tok in re.finditer(r"\((?P<args>[^)]*)\)|(?P<open>\{)|\}", doc):
+        if tok.group("args") is not None:
+            n = re.search(r"\b(?:first|last)\s*:\s*(\d+)", tok.group("args"))
+            pending = int(n.group(1)) if n else None
+            requests += scale[-1] if n else 0
+        elif tok.group("open"):
+            scale.append(scale[-1] * (pending or 1))
+            pending = None
+        else:
+            scale.pop()
+    return max(1, round(requests / 100))
+
+
+def epoch(stamp) -> "float | None":
+    """An ISO 8601 UTC stamp (`2026-11-22T20:00:00Z`) -> seconds since the epoch; None when it is not one."""
+    import datetime
+    try:
+        t = datetime.datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t.timestamp() if t.tzinfo else None
 
 
 class Paused(Exception):
@@ -264,6 +310,7 @@ class Mirror:
         self.cur = self._load("cursor.json", {"lists": {}, "items": {}, "calls": {}, "pass": 0, "state": "new"})
         self.man = self._load("MANIFEST.json", {"sources": {}})
         self.since_budget = gh_read.BATCH  # the first call is preceded by a budget read
+        self.gql: dict = {}  # the last GraphQL answer's rateLimit, and when the next query may start
         self.dirty = 0
 
     # ---- state -------------------------------------------------------------------
@@ -303,17 +350,54 @@ class Mirror:
     def _gate(self, argv, bucket: str):
         """Before every call: it is a read, it is no search, the budget holds, the gap has passed."""
         path = argv[3] if argv[2:3] == ["-i"] else (argv[2] if len(argv) > 2 else "")
-        if not (gh_read.is_read(argv) or gh_read.is_query(argv)) or path.lstrip("/").split("?")[0].split("/")[0] == "search":
+        query = argv[:2] + argv[3:] if argv[2:3] == ["-i"] else argv  # -i adds the headers to the output, nothing to the call
+        if not (gh_read.is_read(argv) or gh_read.is_query(query)) or path.lstrip("/").split("?")[0].split("/")[0] == "search":
             raise AssertionError("corpus_mirror issues only reads, and no search: " + " ".join(argv[:3]))
         if self.since_budget >= gh_read.BATCH:
             low = gh_read.below_floor(gh_read.budget(self.run), self.floor)
             if low:
                 raise Paused(f"budget: {', '.join(low)} below {self.floor:.0%} of its limit")
             self.since_budget = 0
-        if sum(self.cur["calls"].values()):
-            self.sleep(gh_read.MIN_GAP_S)
+        gap = gh_read.MIN_GAP_S if sum(self.cur["calls"].values()) else 0.0
+        if bucket == "graphql":
+            gap = max(gap, self.graphql_wait())
+        if gap > 0:
+            self.sleep(gap)
         self.since_budget += 1
         self.cur["calls"][bucket] = self.cur["calls"].get(bucket, 0) + 1
+
+    def graphql_wait(self) -> float:
+        """The wait before the next GraphQL query, from the last answer's rateLimit: a token bucket spending at most
+        limit/3600 points a second (a query of cost c holds the next one c*3600/limit s), and, when the last cost
+        would take what remains under the floor, the time to resetAt. A reset RESET_WAIT_CAP_S or more away pauses."""
+        g, now = self.gql, self.now()
+        if not g:
+            return 0.0
+        if g["remaining"] - g["cost"] < self.floor * g["limit"]:
+            wait = g["reset"] - now
+            if wait >= RESET_WAIT_CAP_S:
+                raise Paused(f"budget: graphql would go below {self.floor:.0%} of its limit, and its reset is {wait:.0f} s away")
+            return max(wait, g["next"] - now, 0.0)
+        return max(g["next"] - now, 0.0)
+
+    def observe(self, rate):
+        """Keep a GraphQL answer's `rateLimit{cost remaining limit resetAt}` for `graphql_wait`, and the costs seen."""
+        try:
+            cost, remaining, limit, reset = int(rate["cost"]), int(rate["remaining"]), int(rate["limit"]), epoch(rate["resetAt"])
+        except (TypeError, KeyError, ValueError):
+            return
+        if limit <= 0 or reset is None:
+            return
+        self.gql = {"cost": cost, "remaining": remaining, "limit": limit, "reset": reset, "next": self.now() + cost * 3600 / limit}
+        seen = self.cur.setdefault("graphql_cost", {"last": 0, "max": 0})
+        seen["last"], seen["max"] = cost, max(seen["max"], cost)
+
+    def secondary_wait(self, out: str) -> "float | None":
+        """The Retry-After (s) of a secondary-limit answer when it is at most SECONDARY_WAIT_CAP_S; else None."""
+        after = gh_read.parse_included(out)[1].get("retry-after", "")
+        if gh_read.SECONDARY in out.lower() and after.isdigit() and int(after) <= SECONDARY_WAIT_CAP_S:
+            return float(after)
+        return None
 
     def get(self, path: str, etag: str = ""):
         """A conditional REST read -> (state, body, etag): fresh, unchanged, gone or error:<what>."""
@@ -328,24 +412,33 @@ class Mirror:
         return ("gone" if status in (404, 410) else f"error: HTTP {status or 'unread'}"), "", etag
 
     def query(self, doc: str, **fields):
-        """A GraphQL query -> (data or None, why)."""
-        argv = ["gh", "api", "graphql", "-f", "query=" + doc]
+        """A GraphQL query, read with its headers -> (data or None, why). A secondary limit naming a short
+        Retry-After is waited out and the query asked once more."""
+        argv = ["gh", "api", "-i", "graphql", "-f", "query=" + doc]
         for k, v in fields.items():
             argv += ["-f", f"{k}={v}"]
         self._gate(argv, "graphql")
 
         def attempt():
             code, out = self.run(argv)
-            return (out, None) if code == 0 else (None, out)
-        value, failure, _, _ = gh_read.retry(attempt, gh_read.gh_wait, self.sleep)
+            status, _, body = gh_read.parse_included(out)
+            return (body, None) if code == 0 and status is not None and 200 <= status < 300 else (None, out)
+        value, failure, _, _ = gh_read.retry(attempt, lambda f: gh_read.included_wait(f, self.now), self.sleep)
+        wait = None if failure is None else self.secondary_wait(failure)
+        if wait is not None:
+            self.sleep(wait)
+            value, failure, _, _ = gh_read.retry(attempt, lambda f: gh_read.included_wait(f, self.now), self.sleep)
         if failure is not None:
             if gh_read.RATE_LIMIT in failure.lower():
                 raise Paused("rate limit: a GraphQL answer names one")
             return None, gh_read.one_line(failure)[-80:]
         try:
-            return json.loads(value).get("data"), ""
+            data = json.loads(value).get("data")
         except (ValueError, AttributeError):
             return None, "not JSON"
+        if isinstance(data, dict):
+            self.observe(data.pop("rateLimit", None))
+        return data, ""
 
     def download(self, path: str, accept: str = ""):
         """A binary read -> (bytes or None, why)."""
@@ -463,6 +556,9 @@ class Mirror:
         numbers = sorted(i["number"] for i in issues if isinstance(i, dict) and isinstance(i.get("number"), int))
         owner, repo = self.repo.split("/", 1)
         batches = {f"{b[0]}-{b[-1]}": b for b in (numbers[k:k + GRAPHQL_BATCH] for k in range(0, len(numbers), GRAPHQL_BATCH))}
+        kept = self.cur["items"].setdefault("item batches", {})
+        for key in [key for key in kept if key not in batches]:
+            del kept[key]  # a batch of another partition (an earlier GRAPHQL_BATCH, a last batch since grown) is no unit of this one
 
         def batch(key):
             data, why = self.query(ITEM_QUERY % "\n".join(ITEM_FIELDS % (n, n) for n in batches[key]), o=owner, n=repo)
@@ -687,7 +783,8 @@ def main(argv: list[str]) -> int:
         return 2
     if a.cmd == "cost":
         cur = json.loads((root / "corpus" / "cursor.json").read_text())
-        print(f"corpus_mirror: pass {cur['pass']} ({cur['state']}), calls per bucket {json.dumps(cur['calls'], sort_keys=True)}")
+        print(f"corpus_mirror: pass {cur['pass']} ({cur['state']}), calls per bucket {json.dumps(cur['calls'], sort_keys=True)}, "
+              f"GraphQL cost per query as answered {json.dumps(cur.get('graphql_cost', {}), sort_keys=True)}")
         return 0
     if a.token_fd is None:
         print("corpus_mirror: REFUSED --token-fd names the descriptor the read credential is on (never a variable or an argument)")
@@ -928,7 +1025,10 @@ def cases(m) -> dict[str, bool]:
         mm = m.Mirror(root, run=stub.run, run_bytes=stub.run_bytes, git=stub.git, http=stub.http, new_bare=stub.new_bare, sleep=stub.sleep,
                       now=lambda: stub.clock, repo="o/r", site=site, say=(said if said is not None else []).append,
                       **({} if floor is None else {"floor": floor}))
-        return mm, mm.scan(list(only), "https://example.invalid/o/r", {})
+        try:
+            return mm, mm.scan(list(only), "https://example.invalid/o/r", {})
+        except AssertionError as e_:  # the gate refused a call: a FAIL of every case that scans, never a traceback
+            return mm, f"REFUSED {e_}"
 
     def issue_pages(stub):
         return [p for p in stub.fresh if "/issues?" in p]
@@ -944,7 +1044,7 @@ def cases(m) -> dict[str, bool]:
         r["budget: rate_limit is read before the first call, and the gap is kept between calls"] = \
             a.calls[0] == ["gh", "api", "rate_limit"] and len(a.sleeps) >= len(a.fresh) - 1 and set(a.sleeps) == {m.gh_read.MIN_GAP_S}
         r["reads only: every gh call is a read or a query, and none names a search endpoint"] = \
-            all(m.gh_read.is_read(c) or m.gh_read.is_query(c) for c in a.calls if c[:1] == ["gh"]) \
+            all(m.gh_read.is_read(c) or m.gh_read.is_query(c[:2] + c[3:] if c[2:3] == ["-i"] else c) for c in a.calls if c[:1] == ["gh"]) \
             and not any("search" in " ".join(c) for c in a.calls)
         for label, answer in (("a secondary limit naming a long Retry-After", sec), ("a spent core bucket", spent)):
             b, said = Stub(), []
@@ -1242,7 +1342,7 @@ def cases(m) -> dict[str, bool]:
         sec60 = Stub.inc(403, [("Retry-After", "60")], '{"message": "You have exceeded a secondary rate limit."}',
                          "gh: You have exceeded a secondary rate limit. (HTTP 403)\n")
         sec600 = sec60.replace("Retry-After: 60", "Retry-After: 600")
-        primary = Stub.inc(200, [("X-Ratelimit-Remaining", "0")], '{"errors": [{"type": "RATE_LIMITED", "message": "API rate limit exceeded for user ID 1."}]}',
+        primary = Stub.inc(200, [("X-Ratelimit-Remaining", "0"), ("Retry-After", "60")], '{"errors": [{"type": "RATE_LIMITED", "message": "API rate limit exceeded for user ID 1."}]}',
                            "gh: API rate limit exceeded for user ID 1.\n")
         sec = {}
         for label, fails in (("once", [sec60]), ("twice", [sec60, sec60]), ("long", [sec600]), ("primary", [primary])):
@@ -1309,8 +1409,28 @@ MUTANTS = {
     "pause on a limit": ('        if wait is not None:\n            raise Paused(f"rate limit: the answer names a {wait:.0f} s wait")\n', "", "pauses the scan at its cursor"),
     "floor": ("            if low:\n                raise Paused(", "            if False:\n                raise Paused(", "under 60 % pauses"),
     "budget first": ("        self.since_budget = gh_read.BATCH  # the first call is preceded by a budget read", "        self.since_budget = 0", "rate_limit is read before the first call"),
-    "gap": ('        if sum(self.cur["calls"].values()):\n            self.sleep(gh_read.MIN_GAP_S)\n', "", "gap is kept between calls"),
-    "reads only": ('        if not (gh_read.is_read(argv) or gh_read.is_query(argv)) or', "        if", "a field write, a mutation"),
+    "gap": ('        gap = gh_read.MIN_GAP_S if sum(self.cur["calls"].values()) else 0.0', "        gap = 0.0", "gap is kept between calls"),
+    "graphql paced": ('        if bucket == "graphql":\n            gap = max(gap, self.graphql_wait())\n', "", "proportional to the cost"),
+    "pace by cost": ('"next": self.now() + cost * 3600 / limit}', '"next": self.now()}', "proportional to the cost"),
+    "token bucket waited": ('        return max(g["next"] - now, 0.0)\n\n    def observe', "        return 0.0\n\n    def observe", "proportional to the cost"),
+    "rateLimit read": ('            self.observe(data.pop("rateLimit", None))', '            data.pop("rateLimit", None)', "proportional to the cost"),
+    "rateLimit not stored": ('            self.observe(data.pop("rateLimit", None))', '            self.observe(data.get("rateLimit"))', "not stored with the items"),
+    "floor before a query": ('        if g["remaining"] - g["cost"] < self.floor * g["limit"]:', "        if False:", "sleeps until resetAt"),
+    "expected cost": ('        if g["remaining"] - g["cost"] <', '        if g["remaining"] <', "sleeps until resetAt"),
+    "sleep to reset": ("            if wait >= RESET_WAIT_CAP_S:", "            if True:", "sleeps until resetAt"),
+    "reset past an hour": ("            if wait >= RESET_WAIT_CAP_S:", "            if False:", "an hour or more away pauses"),
+    "secondary retried": ("        if wait is not None:\n            self.sleep(wait)\n", "        if False:\n            self.sleep(wait)\n", "waited out and the query retried once"),
+    "secondary once": ("        if failure is not None:\n            if gh_read.RATE_LIMIT in failure.lower():\n                raise Paused(\"rate limit: a GraphQL",
+                       "        while failure is not None and self.secondary_wait(failure) is not None:\n            self.sleep(self.secondary_wait(failure))\n            value, failure, _, _ = gh_read.retry(attempt, lambda f: gh_read.included_wait(f, self.now), self.sleep)\n        if failure is not None:\n            if gh_read.RATE_LIMIT in failure.lower():\n                raise Paused(\"rate limit: a GraphQL",
+                       "after the one retry pauses"),
+    "secondary cap": ("int(after) <= SECONDARY_WAIT_CAP_S", "True", "past the cap, or a spent primary"),
+    "secondary only": ("        if gh_read.SECONDARY in out.lower() and after.isdigit()", "        if after.isdigit()", "past the cap, or a spent primary"),
+    "query read with -i": ('        query = argv[:2] + argv[3:] if argv[2:3] == ["-i"] else argv', "        query = argv", "a query read with its headers"),
+    "partition": ("            del kept[key]  #", "            pass  #", "no unit of this pass"),
+    "cost cap": ("GRAPHQL_BATCH = 30\n", "GRAPHQL_BATCH = 50\n", "stays under QUERY_COST_CAP"),
+    "formula per parent": ('            requests += scale[-1] if n else 0', '            requests += 1 if n else 0', "documented example costs 51"),
+    "formula nesting": ("            scale.append(scale[-1] * (pending or 1))", "            scale.append(scale[-1])", "documented example costs 51"),
+    "reads only": ('        if not (gh_read.is_read(argv) or gh_read.is_query(query)) or', "        if", "a field write, a mutation"),
     "no search": (' or path.lstrip("/").split("?")[0].split("/")[0] == "search":', ":", "a search path"),
     "etag sent": ('st["etags"].get(str(n), ""))', '"")', "If-None-Match"),
     "namespace exit": ("        return 1 if bad else 0\n", "        return 0\n", "a fourth namespace"),
