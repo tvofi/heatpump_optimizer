@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:_window_open RETURN_DEL 571abbe7",
+  "killed_by": "tests/block_duty.py",
+  "old": "    return hour_in_windows(now.hour + now.minute / 60.0, windows)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=2."
+}
