@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/mixing_valve.py:ValveTarget.command CMP_BOUND 9e52e37e",
+  "killed_by": "tests/features.py",
+  "old": "        if self.commanded_c is not None and abs(target_c - self.commanded_c) < self.epsilon_k:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if self.commanded_c is not None and abs(target_c - self.commanded_c) <= self.epsilon_k:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
