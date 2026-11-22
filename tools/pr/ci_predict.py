@@ -593,7 +593,7 @@ TIMED_OUT = -124  # never a bash rc: bash exits 0..255
 # never predicted: a diff keying most of the job's steps replayed them one by
 # one for longer than the rest of prepr together.
 STEP_REPLAY_BUDGET_ENV = "HPO_STEP_REPLAY_BUDGET_S"
-STEP_REPLAY_BUDGET = 300
+STEP_REPLAY_BUDGET = 600
 
 
 def env_seconds(name: str, default: float) -> float:
