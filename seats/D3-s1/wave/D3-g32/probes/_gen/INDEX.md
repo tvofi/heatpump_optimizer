@@ -1,0 +1,1 @@
+- scratch generator: prologue.py + sizer_common.py/slab_common.py + b_<key>.py bodies; assemble.py writes probes/probe_<key>.py
