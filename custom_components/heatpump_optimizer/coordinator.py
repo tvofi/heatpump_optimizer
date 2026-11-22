@@ -2669,8 +2669,8 @@ class CoordinatorDiagnostics:
     LEARNERS = ("_accuracy", "_comfort_learner", "_curve_learner", "_price_model")
 
     @classmethod
-    def of(cls, coord: Any) -> "CoordinatorDiagnostics":
-        """Read ``coord``'s live counters and learner summaries into a view.
+    def of(cls, coord: Any, mode: str | None = None) -> "CoordinatorDiagnostics":
+        """Read ``coord``'s live counters and learner summaries, with the ``mode`` it hands, into a view.
 
         Lives beside the fields it fills, so a member diagnostics needs and
         a field here go stale together, not apart. A learner whose
@@ -2691,7 +2691,7 @@ class CoordinatorDiagnostics:
             tibber_outage_cycles=getattr(coord, "_tibber_outage_cycles", None),
             tibber_reauth_started=getattr(coord, "_tibber_reauth_started", None),
             solve_failures=getattr(coord, "_solve_failures", None),
-            mode=getattr(coord, "_mode", None),
+            mode=mode,
             cop_scale=getattr(coord, "_cop_scale", None),
             cop_samples=getattr(coord, "_cop_samples", None),
             house_heat_loss_scale=getattr(coord, "_house_heat_loss_scale", None),
@@ -4123,7 +4123,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def diagnostics_state(self) -> CoordinatorDiagnostics:
         """What diagnostics may read about this instance, as one view (#1739)."""
-        return CoordinatorDiagnostics.of(self)
+        return CoordinatorDiagnostics.of(self, self.mode)
 
     async def _async_setup_ecl110_state_subscription(self) -> None:
         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
@@ -6235,8 +6235,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _floor_widening(self) -> tuple[float, ...]:
         """Economy's wider band, then #26's (gated) open-window relax: while
         a window is detected open, holding the comfort floor heats the street."""
-        ctx = getattr(self, "_ctx", self)
-        relax = self._vent_cusum.tripped and ctx._config.open_window_relax_enabled
+        relax = self._vent_cusum.tripped and _ctx_of(self)._config.open_window_relax_enabled
         return tuple(by for on, by in (
             (self._mode == MODE_ECONOMY, ECONOMY_MIN_TEMP_WIDENING),
             (relax, OPEN_WINDOW_RELAX_C),
@@ -8336,7 +8335,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not persist ledger: %s", err)
 
     async def _async_load_accuracy(self) -> None:
-        ctx = getattr(self, "_ctx", self)
         stored = await load_mapping(self._accuracy_store, "accuracy history")
         if stored is None:
             return
@@ -8352,7 +8350,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             boost.note_mode_change(self, None, stored_mode)  # ADR-005: boost is told a restored mode
         self._comfort_learner = ComfortLearner.from_dict(
             stored.get("comfort"),
-            ctx._config.comfort_weight,
+            _ctx_of(self)._config.comfort_weight,
         )
         self._apply_comfort_weight()
     async def _async_save_accuracy(self) -> None:
@@ -10432,9 +10430,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         the replacement fields. With the flag off this is exactly the
         configured value.
         """
-        ctx = getattr(self, "_ctx", self)
         cost = self.effective_config.compressor_cycling_cost
-        if ctx._config.wear_autotune_enabled:
+        if _ctx_of(self)._config.wear_autotune_enabled:
             cost = max(cost, self._wear_price())
         return cost
     def _book_starts(self, starts: list[datetime]) -> None:
