@@ -52304,6 +52304,96 @@ R.check(
 )
 
 
+# -- #3795: the seen-sets hold the persisted retention window, no more -----
+# `store_payload` keeps the newest days of each set, so a restart bounded
+# them and an uptime did not: one long-lived learner kept every day it had
+# ever folded. The window is read off the payload (what a restart keeps),
+# never restated here, and the production constant is checked against it.
+from datetime import date as _ret_date, timedelta as _ret_timedelta  # noqa: E402
+
+from heatpump_optimizer import price_model as _ret_pm  # noqa: E402
+
+
+def _ret_days(count):
+    return [
+        (_ret_date(2026, 1, 1) + _ret_timedelta(days=d)).isoformat()
+        for d in range(count)
+    ]
+
+
+def _ret_folded(count):
+    """One learner, never restarted, folding `count` quarter-resolution days."""
+    learner = _ret_pm.PriceShapeLearner()
+    for day in _ret_days(count):
+        learner.fold(_t2_quarterly(day))
+    return learner
+
+
+_RET_BEYOND = 30
+_ret_probe = _ret_pm.PriceShapeLearner()
+_ret_probe.days_seen = set(_ret_days(1000))
+_RET_WINDOW = len(_ret_probe.store_payload()["days_seen"])
+R.check(
+    "#3795: the retention constant is the window the payload persists",
+    getattr(_ret_pm, "DAYS_SEEN_RETENTION", None) == _RET_WINDOW
+    and 0 < _RET_WINDOW < 1000,
+    f"constant {getattr(_ret_pm, 'DAYS_SEEN_RETENTION', None)!r} "
+    f"payload keeps {_RET_WINDOW}",
+)
+
+_ret_long = _ret_folded(_RET_WINDOW + _RET_BEYOND)
+_ret_newest = set(_ret_days(_RET_WINDOW + _RET_BEYOND)[-_RET_WINDOW:])
+R.check(
+    "#3795: after window+N folded days both seen-sets hold the newest window",
+    _ret_long.days_seen == _ret_newest
+    and _ret_long.quarter_days_seen == _ret_newest,
+    f"days {len(_ret_long.days_seen)} qdays {len(_ret_long.quarter_days_seen)} "
+    f"window {_RET_WINDOW} -- an uptime must hold what a restart would",
+)
+R.check(
+    "#3795: the bound re-folds nothing -- every day entered the model once",
+    sum(_ret_long.model.days) == _RET_WINDOW + _RET_BEYOND
+    and sum(_ret_long.model.quarter_days) == _RET_WINDOW + _RET_BEYOND
+    and _ret_long.fold(_t2_quarterly(max(_ret_newest))) is False,
+    f"model days {_ret_long.model.days} quarter days "
+    f"{_ret_long.model.quarter_days} over {_RET_WINDOW + _RET_BEYOND} folds",
+)
+
+_ret_loaded = _ret_pm.PriceShapeLearner()
+_ret_loaded.restore(
+    {
+        "model": {},
+        "days_seen": _ret_days(_RET_WINDOW + _RET_BEYOND),
+        "quarter_days_seen": _ret_days(_RET_WINDOW + _RET_BEYOND),
+    }
+)
+R.check(
+    "#3795: a stored list longer than the window is pruned on load",
+    _ret_loaded.days_seen == _ret_newest
+    and _ret_loaded.quarter_days_seen == _ret_newest,
+    f"days {len(_ret_loaded.days_seen)} qdays "
+    f"{len(_ret_loaded.quarter_days_seen)} window {_RET_WINDOW}",
+)
+
+# Null control: inside the window the bound evicts nothing, on either path.
+_ret_exact = _ret_folded(_RET_WINDOW)
+_ret_exact_loaded = _ret_pm.PriceShapeLearner()
+_ret_exact_loaded.restore(
+    {"model": {}, "days_seen": _ret_days(_RET_WINDOW),
+     "quarter_days_seen": _ret_days(_RET_WINDOW - 1)}
+)
+R.check(
+    "#3795 null: exactly a window of days is kept whole, folded or loaded",
+    _ret_exact.days_seen == set(_ret_days(_RET_WINDOW))
+    and _ret_exact.quarter_days_seen == set(_ret_days(_RET_WINDOW))
+    and _ret_exact_loaded.days_seen == set(_ret_days(_RET_WINDOW))
+    and _ret_exact_loaded.quarter_days_seen == set(_ret_days(_RET_WINDOW - 1)),
+    f"folded {len(_ret_exact.days_seen)}/{len(_ret_exact.quarter_days_seen)} "
+    f"loaded {len(_ret_exact_loaded.days_seen)}/"
+    f"{len(_ret_exact_loaded.quarter_days_seen)} window {_RET_WINDOW}",
+)
+
+
 # -- `_record_quiet_comfort_period`: the only half that lowers the weight --
 # An override is the only evidence a user ever produces, and every override
 # pushes the comfort weight UP. Without this method the learner is a
