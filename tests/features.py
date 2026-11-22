@@ -74516,6 +74516,7 @@ R.check(
 R.section("External-heat block override switch (#3862)")
 from heatpump_optimizer import external_heat as _x62_eh  # noqa: E402
 from heatpump_optimizer import diagnostics as _x62_diag  # noqa: E402
+import homeassistant.util.dt as _x62_dt  # noqa: E402
 
 
 def _x62_set(coord, on):
@@ -74590,12 +74591,23 @@ R.check(
 
 
 # 3. The DHW block: the fire plan with the switch on is the no-fire plan.
+# The suppression only removes discretionary slots in the first two hours, and
+# the fixture's prices are anchored on the clock, so whether the no-fire plan
+# has such a slot depends on the hour: the clock is pinned to one where it has.
+_X62_AT = datetime(2026, 11, 22, 19, 30, tzinfo=timezone.utc)
+
+
 def _x62_dhw_plan(*, fire, on):
-    coord = _r9egb1_coord(dhw=True)
-    coord._external_heat = _x62_det(active=fire)
-    coord._external_heat_active = fire
-    _x62_set(coord, on)
-    _, handed = _r9egb1_run(coord)
+    held = _x62_dt._FROZEN
+    _x62_dt.freeze(_X62_AT)
+    try:
+        coord = _r9egb1_coord(dhw=True)
+        coord._external_heat = _x62_det(active=fire)
+        coord._external_heat_active = fire
+        _x62_set(coord, on)
+        _, handed = _r9egb1_run(coord)
+    finally:
+        _x62_dt.freeze(held)
     return handed["state"].external_heat_active, list(
         coord._optimization_result.dhw_power_schedule
     )
