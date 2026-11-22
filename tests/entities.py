@@ -4309,7 +4309,8 @@ def _p2_registry(sources):
                  # The planner's own fallback, which its per-step chain resolves.
                  "dhw_planner.py::DhwPlanner._effective_dhw_windows":
                      "the fallback set the planner's per-step windows_for_day chain "
-                     "(_dhw_windows_at) resolves; windows_in_force is that chain for a clock",
+                     "(_dhw_windows_at) resolves; windows_in_force is that chain for a clock; "
+                     "every consumer of its return is the flat-consumers census's",
                  # Stats tables keyed by the flat windows' labels.
                  "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats":
                      "labels a draw with the flat window, the key the planner reads "
@@ -4393,6 +4394,14 @@ _P2_CENSUSES = {
     "waits_for_evidence_value": (
         "tests/entities.py",
         "waits_for_evidence census: every waits-for-evidence sensor is available only with a value"),
+    # D17-s3-51's other half: the flat set's consumers past the attribute
+    # load, and the planner's published countdown against windows_in_force.
+    "dhw_window_flat_consumers": (
+        "tests/entities.py",
+        "D17-s3-51: every consumer of the flat every-day hot-water windows, "),
+    "dhw_planner_next_window_day": (
+        "tests/features.py",
+        "the planner's published next window reads the day's windows, today's and "),
     "payload_number_published": (
         "tests/finite_boundary.py",
         "every number state publishes None, never the bool or the text, from a "),
@@ -4643,6 +4652,179 @@ R.check(
     == {"p2_dead", "p2_dead_proxy"}
     and "def on_threshold_kw(" in _P2_SOURCES["thermal_model.py"],
     f"planted={_p2_planted} unfenced={_p2_unfenced} renamed={_p2_renamed}",
+)
+
+# D17-s3-51's consumers census (R11-SEAM-entity-service). dhw_window_in_force's
+# rule matches the flat set's attribute loads, function by function. So a
+# value that leaves a dispositioned site -- a return (`_effective_dhw_windows`),
+# a local, a same-module parameter -- reached an instant test unread: the
+# planner's next window read the flat union on a weekend. This follows every
+# flat value from those loads to the call that consumes it. A resolver
+# (`_FW_RESOLVERS`, the windows_for_day chain) ends the walk; a same-module
+# function is entered at the parameter it binds; a function returning the
+# value becomes a source. Every other consumer is keyed
+# "file::site -> callee" against a disposition. Design choice: the key is the
+# callee, not the line, so a second read through a dispositioned callee in the
+# same site rides its disposition.
+_FW_ATTRS = ("dhw_windows", "dhw_demand_windows")
+_FW_WRAPS = ("list", "tuple", "sorted")
+_FW_RESOLVERS = ("windows_for_day", "_dhw_windows_at", "windows_in_force")
+_FW_DISPOSITIONS = {
+    "thermal_model.py::ThermalParameters.dhw_demand_windows -> <Return>":
+        "the flat set itself (a source)",
+    "thermal_model.py::ThermalParameters.dhw_windows_active -> <BoolOp>":
+        "whether a schedule is configured; no instant",
+    "thermal_model.py::ThermalParameters.effective_dhw_draw_pattern -> <BoolOp>":
+        "the draw mask's cache key; no instant",
+    "thermal_model.py::ThermalParameters._windowed_draw_pattern -> overlap_fraction":
+        "each hour's coverage of the day-agnostic 24-hour profile; no instant",
+    "dhw_planner.py::DhwPlanner._effective_dhw_windows -> <Return>":
+        "the planner's fallback set (a source)",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> _dhw_window_floors":
+        "entered: its per-step chain resolves the set",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> _dhw_next_window_hours":
+        "entered: today's and the next day's windows, resolved",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> format_windows":
+        "publishes the spec text windows_in_force's chain ends in; no instant",
+    "dhw_planner.py::DhwPlanner._dhw_window_floors -> draw_window_label":
+        "keys the stats table by the flat labels the learner writes; the step "
+        "is a resolved window start already",
+    "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats -> draw_window_label":
+        "the flat label the stats table is keyed by, taken only when the "
+        "day's windows (windows_in_force) hold the instant",
+    "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats -> labels_for":
+        "prunes the stats table to the flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_plan_fields -> labels_for":
+        "the stats table's flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep -> labels_for":
+        "the heaviest window's stats over the flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep -> zip":
+        "pairs each flat window with its label for the profile overlap; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view -> format_windows":
+        "publishes the spec text; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view -> labels_for":
+        "publishes the per-window stats; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator.configured_dhw_windows -> format_windows":
+        "formats the configured spec for display; no instant",
+    "optimizer.py::_dhw_resolved_publish -> format_resolved_day_spec":
+        "formats the resolved day spec for the card; no instant",
+}
+
+
+def _fw_consumers(sources):
+    """({"file::site -> callee": [line, ...]}, flat source function names)."""
+    idx, funcs = {}, {}
+    for name, text in sources.items():
+        if name == "const.py":
+            continue
+        tree = ast.parse(text)
+        parents, qual = _p2_index(tree)
+        idx[name] = parents
+        for n in ast.walk(tree):
+            if (isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and not isinstance(parents.get(n), (ast.FunctionDef, ast.AsyncFunctionDef))):
+                funcs.setdefault((name, n.name), (qual[n], n))
+
+    def callee(c):
+        return c.func.attr if isinstance(c.func, ast.Attribute) else getattr(c.func, "id", "?")
+
+    def flat(n, names, srcs):
+        return (isinstance(n, ast.Attribute) and n.attr in _FW_ATTRS and isinstance(n.ctx, ast.Load)
+                or isinstance(n, ast.Name) and n.id in names and isinstance(n.ctx, ast.Load)
+                or isinstance(n, ast.Call) and callee(n) in srcs)
+
+    def scan(file, site, fn, names, srcs, out, depth):
+        parents, names = idx[file], set(names)
+        grew = True
+        while grew:
+            grew = False
+            for n in ast.walk(fn):
+                if isinstance(n, ast.Assign) and len(n.targets) == 1:
+                    v, t = n.value, n.targets[0]
+                    while isinstance(v, ast.Call) and callee(v) in _FW_WRAPS and v.args:
+                        v = v.args[0]
+                    t = t.elts[0] if isinstance(t, ast.Tuple) and t.elts else t
+                    if flat(v, names, srcs) and isinstance(t, ast.Name) and t.id not in names:
+                        names.add(t.id)
+                        grew = True
+        for n in ast.walk(fn):
+            if not flat(n, names, srcs):
+                continue
+            node, up = n, parents.get(n)
+            while isinstance(up, ast.Call) and callee(up) in _FW_WRAPS and node in up.args:
+                node, up = up, parents.get(up)
+            if isinstance(up, ast.Assign):
+                continue
+            if isinstance(up, ast.Tuple) and isinstance(parents.get(up), ast.Return):
+                up = parents[up]
+            if isinstance(up, ast.Call) and (node in up.args or any(k.value is node for k in up.keywords)):
+                c = callee(up)
+                if c in _FW_RESOLVERS:
+                    continue
+                out.setdefault(f"{file}::{site} -> {c}", []).append(n.lineno)
+                if (file, c) in funcs and depth < 4:
+                    cq, cfn = funcs[(file, c)]
+                    params = [a.arg for a in cfn.args.args if a.arg != "self"]
+                    i = up.args.index(node) if node in up.args else None
+                    p = (params[i] if i is not None and i < len(params)
+                         else next((k.arg for k in up.keywords if k.value is node), None))
+                    if p:
+                        scan(file, cq, cfn, [p], srcs, out, depth + 1)
+                continue
+            out.setdefault(f"{file}::{site} -> <{type(up).__name__}>", []).append(n.lineno)
+
+    srcs = set()
+    while True:
+        out = {}
+        for (file, _), (site, fn) in sorted(funcs.items()):
+            if site.rsplit(".", 1)[-1] not in _FW_RESOLVERS:
+                scan(file, site, fn, (), srcs, out, 0)
+        grown = srcs | {k.split(" -> ")[0].rsplit(".", 1)[-1].split("::")[-1]
+                        for k in out if k.endswith("<Return>")}
+        if grown == srcs:
+            return out, srcs
+        srcs = grown
+
+
+_fw_out, _fw_srcs = _fw_consumers(_P2_SOURCES)
+_fw_stray = sorted(k for k in _fw_out if k not in _FW_DISPOSITIONS)
+_fw_stale = sorted(k for k in _FW_DISPOSITIONS if k not in _fw_out)
+R.check(
+    "D17-s3-51: every consumer of the flat every-day hot-water windows, "
+    "followed from each attribute load through locals, returns and same-module "
+    "parameters, is a resolver or a dispositioned no-instant read; none stale, "
+    "and the walk found its two sources (its own precondition)",
+    not _fw_stray and not _fw_stale
+    and {"_effective_dhw_windows", "dhw_demand_windows"} <= _fw_srcs,
+    f"SEAM {[(k, _fw_out[k]) for k in _fw_stray]} STALE {_fw_stale} sources={sorted(_fw_srcs)}",
+)
+# Null controls: the pre-fix countdown, a flat set returned and tested by a
+# caller, and a parameter carrying it into an instant test each fail alone.
+_FW_FIXED = "next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)"
+_fw_plants = {
+    "pre-fix countdown": _P2_SOURCES["dhw_planner.py"].replace(
+        _FW_FIXED, "next_window = hours_until_next_window(\n"
+        "            float(hours_mod[0]) if n_steps else 0.0, windows\n        )"),
+    "returned then tested": _P2_SOURCES["dhw_planner.py"]
+    + "\n\ndef _fw_src(p):\n    return list(p.dhw_windows)\n"
+      "\n\ndef _fw_use(p, h):\n    return hour_in_windows(h, _fw_src(p))\n",
+    "parameter then tested": _P2_SOURCES["dhw_planner.py"]
+    + "\n\ndef _fw_inner(ws, h):\n    return hour_in_windows(h, ws)\n"
+      "\n\ndef _fw_outer(p, h):\n    ws = p.dhw_demand_windows\n    return _fw_inner(ws, h)\n",
+}
+_fw_planted = {
+    k: sorted(set(_fw_consumers({**_P2_SOURCES, "dhw_planner.py": v})[0]) - set(_FW_DISPOSITIONS))
+    for k, v in _fw_plants.items()
+}
+R.check(
+    "and the consumers census fails on each planted flat read: the pre-fix "
+    "countdown, a returned set, a parameter (null controls)",
+    _P2_SOURCES["dhw_planner.py"].count(_FW_FIXED) == 1
+    and _fw_planted["pre-fix countdown"]
+    == ["dhw_planner.py::DhwPlanner._build_dhw_requirements -> hours_until_next_window"]
+    and "dhw_planner.py::_fw_use -> hour_in_windows" in _fw_planted["returned then tested"]
+    and "dhw_planner.py::_fw_inner -> hour_in_windows" in _fw_planted["parameter then tested"],
+    f"{_fw_planted}",
 )
 
 
@@ -24285,6 +24467,90 @@ R.check(
     ),
     "a claim stamped for another release excuses that release's diff only",
 )
+# A release stamp is not a claim for another release (PC-1113-18,
+# dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md): it moves the stamp and empties
+# the list. Main held a claim when the branch forked, the stamp deleted it, the
+# branch added its own. Per scenario nothing clashes, so the merge is main's
+# stamp and reason block plus the branch's claim, and the deleted line stays
+# deleted. `_CM_STAMPED` is `rewrite_claims`' shape; the stamp section below
+# drives the real function over the same base.
+_CM_BASE_HELD_CLAIM = _CM_BASE.rstrip("\n") + "\nvalve_storage_small_tank # a claim main held at the fork\n"
+_CM_STAMPED = (
+    "# Scenarios this branch deliberately moves, one name per line.\n"
+    "#\n"
+    "# claims-for: 6.3.17\n"
+    "#\n"
+    "# v6.3.17: a release. The stamp empties the list; the\n"
+    "# next branch restates its own footprint, claims included.\n"
+    "#\n"
+    "\n"
+    "# may-drift: wood_coil -- machine-sensitive\n"
+)
+_CM_OURS_OVER_HELD = _CM_BASE_HELD_CLAIM + "everything_on # this branch's own measured drift\n"
+_CM_POST_STAMP = _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED)
+R.check(
+    "a branch's claims merge over a release stamp that emptied the list",
+    _CM_POST_STAMP is not None
+    and [ln for ln in _CM_POST_STAMP.splitlines() if "claims-for:" in ln]
+    == ["# claims-for: 6.3.17"]
+    and "# v6.3.17: a release." in _CM_POST_STAMP
+    and _env_drift.parse_claim_map(_CM_POST_STAMP)
+    == {"everything_on": ["this branch's own measured drift"]},
+    f"merged={_CM_POST_STAMP!r}",
+)
+_CM_POST_STAMP_REV = _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_STAMPED, _CM_OURS_OVER_HELD)
+R.check(
+    "the release stamp merges alike from either side",
+    _CM_POST_STAMP_REV is not None
+    and _env_drift._parse_claims(_CM_POST_STAMP_REV)[0] == "6.3.17"
+    and _env_drift.parse_claim_map(_CM_POST_STAMP_REV)
+    == {"everything_on": ["this branch's own measured drift"]},
+    f"merged={_CM_POST_STAMP_REV!r}",
+)
+# Nulls: each is one condition of `_stamp_emptied_side` taken away.
+_CM_OURS_EDITED_HELD = _CM_OURS_OVER_HELD.replace(
+    "# a claim main held at the fork", "# rewritten by this branch")
+R.check(
+    "a claim the branch edited against the stamp's deletion is still refused",
+    _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_OURS_EDITED_HELD, _CM_STAMPED) is None
+    and _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_EDITED_HELD, _CM_STAMPED)[1]
+    == ["valve_storage_small_tank"],
+    "the stamp deleted it and the branch rewrote it: no rule says which holds",
+)
+_CM_STAMPED_WITH_CLAIM = _CM_STAMPED + "wood_only # claimed after the stamp\n"
+R.check(
+    "a stamped side that holds a claim keeps the different-stamps refusal",
+    _env_drift.merge_claim_file(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED_WITH_CLAIM) is None
+    and "different\n'claims-for:' stamps" in _env_drift.merge_claim_refusal(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED_WITH_CLAIM),
+    "a claim written after the stamp is another release's claim",
+)
+R.check(
+    "the branch's side stamped and holding a claim keeps the refusal too",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_STAMPED_WITH_CLAIM, _CM_OURS_OVER_HELD) == (None, []),
+    "the rule is one side's shape, not main's side alone",
+)
+# The two below are asked of the DECISION: the file-level merge refuses them
+# further down as well (the stamp key both sides rewrote; a result with no
+# stamp), which would hide the claim rule deciding them per scenario.
+R.check(
+    "stamps both sides moved apart are refused though one side is empty",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM,
+        _CM_OURS_OVER_HELD.replace("claims-for: 6.3.16", "claims-for: 6.3.18"),
+        _CM_STAMPED) == (None, []),
+    "the branch stamped its claims for a release main is not at",
+)
+R.check(
+    "a side that removed the stamp is not a release stamp",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD,
+        _CM_STAMPED.replace("# claims-for: 6.3.17\n", "")) == (None, []),
+    "an emptied list with no stamp is not what a release writes",
+)
 # Both sides bumped the stamp to the SAME release and changed disjoint claims:
 # every claim either side wrote describes that release's diff, so the stamps
 # agree and the merge is per scenario -- the guard above must not refuse it
@@ -25828,6 +26094,31 @@ R.check(
     "push to main, and both agree on the files a stamp writes",
     _stc_ok,
     _stc_detail,
+)
+# And the composition with the merge driver (PC-1113-18): the file the stamp
+# writes over a list that held a claim, merged with a branch cut before the
+# stamp that added its own, is the stamp's file plus the branch's claim. The
+# driver section pins the rule on `rewrite_claims`' shape; this drives the
+# function, so a stamp that stops emptying the list, or writes another stamp
+# line, turns red here and not on the first pull request after a release.
+try:
+    _stm_base = _stc_before
+    _stm_ours = _stm_base + "everything_on  # a branch cut before the stamp\n"
+    _stm_merged = _env_drift.merge_claim_file(_stm_base, _stm_ours, _stc_after)
+    _stm_ok = (
+        _stm_merged is not None
+        and _env_drift._parse_claims(_stm_merged)[0] == "6.6.0"
+        and _env_drift.parse_claim_map(_stm_merged)
+        == {"everything_on": ["a branch cut before the stamp"]}
+    )
+    _stm_detail = f"merged={_stm_merged!r}"
+except Exception as _stm_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _stm_ok = False
+    _stm_detail = f"{type(_stm_exc).__name__}: {_stm_exc}"
+R.check(
+    "a branch cut before a stamp merges its claims over the file stamp.py wrote",
+    _stm_ok,
+    _stm_detail,
 )
 # The same composition for the coverage rule, on THIS tree's own claim file
 # (v7.0.1's refusal): the stamp deletes every claim, so every may-drift entry

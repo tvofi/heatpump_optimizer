@@ -1,0 +1,2 @@
+2026-11-19T00:27:24Z container restart killed K2 at 80/236 complete; 4 worker trees found mutated mid-drive, removed and re-added; in-flight mutants re-driven
+2026-11-19T17:32:52Z K1 309/309, K2 236/236 (56 killed, 179 survived, 1 timeout re-driven: killed by features.py); 179 step-4 answers; REPORT.json built (build_u1a_report.py)

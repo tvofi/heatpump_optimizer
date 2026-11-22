@@ -5989,6 +5989,99 @@ R.check(
     not (set(_mon_req) & set(_sat_req)),
     f"mon {_mon_req} vs sat {_sat_req}",
 )
+# D17-s3-51, the planner's reader: `DhwPlan.next_window_in_hours`
+# (published as dhw_next_window_in_hours) is read in the day's windows,
+# today's and the next day's, exactly as `windows_in_force` answers for a
+# clock. It read the flat every-day union, so a Saturday 07:00 read 0.0
+# (inside the weekday window) where the weekend window opens in 1.0 h.
+# The census drives every weekday at hours before, inside, between and
+# after the windows, plus a holiday and a per-day override, and compares
+# each cell with the owner's answer. It asserts its own precondition: the
+# grid holds cells where the flat set disagrees with the day's.
+import dataclasses as _nw_dc
+import datetime as _nw_dt
+from heatpump_optimizer.dhw_schedule import (
+    hours_until_next_window as _nw_hunw, windows_in_force as _nw_wif,
+    parse_windows as _nw_parse,
+)
+
+_NW_SPEC = "weekdays 06:00-08:30, weekend 08:00-09:30"
+
+
+def _nw_cell(params, t0, holidays=frozenset()):
+    _o = _PvOpt(ThermalModel(params), _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    _n = 96
+    _ts = [t0 + _nw_dt.timedelta(hours=i * 0.25) for i in range(_n)]
+    _plan, _ = _dhw_planner(_o)._build_dhw_requirements(
+        _dhw_horizon(
+            prices=np.full(_n, 1.0), outdoor=np.full(_n, -5.0), n=_n, dt=0.25,
+            step_hours=np.array([t.hour + t.minute / 60.0 for t in _ts]),
+            step_weekdays=np.array(
+                [(t0 + _nw_dt.timedelta(hours=(i - 1) * 0.25)).weekday()
+                 for i in range(_n + 1)]),
+            holiday_flags=(np.array(
+                [False] + [t.date() in holidays for t in _ts])
+                if holidays else None),
+        ),
+        p_max=4.0,
+    )
+    _h = t0.hour + t0.minute / 60.0
+    _owner = _nw_hunw(_h, _nw_wif(params, None, t0, holidays),
+                      _nw_wif(params, None, t0, holidays, days=1))
+    _flat = _nw_hunw(_h, list(params.dhw_demand_windows))
+    return _plan.next_window_in_hours, _owner, _flat
+
+
+_nw_cfg = _grad_house(two_zone=False, dhw=True)
+_nw_cfg["dhw_windows"] = _NW_SPEC
+_nw_p = ThermalParameters.from_config(_nw_cfg)
+_nw_grid = {}
+for _nw_day in range(12, 19):  # Mon 2026-01-12 .. Sun 2026-01-18
+    for _nw_h in (0.0, 5.0, 7.0, 8.75, 9.0, 12.0, 23.5):
+        _nw_t = _WDT(2026, 1, _nw_day) + _nw_dt.timedelta(hours=_nw_h)
+        _nw_grid[("weekly", _nw_t.isoformat())] = _nw_cell(_nw_p, _nw_t)
+# A holiday Wednesday reads the holiday set; a Thursday override reads its own.
+_nw_hp = _nw_dc.replace(_nw_p, dhw_holiday_windows=_nw_parse("10:00-11:00"))
+for _nw_h in (7.0, 23.5):
+    _nw_t = _WDT(2026, 1, 13) + _nw_dt.timedelta(hours=_nw_h)
+    _nw_grid[("holiday", _nw_t.isoformat())] = _nw_cell(
+        _nw_hp, _nw_t, frozenset({_nw_dt.date(2026, 1, 14)}))
+    _nw_t = _WDT(2026, 1, 14) + _nw_dt.timedelta(hours=_nw_h)
+    _nw_grid[("holiday", _nw_t.isoformat())] = _nw_cell(
+        _nw_hp, _nw_t, frozenset({_nw_dt.date(2026, 1, 14)}))
+_nw_op = _nw_dc.replace(
+    _nw_p, dhw_day_windows=[None, None, None, _nw_parse("13:00-14:00"),
+                            None, None, None])
+for _nw_h in (7.0, 23.5):
+    for _nw_day in (14, 15):
+        _nw_t = _WDT(2026, 1, _nw_day) + _nw_dt.timedelta(hours=_nw_h)
+        _nw_grid[("override", _nw_t.isoformat())] = _nw_cell(_nw_op, _nw_t)
+# A horizon from midnight never wraps, so the next day is the weekday after;
+# a Saturday with no window reads Sunday's.
+_nw_ec = dict(_nw_cfg, dhw_windows="weekdays 06:00-08:30, Su 09:00-10:00")
+_nw_grid[("no-wrap", "2026-01-17T00:00:00")] = _nw_cell(
+    ThermalParameters.from_config(_nw_ec), _WDT(2026, 1, 17))
+_nw_wrong ={k: v for k, v in _nw_grid.items()
+             if v[0] is None or v[1] is None or abs(v[0] - v[1]) > 1e-9}
+_nw_separating = [k for k, v in _nw_grid.items()
+                  if v[2] is None or v[1] is None or abs(v[2] - v[1]) > 1e-9]
+R.check(
+    "the census grid holds cells where the flat every-day set and the day's "
+    "windows disagree on the next window (its own precondition)",
+    len(_nw_separating) >= 10 and any(k[0] == "holiday" for k in _nw_separating)
+    and any(k[0] == "override" for k in _nw_separating)
+    and _nw_grid[("no-wrap", "2026-01-17T00:00:00")][1] == 33.0,
+    f"{len(_nw_separating)} separating of {len(_nw_grid)}: {_nw_separating[:6]}",
+)
+R.check(
+    "the planner's published next window reads the day's windows, today's and "
+    "the next day's, in every census cell (D17-s3-51, windows_in_force's answer)",
+    not _nw_wrong,
+    f"{len(_nw_wrong)} of {len(_nw_grid)} wrong (planner, owner, flat): "
+    f"{list(_nw_wrong.items())[:4]}",
+)
 # The flat spec is byte-identical to before: the weekly path is entirely
 # gated on dhw_weekly_windows, which is None here. (The drift gate holds
 # this across every captured scenario; this is the local statement.)
@@ -20366,7 +20459,7 @@ _d17_c = Coord(FakeHass({}), _d17_entry(data={
     "dhw_enabled": True, "dhw_schedule_enabled": True,
     "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30"}))
 _d17_seen = {}
-for _d17_label, _d17_t in (("mon", _D17_MON), ("sat", _D17_SAT)):
+for _d17_label, _d17_t in (("mon", _D17_MON), ("sat", _D17_SAT), ("mon_0845", _D17_MON.replace(hour=8, minute=45))):
     _d17_labels = []
     with _d17_mock.patch.object(_d17_dt_util, "now", lambda _t=_d17_t: _t), \
             _d17_mock.patch.object(_d17_c._dhw_learner.draw_stats, "fold",
@@ -20383,6 +20476,11 @@ R.check(
     and _d17_seen["mon"] == (True, True, ["06:00-09:30"]),
     f"{_d17_seen} -- Saturday 07:00 lies in the flat union 06:00-09:30 and in "
     "no window that day",
+)
+R.check(
+    "boost and the draw learner read the clock to the minute: Monday 08:45 is past the 08:30 close (D17-s3-51)",
+    _d17_seen["mon_0845"] == (False, False, [""]),
+    f"{_d17_seen['mon_0845']} -- an hour read at half the minutes (8.375) lands back inside 06:00-08:30",
 )
 _d17_params = _d17_c._thermal_params
 _d17_params.dhw_holiday_windows = [(10.0, 11.0)]
@@ -51437,6 +51535,30 @@ R.check(
     "a diagnose press whose worker is down raises the action's diagnose_interval_failed (D10-s1-02)",
     _rc2_down[:2] == ("HomeAssistantError", "diagnose_interval_failed"),
     f"{_rc2_down[:2]} -- the press returned while its background task raised",
+)
+
+
+_rc2_refreshes: list[str] = []
+
+
+def _rc2_diagnosed(coord):
+    async def _ran():
+        return None
+
+    def _refresh():  # counted when asked for: the press hands the coroutine off the action
+        _rc2_refreshes.append("refresh")
+        return _ran()
+
+    coord.async_diagnose_interval = _ran
+    coord.async_request_refresh = _refresh
+
+
+_rc2_ran = _asyncio.run(_rc2_press(_rc2_button.DiagnoseIntervalButton, _rc2_diagnosed))
+R.check(
+    "a diagnose press whose diagnosis ran returns and asks for the refresh that publishes it (D10-s1-02)",
+    _rc2_ran[:2] == (None, None) and _rc2_refreshes == ["refresh"],
+    f"{_rc2_ran[:2]}, refreshes asked {len(_rc2_refreshes)} -- without the refresh the "
+    "diagnosis lands in the payload only at the next cycle",
 )
 
 

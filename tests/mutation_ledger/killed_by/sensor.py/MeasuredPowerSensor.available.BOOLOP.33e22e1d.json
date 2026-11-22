@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:MeasuredPowerSensor.available BOOLOP 33e22e1d",
-  "killed_by": "tests/entities.py",
-  "old": "        return bool(super().available and data.get(\"measured_power_available\"))",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`return bool(super().available or data.get(\"measured_power_available\"))`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
-}

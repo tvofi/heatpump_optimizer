@@ -4835,6 +4835,24 @@ async def widening_refusals():
         f"{None if high_w is None else dict(high_w.config)} any "
         f"{None if any_w is None else dict(any_w.config)}",
     )
+    # The grid's two edges. A step of 0 is no grid: the bound is the value, never
+    # a division by it. A stored value within float noise of a grid point
+    # (14.4999999998, a round-trip's residue) widens to that point, not one step past.
+    try:
+        zero_w = config_flow._widen_to_fit(selector.NumberSelector(selector.NumberSelectorConfig(
+            min=15.0, max=25.0, step=0, mode=selector.NumberSelectorMode.BOX)), [14.7])
+        zero_min = None if zero_w is None else zero_w.config["min"]
+    except ZeroDivisionError as err:
+        zero_min = repr(err)
+    noise_w = config_flow._widen_to_fit(slider, [14.4999999998])
+    check(
+        "schema_widening",
+        "happy",
+        "a step-0 field widens to exactly the value; float noise below a grid point widens to that point (D14-s1-01)",
+        zero_min == 14.7 and noise_w is not None and noise_w.config["min"] == 14.5,
+        f"step 0 -> min {zero_min!r}; 14.4999999998 on 15/0.5 -> "
+        f"{None if noise_w is None else noise_w.config['min']!r}",
+    )
     # The service surface (D14-s1-01's twelve seams): every number selector
     # services.yaml declares reaches its own max and example, or has no grid.
     import yaml as _svc_yaml

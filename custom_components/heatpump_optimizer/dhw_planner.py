@@ -32,6 +32,7 @@ from .dhw_draws import window_label as draw_window_label
 from .dhw_schedule import (
     FULL_DAY,
     Window,
+    cyclic_span,
     format_windows,
     hour_in_windows,
     hours_until_next_window,
@@ -62,26 +63,46 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _dhw_windows_at(
-    weekly: list[list[Window]] | None,
-    step_weekdays: np.ndarray | None,
+    params: ThermalParameters,
+    step_weekdays: np.ndarray | list[int] | None,
     index: int,
     windows: list[Window],
-    holiday_windows: list[Window] | None,
     holiday_flags: np.ndarray | None,
-    day_overrides: list[list[Window] | None] | None = None,
 ) -> list[Window]:
+    """The windows in force at entry ``index`` of the step arrays: ``params``' day tiers."""
     weekday = None if step_weekdays is None else int(step_weekdays[index])
     holiday = False
     if holiday_flags is not None and index < len(holiday_flags):
         holiday = bool(holiday_flags[index])
     return windows_for_day(
-        weekly,
+        params.dhw_weekly_windows,
         weekday,
         windows,
-        holiday_windows=holiday_windows,
+        holiday_windows=getattr(params, "dhw_holiday_windows", None),
         holiday=holiday,
-        day_overrides=day_overrides,
+        day_overrides=getattr(params, "dhw_day_windows", None),
     )
+
+
+def _dhw_next_window_hours(
+    hours_mod: np.ndarray, weekdays: np.ndarray | None, windows: list[Window],
+    params: ThermalParameters, holiday_flags: np.ndarray | None,
+) -> float | None:
+    """Hours to the next demand window in the day's windows (D17-s3-51), never the flat union.
+
+    Today's are the ones ``in_window[0]`` tests (entry 1); tomorrow's the first step past
+    midnight's, else, on a horizon ending first, the next weekday's with no holiday tier.
+    """
+    if not len(hours_mod):
+        return None  # no step to read a day from
+    today = _dhw_windows_at(params, weekdays, 1, windows, holiday_flags)
+    wraps = np.nonzero(np.diff(hours_mod) < 0.0)[0]
+    if len(wraps):
+        tomorrow = _dhw_windows_at(params, weekdays, int(wraps[0]) + 2, windows, holiday_flags)
+    else:
+        nxt = None if weekdays is None else [cyclic_span(int(d), int(d) + 1, 7)[-1] for d in weekdays[1:2]]
+        tomorrow = _dhw_windows_at(params, nxt, 0, windows, None)
+    return hours_until_next_window(float(hours_mod[0]), today, tomorrow)
 
 
 # How far either side of a contended step space heating may look for spare
@@ -960,44 +981,14 @@ class DhwPlanner:
         # overrides (#1260) ride the same array: a flat spec with overrides
         # set computes weekdays too, and `windows_for_day` applies the
         # whole precedence chain (override > holiday > default) per step.
-        weekly = params.dhw_weekly_windows
-        holiday_windows = getattr(params, "dhw_holiday_windows", None)
-        day_overrides = getattr(params, "dhw_day_windows", None)
+        def day(index: int) -> list[Window]:
+            return _dhw_windows_at(params, step_weekdays, index, windows, holiday_flags)
+
         in_window = np.array(
-            [
-                hour_in_windows(
-                    float(h),
-                    _dhw_windows_at(
-                        weekly,
-                        step_weekdays,
-                        i + 1,
-                        windows,
-                        holiday_windows,
-                        holiday_flags,
-                        day_overrides,
-                    ),
-                )
-                for i, h in enumerate(hours_mod)
-            ],
-            dtype=bool,
+            [hour_in_windows(float(h), day(i + 1)) for i, h in enumerate(hours_mod)], dtype=bool
         )
         prev_in_window = np.array(
-            [
-                hour_in_windows(
-                    float(h) - dt,
-                    _dhw_windows_at(
-                        weekly,
-                        step_weekdays,
-                        i,
-                        windows,
-                        holiday_windows,
-                        holiday_flags,
-                        day_overrides,
-                    ),
-                )
-                for i, h in enumerate(hours_mod)
-            ],
-            dtype=bool,
+            [hour_in_windows(float(h) - dt, day(i)) for i, h in enumerate(hours_mod)], dtype=bool
         )
         window_starts = np.where(in_window & ~prev_in_window)[0].tolist()
 
@@ -1348,9 +1339,7 @@ class DhwPlanner:
             suppress_steps = int(np.sum(mask & (schedule > 1e-6)))
             schedule = np.where(mask, 0.0, schedule)
 
-        next_window = hours_until_next_window(
-            float(hours_mod[0]) if n_steps else 0.0, windows
-        )
+        next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)
 
         # A manual plan overrides *timing* last, after the economics and the
         # external-heat suppression, because it expresses the user's explicit

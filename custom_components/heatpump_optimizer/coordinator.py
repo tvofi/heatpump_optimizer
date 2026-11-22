@@ -189,7 +189,6 @@ from .const import (
     INTERNAL_GAINS_MIN_UA_CONFIDENCE,
     CONFIDENCE_MARGIN_CAP_C,
     MOLD_SURFACE_RH_LIMIT,
-    SCORE_ALPHA,
     SCORE_FREE_SPAN_RESET,
     TEMPERATURE_UNIT_TO_C,
     OUTDOOR_AIR_RANGE_C,
@@ -275,7 +274,6 @@ from .manual_plan import (
 from .price_model import (
     PriceShapeLearner,
     PriceShapeModel,
-    TIBBER_API_URL,
     _raw_value,
     entity_priced,
     extend_price_series,
@@ -340,7 +338,6 @@ from .wood_fuel import (
 )
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
-    WATER_SPECIFIC_HEAT,
     ThermalModel,
     ThermalParameters,
     ThermalState,
