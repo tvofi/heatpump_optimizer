@@ -446,8 +446,9 @@ class PayloadFlagMixin(HeatPumpOptimizerEntity):
     """
 
     #: Key path from the payload to the flag that must be truthy for the entity
-    #: to be available: ``(key,)`` or ``(block, flag)``.
-    _available_flag: tuple[str, ...] = ("",)
+    #: to be available: ``(key,)`` or ``(block, flag)``. No default: a subclass
+    #: that forgets it raises on ``available``, never stays unavailable silently.
+    _available_flag: tuple[str, ...]
 
     @property
     def available(self) -> bool:

@@ -20459,7 +20459,7 @@ _d17_c = Coord(FakeHass({}), _d17_entry(data={
     "dhw_enabled": True, "dhw_schedule_enabled": True,
     "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30"}))
 _d17_seen = {}
-for _d17_label, _d17_t in (("mon", _D17_MON), ("sat", _D17_SAT)):
+for _d17_label, _d17_t in (("mon", _D17_MON), ("sat", _D17_SAT), ("mon_0845", _D17_MON.replace(hour=8, minute=45))):
     _d17_labels = []
     with _d17_mock.patch.object(_d17_dt_util, "now", lambda _t=_d17_t: _t), \
             _d17_mock.patch.object(_d17_c._dhw_learner.draw_stats, "fold",
@@ -20476,6 +20476,11 @@ R.check(
     and _d17_seen["mon"] == (True, True, ["06:00-09:30"]),
     f"{_d17_seen} -- Saturday 07:00 lies in the flat union 06:00-09:30 and in "
     "no window that day",
+)
+R.check(
+    "boost and the draw learner read the clock to the minute: Monday 08:45 is past the 08:30 close (D17-s3-51)",
+    _d17_seen["mon_0845"] == (False, False, [""]),
+    f"{_d17_seen['mon_0845']} -- an hour read at half the minutes (8.375) lands back inside 06:00-08:30",
 )
 _d17_params = _d17_c._thermal_params
 _d17_params.dhw_holiday_windows = [(10.0, 11.0)]
@@ -51530,6 +51535,30 @@ R.check(
     "a diagnose press whose worker is down raises the action's diagnose_interval_failed (D10-s1-02)",
     _rc2_down[:2] == ("HomeAssistantError", "diagnose_interval_failed"),
     f"{_rc2_down[:2]} -- the press returned while its background task raised",
+)
+
+
+_rc2_refreshes: list[str] = []
+
+
+def _rc2_diagnosed(coord):
+    async def _ran():
+        return None
+
+    def _refresh():  # counted when asked for: the press hands the coroutine off the action
+        _rc2_refreshes.append("refresh")
+        return _ran()
+
+    coord.async_diagnose_interval = _ran
+    coord.async_request_refresh = _refresh
+
+
+_rc2_ran = _asyncio.run(_rc2_press(_rc2_button.DiagnoseIntervalButton, _rc2_diagnosed))
+R.check(
+    "a diagnose press whose diagnosis ran returns and asks for the refresh that publishes it (D10-s1-02)",
+    _rc2_ran[:2] == (None, None) and _rc2_refreshes == ["refresh"],
+    f"{_rc2_ran[:2]}, refreshes asked {len(_rc2_refreshes)} -- without the refresh the "
+    "diagnosis lands in the payload only at the next cycle",
 )
 
 
