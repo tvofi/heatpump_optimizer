@@ -1,0 +1,8 @@
+{
+ "key": "57196c29f220bbc6",
+ "class_provisional": "equivalent-candidate",
+ "probe_direction": "none found: equivalent-candidate",
+ "inputs": "exact multiples energy = k*p_max*dt (k 0..8, p_max {1,2,0.5,4}, dt {0.25,0.5,1,0.125}) and 5000 seeded random draws",
+ "equivalence_argument": "remaining == 0.0 is the only input the `<` opens: every later take is min(p_max, 0/dt) = 0, writing zeros the schedule already holds (5144 inputs, 4875 reaching exactly 0.0, max_abs_diff 0).",
+ "note": "provisional until the key's full gate is recorded"
+}

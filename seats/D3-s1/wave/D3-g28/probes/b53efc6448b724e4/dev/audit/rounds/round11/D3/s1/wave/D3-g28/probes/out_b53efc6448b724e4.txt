@@ -1,0 +1,9 @@
+RESULT score_tie=1
+RESULT x_baseline=0.500000
+RESULT x_mutant=1.500000
+RESULT x_max_abs_diff=1.000000
+RESULT null_tilted_x_max_abs_diff=0.000000
+RESULT golden_plan_max_abs_diff=0 kW (winter_typical, summer_negative, flat)
+RESULT thread_factor=1.002
+RESULT load1=1.49
+RESULT swapins=0

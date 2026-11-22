@@ -1,0 +1,8 @@
+{
+ "key": "e670e7e026a9f4ec",
+ "class_provisional": "candidate",
+ "probe_direction": "out of the [-100, 100] band (100 -> 200 %, -100 -> -300 %); no golden cell reaches it",
+ "inputs": "(savings, baseline) (2, 1), (-3, 1); null (0.4, 1); golden summer_typical +/-dhw, summer_negative +/-dhw, shoulder, winter_typical",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

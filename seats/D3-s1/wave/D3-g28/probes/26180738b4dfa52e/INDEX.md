@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_26180738b4dfa52e.py: pins the minimum value of the start _price_ranked_start returns for p_max = -1 kW (energy 1 kWh, dt 0.25 h), and its outcome at dt = 0 and dt < 0 (mutant `if energy_kwh <= 0 or p_max <= 0 or dt <= 0:` -> `if False:`, optimizer.py:2126); output out_26180738b4dfa52e.txt

@@ -1,0 +1,8 @@
+{
+ "key": "9aa50bd32847b4dd",
+ "class_provisional": "candidate",
+ "probe_direction": "the published failure status text changes (no usable starting point -> all starting points failed)",
+ "inputs": "two 4-dim candidates under an objective returning NaN everywhere; null: a finite quadratic",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

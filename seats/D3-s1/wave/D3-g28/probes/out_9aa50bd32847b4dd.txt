@@ -1,0 +1,9 @@
+RESULT outcome_baseline=raise:ValueError: no usable starting point
+RESULT outcome_mutant=raise:ValueError: all starting points failed
+RESULT status_baseline='failed (no usable starting point)'
+RESULT status_mutant='failed (all starting points failed)'
+RESULT status_differs=1
+RESULT null_x_max_abs_diff=0
+RESULT thread_factor=1.000
+RESULT load1=1.45
+RESULT swapins=0

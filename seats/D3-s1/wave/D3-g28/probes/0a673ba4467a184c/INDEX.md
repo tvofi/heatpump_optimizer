@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_0a673ba4467a184c.py: pins what _power_fraction delivers for power 0 on a pump with min = max = 0 kW: a value or a raise (mutant `elif p_max > 0:` -> `elif p_max >= 0:`, optimizer.py:2172); output out_0a673ba4467a184c.txt

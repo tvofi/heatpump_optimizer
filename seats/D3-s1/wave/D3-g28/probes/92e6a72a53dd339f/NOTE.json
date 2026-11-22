@@ -1,0 +1,8 @@
+{
+ "key": "92e6a72a53dd339f",
+ "class_provisional": "candidate",
+ "probe_direction": "the solver's own error is swallowed: None is returned and the published status names an AttributeError",
+ "inputs": "an objective finite on the scoring pass that raises on every later evaluation; null: the same objective never raising",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

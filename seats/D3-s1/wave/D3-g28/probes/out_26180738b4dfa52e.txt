@@ -1,0 +1,15 @@
+RESULT pmax_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]
+RESULT pmax_neg_mutant=ok:[-1.0, -1.0, -1.0, -1.0]
+RESULT pmax_neg_mutant_min_kw=-1.000 kW
+RESULT dt_zero_baseline=ok:[0.0, 0.0, 0.0, 0.0]
+RESULT dt_zero_mutant=raise:ZeroDivisionError: division by zero
+RESULT dt_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]
+RESULT dt_neg_mutant=ok:[0.0, -4.0, 0.0, 0.0]
+RESULT energy_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]
+RESULT energy_neg_mutant=ok:[0.0, 0.0, 0.0, 0.0]
+RESULT pmax_zero_baseline=ok:[0.0, 0.0, 0.0, 0.0]
+RESULT pmax_zero_mutant=ok:[0.0, 0.0, 0.0, 0.0]
+RESULT null_ordinary_diff=0
+RESULT thread_factor=1.000
+RESULT load1=1.31
+RESULT swapins=0

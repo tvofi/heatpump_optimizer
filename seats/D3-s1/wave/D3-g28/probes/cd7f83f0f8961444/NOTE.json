@@ -1,0 +1,8 @@
+{
+ "key": "cd7f83f0f8961444",
+ "class_provisional": "equivalent-candidate",
+ "probe_direction": "none found: equivalent-candidate",
+ "inputs": "4 price vectors (one with +inf) x energy {0, 0.0, -0.0} x p_max {2, 1e-9, 1e9, -1, 0} x dt {0.25, 1, 1e-9, 0, -0.25}",
+ "equivalence_argument": "energy == 0 is the only input the `<` opens: the loop's first `remaining <= 0` test breaks at once and returns the same zero schedule (300 inputs incl. +inf prices, dt 0 and dt < 0, max_abs_diff 0).",
+ "note": "provisional until the key's full gate is recorded"
+}

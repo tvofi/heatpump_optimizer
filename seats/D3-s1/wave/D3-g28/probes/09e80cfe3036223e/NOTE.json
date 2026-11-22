@@ -1,0 +1,8 @@
+{
+ "key": "09e80cfe3036223e",
+ "class_provisional": "candidate",
+ "probe_direction": "down: a ~-1e-15 kW entry appears after a negative float residue; no golden plan moves",
+ "inputs": "20000 seeded random draws (n 2..96, p_max 0.3..9 kW, dt 0.05..1 h, energy up to n*p_max*dt); golden winter_typical, summer_negative, shoulder",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_57196c29f220bbc6.py: pins max abs difference between baseline and mutant schedules over inputs whose remaining energy reaches exactly 0.0 (the only band the < opens) (mutant `if remaining <= 0:` -> `if remaining < 0:`, optimizer.py:2130); output out_57196c29f220bbc6.txt

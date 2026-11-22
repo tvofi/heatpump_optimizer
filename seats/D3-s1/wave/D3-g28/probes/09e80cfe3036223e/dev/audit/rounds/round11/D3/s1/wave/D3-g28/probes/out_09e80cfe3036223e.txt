@@ -1,0 +1,8 @@
+RESULT inputs_tried=20000
+RESULT inputs_moved=195
+RESULT max_abs_diff=1.47e-15 kW
+RESULT example_n_pmax_dt_energy_mutant_min=(96, 8.789800417329076, 0.15086986044293943, 96.78484412188455, -1.471762512891108e-15)
+RESULT golden_plan_max_abs_diff=0 kW (winter_typical, summer_negative, shoulder)
+RESULT thread_factor=1.002
+RESULT load1=1.31
+RESULT swapins=0

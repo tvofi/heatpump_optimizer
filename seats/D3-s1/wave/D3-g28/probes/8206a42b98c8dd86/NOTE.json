@@ -1,0 +1,8 @@
+{
+ "key": "8206a42b98c8dd86",
+ "class_provisional": "candidate",
+ "probe_direction": "up: 0 -> 50 %",
+ "inputs": "baseline 0.01 (the boundary); null: 0.02 and 0.009",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

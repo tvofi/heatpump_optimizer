@@ -1,0 +1,8 @@
+{
+ "key": "26180738b4dfa52e",
+ "class_provisional": "candidate",
+ "probe_direction": "down: negative powers in the start (min 0 -> -1 kW), or a raise at dt = 0",
+ "inputs": "p_max -1, dt 0, dt -0.25, energy -1, p_max 0, on a 4-step day; null: an ordinary call",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

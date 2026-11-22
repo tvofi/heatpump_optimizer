@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9aa50bd32847b4dd.py: pins the error a multi-start whose every candidate scores non-finite raises, and the `failed (<error>)` status HeatPumpOptimizer.optimize publishes from it (status_differs: 1 when the two status strings differ) (mutant `if not scored:` -> `if False:`, optimizer.py:1948); output out_9aa50bd32847b4dd.txt

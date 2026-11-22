@@ -1,0 +1,8 @@
+{
+ "key": "62abf71b9686f2b8",
+ "class_provisional": "candidate",
+ "probe_direction": "the guess switches from the rank branch to the smooth branch; the solved plan moves by up to 0.31 kW",
+ "inputs": "a sinusoidal day scaled to mean exactly 1e-3 (last step nudged until the float mean equals it); null: linspace(0.5, 2.0)",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

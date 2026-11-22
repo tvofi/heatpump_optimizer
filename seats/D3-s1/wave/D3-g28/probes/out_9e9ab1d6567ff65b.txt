@@ -1,0 +1,10 @@
+RESULT one_zero_baseline=[1.0]
+RESULT one_zero_mutant=[nan]
+RESULT one_zero_mutant_nonfinite=1
+RESULT one_negative_baseline=[1.0]
+RESULT one_negative_mutant=[nan]
+RESULT one_negative_mutant_nonfinite=1
+RESULT null_four_step_diff=0
+RESULT thread_factor=1.000
+RESULT load1=1.45
+RESULT swapins=0

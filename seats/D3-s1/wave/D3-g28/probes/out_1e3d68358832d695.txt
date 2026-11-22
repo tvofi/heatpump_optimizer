@@ -1,0 +1,10 @@
+RESULT yields_baseline=5 calls
+RESULT yields_mutant=3 calls
+RESULT x_max_abs_diff=0
+RESULT null_one_start_yields_delta=0 calls
+RESULT golden_yields_baseline=8 calls
+RESULT golden_yields_mutant=5 calls
+RESULT golden_plan_max_abs_diff=0 kW
+RESULT thread_factor=1.010
+RESULT load1=1.31
+RESULT swapins=0
