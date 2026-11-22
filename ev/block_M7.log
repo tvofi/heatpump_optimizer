@@ -1,0 +1,21 @@
+mutant M7: custom_components/heatpump_optimizer/solve_gate.py:76 'if gate.solving:' -> 'if False:'
+ custom_components/heatpump_optimizer/solve_gate.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+=== features block ===
+  FAIL a run request during an in-flight solve returns at once, recorded as its re-run, never a second solve started beside it (#1754, the solve gate)  [nested request ['blocked']; 'blocked' is a second solve waiting on the gate the in-flight one holds]
+  ok   a refresh requested during an in-flight solve re-solves against the new override instead of being dropped (#1754)
+  ok   the in-flight solve's releases land on the override it pinned (O1), identical to an uninterrupted solve (#1754)
+  ok   and the new override O2 does not inherit O1's releases (#1754)
+  ok   null control: with no mid-solve swap the solve runs once against O1 and O1 keeps its own releases (#1754 -- the guard fires on a swap, not always)
+  ok   the what-if actually reached a solve (else the sharing check is vacuous)
+  ok   T2: a what-if that capped no power carries no power_cap_breach_c -- the key is the capped ask's comfort cost, never a solve's own predictive info leaking through
+  ok   D9-s1-03: of three user what-ifs overlapping one solve, the ask a newer one overtook while it waited answers held and rate-limited, and solves nothing; the first and the newest solve
+  ok   a what-if needs four priced quarters: three answer no_prices, four do not (the bound is the solve's own minimum, not one step more)
+  ok   the what-if's scratch config carries the override the user asked for -- a dropped override guard would answer a question nobody asked
+  ok   and the parameter override reaches the model: an asked comfort ceiling moves the scratch ceiling the valve's default target follows (21.5, away from the parameter's own 23.0 default, so a dropped guard cannot pass as the default)
+  ok   the what-if shares no mutable learner container with the live parameters (#240)
+  ok   the what-if's own defrost learner is a copy, not the live one (#240)
+
+1 of 13 FEATURES BLOCK FAILED
+rc=1
