@@ -27270,6 +27270,10 @@ _LC_DATA = {
     "price_source": "entity",
     "price_entity": "sensor.prices",
     "weather_entity": "weather.home",
+    # No outdoor sensor and no forecast: the frost hold would keep every OFF
+    # back, so the switch tests built on this entry opt out; the frost hold's
+    # own tests opt in (R11-OWNER-FROST-HOLD).
+    "frost_hold": False,
 }
 
 # The full lifecycle through the real handlers, driven the way Home
@@ -39303,7 +39307,9 @@ _ac_entity = "switch.hp_supply"
 
 def _ac_calls(signals, heat_pump_on):
     c = _t2_coord()
-    with_config(c, {CONF_HEAT_PUMP_SWITCH_ENTITY: _ac_entity})
+    # The mode rule alone: with no outdoor reading the frost hold would keep
+    # every OFF back (R11-OWNER-FROST-HOLD), so it is opted out here.
+    with_config(c, {CONF_HEAT_PUMP_SWITCH_ENTITY: _ac_entity, "frost_hold": False})
     c._pump_signals = signals
     c._current_action = {"heat_pump_on": heat_pump_on, "power": 0.0}
     c._mode = "comfort"
@@ -72212,6 +72218,9 @@ def _r9egb9_make(entry_id, extra=None, anchor=None):
         "outdoor_temp_entity": "sensor.outdoor",
         "ecl110_displace_set_topic": "ecl_r9egb9/set",
         "ecl110_command_topic": "ecl_r9egb9/command",
+        # The plan's OFF is one of the actuations compared: at -5 °C the
+        # frost hold would keep it back (R11-OWNER-FROST-HOLD).
+        "frost_hold": False,
         **(extra or {}),
     }, entry_id=entry_id))
     hass.spawn_real = True
@@ -87146,7 +87155,9 @@ for _ms_name, _ms_got, _ms_want in (
     R.check(f"freeze_reason: {_ms_name}", _ms_got == _ms_want, f"{_ms_got!r}")
 
 
-# A held write is not logged as the blocked-mode skip it is not.
+# A held write is not logged as the blocked-mode skip it is not. The skip is
+# logged by the supply gate's last stage, ``frost_hold.log_skip``.
+_sh_skip_logger = importlib.import_module(_sa_pa.__package__ + ".frost_hold")._LOGGER
 class _ShLog(logging.Handler):
     def __init__(self):
         super().__init__(logging.DEBUG)
@@ -87156,14 +87167,14 @@ class _ShLog(logging.Handler):
         self.seen.append(record.getMessage())
 
 
-_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh_log, _sh_level = _ShLog(), _sh_skip_logger.level
+_sh_skip_logger.addHandler(_sh_log)
+_sh_skip_logger.setLevel(logging.DEBUG)
 try:
     _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh_skip_logger.removeHandler(_sh_log)
+    _sh_skip_logger.setLevel(_sh_level)
 _sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "a held OFF is not logged as the cooling or blocked-mode skip",
@@ -87187,13 +87198,13 @@ async def _sh_blocked_write():
 
 
 _sh_log.seen.clear()
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh_skip_logger.addHandler(_sh_log)
+_sh_skip_logger.setLevel(logging.DEBUG)
 try:
     _sh_bcalls = _asyncio.run(_sh_blocked_write())
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh_skip_logger.removeHandler(_sh_log)
+    _sh_skip_logger.setLevel(_sh_level)
 _sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
