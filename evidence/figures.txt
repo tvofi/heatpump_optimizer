@@ -1,0 +1,7 @@
+[(1, 3), (30, 92), (32, 99), (33, 102), (50, 154)]
+0
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+STRUCTURE RATCHET PASSED
+untouched-check done
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.

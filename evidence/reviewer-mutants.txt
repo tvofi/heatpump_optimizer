@@ -1,0 +1,13 @@
+MUTANT round-to-int rc=0 0 FAIL
+MUTANT status-range rc=0 0 FAIL
+MUTANT max-tracking rc=0 0 FAIL
+MUTANT floor-max rc=1 1 FAIL
+FAIL graphql wait: none before any answer; the pace at exactly the floor; the reset up to 3599 s and a pause at 3600; nothing once both are past
+MUTANT budget-before-gql rc=1 3 FAIL
+FAIL graphql pace: after a query of cost c each GraphQL call waits c*3600/limit, proportional to the cost
+FAIL graphql floor: a query the last cost would take under the floor sleeps until resetAt (under an hour), and the scan completes
+FAIL graphql floor: a reset an hour or more away pauses at the cursor instead of sleeping, and the run after it completes
+MUTANT limit-guard rc=1 1 FAIL
+FAIL graphql observe: a rateLimit missing, malformed, with no positive limit or a reset that is no UTC stamp keeps no pacing state and never raises
+
+[exited with code 0]
