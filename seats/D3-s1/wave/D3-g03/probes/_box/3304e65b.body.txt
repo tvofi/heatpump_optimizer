@@ -1,0 +1,31 @@
+from datetime import datetime, timedelta, timezone  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import OptimizationResult  # noqa: E402
+
+T0 = datetime(2026, 1, 10, 0, 0, tzinfo=timezone.utc)
+
+
+def result(n, **kw):
+    base = dict(
+        power_schedule=[1.0] * n, room_temp_trajectory=[21.0] * (n + 1), slab_temp_trajectory=[22.0] * (n + 1),
+        timestamps=[T0 + timedelta(minutes=15 * i) for i in range(n)], prices=[1.0 + 0.1 * i for i in range(n)],
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0, savings_percentage=0.0,
+        optimal_setpoints=[21.0] * n, status="optimal", outdoor_temps=[-2.0] * n,
+        dhw_power_schedule=[0.0] * n, dhw_temp_trajectory=[50.0] * (n + 1),
+    )
+    base.update(kw)
+    return OptimizationResult(**base)
+
+
+def views(fn, res):
+    me = SimpleNamespace(_opt_config=SimpleNamespace(dt_hours=0.25),
+                         _dhw_confidence_band=lambda temps, dt: ([None] * len(temps), [None] * len(temps)))
+    try:
+        return fn(me, res)
+    except Exception as err:  # noqa: BLE001 - a raise is an outcome too
+        return f"raised {type(err).__name__}: {err}"
+MUT = mutant(CLS._build_plan_views, 4831, "        if not n:", "        if False:")
+for arm, fn in (("baseline", CLS._build_plan_views), ("mutant", MUT)):
+    v = views(fn, result(0))
+    sp = v.get("space_plan") if isinstance(v, dict) else None
+    print(f"RESULT empty_views_{arm}={v == {'space_plan': {}, 'dhw_plan': {}}} space_plan_keys={len(sp) if isinstance(sp, dict) else v!r}")
+print(f"RESULT null_delta={int(views(CLS._build_plan_views, result(4)) != views(MUT, result(4)))} count")

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_ec4b6ee2.py: key ec4b6ee2ab420129, thermal-learning saves (_async_save_thermal_learning awaits) and open-window INFO log records that (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_ec4b6ee2.py)

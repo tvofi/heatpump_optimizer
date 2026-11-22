@@ -1,0 +1,10 @@
+class Me:
+    """A bare owner (hashable: driving_grade keys its drivers by owner)."""
+
+
+def close(fn, book, prior=40.0):
+    me = Me()
+    me._score_day, me._operation_score, me.saves = dict(book), prior, 0
+    me._schedule_ledger_save = lambda: setattr(me, "saves", me.saves + 1)
+    fn(me)
+    return (None if me._operation_score is None else round(me._operation_score, 6)), me._score_day

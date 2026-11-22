@@ -1,0 +1,16 @@
+# Metric: thermal-learning saves (_async_save_thermal_learning awaits) and open-window INFO log records that
+#   HeatPumpOptimizerCoordinator._async_learn_house_heat_loss makes on the cycle where the open-window detector's
+#   state changes (its _vent_cusum.update returns True: trips on a sustained cold residual).
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_ec4b6ee2.py
+# EXPECTED RESULT trip_saves_baseline=1 count log=1 ; trip_saves_mutant=0 count log=0 (the latched trip is not persisted
+#   on the cycle it happens, so a restart before the next save forgets the open window and unfreezes the learners)
+# EXPECTED RESULT null_delta=0 count (detector unchanged this cycle: neither arm saves)
+# Harness: the replay seams are stubbed at module level for both arms alike (_replay_gate -> heat 2 kW, clean, not
+#   frozen, no fold; _replay_fabric -> a predicted room 1.5 K warmer than the 19.0 C observed; learner_room_unread ->
+#   False; _learned_zone_temperature -> the state's room temperature); the detector is a stub whose update() returns
+#   the scripted change and records the residual it was fed.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss,
+#   line 5810 `if vent_changed:`.
+# Perturbation: key ec4b6ee2ab420129 GUARD_OFF -> `if False:`, in memory. Direction: 1 save -> 0.
+# Null control: a cycle on which the detector's state does not change.

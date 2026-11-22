@@ -1,0 +1,21 @@
+MUT = mutant(CLS._check_pump_mode_expired, 5986,
+             "        if expired == self._pump_mode_expired_notice:", "        if False:")
+
+
+def drive(fn, sources, notice=False):
+    me = SimpleNamespace(_pump_signals=SimpleNamespace(mode_source=None), _pump_mode_expired_notice=notice,
+                         hass=object(), _pump_mode_last_good=None)
+    calls = []
+    with mock.patch.object(co.ir, "async_delete_issue", lambda *a, **k: calls.append("delete")), \
+         mock.patch.object(co, "_create_issue", lambda *a, **k: calls.append("create")):
+        for s in sources:
+            me._pump_signals.mode_source = s
+            fn(me)
+    return len(calls)
+
+
+steady = ["sensor"] * 3
+print(f"RESULT steady_writes_baseline={drive(CLS._check_pump_mode_expired, steady)} count")
+print(f"RESULT steady_writes_mutant={drive(MUT, steady)} count")
+flip = [co.pump_signals.MODE_SOURCE_EXPIRED]
+print(f"RESULT null_delta={drive(MUT, flip) - drive(CLS._check_pump_mode_expired, flip)} count")

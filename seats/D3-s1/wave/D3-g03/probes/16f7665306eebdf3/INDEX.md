@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_16f76653.py: key 16f7665306eebdf3, the value HeatPumpOptimizerCoordinator._async_load_energy_totals adopts as `_energy_totals_since` (published (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_16f76653.py)

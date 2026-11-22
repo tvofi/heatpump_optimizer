@@ -1,0 +1,28 @@
+from datetime import timedelta  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+from harness import FakeEntry, FakeHass, FakeState  # noqa: E402
+from homeassistant.util import dt as dt_util  # noqa: E402
+from custom_components.heatpump_optimizer import const, manual_plan  # noqa: E402
+
+MUT = mutant(CLS._build_data_dict, 8265, "        if manual_state is not None:", "        if False:")
+
+
+def coordinator(with_override):
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.4"))
+    hass.states.set("sensor.outdoor", FakeState("-3.0"))
+    coord = CLS(hass, FakeEntry(data={const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+                                      const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor", const.CONF_DHW_TANK_VOLUME: 180.0}))
+    run(coord._update_current_state())
+    if with_override:
+        now = dt_util.now()
+        coord._manual_override = manual_plan.build_override(
+            dhw_slots=[{"start": (now + timedelta(hours=1)).isoformat(), "end": (now + timedelta(hours=3)).isoformat()}],
+            space_slots=None, expires_at=now + timedelta(hours=12), now=now)
+    return coord
+
+
+for arm, fn in (("baseline", CLS._build_data_dict), ("mutant", MUT)):
+    print(f"RESULT manual_plan_published_{arm}={'manual_plan' in fn(coordinator(True))}")
+c = coordinator(False)
+print(f"RESULT null_delta={int(('manual_plan' in CLS._build_data_dict(c)) != ('manual_plan' in MUT(c)))} count")

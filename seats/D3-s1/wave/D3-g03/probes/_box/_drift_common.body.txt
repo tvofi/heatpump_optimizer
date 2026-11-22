@@ -1,0 +1,29 @@
+from datetime import datetime, timezone  # noqa: E402
+from custom_components.heatpump_optimizer.snapshots import SnapshotRing  # noqa: E402
+
+FN = CLS._async_watch_learning_drift
+
+
+def drive(fn, ticks, ring=None, rollback_done=False):
+    """Run the heartbeat once per (iso instant, freeze reason or None, bias) tick; returns (ring, me, issue calls)."""
+    ring = ring or SnapshotRing()
+    calls = []
+    state = {"reason": None, "bias": 0.0}
+
+    async def save():
+        calls.append("save")
+
+    me = SimpleNamespace(
+        _snapshots_loaded=True, _vent_cusum=SimpleNamespace(release_if_starved=lambda now, h: False),
+        _inputs_unhealthy=lambda: state["reason"], _snapshot_ring=ring, _learner_snapshot_payloads=lambda: {},
+        _accuracy=SimpleNamespace(summary=lambda: {}, temperature_bias=lambda: state["bias"]),
+        _async_save_snapshots=save, _rollback_done_for_alarm=rollback_done, hass=SimpleNamespace(),
+        _apply_learner_payloads=lambda p: calls.append("apply"),
+    )
+    with mock.patch.object(co.ir, "async_delete_issue", lambda *a, **k: calls.append("delete")), \
+         mock.patch.object(co, "_create_issue", lambda *a, **k: calls.append("create")):
+        for iso, reason, bias in ticks:
+            state["reason"], state["bias"] = reason, bias
+            with mock.patch.object(co.dt_util, "now", lambda iso=iso: datetime.fromisoformat(iso)):
+                run(fn(me))
+    return ring, me, calls

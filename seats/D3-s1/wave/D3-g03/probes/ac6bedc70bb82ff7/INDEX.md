@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_ac6bedc7.py: key ac6bedc70bb82ff7, whether the payload HeatPumpOptimizerCoordinator._build_data_dict assembles carries the `manual_plan` key, (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_ac6bedc7.py)

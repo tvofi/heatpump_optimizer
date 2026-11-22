@@ -1,0 +1,19 @@
+from custom_components.heatpump_optimizer import const, thermal_model as tm  # noqa: E402
+
+
+def caps(fn, p_max, heat_kw, outdoor=-3.0):
+    """_capacity_caps over 2 steps at `outdoor`, one learned envelope bucket of `heat_kw` (COP pinned to 1)."""
+    params = tm.ThermalParameters.from_config({const.CONF_HEAT_PUMP_MAX_POWER: p_max})
+    model = SimpleNamespace(params=params, compute_cop=lambda o, humidity=None: 1.0)
+    me = SimpleNamespace(_config=SimpleNamespace(capacity_curve_enabled=True), _thermal_params=params,
+                         _thermal_model=model,
+                         _capacity_envelope={int(co.np.floor(outdoor / 3.0)): [heat_kw, const.CAPACITY_MIN_SAMPLES]})
+    out = fn(me, co.np.array([outdoor, outdoor]))
+    return None if out is None else [float(x) for x in out]
+MUT = mutant(CLS._capacity_caps, 9365, "            if cap_i < p_max - 1e-9:", "            if cap_i <= p_max - 1e-9:")
+tie = 1.0 - 1e-9
+b, m = caps(CLS._capacity_caps, 1.0, tie), caps(MUT, 1.0, tie)
+print(f"RESULT caps_tie_baseline={b}")
+print(f"RESULT caps_tie_mutant={m}")
+print(f"RESULT max_cap_delta_kw={max(abs(1.0 - x) for x in m) if m and not b else 0.0:.3g}")
+print(f"RESULT null_delta={sum(int(caps(CLS._capacity_caps, 1.0, h) != caps(MUT, 1.0, h)) for h in (1.0 - 2e-9, 1.0 - 0.5e-9, 0.8))} count")

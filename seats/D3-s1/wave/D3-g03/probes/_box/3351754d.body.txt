@@ -1,0 +1,68 @@
+import logging  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+FN = CLS._async_learn_lower_floor_loss
+MUT = mutant(FN, 5940, "        if not np.isfinite(residual):", "        if False:")
+T0 = datetime(2026, 1, 10, 3, 0, tzinfo=timezone.utc)
+
+
+class _Count(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.n = 0
+
+    def emit(self, record):
+        self.n += "Ignoring lower floor loss sample" in record.getMessage()
+
+
+def cycle(fn, observed, predicted):
+    applied, saves = [], []
+
+    async def save():
+        saves.append(1)
+
+    prev = SimpleNamespace(lower_floor_temperature=20.0, outdoor_temperature=-5.0, solar_radiation=0.0)
+    interval = co.FabricInterval(prev, T0, T0 + timedelta(minutes=30), 0.5, 1.2)
+    me = SimpleNamespace(
+        _thermal_params=SimpleNamespace(two_zone_enabled=True, lower_floor_heat_loss=0.08, lower_floor_thermal_mass=4.0),
+        _config=SimpleNamespace(lower_floor_temp_entity="sensor.lower"),
+        _current_state=SimpleNamespace(lower_floor_temperature=observed), _learning_frozen=lambda *a: None,
+        _house_heat_loss_scale=1.0, _lower_floor_loss_ratio=1.0, _lower_floor_loss_samples=0,
+        _async_save_thermal_learning=save, _learner_freezes=SimpleNamespace(note_freeze=lambda *a: None),
+    )
+    me._apply_lower_floor_loss_ratio = lambda r: (applied.append(r), setattr(me, "_lower_floor_loss_ratio", r))
+
+    async def replay(coord, iv, heat, label):
+        return SimpleNamespace(lower_floor_temperature=predicted)
+
+    h = _Count()
+    co._LOGGER.addHandler(h)
+    old = co._LOGGER.level
+    co._LOGGER.setLevel(logging.DEBUG)
+    try:
+        with mock.patch.object(co, "_replay_gate", lambda *a: (2.0, True, None, True)), \
+             mock.patch.object(co, "_replay_fabric", replay):
+            ret = run(fn(me, interval))
+    finally:
+        co._LOGGER.removeHandler(h)
+        co._LOGGER.setLevel(old)
+    return (me._lower_floor_loss_ratio, me._lower_floor_loss_samples, len(applied), len(saves), ret), h.n
+
+
+nan, inf = float("nan"), float("inf")
+cases = {"nan_observed": (nan, 20.0), "pos_inf_residual": (19.8, -inf), "neg_inf_residual": (19.8, inf)}
+moved, logs = 0, {"baseline": 0, "mutant": 0}
+for name, (obs, pred) in cases.items():
+    sb, lb = cycle(FN, obs, pred)
+    sm, lm = cycle(MUT, obs, pred)
+    print(f"RESULT state_{name}_baseline={sb}")
+    print(f"RESULT state_{name}_mutant={sm}")
+    moved += sb != sm
+    logs["baseline"] += lb
+    logs["mutant"] += lm
+print(f"RESULT states_moved={moved} count")
+print(f"RESULT debug_log_baseline={logs['baseline']} count")
+print(f"RESULT debug_log_mutant={logs['mutant']} count")
+pb, pm = cycle(FN, 19.8, 20.0)[0], cycle(MUT, 19.8, 20.0)[0]
+print(f"RESULT positive_control_state_baseline={pb}")
+print(f"RESULT positive_control_moved={int(pb != (1.0, 0, 0, 0, True) and pb == pm)} count")

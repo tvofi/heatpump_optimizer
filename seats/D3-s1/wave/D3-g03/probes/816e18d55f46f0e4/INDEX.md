@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_816e18d5.py: key 816e18d55f46f0e4, the per-step electrical cap array HeatPumpOptimizerCoordinator._capacity_caps returns (None = no cap) for (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_816e18d5.py)

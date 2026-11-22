@@ -1,0 +1,16 @@
+# Metric: (a) the Hz value HeatPumpOptimizerCoordinator._command_frequency writes through number.set_value and
+#   (b) the commanded Hz it records on the FrequencyWatchdog, plus (c) whether the watchdog trips after one write and
+#   4 reported ticks at 45.08 Hz, for a number entity whose own range is [20.0, 50.06] Hz and a target above every
+#   evidenced bucket's reach (FrequencyMap.recommend answers round(hz_max, 1) = 50.1).
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_420bcb85.py
+# EXPECTED RESULT written_baseline=50.1 ; written_mutant=50.1 (the write re-rounds: rounding is monotone, so the
+#   clamp never changes the written value)
+# EXPECTED RESULT commanded_baseline=50.06 ; commanded_mutant=50.1 Hz
+# EXPECTED RESULT tripped_baseline=False ; tripped_mutant=True (45.08 Hz is 4.98 Hz from 50.06, 5.02 from 50.1; FREQ_DIVERGENCE_HZ=5)
+# EXPECTED RESULT null_delta=0 count (entity range [20.0, 50.0]: recommend stays in range, arms identical)
+# Key of the count: the service-call payload and the watchdog's own fields (production state).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._command_frequency,
+#   line 10855 `target = float(np.clip(target, hz_min, hz_max))`; real freq_control.FrequencyMap and FrequencyWatchdog.
+# Perturbation: key 420bcb8597761025 CLAMP_DROP -> `target = float((target))`, in memory. Direction: commanded 50.06 -> 50.1.
+# Null control: an entity range on the 0.1 Hz grid, where the clamp is inert.

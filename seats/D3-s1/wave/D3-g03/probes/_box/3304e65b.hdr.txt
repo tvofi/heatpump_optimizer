@@ -1,0 +1,11 @@
+# Metric: the plan views HeatPumpOptimizerCoordinator._build_plan_views returns for an OptimizationResult with no
+#   timestamps (n = 0): whether they equal {"space_plan": {}, "dhw_plan": {}}, and the space_plan key count.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3304e65b.py
+# EXPECTED RESULT empty_views_baseline=True space_plan_keys=0 ; empty_views_mutant=False space_plan_keys=5
+#   (the general path publishes empty forecast/slots and zero totals instead of the empty view)
+# EXPECTED RESULT null_delta=0 count (n = 4: guard false in both arms)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_plan_views,
+#   line 4831 `if not n:`; real OptimizationResult, real plan_slots.
+# Perturbation: key 3304e65ba361587f GUARD_OFF -> `if False:`, in memory. Direction: {} views -> populated-empty views.
+# Null control: a 4-step result.

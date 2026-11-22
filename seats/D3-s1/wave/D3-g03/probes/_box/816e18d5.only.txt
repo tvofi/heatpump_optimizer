@@ -1,0 +1,5 @@
+MUT = mutant(CLS._capacity_caps, 9352, "        if p_max <= 0.1:", "        if False:")
+for p in (0.08, 0.1):
+    print(f"RESULT caps_p{p}_baseline={caps(CLS._capacity_caps, p, 0.02)}")
+    print(f"RESULT caps_p{p}_mutant={caps(MUT, p, 0.02)}")
+print(f"RESULT null_delta={sum(int(caps(CLS._capacity_caps, p, h) != caps(MUT, p, h)) for p, h in ((0.0, 0.02), (5.0, 2.0)))} count")

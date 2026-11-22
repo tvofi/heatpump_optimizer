@@ -1,0 +1,11 @@
+# Metric: whether the payload HeatPumpOptimizerCoordinator._build_data_dict assembles carries the `manual_plan` key,
+#   on a real coordinator (tests/harness.py FakeHass/FakeEntry, one input cycle) holding an active manual override
+#   built by manual_plan.build_override (one 2 h DHW slot, expiring in 12 h), as async_apply_manual_plan stores it.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_ac6bedc7.py
+# EXPECTED RESULT manual_plan_published_baseline=True ; manual_plan_published_mutant=False
+# EXPECTED RESULT null_delta=0 count (no override: both arms omit the key)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_data_dict,
+#   line 8265 `if manual_state is not None:`; consumers: the plan sensors read data["manual_plan"].
+# Perturbation: key ac6bedc70bb82ff7 GUARD_OFF -> `if False:`, in memory. Direction: key present -> absent.
+# Null control: the same coordinator with no override.

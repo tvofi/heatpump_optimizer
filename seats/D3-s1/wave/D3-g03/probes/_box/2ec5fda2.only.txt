@@ -1,0 +1,15 @@
+MUT = mutant(FN, 9685, "        if day_counted:", "        if False:")
+BAD = "indoor_temp stale"
+seq = [("2026-01-10T08:00:00+00:00", BAD, 0.1), ("2026-01-10T12:00:00+00:00", None, 0.1),
+       ("2026-01-11T00:30:00+00:00", None, 0.1)]
+day3 = ("2026-01-12T00:30:00+00:00", None, 0.1)
+for arm, fn in (("baseline", FN), ("mutant", MUT)):
+    ring, _me, _c = drive(fn, seq)
+    print(f"RESULT day_unhealthy_after_day2_{arm}={ring.day_unhealthy!r}")
+    seen = []
+    real = ring.observe_health
+    ring.observe_health = lambda r, real=real: (seen.append(real(r)), seen[-1])[1]
+    drive(fn, [day3], ring=ring)
+    print(f"RESULT day3_healthy_{arm}={seen[0]}")
+ok = [(t, None, b) for t, _r, b in seq + [day3]]
+print(f"RESULT null_delta={int(drive(FN, ok)[0].day_unhealthy != drive(MUT, ok)[0].day_unhealthy)} count")

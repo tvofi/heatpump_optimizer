@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_c0ecc8e0.py: key c0ecc8e0b6b66ded, on the heartbeat where the accuracy-drift alarm clears (bias back in band after a 5-day out-of-band streak), (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_c0ecc8e0.py)

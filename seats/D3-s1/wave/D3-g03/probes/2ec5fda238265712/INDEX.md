@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_2ec5fda2.py: key 2ec5fda238265712, the day-health verdict HeatPumpOptimizerCoordinator._async_watch_learning_drift folds for day 3 (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_2ec5fda2.py)

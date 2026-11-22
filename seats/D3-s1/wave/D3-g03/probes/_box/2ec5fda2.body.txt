@@ -1,0 +1,44 @@
+from datetime import datetime, timezone  # noqa: E402
+from custom_components.heatpump_optimizer.snapshots import SnapshotRing  # noqa: E402
+
+FN = CLS._async_watch_learning_drift
+
+
+def drive(fn, ticks, ring=None, rollback_done=False):
+    """Run the heartbeat once per (iso instant, freeze reason or None, bias) tick; returns (ring, me, issue calls)."""
+    ring = ring or SnapshotRing()
+    calls = []
+    state = {"reason": None, "bias": 0.0}
+
+    async def save():
+        calls.append("save")
+
+    me = SimpleNamespace(
+        _snapshots_loaded=True, _vent_cusum=SimpleNamespace(release_if_starved=lambda now, h: False),
+        _inputs_unhealthy=lambda: state["reason"], _snapshot_ring=ring, _learner_snapshot_payloads=lambda: {},
+        _accuracy=SimpleNamespace(summary=lambda: {}, temperature_bias=lambda: state["bias"]),
+        _async_save_snapshots=save, _rollback_done_for_alarm=rollback_done, hass=SimpleNamespace(),
+        _apply_learner_payloads=lambda p: calls.append("apply"),
+    )
+    with mock.patch.object(co.ir, "async_delete_issue", lambda *a, **k: calls.append("delete")), \
+         mock.patch.object(co, "_create_issue", lambda *a, **k: calls.append("create")):
+        for iso, reason, bias in ticks:
+            state["reason"], state["bias"] = reason, bias
+            with mock.patch.object(co.dt_util, "now", lambda iso=iso: datetime.fromisoformat(iso)):
+                run(fn(me))
+    return ring, me, calls
+MUT = mutant(FN, 9685, "        if day_counted:", "        if False:")
+BAD = "indoor_temp stale"
+seq = [("2026-01-10T08:00:00+00:00", BAD, 0.1), ("2026-01-10T12:00:00+00:00", None, 0.1),
+       ("2026-01-11T00:30:00+00:00", None, 0.1)]
+day3 = ("2026-01-12T00:30:00+00:00", None, 0.1)
+for arm, fn in (("baseline", FN), ("mutant", MUT)):
+    ring, _me, _c = drive(fn, seq)
+    print(f"RESULT day_unhealthy_after_day2_{arm}={ring.day_unhealthy!r}")
+    seen = []
+    real = ring.observe_health
+    ring.observe_health = lambda r, real=real: (seen.append(real(r)), seen[-1])[1]
+    drive(fn, [day3], ring=ring)
+    print(f"RESULT day3_healthy_{arm}={seen[0]}")
+ok = [(t, None, b) for t, _r, b in seq + [day3]]
+print(f"RESULT null_delta={int(drive(FN, ok)[0].day_unhealthy != drive(MUT, ok)[0].day_unhealthy)} count")

@@ -1,0 +1,14 @@
+# sync_probes.sh: copy every probe and scratch script into the wave dir per the CMD 2 ruling
+W=$HOME/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g03; REL=dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes
+cd $HOME/probe-tree
+for k in $(tail -n +2 $W/keys.tsv | cut -f1); do
+  k8=${k:0:8}; f=$REL/probe_$k8.py
+  cp $f $W/probes/
+  mkdir -p $W/probes/$k && cp --parents $f $W/probes/$k/
+  m=$(grep -m1 '^# Metric:' $f | sed 's/^# Metric: //')
+  echo "- $f: key $k, $m (run: PYTHONPATH=tests/hastub python3 $f)" > $W/probes/$k/INDEX.md
+done
+mkdir -p $W/probes/_box
+for f in _pre.py build.sh meta.py build_records.py sync_probes.sh; do cp $HOME/pbody/$f $W/probes/_box/$f.txt; done
+for f in $HOME/pbody/*.hdr $HOME/pbody/*.body $HOME/pbody/*.only; do cp $f $W/probes/_box/$(basename $f).txt; done
+echo "- _box/*.txt: the box's scratch: probe preamble (_pre.py), builder (build.sh: hdr+preamble+body -> probe), per-key step-4 metadata (meta.py), record writer (build_records.py), this sync script; .txt so no gate script scans them as harnesses" > $W/probes/_box/INDEX.md

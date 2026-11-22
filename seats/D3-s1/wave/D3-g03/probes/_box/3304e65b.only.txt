@@ -1,0 +1,6 @@
+MUT = mutant(CLS._build_plan_views, 4831, "        if not n:", "        if False:")
+for arm, fn in (("baseline", CLS._build_plan_views), ("mutant", MUT)):
+    v = views(fn, result(0))
+    sp = v.get("space_plan") if isinstance(v, dict) else None
+    print(f"RESULT empty_views_{arm}={v == {'space_plan': {}, 'dhw_plan': {}}} space_plan_keys={len(sp) if isinstance(sp, dict) else v!r}")
+print(f"RESULT null_delta={int(views(CLS._build_plan_views, result(4)) != views(MUT, result(4)))} count")

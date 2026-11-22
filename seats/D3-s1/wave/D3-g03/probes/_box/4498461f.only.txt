@@ -1,0 +1,12 @@
+MUT = mutant(CLS._build_plan_views, 4945, "        if result.valve_target_schedule:", "        if False:")
+
+
+def sched(fn, **kw):
+    s = views(fn, result(4, **kw))["space_plan"].get("valve_target_schedule")
+    return None if s is None else len(s)
+
+
+v = {"valve_target_schedule": [38.04, 40.0, 41.26, 39.0]}
+print(f"RESULT valve_schedule_baseline={sched(CLS._build_plan_views, **v)} steps")
+print(f"RESULT valve_schedule_mutant={sched(MUT, **v)} steps")
+print(f"RESULT null_delta={int(views(CLS._build_plan_views, result(4)) != views(MUT, result(4)))} count")

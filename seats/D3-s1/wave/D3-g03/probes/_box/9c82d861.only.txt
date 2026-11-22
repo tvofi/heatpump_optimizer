@@ -1,0 +1,7 @@
+MUT = mutant(CLS._capacity_caps, 9365, "            if cap_i < p_max - 1e-9:", "            if cap_i <= p_max - 1e-9:")
+tie = 1.0 - 1e-9
+b, m = caps(CLS._capacity_caps, 1.0, tie), caps(MUT, 1.0, tie)
+print(f"RESULT caps_tie_baseline={b}")
+print(f"RESULT caps_tie_mutant={m}")
+print(f"RESULT max_cap_delta_kw={max(abs(1.0 - x) for x in m) if m and not b else 0.0:.3g}")
+print(f"RESULT null_delta={sum(int(caps(CLS._capacity_caps, 1.0, h) != caps(MUT, 1.0, h)) for h in (1.0 - 2e-9, 1.0 - 0.5e-9, 0.8))} count")

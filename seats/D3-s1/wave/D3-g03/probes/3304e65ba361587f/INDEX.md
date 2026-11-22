@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3304e65b.py: key 3304e65ba361587f, the plan views HeatPumpOptimizerCoordinator._build_plan_views returns for an OptimizationResult with no (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3304e65b.py)

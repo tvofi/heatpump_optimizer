@@ -1,0 +1,10 @@
+# Metric: whether the space plan view HeatPumpOptimizerCoordinator._build_plan_views returns carries
+#   `valve_target_schedule` (and its length) for a 4-step result whose solve adopted a valve hold schedule.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_4498461f.py
+# EXPECTED RESULT valve_schedule_baseline=4 steps ; valve_schedule_mutant=None (key absent)
+# EXPECTED RESULT null_delta=0 count (no schedule: both arms omit the key)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_plan_views,
+#   line 4945 `if result.valve_target_schedule:`.
+# Perturbation: key 4498461fcf451835 GUARD_OFF -> `if False:`, in memory. Direction: 4 steps -> key absent.
+# Null control: a result with an empty valve_target_schedule.

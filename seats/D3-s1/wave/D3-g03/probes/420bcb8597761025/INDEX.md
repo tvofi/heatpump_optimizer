@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_420bcb85.py: key 420bcb8597761025, (a) the Hz value HeatPumpOptimizerCoordinator._command_frequency writes through number.set_value and (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_420bcb85.py)

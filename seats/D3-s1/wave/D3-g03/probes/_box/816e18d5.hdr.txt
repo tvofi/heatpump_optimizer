@@ -1,0 +1,14 @@
+# Metric: the per-step electrical cap array HeatPumpOptimizerCoordinator._capacity_caps returns (None = no cap) for
+#   a nameplate max power p_max delivered by ThermalParameters.from_config, with one learned envelope bucket of
+#   0.02 kW heat at COP 1 and capacity_curve_enabled.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_816e18d5.py
+# EXPECTED RESULT caps_p0.08_baseline=None ; caps_p0.08_mutant=[0.048, 0.048] (floor 0.6*p_max)
+# EXPECTED RESULT caps_p0.1_baseline=None ; caps_p0.1_mutant=[0.06, 0.06]
+# EXPECTED RESULT null_delta=0 count (p_max 0.0, where the loop caps nothing either way, and p_max 5.0, guard false)
+# Reach: from_config passes CONF_HEAT_PUMP_MAX_POWER through unclamped; the config flow's own field is
+#   _number(1, 20, 0.5) (config_flow.py:1851), so p_max <= 0.1 needs an entry stored outside the flow.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._capacity_caps,
+#   line 9352 `if p_max <= 0.1:`.
+# Perturbation: key 816e18d55f46f0e4 GUARD_OFF -> `if False:`, in memory. Direction: None -> a cap array.
+# Null control: p_max 0.0 (every cap clips to 0 = p_max, nothing caps) and p_max 5.0 (guard false in both arms).

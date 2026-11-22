@@ -1,0 +1,1 @@
+- _box/*.txt: the box's scratch: probe preamble (_pre.py), builder (build.sh: hdr+preamble+body -> probe), per-key step-4 metadata (meta.py), record writer (build_records.py), this sync script; .txt so no gate script scans them as harnesses

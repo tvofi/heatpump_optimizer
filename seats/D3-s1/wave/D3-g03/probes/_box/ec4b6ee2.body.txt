@@ -1,0 +1,56 @@
+import logging  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+FN = CLS._async_learn_house_heat_loss
+MUT = mutant(FN, 5810, "        if vent_changed:", "        if False:")
+T0 = datetime(2026, 1, 10, 3, 0, tzinfo=timezone.utc)
+
+
+class _Count(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.INFO)
+        self.n = 0
+
+    def emit(self, record):
+        self.n += "Open-window detector" in record.getMessage()
+
+
+def cycle(fn, changed):
+    saves, fed = [], []
+
+    async def save():
+        saves.append(1)
+
+    prev = SimpleNamespace(outdoor_temperature=-5.0, room_temperature=20.5, solar_radiation=0.0)
+    interval = co.FabricInterval(prev, T0, T0 + timedelta(minutes=30), 0.5, 1.2)
+    me = SimpleNamespace(
+        _current_state=SimpleNamespace(room_temperature=19.0), _config=SimpleNamespace(), _thermal_params=SimpleNamespace(),
+        _learning_frozen=lambda *a: None, _async_save_thermal_learning=save,
+        _vent_cusum=SimpleNamespace(update=lambda now, r, ex: (fed.append(r), changed)[1], tripped=True, stat=4.2),
+        _learner_freezes=SimpleNamespace(note_freeze=lambda *a: None),
+    )
+
+    async def replay(coord, iv, heat, label):
+        return SimpleNamespace(room_temperature=20.5)
+
+    h = _Count()
+    co._LOGGER.addHandler(h)
+    old = co._LOGGER.level
+    co._LOGGER.setLevel(logging.INFO)
+    try:
+        with mock.patch.object(co, "_replay_gate", lambda *a: (2.0, True, None, False)), \
+             mock.patch.object(co, "_replay_fabric", replay), \
+             mock.patch.object(co, "learner_room_unread", lambda cfg: False), \
+             mock.patch.object(co, "_learned_zone_temperature", lambda s, p: s.room_temperature):
+            run(fn(me, interval))
+    finally:
+        co._LOGGER.removeHandler(h)
+        co._LOGGER.setLevel(old)
+    assert fed, "the detector was not reached"
+    return len(saves), h.n
+
+
+for arm, fn in (("baseline", FN), ("mutant", MUT)):
+    s, n = cycle(fn, True)
+    print(f"RESULT trip_saves_{arm}={s} count log={n}")
+print(f"RESULT null_delta={int(cycle(FN, False) != cycle(MUT, False))} count")

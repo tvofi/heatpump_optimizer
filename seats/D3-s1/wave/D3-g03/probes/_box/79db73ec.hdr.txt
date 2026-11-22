@@ -1,0 +1,13 @@
+# Metric: the per-step electrical cap array HeatPumpOptimizerCoordinator._capacity_caps returns (None = no cap) for
+#   a nameplate max power p_max delivered by ThermalParameters.from_config, one learned envelope bucket of 0.02 kW
+#   heat at COP 1 and capacity_curve_enabled; the `<=`/`<` tie is p_max == 0.1.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_79db73ec.py
+# EXPECTED RESULT caps_p0.1_baseline=None ; caps_p0.1_mutant=[0.06, 0.06]
+# EXPECTED RESULT null_delta=0 count (p_max 0.0999 and 0.1001 on each side of the tie: arms agree)
+# Reach: from_config passes CONF_HEAT_PUMP_MAX_POWER through unclamped; the config flow's own field is
+#   _number(1, 20, 0.5) (config_flow.py:1851), so p_max == 0.1 needs an entry stored outside the flow.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._capacity_caps,
+#   line 9352 `if p_max <= 0.1:`.
+# Perturbation: key 79db73ec81b29f23 CMP_BOUND -> `if p_max < 0.1:`, in memory. Direction: None -> a cap array at the tie.
+# Null control: p_max either side of the tie (0.0999, 0.1001).
