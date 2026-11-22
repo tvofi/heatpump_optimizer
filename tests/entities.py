@@ -42420,9 +42420,21 @@ R.check(
 # still fails; a site that went away fails too, until its entry is deleted.
 # ---------------------------------------------------------------------------
 from collections import Counter  # noqa: E402
+import logging  # noqa: E402
 
 _r10_pkg = Path("custom_components/heatpump_optimizer")
 _r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
+def _r11_shipped_files(pkg):
+    """The package's shipped files that are not modules, by path: text a
+    module can read, import or hand to an evaluator. Shipped is tracked, so a
+    local cache is not read and a forced-in ``.pyc`` is."""
+    tracked = subprocess.run(["git", "ls-files", "-z", "--", "."], cwd=pkg, check=True,
+                             capture_output=True, text=True).stdout.split("\0")
+    return {p: (pkg / p).read_bytes() for p in sorted(tracked)
+            if p and not p.endswith(".py") and (pkg / p).is_file()}
+
+
+_r11_files = _r11_shipped_files(_r10_pkg)
 
 
 def _r10_functions(source):
@@ -42496,10 +42508,34 @@ _R10_LATCH_WORD = re.compile(r"(warn|logged|report|latch|announc|_failed|notifie
 
 
 def _r10_unlatched_logs(sources):
-    """N-log-flood seams: each ``_LOGGER.warning``/``.error`` with no latch in
-    an enclosing ``if`` (a latch-named test, or a ``not in`` against a set the
-    function ``.add``s to; the R10 sweep's static rule), per (module, function)."""
+    """N-log-flood seams: each ``_LOGGER`` call at WARNING or above with no
+    latch in an enclosing ``if``, per (module, function). WARNING or above is
+    ``.warning`` and its ``.warn`` alias, ``.error``, ``.exception``,
+    ``.critical`` and its ``.fatal`` alias, and ``.log`` at such a level (R11
+    D14-s2-03: the barrier read two of the seven). A latch is a latch-named
+    test, or a ``not in`` against a set the function ``.add``s to (the R10
+    sweep's static rule). A logger under another name is refused by
+    ``_r11_logger_aliases``."""
     found = Counter()
+
+    def flood_level(call):
+        # WARNING or above; ``.log`` at a level below it is quiet, any other
+        # level, a computed one included, is counted. Kept inside this
+        # function: logflood_shape.py execs it alone.
+        if call.func.attr in ("warning", "warn", "error", "exception", "critical", "fatal"):
+            return True
+        if call.func.attr != "log":
+            return False
+        # the level is the first positional or the ``level=`` keyword; one
+        # behind ``*args`` or ``**kwargs`` is unknown, and so counted
+        level = (call.args[0] if call.args
+                 else next((k.value for k in call.keywords if k.arg == "level"), None))
+        if level is None or isinstance(level, ast.Starred):
+            return True
+        if isinstance(level, ast.Constant) and isinstance(level.value, int):
+            return level.value >= 30
+        return ast.unparse(level) not in ("logging.DEBUG", "logging.INFO", "logging.NOTSET")
+
     for name, source in sources.items():
         tree = ast.parse(source)
 
@@ -42507,8 +42543,8 @@ def _r10_unlatched_logs(sources):
             for child in ast.iter_child_nodes(node):
                 inner = child if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else fn
                 if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
-                        and child.func.attr in ("warning", "error")
-                        and ast.unparse(child.func.value) == "_LOGGER"):
+                        and ast.unparse(child.func.value) == "_LOGGER"
+                        and flood_level(child)):
                     latched = False
                     for test in chain:
                         text = ast.unparse(test.test)
@@ -42523,6 +42559,216 @@ def _r10_unlatched_logs(sources):
 
         walk(tree, [], None)
     return found
+
+
+def _r11_logger_aliases(sources, files=None):
+    """``(module, line, binding)`` per way a package line can log through
+    something the barrier does not read.
+
+    Claim: every logger binding and call spelled in the package's shipped
+    text is either a ``_LOGGER.<level>(...)`` call that the barrier reads or
+    is refused.
+
+    Residue, two categories. First, text the package derives at run time:
+    any operator, call or formatting (``+``, join, decode, base64, f-string,
+    ``chr``), whether in package code, in the evaluated text or in pickle
+    opcodes. So is text read from outside the shipped tree (config, store,
+    network) and a value flow (``vars(m).values()``). Which string a
+    computation yields is undecidable in general, so no static rule can name
+    it; the boundary is the text as written. Second, any record a dependency
+    writes when the package calls it, whatever the call's purpose. A
+    dependency is any module the package does not ship.
+    This covers ``warnings.warn``, asyncio's exception handlers and an
+    unretrieved task exception. It covers Home Assistant's
+    ``frame.report_usage`` and ``system_log`` service too. Such a call names
+    no logger of the package. Its record is counted at run time, never here.
+
+    The barrier keys on the text ``_LOGGER``, so the one logger it sees is a
+    module-level ``_LOGGER = logging.getLogger(...)`` used only as
+    ``_LOGGER.<method>(...)``. Refused, by spelling: a name bound to
+    ``_LOGGER`` or to a ``getLogger``/``getChild`` result; any other
+    ``getLogger``/``getChild`` call; ``import logging as`` another name, an
+    import of ``_LOGGER``, of a module called ``logging``, or of anything from
+    ``logging`` but its level numbers. Also refused: the module ``logging``
+    used other than as ``logging.<level number>`` or
+    ``logging.getLogger(...)``; an attribute named ``logging``, ``logger``
+    (Home Assistant's coordinator exposes the handed-over ``_LOGGER`` so)
+    or ``_LOGGER``. Also refused:
+    ``_LOGGER.<method>(...)`` outside the level calls and ``isEnabledFor``;
+    and ``_LOGGER`` itself escaping, as an argument, a return value, an
+    element or a bound method.
+
+    Refused, by the payload, whatever later runs it: an identifier that names
+    a logger (``LOGGER``, ``logger`` or ``logging`` inside it) in
+    any other place, a keyword, a parameter, a definition, an import alias or
+    module. Each can become text: ``dict(_LOGGER=0)`` turns a name into a
+    string. Also refused: a str or bytes constant, a docstring included, or a
+    tracked file of the package that is not a module (a ``.pyc`` included),
+    that names one. The constant is read as written and through each
+    evaluator's own front end: ``ast.parse`` (a coding cookie, escapes,
+    adjacent literals, NFKC identifiers) and ``pickletools.genops`` (a
+    pickle's literal opcodes), each result read again. A route that runs text (``exec``, ``typing.get_type_hints``,
+    ``pickle.loads``, any other) needs that text, so the evaluator is not
+    read."""
+    # imported here: a harness execs this function alone (as logflood_shape.py
+    # does the barrier)
+    import hashlib
+    import io
+    import pickletools
+    levels = {"debug", "info", "warning", "warn", "error", "exception",
+              "critical", "fatal", "log"}
+    methods = levels | {"isEnabledFor"}
+    numbers = {"NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"}
+    binders = (ast.Assign, ast.AnnAssign, ast.NamedExpr)
+    # each name a logger is reached by, read as an attribute
+    reached = {"logging", "logger", "_LOGGER"}
+    names_one = re.compile(r"LOGGER|[Ll]ogger|logging")
+
+    def idents(node):
+        # every identifier a node carries: each can become text at run time
+        for field in ("id", "attr", "arg", "name", "asname", "rest", "module"):
+            v = getattr(node, field, None)
+            if isinstance(v, str):
+                yield v
+        for field in ("names", "kwd_attrs"):
+            for v in getattr(node, field, None) or ():
+                if isinstance(v, str):
+                    yield v
+
+    def text_names_one(value):
+        # the text as written, then what each evaluator's own front end reads
+        # out of it, read again: every text read is shorter than the one it
+        # came from, so the recursion ends
+        if names_one.search(value if isinstance(value, str) else value.decode("latin-1")):
+            return True
+        inner = []
+        try:  # ast.parse applies a coding cookie, escapes, adjacent literals, NFKC
+            for n in ast.walk(ast.parse(value)):
+                inner += [s for s in idents(n) if names_one.search(s)]
+                if isinstance(n, ast.Constant) and isinstance(n.value, (str, bytes)):
+                    inner.append(n.value)
+        except Exception:  # not a program: no evaluator of Python runs it
+            pass
+        try:  # a pickle runs each opcode it reads before a bad one, so each counts
+            for _op, arg, _pos in pickletools.genops(io.BytesIO(
+                    value.encode("utf-8") if isinstance(value, str) else value)):
+                if isinstance(arg, (str, bytes)):
+                    inner.append(arg)
+        except Exception:
+            pass
+        return any(v != value and text_names_one(v) for v in inner)
+
+    def logger_call(node):
+        return isinstance(node, ast.Call) and (
+            (isinstance(node.func, ast.Attribute) and node.func.attr in ("getLogger", "getChild"))
+            or (isinstance(node.func, ast.Name) and node.func.id == "getLogger"))
+
+    def label(value):
+        # a long text by the hash of its exact bytes: an allowance cannot be reworded
+        raw = value.encode() if isinstance(value, str) else value
+        return repr(value) if len(raw) <= 40 else f"text sha256:{hashlib.sha256(raw).hexdigest()[:16]}"
+
+    out = []
+    for name, data in (files or {}).items():
+        if text_names_one(data):
+            out.append((name, 0, label(data)))
+    for name, source in sources.items():
+        tree = ast.parse(source)
+        top = set(map(id, tree.body))
+        parent = {id(c): n for n in ast.walk(tree) for c in ast.iter_child_nodes(n)}
+        canonical_values = set()
+        for node in tree.body:
+            if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "_LOGGER"
+                    and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute)
+                    and node.value.func.attr == "getLogger"
+                    and ast.unparse(node.value.func.value) == "logging"):
+                canonical_values.add(id(node.value))
+        for node in ast.walk(tree):
+            up = parent.get(id(node))
+            # the payload arm: identifiers the spelling arms below do not read
+            if not (isinstance(node, ast.Name) and node.id in ("_LOGGER", "logging")
+                    or isinstance(node, ast.Attribute) and (
+                        node.attr in reached or isinstance(node.value, ast.Name)
+                        and node.value.id == "logging")
+                    or isinstance(node, ast.alias) and node.name == "logging"
+                    or isinstance(node, ast.ImportFrom)
+                    and (node.module or "").split(".")[0] == "logging"):
+                for s in idents(node):
+                    if names_one.search(s):
+                        out.append((name, getattr(node, "lineno", getattr(up, "lineno", 0)),
+                                    f"{type(node).__name__} {s}"))
+            if isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes)):
+                if text_names_one(node.value):
+                    out.append((name, node.lineno, label(node.value)))
+            elif isinstance(node, ast.Import):
+                for a in node.names:
+                    if a.name.split(".")[0] == "logging" and a.asname:
+                        out.append((name, node.lineno, a.asname or a.name))
+            elif isinstance(node, ast.ImportFrom):
+                root = (node.module or "").split(".")[0]
+                for a in node.names:
+                    if a.name in ("_LOGGER", "logging") or (
+                            root == "logging" and a.name not in numbers):
+                        out.append((name, node.lineno, a.asname or a.name))
+            elif isinstance(node, binders):
+                value = node.value
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                is_logger = (isinstance(value, ast.Name) and value.id == "_LOGGER") or logger_call(value)
+                canonical = id(node) in top and id(value) in canonical_values
+                if is_logger and targets and not canonical:
+                    out.append((name, node.lineno, ", ".join(ast.unparse(t) for t in targets)))
+            elif logger_call(node) and id(node) not in canonical_values and not (
+                    isinstance(up, binders) and up.value is node):
+                out.append((name, node.lineno, ast.unparse(node.func)))
+            elif (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+                    and node.attr not in numbers and node.value.id == "logging" and not (
+                        node.attr == "getLogger" and isinstance(up, ast.Call) and up.func is node)):
+                out.append((name, node.lineno, ast.unparse(node)))
+            elif isinstance(node, ast.Attribute) and node.attr in reached:
+                out.append((name, node.lineno, ast.unparse(node)))
+            elif isinstance(node, ast.Name) and node.id == "logging" and not (
+                    isinstance(up, ast.Attribute) and up.value is node):
+                out.append((name, node.lineno, f"logging -> {type(up).__name__}"
+                            if not isinstance(up, ast.Call) else f"logging -> {ast.unparse(up.func)}"))
+            elif isinstance(node, ast.Name) and node.id == "_LOGGER" and isinstance(node.ctx, ast.Load):
+                via = up
+                if isinstance(via, ast.Attribute) and via.value is node:
+                    if (isinstance(parent.get(id(via)), ast.Call) and parent[id(via)].func is via
+                            and via.attr in methods):
+                        continue
+                    out.append((name, node.lineno, f"_LOGGER -> {ast.unparse(via)}"))
+                    continue
+                if isinstance(via, binders) and via.value is node:
+                    continue
+                if isinstance(via, (ast.keyword, ast.Starred)):
+                    via = parent.get(id(via))
+                where = ast.unparse(via.func) if isinstance(via, ast.Call) else type(via).__name__
+                out.append((name, node.lineno, f"_LOGGER -> {where}"))
+    return out
+
+
+#: Each place ``_LOGGER`` leaves the package's own call sites, and why the
+#: barrier need not follow it there.
+_R11_LOGGER_HANDOVERS = {
+    # Home Assistant's DataUpdateCoordinator logs a failed refresh at ERROR
+    # only on the success -> failure transition (its last_update_success
+    # latch) and at INFO on recovery, so it cannot flood.
+    ("coordinator.py", "_LOGGER -> super().__init__"): 1,
+    # Prose docstrings that name a logger, each by the hash of its exact text,
+    # so a reworded or replaced one is read again: none is a program any
+    # evaluator runs (R11 #3729 round 6).
+    ("coordinator.py", "text sha256:1bae1cedbbbd1464"): 1,  # "Run one best-effort cycle step, logging ..."
+    ("learner_progress.py", "text sha256:559299c54c5ae71d"): 1,  # "At DEBUG: why ``what`` took no sample ..."
+    ("log_latch.py", "text sha256:82178ac44c5d08e8"): 1,  # "Whether condition ``key`` holds, logging ..."
+}
+
+
+def _r11_alias_verdict(found):
+    seen = Counter((m, b) for m, _l, b in found)
+    return {k: (seen.get(k, 0), _R11_LOGGER_HANDOVERS.get(k, 0))
+            for k in set(seen) | set(_R11_LOGGER_HANDOVERS)
+            if seen.get(k, 0) != _R11_LOGGER_HANDOVERS.get(k, 0)}
 
 
 #: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
@@ -42552,6 +42798,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         # R10-GENERIC-HEAT-CURVE-PERSISTENT: a baseline with no writer left is
         # named once and disarmed in the same call, so it cannot repeat.
         ("off_restore.py", "_restore_baseline"): 1,
+        # R11 D14-s2-03: a fit that raises ends the experiment in the same
+        # call (phase done, a refusal published), so it logs once per night armed.
+        ("sysid.py", "_finish"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
@@ -42602,7 +42851,168 @@ _r10_log_planted = _r10_unlatched_logs({
                   "def latched(self):\n    if not self._warned:\n        _LOGGER.warning('once')\n",
     "inputs.py": _r10_sources["inputs.py"]
     + "\ndef _age_gate(x):\n    _LOGGER.warning('a')\n    _LOGGER.warning('b')\n",
+    # R11 D14-s2-03: each level a flood can log at is a site, a quiet one is not
+    "levels.py": "def exc(self):\n    _LOGGER.exception('x')\n"
+                 "def crit(self):\n    _LOGGER.critical('x')\n"
+                 "def at_warning(self):\n    _LOGGER.log(logging.WARNING, 'x')\n"
+                 "def at_forty(self):\n    _LOGGER.log(40, 'x')\n"
+                 "def at_debug(self):\n    _LOGGER.log(logging.DEBUG, 'x')\n"
+                 "def at_info(self):\n    _LOGGER.info('x')\n"
+                 "def warn_alias(self):\n    _LOGGER.warn('x')\n"
+                 "def fatal_alias(self):\n    _LOGGER.fatal('x')\n"
+                 # R11 #3729 review: a keyword level is read; one behind *args/**kwargs is unknown
+                 "def at_kw_error(self):\n    _LOGGER.log(level=logging.ERROR, msg='x')\n"
+                 "def at_kw_debug(self):\n    _LOGGER.log(level=logging.DEBUG, msg='x')\n"
+                 "def at_star(self, a):\n    _LOGGER.log(*a)\n"
+                 "def at_kwargs(self, k):\n    _LOGGER.log(**k)\n",
 })
+_r11_aliases_found = _r11_logger_aliases(_r10_sources, _r11_files)
+# a shipped file that is not a module is read as text, a pickle by its opcodes,
+# compiled code by the names marshal writes raw; a binary one with no logger
+# name in it is not refused
+_r11_files_plant = {"strings.json": b'{"x": "_LOGGER.error(1)"}', "pixel.png": b"\x89PNG\r\n",
+                    "p.pickle": b"\x80\x04\x95\x0b\x00\x8c\x07logging\x94.",
+                    "x.pyc": __import__("marshal").dumps(compile("_LOGGER.error(1)", "x", "exec"))}
+_r11_files_planted = {m for m, _l, _b in _r11_logger_aliases({}, _r11_files_plant)}
+
+
+def _r11_shipped_planted():
+    # Python runs a .pyc beside a package's modules, or an unchecked-hash one
+    # in __pycache__, without reading its source: a tracked one is shipped
+    # text; a cache nobody tracked is not
+    with tempfile.TemporaryDirectory() as d:
+        pkg = Path(d) / "pkg"
+        for k in ("a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc", "__pycache__/d.pyc"):
+            (pkg / k).parent.mkdir(parents=True, exist_ok=True)
+            (pkg / k).write_bytes(b"x")
+        env = throwaway_git_init(d, "-q")
+        subprocess.run(["git", "-C", d, "add", "-f", *(f"pkg/{k}" for k in (
+            "a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc"))],
+            check=True, capture_output=True, env=env)
+        with throwaway_git_environ():
+            return set(_r11_shipped_files(pkg))
+_r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
+    "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
+             "from logging import DEBUG\n"
+             "def f():\n    _LOGGER.warning('x')\n    _LOGGER.isEnabledFor(logging.DEBUG)\n"
+             "    _LOGGER.log(level=DEBUG, msg='see the log')\n"
+             # R11 #3729 round 3: a sibling module and re.compile are not refused
+             "from . import coordinator\nimport re\nPAT = re.compile('x+')\n",
+    # R11 #3729 round 6: text naming a logger is refused wherever it sits,
+    # a pattern or a message included (round 3 let these two through)
+    "mention.py": "import re\nPAT = re.compile('_LOGGER warnings')\nM = 'see logging'\n",
+    "alias.py": "_LOGGER = logging.getLogger(__name__)\ndef f():\n    log = _LOGGER\n    log.warning('x')\n",
+    "child.py": "_LOG = logging.getLogger(__name__)\nCHILD = _LOGGER.getChild('c')\n",
+    "mod.py": "import logging as lg\n",
+    "field.py": "class C:\n    when: int\n    _LOGGER: object = None\n",
+    # R11 D14-s2-03 review: the shapes a logger reached the barrier's blind side by
+    "bare.py": "from logging import getLogger\nLOG = getLogger(__name__)\n",
+    "inline.py": "import logging\ndef f():\n    logging.getLogger(__name__).warning('x')\n",
+    "root.py": "import logging\ndef f():\n    logging.warning('x')\n    logging.root.error('y')\n",
+    "fromimp.py": "from .x import _LOGGER as log\n",
+    "param.py": "_LOGGER = logging.getLogger(__name__)\ndef f(log):\n    log.warning('x')\n"
+                "def g():\n    f(_LOGGER)\n    return _LOGGER\n",
+    "method.py": "_LOGGER = logging.getLogger(__name__)\ndef g():\n    return _LOGGER.error\n",
+    # R11 #3729 review: the module rebound, a record-path method, a reflective
+    # lookup, the rest of logging's surface, and Home Assistant's .logger
+    "rebind.py": "import logging\nlg = logging\ndef f():\n    lg.warning('x')\n"
+                 "    (w := logging).error('y')\n",
+    "record.py": "_LOGGER = logging.getLogger(__name__)\ndef f(r):\n"
+                 "    _LOGGER._log(logging.ERROR, 'x', ())\n    _LOGGER.handle(r)\n",
+    "reflect.py": "import importlib\ndef f():\n    getattr(logging, 'warning')('x')\n"
+                  "    __import__('logging').warning('y')\n"
+                  "    importlib.import_module('logging').error('z')\n",
+    "surface.py": "from logging import WARNING, makeLogRecord\nfrom homeassistant import logging as hl\n"
+                  "def f(self):\n    logging.Logger.error(self, 'x')\n    self.logger.error('y')\n",
+    "star.py": "from logging import *\n",
+    "getref.py": "make = logging.getLogger\n",
+    # R11 #3729 round 3: another module's logger as an attribute, the own
+    # logger by its text, and code run from text
+    "sibling.py": "from . import coordinator as c\nimport sys\ndef f():\n"
+                  "    c._LOGGER.error('x')\n    sys.modules[__name__]._LOGGER.error('y')\n",
+    "bytext.py": "def f(m):\n    globals()['_LOGGER'].error('x')\n    getattr(m, 'logger').error('y')\n",
+    "fromtext.py": "def f():\n    exec(\"_LOGGER.error('x')\")\n    eval('1')\n    compile('', '', 'exec')\n",
+    # R11 #3729 round 4, the class: code run from text has three doors, each
+    # shut in every static spelling. The builtins that compile text, by name,
+    # attribute, text or import; the builtins namespace they live in; and an
+    # imported module, refused unless vetted (marshal, code, runpy are not).
+    "bltn.py": "import builtins\ndef f():\n    builtins.exec(\"_LOGGER.error('x')\")\n",
+    "bgetattr.py": "def f(b):\n    getattr(b, 'exec')(\"_LOGGER.error('x')\")\n",
+    "bfrom.py": "from builtins import exec as run\nfrom os import compile as c\n"
+                "def f():\n    run(\"_LOGGER.error('x')\")\n",
+    "bdunder.py": "def f():\n    __builtins__['eval'](\"_LOGGER.error('x')\")\n"
+                  "    f.__builtins__\n",
+    "bbytes.py": "import pickle\nP = b'cbuiltins\\nexec\\n'\n",
+    "door.py": "import marshal\nimport code as cd\nfrom runpy import run_path\n"
+               "import importlib\nimport importlib.util\nfrom importlib import machinery\n"
+               "importlib.util.spec_from_file_location('m', 'm.py')\n__import__('ctypes')\n"
+               "import types\nfrom types import FunctionType\nT = types.CodeType\n"
+               "B = (b'', b'\\n')\n",
+    # re.compile is read only through an ``import re`` nothing rebinds: a
+    # parameter, a rebinding or another module named re is refused
+    "bimp.py": "import builtins as bi\nimport importlib as il\n",
+    "rebound.py": "import re\ndef f(re):\n    return re.compile('x')\n"
+                  "def g(o):\n    return o.compile('x')\n",
+    # R11 #3729 round 5: vetted roots that run the text they are handed
+    "hints.py": "import typing\ndef g(x: \"_LOGGER.error('x')\"): pass\n"
+                "def f():\n    typing.get_type_hints(g)\n",
+    "evalstr.py": "import inspect\ndef g(x: \"_LOGGER.warning('x')\"): pass\n"
+                  "def f():\n    inspect.get_annotations(g, eval_str=True)\n",
+    "fwdref.py": "import typing\ndef f():\n    typing.ForwardRef(\"_LOGGER.critical('x')\")"
+                 "._evaluate(globals(), None, recursive_guard=frozenset())\n",
+    "pickled.py": "import pickle\ndef f():\n"
+                  "    pickle.loads(\"cbuiltins\\nexec\\n(S\\\"_LOGGER.error(x)\\\"\\ntR.\".encode())\n",
+    # R11 #3729 round 6, the class: the payload is read, not the evaluator.
+    # Text is read as written and through each evaluator's own front end: an
+    # escape inside evaluated text, a fullwidth identifier, a coding cookie,
+    # adjacent literals and an escape in a pickle's string opcode are each refused
+    "escaped.py": "def f():\n    eval(\"globals()['_\\\\x4cOGGER'].error('x')\")\n",
+    "fullwidth.py": "def f():\n    exec('_\\uff2c\\uff2f\\uff27\\uff27\\uff25\\uff32.error(1)')\n",
+    "cookie.py": "def f():\n    exec(b'# coding: utf-7\\n+AF8ATABPAEcARwBFAFI-.error(1)')\n",
+    "joined.py": "def f():\n    exec(\"globals()['_LOG' 'GER'].error(1)\")\n",
+    "pickesc.py": "import pickle\ndef f():\n"
+                  "    pickle.loads(b\"cbuiltins\\nexec\\n(S'_\\\\x4cOGGER.error(1)'\\ntR.\")\n",
+    # an identifier turns into text at run time: a keyword, a parameter, a
+    # definition, an import's module
+    "idents.py": "from homeassistant.util.logging import catch_log_exception\n"
+                 "def f(logger):\n    globals()[next(iter(dict(_LOGGER=0)))].error('x')\n"
+                 "class MyLogger:\n    pass\n",
+    # Declared out of scope, pinned as no finding: text derived at run time,
+    # and an evaluator handed no text naming a logger (bfrom.py, bbytes.py,
+    # door.py, bimp.py and rebound.py above refuse nothing either)
+    "derived.py": "import base64\ndef f(x):\n    exec('_LOG' + 'GER.error(1)')\n"
+                  "    exec(base64.b64decode('X0xPR0dFUi5lcnJvcigxKQ=='))\n"
+                  "    exec(f'{x}GER.error(1)')\n    exec(''.join(map(chr, (95, 76))))\n",
+    "prose.py": "def f():\n    '''Return the plan; a refusal is logged.'''\n",
+    # R11 #3729 round 7: a record a dependency writes when the package calls
+    # it is the docstring's second residue category, whatever the call's
+    # purpose: warnings, asyncio's handlers, a task's unretrieved exception,
+    # Home Assistant's report_usage. Each names no logger, so none is refused
+    "warn.py": "import warnings\nfrom warnings import warn as w\ndef f(o):\n"
+               "    warnings.warn('x')\n    o.warnings.warn('y')\n    __import__('warnings')\n",
+    "report.py": "from homeassistant.helpers.frame import report_usage\n"
+                 "from homeassistant.helpers import frame\ndef f(hass):\n"
+                 "    report_usage('x', level=logging.ERROR)\n    frame.report_usage('y')\n"
+                 "    hass.async_create_task(boom())\n",
+    "handler.py": "import asyncio\ndef f(loop, ctx):\n"
+                  "    asyncio.get_running_loop().call_exception_handler(ctx)\n"
+                  "    loop.default_exception_handler(ctx)\n"
+                  "    getattr(loop, 'call_exception_handler')(ctx)\n"
+                  "    loop.set_exception_handler(None)\n",
+})}
+# Every callable of a Logger, called at ERROR on _LOGGER, and every name the
+# logging module exports. What neither check reads is exactly the quiet level
+# calls and the level numbers. So a method or helper added to either surface
+# by a Python release is refused, not missed.
+_r11_unread = {
+    f"_LOGGER.{a}" for a in dir(logging.Logger) if callable(getattr(logging.Logger, a))
+    for src in [f"_LOGGER = logging.getLogger(__name__)\ndef f():\n    _LOGGER.{a}(logging.ERROR, 'x')\n"]
+    if not _r10_unlatched_logs({"s.py": src}) and not _r11_logger_aliases({"s.py": src})
+} | {
+    f"logging.{a}" for a in dir(logging)
+    for src in [f"import logging\ndef f():\n    return logging.{a}\n"]
+    if not _r11_logger_aliases({"s.py": src})
+}
 R.check(
     "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
     "with its exact count -- a persisting condition goes through log_held",
@@ -42615,8 +43025,83 @@ R.check(
     # one, and a second site inside a listed function, are each refused
     and ("planted.py", "poll") in _r10_log_verdict(_r10_log_planted)
     and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
-    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
+    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted)
+    and all(("levels.py", f) in _r10_log_verdict(_r10_log_planted)
+            for f in ("exc", "crit", "at_warning", "at_forty", "warn_alias", "fatal_alias",
+                      "at_kw_error", "at_star", "at_kwargs"))
+    and not {("levels.py", "at_debug"), ("levels.py", "at_info"),
+             ("levels.py", "at_kw_debug")} & set(_r10_log_verdict(_r10_log_planted)),
     f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+R.check(
+    "R11 N-log-flood barrier reach: every package logger is a module-level "
+    "``_LOGGER = logging.getLogger(...)``, the one name the barrier reads",
+    not _r11_alias_verdict(_r11_aliases_found)
+    # null control: the canonical binding and its method calls are not
+    # refused, nor a sibling import, re.compile or a field. Nor are text
+    # derived at run time (derived.py), an evaluator handed no text naming a
+    # logger (bbytes.py, door.py, bimp.py, rebound.py) or prose (prose.py).
+    # Nor is a dependency call that writes its own record (warn.py,
+    # report.py, handler.py): the second residue category.
+    # Perturbation: an alias, another getLogger name, a getChild, a logging
+    # alias, a bare-callee getLogger, an inline getLogger, a root logging call,
+    # a from-import of _LOGGER, a logger handed to a parameter or returned, a
+    # bound method. Also: another module's _LOGGER as an attribute and an
+    # identifier naming a logger. And text naming one
+    # whatever runs it (round 4's builtins spellings, round 5's typing,
+    # inspect and pickle), in each spelling an evaluator's front end decodes
+    and _r11_aliases_planted == {('mention.py', "'_LOGGER warnings'"),
+                                 ('mention.py', "'see logging'"), ('alias.py', 'log'),
+                                 ('child.py', 'CHILD'), ('child.py', '_LOG'),
+                                 ('child.py', '_LOGGER -> _LOGGER.getChild'), ('mod.py', 'lg'),
+                                 ('bare.py', 'LOG'), ('bare.py', 'Name getLogger'),
+                                 ('bare.py', 'alias getLogger'), ('bare.py', 'getLogger'),
+                                 ('inline.py', 'logging.getLogger'), ('root.py', 'logging.root'),
+                                 ('root.py', 'logging.warning'), ('fromimp.py', 'alias _LOGGER'),
+                                 ('fromimp.py', 'log'), ('param.py', '_LOGGER -> Return'),
+                                 ('param.py', '_LOGGER -> f'),
+                                 ('method.py', '_LOGGER -> _LOGGER.error'),
+                                 ('rebind.py', 'logging -> Assign'),
+                                 ('rebind.py', 'logging -> NamedExpr'),
+                                 ('record.py', '_LOGGER -> _LOGGER._log'),
+                                 ('record.py', '_LOGGER -> _LOGGER.handle'),
+                                 ('reflect.py', "'logging'"), ('reflect.py', 'logging -> getattr'),
+                                 ('surface.py', 'hl'), ('surface.py', 'logging.Logger'),
+                                 ('surface.py', 'makeLogRecord'), ('surface.py', 'self.logger'),
+                                 ('star.py', '*'), ('getref.py', 'logging.getLogger'),
+                                 ('sibling.py', 'c._LOGGER'),
+                                 ('sibling.py', 'sys.modules[__name__]._LOGGER'),
+                                 ('bytext.py', "'_LOGGER'"), ('bytext.py', "'logger'"),
+                                 ('fromtext.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bltn.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bgetattr.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bfrom.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bdunder.py', '"_LOGGER.error(\'x\')"'),
+                                 ('hints.py', '"_LOGGER.error(\'x\')"'),
+                                 ('evalstr.py', '"_LOGGER.warning(\'x\')"'),
+                                 ('fwdref.py', '"_LOGGER.critical(\'x\')"'),
+                                 ('pickled.py', '\'cbuiltins\\nexec\\n(S"_LOGGER.error(x)"\\ntR.\''),
+                                 ('escaped.py', '"globals()[\'_\\\\x4cOGGER\'].error(\'x\')"'),
+                                 ('fullwidth.py', "'_\uff2c\uff2f\uff27\uff27\uff25\uff32.error(1)'"),
+                                 ('cookie.py', 'text sha256:e5560473c6647532'),
+                                 ('joined.py', '"globals()[\'_LOG\' \'GER\'].error(1)"'),
+                                 ('pickesc.py', 'text sha256:bc18f7cf581cd48b'),
+                                 ('idents.py', 'ClassDef MyLogger'),
+                                 ('idents.py', 'ImportFrom homeassistant.util.logging'),
+                                 ('idents.py', 'arg logger'), ('idents.py', 'keyword _LOGGER')}
+    and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
+    | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
+                                "CRITICAL", "FATAL")}
+    # precondition: the package is flat, so the glob read every module
+    and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources)
+    and _r11_files_planted == set(_r11_files_plant) - {"pixel.png"}
+    # a tracked file is read whatever its suffix or folder, a module or an
+    # untracked cache is not
+    and _r11_shipped_planted() == {"a.json", "b.pyc", "__pycache__/c.cpython-314.pyc"}
+    # precondition: the shipped files that are not modules were read
+    and len(_r11_files) >= 10,
+    f"refused {_r11_alias_verdict(_r11_aliases_found)}; planted read {sorted(_r11_aliases_planted)}; "
+    f"unread surface {sorted(_r11_unread)}; files planted {sorted(_r11_files_planted)}",
 )
 
 # THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
