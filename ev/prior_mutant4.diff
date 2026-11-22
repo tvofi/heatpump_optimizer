@@ -1,0 +1,13 @@
+diff --git a/tools/policy/agreement.mjs b/tools/policy/agreement.mjs
+index 7d3b6a0de0..776bc4d029 100644
+--- a/tools/policy/agreement.mjs
++++ b/tools/policy/agreement.mjs
+@@ -40,7 +40,7 @@ import { at, canon, canonList, gitRead, lsFiles } from './counts.mjs'
+ const HERE = path.dirname(fileURLToPath(import.meta.url))
+ const ROOT = path.resolve(HERE, '..', '..')
+ const rd = (rel) => fs.readFileSync(at(rel), 'utf8')
+-const git = (args) => gitRead(args)
++const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' })
+ 
+ // A definition that lives in a script with no exports is read from its source
+ // text, as policy_lint.mjs reads web-fix-wave.js's VERDICT_RE: the reader

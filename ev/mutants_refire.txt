@@ -1,0 +1,18 @@
+== head
+LEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart
+TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
+rc=0
+== mutant: maxBuffer removed
+LEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart
+TREEREV VACUOUS:
+  the rev listing over the default maxBuffer threw (ENOBUFS)
+  the checkout listing over the default maxBuffer threw (ENOBUFS)
+rc=1
+-  return gitRead(args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
++  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ['ignore', 'pipe', 'pipe'] })
+== mutant: treeListing raw execFileSync
+LEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart
+TREEREV VACUOUS:
+  the rev listing over the default maxBuffer threw (ENOBUFS)
+  the checkout listing over the default maxBuffer threw (ENOBUFS)
+rc=1

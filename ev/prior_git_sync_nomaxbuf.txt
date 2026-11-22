@@ -1,0 +1,18 @@
+tests/card_drift.mjs:692:  return execFileSync("git", a, { cwd: repo, encoding: "utf8" });
+tests/card_drift.mjs:705:    return execFileSync("git", ["show", `${sha}:${file}`],
+tools/policy/agreement.mjs:1059:    const rg = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', env })
+tools/policy/agreement.mjs:1060:    const T = execFileSync('git', ['mktree'], { cwd: repo, input: '', encoding: 'utf8', env }).trim()
+tools/policy/agreement.mjs:1061:    const ct = (msg, ...parents) => execFileSync('git', ['commit-tree', T, ...parents.flatMap((x) => ['-p', x]), '-m', msg], { cwd: repo, encoding: 'utf8', env }).trim()
+tools/policy/agreement.mjs:1082:    const blob = (text) => execFileSync('git', ['hash-object', '-w', '--stdin'], { cwd: repo, input: text, encoding: 'utf8', env }).trim()
+tools/policy/agreement.mjs:1083:    const tree = (p, b) => execFileSync('git', ['mktree'], { cwd: repo, input: `100644 blob ${b}\t${p}\n`, encoding: 'utf8', env }).trim()
+tools/policy/agreement.mjs:1084:    const dated = (t, tr, ...ps) => execFileSync('git', ['commit-tree', tr, ...ps.flatMap((x) => ['-p', x]), '-m', 'h'], { cwd: repo, encoding: 'utf8', env: { ...env, GIT_COMMITTER_DATE: `@${t} +0000` } }).trim()
+tools/policy/brief_lint.mjs:1550:  const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], { cwd: dir, input: 'x', encoding: 'utf8' }).trim()
+tools/policy/brief_lint.mjs:1556:  execFileSync('git', ['update-index', '--add', '--index-info'], { cwd: dir, input: names.map((n) => `100644 ${blob}\t${n}\n`).join('') })
+tools/policy/brief_lint.mjs:1577:    const g = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+tools/policy/figure_lint.mjs:341:    const txt = execFileSync('git', ['--list-cmds=main,others,alias,nohelpers'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 20000 })
+tools/policy/figure_lint.mjs:375:        execFileSync('git', ['cat-file', '-e', `${atRev}:${n}`], { cwd: ROOT, stdio: 'ignore', timeout: 20000 })
+tools/policy/policy_lint.mjs:3542:    execFileSync('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
+tools/policy/policy_lint.mjs:6844:    execFileSync('git', ['merge-base', '--is-ancestor', ps[1], 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
+tools/policy/policy_lint.mjs:6848:    out = execFileSync('git', ['merge-tree', '--write-tree', '--no-messages', ps[0], ps[1]],
+tools/policy/policy_lint.mjs:7176:      registry = Object.keys(JSON.parse(execFileSync('git', ['show', `${base}:tools/pr/figure_registry.json`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).instruments ?? {})
+tools/policy/policy_lint_mutants.mjs:321:  if (!sha || spawnSync('git', ['cat-file', '-e', `${sha}^{commit}`], { cwd: ROOT }).status !== 0) {

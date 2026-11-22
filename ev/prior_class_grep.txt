@@ -1,0 +1,14 @@
+tests/card.mjs:11857:        a[0] === "ls-files" ? CLAIMED_CARD_PATH + "\n" : "", "REF") === true);
+tests/card_rig.mjs:840:    ["ls-files", "--others", "--exclude-standard"],
+tools/policy/agreement.mjs:343:  files ??= canonList(git(['ls-files', 'tools', '.claude/workflows']).split('\n')).filter((f) => /\.(py|mjs|js|cjs|sh|md)$/.test(f)
+tools/policy/agreement.mjs:600:  return canonList(git(['ls-files']).split('\n')).filter(isGovernanceCode)
+tools/policy/brief_lint.mjs:115:  const args = rev ? ['ls-tree', '-r', '--name-only', rev] : ['ls-files']
+tools/policy/brief_lint.mjs:147:  const out = git(['ls-tree', '-r', '--name-only', ref], { allowFail: true })
+tools/policy/brief_lint.mjs:1320:  const tracked = canonList(git(['ls-files']).split('\n').filter(Boolean))
+tools/policy/counts.mjs:83:  _tracked ??= canonList(git(['ls-files']).split('\n').filter(Boolean))
+tools/policy/counts.mjs:128:  d.rules = git(['ls-files', '.cursor/rules/*.mdc']).trim().split('\n').filter(Boolean).length
+tools/policy/counts.mjs:148:  d.modules = git(['ls-files', 'custom_components/heatpump_optimizer/']).trim().split('\n').filter((f) => f.endsWith('.py')).length
+tools/policy/counts.mjs:149:  d.goldens = git(['ls-files', 'tests/golden/*.json']).trim().split('\n').filter(Boolean).length
+tools/policy/policy_lint.mjs:188:  const out = git(['ls-tree', '-r', '--name-only', ref], { allowFail: true })
+tools/policy/policy_lint.mjs:216:    for (const f of canonList(git(['ls-files']).split('\n').filter(Boolean))) {
+tools/policy/policy_lint.mjs:1539:    _printerSource = canonList(git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!dev/audit/rounds', ':!.cursor']).split('\n'))
