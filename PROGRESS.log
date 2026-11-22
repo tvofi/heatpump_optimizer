@@ -6,3 +6,4 @@
 1795356126 CKPT packet rendered; head moved to 9a152f17 (FRESH-REVIEW) snapshot 5abc43e9eda6
 1795356158 DONE blocked head-moved 4c875cad -> c8287e36, pushed probe/rev-3844-697e209e (bba32a8d)
 1795360482 HB alive
+1795360566 CKPT verified 19 rows, merge-tree clean, classify GREEN snapshot 855a61363f89
