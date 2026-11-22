@@ -922,6 +922,7 @@
    "custom_components/heatpump_optimizer/runs.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
+   "custom_components/heatpump_optimizer/services.yaml",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/slab_seed.py",
@@ -6041,11 +6042,11 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 422.7
+   "seconds": 1031.5
   },
   "tests/finite_boundary.py": {
    "rc": 0,
-   "seconds": 193.8
+   "seconds": 96.8
   },
   "tests/frontend.py": {
    "rc": 0,
@@ -6053,7 +6054,7 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 1.2
+   "seconds": 0.5
   },
   "tests/guard_pins.py": {
    "rc": 0,
@@ -6061,7 +6062,7 @@
   },
   "tests/ha_contract.py": {
    "rc": 0,
-   "seconds": 0.5
+   "seconds": 0.2
   },
   "tests/harness_headers.py": {
    "rc": 0,
@@ -6089,7 +6090,7 @@
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 1.8
+   "seconds": 0.8
   },
   "tests/solar_alignment.py": {
    "rc": 0,
@@ -6097,7 +6098,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 928.7
+   "seconds": 434.9
   },
   "tests/structure.py": {
    "rc": 0,
