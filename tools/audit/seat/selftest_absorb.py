@@ -341,10 +341,11 @@ class Fake:
     """A gh/git/absorb world: runs {id: (drift conclusion, absorbed artifact?)}; records every argv."""
 
     def __init__(self, runs, order, added=(738, 7), remain=0, remote="", push_rc=0, tip=NEWER, gh_rc=0,
-                 paths=TABLE + "\n", msg="", head_table='{"steps": {"x": {}}}', grows_rc=0):
+                 paths=TABLE + "\n", msg="", head_table='{"steps": {"x": {}}}', grows_rc=0, absorb_rc=0, paged=()):
         self.runs, self.order, self.added, self.remain = runs, order, added, remain
         self.remote, self.push_rc, self.tip, self.gh_rc, self.calls = remote, push_rc, tip, gh_rc, []
         self.paths, self.msg, self.head_table, self.grows_rc = paths, msg, head_table, grows_rc
+        self.absorb_rc, self.paged = absorb_rc, paged  # paged: runs whose JOB is past the jobs API's first page
 
     def __call__(self, argv, cwd=None):
         self.calls.append(list(argv))
@@ -359,6 +360,8 @@ class Fake:
             if "/jobs" in a:
                 steps = [{"name": "Refuse a self-testing seat instrument that no step runs", "conclusion": "failure"},
                          {"name": DRIFT, "conclusion": concl}]
+                if rid in self.paged:
+                    return 0, json.dumps({"total_count": 101, "jobs": [{"name": "governance / gate", "steps": []}]}), ""
                 return 0, json.dumps({"total_count": 2, "jobs": [{"name": "governance / gate", "steps": []},
                                                                   {"name": JOB, "steps": steps}]}), ""
             return 0, json.dumps({"total_count": int(absorbed)}), ""
@@ -374,7 +377,7 @@ class Fake:
             text = (f"selftest_scope absorb: {n} read(s) added to {m} step(s)\n"
                     + ("" if self.remain is None else
                        f"selftest_scope absorb: {self.remain} refusal(s) remain over the sources' own steps\n"))
-            return 0, text, ""
+            return self.absorb_rc, text, ""
         if len(argv) > 3 and argv[3] == "grows":
             return self.grows_rc, f"selftest_scope grows: {self.grows_rc} read(s) of the old table the new one drops\n", ""
         if argv[0] == "git":
@@ -463,6 +466,15 @@ def cases(mod) -> dict[str, bool]:
     rc, out = go(f)
     res["an absorb that prints no remain line (a tip before it) is UNREADABLE, never clean"] = (
         rc == 2 and "printed no remain line" in out[0])
+    f = Fake(defect, [DEFECT, GREEN], paged={DEFECT[0]})
+    rc, out = go(f)
+    res["a run whose instrument-self-tests job is past the jobs API's first page is UNREADABLE, never walked past"] = (
+        rc == 2 and out[0] == f"SELFTEST-ABSORB UNREADABLE run {DEFECT[0]} has more jobs than one page"
+        and f.ran("download") == 0)
+    f = Fake(defect, [DEFECT, GREEN], absorb_rc=1)
+    rc, out = go(f)
+    res["an absorb that exits non-zero is UNREADABLE even when it printed a summary line, and nothing is owed"] = (
+        rc == 2 and out[0].startswith(f"SELFTEST-ABSORB UNREADABLE absorb at {NEWER[:12]} rc=1: "))
     f = Fake(defect, [DEFECT, GREEN], gh_rc=1)
     rc, out = go(f)
     res["an unreadable API is UNREADABLE, rc 2"] = rc == 2 and out[0].startswith("SELFTEST-ABSORB UNREADABLE gh api ")
@@ -527,6 +539,15 @@ def cases(mod) -> dict[str, bool]:
     res["verify: a head that changes any other path is refused"] = rc == 1 and "not tools/ci/selftest_closures.json alone" in out[0]
     rc, out, _ = ver(msg=msg.replace(NEWER, FIXED))
     res["verify: a message whose --at is not the head's parent is refused"] = rc == 1 and "names no --at equal" in out[0]
+    for name, kw, word in (("CLEAN", {"added": (0, 0)}, "SELFTEST-ABSORB CLEAN at "),
+                            ("RECORD-OWED", {"added": (0, 0), "remain": 2}, "SELFTEST-ABSORB RECORD-OWED ")):
+        try:
+            rc, out, f = ver(**kw)
+            ok = (rc == 1 and out[0].startswith(f"SELFTEST-ABSORB VERIFY-REFUSED regeneration at {NEWER[:12]} "
+                                                f"absorbs nothing: {word}") and f.ran(" grows ") == 0)
+        except Exception:  # a refusal that is a traceback is no refusal
+            ok = False
+        res[f"verify: a regeneration that reads {name} (absorbs nothing) is VERIFY-REFUSED, naming it"] = ok
     rc, out, _ = ver(grows_rc=1)
     res["verify: a head table that drops a read of its parent's is refused"] = rc == 1 and "drops reads" in out[0]
     # The literals this file reads, pinned where they are written.
@@ -576,6 +597,16 @@ MUTANTS = {
                       "verify: a message whose --at is not the head's parent is refused"),
     "verify_no_grows": ('    rc, out, err = p.run([sys.executable, "-I", SCOPE, "grows"', '    rc, out, err = 0, "", ""; (lambda *a: 0)([sys.executable, "-I", SCOPE, "grows"',
                         "verify: a head table that drops a read of its parent's is refused"),
+    # The next three sites are spelled as adjacent literals, so each stays the
+    # one exact occurrence in the file a review's external driver (ev/mut.py) keys on.
+    "jobs_page_unguarded": ('if jobs.get("total_count", 0) ' '> len(jobs.get("jobs", [])):', "if False:",
+                            "a run whose instrument-self-tests job is past the jobs API's first page is UNREADABLE, "
+                            "never walked past"),
+    "absorb_rc_ignored": ("    if rc != 0 " "or not added:", "    if not added:",
+                          "an absorb that exits non-zero is UNREADABLE even when it printed a summary line, and "
+                          "nothing is owed"),
+    "verify_only_unreadable": ("    if rc " "!= 1:\n", "    if rc == 2:\n",
+                               "verify: a regeneration that reads CLEAN (absorbs nothing) is VERIFY-REFUSED, naming it"),
     "clean_absorbs": ('    if newest[2] == "clean":\n', '    if newest[2] == "never":\n',
                       "null (green run 44379511133): CLEAN, rc 0; no download, clone, absorb or push"),
 }
