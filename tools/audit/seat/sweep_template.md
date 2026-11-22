@@ -53,6 +53,7 @@ rendered text that no overlay value supplied.
 | `train_state` | optional: the merge train's state dir; the `cancel-sweep` row passes it as `--train-state`, so a pull request in the train's queue or spool is never cancelled for a priority run; empty leaves the flag out |
 | `gantt_roster` | the roster the beat's `gantt` row reads, as `<branch>:<path>` (fetched to `refs/gantt/roster`, never a local branch) |
 | `gantt_acks` | the Gantt acks file `sweep_gantt.py --acks` reads, one `<ISO> <KEY> act\|defer\|accept [until=<ISO>] <reason>` line per answered slip |
+| `claude_projects` | optional: the Claude project directories (one path or a list) whose session transcripts the beat's `scorecard` row sums into the token ledger `token_ledger.py collect`; absent: the checkout's own under `~/.claude/projects` |
 | `fire_ledger` | the session's fire ledger, one line per seat fired with its leading UTC stamp, which the `gantt`, `verdict-audit` and `cp-owed` rows hand on as `--fired` (a line within 12 h holds the pull request or topic it names) |
 | `sweep_record` | optional: the day's sweep record file, rendered `scorecard.py --sweep-record FILE`; whose `recycle` lines of the standing dispatch and triage seats the `scorecard` row counts as K (absent: K prints unread) |
 | `train_glob` | the glob of live train logs `verdict_audit.py --train-glob` reads (a log modified within 3 h holds its queued pull requests) |

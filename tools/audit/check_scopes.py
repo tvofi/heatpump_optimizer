@@ -41,6 +41,8 @@ unmarked_groups} and exits: the accepted cards that gate no finder and are unmer
 the open groups of the roster (roster_lib's reader, or --roster-ref) whose `gates_finders` is not
 true; rc 1, with an `UNMARKED <card|group>` line, while an accepted card or open group carries no
 boolean. Run when the finders finish, it is the architect's input. --self-test drives a complete record (passes) and one perturbation per rule.
+--tokens FILE (with --round; default $HPO_STATE_DIR/scorecard/tokens.tsv, token_ledger.py's) refuses
+an evaluator or reviewer named as a `seat` of a row in round N-1's window; no ledger prints unread.
 The record also needs: an approving review at a commit in --ref's history whose EVALUATION.json
 graded the same objects, a ruling on every decided card, an accepted card's commit after that review
 and changing the card's file, reads that are numbers with a tracked enumerator, NO-READs that name
@@ -55,7 +57,7 @@ and `UNREADABLE <axis>: <why>` when a source is missing or an axis yields no lev
 the identifiers a module uses outside its imports, less each one its calls mark required and never
 optional: a key no install can leave out, or one no step presents, is no two-level axis.
 """
-import argparse, ast, contextlib, copy, importlib.util, io, itertools, json, math, re, subprocess, sys, tempfile
+import argparse, ast, contextlib, copy, csv, datetime, importlib.util, io, itertools, json, math, os, re, subprocess, sys, tempfile, time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "seat"))
@@ -296,6 +298,16 @@ def full(v):
 
 def norm(s):
     return re.sub(r"[\W_]+", "", str(s).casefold())
+
+
+def ledger_gaps(path, ev, rows, a, b):
+    """Decision 0018 section 6: an evaluator or reviewer seat that is a seat of the graded round's
+    token ledger (token_ledger.py's `seat` column, rows with a <= t < b) worked the round it
+    grades. Names compare as `norm` spells them; a `-` seat is no seat."""
+    at = lambda t: datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp()
+    seats = {norm(r.get("seat", "")) for r in rows if r.get("t") and a <= at(r["t"]) < b} - {""}
+    return [f"{path} {k} {ev[k]!r} is a seat in the graded round's token ledger: it worked the round it grades"
+            for k in ("evaluator", "reviewer") if full(ev.get(k)) and norm(ev[k]) in seats]
 
 
 def enumerates(cmd, tree):
@@ -838,6 +850,14 @@ def evaluation_self_test(tree, show):
         "B1 a disguised orchestrator or the same seat respelled is refused":
             all(only(run(edit(lambda c: c.update(**{k: v}))), "two seats") for k, v in (
                 ("evaluator", "orchestrator-r10"), ("evaluator", "the orchestrator"), ("reviewer", "Orchestrator"), ("reviewer", "Evaluator R8"))),
+        "B1 an evaluator or reviewer that is a seat of the graded round's token ledger is refused, either spelling":
+            ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "Evaluator_R8"}], 0, 2e9)
+            == ["E evaluator 'evaluator-r8' is a seat in the graded round's token ledger: it worked the round it grades"]
+            and len(ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "plan-review-r8"}], 0, 2e9)) == 1,
+        "B1 null: the same seat outside the window, another seat, or a `-` seat is no gap":
+            ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "evaluator-r8"}], 0, 1e9) == []
+            and ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "fixer-r8-x"},
+                                        {"t": "2026-01-02T00:00:00Z", "seat": "-"}], 0, 2e9) == [],
         "B2 a review that is no approve verdict is refused":
             only(run(edit(lambda c: c.pop("review"))), "review is not an approve") and only(run(edit(lambda c: c["review"].update(verdict="revise"))), "review is not an approve"),
         "B2 a review sha outside the ref's history is refused": only(run(edit(lambda c: c["review"].update(sha="zzz"))), "is not a commit in the ref"),
@@ -1030,6 +1050,8 @@ def main():
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--seat", help="print the cells this seat (D<k>-s<n>) owns and exit")
     ap.add_argument("--round", type=int, help="also refuse this round's start without its start evaluation")
+    ap.add_argument("--tokens", help="with --round: the token ledger (default $HPO_STATE_DIR/scorecard/tokens.tsv) whose "
+                    "graded-round rows refuse an evaluator or reviewer seat")
     ap.add_argument("--population", action="store_true", help="print the install population's levels read at --ref and exit")
     ap.add_argument("--open-cards", action="store_true",
                     help="with --round: print, as JSON, P3's input (open non-gating cards at --ref, open non-gating roster groups) and exit; rc 1 naming any unmarked card or group")
@@ -1310,6 +1332,7 @@ def main():
     if a.round is not None:
         beside = []
         gaps = evaluation_gaps(a.round, tree, show, merged, anc, changed, beside)
+        gaps += round_ledger_gaps(a, show, tree)
         print(f"{'ok' if not gaps else 'FAIL'} start evaluation round={a.round}: {len(gaps)} gap(s), {len(beside)} card(s) beside the finders")
         for g in gaps:
             print(f"   {g}")
@@ -1317,6 +1340,29 @@ def main():
             print(f"   PARALLEL {cid} accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)")
         ok = ok and not gaps
     sys.exit(0 if ok else 1)
+
+def round_ledger_gaps(a, show, tree):
+    """`ledger_gaps` over --tokens (default $HPO_STATE_DIR/scorecard/tokens.tsv) in round
+    --round minus one's window (round_metrics.round_window); an absent ledger or window is
+    printed unread, no gap: the refusal exists once the ledger does (0018 section 6)."""
+    path = records(a.round)[1]
+    if path not in tree:
+        return []
+    src = a.tokens or (os.environ.get("HPO_STATE_DIR") and str(Path(os.environ["HPO_STATE_DIR"]) / "scorecard" / "tokens.tsv"))
+    spec = importlib.util.spec_from_file_location("round_metrics", Path(__file__).resolve().parent / "seat" / "round_metrics.py")
+    rm = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rm)
+    win = rm.round_window(Path(a.repo), a.round - 1, time.time())
+    try:
+        rows = list(csv.DictReader(io.StringIO(Path(src).read_text()), delimiter="\t")) if src else None
+    except OSError:
+        rows = None
+    if rows is None or win is None:
+        print(f"   LEDGER unread: {'no token ledger (--tokens)' if rows is None else f'no tag v{a.round - 2}.0.0 opens round {a.round - 1}'}; "
+              "an evaluator or reviewer seat of the graded round is not checked")
+        return []
+    return ledger_gaps(path, json.loads(show(path)), rows, win[0], win[1])
+
 
 if __name__ == "__main__":
     main()

@@ -147,7 +147,11 @@ ROWS (the job table's `interval_s` in brackets):
                      owner's thresholds, 2026-11-07); a held breach re-prints its
                      first line, so it is new once per trip. A line suggests; the
                      orchestrator decides. `bottleneck: UNREADABLE` on a non-zero rc.
-  scorecard [86400]  round_metrics.py `produce --dir S/scorecard --repo <checkout>
+  scorecard [86400]  token_ledger.py `collect --out S/scorecard/tokens.tsv --projects <dir>...`
+                     (the overlay's `claude_projects`, else the checkout's project dir
+                     under ~/.claude/projects; a failure is `scorecard: UNREADABLE
+                     token_ledger rc=<n>` and the rest still runs), then
+                     round_metrics.py `produce --dir S/scorecard --repo <checkout>
                      --gh-repo <repo>` refreshes the inputs (one REST batch), then
                      scorecard.py `report --dir S/scorecard --train-log <train_log>
                      [--sweep-record <sweep_record>]` into `S/beatd/scorecard.txt`
@@ -763,18 +767,31 @@ def scorecard(ctx: Ctx) -> None:
     got = ctx.need("scorecard", "train_log", "repo")
     if got is None:
         return
+    rc, _, err = ctx.py("tools/audit/seat/token_ledger.py", "collect", "--out", str(ctx.state / "scorecard" / "tokens.tsv"),
+                        *[a for p in claude_projects(ctx) for a in ("--projects", p)])
+    lines = [] if rc == 0 else [f"scorecard: UNREADABLE token_ledger rc={rc}: {(err.strip().splitlines() or [''])[-1]}"]
     rc, _, err = ctx.py("tools/audit/seat/round_metrics.py", "produce", "--dir", str(ctx.state / "scorecard"),
                         "--repo", str(ctx.repo), "--gh-repo", got[1])
     if rc != 0:
-        return write_job(ctx, "scorecard", [f"scorecard: UNREADABLE produce rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+        return write_job(ctx, "scorecard", lines + [f"scorecard: UNREADABLE produce rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
     args = ["report", "--dir", str(ctx.state / "scorecard"), "--train-log", got[0], "--repo", str(ctx.repo)]
     if ctx.overlay.get("sweep_record"):
         args += ["--sweep-record", str(ctx.overlay["sweep_record"])]
     rc, out, err = ctx.py("tools/audit/seat/scorecard.py", *args)
     if rc != 0 or not out.strip():
-        return write_job(ctx, "scorecard", [f"scorecard: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+        return write_job(ctx, "scorecard", lines + [f"scorecard: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
     atomic(ctx.state / "beatd" / "scorecard.txt", out)
-    write_job(ctx, "scorecard", [])
+    write_job(ctx, "scorecard", lines)
+
+
+def claude_projects(ctx: Ctx) -> list[str]:
+    """The Claude project directories whose transcripts the token ledger reads: the overlay's
+    `claude_projects` (one path or a list), else the one the client names after the checkout
+    (every character outside [A-Za-z0-9] a `-`) under ~/.claude/projects."""
+    got = ctx.overlay.get("claude_projects")
+    if got:
+        return [str(p) for p in ([got] if isinstance(got, str) else got)]
+    return [str(Path.home() / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(ctx.repo.resolve())))]
 
 
 def toolchain_promote(ctx: Ctx) -> None:

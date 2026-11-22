@@ -606,9 +606,26 @@ def cases(bj) -> dict[str, bool]:
     c, f = fresh(answers={"scorecard.py": (0, sc_out, "")})
     bj.scorecard(c)
     pr = next((x for x in f.calls if any(a.endswith("round_metrics.py") for a in x)), [])
-    res["scorecard: the producer runs first, handed produce, the dir, the checkout and the overlay's repo"] = (
-        f.calls and f.calls[0] == pr and "produce" in pr and arg(pr, "--dir") == str(c.state / "scorecard")
+    tl = next((x for x in f.calls if any(a.endswith("token_ledger.py") for a in x)), [])
+    res["scorecard: the token ledger runs first, into the producer's dir, reading the checkout's project dir"] = (
+        f.calls and f.calls[0] == tl and "collect" in tl and arg(tl, "--out") == str(c.state / "scorecard" / "tokens.tsv")
+        and arg(tl, "--projects") == bj.claude_projects(c)[0])
+    res["scorecard: the default project dir is the client's name for the checkout, every non-alphanumeric a `-`"] = (
+        bj.claude_projects(type("C", (), {"overlay": {}, "repo": Path("/home/u/heat_pump.x")})())
+        == [str(Path.home() / ".claude" / "projects" / "-home-u-heat-pump-x")])
+    res["scorecard: the producer runs next, handed produce, the dir, the checkout and the overlay's repo"] = (
+        f.calls[1:2] == [pr] and "produce" in pr and arg(pr, "--dir") == str(c.state / "scorecard")
         and arg(pr, "--repo") == str(c.repo) and arg(pr, "--gh-repo") == "o/r")
+    c, f = fresh(overlay={"repo": "o/r", "train_log": "/x/t.log", "claude_projects": ["/p/a", "/p/b"]},
+                 answers={"token_ledger.py": (2, "", "token_ledger: refused: no project directory: /p/a\n"),
+                          "scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    tl = next((x for x in f.calls if any(a.endswith("token_ledger.py") for a in x)), [])
+    res["scorecard: the overlay's claude_projects are each handed on; a failed ledger is UNREADABLE and the report "
+        "still runs (its tokens line prints unread)"] = (
+        [tl[i + 1] for i, a in enumerate(tl) if a == "--projects"] == ["/p/a", "/p/b"]
+        and digest(c) == "scorecard: UNREADABLE token_ledger rc=2: token_ledger: refused: no project directory: /p/a\n"
+        and (c.state / "beatd" / "scorecard.txt").exists())
     c, f = fresh(answers={"round_metrics.py": (1, "", "Traceback\nApiError: 502\n"), "scorecard.py": (0, sc_out, "")})
     bj.scorecard(c)
     res["scorecard: a failed producer is UNREADABLE and the report does not run on stale inputs"] = (
