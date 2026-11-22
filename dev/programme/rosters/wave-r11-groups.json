@@ -7308,7 +7308,9 @@
    "size": "M",
    "wave": 1,
    "issues": [],
-   "fixes": [],
+   "fixes": [
+    3859
+   ],
    "after": [
     "R11-OWNER-FAULT-TEXT"
    ],
