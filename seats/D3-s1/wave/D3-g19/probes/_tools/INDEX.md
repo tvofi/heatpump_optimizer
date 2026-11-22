@@ -2,3 +2,4 @@
 - build_result.py: writes results/<key>.json from gates/<key>.json + a probe run in a separate baseline worktree ($HOME/probe-tree) + analysis.py
 - mutlib.py: the in-memory line mutator the probes inline (recompile a function from its source with one line swapped)
 - gen/: the probe sources (<key>.head header, pre.py shared preamble, <key>.body) the probes were assembled from
+- autorecord.sh: background loop running build_result.py + gate_wave.sh ckpt for each newly gated key
