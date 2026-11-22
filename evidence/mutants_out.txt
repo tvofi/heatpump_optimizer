@@ -1,0 +1,19 @@
+emit P2 rc=1
+emit 3B rc=0
+emit CB rc=0
+UNMUTATED p2 rc=0 ALL 26 FEATURES BLOCK PASSED
+UNMUTATED 3b rc=0 ALL 8 FEATURES BLOCK PASSED
+UNMUTATED cb rc=0 ALL 8 FEATURES BLOCK PASSED
+C1 KILLED rc=1 (p2)   FAIL R11-OUTSIDE-ROOMS-3B: the scheduled build hands the solve its room lifts, 1.0 K at the cap and never above the margins; null control, the flag off or nev
+C1a KILLED rc=1 (p2)   FAIL R11-OUTSIDE-ROOMS-3B: the scheduled build hands the solve its room lifts, 1.0 K at the cap and never above the margins; null control, the flag off or nev
+C1b KILLED rc=1 (p2)   FAIL R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a 19.5 day target clips them to its 0.5 K band; null control, the 
+R1_margin_add KILLED rc=1 (3b)   FAIL R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor without the lift (0.5 on the open band), 0 where the mold floor (22.0) or 
+R2_ceiling KILLED rc=1 (3b)   FAIL R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor without the lift (0.5 on the open band), 0 where the mold floor (22.0) or 
+R3_tol KILLED rc=1 (3b)   FAIL R11-OUTSIDE-ROOMS-3B: a heating step within 0.15 K of the lifted floor but above the floor less the lift is room_floor (19.95 and 20.0 against 20.15 and 
+R4_nolift KILLED rc=1 (3b)   FAIL R11-OUTSIDE-ROOMS-3B: a heating step within 0.15 K of the lifted floor but above the floor less the lift is room_floor (19.95 and 20.0 against 20.15 and 
+R7_mold KILLED rc=1 (3b)   FAIL R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor without the lift (0.5 on the open band), 0 where the mold floor (22.0) or 
+R6_nounlift KILLED rc=1 (3b)   FAIL R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor without the lift (0.5 on the open band), 0 where the mold floor (22.0) or 
+R5_nopad KILLED rc=1 (cb)   FAIL a negative margin cannot lower the comfort floor  [[np.float64(14.0), np.float64(13.5)] — [14.0, 13.5] means the clip at zero was dropped, so a mis-sig
+E1_oldclip SURVIVED (3b)
+E1_oldclip SURVIVED (cb)
+DONE
