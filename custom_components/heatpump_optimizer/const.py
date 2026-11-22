@@ -865,6 +865,14 @@ DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
 #: Close the water set-point on measured power (R10-WATER-SETPOINT-FEEDBACK):
 #: on by default, as tvofi ruled (2026-11-09) for an install with a water
 #: unit and a power meter, the only installs it acts on.
+#: Frost hold (``frost_hold``): on an install with a power switch, an idle
+#: step below this outdoor temperature, or with no outdoor reading, keeps the
+#: pump on instead of switching it off, so it can defrost and protect itself.
+#: On by default; the threshold is the owner's (tvofi, 2026-11-22).
+CONF_FROST_HOLD: Final = "frost_hold"
+DEFAULT_FROST_HOLD: Final = True
+CONF_FROST_HOLD_BELOW_C: Final = "frost_hold_below_c"
+DEFAULT_FROST_HOLD_BELOW_C: Final = 2.0
 CONF_SPACE_SETPOINT_POWER_FEEDBACK: Final = "space_setpoint_power_feedback"
 DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
 #: The controller's own lower and upper limit on the water set-point it is

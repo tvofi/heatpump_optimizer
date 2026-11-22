@@ -216,6 +216,8 @@ from .const import (
     SPACE_SETPOINT_UNITS,
     SPACE_SETPOINT_WATER_UNITS,
     CONF_FLOW_HEAT_C,
+    CONF_FROST_HOLD,
+    CONF_FROST_HOLD_BELOW_C,
     DEFAULT_FLOW_HEAT_C,
     FLOW_HEAT_C_MAX,
     CONF_FLOW_MIN_LIFT_K,
@@ -224,6 +226,8 @@ from .const import (
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     DEFAULT_FLOW_MIN_LIFT_K,
     DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK,
+    DEFAULT_FROST_HOLD,
+    DEFAULT_FROST_HOLD_BELOW_C,
     CONF_WIND_SENSITIVITY,
     CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     CONF_OPTIMIZATION_INTERVAL,
@@ -1691,6 +1695,12 @@ def _single_zone(config: Mapping[str, Any]) -> bool:
     return not two_zone_from_config(config)
 
 
+def _power_switch(config: Mapping[str, Any]) -> bool:
+    """Whether a heat-pump power switch is configured: the frost hold's
+    only actuator (``frost_hold``), so its options mean nothing without one."""
+    return bool(config.get(CONF_HEAT_PUMP_SWITCH_ENTITY))
+
+
 def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
     """Whether the space set-point is declared a water temperature (a flow or
     a return target), the only unit the pump-duty arbiter writes a heating
@@ -1733,6 +1743,12 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
     # ceiling at the gate would write "off" on every heating step.
     _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, FLOW_HEAT_C_MAX, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
+    # Frost hold (frost_hold): an idle step below the threshold, or with no
+    # outdoor reading, keeps the power switch on. On by default (tvofi,
+    # 2026-11-22); the threshold's range spans the climates an air-source
+    # unit defrosts in.
+    _F("entities", CONF_FROST_HOLD, DEFAULT_FROST_HOLD, selector.BooleanSelector(), when=_power_switch, group="indoor"),
+    _F("entities", CONF_FROST_HOLD_BELOW_C, DEFAULT_FROST_HOLD_BELOW_C, _number(-15, 10, 0.5, '°C'), when=_power_switch, group="indoor"),
     # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
     # on by default, and it acts only where a power meter is configured too.
     _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),

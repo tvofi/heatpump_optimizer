@@ -77,7 +77,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from . import heat_curve
-from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc, room_record
+from . import accuracy, debugger, draw_range, early_cutoff, frost_hold, pump_arbiter, replay_doc, room_record
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, LOCATION_KEYS, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
 from .inputs import OUTRANKS_STALE, describe_problem, health_summary
@@ -375,6 +375,7 @@ def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
 _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     ("pump_duty", pump_arbiter.diagnostics_view),
     ("early_cutoff", lambda c: early_cutoff.diagnostics_view(early_cutoff.state_for(c))),
+    ("frost_hold", frost_hold.diagnostics_view),
     ("draw_range", lambda c: draw_range.diagnostics_view(
         c.accuracy.draw, c.thermal_params,
         probe_install(c.arbiter_inputs().config), dt_util.utcnow().timestamp())),

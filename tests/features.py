@@ -71082,7 +71082,7 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
 # and this block owes a recorded failing check there, not an ImportError.
 _f24_floor = getattr(_f24_tm, "MIN_RUNNING_DRAW_KW", None)
 _f24_meter_kw = getattr(_f24_tm, "on_threshold_kw", None)
-_f24_ran_kw = getattr(_f24_pa, "_ran_kw", None)
+_f24_ran_kw = getattr(_f24_pa, "ran_kw", None)
 
 
 def _f24_opt(min_kw: float, max_kw: float):
@@ -71264,7 +71264,7 @@ R.check(
     and _f24_meter_kw(_f24_meter.thermal.params) == 0.2
     and _f24_meter_kw(_f24_NS(min_electrical_power=0.1)) == 0.1
     and _f24_ran_kw(_f24_meter) > 0.15 > _f24_floor,
-    f"_ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r} "
+    f"ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r} "
     f"plan_floor={_f24_floor}",
 )
 
@@ -92286,9 +92286,9 @@ R.check(
     and _fb_r.samples[0][0] == _FB_NOW - _fb_pa.FEEDBACK_WINDOW,
     f"kept {_fb_h.feedback is _fb_r}, samples {len(_fb_r.samples)}",
 )
-# The run's threshold is the meter's (``_ran_kw``): a draw exactly at it runs.
+# The run's threshold is the meter's (``ran_kw``): a draw exactly at it runs.
 _fb_c, _fb_h, _fb_i = _fb_unit()
-_fb_ran = _fb_pa._ran_kw(_fb_i)
+_fb_ran = _fb_pa.ran_kw(_fb_i)
 _fb_c.power = _fb_ran
 _fb_pa._feedback(_fb_h, _fb_c.arbiter_inputs(), _FB_NOW, 26.4, True)
 R.check(

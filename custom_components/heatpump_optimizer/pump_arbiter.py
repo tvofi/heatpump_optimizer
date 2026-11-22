@@ -399,6 +399,12 @@ class ArbiterState:
     held_until: datetime | None = None
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
+    #: ``frost_hold``'s, its one writer; read here, never persisted: the
+    #: latch (``None`` unset or opted out), whether an OFF is held now, and
+    #: until when (UTC) the learners freeze for a held run.
+    frost: bool | None = None
+    frost_holding: bool = False
+    frost_ran_until: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -431,6 +437,9 @@ class ArbiterInputs:
     #: The running-draw window each pass record is handed to
     #: (``draw_range.note_pass``); ``None`` keeps none.
     draw: Any = None
+    #: The outdoor reading the frost hold judges (``frost_hold.reading``), °C;
+    #: ``None`` is no reading, never a default.
+    outdoor_c: float | None = None
 
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
@@ -1041,7 +1050,7 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
     rec = held.feedback
     if rec is not None and utc_elapsed_seconds(now, rec.seen) > FEEDBACK_WINDOW.total_seconds():
         rec = None  # passes that skipped the loop: a cooling or switched-off pump
-    if power is None or power < _ran_kw(inp):
+    if power is None or power < ran_kw(inp):
         if rec is not None and rec.running:
             _note_stop(held, rec, inlet, base)
         held.feedback = FeedbackRun(now, base, now)
@@ -1312,8 +1321,12 @@ def cycle_write(hass: Any, config: Any, params: Any) -> CycleWrite | None:
     )
 
 
-def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
-    """The row of the module table for ``duty``; ``None`` is the baseline."""
+def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime, *, frost: bool = False) -> PumpCommand:
+    """The row of the module table for ``duty``; ``None`` is the baseline.
+
+    ``frost``: a frost hold (``frost_hold``) is served as ``space`` at the
+    pump's own floor (:func:`_hold_floor_c`), with no loop and no boost level.
+    """
     result = inp.plan
     mode_state = _slot_state(inp, "mode")
     dhw = _dhw_write(inp)
@@ -1324,14 +1337,33 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
-    if _flow_unit(inp.config):
+    if frost:
+        space = _hold_floor_c(inp)
+    else:
+        space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
+    if _flow_unit(inp.config) and not frost:
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
         return PumpCommand(mode, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
         return PumpCommand(mode, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
     return PumpCommand(mode, dhw, space, silent)
+
+
+def _hold_floor_c(inp: ArbiterInputs) -> float | None:
+    """The space set-point a frost hold writes: the pump's own floor, °C.
+
+    The entity's minimum, raised to the controller's lower limit where its
+    sensor reads (:func:`_setpoint_limits_c`). Where the entity states no
+    minimum: the gate in its own terms on a water unit (:func:`_gate_floor_c`,
+    the water a step that does not heat writes) and 5 °C on an indoor unit,
+    the bound a hot-water step writes it at (:func:`desired`).
+    """
+    low = setpoint_range_c(inp.hass, _entities(inp.config)["space_setpoint"])[0]
+    if low is None:
+        low = _gate_floor_c(inp.config) if _flow_unit(inp.config) else 5.0
+    limit = _setpoint_limits_c(inp)[0]
+    return _bounded(inp, "space_setpoint", low if limit is None else max(low, limit), rounding="up")
 
 
 def _boosted(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
@@ -1498,7 +1530,7 @@ def block_cold_lease(inp: ArbiterInputs, now: datetime) -> bool:
     return float(room) < float(planned)
 
 
-def _ran_kw(inp: ArbiterInputs) -> float:
+def ran_kw(inp: ArbiterInputs) -> float:
     """The MEASURED draw above which this step's ledger row counts a run.
 
     The meter's question, owned by ``thermal_model.on_threshold_kw`` and not
@@ -1862,16 +1894,17 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
         if row is not None:
             held.log.append(_verdict(row, tank))
         held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
-                           "measured": False, "ran": False, "dhw_mode": False}
+                           "measured": False, "ran": False, "dhw_mode": False, "frost": False}
         row["start_below"] = _dhw_start_below_c(inp)
     elif row["plan"] is not inp.plan:
         row["planned"], row["plan"] = duty, inp.plan
     power = inp.measured_power_kw
     if power is not None and now - start >= RUN_SETTLE:
         row["measured"] = True
-        row["ran"] = row["ran"] or float(power) >= _ran_kw(inp)
+        row["ran"] = row["ran"] or float(power) >= ran_kw(inp)
     mode = pump_mode.resolve(getattr(_slot_state(inp, "mode"), "state", None))
     row["dhw_mode"] = row["dhw_mode"] or mode == pump_mode.MODE_DHW
+    row["frost"] = row.get("frost", False) or held.frost_holding
 
 
 def _dhw_start_below_c(inp: ArbiterInputs) -> float | None:
@@ -1910,7 +1943,9 @@ def _verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
     else:
         actual = "dhw" if rose else None
     planned = row["planned"]
-    if planned is None:
+    if row.get("frost"):
+        verdict = "frost-hold"  # held on against the plan's idle step (frost_hold)
+    elif planned is None:
         verdict = "baseline"
     elif actual is None:
         verdict = "unknown"
@@ -1961,10 +1996,13 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         return
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
-    served = _served(coord, inp, duty, now)
-    await _command(coord, inp, desired(coord, inp, served, now), now)
+    # A frost hold is served as space heating, past a space block: it
+    # protects the unit, not the rooms. Its pass records no heating.
+    frost = held.frost_holding
+    served = "space" if frost else _served(coord, inp, duty, now)
+    await _command(coord, inp, desired(coord, inp, served, now, frost=frost), now)
     boosted = _boosted(coord, inp, now)
-    _note_pass(held, inp, served, boosted, now)
+    _note_pass(held, inp, "idle" if frost else served, boosted, now)
     await _write_night_schedule(coord, inp, now)
 
 
@@ -1997,7 +2035,8 @@ async def _lead_mode(coord: Any, on: bool) -> None:
         if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held):
             return
         duty = _step_duty(coord, held, inp, now)
-        await _write(coord, inp, "mode", _mode_for(inp, _served(coord, inp, duty, now)), now)
+        served = "space" if held.frost_holding else _served(coord, inp, duty, now)
+        await _write(coord, inp, "mode", _mode_for(inp, served), now)
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:

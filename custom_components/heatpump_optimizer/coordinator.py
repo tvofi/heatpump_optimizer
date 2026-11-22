@@ -258,7 +258,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
+from . import duty_switch, early_cutoff, frost_hold, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
 from . import room_record, rooms, slab_seed
@@ -3454,11 +3454,13 @@ def _tail_freeze(coord: Any) -> str | None:
     ran the commanded power; its reason comes first, in this one function,
     because the slab observer ignores only the unmetered reason and must
     see the cut (live-fix design note A2).
-    A held supply write ran other than the plan too (``supply_hold``).
+    A held supply write ran other than the plan too (``supply_hold``), and
+    so did a pump the frost hold kept on (``frost_hold``).
     """
     if early_cutoff.state_for(coord).interval_cut:
         return early_cutoff.FREEZE_CUT
-    return supply_hold.freeze_reason(pump_arbiter.state_for(coord)) or learner_unmetered(
+    held = pump_arbiter.state_for(coord)
+    return supply_hold.freeze_reason(held) or frost_hold.freeze_reason(held, coord.arbiter_inputs) or learner_unmetered(
         getattr(getattr(coord, "_ctx", coord), "_config", None)
     )
 
@@ -4117,6 +4119,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
             is True,
+            outdoor_c=frost_hold.reading(self._input_health, lambda: forecast_outdoor_now(self._weather_forecast, dt_util.now()), bool(ctx._config.get(CONF_OUTDOOR_TEMP_ENTITY))),
         )
 
     def diagnostics_state(self) -> CoordinatorDiagnostics:
@@ -7755,7 +7758,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await _best_effort_cycle_step(
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
-        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
+        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload, frost_off=frost_hold.cutoff_hook(self)), "Early cut-off arm skipped: %s")
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -7779,21 +7782,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await self.async_publish_current_action(reason="scheduled_update", heat_pump_on=on)
 
     async def _write_supply(self, on: bool) -> None:
-        """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
+        """The cycle's and the step tick's one supply gate: cut-off, mode, minimums, frost hold."""
         held = pump_arbiter.state_for(self)
-        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
-            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
+        value = frost_hold.gate(held, self.arbiter_inputs, supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
+            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
             await pump_arbiter.write_supply(self, switch_entity, value)
         elif switch_entity and not held.supply_held:
-            _LOGGER.debug(
-                "Not switching %s off: mode %s is cooling or blocks both "
-                "channels, so an empty plan is this integration's doing "
-                "rather than a decision to stop the pump",
-                switch_entity,
-                self._pump_signals.mode.label,
-            )
+            frost_hold.log_skip(held, switch_entity, self._pump_signals.mode.label)
     # ------------------------------------------------------------------
     # Published state
     # ------------------------------------------------------------------
