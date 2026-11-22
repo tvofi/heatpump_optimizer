@@ -23,3 +23,4 @@
 1795291107 HB alive
 1795291285 DONE verdict merge 76e2224896 pending-ci: gate pushed to probe/rev-3821-958c415e (aa78dc91be)
 1795305543 CKPT re-fire at same head 76e2224896: setup OK, merge-tree vs main 4ebd430f clean; waiting on CI snapshot eedc1fe82b46
+1795306165 HB ci wait 10
