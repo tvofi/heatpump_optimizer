@@ -1,67 +1,72 @@
 # Review packet #3835
-head: c6c11df0b85b569718a0a41a49544b9ddec3467e
-base: 4ebd430fbff9a7b19582ca530a817f34abbafa16
+head: 3d8679b765ae092b01807e3d890a0d442c03eb1f
+base: f269ecccb5f1dfd21eca03a3d5dcc43b3a145603
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-arch-score / arch-score id=137030156440 success
-arm id=137029323172 skipped
-budget-raise-gate / budget-raise-gate id=137030156428 success
-cancel-superseded id=137029339040 success
-codeql id=137030157956 skipped
-codeql / Analyze (actions) id=137030086979 queued
-codeql / Analyze (javascript-typescript) id=137030086967 in_progress
-codeql / Analyze (python) id=137030086956 queued
-gate id=137030815237 in_progress
-governance id=137030157505 skipped
-governance / env-matrix id=137030087051 in_progress
-governance / instrument-self-tests id=137030087039 in_progress
-governance / policy-docs id=137030087052 queued
-governance / record id=137030088240 skipped
-governance / wave-script id=137030087004 success
-hassfest id=137030157446 skipped
-hassfest / hassfest id=137030087033 success
-kernel-points id=137030157885 skipped
-pr-contract id=137030817007 skipped
-prelude id=137029339259 success
-refresh id=137029339270 success
-tests id=137030157704 skipped
-tests / arch-instrument id=137031058989 queued
-tests / briefs id=137030087016 failure
-tests / browser id=137031058886 queued
-tests / closure-scope id=137030087050 success
-tests / closures id=137031058947 queued
-tests / coverage id=137031058937 queued
-tests / fast (3.14) id=137031058996 queued
-tests / mutation id=137030086948 failure
-tests / mutation-pins (1) id=137030404432 in_progress
-tests / mutation-pins (2) id=137030404431 queued
-tests / mutation-pins (3) id=137030404458 queued
-tests / mutation-pins (4) id=137030404456 queued
-tests / mutation-pins (5) id=137030404471 queued
-tests / mutation-pins (6) id=137030404441 in_progress
-tests / mutation-pins (7) id=137030404463 queued
-tests / mutation-pins (8) id=137030404449 queued
-tests / nightly-ha id=137031060482 skipped
-tests / nightly-status id=137030087059 success
-tests / replay id=137031058920 queued
-tests / typing id=137031058948 queued
-validate id=137030157846 skipped
-validate / validate-hacs id=137030086924 success
+CodeQL id=137070769611 success
+arch-score / arch-score id=137067609479 success
+arm id=137059859142 skipped
+budget-raise-gate / budget-raise-gate id=137067609378 success
+cancel-superseded id=137060300596 success
+codeql id=137062486851 skipped
+codeql / Analyze (actions) id=137067609468 success
+codeql / Analyze (javascript-typescript) id=137067609444 success
+codeql / Analyze (python) id=137067609427 success
+gate id=137067698021 failure
+governance id=137062487848 skipped
+governance / env-matrix id=137067609485 success
+governance / instrument-self-tests id=137067609559 success
+governance / policy-docs id=137067609477 success
+governance / record id=137067610880 skipped
+governance / wave-script id=137067609459 success
+hassfest id=137062486954 skipped
+hassfest / hassfest id=137067609478 success
+kernel-points id=137067610441 skipped
+pr-contract id=137067698861 skipped
+prelude id=137060300403 success
+refresh id=137060300681 success
+sweep-self id=137071100838 skipped
+tests id=137062487653 skipped
+tests / arch-instrument id=137072414559 success
+tests / briefs id=137067609493 success
+tests / browser id=137072414459 success
+tests / claims-autofix id=137081239851 skipped
+tests / closure-scope id=137067609448 success
+tests / closures id=137072414469 in_progress
+tests / coverage id=137072414442 success
+tests / coverage-ratchet id=137082808565 success
+tests / fast (3.14) id=137072414436 success
+tests / graders-head-copy id=137082808568 success
+tests / lane-proofs id=137085307058 queued
+tests / mutation id=137067609509 failure
+tests / mutation-pins (1) id=137072489992 in_progress
+tests / mutation-pins (2) id=137072489934 in_progress
+tests / mutation-pins (3) id=137072489898 in_progress
+tests / mutation-pins (4) id=137072489885 in_progress
+tests / mutation-pins (5) id=137072489888 in_progress
+tests / mutation-pins (6) id=137072489903 in_progress
+tests / mutation-pins (7) id=137072489969 in_progress
+tests / mutation-pins (8) id=137072489962 in_progress
+tests / nightly-ha id=137072415447 skipped
+tests / nightly-status id=137067609456 success
+tests / replay id=137072414454 success
+tests / typing id=137072414478 success
+validate id=137062488120 skipped
+validate / validate-hacs id=137067609453 success
 
 ## Refusals
-red-unanswered: concluded red check `tests / briefs` is not named in ## Red checks
-introduced-red: unreadable: head governance / instrument-self-tests job 137030087039: in_progress has not concluded: an introduced red cannot be ruled out (fail closed)
-
-## Advisories
 none
 
+## Advisories
+required-wait: required context `gate` reads concluded failure at 3d8679b765ae092b01807e3d890a0d442c03eb1f in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
+
 ## carry_audit at the head
-NOTE body item 9757f161: #3767
-NOTE body item 1d6e7396: #3769
+NOTE body item 5f2480a1: #3767
+NOTE body item 44f32cf9: #3769
 NOTE body item 58ac8d3e: dismissed:stated cost, the design's own acceptance
-NOTE body item d24b20e2: dismissed:reported to the orchestrator in this seat's handoff result; it constrains no stage brief
+NOTE body item aeb4a22a: dismissed:reported to the orchestrator in this seat's handoff result; it constrains no stage brief
 CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
@@ -73,6 +78,8 @@ unverified MODE: SCOPED -- 31 script(s) run, 2 scoped out.
              `dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py` is in the tree at this head
   ok         dev/audit/rounds/round11/D12/s3/counter_spans.py --sees-dhw --no-mode
              `dev/audit/rounds/round11/D12/s3/counter_spans.py` is in the tree at this head
+  ok         dev/audit/harnesses/r10_night_folds_alternatives.py
+             `dev/audit/harnesses/r10_night_folds_alternatives.py` is in the tree at this head
   ok         dev/audit/rounds/round11/D2/s3/m5_tankfall.py
              `dev/audit/rounds/round11/D2/s3/m5_tankfall.py` is in the tree at this head
   ok         dev/audit/rounds/round11/D2/s3/m5_drawrange.py --run-samples 200
@@ -170,7 +177,7 @@ unverified MODE: SCOPED -- 31 script(s) run, 2 scoped out.
   ok         tests/dst_checks.py
              `tests/dst_checks.py` is in the tree at this head
 
-FIGURES: 47 resolved, 5 not verified, 0 refused
+FIGURES: 48 resolved, 5 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -1701,6 +1708,58 @@ index 7b2de55267..e7127368ec 100644
          heating_active=lambda: heating[0],
          external_heat_active=lambda: False,
      )
+diff --git a/dev/audit/harnesses/r10_night_folds_alternatives.py b/dev/audit/harnesses/r10_night_folds_alternatives.py
+index e95d309534..4f297e38c8 100644
+--- a/dev/audit/harnesses/r10_night_folds_alternatives.py
++++ b/dev/audit/harnesses/r10_night_folds_alternatives.py
+@@ -9,6 +9,10 @@
+ Command (tree root): PYTHONPATH=tests/hastub:custom_components:tests python3 \\
+     dev/audit/harnesses/r10_night_folds_alternatives.py
+ This is a measurement record, not a gate.
++
++Production dropped the ridge (R11-SEAM-learners, D2-s3-11), so arm (b) applies
++the round-10 step ``g += a*y - ridge*(g - g0)`` here, after the production fold
++has gated the interval; the unridged arms read production as it stands.
+ """
+ import sys
+ from datetime import datetime, timezone
+@@ -41,14 +45,21 @@ class Seat:
+         self._internal_gains_profile = None
+         self._house_heat_loss_samples = 400
+ 
++    def _learning_frozen(self, *keys, **kw):
++        """The occupied house: no freeze reason (D7-s2-01 asks the predicate)."""
++        return None
++
+ 
+-def drive(seat, residual_fn, n=400):
++def drive(seat, residual_fn, n=400, ridge=None):
+     dark = ThermalState(room_temperature=21.0, outdoor_temperature=0.0)
++    cap = co._zone_capacity(seat._thermal_params)
+     for _ in range(n):
+         held = (seat._internal_gains_profile or [G0] * 24)[19]
+-        Coord._fold_internal_gains(
+-            seat, T0, dark, residual_fn(held), 0.5
+-        )
++        residual = residual_fn(held)
++        Coord._fold_internal_gains(seat, T0, dark, residual, 0.5)
++        if ridge is not None:  # the round-10 step, ridge and all, from the held value
++            g = held + co.INTERNAL_GAINS_ALPHA * residual * cap / 0.5 - ridge * (held - G0)
++            seat._internal_gains_profile[19] = min(max(g, 0.0), co.INTERNAL_GAINS_MAX_FACTOR * max(G0, 0.05))
+     prof = seat._internal_gains_profile or [G0] * 24
+     return max(abs(g - G0) for g in prof) / G0
+ 
+@@ -72,8 +83,6 @@ print("RESULT net_of_ua_part.positive_rel_dev=%.4f"
+ 
+ # (b) a ridge that keeps the UA-error drive under 5 %.
+ for ridge in (0.02, 0.5, 1.0, 1.5, 2.0):
+-    co.INTERNAL_GAINS_RIDGE = ridge
+-    ua = drive(Seat(), lambda held: ua_error_residual)
+-    pos = drive(Seat(), lambda held: (0.6 - held) * DT / C)
++    ua = drive(Seat(), lambda held: ua_error_residual, ridge=ridge)
++    pos = drive(Seat(), lambda held: (0.6 - held) * DT / C, ridge=ridge)
+     print(f"RESULT ridge{ridge:.2f}.ua_rel_dev={ua:.4f} positive_rel_dev={pos:.4f}")
+-co.INTERNAL_GAINS_RIDGE = 0.02
 diff --git a/dev/audit/harnesses/r10_two_zone_hhl_inert.py b/dev/audit/harnesses/r10_two_zone_hhl_inert.py
 index 2cf788cd7b..5f2a21f060 100644
 --- a/dev/audit/harnesses/r10_two_zone_hhl_inert.py
@@ -2027,50 +2086,6 @@ index ef003fc108..7ac20c6d1e 100644
          )
          ok = sy.arm(START, plant=p)
          why = sy.result.reason
-diff --git a/dev/programme/carries/carry-3767.json b/dev/programme/carries/carry-3767.json
-new file mode 100644
-index 0000000000..157a3fcc2d
---- /dev/null
-+++ b/dev/programme/carries/carry-3767.json
-@@ -0,0 +1,16 @@
-+{
-+  "_comment": [
-+    "Carry destination for the R11-P5 class (#3767): the three priced terms of design/R11-SEAM-learners section 3.3, routed out of R11-SEAM-learners by the orchestrator's answer (option c) to that group's blocked-stop. Shape: dev/governance/rules/finding-propagation.md; linted by tools/policy/brief_lint.mjs."
-+  ],
-+  "issue": 3767,
-+  "stage": "a design revision of design/R11-SEAM-learners section 3.3 that prices the sysid adoption gate's three new terms (D7-s2-02 unlearned intercept width, D2-s3-10 regressor noise, the told COP and outdoor widths) against liveness, then the fix that builds what it keeps",
-+  "carries": [
-+    {
-+      "from": "R11-SEAM-learners (handoff/r11-seam-learners): the pull request that ships section 3.3's mechanical parts only (the arm switch, the shared forward-difference Jacobian, one ridge spelling taking its width) and leaves the three priced terms unbuilt",
-+      "effect": "narrows",
-+      "control": "Measured by the R11-SEAM-learners fixer at commit 5ec5f3d9f056f9e3f9021080085fee48af630bd4, which built all three terms as section 3.3 specifies, with the derived-preset noise-free nights of tests/features.py's liveness check (_r9p5_derived_night) (the check requires at least 6 of 8 to adopt) as the driver, each term switched on alone by patching module attributes: none of the three adopts 7 of 8; the 0.3 kW unlearned intercept width alone adopts 0 of 8; the regressor-noise term alone 4 of 8; the told COP 0.03 log and outdoor 0.5 K widths alone 1 of 8; all three 0 of 8. The keep table over the 20 derived presets with the 0.3 kW width and the noise term in place read 0 of 20 at every told-width pair it reached, so P5's widths cannot be priced until the intercept width is settled. The null control is the none-of-three arm (7 of 8 adopt), which is the tree's behaviour at the R11-SEAM-learners head.",
-+      "remeasure": "These counts are snapshots at 5ec5f3d9f0. Re-take them at your own merge base: the driver that produced them is the harness sysid_told_keep under dev/audit/harnesses at commit 0c859e0ca4951032c5b76e0c949f4d4a06b76a95 (removed from the tree because it patches symbols the shipped head does not have). The finders' harnesses for D7-s2-02 (biased_admitted) and D2-s3-10 (miss share per noisy arm), named under the P5 class in dev/audit/rounds/round11/ISSUES.json, read flat at both ends of R11-SEAM-learners.",
-+      "brief": "Do not build any of the three terms as section 3.3 states them: each alone refuses most noise-free nights the liveness check reads, and the intercept width refuses every install without a learned gains profile, which is every new install. Price each term separately against liveness with its own keep table (adopted nights over the derived presets, and the finder's biased-admitted count, per candidate width), the intercept width first, and put the P5 widths to the owner from their table (decision: owner). The ridge already takes its width as an argument (sysid _ridged), so a per-install width is one value passed at the fit and interval call sites."
-+    }
-+  ]
-+}
-diff --git a/dev/programme/carries/carry-3769.json b/dev/programme/carries/carry-3769.json
-new file mode 100644
-index 0000000000..783365d626
---- /dev/null
-+++ b/dev/programme/carries/carry-3769.json
-@@ -0,0 +1,16 @@
-+{
-+  "_comment": [
-+    "Carry destination for the R11-N-event-misattribution class (#3769): the residual instance R11-SEAM-learners measured and did not build. Shape: dev/governance/rules/finding-propagation.md; linted by tools/policy/brief_lint.mjs."
-+  ],
-+  "issue": 3769,
-+  "stage": "the fix of the plan-flag-off charge's start dip booked as a hot-water draw (DhwProfileLearner on a charge the plan never flagged), on the self-setting pump's seam",
-+  "carries": [
-+    {
-+      "from": "R11-SEAM-learners (handoff/r11-seam-learners): fixes D2-s3-08 (the planned charge's dip) and measures design section 5's plan-flag-off charge arm without building it",
-+      "effect": "invalidates",
-+      "control": "dev/audit/rounds/round11/D2/s3/m5_tankfall.py's unplanned arm (booked_kwh_unplanned_max) reads the same booked energy at both ends of R11-SEAM-learners, far past the 0.05 kWh band, while its long arms (booked_kwh_long_max, the planned charge) fall to zero at the head: the planned-charge fix does not reach a charge the plan never flagged. The design's mechanism (open ChargeSettle with its dip credit on an unheated interval whose tank rose past the evidence band, so ChargeSettle.advance takes the dip back) is a no-op on DrawStats.take_back, which takes back charge-folded energy only; widening take_back erases the real draw that starts a self-setting pump's own charge.",
-+      "remeasure": "Re-run the D2-s3-08 harness (named under the N-event-misattribution class in dev/audit/rounds/round11/ISSUES.json) at your merge base and read booked_kwh_unplanned_max against booked_kwh_long_max (the planned-charge control).",
-+      "brief": "The assumption that ChargeSettle's dip credit covers an unflagged charge does not hold: DrawStats.take_back only returns charge-folded energy. A fix must tell the start dip of the pump's own unflagged charge from a real draw that triggers it (a self-setting pump charges because someone drew water), so it needs the tank rise evidence (heat_energy.unplanned_charge) and a rule for the triggering draw, measured with the draw-then-charge shape as its null control."
-+    }
-+  ]
-+}
 diff --git a/dev/programme/delivery/3835.md b/dev/programme/delivery/3835.md
 new file mode 100644
 index 0000000000..9d509d8d64
@@ -2119,7 +2134,7 @@ index 17319c4fa4..13c5dabc17 100644
  because the failure mode of this integration is a *plausible* plan: a detector
  that never fires, or a watchdog that lets a flatline through, produces output
 diff --git a/tests/closures.json b/tests/closures.json
-index a777fe84eb..03f00d2c8a 100644
+index 284a3e0f71..76507b1744 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
 @@ -226,6 +226,7 @@
@@ -2202,16 +2217,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -1823,6 +1833,8 @@
-    "dev/governance/roles/verifier.md",
-    "dev/programme/HANDOVER.md",
-    "dev/programme/carries/carry-1645.json",
-+   "dev/programme/carries/carry-3767.json",
-+   "dev/programme/carries/carry-3769.json",
-    "dev/programme/rosters/critical-path.json",
-    "dev/programme/rosters/wave-r9-groups.json",
-    "docs/architecture.md",
-@@ -2236,6 +2248,7 @@
+@@ -2236,6 +2246,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2219,7 +2225,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -2438,6 +2451,7 @@
+@@ -2438,6 +2449,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2227,7 +2233,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -2600,6 +2614,7 @@
+@@ -2600,6 +2612,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2235,7 +2241,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -2753,6 +2768,7 @@
+@@ -2753,6 +2766,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2243,7 +2249,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -2947,6 +2963,7 @@
+@@ -2947,6 +2961,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2251,7 +2257,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -3125,6 +3142,7 @@
+@@ -3125,6 +3140,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2259,7 +2265,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -3526,6 +3544,7 @@
+@@ -3526,6 +3542,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2267,7 +2273,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -3708,6 +3727,7 @@
+@@ -3708,6 +3725,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2275,7 +2281,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -3819,6 +3839,7 @@
+@@ -3819,6 +3837,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2283,7 +2289,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -3983,6 +4004,7 @@
+@@ -3983,6 +4002,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2291,7 +2297,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -4086,6 +4108,7 @@
+@@ -4086,6 +4106,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2299,7 +2305,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -4223,6 +4246,7 @@
+@@ -4223,6 +4244,7 @@
     "custom_components/heatpump_optimizer/inputs.py",
     "custom_components/heatpump_optimizer/issues.py",
     "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2307,7 +2313,7 @@ index a777fe84eb..03f00d2c8a 100644
     "custom_components/heatpump_optimizer/ledger.py",
     "custom_components/heatpump_optimizer/legionella.py",
     "custom_components/heatpump_optimizer/log_latch.py",
-@@ -6000,7 +6024,7 @@
+@@ -6020,7 +6042,7 @@
     "seconds": 3.3
    },
    "tests/doc_claims.py": {
@@ -2316,7 +2322,7 @@ index a777fe84eb..03f00d2c8a 100644
     "seconds": 31.0
    },
    "tests/dst_checks.py": {
-@@ -6012,7 +6036,7 @@
+@@ -6032,7 +6054,7 @@
     "seconds": 60.2
    },
    "tests/entities.py": {
@@ -2325,7 +2331,7 @@ index a777fe84eb..03f00d2c8a 100644
     "seconds": 1338.1
    },
    "tests/env_drift.py": {
-@@ -6021,7 +6045,7 @@
+@@ -6041,7 +6063,7 @@
    },
    "tests/features.py": {
     "rc": 0,
@@ -2334,7 +2340,7 @@ index a777fe84eb..03f00d2c8a 100644
    },
    "tests/finite_boundary.py": {
     "rc": 0,
-@@ -6045,7 +6069,7 @@
+@@ -6065,7 +6087,7 @@
    },
    "tests/harness_headers.py": {
     "rc": 0,
@@ -2343,7 +2349,7 @@ index a777fe84eb..03f00d2c8a 100644
    },
    "tests/layout.py": {
     "rc": 0,
-@@ -6085,7 +6109,7 @@
+@@ -6105,7 +6127,7 @@
    },
    "tests/typing_ruler.py": {
     "rc": 0,
@@ -2400,7 +2406,7 @@ index 8a4491abf6..c62a8f49bb 100644
      return si
  
 diff --git a/tests/entities.py b/tests/entities.py
-index 1b9dbfc752..d7fddd37c2 100644
+index d84b350dad..9bbf29e04e 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
 @@ -4229,13 +4229,19 @@ def _p2_registry(sources):
@@ -2425,7 +2431,7 @@ index 1b9dbfc752..d7fddd37c2 100644
          # R10-CLONE-2238 (#2238): the F5_clone instances, one fact per entry,
          # each routed through one owner in the module that held both copies.
 diff --git a/tests/features.py b/tests/features.py
-index 658969c8a4..e10ef5ab6b 100644
+index 658969c8a4..7af60a58b4 100644
 --- a/tests/features.py
 +++ b/tests/features.py
 @@ -967,7 +967,7 @@ R.check(
@@ -2972,7 +2978,7 @@ index 658969c8a4..e10ef5ab6b 100644
  )
  
  
-@@ -99143,4 +99160,524 @@ R.check(
+@@ -99143,4 +99160,554 @@ R.check(
      f"before={_rh_ul_before} after={_rh_ul_doc}",
  )
  
@@ -3382,13 +3388,16 @@ index 658969c8a4..e10ef5ab6b 100644
 +
 +
 +_cf = {k: _cf_fold(*a) for k, a in {"at_learned_floor": (1.5, 1.5), "at_configured_floor": (1.1,),
-+                                     "top_4": (4.0, 1.5), "top_4_cfg": (4.0,)}.items()}
++                                     "top_4": (4.0, 1.5), "top_4_cfg": (4.0,),
++                                     "zero_floor": (0.0, 0.0)}.items()}
 +R.check(
 +    "a ceiling sample at the floor in force (learned 1.5 kW, or the configured 1.0 kW unlearned) "
 +    "is ceiling-frozen and reaches neither the ceiling store nor the window; a 4.0 kW ceiling "
-+    "sample is kept in the store (null control) (D2-s3-09, note 9b3d1e15)",
++    "sample is kept in the store (null control) (D2-s3-09, note 9b3d1e15); a floor in force of 0 kW "
++    "is no running floor, so a 0 kW draw under it is not ceiling-frozen (zero-floor null arm)",
 +    _cf["at_learned_floor"] == (True, 0, 0) and _cf["at_configured_floor"] == (True, 0, 0)
-+    and _cf["top_4"] == (False, 1, 0) and _cf["top_4_cfg"] == (False, 1, 0),
++    and _cf["top_4"] == (False, 1, 0) and _cf["top_4_cfg"] == (False, 1, 0)
++    and not _cf["zero_floor"][0],
 +    f"{_cf}",
 +)
 +
@@ -3431,6 +3440,33 @@ index 658969c8a4..e10ef5ab6b 100644
 +    _uc_spaces[0] is None and _uc_spaces[1] is not None and _uc_spaces[1] > 0.0
 +    and _uc_spaces[2] is not None,
 +    f"{_uc_spaces}",
++)
++
++
++# The wiring (review of c6c11df0b8): the tank thermometer reaches the meter only
++# through ``_observe_heat_energy``. Two real cycles read the configured tank
++# sensor, rising past the band over an unobserved, plan-space-only interval;
++# the interval's space power is refused. Null control: the tank flat.
++def _uc_wired(rise):
++    c = _t2_coord()
++    c._current_action = {"power": 3.0, "dhw_power": 0.0}
++    hass = FakeHass({})
++    reader = _fmReader(hass, {_LF_DHW: "sensor.tank"}, now=lambda: NOW)
++    for i, temp in enumerate((50.0, 50.0 + rise)):
++        at = NOW + _lf_td(minutes=30 * i)
++        hass.states._states["sensor.tank"] = FakeState(str(temp), last_updated=minutes_ago(1, NOW), unit="°C")
++        _lf_cm._observe_heat_energy(c, reader, at)
++    return _uc_he.meter_of(c).tank_c, c._interval_space_power()
++
++
++_uc_wire = (_uc_wired(_UC_RISE), _uc_wired(0.0))
++R.check(
++    "the coordinator's own cycle read hands the tank sensor to the meter: a rise past the band "
++    "over an unobserved, plan-space-only cycle leaves the interval no space power; the same "
++    "cycles with the tank flat give the commanded space draw (null control)",
++    _uc_wire[0] == ((50.0, 50.0 + _UC_RISE), None)
++    and _uc_wire[1][0] == (50.0, 50.0) and _uc_wire[1][1] is not None and _uc_wire[1][1] > 0.0,
++    f"{_uc_wire}",
 +)
 +
 +
@@ -3786,12 +3822,12 @@ index 3f77543780..4338dcf6d9 100644
    "coordinator._watch_lift": "learning",
    "coordinator._with_sensor_advisor": "core",
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index f465fe713d..ab574ed970 100644
+index 05bea24c45..8fe49b7805 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
-@@ -11,11 +11,11 @@
-  "functions_cc_over_25": 7,
+@@ -12,12 +12,12 @@
   "import_cycle_modules": 0,
+  "in_function_copies": 11,
   "max_cc": 44,
 - "max_class_loc": 7868,
 + "max_class_loc": 7814,
@@ -3801,7 +3837,8 @@ index f465fe713d..ab574ed970 100644
   "name_kept_members": 38,
 - "recorded_at": "8751943e17ef4d3ec699e7859ae829b4528d8ce7",
 + "recorded_at": "78d3b4022154b2cc2792df8ebf4a5d7753e8ed7f",
-  "seam_cut_total": 413
+  "seam_cut_total": 413,
+  "unloaded_package_imports": 14
  }
 
 ## Before you return the verdict (P275)

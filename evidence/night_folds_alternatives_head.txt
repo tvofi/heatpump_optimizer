@@ -1,5 +1,0 @@
-# night_folds_alternatives at head
-  File "/tmp/wh2/custom_components/heatpump_optimizer/coordinator.py", line 9380, in _fold_internal_gains
-    if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, sample=learning_freeze.Sample.OCCUPANCY) is not None:
-       ^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'Seat' object has no attribute '_learning_frozen'
