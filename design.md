@@ -1,174 +1,204 @@
 # Design note: R11-OWNER-COOLING-AUTORETURN -- an opt-in return to heating from a cooling mode
 
-Revision 1. Base `origin/main` e3cb5c019b464a770cc7c6fe2fbc858ed29debf7. Code read at the
-predecessor's handoff head, #3864 (R11-OWNER-COOLING-GUARD) ee4c34cd9c41c1c7ae2a5186b039edd1b88752f6;
-every #3864 symbol cited below (`cooling_mode`, `note_cooling`, `ISSUE_COOLING`,
-`cooling_asked`, `supply_write` in `supply_hold.py`) exists at that SHA, not on main.
+Revision 2. It answers `design-verdict/R11-OWNER-COOLING-AUTORETURN` 7a9783a29c (revise, class-open,
+R1 on 41979366f8) and the orchestrator's serial-position ruling. Base `origin/main`
+49cb3207a997b4f38c11cb2f1adf4b8d613e06ea. Code read at the predecessors' handoff heads: #3864
+(R11-OWNER-COOLING-GUARD) 0f9fc88ff36dd0326fa7f862e38d909b95133138 and #3872 (R11-OWNER-FAULT-HOLD)
+d6a54399a63b76d43c4f3a84e1d2ac518da28ed0. Notes read: R11-OWNER-FAULT-HOLD 57d5d278f0 (approved,
+verdict e9598ceb7e), R11-OWNER-FROST-HOLD e91a4e30d7 (approved, verdict 774250ff3d). The #3864 and
+#3872 symbols cited below exist at those SHAs, not on main.
 Evidence: the owner's ruling (tvofi, 2026-11-22), "I want the automatic return as an
 opt-in option." **No finder harness: owner report.** The failing checks below are the harness.
 
-## Preconditions #3864 owes (its verdict `verdict/3864` b15f3816a3, `blocked`)
+## Preconditions #3864 owes (verdict `verdict/3864` b15f3816a3 blocked ee4c34cd9c)
 
-This design builds on two repairs that verdict owes; if #3864 lands either differently, step 9's
+Both are now built at #3864's a90d7bc9da, pending its re-review. If they land differently, step 9's
 revalidation applies.
-- **P1, readable select first.** `pump_arbiter.cooling_mode` must take the cycle's reading only
-  when the select is unreadable. At ee4c34cd9c a readable Heating over a stale Cooling reading
-  still reads cooling (`probe_stale_signals.log`). The return relies on a readable select being
-  authoritative, both at the gate and in the per-cycle pass moved above the signal read (below).
-- **P2, the tick releases a refused ON.** At ee4c34cd9c `note_supply` records the unwritten ON as
-  the step's command and `supply_tick` writes only a change, so nothing re-offers it to the gate
-  (`probe_release.log`). The return's switch-on, when the select acknowledges after the gate ran,
-  lands through that release.
+- **P1, readable select first.** `pump_arbiter.cooling_mode` takes the cycle's reading only when
+  the select reads no known mode (`live.known`). The return and the moved cycle pass rely on it.
+- **P2, the tick releases a refused ON.** `supply_tick` retries while `held.cooling_asked` stands.
+  The return keeps setting `cooling_asked` on a refusal with the option on (below), so a lagged
+  acknowledgement lands at the next tick.
 Carry: R11-OWNER-COOLING-GUARD (item P1-P2-precondition)
 
 ## Choice: (a) a declared "no cooling circuit" option, not a trigger
 
-The option says "this install has no cooling circuit; a cooling mode is never intended".
-With it on, a readable cooling mode is returned to heating whatever the plan asks. With it off,
-nothing changes from #3864: the switch-on is refused in a cooling mode and released only by a person.
+The option says "this install has no cooling circuit; a cooling mode is never intended". With it on,
+a readable cooling mode is returned to heating whatever the plan asks. With it off, nothing changes
+from #3864: the switch-on is refused in a cooling mode and released only by a person.
 
-Alternatives, and why each lost in code:
-- **(b1) outdoor temperature with hysteresis.** Two more options (threshold, band), an outdoor
-  reading and a latched state in the switch gate, and it still writes Heating over a deliberate
-  Cooling on any day under the threshold on an install that can cool: the intent it guesses is not
-  in any reading the gate has.
+Alternatives, and why each lost in code (unchanged from revision 1, held by the review):
+- **(b1) outdoor temperature with hysteresis.** Two more options, an outdoor reading and a latched
+  state in the switch gate, and it still writes Heating over a deliberate Cooling under the threshold
+  on an install that can cool: the intent is in no reading the gate has.
 - **(b2) heat demand plus a timeout.** In Cooling the planner blocks both channels
-  (`PumpSignals.space_blocked`, `dhw_blocked`: Cooling has neither `space_heat` nor `dhw`), so
-  the plan never asks heat and the trigger never fires in the owner's case, except under a boost.
-  In Cooling + DHW the plan asks heat for hot water every day, so it would fight a person cooling
-  on purpose. It also needs a persisted timer field.
-- **(c) the arbiter's Control pass writes Heating** (`pump_arbiter.desired` / `_mode_for`).
-  Unreachable in the owner's case: `pump_arbiter.apply` returns before writing under Observe or
-  Off duty, `_pump_off` stops the pass while the switch reads off (the guard refused the switch-on),
-  and `_lead_mode` only follows a gate ON, which cooling withholds.
-- **(d) a state listener on the select** for an immediate return. That is a new listener lifecycle
-  in `supply_hold.py` (register, unload) for a latency gain of at most one optimization interval.
+  (`PumpSignals.space_blocked`, `dhw_blocked`), so the plan never asks heat in the owner's case
+  except under a boost. In Cooling + DHW it asks heat for hot water daily and would fight a person
+  cooling on purpose. It also needs a persisted timer.
+- **(c) the arbiter's Control pass writes Heating.** Unreachable: `pump_arbiter.apply` returns
+  under Observe or Off duty, `_pump_off` stops the pass while the refused switch reads off, and
+  `_lead_mode` follows only a gate ON.
+- **(d) a state listener on the select.** A new listener lifecycle in `supply_hold.py` for at most
+  one optimization interval of latency.
 
 ## Owning seam
 
-**`custom_components/heatpump_optimizer/supply_hold.py`** owns the decision, the return's
-episode record and the notice, as #3864 made it the owner of the gate's cooling decision and its
-repair. **`custom_components/heatpump_optimizer/pump_mode.py`** gains the select write primitive
-(key to option, one `select.select_option` call, a refused write logged and reported as False)
-and takes `pump_arbiter._option_for` with it, public, so the vocabulary is still encoded once.
-`pump_arbiter._service` calls the moved resolver. Its docstring's "Written only by pump_arbiter,
-per plan step" is amended to name the return. The primitive decides nothing, so the concern has one
-owner. Callers only: `coordinator.py` (two call sites, no new state), `config_flow.py`,
-`entry_config.py`, `const.py` (the option). No import cycle: `pump_mode` imports nothing in the package.
+**`custom_components/heatpump_optimizer/supply_hold.py`** owns the decision, the episode record and
+the notice, as #3864 made it the owner of the gate's cooling decision. **`custom_components/heatpump_optimizer/pump_mode.py`**
+gains the select write primitive (key to option, one `select.select_option` call, a refused call
+logged and reported as False) and takes `pump_arbiter._option_for` with it, public, so the
+vocabulary is encoded once; `pump_arbiter._service` calls the moved resolver. **The fault hold is
+consulted, never re-decided**: the return calls `fault_hold.consult(entry, inp)`, the accessor
+`fault_hold.gate` and `pump_arbiter.apply` already call. `fault_hold` imports `const`,
+`entry_config`, `inputs`, `issues`; `supply_hold` importing it adds no cycle. Callers only:
+`coordinator.py` (two call sites, no new state), `config_flow.py`, `entry_config.py`, `const.py`.
 
 ## Shape
 
-- **Option.** One boolean beside `CONF_PUMP_DUTY_MODE` in `const.py`, default False. A field on
-  `EntryConfig`. One `_F` row in the `entities_pump` step of `config_flow.py`, a `BooleanSelector`,
-  shown only when a mode entity is assigned (`when=`). It does not depend on Pump duty control.
-  The power switch gate it releases runs under every duty mode, and the option is its own opt-in
-  to the one write it names.
+- **Option.** One boolean in `const.py`, default False; an `EntryConfig` field; one `_F` row in
+  `config_flow.py`'s `entities_pump` step, a `BooleanSelector` shown only when a mode entity is
+  assigned. Independent of Pump duty control (the gate it releases runs under every duty mode).
 - **Episode record.** `ArbiterState` gains the time of the episode's last return write, beside
-  `cooling_asked`. It is never persisted, and it is cleared where `note_cooling` clears
-  `cooling_asked`, when the mode leaves cooling.
-- **The return** is one async function in `supply_hold.py`. It writes only when all of these hold:
-  the option is on, the optimizer mode is not Off, the entry is not released, the **live select
-  reads a cooling mode** (never over an unavailable select or the cycle's last good reading), the
-  mode slot's domain is writable (`pump_arbiter._MODE_DOMAINS`), and no return was written in this
-  episode within `RETRY_MINUTES`. It writes the counterpart, Cooling to Heating and Cooling + DHW
-  to Heating + DHW, falling back to Heating when the select does not offer the second. The return
-  then never blocks a channel the cooling mode left open.
-- **Call sites, net zero `coordinator.py` lines** (`class_excess_loc` and `module_excess_loc` sit
-  at zero headroom). (1) The per-cycle `note_cooling` line in `_update_current_state` moves above
-  the `pump_signals.read` assignment and becomes `await` of the cycle pass: return if due, then
-  `note_cooling` with no heat asked. The cycle then reads the select after the write. This ordering
-  needs P1, because the pass now sees last cycle's signals. (2) `supply_write` becomes async and
-  returns if due before its cooling check. `_write_supply` gains `await` inside its existing
-  expression. The cycle's gate and the tick's gate (P2) both pass through it.
-- **Notice.** With the option on, `note_cooling` raises a new repair, "the pump stays in cooling
-  after the optimizer wrote a heating mode", instead of `ISSUE_COOLING`. It is raised once per
-  episode when the select still reads cooling `ECHO_GRACE_S` after a return write, whatever the
-  plan asks. It clears with the episode. With the option off, `ISSUE_COOLING` behaves as at #3864.
+  `cooling_asked`; never persisted; cleared where `note_cooling` clears `cooling_asked`.
+- **The return**, `async supply_hold.return_heating(entry, held, inp) -> bool`, writes only when all
+  hold, in this order: the option is on; the optimizer mode is not Off; the entry is not released;
+  the **live select reads a cooling mode** (never over an unavailable select or the cycle's last
+  good reading); the mode slot's domain is writable (`pump_arbiter._MODE_DOMAINS`); no return in
+  this episode within `RETRY_MINUTES`; and **`fault_hold.consult(entry, inp)` is False** (R1). The
+  consult is last so a pass that writes nothing for another reason moves no latch it would not
+  have moved. It writes the counterpart (Cooling to Heating, Cooling + DHW to Heating + DHW, Heating
+  where the select offers no second).
+- **Gate refusal with the option on.** `note_cooling` still sets `cooling_asked` (P2's tick retry
+  flag); only `ISSUE_COOLING` is replaced by the new notice below.
+
+**Which holds the return honours, by rule.** The set is every early return before
+`pump_arbiter._command` at #3872 (`apply`, `_arbitrate`): duty Off, `entry_released`, `MODE_OFF`,
+duty not Control, `_pump_off`, `_fault_stands`. Honoured: `entry_released`, `MODE_OFF`, the fault.
+Not honoured, by design: duty (the option is its own opt-in to one write) and `_pump_off` (the
+switch is off because the cooling gate refused it; that is the case being served).
+
+**Call sites, composed with the `_write_supply` chain** (`class_excess_loc` and `module_excess_loc`
+at zero headroom; no new `coordinator.py` line).
+1. **Cycle.** #3864's per-cycle `note_cooling` line (coordinator.py, after `pump_signals.read`)
+   moves above the `self._pump_signals = ... pump_signals.read(` assignment and becomes `await
+   supply_hold.cycle_pass(self.entry, ...)`: return if due, then `note_cooling` with no heat asked.
+2. **Gate.** `supply_write` becomes async, takes `entry` first and calls the return before its
+   cooling check. It stays **innermost**: the outer gates see the value they would see had a person
+   set Heating. As FAULT-HOLD leaves `_write_supply` (#3872 coordinator.py:7784) and FROST-HOLD adds
+   its gate, the one statement reads
+   `value = fault_hold.gate(self.entry, held, inp, frost_hold.gate(held, inp, supply_hold.hold_supply(held, ..., await supply_hold.supply_write(self.entry, held, ...))))`:
+   `await` and `self.entry` are added inside the existing expression, no line. If FAULT-HOLD's
+   fallback lands instead (`_write_supply` leaves the class as `supply_hold.write_gated(coord, on)`),
+   the same awaited call is the innermost term inside `write_gated` and `coordinator.py` is untouched
+   at this site. Whichever form is on main at the fixer's merge base is the one composed with.
+3. **Under a latched fault** the return writes nothing, the cooling check refuses the ON (`None`),
+   `hold_supply`, frost and `fault_hold.gate` pass `None` unchanged: no mode write and no switch
+   write, as FAULT-HOLD's table asks. `cooling_asked` stands, so the tick re-offers each minute; the
+   first tick after the clear writes the return, then the ON. The cadence record is empty, since
+   nothing was written, so the return is due at once.
 
 ```
-cycle:  _update_current_state
-          -> supply_hold cycle pass: live select Cooling, option on -> pump_mode write (Heating)
-          -> pump_signals.read   (reads Heating if the integration updated the state in the call)
-          ... solve on that reading ...
-        _apply_action -> _write_supply(on) -> supply_write: return if due; live select heating? ON : refuse
-tick:   supply_tick (P2: a refused ON is re-offered) -> _write_supply -> supply_write -> ON once the select reads heating
+cycle: _update_current_state -> cycle_pass: option, not Off, live Cooling, ..., not faulted -> pump_mode write
+         -> pump_signals.read -> solve -> _write_supply(on)
+gate:  fault.gate( frost.gate( hold_supply( await supply_write: return_heating if due -> cooling? None : on )))
+tick:  supply_tick (cooling_asked) -> _write_supply -> same chain -> ON once the select reads heating
 ```
 
-**Invariants.** No switch-on while the live select reads a cooling mode, with the option on or off.
-A return is never written over an unreadable select, with the optimizer Off, or with the option off.
-At most one return write per `RETRY_MINUTES` per episode. The arbiter's own record
-(`ArbiterState.written`) is untouched, so `hold` and `_not_held` see no write of theirs.
+- **Notice.** With the option on, a new repair, "the pump stays in cooling after the optimizer
+  wrote a heating mode", once per episode when the select still reads cooling `ECHO_GRACE_S` after a
+  return write; it clears with the episode. Under the fault hold no return is written, so only
+  `pump_fault_hold` is raised. With the option off, `ISSUE_COOLING` behaves as at #3864.
 
-**Latency, stated.** If the select's state updates inside the blocking service call, everything
-lands in the same cycle: the solve plans heat and the gate switches on. If the acknowledgement lags,
-the refused ON lands at the first tick (`_TICK`, one minute) after the select reads heating (P2).
-The space plan, solved on the Cooling reading, follows at the next cycle.
+**Invariants.** No switch-on while the live select reads cooling, option on or off. No return over
+an unreadable select, with the optimizer Off, with the entry released, while the fault hold holds,
+or with the option off. At most one return per `RETRY_MINUTES` per episode. `ArbiterState.written`
+is untouched, so `hold` and `_not_held` see no write of theirs.
+
+**Latency.** Synchronous acknowledgement: all in the cycle. Lagged: the ON at the first tick
+(`_TICK`, one minute) after the select reads heating; the space plan at the next cycle.
 
 ## Sibling sites
 
-`git grep -n "select_option\|_option_for\|cooling_mode(\|capability.cooling\|\.cooling\b" -- custom_components/heatpump_optimizer`
-at ee4c34cd9c. Dispositions:
-- `pump_arbiter._service` (the mode write) now calls the moved resolver, behaviour unchanged.
-- `desired`, `_mode_for` and `early_cutoff._exempt` read the live select, so they stay hands-off
-  until the acknowledgement. After it, Control writes the step's mode as usual.
-- `supply_write` and `note_cooling` change.
-- `pump_signals` `FREEZE_COOLING` and the `cooling` diagnostics key are unchanged: the next read ends the freeze.
-- The `pump_mode` docstring is amended.
-- The `README.md` repair bullet ("never changes the mode back") and the
-  `docs/configuration.md` "A pump in cooling is left alone" bullet each gain the option's exception.
+Two axes, each by its rule, at #3864 0f9fc88ff3 and #3872 d6a54399a6:
+- **Cooling class:** `git grep -n "select_option\|_option_for\|cooling_mode(\|capability.cooling\|\.cooling\b" -- custom_components/heatpump_optimizer`.
+  `_service` calls the moved resolver. `desired`, `_mode_for`, `early_cutoff._exempt` read the live
+  select, hands-off until the acknowledgement. `supply_write`, `note_cooling` change.
+  `pump_signals` `FREEZE_COOLING` and the `cooling` diagnostics key are unchanged. The `pump_mode`
+  docstring ("Written only by pump_arbiter") names the return. `README.md`'s repair bullet and
+  `docs/configuration.md`'s cooling bullet gain the option's exception.
+- **Pump actuation writers** (R1), FAULT-HOLD's own rule:
+  `grep -n "services.async_call\|switch_supply(\|write_setpoint(\|write_setpoint_c(\|async_publish_ecl110_command(" custom_components/heatpump_optimizer/*.py`.
+  The return adds one member, the new `services.async_call` in `pump_mode.py`. Its row in
+  FAULT-HOLD's "While holding" table: **mode select (the return): today none; with the option, one
+  return per episode; under the hold none.** Every other member keeps FAULT-HOLD's disposition. The
+  frost hold's row writes a heating mode too; the two never disagree, and the return consults no
+  frost state.
 
 ## Evidence plan, by file
 
-- `tests/features.py`, beside #3864's cooling block (its `_cg_coord` fixture gains the option and a
-  select whose `select_option` either sets the state or leaves it, which is the acknowledgement lag):
-  - **E1 entry state, synchronous acknowledgement.** Select reads Cooling, option on, a boost, switch
-    off. One `_update_current_state` then `_write_supply`. Expect `select_option` Heating, then
-    `turn_on`, and no repair. **Null control:** the option off gives no select call, no `turn_on`,
-    and `ISSUE_COOLING` raised.
-  - **E2 lagged acknowledgement.** The same cycle gives one select call and no `turn_on`. The state is
-    then set to Heating and `supply_tick` runs at +1 minute: `turn_on`, with no second cycle. **Null
-    control:** the state stays Cooling, so the tick writes nothing and the new repair rises after
-    `ECHO_GRACE_S`.
-  - **E3 counterpart.** Cooling + DHW is written as Heating + DHW. With that option absent, Heating.
-  - **E4 no write,** one check each: optimizer Off, select unavailable with a Cooling last good
-    reading, a `sensor` mode slot, select reading Heating.
-  - **E5 cadence.** Two cycles inside `RETRY_MINUTES` give one write, a third after it gives a
-    second. The mode leaving cooling clears the record, and the next episode writes at once.
-- **Mutation targets.** Each guard of the return: the option, live-cooling-only, Off, writable domain,
-  the cadence. The counterpart map. The moved coordinator call (deleted, and moved back below the read:
-  E1 must fail). The gate's await-then-check order. The notice branch on the option. The `pump_mode`
-  primitive's False on a refused call.
-- **Goldens:** none move with the option off by default. If `diagnostics.py` dumps `EntryConfig`
-  fields, its fixture moves, and that is an option key, not a value-bearing float. No claim file
-  changes.
-- Strings: the option's label and description, and the new repair's title and description, in
-  `strings.json` and `translations/` en, sv, de, with `docs/configuration.md` (the option, default off,
-  and what it writes).
+`tests/features.py`, beside #3864's cooling block; its `_cg_coord` fixture gains the option, a fault
+slot, and a select whose `select_option` sets the state or leaves it (the lag).
+- **E1 entry state, synchronous.** Cooling, option on, a boost, switch off: one
+  `_update_current_state`, then `_write_supply`: `select_option` Heating, then `turn_on`, no repair.
+  **Null control:** option off: no select call, no `turn_on`, `ISSUE_COOLING` raised.
+- **E2 lagged.** One select call, no `turn_on`; the state set to Heating, `supply_tick` at +1 min:
+  `turn_on`, no second cycle. **Null control:** state left Cooling: no write; the new repair after
+  `ECHO_GRACE_S`.
+- **E3 counterpart.** Cooling + DHW to Heating + DHW; with that option absent, Heating.
+- **E4 no write**, one check each: optimizer Off; select unavailable over a Cooling last good
+  reading; a `sensor` mode slot; select reading Heating; entry released; **the fault slot on for 11
+  minutes (FAULT_HOLD_AFTER passed): no `select_option`, no `turn_on` at the cycle or at the tick,
+  `pump_fault_hold` raised, no cooling-return repair. Null control:** the same fixture with the
+  fault reading a fresh off: `select_option` then `turn_on`. **Then the clear:** fault set off,
+  `supply_tick` at +1 min: `select_option`, then `turn_on` at that tick or the next.
+- **E5 cadence.** Two cycles inside `RETRY_MINUTES`: one write; a third after it: a second. Leaving
+  cooling clears the record.
+- **Mutation targets.** Each guard: the option, live-cooling-only, Off, released, writable domain,
+  the cadence, **the fault consult** (E4's fault case must fail). The counterpart map. The moved
+  cycle call (deleted, and moved back below the read: E1 fails). `supply_write`'s
+  return-before-check order. `cooling_asked` set on refusal with the option on (E2 fails). The
+  notice branch. The primitive's False.
+- **Goldens:** none move with the option off by default; an `EntryConfig` key in a diagnostics
+  fixture is not value-bearing. No claim file changes.
+- **Strings:** the option's label and description, the repair's title and description, in
+  `strings.json` and `translations/` en, sv, de; `docs/configuration.md`: the option, default off,
+  what it writes, and that it writes nothing while the fault hold holds.
 
 ## Hot files, serial position, carries
 
-Hot files: `coordinator.py`, `supply_hold.py`, `pump_arbiter.py`, `pump_mode.py`, `const.py`,
+Hot: `coordinator.py`, `supply_hold.py`, `pump_arbiter.py`, `pump_mode.py`, `const.py`,
 `entry_config.py`, `config_flow.py`, the four string files, `docs/configuration.md`, `README.md`,
-`tests/features.py`, `tests/entities.py`. Serial: the fixer branches from #3864's merge, never
-before it (P1, P2). No grader registration is expected; if `ci_predict.py` prints `BOOTSTRAP`
-for the log-flood registry in `tests/entities.py`, split p1/p2 by `fixer.md` step 7.
+`tests/features.py`, `tests/entities.py`.
+**Serial (orchestrator ruling):** R11-OWNER-FLOWCAP, R11-OWNER-FROST-HOLD, R11-OWNER-FAULT-HOLD,
+**this group**, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK. The fixer branches from main after #3864
+and FAULT-HOLD's #3872 have merged, never before.
+**Structure payment, this group's alone:** `_option_for` leaves `pump_arbiter.py` (over
+`MODULE_LOC_LIMIT`) for `pump_mode.py`; it pays `config_flow.py`'s row. None of FAULT-HOLD's
+payments (`duty_ledger.py`, the `_select` re-spells, `write_gated`) and none of FROST-HOLD's
+(`log_skip`), FLOWCAP's, MODE-LEGS' or STEP-KICK's are counted. If the move does not cover the row,
+the fixer looks for a further sound move; only after none exists, a raise under mandate 6893738184
+with a `## Raise justification` and its archscore line.
+No grader registration expected; if `ci_predict.py` prints `BOOTSTRAP` for the log-flood registry in
+`tests/entities.py`, split p1/p2 by `fixer.md` step 7.
 
 ## Decisions routed to the owner (defaults stated, the fixer builds the default)
 
-- Q1: write the counterpart (Cooling + DHW to Heating + DHW) rather than plain Heating. Default: counterpart.
-- Q2: retry every `RETRY_MINUTES` while the episode lasts, the cadence of `pump_arbiter`'s own
-  rewrite of a write that did not hold, rather than once per episode. Default: retry.
-- Q3: an early refresh when a lagged acknowledgement lands, so the space plan does not wait for the
-  next cycle. This needs one more `SupplyWiring` field and one extra solve per episode. Default: not built.
+- Q1: write the counterpart rather than plain Heating. Default: counterpart.
+- Q2: retry every `RETRY_MINUTES` per episode rather than once. Default: retry.
+- Q3: an early refresh when a lagged acknowledgement lands. Default: not built.
 
 ## Notes for the fixer
 
-- Check that `InputReader` in `_update_current_state` reads `hass.states` when called, not a snapshot
-  taken earlier in the method. Otherwise move point (1) above the reader's construction, still net zero.
+- Check that `InputReader` in `_update_current_state` reads `hass.states` when called; otherwise move
+  call site 1 above the reader's construction, still net zero.
   Carry: R11-OWNER-COOLING-AUTORETURN (item N1)
-- The return's log line, if it is a warning, is per write and bounded by the cadence. Register it in
+- A warning log on the return is per write, bounded by the cadence; register it in
   `_R10_LOG_ALLOWED_BY_REASON` beside `note_cooling`'s entry.
   Carry: R11-OWNER-COOLING-AUTORETURN (item N2)
-- Pay `config_flow.py`'s +1 against `module_excess_loc` with the `_option_for` move out of
-  `pump_arbiter.py`. Re-measure with `python3 tests/structure.py` at the merge base. Do not carry a figure.
+- Re-measure with `python3 tests/structure.py` at the merge base and head; carry no figure.
   Carry: R11-OWNER-COOLING-AUTORETURN (item N3)
+- If `fault_hold`'s accessor is renamed or its signature changes in #3872's merge, call whatever
+  `fault_hold.gate` calls; the guard is "the same answer the gate gets", not a name.
+  Carry: R11-OWNER-COOLING-AUTORETURN (item N4-fault-accessor)
+- MODE-LEGS and STEP-KICK follow this group: the return is a mode writer their notes compose with.
+  Carry: R11-OWNER-MODE-LEGS (item return-mode-writer)
