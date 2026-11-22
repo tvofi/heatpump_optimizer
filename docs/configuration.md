@@ -712,6 +712,14 @@ writes, at every 15-minute plan step:
   bare 35 °C is, if you set the ceiling below it.
   The model's weather curve is a pricing curve, not a set-point: written
   as one, it held the pump at 25 °C and underheated the house.
+  For the first 5 minutes after the pump turns from hot water to heating,
+  the return still holds the tank coil's water, so the lowest level is
+  measured from the space loop's own water instead: the return read on the
+  last running heating pass before the swap (up to 90 minutes old), else the
+  buffer, floor return or valve outlet, else 35 °C, and never higher than the
+  usual value. Without this the first minutes of every heating step after
+  hot water wrote the ceiling. Not on a *Return temperature* entity, nor
+  during system identification.
   The lift at the lowest level is 5 K over the inlet (`flow_min_lift_k`)
   and the ceiling 55 °C (`flow_heat_c`); both are on **Sensors and
   entities**, once the unit is *Flow* or *Return temperature* (the two
