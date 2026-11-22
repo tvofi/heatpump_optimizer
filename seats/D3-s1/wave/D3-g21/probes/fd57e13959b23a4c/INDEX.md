@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_fd57e13959b23a4c.py: which DHW plan _co_optimize returns when the re-planned candidate scores exactly best_score - 1e-9 (out_fd57e13959b23a4c.txt = executed output; source_fd57e13959b23a4c.py = the template it is assembled from)

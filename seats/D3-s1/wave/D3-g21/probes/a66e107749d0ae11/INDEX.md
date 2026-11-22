@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a66e107749d0ae11.py: predictive_info.dhw_required_temperature_now (published as the DHW sensor's dhw_required_temperature attribute, sensor.py:1191) per start hour (out_a66e107749d0ae11.txt = executed output; source_a66e107749d0ae11.py = the template it is assembled from)

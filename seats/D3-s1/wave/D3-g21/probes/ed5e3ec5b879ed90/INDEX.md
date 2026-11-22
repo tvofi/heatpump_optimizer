@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ed5e3ec5b879ed90.py: predictive_info.dhw_preheat_hours (sensor.py:1249) under a 0.1 kW fuse cap (out_ed5e3ec5b879ed90.txt = executed output; source_ed5e3ec5b879ed90.py = the template it is assembled from)

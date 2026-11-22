@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_904118eef67fced3.py: the step list _expand_off_blocks returns, and the count of differing outputs over pins drawn from the production pin domain (out_904118eef67fced3.txt = executed output; source_904118eef67fced3.py = the template it is assembled from)

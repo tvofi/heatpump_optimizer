@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a4f4c88e7480a514.py: energy cost _energy_cost_fn prices for a fixed schedule when the PV-surplus forecast peaks at exactly 1e-6 kW (out_a4f4c88e7480a514.txt = executed output; source_a4f4c88e7480a514.py = the template it is assembled from)

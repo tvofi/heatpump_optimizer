@@ -1,0 +1,1 @@
+- _tools: probe preamble/assembly (PRE.py, HOLD_REACH.py, DHWCAP.py, assemble.sh), per-key classification (classify.json), results writer (make_result.py), traced reach per line (trace_reach.json, from state/baselines*.json hits)

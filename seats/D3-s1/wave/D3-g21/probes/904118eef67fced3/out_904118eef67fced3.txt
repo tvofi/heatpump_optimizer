@@ -1,0 +1,7 @@
+RESULT tie_baseline=[2]
+RESULT tie_mutant=[0,1,2]
+RESULT production_domain_differ=0 count
+RESULT null_delta=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.62
+RESULT swapins=0

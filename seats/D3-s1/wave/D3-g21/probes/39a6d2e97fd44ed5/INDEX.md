@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_39a6d2e97fd44ed5.py: max |power| and objective difference between arms' space-only plans where the initial-guess clip binds (out_39a6d2e97fd44ed5.txt = executed output; source_39a6d2e97fd44ed5.py = the template it is assembled from)

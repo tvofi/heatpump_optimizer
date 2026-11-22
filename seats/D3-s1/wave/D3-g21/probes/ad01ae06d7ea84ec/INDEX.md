@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ad01ae06d7ea84ec.py: whether _derive_hold_schedule proposes a valve-hold schedule at a sub-5 % price spread; through optimize() the proposals (each one a full re-solve) and solve CPU (out_ad01ae06d7ea84ec.txt = executed output; source_ad01ae06d7ea84ec.py = the template it is assembled from)

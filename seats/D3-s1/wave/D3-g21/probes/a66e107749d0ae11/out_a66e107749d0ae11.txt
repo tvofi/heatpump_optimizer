@@ -1,0 +1,9 @@
+RESULT first_differing_hour=5
+RESULT required_now_baseline=55.0 C
+RESULT required_now_mutant=20.0 C
+RESULT hours_differ=4 count
+RESULT differing_hours=5,6,16,17
+RESULT null_delta=0 count
+RESULT thread_factor=1.001
+RESULT load1=1.71
+RESULT swapins=0

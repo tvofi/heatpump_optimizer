@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_905a40b5ecea024f.py: _derive_hold_schedule's outcome on length-mismatched / empty inputs, and the count of production calls that pass such inputs (out_905a40b5ecea024f.txt = executed output; source_905a40b5ecea024f.py = the template it is assembled from)

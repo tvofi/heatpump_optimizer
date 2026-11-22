@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6309f3e4a0a6c45f.py: lowest planned space power on manually pinned-ON steps with the pump's minimum power configured at 0 kW (out_6309f3e4a0a6c45f.txt = executed output; source_6309f3e4a0a6c45f.py = the template it is assembled from)
