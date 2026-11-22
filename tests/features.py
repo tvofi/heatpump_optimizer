@@ -74769,7 +74769,7 @@ async def _x62_gate_order():
             lambda _d: None, {}, lambda _e: None,
         )
         press = _asyncio.ensure_future(
-            boost_mod.set_extheat_block_ignored(coord, False, refresh=False)
+            boost_mod.set_extheat_block_ignored(coord, False)
         )
         await _asyncio.sleep(0)
         waited = not press.done() and not store.saved

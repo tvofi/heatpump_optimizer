@@ -6221,10 +6221,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             **self._dhw_plan_fields(now),
             **_band_fields(band or _solve_band(self._accuracy.draw, ctx._thermal_params, ctx._config)),
         )
-        block_ignored = extheat.ignore_effective(self._external_heat, boost.extheat_block_ignored(self))
         state = replace(
             copy.deepcopy(ctx._current_state),
-            external_heat_active=self._external_heat_active and not block_ignored,
+            external_heat_active=self._external_heat_active and not extheat.ignore_effective(
+                self._external_heat, boost.extheat_block_ignored(self)),
             # T2: the live guard's suppression and the post-outage DHW queue
             # both ride the same discretionary-DHW gate in the solve (#7/#22).
             peak_guard_active=self._peak_guard.suppressing

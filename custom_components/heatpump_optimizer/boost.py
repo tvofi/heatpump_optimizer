@@ -708,14 +708,11 @@ async def set_block(
         await coord.async_request_refresh()
 
 
-async def set_extheat_block_ignored(
-    coord: Any, on: bool, *, refresh: bool = True
-) -> None:
+async def set_extheat_block_ignored(coord: Any, on: bool) -> None:
+    """Set and persist the #3862 switch; the caller publishes and refreshes."""
     await session_restored(coord)
     held_for(coord).ignore_extheat_block = on
     await persist(coord)
-    if refresh:
-        await coord.async_request_refresh()
 
 
 def bind_cold_lease(fn: Any) -> None:

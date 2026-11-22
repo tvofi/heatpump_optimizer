@@ -253,9 +253,9 @@ class ExternalHeatIgnoreBlockSwitch(_KeyedSwitch):
         return {"block_ignored": bool(published.get("block_ignored"))}
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await boost.set_extheat_block_ignored(self.coordinator, True, refresh=False)
+        await boost.set_extheat_block_ignored(self.coordinator, True)
         publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await boost.set_extheat_block_ignored(self.coordinator, False, refresh=False)
+        await boost.set_extheat_block_ignored(self.coordinator, False)
         publish_then_refresh(self)
