@@ -522,6 +522,17 @@ jobs:
         if: steps.scope.outputs.round-metrics == 'true'
         run: python3 -I tools/audit/seat/round_metrics.py --self-test
 
+      # Decision 0018's token ledger (R11-PRE-TOKEN-LEDGER): usage counted once per
+      # response, every field apart, keyed by the seat key, and the round_metrics
+      # tokens line unread while a seat class has no row, offline.
+      - name: Show the token ledger keying usage per seat and leaving an unledgered class unread
+        id: token-ledger
+        if: steps.scope.outputs.token-ledger == 'true'
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/token_ledger.py --self-test | tee "$RUNNER_TEMP/token-ledger-self-test.txt"
+          grep -Eq '^token_ledger self-test: [1-9][0-9]* passed, 0 failed$' "$RUNNER_TEMP/token-ledger-self-test.txt"
+
       # Decision 0018 section 5's two held-out checks (R11-PRE-ROUND-METRICS):
       # planted-defect recall's refusals and its count after the judge, and the
       # two-finder overlap estimate; each holds an empty input to unread, never
