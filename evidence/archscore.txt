@@ -1,0 +1,6 @@
+Architecture score: dS +1.5850 IMPROVES
+  coordinator_private_reach 2 -> 0  +1.5850
+
+real	0m58.697s
+user	0m57.783s
+sys	0m0.323s

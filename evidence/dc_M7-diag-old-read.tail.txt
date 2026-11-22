@@ -1,0 +1,40 @@
+  ok   A16's download writer refuses a response HA's writer failed (status 500, no body)
+  ok   A16's download writer refuses a writer parameter it cannot bind, naming it
+  FAIL the fixture plants a private value in every section of the download and of its debug bundle, bar the exempt ones, and every exempt one is still a section  [unplanted=['.coordinator', '.debug.diagnostics'] exempt-gone=[]]
+  ok   Download diagnostics carries none of the values its redaction removes -- the token, the entry name, the exact coordinate -- in any section, under any key
+  ok   the null control: every field of the planted download that holds no private value comes out as it would without the value pass
+  ok   the null control: with nothing private planted elsewhere, the value pass leaves the download byte-identical
+  ok   the value pass searches for a removed value at the leak check's shortest length and not one character under it, for a coordinate as for any other, and never for a flag
+  ok   the value pass redacts a private value inside text, as a key, and as a number, in a tuple too, and leaves a flag and any other number alone
+  ok   a removed leaf of any other type is searched for and redacted by its text, as a number is, and a None, shorter than any value searched for, is left alone
+  ok   the download's plan age is measured at the export: 14 minutes after the solve it reads 14, whatever the payload said when it was published
+  ok   the null control: a plan solved a minute before the export reads 1
+  ok   a plan stamped ahead of the export clock has an unknowable age, never 0, and a payload with no solve has none
+  ok   the download carries its own export time, outside the debug half, read from the clock the debug manifest's generated_at reads
+  ok   the manifest labels the finished collection: its first and last row, the 3 h the rows span, and the last row's age at the export, not the configured 7 days
+  ok   a collection with no row has no window, and a row stamped ahead of the export clock has an unknowable age, never 0
+  ok   a stored instant's age is the seconds to now, none for text that does not parse, and none for an instant ahead of now
+  ok   an input reader stamps its health with the instant its ages are measured from
+  ok   the download's input ages are re-based to the export: read 2 minutes old and exported 14 minutes later, they read 16
+  ok   the null control: a download taken at the publish instant reads the published ages
+  ok   input ages with no read instant, or one ahead of the export, stay as published
+  ok   one export states one age for one input: the problem message, the problem's age_minutes and input_ages_minutes all read 60 after a 40-minute-late export, and both verdicts are judged at that same instant
+  ok   the null control for the same payload: exported at the publish instant, the message reads the published 20 minutes, the ages do not move, and the verdicts stay as published
+  ok   an input's own limit is the boundary: at it the reading is not stale, a minute past it the export makes it stale and its verdicts follow the age
+  ok   the diagnostic entity's summary counts each failure class, and reads ok with neither
+  ok   the shared summary wording names each class present and ok for neither
+  ok   the download judges plan_stale at the export with the coordinator's limit: at a 15-minute interval a plan solved 60 minutes ago is fresh, under the 90-minute floor, and stale 96 minutes after it
+  ok   a plan the export clock cannot date keeps the payload's plan_stale, and one the payload never judged publishes none
+  ok   the self-tests' run time is stored with them, survives a reload, and the manifest states it and its age at the export
+  ok   starting a finished collection again clears its self-tests' run time
+  ok   a stale limit needs a numeric interval: a bool is no interval, a string is no interval, and zero is a number the 90-minute floor still lifts
+  ok   a plan exactly at the limit is not stale, and a tenth of a minute past it is
+  ok   a stored run time with no stored results is left out of the document: the two are written together or not at all
+  ok   a plan exactly at the limit is fresh at the export, and one a minute past it is stale
+  ok   an implausible input re-based past its own limit stays implausible at the export: out of stale_inputs, counted missing, and worded as a fault, not an age
+  ok   the null control: the same implausible entry exported inside its limit reads the same, so the check above is about the age crossing the limit
+  ok   the precedence census covers every class inputs.py sets: each is driven past its age gate, set before it, or stale itself, and PROBLEM_WORDS, which the card enumerates its wording by, names exactly the published ones
+  ok   exported a minute past its own limit, every class reads what the reader says re-reading the same state then: a fault code stays itself, every other class ages into stale, and stale_inputs and input_health agree with the re-read
+  ok   the census's null control: exported at the publish instant, every class reads as published
+
+1 of 164 DEBUG COLLECT CHECKS FAILED

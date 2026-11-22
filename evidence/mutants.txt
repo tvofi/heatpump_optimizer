@@ -1,0 +1,14 @@
+Reviewer's mutants at 73797a573acd73668d17d0fc965d33a4b287ad8b, each applied alone on a detached worktree and restored (git checkout).
+Block A: features_block.py --emit-prelude / --prelude, "# The coordinator's mode change reaches ``note_mode_change``" .. "# A hot-water charge inside a counter span". Head: ALL 3 FEATURES BLOCK PASSED.
+M1 drop boost.note_mode_change(self, None, stored_mode) in _async_load_accuracy -> 1 of 3 FAILED (restart restoring boost: {'boost': (False, None, False), ...})
+M2 BoostState.note_mode `self.space_boosted = None` -> pass -> 2 of 3 FAILED
+M3 drop `and held.space_boosted is not None` in _restore_settle -> 1 of 3 FAILED
+M4 note_mode_change seen=old is not None -> seen=True -> 2 of 3 FAILED
+M5 _mode_live back to getattr(coord, "mode", None) == MODE_BOOST -> Block A ALL 3 PASSED (fakes carry .mode); see P3 block
+Block B (P3): "# R10-OUTSIDE-LEARNER-ROBUSTNESS-P3: the frozen learner phase" .. "# The census of who a probe problem pauses". Head: ALL 4 PASSED.
+M5 on block B -> 1 of 4 FAILED (P3 one source ...)
+M6 _mode_live -> return False on block B -> 1 of 4 FAILED
+debug_collect.py (PYTHONPATH=tests/hastub): head ALL 164 PASSED
+M7 diagnostics.py "mode": state.mode -> getattr(coord, "mode", None) -> 1 of 164 FAILED (private-plant census unplanted=['.coordinator', '.debug.diagnostics'])
+M8 coordinator.py diagnostics_state: CoordinatorDiagnostics.of(self, self.mode) -> CoordinatorDiagnostics.of(self) -> debug_collect ALL 164 PASSED; entities.py ALL 2761 ENTITY CHECKS PASSED (649 s). SURVIVOR.
+carry_audit check (empty body file; packet's body audit: 0 items) rc=0: CARRY-AUDIT: 0 finding item(s)
