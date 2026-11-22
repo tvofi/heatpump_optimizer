@@ -78,22 +78,20 @@ approvals remain in our machinery even for such PRs."*
    the carry). One writer emits the machinery's form:
    `outside.py approve`, run by our class-O read seat. The train's three
    verdict-driven approval writers refuse a fork head (part 2).
-6. **After adoption only our automatic merge of main moves the head.** On a
-   head that is no branch tip of this repository, `app_approve.sh --carry`
-   refuses every non-merge commit, whatever its subject or author says, and a
-   merge whose merge-driver files are not main's. **No tool of ours pushes a
-   fork's head to a branch of this repository**: that test would read it as
-   ours. A tool reading the head fetches `refs/pull/<pr>/head` into a local
-   ref only (the train to `refs/remotes/pull/<pr>/head`, where its recarry
-   worktree is detached).
-7. **Unchanged:** verdicts post as `hpo-approver` (0013); merges with main and
-   code-owner approvals stay ours (the train merges main into the fork's
-   branch itself, automatically or not at all: `remerge_main.sh --head-repo`
-   asks GitHub's `update-branch` as the hpo-author App at the expected head
-   and reads the result back as the automatic two-parent merge of that head
-   and main; on a conflict or a refused move it parks naming the fork and
-   never resolves). The train's `[OUTSIDE]` class is that park, and also
-   the contract's refusal, a pull request whose head repository and branch
+6. **After adoption only a merge of main moves the head, and the contributor
+   makes it.** On a head that is no branch tip of this repository,
+   `app_approve.sh --carry` refuses every non-merge commit, whatever its
+   subject or author says, and a merge whose merge-driver files are not
+   main's. **No tool of ours pushes a fork's head to a branch of this
+   repository**: that test would read it as ours. A tool reading the head
+   fetches `refs/pull/<pr>/head` into a local ref only (the train to
+   `refs/remotes/pull/<pr>/head`, where its recarry worktree is detached).
+7. **Unchanged:** verdicts post as `hpo-approver` (0013); the train's merge
+   and code-owner approvals stay ours, and our identities never merge into,
+   push to or `update-branch` a contributor's fork (the ruling under "Before
+   the first allowlist entry": a head that needs main is parked naming the
+   fork until the contributor has merged main into it). The train's
+   `[OUTSIDE]` class is that park, and also the contract's refusal, a pull request whose head repository and branch
    could not be read, a checkout copy of the contract that is not
    origin/main's, a fork head the train could not check out, and an
    approval of item 5's verdict-driven writers it would post on a fork
@@ -101,29 +99,29 @@ approvals remain in our machinery even for such PRs."*
    autofix jobs and `mutation-pins` require a same-repository head); a held
    fork run is approved by `hpo-runs` after a read of the diff.
 
-## Before the first allowlist entry
+## The first allowlist entry (owner's ruling, 2026-11-22)
 
-Three checks need the owner's credential and a fork, which the building seats
-did not hold. None changes the code; each is owed before an entry is added:
+This section replaces the three checks the record first listed here (the
+fork-head merge, the live check on a test fork, and the account behind
+`secrets.CLOSURES_PUSH_TOKEN`). The owner, verbatim (tvofi, 2026-11-22, on the
+first entry): *"add him now"*. On the owner's instruction an entry goes in
+without waiting for them, and:
 
-- **The fork-head merge.** Whether GitHub lets an identity of ours update a
-  maintainer-editable fork branch with main (part 2's merge), and which
-  identity the merge commit then carries. If none may, the train parks naming
-  the fork, and no personal token is tried without the owner.
-- **The live check.** Post one mandated class-O approval on a test fork head
-  with `outside.py approve`, read from the API which `commit_id` it reports
-  before and after our main merge, and take one adopted verdict through
-  `bus.sh adopt`, `confirm` and `app_approve.sh` end to end. The class-O check
-  admits the review on the commit it read, on the head, and on a commit that
-  carries between them, so every answer GitHub can give is covered; the check
-  records which one it gave.
-- **The account behind `secrets.CLOSURES_PUSH_TOKEN`.** It is the one workflow
-  secret that is neither an App credential nor the Actions token. The tree
-  shows where it goes: the three autofix jobs (same-repository heads only),
-  `merge-main.yml` (main only), and the reusable Tests call, where GitHub
-  withholds secrets from a fork's run. If it authenticates the owner's
-  account, class O's account read rests on that withholding; the owner names
-  the account.
+- **The first entry no longer waits on live checks.** The entry for
+  `Bankaifan` (id 476059, type `User`, added 2026-11-22) is in
+  `dev/governance/config/outside_contributors.json`.
+- **Our identities never merge, push or update a branch on a contributor's
+  fork.** The owner, verbatim (tvofi, 2026-11-22): *"DO NOT MERGE ANYTHING ON
+  ANOTHER USERS FORK"*. The contributor brings their own branch up to date with
+  main. A fork pull request whose head main has moved past is parked
+  `[OUTSIDE]`, naming the fork, until the contributor has merged main into it;
+  the train does not ask GitHub's `update-branch` and does not use a token for
+  the fork. `remerge_main.sh --head-repo`, built for part 2's merge, is
+  withdrawn by this ruling; its removal from the tooling is a separate change.
+- **The first adopted verdict is the live check** of the `bus.sh adopt`,
+  `confirm` and `app_approve.sh` path, which no test fork exercised. Which
+  `commit_id` GitHub reports for a mandated class-O approval is read from the
+  API on that pull request and recorded in its delivery row.
 
 ## Owner defaults this record takes
 

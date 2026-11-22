@@ -10,6 +10,9 @@
   <pr>` names only a merge that left unmerged paths; a fetch, reset or merge
   that failed otherwise prints `REMERGE FAILED <pr> at <step> (rc=N)` under
   git's own words, which the train stops on as a failure, never a conflict.
+  **Withdrawn by decision 0017's ruling of 2026-11-22: no identity of ours updates a
+  contributor's fork; the contributor merges main into their own branch. The
+  paragraph below describes the code as built until it is removed.**
   `--head-repo <owner/repo>` is a head that is not a branch of ours (decision
   0017; the train passes the head repository the pulls API names): nothing of
   `origin/<branch>` is read, no claims commit is made, and the head moves only

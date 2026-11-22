@@ -120,7 +120,8 @@
   rehearsal before the merge, where the contract's base rule refuses it. A
   refusal, an unread pull request or a stale copy parks the entry
   `[OUTSIDE]`, naming the fork; its recarry worktree is detached at
-  `refs/remotes/pull/<pr>/head` and `remerge_main.sh --head-repo` moves it.
+  `refs/remotes/pull/<pr>/head`; moving it with `remerge_main.sh --head-repo` is
+  withdrawn by decision 0017's ruling of 2026-11-22 (the contributor merges main).
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
