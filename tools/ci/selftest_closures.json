@@ -9814,8 +9814,11 @@
     "tools/release"
    ],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": true,
+   "git": [
+    "cat-file",
+    "ls-tree"
+   ]
   },
   "roster-ops-mutation-harness": {
    "run_sha": "ff64ecaef9c502f634ec498485bc646c76e67e625d81961b0ab116701e85812d",
