@@ -1,0 +1,6 @@
+# D3-g12 null control (fullgate.py null, comment-only marker), taken 2026-11-22 21:46-22:44 UTC
+gate_rc 1, wall 3896 s, load1 0.86 at end, thread_factor 1.0 (provisional). Failed scripts, all artefact checks, none from the machine:
+- tests/closure.py selftest: 2 of 118 closure shrink pins (log lines 26-27, `status='skip-not-under-scoped'`): the merge-reason pins read the scoped gate's state, which a marker commit off the baseline in a stripped worktree does not have.
+- tests/entities.py: 1 of 2723: `FAIL and is accepted when it does [the scoped path records only what the diff can reach]`, the same scoped-diff artefact. Every other entities FAIL line is a self-test rail (a3:/a4:/hb: ...), printed by design.
+- tests/harness_headers.py: 4 of 115: round4/D6/claims.py RESULT claims_true/claims_false vs header (123/122, 0/1) and its committed output left modified (the stripped tree), and "every inlined walk matches the canonical helper" naming this box's own probes/probe_*.py (an artefact of the wave dir sitting in the tree; constant across every gate of this box, so it cancels against the null).
+No card.mjs heap failure, no stress/budget failure. The earlier boxes' nulls (state/gates-prior/) are red on the same three scripts. Read as usable: not re-taken.
