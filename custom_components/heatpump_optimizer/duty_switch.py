@@ -428,6 +428,12 @@ class DutySwitchLearner:
         ``duty_legs.DEFAULT_RULE``: hot water first for its share."""
         return duty_legs.leg_rule(*self.planner_pairs(), self.unlatched())
 
+    def config_fields(self) -> dict[str, tuple[Any, Any]]:
+        """The ``OptimizationConfig`` fields of :meth:`planner_pairs` and :meth:`unlatched`."""
+        stops, off_s = self.planner_pairs()
+        return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s,
+                "duty_switch_unlatched": self.unlatched()}
+
     def stored_record(self) -> dict[str, Any]:
         return {"directions": {name: d.stored_row() for name, d in self.directions.items()}}
 
@@ -582,7 +588,4 @@ def running_now(rec: _Record, action: Any) -> bool:
 def planner_fields(coord: Any) -> dict[str, tuple[Any, Any]]:
     """The ``OptimizationConfig`` fields a solve prices a duty switch by; a pump never arbitrated reads zeros."""
     rec = _RECORDS.get(coord)
-    learner = rec.learner if rec is not None else DutySwitchLearner()
-    stops, off_s = learner.planner_pairs()
-    return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s,
-            "duty_switch_unlatched": learner.unlatched()}
+    return (rec.learner if rec is not None else DutySwitchLearner()).config_fields()
