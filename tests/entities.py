@@ -42782,7 +42782,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
         ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
         ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
-        ("coordinator.py", "_peak_tariff_months"): 1, ("coordinator.py", "_peak_tariff_hours"): 1,
+        ("tariff.py", "peak_tariff_months"): 1, ("tariff.py", "peak_tariff_hours"): 1,
         ("open_meteo.py", "async_refresh"): 1, ("legionella.py", "check_mode_block"): 1,
         ("legionella.py", "async_track_cycle"): 5, ("pump_arbiter.py", "_not_held"): 1,
         ("curve_learning.py", "record_miss"): 1,

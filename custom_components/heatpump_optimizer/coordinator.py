@@ -286,14 +286,12 @@ from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
 from .plan_step import PLAN_STEP_MINUTES, covering_index, plan_step_start
-from .tariff import CapacityTariff, PeakTracker
+from .tariff import CapacityTariff, PeakTracker, peak_tariff_hours, peak_tariff_months
 from .grid_fee import (
-    GridFeeError,
     GridFeeSchedule,
     fee_bound,
     min_component as grid_fee_min_component,
     max_abs_component as grid_fee_max_abs_component,
-    parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import labels_for
 from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
@@ -595,39 +593,6 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
 #: leaf module, so the pump arbiter and the input reader can route a persisting
 #: condition through it without importing this module (which imports them all).
 from .log_latch import forget_held, log_held  # noqa: E402
-
-
-@functools.lru_cache(maxsize=8)
-def _peak_tariff_months(spec: str) -> frozenset[int]:
-    """The #13 month mask parsed from the option text; empty when unset or broken.
-
-    Cached per text, so a malformed option warns once (#2226: it warned on
-    each of the four ``_capacity_tariff`` reads of every cycle) and the
-    text is parsed once rather than four times a cycle.
-    """
-    months: set[int] = set()
-    try:
-        for chunk in spec.replace(";", ",").split(","):
-            if chunk.strip():
-                months |= grid_fee_parse_month_range(chunk.strip())
-    except GridFeeError as err:
-        _LOGGER.warning("Invalid peak tariff months %r (%s); applying the "
-                        "tariff in every month", spec.strip(), err)
-        return frozenset()
-    return frozenset(months)
-
-
-@functools.lru_cache(maxsize=8)
-def _peak_tariff_hours(spec: str) -> tuple[Any, ...]:
-    """The #13 peak-hour windows parsed from the option text, cached as above."""
-    if not spec.strip():
-        return ()
-    try:
-        return tuple(parse_windows(spec.strip()))
-    except DHWWindowError as err:
-        _LOGGER.warning("Invalid peak tariff hours %r (%s); treating every "
-                        "hour as peak", spec.strip(), err)
-        return ()
 
 
 #: Each (fence message, cause) pair already surfaced once at WARNING.
@@ -8621,11 +8586,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
     def _tariff_months(self) -> frozenset[int]:
         """The #13 month mask, empty (= every month) when unset or broken."""
-        return _peak_tariff_months(getattr(self, "_ctx", self)._config.peak_tariff_months)
+        return peak_tariff_months(getattr(self, "_ctx", self)._config.peak_tariff_months)
 
     def _tariff_hours(self) -> tuple[Any, ...]:
         """The #13 peak-hour windows, empty (= every hour) when unset."""
-        return _peak_tariff_hours(getattr(self, "_ctx", self)._config.peak_tariff_hours)
+        return peak_tariff_hours(getattr(self, "_ctx", self)._config.peak_tariff_hours)
 
     def _track_realised_peak(self) -> None:
         """Fold the current whole-house draw into this month's peaks.

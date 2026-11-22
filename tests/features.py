@@ -81828,8 +81828,8 @@ def _fd_flood_run():
     for _ in range(4):
         _fd_flood._price_series(96, _FD_T0, 0)
         _fd_flood._weather_series(96, _FD_T0, 0)
-        _fd_cm._peak_tariff_months("Smarch-fd")
-        _fd_cm._peak_tariff_hours("25:99-fd")
+        tariff_mod.peak_tariff_months("Smarch-fd")
+        tariff_mod.peak_tariff_hours("25:99-fd")
 
 
 _fd_flood_log = _fd_logged(_fd_flood_run)
