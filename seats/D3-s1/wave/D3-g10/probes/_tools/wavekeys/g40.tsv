@@ -1,0 +1,16 @@
+key	src	file	line	function	cluster	slice	fullnet	kind	reach	m4_source
+5f094dbca9a593e9	complete	custom_components/heatpump_optimizer/tariff.py	750	_smooth_topk_sum	tariff.py:_smooth_topk_sum@744-773	u1b	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+7b4d6225353952ed	complete	custom_components/heatpump_optimizer/tariff.py	763	_smooth_topk_sum	tariff.py:_smooth_topk_sum@744-773	u1b	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+e6bcd13be86202b8	complete	custom_components/heatpump_optimizer/tariff.py	766	_smooth_topk_sum	tariff.py:_smooth_topk_sum@744-773	u1d	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json
+e01cc20e67f1f720	complete	custom_components/heatpump_optimizer/tariff.py	768	_smooth_topk_sum	tariff.py:_smooth_topk_sum@744-773	u1d	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json
+f8eec0888776e8ff	complete	custom_components/heatpump_optimizer/tariff.py	773	_smooth_topk_sum	tariff.py:_smooth_topk_sum@744-773	u1d	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json
+968c552b8acd9df9	complete	custom_components/heatpump_optimizer/tariff.py	801	_smooth_topk_sum_batch	tariff.py:_smooth_topk_sum_batch@801-832	u1c	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+996dce5148e02763	complete	custom_components/heatpump_optimizer/tariff.py	806	_smooth_topk_sum_batch	tariff.py:_smooth_topk_sum_batch@801-832	u1c	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+754e4cb5fa60e129	complete	custom_components/heatpump_optimizer/tariff.py	821	_smooth_topk_sum_batch	tariff.py:_smooth_topk_sum_batch@801-832	u1b	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+a074fb25836c2bc6	complete	custom_components/heatpump_optimizer/tariff.py	824	_smooth_topk_sum_batch	tariff.py:_smooth_topk_sum_batch@801-832	u1c	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+22dd975583db1b89	complete	custom_components/heatpump_optimizer/tariff.py	828	_smooth_topk_sum_batch	tariff.py:_smooth_topk_sum_batch@801-832	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+134d9411b323ef8a	complete	custom_components/heatpump_optimizer/tariff.py	832	_smooth_topk_sum_batch	tariff.py:_smooth_topk_sum_batch@801-832	u1a	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+3e9a439baa86a074	complete	custom_components/heatpump_optimizer/tariff.py	528	_stored_peaks	tariff.py:_stored_peaks@528-528	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+1894e6dcd2251a30	complete	custom_components/heatpump_optimizer/tariff.py	570	metering_windows	tariff.py:metering_windows@570-588	u1a	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+0e94685aa803560d	complete	custom_components/heatpump_optimizer/tariff.py	573	metering_windows	tariff.py:metering_windows@570-588	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+64a2ed644109fda3	complete	custom_components/heatpump_optimizer/tariff.py	573	metering_windows	tariff.py:metering_windows@570-588	u1b	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json

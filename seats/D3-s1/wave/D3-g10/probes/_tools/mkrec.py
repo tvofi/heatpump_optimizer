@@ -6,7 +6,7 @@ exec(open(os.path.expanduser("~/pgen/meta.py")).read())
 TR = os.path.expanduser("~/audit-r11-D3-s1")
 S1 = f"{TR}/dev/audit/rounds/round11/D3/s1"
 W = f"{S1}/wave/D3-g10"
-PT = os.path.expanduser("~/probe-tree/dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes")
+PT = f"{W}/probes"
 REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g10"
 rows = {l.split("\t")[0]: dict(zip(open(f"{W}/keys.tsv").readline().rstrip("\n").split("\t"), l.rstrip("\n").split("\t")))
         for l in open(f"{W}/keys.tsv").read().splitlines()[1:]}
