@@ -69,9 +69,20 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROSTER_REL = "dev/programme/rosters/wave-r10-groups.json"
 MOVED = "not origin/main"
 SEAT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SEAT_DIR))
+import roster_lib  # noqa: E402 -- the one owner of which roster a ref carries
+
+
+def roster_rel(ref, cwd=None):
+    """The roster path in `ref`'s tree: `roster_lib.roster_path`'s newest
+    `wave-r<N>-groups.json`, never a named round (owner ruling 2026-11-22).
+    Raises RuntimeError when `ref` carries none."""
+    try:
+        return roster_lib.roster_path(str(cwd or "."), ref)
+    except roster_lib.RosterNotFound as e:
+        raise RuntimeError(str(e)) from e
 
 
 def resolve_editor(a):
@@ -112,9 +123,10 @@ def _walk(o, grp):
             yield from _walk(v, grp)
 
 
-def readback(sha, grp, fn, cwd=None, rel=ROSTER_REL):
+def readback(sha, grp, fn, cwd=None, rel=None):
     """One line: the carry count, the indices equal to the file's text, the
     last entry's lengths. Raises when the SHA, roster or group is absent."""
+    rel = rel or roster_rel(sha, cwd)
     s = _git("show", f"{sha}:{rel}", cwd=cwd)
     if s.returncode:
         raise RuntimeError(f"no {rel} at {sha}: {s.stderr.strip()[-120:]}")
@@ -129,9 +141,10 @@ def readback(sha, grp, fn, cwd=None, rel=ROSTER_REL):
             f"last120={last[:120]!r} len={len(last)}/{len(want)}"), bool(hit)
 
 
-def readback_text(sha, grp, text, cwd=None, rel=ROSTER_REL):
+def readback_text(sha, grp, text, cwd=None, rel=None):
     """True when the first 60 characters of an inline carry are inside a carry
     entry of `grp` in the roster at `sha` (the LANDED test of the old loops)."""
+    rel = rel or roster_rel(sha, cwd)
     s = _git("show", f"{sha}:{rel}", cwd=cwd)
     if s.returncode:
         raise RuntimeError(f"no {rel} at {sha}: {s.stderr.strip()[-120:]}")
@@ -488,8 +501,9 @@ def unwired(roster, open_issues):
             if x.startswith("ISSUE-UNLISTED")]
 
 
-def roster_at(ref, cwd, rel=ROSTER_REL):
+def roster_at(ref, cwd, rel=None):
     """The roster JSON at `ref`, read with `git show` only (read-only; carry 8)."""
+    rel = rel or roster_rel(ref, cwd)
     s = _git("show", f"{ref}:{rel}", cwd=cwd)
     if s.returncode:
         raise RuntimeError(f"no {rel} at {ref}: {s.stderr.strip()[-120:]}")
@@ -576,6 +590,7 @@ def _raises(f):
 
 
 def _self_test():
+    ROSTER_REL = f"{roster_lib.ROSTERS_DIR}/wave-r10-groups.json"  # a fixture round
     fails = []
     n = [0]
 
@@ -968,6 +983,23 @@ def _self_test():
         ck("show and diff write nothing: the working tree and the index are as they were",
            (repo / ROSTER_REL).read_bytes() == before
            and _git("status", "--porcelain", cwd=repo, env=env).stdout == "")
+        # The roster a ref carries is its newest round's (roster_lib.roster_path),
+        # never a named one (owner ruling 2026-11-22): a later round's roster
+        # beside this round's is the one read, back, shown and diffed. Null
+        # control: the commit before it still reads the older round's.
+        newer = f"{roster_lib.ROSTERS_DIR}/wave-r{roster_lib.roster_round(ROSTER_REL) + 1}-groups.json"
+        (repo / newer).write_text(json.dumps({"groups": [{"group": "N", "carry": ["next round"]}]}))
+        _git("add", "-A", cwd=repo, env=env)
+        _git("commit", "-qm", "r3", cwd=repo, env=env)
+        sha3 = _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip()
+        (t / "nr.txt").write_text("next round\n")
+        ck("a later round's roster is the one a ref carries: read, read back and shown",
+           roster_rel(sha3, repo) == newer and show_roster(roster_at(sha3, repo), "N")[0] == "N"
+           and readback(sha3, "N", t / "nr.txt", cwd=repo)[1]
+           and readback_text(sha3, "N", "next round", cwd=repo), roster_rel(sha3, repo))
+        ck("... null control: the commit before it reads its own round's roster",
+           roster_rel(sha2, repo) == ROSTER_REL and roster_at(sha2, repo) == new_r,
+           roster_rel(sha2, repo))
         # loop: heals a missing lint clone, then applies and marks
         fresh("1 set-stage G done\n")
         lc = t / "healed"
@@ -1039,13 +1071,14 @@ def main(argv=None):
             print("held    ", ln[len(HELD):][:100])
         return 0
     if a.cmd == "unwired":
-        s_ = _git("show", f"{a.ref}:{ROSTER_REL}", cwd=a.edit_checkout)
-        if s_.returncode:
-            print(f"no {ROSTER_REL} at {a.ref}", file=sys.stderr)
+        try:
+            roster = roster_at(a.ref, a.edit_checkout)
+        except RuntimeError as e:
+            print(e, file=sys.stderr)
             return 2
         nums = [x if isinstance(x, int) else x.get("number")
                 for x in json.loads(Path(a.open_issues).read_text())]
-        out = unwired(json.loads(s_.stdout), [n for n in nums if isinstance(n, int)])
+        out = unwired(roster, [n for n in nums if isinstance(n, int)])
         print("\n".join(out) or "no unwired open issue")
         return 1 if out else 0
     if a.cmd in ("show", "diff"):

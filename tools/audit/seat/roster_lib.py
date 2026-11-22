@@ -377,6 +377,97 @@ def reader_ref(repo: str, ref: str | None) -> str:
     return ref
 
 
+# NO ROUND IS NAMED IN A DEFAULT (owner ruling 2026-11-22). A tool's default
+# that names a round reads that round forever: replan's literal round-10
+# roster ref kept the round-11 plan page on a stale roster. Which roster is
+# `roster_path`'s, which ref `default_roster_ref`'s. `round_literal_defaults`
+# refuses, in tools/**/*.py, a round literal (`audit-r<N>`, `wave-r<N>`,
+# `round<N>`) in a DEFAULT SHAPE: an argparse `default=`/`help=`, a parameter
+# default, a parameter reassigned (`if not ref: ref = ...`), an `or` / `.get`
+# / conditional fallback, a module-level UPPER constant, or a docstring line
+# saying "default". Fixtures and dated records stay legal: a function whose
+# name says self-test, a file under a `round<N>/` directory (that round's own
+# instruments), and ROUND_RECORDS, keyed on (file, constant), each a fixed
+# record of the round it names -- the key does not reach another constant.
+_ROUND_LITERAL = re.compile(r"(?<![A-Za-z0-9])(?:audit-r|wave-r|round)\d+(?![0-9])")
+_FIXTURE_FN = re.compile(r"self_?test", re.I)
+_ROUND_DIR = re.compile(r"\Around\d+\Z")
+ROUND_RECORDS = frozenset({
+    ("tools/audit/seat/roster_lib.py", "CARRY_CUTOVER"),   # round 10's carry cut-over commit
+    ("tools/release/stamp.py", "REGISTER_DIR"),            # the D6 register round 4 built
+    ("tools/policy/agreement_py.py", "SEARCH"),            # round 4's and 6's D11 libraries
+    ("tools/pr/gh_comment.py", "REAL_NEGATIVES"),          # bodies really posted, verbatim
+})
+
+
+def round_literal_hits(rel: str, src: str) -> list:
+    """`rel:line: <shape>: <literal>` for each round literal in a default shape
+    of the Python source `src` (path `rel`); [] for a fixture or a record."""
+    import ast
+    if any(_ROUND_DIR.match(part) for part in rel.split("/")[:-1]):
+        return []
+    out = []
+
+    def lits(node):
+        return [m.group(0) for n in ast.walk(node)
+                if isinstance(n, ast.Constant) and isinstance(n.value, str)
+                for m in _ROUND_LITERAL.finditer(n.value)]
+
+    def hit(node, shape):
+        out.extend(f"{rel}:{node.lineno}: {shape}: {lit}" for lit in lits(node))
+
+    def visit(n, params, top):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if _FIXTURE_FN.search(n.name):
+                return
+            a = n.args
+            for d in a.defaults + [x for x in a.kw_defaults if x is not None]:
+                hit(d, "parameter default")
+            params = {x.arg for x in a.posonlyargs + a.args + a.kwonlyargs}
+            top = False
+        if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            doc = ast.get_docstring(n, clean=False)
+            for i, line in enumerate((doc or "").splitlines()):
+                if "default" in line.lower():
+                    out.extend(f"{rel}:{n.body[0].lineno + i}: docstring default: {m.group(0)}"
+                               for m in _ROUND_LITERAL.finditer(line))
+        if isinstance(n, ast.Call):
+            f = n.func
+            name = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", "")
+            if name == "add_argument":
+                for k in n.keywords:
+                    if k.arg in ("default", "help"):
+                        hit(k.value, f"argparse {k.arg}")
+            if name == "get" and len(n.args) >= 2:
+                hit(n.args[1], ".get fallback")
+        if isinstance(n, ast.BoolOp) and isinstance(n.op, ast.Or):
+            hit(n.values[-1], "or fallback")
+        if isinstance(n, ast.IfExp):
+            hit(n.body, "conditional fallback")
+            hit(n.orelse, "conditional fallback")
+        if isinstance(n, (ast.Assign, ast.AnnAssign)):
+            names = {t.id for t in (n.targets if isinstance(n, ast.Assign) else [n.target])
+                     if isinstance(t, ast.Name)}
+            if names & params:
+                hit(n.value, "parameter fallback")
+            if top and n.value is not None and any(
+                    x.isupper() and (rel, x) not in ROUND_RECORDS for x in names):
+                hit(n.value, "module constant")
+        for c in ast.iter_child_nodes(n):
+            visit(c, params, top and not isinstance(n, ast.ClassDef))
+
+    visit(ast.parse(src), set(), True)
+    return out
+
+
+def round_literal_defaults(root=None) -> list:
+    """Every `round_literal_hits` line under `root`/tools (the checkout)."""
+    root = Path(root or _ROOT)
+    return [h for p in sorted((root / "tools").rglob("*.py"))
+            for h in round_literal_hits(p.relative_to(root).as_posix(),
+                                        p.read_text(encoding="utf-8"))]
+
+
 def roster_shape(roster) -> str:
     """Why `roster` is not a roster ("" when it is one).
 
@@ -1714,6 +1805,46 @@ def _self_test() -> int:
           architect_groups(gr) == (["N", "U", "Y"], ["U", "Y"]), architect_groups(gr))
     check("architect_groups of a roster whose open groups all gate is empty (null control)",
           architect_groups({"groups": gr["groups"][:1] + gr["groups"][4:]}) == ([], []))
+    # round_literal_defaults: one plant per default shape, each refused; the
+    # same literal in a fixture, a record or a round directory, and a round
+    # read rather than named, are not (null controls). The replan line the
+    # 2026-11-22 ruling removed is planted verbatim, assembled at run time.
+    r10 = "audit-r" + "10"
+    plants = {
+        "argparse default": f'ap.add_argument("--d", default="dev/audit/rounds/{"round" + "10"}")\n',
+        "argparse help": f'ap.add_argument("--r", help="default: origin/handoff/{r10}-roster")\n',
+        "parameter default": f'def f(ref="origin/handoff/{r10}-roster"):\n    return ref\n',
+        "parameter fallback": f'def load_roster(repo, ref=None):\n    if not ref:\n'
+                              f'        ref = "origin/handoff/{r10}-roster"\n    return ref\n',
+        "or fallback": f'def f(ref):\n    return ref or "handoff/{r10}-plan"\n',
+        ".get fallback": f'def f(d):\n    return d.get("ref", "{r10}")\n',
+        "conditional fallback": f'def f(x):\n    return x if x else "{"wave-r" + "11"}"\n',
+        "module constant": f'ROSTER_REL = "dev/programme/rosters/{"wave-r" + "10"}-groups.json"\n',
+        "docstring default": f'"""Reads --roster-ref (default origin/handoff/{r10}-roster)."""\n',
+    }
+    for shape, src in plants.items():
+        got = round_literal_hits("tools/x/plant.py", src)
+        check(f"round_literal_hits refuses a round literal as {shape}",
+              len(got) == 1 and f": {shape}: " in got[0], got)
+    nulls = {
+        "a self-test fixture": "def _self_test():\n" + "".join(
+            "    " + ln + "\n" for src in plants.values() for ln in src.splitlines()
+            if not ln.startswith('"""')),
+        "a round read, not named": 'def f(n):\n    return f"handoff/audit-r{n}-roster"\n'
+                                   'X = "handoff/audit-r<N>-roster"\n',
+        "a literal outside a default shape": f'def f():\n    run(["git", "show", "{r10}"])\n',
+    }
+    for why, src in nulls.items():
+        got = round_literal_hits("tools/x/null.py", src)
+        check(f"round_literal_hits passes {why} (null control)", got == [], got)
+    check("round_literal_hits passes a round's own instrument directory (null control)",
+          round_literal_hits("tools/audit/round4/D11/lib.py", plants["module constant"]) == [])
+    rec = "tools/release/stamp.py"
+    check("a ROUND_RECORDS key admits its own constant and no other",
+          round_literal_hits(rec, plants["module constant"].replace("ROSTER_REL", "REGISTER_DIR")) == []
+          and len(round_literal_hits(rec, plants["module constant"])) == 1)
+    live = round_literal_defaults()
+    check("no tools/ default in this checkout names a round", live == [], live)
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)

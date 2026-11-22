@@ -108,6 +108,13 @@ def roster_blockers(roster: dict, self_group: str = SELF_GROUP) -> list:
                   if g != self_group and g not in exempt)
 
 
+def report_dir_for(roster_file: str) -> str:
+    """`dev/audit/rounds/round<N>`, N the round `roster_file` names: the round
+    is read, never named here (owner ruling 2026-11-22). Raises
+    RosterNotFound for a file that is not a `wave-r<N>-groups.json`."""
+    return f"dev/audit/rounds/round{roster_lib.roster_round(roster_file)}"
+
+
 class Ctx:
     """The checkout, the roots and the readers. A test overrides the reads."""
 
@@ -454,6 +461,14 @@ def self_test() -> int:
     def check(tag, cond):
         res.append((tag, bool(cond)))
 
+    # The report directory is the roster's round's (owner ruling 2026-11-22: no
+    # round named in a default); null control: another round's roster, its own.
+    check("no --report-dir reports under the --roster-file's round",
+          report_dir_for("x/wave-r12-groups.json") == "dev/audit/rounds/round12"
+          and report_dir_for("wave-r9-groups.json") == "dev/audit/rounds/round9")
+    check("no --report-dir and a roster file naming no round refuses, rc 2",
+          main(["--roster-file", str(ROOT / "README.md")]) == 2)
+
     tmp = Path(tempfile.mkdtemp(prefix="closeout_selftest."))
     try:
         origin, seat = tmp / "origin.git", tmp / "seat"
@@ -776,7 +791,8 @@ def main(argv=None) -> int:
     ap.add_argument("--orch-root", default="~/hpo-orch")
     ap.add_argument("--keep-orch", action="append", default=None,
                     help="name prefixes kept under --orch-root (default ledger, state)")
-    ap.add_argument("--report-dir", default="dev/audit/rounds/round10")
+    ap.add_argument("--report-dir", default=None,
+                    help="default: report_dir_for(--roster-file), its round's evidence directory")
     ap.add_argument("--issues-file", default="")
     ap.add_argument("--successor", type=int, default=0)
     ap.add_argument("--verdicts-drained", action="store_true")
@@ -790,6 +806,11 @@ def main(argv=None) -> int:
         return 2
     a.seats_root = a.seats_root or ["~/hpo-seats", "~/.local/state/hpo/pr"]
     a.keep_orch = a.keep_orch or ["ledger", "state"]
+    try:
+        a.report_dir = a.report_dir or report_dir_for(a.roster_file)
+    except roster_lib.RosterNotFound as e:
+        print(f"closeout: REFUSE: no --report-dir and {e}", file=sys.stderr)
+        return 2
     roster = json.load(open(a.roster_file, encoding="utf-8"))
     try:
         return run(Ctx(a, roster), a.apply)
