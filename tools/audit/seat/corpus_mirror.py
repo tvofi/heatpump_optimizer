@@ -724,6 +724,44 @@ class Stub:
         self.limit_download = 0  # the nth download answers a rate limit, once
         self.down: set[str] = set()  # a read whose path holds one of these answers 502, every time
         self.downloads: list[str] = []
+        self.events: list[tuple] = []  # ("call", argv) and ("sleep", s), in order
+        # GraphQL's own bucket, as each answer's rateLimit reports it: one query spends gql_cost, the reset refills it
+        self.gql_cost, self.gql_limit, self.gql_remaining, self.gql_min = 1, 5000, 5000, 5000
+        self.gql_reset = int(self.clock) + 1800
+        self.gql_fail: list[str] = []  # the next GraphQL calls answer these outputs, in order
+        self.gql_clocks: list[float] = []  # the clock at each GraphQL call
+
+    def sleep(self, s):
+        self.sleeps.append(s)
+        self.events.append(("sleep", s))
+        self.clock += s
+
+    def graphql(self, included: bool):
+        self.gql_clocks.append(self.clock)
+        if self.gql_fail:
+            return 1, self.gql_fail.pop(0)
+        while self.clock >= self.gql_reset:
+            self.gql_remaining, self.gql_reset = self.gql_limit, self.gql_reset + 3600
+        self.gql_remaining -= self.gql_cost
+        self.gql_min = min(self.gql_min, self.gql_remaining)
+        import datetime
+        reset = datetime.datetime.fromtimestamp(self.gql_reset, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        body = json.dumps({"data": {"rateLimit": {"cost": self.gql_cost, "remaining": self.gql_remaining, "limit": self.gql_limit, "resetAt": reset},
+                                    "repository": {"i1": {"__typename": "Issue"}}}})
+        return 0, (self.inc(200, [], body) if included else body)
+
+    def gql_gaps(self):
+        """The sleep just before each GraphQL call (None: no sleep)."""
+        out, last = [], None
+        for kind, x in self.events:
+            if kind == "sleep":
+                last = x
+            elif x[:2] == ["gh", "api"] and "graphql" in x[2:4]:
+                out.append(last)
+                last = None
+            elif x != ["gh", "api", "rate_limit"]:
+                last = None
+        return out
 
     @staticmethod
     def inc(status, headers=(), body="", tail=""):
@@ -745,13 +783,14 @@ class Stub:
 
     def run(self, argv):
         self.calls.append(list(argv))
+        self.events.append(("call", list(argv)))
         if argv == ["gh", "api", "rate_limit"]:
             return 0, json.dumps({"resources": {k: {"limit": 5000, "remaining": v, "reset": 9999} for k, v in self.remaining.items()}})
         k = sum(1 for c in self.calls if c != ["gh", "api", "rate_limit"])
         if k in self.limit_at:
             return 1, self.limit_at.pop(k)
-        if argv[:3] == ["gh", "api", "graphql"]:
-            return 0, json.dumps({"data": {"repository": {"i1": {"__typename": "Issue"}}}})
+        if "graphql" in argv[2:4]:
+            return self.graphql(argv[2] == "-i")
         path = argv[3]
         if any(d in path for d in self.down):
             return 1, self.inc(502, [], "", "gh: Bad Gateway (HTTP 502)\n")
@@ -886,7 +925,7 @@ def cases(m) -> dict[str, bool]:
     spent = Stub.inc(403, [("X-Ratelimit-Remaining", "0"), ("X-Ratelimit-Reset", "4600")], '{"message": "API rate limit exceeded"}', "gh: (HTTP 403)\n")
 
     def mirror(root, stub, only=("S3",), floor=None, said=None):
-        mm = m.Mirror(root, run=stub.run, run_bytes=stub.run_bytes, git=stub.git, http=stub.http, new_bare=stub.new_bare, sleep=stub.sleeps.append,
+        mm = m.Mirror(root, run=stub.run, run_bytes=stub.run_bytes, git=stub.git, http=stub.http, new_bare=stub.new_bare, sleep=stub.sleep,
                       now=lambda: stub.clock, repo="o/r", site=site, say=(said if said is not None else []).append,
                       **({} if floor is None else {"floor": floor}))
         return mm, mm.scan(list(only), "https://example.invalid/o/r", {})
@@ -1165,18 +1204,96 @@ def cases(m) -> dict[str, bool]:
             and mg.man["sources"]["S5"]["unserved"] == m.UNSERVED["S5"] and ma.man["sources"]["S3"]["unserved"] == m.UNSERVED["S3"] \
             and stat.S_IMODE(os.stat(Path(td) / "a" / "corpus" / "MANIFEST.json").st_mode) == 0o600 \
             and stat.S_IMODE(os.stat(Path(td) / "a" / "corpus" / "pages" / "issues" / "1.json").st_mode) == 0o600
+        import math
+        n_batches = math.ceil(250 / m.GRAPHQL_BATCH)
+        paced = {}
+        for cost in (92, 46):
+            p_ = Stub()
+            p_.gql_cost = cost
+            mp, rc = mirror(Path(td) / f"pace{cost}", p_)
+            paced[cost] = (rc, mp.cur["state"], p_.gql_gaps(), mp)
+        want = {c_: c_ * 3600 / 5000 for c_ in paced}
+        r["graphql pace: after a query of cost c each GraphQL call waits c*3600/limit, proportional to the cost"] = \
+            all(rc == 0 and st == "complete" and len(gaps) == n_batches and gaps[0] == m.gh_read.MIN_GAP_S
+                and all(g_ is not None and abs(g_ - want[c_]) < 1e-6 for g_ in gaps[1:]) for c_, (rc, st, gaps, _) in paced.items())
+        stored = [json.loads(f_.read_text()) for f_ in (Path(td) / "pace92" / "corpus" / "graphql" / "items").glob("*.json")]
+        r["graphql pace: the rateLimit read for pacing is not stored with the items"] = \
+            len(stored) == n_batches and all("rateLimit" not in x and "repository" in x for x in stored)
+        r["graphql pace null: a query of cost 1 waits only the gap"] = \
+            set(a.gql_gaps()[1:]) == {m.gh_read.MIN_GAP_S}
+        fl, said = Stub(), []
+        fl.gql_cost, fl.gql_remaining = 92, 3300
+        reset0 = fl.gql_reset
+        mfl, rc = mirror(Path(td) / "gfloor", fl, said=said)
+        r["graphql floor: a query the last cost would take under the floor sleeps until resetAt (under an hour), and the scan completes"] = \
+            rc == 0 and mfl.cur["state"] == "complete" and fl.gql_min >= 0.6 * 5000 and reset0 in fl.gql_clocks \
+            and len([g_ for g_ in fl.gql_gaps() if g_ and g_ > 600]) == 1 and max(fl.sleeps) < 3600 \
+            and set(mfl.cur["items"]["item batches"].values()) == {"ok"} and not any("paused" in x for x in said)
+        ph, said = Stub(), []
+        ph.gql_cost, ph.gql_remaining, ph.gql_reset = 92, 3300, int(ph.clock) + 4000
+        mph, rc = mirror(Path(td) / "ghour", ph, said=said)
+        state1, done1 = mph.cur["state"], dict(mph.cur["items"].get("item batches", {}))
+        ph.clock = float(ph.gql_reset)  # the reset has come: the next run finds the bucket refilled
+        mph2, rc2 = mirror(Path(td) / "ghour", ph)
+        r["graphql floor: a reset an hour or more away pauses at the cursor instead of sleeping, and the run after it completes"] = \
+            rc == 0 and state1 == "paused" and any("paused" in x for x in said) and max(ph.sleeps) < 3600 \
+            and len(done1) == 3 and ph.gql_min >= 0.6 * 5000 - 92 \
+            and rc2 == 0 and mph2.cur["state"] == "complete" and set(mph2.cur["items"]["item batches"].values()) == {"ok"}
+        sec60 = Stub.inc(403, [("Retry-After", "60")], '{"message": "You have exceeded a secondary rate limit."}',
+                         "gh: You have exceeded a secondary rate limit. (HTTP 403)\n")
+        sec600 = sec60.replace("Retry-After: 60", "Retry-After: 600")
+        primary = Stub.inc(200, [("X-Ratelimit-Remaining", "0")], '{"errors": [{"type": "RATE_LIMITED", "message": "API rate limit exceeded for user ID 1."}]}',
+                           "gh: API rate limit exceeded for user ID 1.\n")
+        sec = {}
+        for label, fails in (("once", [sec60]), ("twice", [sec60, sec60]), ("long", [sec600]), ("primary", [primary])):
+            s_, said = Stub(), []
+            s_.gql_fail = list(fails)
+            ms_, rc = mirror(Path(td) / ("gsec" + label), s_, said=said)
+            sec[label] = (rc, ms_.cur["state"], len(s_.gql_clocks), s_.sleeps, ms_.cur["items"].get("item batches", {}), any("paused" in x for x in said))
+        rc, st, n_q, sl, items, paused = sec["once"]
+        r["graphql secondary: a secondary limit naming a 60 s Retry-After is waited out and the query retried once, and the scan completes"] = \
+            rc == 0 and st == "complete" and n_q == n_batches + 1 and sl.count(60.0) == 1 and len(items) == n_batches \
+            and set(items.values()) == {"ok"} and not paused
+        rc, st, n_q, sl, items, paused = sec["twice"]
+        r["graphql secondary: a second secondary answer after the one retry pauses at the cursor"] = \
+            rc == 0 and st == "paused" and paused and n_q == 2 and sl.count(60.0) == 1 and items == {}
+        r["graphql secondary: a Retry-After past the cap, or a spent primary bucket, pauses at once without sleeping"] = \
+            all(sec[k_][:3] == (0, "paused", 1) and sec[k_][5] and not [x for x in sec[k_][3] if x > 45] and sec[k_][4] == {} for k_ in ("long", "primary"))
+        fc = getattr(m, "formula_cost", None)
+        example = "query{viewer{login repositories(first:100){edges{node{id issues(first:50){edges{node{id labels(first:60){edges{node{id name}}}}}}}}}}}"
+        item_doc = lambda n_: m.ITEM_QUERY % "\n".join(m.ITEM_FIELDS % (k_, k_) for k_ in range(1, n_ + 1))  # noqa: E731
+        r["cost: GitHub's documented example costs 51 by the formula, and one item query of GRAPHQL_BATCH items stays under QUERY_COST_CAP"] = \
+            fc is not None and fc(example) == 51 and fc(item_doc(m.GRAPHQL_BATCH)) <= getattr(m, "QUERY_COST_CAP", 0) < fc(item_doc(m.GRAPHQL_BATCH + 3))
+        z = Stub()
+        real_batch = m.GRAPHQL_BATCH
+        m.GRAPHQL_BATCH = 7
+        try:
+            mirror(Path(td) / "part", z)
+        finally:
+            m.GRAPHQL_BATCH = real_batch
+        mz, rc = mirror(Path(td) / "part", z)
+        uz = mz.man["sources"]["S3"]["units"]["item batches"]
+        r["partition: a batch key of another GRAPHQL_BATCH kept in the cursor is no unit of this pass: universe and examined count the current batches"] = \
+            rc == 0 and (uz["universe"], uz["examined"]) == (n_batches, n_batches) and len(mz.cur["items"]["item batches"]) == n_batches
         j = Stub()
         mj = m.Mirror(Path(td) / "gate", run=j.run, run_bytes=j.run_bytes, git=j.git, http=j.http, new_bare=j.new_bare, sleep=j.sleeps.append, repo="o/r")
         blocked = []
         for argv in (["gh", "api", "-i", "search/issues?q=x"], ["gh", "api", "repos/o/r/issues", "-f", "title=x"],
-                     ["gh", "api", "graphql", "-f", "query=mutation{x}"], ["gh", "issue", "create"]):
+                     ["gh", "api", "graphql", "-f", "query=mutation{x}"], ["gh", "api", "-i", "graphql", "-f", "query=mutation{x}"],
+                     ["gh", "issue", "create"]):
             try:
                 mj._gate(argv, "core")
                 blocked.append(False)
             except AssertionError:
                 blocked.append(True)
         r["gate: a search path, a field write, a mutation or any other gh command stops the mirror before the call"] = \
-            blocked == [True] * 4 and j.calls == []
+            blocked == [True] * 5 and j.calls == []
+        try:
+            mj._gate(["gh", "api", "-i", "graphql", "-f", "query=query{x}"], "graphql")
+            admitted = True
+        except AssertionError:
+            admitted = False
+        r["gate null: a query read with its headers (-i) is admitted"] = admitted
     r["unmapped: only refs/ names outside heads, tags and pull count, each namespace once"] = \
         m.unmapped("a\tHEAD\nb\trefs/heads/x\nc\trefs/notes/a\nd\trefs/notes/b\ne\trefs/pull/1/merge\n") == ["refs/notes/"]
     r["links: relative and absolute same-site links are kept, another host and a fragment are cut"] = \
