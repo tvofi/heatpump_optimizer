@@ -1,0 +1,9 @@
+RESULT holiday_unset_baseline_absent=None
+RESULT holiday_unset_mutant_absent=[]
+RESULT holiday_unset_baseline_empty=None
+RESULT holiday_unset_mutant_empty=[]
+RESULT holiday_unset_baseline_none=None
+RESULT holiday_unset_mutant_none=[]
+RESULT unset_forms_moved=3 count
+RESULT null_delta=0 count
+RESULT reach_unset_calls=3 count

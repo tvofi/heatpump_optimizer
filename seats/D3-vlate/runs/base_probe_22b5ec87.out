@@ -1,0 +1,6 @@
+RESULT delivered_baseline=0.278400 kW
+RESULT delivered_mutant=2.800000 kW
+RESULT delta=2.521600 kW
+RESULT null_delta=0.0 kW
+RESULT reach_valve_calls=64 count
+RESULT reach_valve_calls_single_tank=64 count

@@ -1,0 +1,5 @@
+RESULT 70_i_disabled_fuse8_base=((6.0, 8.0), False) mut=((6.0, 4.0), True)
+RESULT 70_ii_enabled_factor0_fuse8_base=((6.0, 8.0), False) mut=((6.0, 8.0), False)
+RESULT 70_iii_enabled_factor0_nofuse_base=((6.0, inf), False) mut=((0.0, 4.0), False)
+RESULT 70_cells_moved=2 of 3
+RESULT 70_null_moved=0

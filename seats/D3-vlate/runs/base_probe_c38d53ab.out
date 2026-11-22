@@ -1,0 +1,8 @@
+RESULT mean_is_exact=1 count
+RESULT accepted_baseline=0 count
+RESULT accepted_mutant=1 count
+RESULT quarter_days_delta=1 count
+RESULT fold_quarter_days_seen_baseline=0 count
+RESULT fold_quarter_days_seen_mutant=1 count
+RESULT null_delta=0 count
+RESULT reach_real_price_days_at_boundary=0 count

@@ -1,0 +1,6 @@
+RESULT dhw_kwh_baseline=2.5056 kWh
+RESULT dhw_kwh_mutant=1.9948 kWh
+RESULT delta_kwh=-0.5108 kWh
+RESULT null_delta_kwh=0.000000 kWh
+RESULT realistic_delta_kwh=0.000000 kWh
+RESULT min_price_for_separation=8000 per-kWh
