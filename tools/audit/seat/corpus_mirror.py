@@ -984,6 +984,19 @@ def cases(m) -> dict[str, bool]:
             got == {**{label: ("a member's path is both a file and a directory", False) for label in shapes},
                     "a member named for the directory itself": ("a member's path is the archive's directory", False),
                     "the same through a parent": ("a member's path is the archive's directory", False)}
+        buf_ = io.BytesIO()
+        with zipfile.ZipFile(buf_, "w") as z_:
+            z_.writestr(zipfile.ZipInfo(""), "x")  # built before the patch below: writestr reads the name too
+        real_is_dir = m.zipfile.ZipInfo.is_dir
+        m.zipfile.ZipInfo.is_dir = lambda self: self.filename[-1] == "/"  # CPython 3.11.5's body: IndexError on ""
+        try:
+            empty = m.safe_extract(buf_.getvalue(), Path(td) / "shape" / "empty"), (Path(td) / "shape" / "empty").exists()
+        except Exception as e_:  # the defect: the interpreter's zipfile decides, and raises
+            empty = "RAISED " + type(e_).__name__, None
+        finally:
+            m.zipfile.ZipInfo.is_dir = real_is_dir
+        r["archives: a member with an empty name is refused whole as the directory itself, read from the name under any interpreter's ZipInfo.is_dir"
+          + ("" if empty[1] is False else f"; got {empty}")] = empty == ("a member's path is the archive's directory", False)
         try:
             long_name = m.safe_extract(zip_of([("ok.txt", "x"), ("n" * 300, "x")]), Path(td) / "shape" / "long"), (Path(td) / "shape" / "long").exists()
         except Exception as e_:
