@@ -7,7 +7,16 @@ import json, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-S1 = HERE.parents[1]
+
+
+def _repo(p):
+    for c in (p, *p.parents):
+        if (c / "custom_components/heatpump_optimizer/manifest.json").is_file():
+            return c
+    raise RuntimeError("no repository root")
+
+
+S1 = _repo(HERE) / "dev/audit/rounds/round11/D3/s1"
 PR = "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes"
 FG = "dev/audit/rounds/round11/D3/s1/fullgate.py"
 DP = "custom_components/heatpump_optimizer/dhw_planner.py"
