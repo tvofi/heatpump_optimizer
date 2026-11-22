@@ -13,3 +13,4 @@
 1795365309 CKPT body drafted; scoped gate running (card, drift, features ok so far) snapshot a2d0988674a9
 1795365819 CKPT scoped gate 14 ok, browser grid ok; prepr running snapshot 93380e3c6561
 1795365830 HB alive
+1795366464 CKPT BLOCKED at handoff: head 0b0d442c21 ready (gate, browser, prepr rc 0); push to handoff/r11-owner-card-external-heat denied by session permission; body in snapshot as HANDOFF_BODY.r11-owner-card-external-heat.md snapshot 4ec1e563647f
