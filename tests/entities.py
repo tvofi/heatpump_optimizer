@@ -15692,9 +15692,14 @@ R.check(
     _mig_bad_ok is True
     and len(_mig_bad_logs) == 1 and "min_temperature" in _mig_bad_logs[0].getMessage()
     and _mig_bad.version == const.CONFIG_ENTRY_VERSION
-    # 7.2 then places each surviving key: neither is DATA_ONLY, so both land in options
+    # Numeric text is its number, None is dropped, anything else is its default;
+    # 7.2 then places each key: none is DATA_ONLY, so every one lands in options.
     and _mig_bad.data == {}
-    and _mig_bad.options == {"dhw_tank_volume": 200.0, "silent_mode_power_fraction": "abc"},
+    and _mig_bad.options == {
+        "min_temperature": const.DEFAULT_MIN_TEMP, "max_temperature": const.DEFAULT_MAX_TEMP,
+        "dhw_tank_volume": 200.0, "mixing_valve_target": const.DEFAULT_MIXING_VALVE_TARGET,
+        "comfort_weight": const.DEFAULT_COMFORT_WEIGHT, "price_weight": const.DEFAULT_PRICE_WEIGHT,
+        "cop_scale": const.DEFAULT_COP_SCALE, "silent_mode_power_fraction": "abc"},
     f"data={_mig_bad.data} options={_mig_bad.options}",
 )
 _mig_after = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
@@ -15723,30 +15728,167 @@ R.check(
     f"{_mig_iv}",
 )
 
-# The keys the migration must repair, by the parse's own behaviour rather than
-# by entry_config._DEFAULTED_NUMBERS: a field whose parse reads numeric text as
-# its float and other text as the default. Text left under one such key is read
-# raw by no parse at all once a release reads it outside EntryConfig.
+# D1-s2-05, the whole class: every numeric option a release stores. The rule
+# enumerates it from where the keys come from and where they are read, not
+# from the repair's own key set: the options flow's number rows (a money row
+# builds its NumberSelector per currency), the building questionnaire's number
+# fields, every key ThermalParameters.from_config or comfort_band.violations
+# reads with a numeric default (recorded by a mapping that answers every read
+# with its default), and every field EntryConfig parses as a number.
+import inspect as _mig_inspect  # noqa: E402
+from homeassistant.helpers import selector as _mig_selector  # noqa: E402
+from heatpump_optimizer import comfort_band as _mig_band  # noqa: E402
+from heatpump_optimizer import entry_config as _mig_entry  # noqa: E402
 from heatpump_optimizer.entry_config import number_repairs as _mig_repairs  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _MigTP  # noqa: E402
 
 
-def _mig_defaulted(f):
-    _p = f.metadata["parse"]
-    _twelve = _p("12", f.default)
-    return _p("abc", f.default) == f.default and type(_twelve) is float and _twelve == 12.0
+class _MigReads(dict):
+    """An empty mapping that records each key read with ``.get`` and its default."""
+
+    def __init__(self):
+        super().__init__()
+        self.read = {}
+
+    def get(self, key, default=None):
+        self.read.setdefault(key, default)
+        return default
 
 
-_mig_numeric = [f.name for f in _mig_fields(_MigEC) if f.metadata and _mig_defaulted(f)]
-_mig_unrepaired = [k for k in _mig_numeric if _mig_repairs({k: "12"}) != {k: 12.0}]
+def _mig_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _mig_raw_numbers(read):
+    reads = _MigReads()
+    read(reads)
+    return {k for k, v in reads.read.items() if _mig_number(v)}
+
+
+_MIG_NUMERIC_PARSES = {
+    const.finite_float, _mig_entry._nonzero_number, _mig_entry._interval_minutes,
+    _mig_entry._lead_minutes, _mig_entry._whole, _mig_entry._refused_number,
+}
+_mig_parse = {f.name: f.metadata["parse"] for f in _mig_fields(_MigEC) if f.metadata}
+_mig_class = {
+    "flow": {
+        r.key for r in config_flow._OPTION_FIELDS
+        if isinstance(r.widget, _mig_selector.NumberSelector)
+        or (isinstance(r.widget, config_flow._ByHass)
+            and re.search(r"\b_(money|number)\(", _mig_inspect.getsource(r.widget.of)))
+    },
+    "questionnaire": {
+        m.schema for m, w in config_flow._questionnaire_fields({}).items()
+        if isinstance(w, _mig_selector.NumberSelector)
+    },
+    "thermal": _mig_raw_numbers(_MigTP.from_config),
+    "band": _mig_raw_numbers(lambda reads: _mig_band.violations({}, reads)),
+    "parsed": {k for k, p in _mig_parse.items() if p in _MIG_NUMERIC_PARSES},
+}
+_mig_members = sorted(set().union(*_mig_class.values()))
 R.check(
-    "every option whose parse defaults text it cannot read is repaired by the migration",
-    "optimization_interval" in _mig_numeric and "wood_lighting_lead_minutes" in _mig_numeric
-    and not _mig_unrepaired,
-    f"unrepaired: {_mig_unrepaired}",
+    "the numeric-option census reaches every source it enumerates (precondition)",
+    all(_mig_class.values())
+    and {"day_start_hour", "buffer_tank_volume", "heated_area_m2", "wood_price_sek_m3",
+         "price_vat"} <= set(_mig_members),
+    f"{ {s: len(k) for s, k in _mig_class.items()} }",
+)
+_mig_undeclared = [k for k in _mig_members if _mig_parse.get(k) not in _MIG_NUMERIC_PARSES]
+R.check(
+    "every numeric option a release stores is declared in EntryConfig with a numeric parse",
+    not _mig_undeclared,
+    f"undeclared: {_mig_undeclared}",
+)
+# The residue: a ``_refused_number`` field reads a refused value as None, which
+# caps nothing, and dropping the key would make it the default instead.
+_mig_repaired = [k for k in _mig_members if _mig_parse.get(k) is not _mig_entry._refused_number]
+_mig_open = {}
+for _k in _mig_repaired:
+    if _k not in _mig_parse:
+        _mig_open[_k] = ["undeclared"]
+        continue
+    for _bad in ("abc", None, [12], {"v": 12}, "12"):
+        _rep = _mig_repairs({_k: _bad})
+        _before = getattr(_MigEC.from_mapping({_k: _bad}), _k)
+        _after = getattr(_MigEC.from_mapping(_mig_entry.repaired_numbers({_k: _bad}, _rep)), _k)
+        _stored = _mig_entry.repaired_numbers({_k: _bad}, _rep).get(_k)
+        if set(_rep) != {_k} or _before != _after or not (_stored is None or _mig_number(_stored)):
+            _mig_open.setdefault(_k, []).append(repr(_bad))
+R.check(
+    "the migration repairs every member's non-number: numeric text is stored as its number, "
+    "None is dropped, anything else is its default, and no parsed field moves",
+    _mig_repaired and not _mig_open,
+    f"open: {_mig_open}",
 )
 R.check(
     "and a stored number under each is left alone (null control)",
-    not [k for k in _mig_numeric if _mig_repairs({k: 12.0})],
+    not [k for k in _mig_members if _mig_repairs({k: 12.0}) or _mig_repairs({k: 12})],
+)
+_mig_whole = _mig_repairs({"day_start_hour": "9", "ecl110_mqtt_qos": " 1 ", "day_end_hour": "7.5"})
+R.check(
+    "an hour stored as text is stored as its whole number, and text no whole number reads as the default",
+    _mig_whole == {"day_start_hour": 9, "ecl110_mqtt_qos": 1, "day_end_hour": const.DEFAULT_DAY_END_HOUR}
+    and type(_mig_whole["day_start_hour"]) is int,
+    f"{_mig_whole}",
+)
+_mig_raw = FakeEntry(data={"day_start_hour": "abc", "buffer_tank_volume": None, "ecl110_mqtt_qos": "1"})
+
+
+def _mig_raw_reads(entry):
+    """The two raw readers the finding names, over ``entry``'s mapping: None, or what raised."""
+    merged = {**entry.data, **entry.options}
+    try:
+        _MigTP.from_config(merged)
+        _mig_band.violations({}, merged)
+    except (TypeError, ValueError) as err:
+        return repr(err)
+    return None
+
+
+_mig_raw_before = _mig_raw_reads(_mig_raw)
+_mig_raw_ok, _ = _mig_warnings(_mig_raw)
+R.check(
+    "an old entry's text hour and null tank volume no longer raise in the thermal table or the "
+    "comfort band once migrated",
+    _mig_raw_before is not None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
+    and {**_mig_raw.data, **_mig_raw.options}
+    == {"day_start_hour": const.DEFAULT_DAY_START_HOUR, "ecl110_mqtt_qos": 1},
+    f"before={_mig_raw_before} after={_mig_raw_reads(_mig_raw)} "
+    f"stored={ {**_mig_raw.data, **_mig_raw.options} }",
+)
+# A reader that takes a key's presence (a zone, the hot-water tank, the buffer
+# cooling prior) reads the repaired entry as it read the stored one.
+from heatpump_optimizer import thermal_model as _mig_thermal  # noqa: E402
+
+_mig_present = FakeEntry(data={"upper_floor_thermal_mass": "abc", "dhw_tank_volume": [200],
+                               "buffer_cooling_rate": {"v": 1.0}})
+
+
+def _mig_presence(entry):
+    merged = {**entry.data, **entry.options}
+    return (_mig_thermal.two_zone_from_config(merged), _mig_thermal.dhw_enabled_from_config(merged),
+            "buffer_cooling_rate" in merged)
+
+
+_mig_present_before = _mig_presence(_mig_present)
+_mig_present_ok, _ = _mig_warnings(_mig_present)
+R.check(
+    "a repaired key stays present: an old two-zone, hot-water entry keeps both, and its buffer "
+    "cooling rate stays configured",
+    _mig_present_ok is True and _mig_present_before == (True, True, True)
+    and _mig_presence(_mig_present) == _mig_present_before,
+    f"before={_mig_present_before} after={_mig_presence(_mig_present)} "
+    f"stored={ {**_mig_present.data, **_mig_present.options} }",
+)
+_mig_cleared = FakeEntry(data={"dhw_tank_volume": None})
+_mig_cleared_before = _mig_presence(_mig_cleared)
+_mig_cleared_ok, _ = _mig_warnings(_mig_cleared)
+R.check(
+    "and a stored None is no value: it is dropped, so a cleared tank volume enables no hot water",
+    _mig_cleared_ok is True and _mig_cleared_before[1] is False
+    and _mig_presence(_mig_cleared)[1] is False and not {**_mig_cleared.data, **_mig_cleared.options},
+    f"before={_mig_cleared_before} after={_mig_presence(_mig_cleared)} "
+    f"stored={ {**_mig_cleared.data, **_mig_cleared.options} }",
 )
 
 _new = FakeEntry()

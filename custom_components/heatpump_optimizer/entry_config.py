@@ -238,6 +238,62 @@ class EntryConfig(Mapping[str, Any]):
     wood_lighting_lead_minutes: float = _key(const.DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _lead_minutes)
     wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, finite_float)
 
+    # Numbers read off the stored mapping rather than this parse: the thermal
+    # table, the options flow's other number fields, the questionnaire's area.
+    # Declared so each has one parse and the migration repairs a non-number an
+    # earlier release stored under it (D1-s2-05).
+    away_dhw_min_temperature: float = _key(const.DEFAULT_AWAY_DHW_MIN_TEMP, finite_float)
+    away_temperature: float = _key(const.DEFAULT_AWAY_TEMPERATURE, finite_float)
+    buffer_cooling_rate: float = _key(const.DEFAULT_BUFFER_COOLING_RATE, finite_float)
+    buffer_max_temperature: float = _key(const.DEFAULT_BUFFER_MAX_TEMP, finite_float)
+    buffer_tank_heat_loss: float = _key(const.DEFAULT_BUFFER_TANK_LOSS, finite_float)
+    buffer_tank_volume: float = _key(const.DEFAULT_BUFFER_TANK_VOLUME, finite_float)
+    combi_dhw_effectiveness: float = _key(const.DEFAULT_COMBI_DHW_EFFECTIVENESS, finite_float)
+    combi_potable_volume_l: float = _key(const.DEFAULT_COMBI_POTABLE_VOLUME_L, finite_float)
+    dhw_cooling_rate: float = _key(const.DEFAULT_DHW_COOLING_RATE, finite_float)
+    dhw_daily_consumption: float = _key(const.DEFAULT_DHW_DAILY_CONSUMPTION, finite_float)
+    dhw_idle_min_temperature: float = _key(const.DEFAULT_DHW_IDLE_MIN_TEMP, finite_float)
+    dhw_inlet_seasonal_amplitude: float = _key(const.DEFAULT_DHW_INLET_SEASONAL_AMPLITUDE, finite_float)
+    dhw_inlet_temp: float = _key(const.DEFAULT_DHW_INLET_TEMP, finite_float)
+    dhw_legionella_interval_days: float = _key(const.DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS, finite_float)
+    dhw_legionella_min_interval_days: float = _key(const.DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, finite_float)
+    dhw_legionella_temperature: float = _key(const.DEFAULT_DHW_LEGIONELLA_TEMP, finite_float)
+    dhw_min_temperature: float = _key(const.DEFAULT_DHW_MIN_TEMP, finite_float)
+    dhw_setpoint: float = _key(const.DEFAULT_DHW_SETPOINT, finite_float)
+    ecl110_pid_time_constant_hours: float = _key(const.DEFAULT_ECL110_PID_TIME_CONSTANT, finite_float)
+    flow_heat_c: float = _key(const.DEFAULT_FLOW_HEAT_C, finite_float)
+    flow_min_lift_k: float = _key(const.DEFAULT_FLOW_MIN_LIFT_K, finite_float)
+    greywater_recovery_effectiveness: float = _key(const.DEFAULT_GREYWATER_RECOVERY, finite_float)
+    grid_fee_fixed: float = _key(const.DEFAULT_GRID_FEE_FIXED, finite_float)
+    heat_pump_cop_nominal: float = _key(const.DEFAULT_HEAT_PUMP_COP_NOMINAL, finite_float)
+    heat_pump_cop_partload_derate: float = _key(const.DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE, finite_float)
+    heat_pump_max_power: float = _key(const.DEFAULT_HEAT_PUMP_MAX_POWER, finite_float)
+    heat_pump_min_power: float = _key(const.DEFAULT_HEAT_PUMP_MIN_POWER, finite_float)
+    heated_area_m2: float = _key(const.DEFAULT_HEATED_AREA, finite_float)
+    house_heat_loss_coefficient: float = _key(const.DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT, finite_float)
+    house_heat_loss_scale: float = _key(const.DEFAULT_HOUSE_HEAT_LOSS_SCALE, finite_float)
+    house_thermal_mass: float = _key(const.DEFAULT_HOUSE_THERMAL_MASS, finite_float)
+    inter_zone_heat_transfer: float = _key(const.DEFAULT_INTER_ZONE_TRANSFER, finite_float)
+    lower_floor_heat_loss: float = _key(const.DEFAULT_LOWER_FLOOR_HEAT_LOSS, finite_float)
+    lower_floor_loss_ratio: float = _key(const.DEFAULT_LOWER_FLOOR_LOSS_RATIO, finite_float)
+    lower_floor_thermal_mass: float = _key(const.DEFAULT_LOWER_FLOOR_THERMAL_MASS, finite_float)
+    price_surcharge: float = _key(const.DEFAULT_PRICE_SURCHARGE, finite_float)
+    price_vat: float = _key(const.DEFAULT_PRICE_VAT, finite_float)
+    radiator_power_fraction: float = _key(const.DEFAULT_RADIATOR_POWER_FRACTION, finite_float)
+    rain_heat_loss_multiplier: float = _key(const.DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER, finite_float)
+    slab_heat_transfer: float = _key(const.DEFAULT_SLAB_HEAT_TRANSFER, finite_float)
+    slab_thermal_mass: float = _key(const.DEFAULT_SLAB_THERMAL_MASS, finite_float)
+    solar_heat_gain_coefficient: float = _key(const.DEFAULT_SOLAR_HEAT_GAIN_COEFF, finite_float)
+    solar_orientation_factor: float = _key(const.DEFAULT_SOLAR_ORIENTATION_FACTOR, finite_float)
+    solar_upper_fraction: float = _key(const.DEFAULT_SOLAR_UPPER_FRACTION, finite_float)
+    upper_floor_area_ratio: float = _key(const.DEFAULT_UPPER_FLOOR_AREA_RATIO, finite_float)
+    upper_floor_heat_loss: float = _key(const.DEFAULT_UPPER_FLOOR_HEAT_LOSS, finite_float)
+    upper_floor_thermal_mass: float = _key(const.DEFAULT_UPPER_FLOOR_THERMAL_MASS, finite_float)
+    wind_sensitivity_factor: float = _key(const.DEFAULT_WIND_SENSITIVITY, finite_float)
+    window_area: float = _key(const.DEFAULT_WINDOW_AREA, finite_float)
+    wood_furnace_efficiency: float = _key(const.DEFAULT_WOOD_FURNACE_EFFICIENCY, finite_float)
+    wood_price_sek_m3: float | None = _key(None, finite_float)
+
     # A fraction this version cannot read caps nothing: None, not the default.
     silent_mode_power_fraction: float | None = _key(const.DEFAULT_SILENT_MODE_FRACTION, _refused_number)
 
@@ -328,22 +384,24 @@ class EntryConfig(Mapping[str, Any]):
 #: The parses that read a value they refuse as the key's default, so a refused
 #: stored value and an absent key parse alike.
 _DEFAULTED_NUMBERS: tuple[Parse, ...] = (
-    finite_float, _nonzero_number, _interval_minutes, _lead_minutes,
+    finite_float, _nonzero_number, _interval_minutes, _lead_minutes, _whole,
 )
 
 
-def number_repairs(stored: Mapping[str, Any]) -> dict[str, float | None]:
-    """Each defaulted numeric key ``stored`` holds a non-number for: its number, or None.
+def number_repairs(stored: Mapping[str, Any]) -> dict[str, float | int | None]:
+    """Each defaulted numeric key ``stored`` holds a non-number for: its parse, or None.
 
     An earlier release could store text, a list, a dict or ``None`` under a
     numeric option (D1-s2-05). The parse reads numeric text as its number and
     anything else as the default, but the thermal table and the comfort band
     read the stored value and raised on it at setup or on every cycle.
-    Storing the number, and dropping a key mapped to None, changes no parsed
-    field, and every raw reader then reads what the parse does.
+    Storing what the parse reads changes no parsed field, every raw reader
+    then reads what the parse does, and a key whose presence a reader takes (a
+    zone, the hot-water tank) stays present. A stored None is no value (v4.0.0
+    T3) and is dropped, as is a key whose default is None.
     """
     return {
-        f.name: finite_float(value)
+        f.name: None if value is None else f.metadata["parse"](value, f.default)
         for f in fields(EntryConfig)
         if f.metadata
         and f.metadata["parse"] in _DEFAULTED_NUMBERS
@@ -352,8 +410,8 @@ def number_repairs(stored: Mapping[str, Any]) -> dict[str, float | None]:
     }
 
 
-def repaired_numbers(stored: Mapping[str, Any], repairs: Mapping[str, float | None]) -> dict[str, Any]:
-    """``stored`` with ``repairs`` applied: a number replaces its text, None drops the key."""
+def repaired_numbers(stored: Mapping[str, Any], repairs: Mapping[str, float | int | None]) -> dict[str, Any]:
+    """``stored`` with ``repairs`` applied: a number replaces its non-number, None drops the key."""
     return {
         key: repairs.get(key, value)
         for key, value in stored.items()
