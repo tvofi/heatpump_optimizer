@@ -1,0 +1,23 @@
+unmutated rc=0 0 FAIL lines
+
+ALL 26 FEATURES BLOCK PASSED
+C1_both rc=1 2 FAIL lines
+  FAIL R11-OUTSIDE-ROOMS-3B: the scheduled build hands the solve its room lifts, 1.0 K at the cap and never above the margins; null control, the flag off or never stored hands None  [lifts=None off=[N
+  FAIL R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a 19.5 day target clips them to its 0.5 K band; null control, the flag off hands None  [lifts=None target=
+
+2 of 26 FEATURES BLOCK FAILED
+C1_sched rc=1 2 FAIL lines
+  FAIL R11-OUTSIDE-ROOMS-3B: the scheduled build hands the solve its room lifts, 1.0 K at the cap and never above the margins; null control, the flag off or never stored hands None  [lifts=None off=[N
+  FAIL R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a 19.5 day target clips them to its 0.5 K band; null control, the flag off hands None  [lifts=[1.0, 1.0, 1
+
+2 of 26 FEATURES BLOCK FAILED
+C1_whatif rc=1 1 FAIL lines
+  FAIL R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a 19.5 day target clips them to its 0.5 K band; null control, the flag off hands None  [lifts=None target=
+
+1 of 26 FEATURES BLOCK FAILED
+C1_whatif_cfg rc=1 2 FAIL lines
+  FAIL R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a 19.5 day target clips them to its 0.5 K band; null control, the flag off hands None  [lifts=[1.0, 1.0, 1
+  FAIL the what-if's build takes the lift the baseline was solved with, the same after the rooms recover, and clips it to its own configuration: a what-if at a 19.5 day target has a 0.5 K band; null c
+
+2 of 26 FEATURES BLOCK FAILED
+DONE

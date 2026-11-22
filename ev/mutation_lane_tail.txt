@@ -1,0 +1,28 @@
+2026-11-22T03:03:49.3345521Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-22T03:03:49.3345913Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+2026-11-22T03:03:49.3346242Z ##[endgroup]
+2026-11-22T03:03:49.7721898Z From https://github.com/tvofi/heatpump_optimizer
+2026-11-22T03:03:49.7722842Z  * branch                  main       -> FETCH_HEAD
+2026-11-22T03:03:53.6563289Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:731 BOOLOP: if margins is None and floors is None:
+2026-11-22T03:03:53.6564610Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:731 GUARD_OFF: if margins is None and floors is None:
+2026-11-22T03:03:53.6565982Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:733 GUARD_OFF: if margins is not None:
+2026-11-22T03:03:53.6567067Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:735 GUARD_OFF: if floors is not None:
+2026-11-22T03:03:53.6568198Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:739 CLAMP_DROP: low = np.maximum(low, mold)
+2026-11-22T03:03:53.6569632Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:743 RETURN_DEL: return np.minimum(low, high - 0.5), comfort, mold
+2026-11-22T03:03:53.6570971Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:2532 GUARD_OFF: if room_lifts is None:
+2026-11-22T03:03:53.6572352Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:2537 CLAMP_DROP: and room_temps[min(i + 1, last)] > temp_min_bounds[i] - room_lifts[i] + 
+2026-11-22T03:03:53.6573939Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:2537 CMP_BOUND: and room_temps[min(i + 1, last)] > temp_min_bounds[i] - room_lifts[i] + 
+2026-11-22T03:03:53.6575662Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:4933 GUARD_OFF: if room_lifts is not None:  # the same arithmetic on the margins less th
+2026-11-22T03:03:53.6577152Z     ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:4937 CLAMP_DROP: lifts = np.maximum(temp_min_bounds - unlifted, 0.0)
+2026-11-22T03:03:53.6578483Z     ADDED UNPINNED custom_components/heatpump_optimizer/rooms.py:310 GUARD_OFF: if held is None or not held.lift_c:
+2026-11-22T03:03:53.6580139Z     ADDED UNPINNED custom_components/heatpump_optimizer/rooms.py:321 CLAMP_DROP*3: lift = np.clip(np.minimum(np.minimum(band, ramp), held.lift_c), 0.0, Non
+2026-11-22T03:03:53.6581441Z     ADDED UNPINNED custom_components/heatpump_optimizer/rooms.py:322 GUARD_OFF: if not lift.any():
+2026-11-22T03:03:53.6582672Z     ADDED UNPINNED custom_components/heatpump_optimizer/rooms.py:324 RETURN_DEL: return {"min_temp_margins": margins + lift, "room_lifts": lift}
+2026-11-22T03:03:53.6584167Z     ADDED UNPINNED custom_components/heatpump_optimizer/slot_drivers.py:116 CLAMP_DROP: half = np.maximum((ceiling - floor) / 2.0, MIN_HALF_BAND_C)
+2026-11-22T03:03:53.6585899Z     ADDED UNPINNED custom_components/heatpump_optimizer/slot_drivers.py:125 CLAMP_DROP: "comfort_floor": np.clip((floor - (0.0 if lifts is None else lifts) + ha
+2026-11-22T03:03:53.6587867Z     ADDED UNPINNED custom_components/heatpump_optimizer/slot_drivers.py:127 CLAMP_DROP: "mold_guard": np.clip((mold - floor) / half, 0.0, 1.0),
+2026-11-22T03:03:53.6589437Z     ADDED UNPINNED custom_components/heatpump_optimizer/slot_drivers.py:128 CLAMP_DROP: "away": -np.clip(drops / half, 0.0, 1.0),
+2026-11-22T03:03:53.6590901Z     ADDED UNPINNED custom_components/heatpump_optimizer/slot_drivers.py:131 RETURN_DEL: return {code: pushes[code] for code in DRIVER_CODES if pushes[code] is n
+2026-11-22T03:03:53.6593817Z MUTATION TABLE REFUSED -- 1967 unpinned site(s) against 1950 at the ratchet base f269ecccb5f1dfd21eca03a3d5dcc43b3a145603, 22 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+2026-11-22T03:03:53.6596595Z     custom_components/heatpump_optimizer/__init__.py:56 GUARD_OFF: if TYPE_CHECKING:
+2026-11-22T03:03:53.6597615Z     custom_components/heatpump_optimizer/__init__.py:91 RETURN_DEL: return importlib.import_module(f".{module}", __package__)
