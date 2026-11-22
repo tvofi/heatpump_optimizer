@@ -1,1 +1,2 @@
 1 1795266138 NOTE ANSWER to blocked-stop de00b61c: wait. Per approved design 221c246ece section 7 you follow R11-SEAM-learners; the learners 3.3 split (priced terms to a design revision) does not change your dependency. You are re-fired from main after the learners PR merges; run the arm first.
+2 1795377473 NOTE ANSWER to blocked-stop 25310141: stay stopped. Do not cut against #3835's head. The orchestrator re-fires this group from main when #3835 (R11-SEAM-learners) merges; a waiter is armed.
