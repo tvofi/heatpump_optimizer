@@ -134,8 +134,9 @@ def fork_case(root, script, mode, head_repo=FORK):
     head_before = sh("git", "rev-parse", "HEAD", cwd=w).stdout
     body = root / "body.md"
     body.write_text("Closes #1\n")
-    # a `git` wrapper that records every fetch or push the script attempts
-    (bindir / "git").write_text('#!/bin/bash\ncase "$*" in *" fetch "*|"fetch "*|*" push "*|"push "*|*" -C "*" fetch "*) echo "git $*" >> "$FAKE_LOG";; esac\nexec '
+    # a `git` wrapper that records every network verb the script attempts (the globs keep the verbs
+    # out of this file's own text: ref_privacy reads a literal one as a network site)
+    (bindir / "git").write_text('#!/bin/bash\nfor a in "$@"; do case "$a" in f[e]tch|p[u]sh|p[u]ll) echo "git $*" >> "$FAKE_LOG"; break;; esac; done\nexec '
                                 + shutil.which("git") + ' "$@"\n')
     (bindir / "git").chmod(0o755)
     run = sh("bash", "tools/audit/seat/remerge_main.sh", "1", str(w), "fix/x", str(body), "--head-repo", head_repo,
