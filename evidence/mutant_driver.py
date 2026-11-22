@@ -1,13 +1,13 @@
 import sys, subprocess, pathlib, json, re
 muts = json.load(open(sys.argv[1]))
 for m in muts:
-    p = pathlib.Path('/tmp/wh') / m['file']; src = p.read_text()
+    p = pathlib.Path('/root/wt') / m['file']; src = p.read_text()
     n = src.count(m['old'])
     if n != 1:
         print(f"SKIP {m['id']} occurrences={n}"); continue
     p.write_text(src.replace(m['old'], m['new']))
     try:
-        cmd = m.get('cmd', 'bash /tmp/blk.sh')
+        cmd = m.get('cmd', 'bash /root/work/blk.sh')
         out = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=1500).stdout
     finally:
         p.write_text(src)

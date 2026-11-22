@@ -1,0 +1,23 @@
+[
+ {
+  "id": "L_tank_reading_none",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "ctx._thermal_params, tank.value if tank.ok else None,",
+  "new": "ctx._thermal_params, None,",
+  "cmd": "bash /root/work/blk.sh"
+ },
+ {
+  "id": "H_floor_pos_dropped",
+  "file": "custom_components/heatpump_optimizer/draw_range.py",
+  "old": "drawn_kw is not None and floor > 0.0 and drawn_kw <=",
+  "new": "drawn_kw is not None and drawn_kw <=",
+  "cmd": "bash /root/work/blk.sh"
+ },
+ {
+  "id": "L2_tank_ok_ignored",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "tank.value if tank.ok else None,",
+  "new": "tank.value,",
+  "cmd": "bash /root/work/blk.sh"
+ }
+]

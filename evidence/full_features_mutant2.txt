@@ -1,3 +1,0 @@
-rc=1
-  FAIL an unconfigured slot never freezes learning  [only the ventilation latch may speak here; a missing optional sensor must not stop every learner on every install that lacks it]
-1 of 6048 FEATURE CHECKS FAILED
