@@ -2292,13 +2292,16 @@ def selftest() -> int:
                 got = ("PlanError", str(exc)[:160])
             expect(f"no --roster-ref reads round {want}'s roster branch{tag}",
                    got == (want_ref, [f"R{want}-BRANCH-ONLY", f"R{want}-MAIN"]), str(got))
+            if want != newest:
+                continue  # round 10's roster carries CARRY_CUTOVER's real commit,
+                # which a scratch repo has not: the null stays at load_roster
             out = Path(td) / "plan.json"
             cli = subprocess.run([sys.executable, "-I", __file__, "--repo", str(repo),
                                   "--out", str(out), "--start", "2026-01-05T00:00:00Z"],
                                  capture_output=True, text=True)
             gen = (json.loads(out.read_text()).get("generated", {})
                    if cli.returncode == 0 and out.is_file() else {})
-            expect(f"the CLI with no --roster-ref plans from round {want}'s branch{tag}",
+            expect(f"the CLI with no --roster-ref plans from round {want}'s branch",
                    gen.get("roster_ref") == want_ref,
                    f"rc={cli.returncode} {gen.get('roster_ref')} {cli.stderr[-200:]}")
 

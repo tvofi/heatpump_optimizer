@@ -994,7 +994,8 @@ def _self_test():
         sha3 = _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip()
         (t / "nr.txt").write_text("next round\n")
         ck("a later round's roster is the one a ref carries: read, read back and shown",
-           roster_rel(sha3, repo) == newer and show_roster(roster_at(sha3, repo), "N")[0] == "N"
+           roster_rel(sha3, repo) == newer
+           and roster_lib.groups_of(roster_at(sha3, repo)) == {"N": {"group": "N", "carry": ["next round"]}}
            and readback(sha3, "N", t / "nr.txt", cwd=repo)[1]
            and readback_text(sha3, "N", "next round", cwd=repo), roster_rel(sha3, repo))
         ck("... null control: the commit before it reads its own round's roster",
