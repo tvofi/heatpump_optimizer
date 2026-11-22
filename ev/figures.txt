@@ -1,0 +1,7 @@
+selftest_scope static: 127 gated step(s), 0 problem(s)
+1	0	dev/programme/delivery/3832.md
+802	3	tools/ci/selftest_closures.json
+11 steps gain reads: ci-predictor 1, dependency-graph-census 265, policy-lint-mutants 259, prepr 265, regret-oracle 2, review-packet 1, roster-library 1, roster-sync-reconciler 1, self-tests-outside-seat 3, temp-or-machine-path 3, verdict-bus 1 (total 802); 3 probes of roster-library removed (dev/governance/dimensions/D12.md, D3.md, D99.md), replaced by its dirs entry dev/governance/dimensions; steps 127/127; duplicate items 0
+VERSION/manifest/RELEASE_NOTES/claim files changed in three-dot diff: 0
+custom_components lines changed: 0
+PR head via API: dd2f26e749d54d7295dc2873a601487ce59367a4
