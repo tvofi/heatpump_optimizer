@@ -1,1 +1,0 @@
-REFUSE selftests: the head's governance / instrument-self-tests job 136985641724 concluded cancelled, which reads no step: re-run it: an introduced red cannot be ruled out (fail closed)

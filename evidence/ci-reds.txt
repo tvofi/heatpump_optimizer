@@ -1,0 +1,13 @@
+get_check_runs on PR 3805 at head 3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79, read 2026-11-22 ~10:45Z.
+Latest run 45005979443: failures = governance / policy-docs (job 137157765280), pr-contract / pr-contract (job 137179279039), gate (job 137179646842, the aggregate).
+Earlier run 44996545418 at the same head: failures = governance / env-matrix, governance / policy-docs, governance / wave-script, tests / briefs, pr-contract, gate; env-matrix, wave-script and briefs are success in run 45005979443.
+policy-docs log tail:
+  REFUSED  census registry: a census gates unloaded_package_imports, which is no row of tests/structure_budgets.json or tests/ci_budgets.json
+  REFUSED  census structure.py unloaded_package_imports: its count line cannot be read at the unplanted tree
+  FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+pr-contract log:
+  ERROR [pr-body] check `governance / env-matrix` is red and `## Red checks` does not name it.
+  ERROR [pr-body] check `governance / policy-docs` is red and `## Red checks` does not name it.
+  ERROR [pr-body] check `tests / briefs` is red and `## Red checks` does not name it.
+  PR-BODY: 3 error(s)
+Local: the row unloaded_package_imports exists at origin/main (tests/structure_budgets.json, tests/structure.py, tools/policy/field_coverage.mjs), is absent at the head and at its merge base 80331098f4; it landed with ebb5b25345 (R11-SEAM-ratchets, PR #3729), not an ancestor of 80331098f4.
