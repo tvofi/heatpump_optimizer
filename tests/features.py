@@ -66889,15 +66889,20 @@ R.check(
 # the service nor the drift rollback may take it. Driven through take() with an
 # empty tracker's own summary; the same ring with an in-band bias restores
 # (null control).
+from heatpump_optimizer.snapshots import BIAS_BAND_C as _SI_BAND  # noqa: E402
+
 _si_unevidenced = {}
-for _si_label, _si_summary in (("empty", AccuracyTracker().summary()), ("in_band", {"temperature_bias": 0.1})):
+for _si_label, _si_summary in (("empty", AccuracyTracker().summary()), ("in_band", {"temperature_bias": 0.1}),
+                               ("edge", {"temperature_bias": -_SI_BAND}),
+                               ("past", {"temperature_bias": _SI_BAND + 0.01})):
     _si_r = _SiRing()
     _si_r.take(datetime(2026, 6, 1, 12, tzinfo=UTC), {"marker": _si_label}, _si_summary, True)
     _si_unevidenced[_si_label] = (_si_r.best_restore() is not None, _si_r.undo_target() is not None)
 R.check(
     "a snapshot whose accuracy summary carries no bias is no restore point for the service "
-    "or the drift rollback, and an in-band one is (D17-s3-03)",
-    _si_unevidenced == {"empty": (False, False), "in_band": (True, True)},
+    "or the drift rollback, and an in-band one is, the band's edge included (D17-s3-03)",
+    _si_unevidenced == {"empty": (False, False), "in_band": (True, True), "edge": (True, True),
+                        "past": (False, False)},
     f"{_si_unevidenced}",
 )
 
