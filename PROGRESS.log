@@ -17,3 +17,4 @@
 1795321418 HB alive
 1795321577 CKPT re-verified at dd2f26e7: artifact byte-identical, replay main 11 head 0, 4 perturbations each 1, merge-tree clean vs 35c3e31c; classify WAIT on queued gate-sweep snapshot f47abedddf73
 1795321684 CKPT verdict drafted (merge), carry_audit rc 0; measured head table vs main f269eccc: 3 refusals; waiting classify snapshot 648446b3b828
+1795322022 HB alive
