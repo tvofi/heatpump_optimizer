@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_1d0c70b3.py: pins dhw_floor_breach_c (C) published for a DHW-blocked plan whose DHW trajectory has as many entries as the (shared: g22_rig.py, reach_scan.py, breach_rig.py)

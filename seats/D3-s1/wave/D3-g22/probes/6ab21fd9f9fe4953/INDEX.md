@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_6ab21fd9.py: pins dhw_floor_breach_c (C) _publish_breach_reports publishes for a DHW-blocked plan, over the four (shared: g22_rig.py, reach_scan.py, breach_rig.py)

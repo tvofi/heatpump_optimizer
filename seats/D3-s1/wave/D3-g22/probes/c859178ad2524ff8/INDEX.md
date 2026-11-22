@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_c859178a.py: pins Reach: the trajectory always carries n+1 entries (reach_scan.py RESULT breach_traj_eq_n=0 over 6 real solves). (shared: g22_rig.py, reach_scan.py, breach_rig.py)

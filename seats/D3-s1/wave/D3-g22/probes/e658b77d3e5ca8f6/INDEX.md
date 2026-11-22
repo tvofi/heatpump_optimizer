@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_e658b77d.py: pins Reach: temp_min_bounds carries n_steps entries and the trajectory n+1 (reach_scan.py tmin=48, traj=49). (shared: g22_rig.py, reach_scan.py, breach_rig.py)

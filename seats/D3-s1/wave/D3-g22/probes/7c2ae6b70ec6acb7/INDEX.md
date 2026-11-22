@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7c2ae6b7.py: pins the plan's published pv_surplus list (HeatPumpOptimizer._pv_surplus_list, result.pv_surplus, which the (shared: g22_rig.py, reach_scan.py)

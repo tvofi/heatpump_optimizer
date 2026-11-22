@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_d600d488.py: pins dhw_floor_breach_c (C) published for a DHW-blocked plan whose trimmed DHW trajectory is longer than the (shared: g22_rig.py, reach_scan.py, breach_rig.py)

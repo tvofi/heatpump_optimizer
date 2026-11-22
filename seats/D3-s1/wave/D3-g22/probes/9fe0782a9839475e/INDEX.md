@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_9fe0782a.py: pins HeatPumpOptimizer._pv_self_consumed (kWh) for a power schedule longer than the stored surplus, and for the (shared: g22_rig.py, reach_scan.py)

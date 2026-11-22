@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_97da0984.py: pins the space release steps HeatPumpOptimizer._safety_release_steps returns for a forced-off pin that holds the (shared: g22_rig.py, reach_scan.py)

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_6e420d1e.py: pins dhw_floor_breach_c (C) published for a DHW-blocked plan with steps == 0 (an empty requirement, or a (shared: g22_rig.py, reach_scan.py, breach_rig.py)
