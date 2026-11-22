@@ -5,3 +5,4 @@
 1795358201 CKPT all 7 survivors killed by ev/mut.py snapshot f3d89e8e2737
 1795358321 CKPT code pushed handoff/r11-selftest-absorb 56f9e3758a snapshot 3ef062991e95
 1795358510 CKPT body pushed handoff-body 9e3bbec5c4 snapshot 1820158e06b2
+1795358520 DONE code 56f9e3758a on handoff/r11-selftest-absorb, body 9e3bbec5c4; M1 M2 M5-M9 killed, none triaged
