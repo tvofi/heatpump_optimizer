@@ -2,3 +2,4 @@
 1795363859 CKPT read verdict a5dea9b9c2; M7 remedy: add machinery_rowblind to CI-2 arms snapshot c354d196db4a
 1795363954 CKPT test written, M7 killed, committed snapshot 4638d9d0286d
 1795364000 CKPT body drafted; entities running snapshot 2c5a962c5e60
+1795364155 CKPT prepr rc 0 (scoped); waiting on entities.py snapshot b87ec2e0808d
