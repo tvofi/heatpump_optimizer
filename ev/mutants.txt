@@ -1,0 +1,30 @@
+M1 block_ignored guard deleted: rc=1 1 FAIL
+      FAIL  OWNER-EXTHEAT pill: the sensor on with block_ignored true falls through to the heating the plan earns
+M2 external-heat branch disabled: rc=1 4 FAIL
+      FAIL  OWNER-EXTHEAT pill: the external heat sensor on reads 'External heat detected', ahead of heating
+      FAIL  OWNER-EXTHEAT pill: its title says planned heating is held back
+      FAIL  OWNER-EXTHEAT pill: block_ignored false still reads external heat
+      FAIL  OWNER-EXTHEAT pill: the sensor turning on redraws the pill with nothing else changing
+M3 both-active forced false: rc=1 1 FAIL
+      FAIL  OWNER-EXTHEAT pill: space on, DHW on reads 'Heating space+DHW'
+M4 DHW collapsed to space: rc=1 2 FAIL
+      FAIL  OWNER-EXTHEAT pill: space off, DHW on reads 'Heating DHW'
+      FAIL  OWNER-EXTHEAT pill: the sensor off leaves the pill on heating
+M5 twin read as any suffix: rc=1 1 FAIL
+      FAIL  OWNER-EXTHEAT pill: an external heat sensor of another device prefix is not read
+M6 ext heat ahead of stale (stale check removed): rc=1 3 FAIL
+      FAIL  UI-3 pill: a plan last solved 4 h ago, past max(3 x 30 min, 90 min), reads stale
+      FAIL  OWNER-EXTHEAT pill: a stale plan outranks external heat
+      FAIL  UI-3 pill: crossing the stale limit redraws with no sensor changing
+M7 ext state==on check dropped: rc=1 2 FAIL
+      FAIL  OWNER-EXTHEAT pill: the sensor off leaves the pill on heating
+      FAIL  OWNER-EXTHEAT pill: the sensor off leaves the pill on idle
+M8 heating_dhw text swapped to both: rc=1 2 FAIL
+      FAIL  OWNER-EXTHEAT pill: space off, DHW on reads 'Heating DHW'
+      FAIL  OWNER-EXTHEAT pill: the sensor off leaves the pill on heating
+M9 heatDhw ignored: rc=1 4 FAIL
+      FAIL  UI-3 pill: a plan step active now reads heating
+      FAIL  OWNER-EXTHEAT pill: space off, DHW on reads 'Heating DHW'
+      FAIL  OWNER-EXTHEAT pill: space on, DHW on reads 'Heating space+DHW'
+      FAIL  OWNER-EXTHEAT pill: the sensor off leaves the pill on heating
+restored True
