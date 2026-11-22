@@ -17,3 +17,4 @@
 1795386712 CKPT D3-s1 105 file(s)
 1795386716 HB null gate done: gate_rc 1 failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']
 1795386720 HB gate started: ec4b6ee2ab420129
+1795386745 HB null usable: gate_rc 1 on artefact checks only (closure selftest 2, entities 1, harness_headers 3), same profile as D3-rem; gating ec4b6ee2
