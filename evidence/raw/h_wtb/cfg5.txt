@@ -1,0 +1,18 @@
+CTRL v5: {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+RESULT v5_mutants=200 count
+RESULT v5_migrate_fail=0 count
+RESULT v5_build_fail=5 count
+RESULT v5_permanent_cycle_fail=17 count
+RESULT v5_one_cycle_fail=0 count
+  EX v5/permanent_cycle_fail: op=str_word key=dhw_tank_volume {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'"}
+  EX v5/permanent_cycle_fail: op=list key=min_temperature {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'"}
+  EX v5/permanent_cycle_fail: op=dict key=outdoor_temp_entity {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')", 'c2': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')"}
+  EX v5/permanent_cycle_fail: op=dict key=dhw_tank_volume {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'dict' and 'float'", 'c2': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'dict' and 'float'"}
+  EX v5/permanent_cycle_fail: op=empty key=min_temperature {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: ''", 'c2': "UpdateFailed: Error updating data: could not convert string to float: ''"}
+  EX v5/permanent_cycle_fail: op=dict key=indoor_temp_entity {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')", 'c2': "UpdateFailed: Error updating data: cannot use 'dict' as a dict key (unhashable type: 'dict')"}
+  EX v5/build_fail: op=empty key=target_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: ''", 'c1': None, 'c2': None}
+  EX v5/build_fail: op=str_word key=target_temperature {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+  EX v5/build_fail: op=list key=target_temperature {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+RESULT thread_factor=1.001
+RESULT load1=0.87
+RESULT swapins=0

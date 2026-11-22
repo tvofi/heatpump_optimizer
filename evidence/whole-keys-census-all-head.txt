@@ -1,0 +1,27 @@
+CTRL {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+numeric keys 8
+FAIL key=day_end_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not c
+FAIL key=day_end_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argumen
+FAIL key=day_end_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argumen
+FAIL key=day_end_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argumen
+FAIL key=day_end_hour_weekend op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cou
+FAIL key=day_end_hour_weekend op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float()
+FAIL key=day_end_hour_weekend op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float()
+FAIL key=day_end_hour_weekend op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float()
+FAIL key=day_start_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not
+FAIL key=day_start_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argum
+FAIL key=day_start_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argum
+FAIL key=day_start_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argum
+FAIL key=day_start_hour_weekend op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: c
+FAIL key=day_start_hour_weekend op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float
+FAIL key=day_start_hour_weekend op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float
+FAIL key=day_start_hour_weekend op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float
+FAIL key=holiday_day_end_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: cou
+FAIL key=holiday_day_end_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float()
+FAIL key=holiday_day_end_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float()
+FAIL key=holiday_day_end_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float()
+FAIL key=holiday_day_start_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: c
+FAIL key=holiday_day_start_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float
+FAIL key=holiday_day_start_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float
+FAIL key=holiday_day_start_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float
+RESULT census_fail=24 of 32
