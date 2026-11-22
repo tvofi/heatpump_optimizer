@@ -87659,8 +87659,19 @@ R.check("a step whose fault clears inside it stays device-fault: any held pass m
         _fh_lg_clear[:2] == ["device-fault"] * 2 and _fh_lg_clear[2:] == _fh_lg_short[2:], f"{_fh_lg_clear}")
 _fh_row = {"start": _PA_T0, "planned": "both", "tank": 50.0, "measured": True, "ran": True, "dhw_mode": True}
 R.check("device-fault is decided before every other verdict, a both step included",
-        _fh_dl.verdict({**_fh_row, "faulted": True}, 50.0)["verdict"] == "device-fault"
-        and _fh_dl.verdict(_fh_row, 50.0)["verdict"] == "delivered")
+        _fh_dl.step_verdict({**_fh_row, "faulted": True}, 50.0)["verdict"] == "device-fault"
+        and _fh_dl.step_verdict(_fh_row, 50.0)["verdict"] == "delivered")
+
+# 9b. The diagnostics download carries the latch (``diagnostics._VIEWS``).
+from heatpump_optimizer import diagnostics as _fh_diag  # noqa: E402
+_fh_dv = dict(_fh_diag._VIEWS).get("fault_hold")
+_fh_dvc = _fh_coord(since=-30)
+_pa_run(_fh_dvc, 0)
+_fh_dv_null = _fh_coord(state="off")
+_pa_run(_fh_dv_null, 0)
+R.check("the diagnostics download shows the fault latch under fault_hold",
+        _fh_dv is not None and _fh_dv(_fh_dvc)["holding"] is True and _fh_dv(_fh_dv_null)["holding"] is False,
+        f"{_fh_dv and (_fh_dv(_fh_dvc), _fh_dv(_fh_dv_null))}")
 
 # 10. Duty off: the cycle's consult still moves the latch, so the switch,
 # the cut-off, the frequency and the curve are held there too.

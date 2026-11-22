@@ -36,7 +36,7 @@ RUN_SETTLE = timedelta(minutes=1)
 
 
 def observe(held: Any, inp: Any, duty: str | None, now: datetime, *, ran: bool | None,
-            dhw_mode: bool, start_below: Any, faulted: bool = False) -> None:
+            dhw_mode: bool, start_below: Any, faulted: bool) -> None:
     """Fold this pass into the current step's row; close the last one.
 
     ``planned`` is re-frozen whenever a new plan is adopted inside the step.
@@ -52,7 +52,7 @@ def observe(held: Any, inp: Any, duty: str | None, now: datetime, *, ran: bool |
     row = held.step
     if row is None or row["start"] != start:
         if row is not None:
-            held.log.append(verdict(row, tank))
+            held.log.append(step_verdict(row, tank))
         held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
                            "measured": False, "ran": False, "dhw_mode": False, "faulted": False}
         row["start_below"] = start_below
@@ -62,7 +62,7 @@ def observe(held: Any, inp: Any, duty: str | None, now: datetime, *, ran: bool |
         row["measured"] = True
         row["ran"] = row["ran"] or ran
     row["dhw_mode"] = row["dhw_mode"] or dhw_mode
-    row["faulted"] = row.get("faulted", False) or faulted
+    row["faulted"] = row["faulted"] or faulted
 
 
 def _not_startable(row: dict[str, Any]) -> bool:
@@ -82,7 +82,7 @@ def _missed(row: dict[str, Any], planned: str, actual: str) -> str:
     return f"{actual}-instead"
 
 
-def verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
+def step_verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
     """What the pump did over one step, against what the plan wanted."""
     rose = None not in (tank, row["tank"]) and float(tank) - float(row["tank"]) >= TANK_RISE_C
     hot = rose or row["dhw_mode"]

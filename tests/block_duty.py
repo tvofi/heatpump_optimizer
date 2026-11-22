@@ -1109,7 +1109,7 @@ def hysteresis_checks() -> None:
            "dhw_mode": False, "start_below": 51.0}
 
     def verdict(tank=52.0, **over):
-        return duty_ledger.verdict({**row, "tank": tank, **over}, tank)["verdict"]
+        return duty_ledger.step_verdict({**row, "tank": tank, **over}, tank)["verdict"]
 
     check("an idle hot water step on a tank above the start temperature is not-startable",
           lambda: verdict() == "not-startable")
@@ -1123,7 +1123,7 @@ def hysteresis_checks() -> None:
           lambda: verdict(50.0) == "idle-instead")
     check("an idle hot water step with no start temperature, or a row without the key, is idle-instead",
           lambda: verdict(start_below=None) == "idle-instead"
-          and duty_ledger.verdict({k: v for k, v in row.items() if k != "start_below"}, 52.0)["verdict"]
+          and duty_ledger.step_verdict({k: v for k, v in row.items() if k != "start_below"}, 52.0)["verdict"]
           == "idle-instead")
     check("a planned both step idle above the start temperature is idle-instead",
           lambda: verdict(planned="both") == "idle-instead")
