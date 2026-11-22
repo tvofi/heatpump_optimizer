@@ -1,18 +1,2 @@
-WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:21:13 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:22:46 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:24:19 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:25:52 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:26:25 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:26:47 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:27:58 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:28:19 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:29:31 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:29:52 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:31:04 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:31:25 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:32:15 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:33:48 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:35:21 rc=3 WAIT db727d36e02f837e587bc049069d586a587fb913 pending: gate red: none
-01:36:54 rc=1 RED db727d36e02f837e587bc049069d586a587fb913 pending: none red: gate
 RED db727d36e02f837e587bc049069d586a587fb913 pending: none red: gate
+rc=1

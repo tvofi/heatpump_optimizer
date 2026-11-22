@@ -1,4 +1,0 @@
-ok   mutant m2_lock_world_readable turns (2) 'lock files are owner-only under umask 022' red
-ok   mutant m2_sigterm_handler_off turns (2) 'SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP' red
-ok   mutant m2_sigterm_handler_after_jobs turns (2) 'SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP' red
-beatd self-test: 14 checks, 0 failed

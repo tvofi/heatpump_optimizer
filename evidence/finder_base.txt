@@ -1,8 +1,0 @@
-RESULT never_stepped_past_triples=49 count
-RESULT never_stepped_past_config=15 count
-RESULT never_stepped_past_options=32 count
-RESULT error_triples=56 count
-RESULT unrecovered_triples=54 count
-RESULT unrecovered_config=18 count
-RESULT unrecovered_options=34 count
-RESULT unrecovered_reconfigure=2 count
