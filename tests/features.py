@@ -85575,7 +85575,7 @@ R.check(
 _bt_ro = {}
 for _bt_ro_mode in (boost_mod.MODE_BOOST, _fb_const.MODE_AUTO):
     _bt_ro_coord = _BtCoord()
-    boost_mod.note_mode_restored(_bt_ro_coord, _bt_ro_mode, NOW)
+    boost_mod.note_mode_change(_bt_ro_coord, None, _bt_ro_mode, NOW)
     _bt_ro_held = boost_mod.held_for(_bt_ro_coord)
     boost_mod._restore_settle(_bt_ro_held, {"space_settle": {
         "until": (NOW + timedelta(hours=1)).isoformat(), "boosted_h": 0.5}}, NOW)

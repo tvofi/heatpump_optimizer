@@ -200,18 +200,20 @@ class BoostState:
                 and CHANNEL_SPACE not in self.until and self.mode_since is None):
             self.space_settle_until, self.space_boosted = None, timedelta(0)
 
-    def note_mode(self, live: bool, now: datetime) -> None:
-        """The global boost mode was entered (``live``) or left: leaving starts its tail."""
+    def note_mode(self, live: bool, now: datetime, *, seen: bool = True) -> None:
+        """The global boost mode was entered (``live``) or left: leaving starts its tail.
+
+        An entry not ``seen`` is a restart restoring the mode: its start, and so
+        the boosted sum, is unknown.
+        """
         if live:
             self._clear_spent(now)
             self.mode_since = now
+            if not seen:
+                self.space_boosted = None
         else:
             self.settle(now, self.mode_since)
             self.mode_since = None
-
-    def restore_mode(self, now: datetime) -> None:
-        """A session restored into the global boost mode: live, from a start nobody saw."""
-        self.mode_since, self.space_boosted = now, None
 
     def active(self, channel: str, now: datetime) -> bool:
         end = self.until.get(channel)
@@ -431,19 +433,13 @@ def note_mode_change(coord: Any, old: str | None, new: str, now: datetime | None
 
     The mode surface diverges the replayed plant state exactly as the
     channel overlay does -- same actuation, same mechanism -- so it owes
-    the same tail, for the time the mode ran.
+    the same tail, for the time the mode ran. ``old`` ``None`` is a restart
+    restoring ``new``, whose start nobody saw (ADR-005).
     """
     if (old == MODE_BOOST) != (new == MODE_BOOST):
-        held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now())
+        held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now(), seen=old is not None)
         if old == MODE_BOOST:
             _schedule_persist(coord)
-
-
-def note_mode_restored(coord: Any, mode: str, now: datetime | None = None) -> None:
-    """The mode a restart restored: a boost mode is live again, its start unseen."""
-    if mode == MODE_BOOST:
-        held_for(coord).restore_mode(now or dt_util.now())
-
 
 def overlay(
     action: CurrentAction,

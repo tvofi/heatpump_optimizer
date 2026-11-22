@@ -8349,7 +8349,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         stored_mode = stored.get("mode")
         if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:
             self._mode = stored_mode
-            boost.note_mode_restored(self, stored_mode)
+            boost.note_mode_change(self, None, stored_mode)  # ADR-005: boost is told a restored mode
         self._comfort_learner = ComfortLearner.from_dict(
             stored.get("comfort"),
             ctx._config.comfort_weight,
