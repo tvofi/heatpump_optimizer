@@ -77,7 +77,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from . import heat_curve
-from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc, room_record
+from . import accuracy, debugger, draw_range, early_cutoff, fault_log, pump_arbiter, replay_doc, room_record
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, LOCATION_KEYS, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
 from .inputs import OUTRANKS_STALE, describe_problem, health_summary
@@ -381,6 +381,8 @@ _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     # Why the observed-COP sensor has nothing yet: it is unavailable then, and
     # Home Assistant hides an unavailable entity's attributes.
     ("cop_learner", lambda c: accuracy.diagnostics_view(c.measured_cop, c.thermal_params, c.accuracy.draw)),
+    # The pump's fault codes, start and end: null with no fault source configured.
+    ("fault_log", lambda c: fault_log.diagnostics_view(c.entry)),
 )
 
 

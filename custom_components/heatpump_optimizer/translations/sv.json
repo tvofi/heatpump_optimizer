@@ -230,7 +230,7 @@
           "heat_pump_mode_entity": "Valfritt. Pumpens eget lägesval - kyla, värme, varmvatten eller en kombination av två. Läses bara av, om inte Styrning av pumpens uppgift står på Styrning. En pump som står i kylläge eller enbart varmvatten kan inte värma huset, och en som står i enbart värmeläge kan inte göra varmvatten. Utan det här kan planen alltså lova värme som pumpen just då inte kan leverera. Lämnas fältet tomt antar optimeringen att pumpen klarar allt.",
           "heat_pump_defrost_entity": "Valfritt. På medan pumpen vänder cykeln för att smälta bort frost från utomhusbatteriet. Elen som köps under en avfrostning går till batteriet i stället för in i huset. Tänk på att många pumpar bara avfrågas med några minuters mellanrum, så korta avfrostningar missas helt: det här är ett stickprov på avfrostning, inte ett tidtagarur.",
           "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
-          "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden."
+          "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Optimeringen pausar sin inlärning medan den är på. Utan en feltextentitet sparas varje fels start och slut för Ladda ned diagnostik, med en numerisk avläsnings kod i hex."
         },
         "sections": {
           "indoor": {
@@ -275,7 +275,7 @@
               "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
               "floor_return_temp_entity": "Valfri. En givare i själva golvslingan: vattnet som kommer tillbaka från golvslingorna, efter ackumulatortank eller shuntventil. Den används för att uppskatta hur mycket värme plattan håller. Använd inte värmepumpens egen returgivare: i en anläggning med ackumulatortank mäter den värmepumpens krets, långt varmare än golvet, och planen skulle tro att plattan redan är full och inte planera någon värme. Ett värde mer än 12 K över rummet ignoreras och ger ett reparationsmeddelande. Lämna tomt om det inte finns någon givare i golvslingan.",
               "heat_pump_defrost_entity": "Valfritt. På medan pumpen vänder cykeln för att smälta bort frost från utomhusbatteriet. Elen som köps under en avfrostning går till batteriet i stället för in i huset. Tänk på att många pumpar bara avfrågas med några minuters mellanrum, så korta avfrostningar missas helt: det här är ett stickprov på avfrostning, inte ett tidtagarur.",
-              "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden.",
+              "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Optimeringen pausar sin inlärning medan den är på. Utan en feltextentitet sparas varje fels start och slut för Ladda ned diagnostik, med en numerisk avläsnings kod i hex.",
               "heat_pump_mode_entity": "Valfritt. Pumpens eget lägesval - kyla, värme, varmvatten eller en kombination av två. Läses bara av, om inte Styrning av pumpens uppgift står på Styrning. En pump som står i kylläge eller enbart varmvatten kan inte värma huset, och en som står i enbart värmeläge kan inte göra varmvatten. Utan det här kan planen alltså lova värme som pumpen just då inte kan leverera. Lämnas fältet tomt antar optimeringen att pumpen klarar allt.",
               "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
               "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar.",
@@ -351,7 +351,9 @@
           "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
           "heat_pump_supply_temp_entity": "Framledningstemperatur",
           "heat_pump_return_temp_entity": "Returtemperatur",
-          "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)"
+          "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)",
+          "heat_pump_fault_entity": "Felindikering",
+          "heat_pump_fault_text_entities": "Feltext"
         },
         "data_description": {
           "prefill_device": "Pumpens egen enhet. Dess entiteter mappas till inställningar av integrationens publicerade definitioner, eller av deras namn där inget publiceras - inte från en avläsning av din enhet - så kontrollera förslagen innan du behåller dem. Lämna tomt för att fortsätta installationen utan förifyllningen.",
@@ -370,7 +372,9 @@
           "dhw_temp_entity": "Värmepumpens givare för varmvattenberedarens temperatur, föreslås bara medan fältet är tomt.",
           "heat_pump_supply_temp_entity": "Värmepumpens givare för utgående vattentemperatur (T1), föreslås bara medan fältet är tomt.",
           "heat_pump_return_temp_entity": "Värmepumpens givare för ingående vattentemperatur (Tw-in), föreslås bara medan fältet är tomt.",
-          "heat_pump_capacity_limited_entity": "Värmepumpens givare för aktivt nattläge (frekvensbegränsning), föreslås bara medan fältet är tomt."
+          "heat_pump_capacity_limited_entity": "Värmepumpens givare för aktivt nattläge (frekvensbegränsning), föreslås bara medan fältet är tomt.",
+          "heat_pump_fault_entity": "Pumpens fellarm (Tuya-integrationens Fault Alarm, GCHV-paketets HP Alarm), föreslås bara medan fältet är tomt. Behålls den pausar optimeringen sin inlärning medan pumpen larmar, och en mätning av driftbytet med ett fel i kasseras. GCHV-larmregistren rapporterar också icke-blockerande varningar, som läses som fel även här.",
+          "heat_pump_fault_text_entities": "Pumpens felbeskrivningsgivare (Tuya-integrationens Fault Description), föreslås bara medan fältet är tomt. Varje fels koder, start och slut sparas då för Ladda ned diagnostik."
         }
       }
     },
@@ -1283,6 +1287,7 @@
           "heat_pump_defrost_entity": "Avfrostning",
           "heat_pump_online_entity": "Pumpen är uppkopplad",
           "heat_pump_fault_entity": "Felindikering",
+          "heat_pump_fault_text_entities": "Feltext",
           "heat_pump_backup_heater_entity": "Elpatron för värme",
           "heat_pump_dhw_booster_entity": "Elpatron i varmvattenberedaren",
           "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)",
@@ -1297,7 +1302,8 @@
           "dhw_hysteresis_entity": "Valfritt. En sensor eller ett tal med pumpens egen starthysteres för varmvatten som temperaturskillnad i K (°C läses likadant, °F räknas om; 0 till 20 K): pumpen startar en laddning först när tanken ligger under varmvattenbörvärdet minus detta. Planen lägger då ingen laddning på en varmare tank (en laddning som planerats för det aktuella steget behålls, eftersom den kan redan pågå; en desinfektionsladdning bedöms mot desinfektionstemperaturen), och pumploggen märker ett vilande varmvattensteg på en sådan tank not-startable i stället för idle-instead. Ett varmvattenminimum över den starttemperaturen kan pumpen inte hålla och ger en varning. Lämnas fältet tomt, oläsbart eller 0 antas varje planerad laddning starta.",
           "heat_pump_defrost_entity": "Valfritt. På medan pumpen vänder cykeln för att smälta bort frost från utomhusbatteriet. Elen som köps under en avfrostning går till batteriet i stället för in i huset. Tänk på att många pumpar bara avfrågas med några minuters mellanrum, så korta avfrostningar missas helt: det här är ett stickprov på avfrostning, inte ett tidtagarur.",
           "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
-          "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden.",
+          "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Optimeringen pausar sin inlärning medan den är på. Utan en feltextentitet sparas varje fels start och slut för Ladda ned diagnostik, med en numerisk avläsnings kod i hex.",
+          "heat_pump_fault_text_entities": "Valfritt. Upp till 4 entiteter vars tillstånd är pumpens felbeskrivning: OK, eller en kommaseparerad lista med koder som \"E5, P3\" - Tuya-integrationens Fault Description, eller GCHV-Modbuspaketets fyra HP Alarm bitmap-givare. Varje fels koder, start och slut sparas för de senaste 200 felen och visas i Ladda ned diagnostik. All annan text än OK, normal eller ett viloord sparas som en kod, vilken entitet det än är, så välj en felbeskrivning och inte en statusgivare.",
           "heat_pump_backup_heater_entity": "Valfritt. På medan pumpens egen elpatron går i värmekretsen. Resistiva kilowatt på mätaren betyder inte att kompressorn är ineffektiv, så medan detta är på slutar optimeringen läsa mätaren som ett mått på verkningsgrad. Värmen räknas fortfarande: det är verklig värme in i huset, och husets inlärning fortsätter. Framför allt användbart om din pump inte publicerar någon effektmätare alls, för då finns det annars inget sätt att märka patronen.",
           "heat_pump_dhw_booster_entity": "Valfritt. På medan elpatronen i varmvattenberedaren går. Hanteras på samma sätt som elpatronen för värme ovan, och varje gång den slår till noteras det dessutom som en varmvattenräddning - om de återkommer, och du har slagit på återkopplingen för elpatron, börjar planen värma beredaren något tidigare i stället för att betala resistiva priser för mellanskillnaden.",
           "heat_pump_capacity_limited_entity": "Valfritt. På medan pumpen går med sänkt kompressorvarvtal, vilket de flesta aggregat kallar nattläge eller tystläge. Vad pumpen drar och levererar då är inte vad den skulle göra obegränsad, så optimeringen slutar lära sig verkningsgrad och kapacitet av de intervallen. Den fortsätter använda den uppmätta effekten för kostnad och energiredovisning, eftersom en varvtalsbegränsad kompressor ändå drar exakt det mätaren säger.",
@@ -1558,6 +1564,8 @@
           "heat_pump_return_temp_entity": "Returtemperatur",
           "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
           "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)",
+          "heat_pump_fault_entity": "Felindikering",
+          "heat_pump_fault_text_entities": "Feltext",
           "after_save": "Efter sparande",
           "prefill_offer": "Erbjud förifyllningen vid installation"
         },
@@ -1580,6 +1588,8 @@
           "heat_pump_return_temp_entity": "Paketets givare för ingående vattentemperatur (Tw-in), föreslås bara medan fältet är tomt.",
           "compressor_freq_sensor": "Paketets givare för kompressorns faktiska frekvens, föreslås bara medan fältet är tomt.",
           "heat_pump_capacity_limited_entity": "Paketets givare för aktivt nattläge (frekvensbegränsning), föreslås bara medan fältet är tomt.",
+          "heat_pump_fault_entity": "Pumpens fellarm (Tuya-integrationens Fault Alarm, GCHV-paketets HP Alarm), föreslås bara medan fältet är tomt. Behålls den pausar optimeringen sin inlärning medan pumpen larmar, och en mätning av driftbytet med ett fel i kasseras. GCHV-larmregistren rapporterar också icke-blockerande varningar, som läses som fel även här.",
+          "heat_pump_fault_text_entities": "Pumpens felbeskrivningsgivare (Tuya-integrationens Fault Description), föreslås bara medan fältet är tomt. Varje fels koder, start och slut sparas då för Ladda ned diagnostik.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
           "prefill_offer": "När det är på erbjuder en ny installation den här sidan om en värmepumpsenhet som lagts till i installationen kan fylla någon av de här inställningarna. Avstängt som standard: installationsguiden är oförändrad så länge det är av, och reglaget sparas, så det överlever en omstart."
         }
@@ -1631,7 +1641,8 @@
       "heat_curve_unreadable": "Den entiteten har inget värde just nu, så värdet den skulle återställas till vid avstängning är okänt. Välj en entitet som rapporterar ett värde, eller spara igen när den gör det.",
       "heat_curve_out_of_range": "Den entiteten visar ett värde utanför sitt eget angivna intervall, så den kan inte förskjutas säkert. Kontrollera entiteten i dess integration först.",
       "heat_curve_entity_in_use": "Entiteten för värmekurvans förskjutning skrivs redan av optimeraren för ett annat syfte (ett börvärde, ventilen, kompressorn eller driftläget). Välj en annan entitet för en av dem.",
-      "too_many_rooms": "Högst 32 rumstermometrar kan anges."
+      "too_many_rooms": "Högst 32 rumstermometrar kan anges.",
+      "too_many_fault_text_entities": "Högst 4 feltextentiteter kan anges."
     },
     "abort": {
       "factory_reset_done": "Återställningen är klar. Integrationen har laddats om och planerar igen. Kör åtgärden Återställ inlärd ögonblicksbild för att ångra återställningen.",
