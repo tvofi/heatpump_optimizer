@@ -14999,7 +14999,8 @@ R.check(
 # Once a weekly snapshot is newer, the restore is the ordinary one again.
 _fr_w_before, _fr_w_entry, _, _ = _fr_case("learners", "fr_weekly")
 _fr_w_ring = _fr_w_entry.runtime_data._snapshot_ring
-_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {}, True)
+# In band: a snapshot with no accuracy evidence is no restore point (D17-s3-03).
+_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {"temperature_bias": 0.1}, True)
 R.check(
     "a weekly snapshot newer than the undo point takes the restore back from it",
     _fr_w_ring.undo_target() is _fr_w_ring.snapshots[-1] and "before_reset" not in _fr_w_ring.snapshots[-1]
@@ -15497,8 +15498,9 @@ def _lsl_ring():
     coord._house_heat_loss_samples = 33
     coord._apply_cop_scale(1.1)
     coord._cop_samples = 21
+    # In band: a snapshot with no accuracy evidence is no restore point (D17-s3-03).
     coord._snapshot_ring.take(datetime.now(timezone.utc), coord._learner_snapshot_payloads(),
-                              coord._accuracy.summary(), True)
+                              {**coord._accuracy.summary(), "temperature_bias": 0.1}, True)
     return coord._snapshot_ring.as_dict()
 
 
@@ -85087,9 +85089,9 @@ R.check(
     f"{_bt_store.get('space_settle')}",
 )
 # D1-s2-06: the restore reads a boosted sum against that declaration before
-# timedelta() sees it, so one longer than two datetimes can bound reads unknown
-# and the rest of the restore still runs; one inside it is restored as stored,
-# and the next overlay's run still adds to the longest one.
+# timedelta() sees it. One longer than two datetimes can bound reads unknown,
+# and the rest of the restore still runs. One inside it is restored as stored,
+# and the next overlay's run still adds to the longest.
 _bt_range = {}
 for _bt_h in (1.5, 3e10, 1e14):
     _bt_far = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})

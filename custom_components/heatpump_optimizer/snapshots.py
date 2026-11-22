@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -37,6 +36,7 @@ from typing import Any
 
 import numpy as np
 
+from .const import finite_float
 from .drift import stored_instant
 from .store import admitted
 
@@ -221,15 +221,12 @@ class SnapshotRing:
                         snap.get("taken_at", "?"),
                     )
                 continue
-            # No bias is no accuracy evidence -- the first heartbeat's snapshot
-            # precedes every sample -- so it qualifies no more than a drifting
-            # one (D17-s3-03); a list or dict leaf is unreadable, not raised
-            # on, from the method that must never raise (D1-s1-02).
-            try:
-                bias = float(accuracy.get("temperature_bias"))
-            except (TypeError, ValueError, OverflowError):
-                continue
-            if not math.isfinite(bias) or abs(bias) > BIAS_BAND_C:
+            # No bias is no accuracy evidence: the first heartbeat's snapshot
+            # precedes every sample, so it qualifies no more than a drifting
+            # one (D17-s3-03). A list or dict leaf is unreadable, not raised
+            # on, in the method that must never raise (D1-s1-02).
+            bias = finite_float(accuracy.get("temperature_bias"))
+            if bias is None or abs(bias) > BIAS_BAND_C:
                 continue
             return snap
         return None

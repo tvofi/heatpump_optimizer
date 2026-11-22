@@ -345,9 +345,9 @@ _ACCURACY: dict[str, Domain | str] = {
 
 #: The COP health watch's memory, keyed ``_measured``: a heat measurement
 #: vouched for each sample. R10-HOTFIX-COP-UNMEASURED (85ee2bfb) moved it from
-#: the unsuffixed keys and kept its shape, so a document an earlier release
-#: wrote -- and the snapshot ring's copies of one, for the ring's eight weeks --
-#: holds the same fields under the old keys.
+#: the unsuffixed keys and kept its shape. A document an earlier release wrote,
+#: and the ring's snapshots of one for its eight weeks, holds the same fields
+#: under the old keys.
 _COP_WATCH: dict[str, Domain] = {
     # The cap, as Cusum.as_dict rounds it.
     "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
