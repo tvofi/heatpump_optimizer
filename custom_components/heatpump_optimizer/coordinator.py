@@ -2660,6 +2660,7 @@ class CoordinatorDiagnostics:
     tibber_outage_cycles: int | None = None
     tibber_reauth_started: bool | None = None
     solve_failures: int | None = None
+    mode: str | None = None
     cop_scale: float | None = None
     cop_samples: int | None = None
     house_heat_loss_scale: float | None = None
@@ -2690,6 +2691,7 @@ class CoordinatorDiagnostics:
             tibber_outage_cycles=getattr(coord, "_tibber_outage_cycles", None),
             tibber_reauth_started=getattr(coord, "_tibber_reauth_started", None),
             solve_failures=getattr(coord, "_solve_failures", None),
+            mode=getattr(coord, "_mode", None),
             cop_scale=getattr(coord, "_cop_scale", None),
             cop_samples=getattr(coord, "_cop_samples", None),
             house_heat_loss_scale=getattr(coord, "_house_heat_loss_scale", None),
@@ -8347,6 +8349,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         stored_mode = stored.get("mode")
         if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:
             self._mode = stored_mode
+            boost.note_mode_restored(self, stored_mode)
         self._comfort_learner = ComfortLearner.from_dict(
             stored.get("comfort"),
             ctx._config.comfort_weight,

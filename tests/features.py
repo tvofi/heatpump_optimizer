@@ -85552,6 +85552,40 @@ R.check(
     f"{_bt_cc_in} {_bt_cc_held}",
 )
 
+# ADR-005: boost answers "is the global boost mode live" from what it was told,
+# so a restart that restores the boost mode tells it. Restarted in boost: live,
+# and leaving owes the unseen start's full tail. Null control: a restart in auto.
+_bt_rs_seen = {}
+for _bt_rs_mode in (boost_mod.MODE_BOOST, _fb_const.MODE_AUTO):
+    _bt_rs_entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"bt_rs_{_bt_rs_mode}")
+    _bt_asyncio.run(Coord(FakeHass(), _bt_rs_entry).async_set_mode(_bt_rs_mode, refresh=False))
+    _bt_rs = Coord(FakeHass(), _bt_rs_entry)
+    _bt_asyncio.run(_bt_rs._async_load_accuracy())
+    _bt_rs_live = boost_mod.space_boost_active(_bt_rs, NOW)
+    _bt_asyncio.run(_bt_rs.async_set_mode(_fb_const.MODE_AUTO, refresh=False))
+    _bt_rs_held = boost_mod.held_for(_bt_rs)
+    _bt_rs_seen[_bt_rs_mode] = (_bt_rs_live, _bt_rs_held.space_boosted, _bt_rs_held.space_settle_until is None)
+R.check(
+    "a restart restoring the boost mode reads it live, and leaving it owes the unseen start's tail",
+    _bt_rs_seen == {boost_mod.MODE_BOOST: (True, None, False), _fb_const.MODE_AUTO: (False, timedelta(0), True)},
+    f"{_bt_rs_seen}",
+)
+# The unseen sum stays unknown whichever restore runs first: a persisted tail
+# restored after the mode does not replace it. Null control: no mode restored.
+_bt_ro = {}
+for _bt_ro_mode in (boost_mod.MODE_BOOST, _fb_const.MODE_AUTO):
+    _bt_ro_coord = _BtCoord()
+    boost_mod.note_mode_restored(_bt_ro_coord, _bt_ro_mode, NOW)
+    _bt_ro_held = boost_mod.held_for(_bt_ro_coord)
+    boost_mod._restore_settle(_bt_ro_held, {"space_settle": {
+        "until": (NOW + timedelta(hours=1)).isoformat(), "boosted_h": 0.5}}, NOW)
+    _bt_ro[_bt_ro_mode] = (_bt_ro_held.mode_since, _bt_ro_held.space_boosted)
+R.check(
+    "a persisted tail restored after the boost mode keeps its boosted sum unknown",
+    _bt_ro == {boost_mod.MODE_BOOST: (NOW, None), _fb_const.MODE_AUTO: (None, timedelta(hours=0.5))},
+    f"{_bt_ro}",
+)
+
 
 # A hot-water charge inside a counter span (the dwell saw it): the cycle has no
 # space interval, yet the span stays clean where the counter is declared to see

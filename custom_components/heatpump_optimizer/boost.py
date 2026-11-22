@@ -143,9 +143,11 @@ class BoostState:
     #: baseline is gone after a restart, but the slab heat is not, so every
     #: replay after the first one would fold it.
     space_settle_until: datetime | None = None
-    #: When the space overlay, and the global boost mode, went live; ``None``
-    #: unseen (a mode restored as boost), which makes ``space_boosted`` unknown.
+    #: When the space overlay went live; ``None`` unseen.
     space_since: datetime | None = None
+    #: When the global boost mode went live, ``None`` while it is not: the one
+    #: answer to "is the mode live" (ADR-005). A mode restored as boost reads
+    #: its restore, and its unseen start makes ``space_boosted`` unknown.
     mode_since: datetime | None = None
 
     #: The boosted time, over both surfaces, that ended since the learners
@@ -206,6 +208,10 @@ class BoostState:
         else:
             self.settle(now, self.mode_since)
             self.mode_since = None
+
+    def restore_mode(self, now: datetime) -> None:
+        """A session restored into the global boost mode: live, from a start nobody saw."""
+        self.mode_since, self.space_boosted = now, None
 
     def active(self, channel: str, now: datetime) -> bool:
         end = self.until.get(channel)
@@ -357,8 +363,8 @@ def space_boost_active(coord: Any, now: datetime | None = None) -> bool:
 
 
 def _mode_live(coord: Any) -> bool:
-    """Is the global boost mode selected?"""
-    return getattr(coord, "mode", None) == MODE_BOOST
+    """Is the global boost mode selected? Read from what ``note_mode_change`` was told."""
+    return held_for(coord).mode_since is not None
 
 
 def space_learning_frozen(coord: Any, now: datetime | None = None) -> bool:
@@ -431,6 +437,12 @@ def note_mode_change(coord: Any, old: str | None, new: str, now: datetime | None
         held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now())
         if old == MODE_BOOST:
             _schedule_persist(coord)
+
+
+def note_mode_restored(coord: Any, mode: str, now: datetime | None = None) -> None:
+    """The mode a restart restored: a boost mode is live again, its start unseen."""
+    if mode == MODE_BOOST:
+        held_for(coord).restore_mode(now or dt_util.now())
 
 
 def overlay(
@@ -614,8 +626,10 @@ def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) -> 
         held.space_settle_until = until
         # Unreadable boosted time reads as a start nobody saw: unknown.
         hours = tail.get("boosted_h")
+        # A restored boost mode's unknown sum stays unknown, whichever restore ran first.
         held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
-                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf else None)
+                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf
+                              and held.space_boosted is not None else None)
     space = raw.get(CHANNEL_SPACE)
     since = _parse_until(space.get("since")) if isinstance(space, Mapping) else None
     if since is not None and CHANNEL_SPACE in held.until:
