@@ -69,8 +69,8 @@ Long jobs, CI waits and rotation through refs follow `fixer.md`'s preamble: betw
     mutation table. Cheap checks (seconds: a lint, one test, claims) and your
     targeted mutants stay yours.
 
-12. **Re-read the head before you post**: if it moved from the SHA your verdict
-    names, say which numbers survive and which you re-took.
+12. **Re-read the head before you post**: if it moved off your verdict's SHA,
+    say which numbers survive, which you re-took.
 
     **A `merge` verdict attaches to the head its first line names and carries
     to any later head whose own diff is unchanged** (C4; #1667): `review_carry.py
@@ -78,10 +78,10 @@ Long jobs, CI waits and rotation through refs follow `fixer.md`'s preamble: betw
     main merges, unioned claim files),
     and `bus.sh dispatch` refuses a second reviewer. A red never carries.
     Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
-    <head>` (a main merge: its resolution), each prior finding resolved, the live
+    <head>` (a main merge: its resolution), each prior finding resolved, live
     required checks. Only a production (`custom_components/`) delta putting reviewed
     functionality at a non-obvious risk CI would not detect widens it, to exactly
-    that code; the verdict names path and risk.
+    that code; the verdict names path and risk. Other deltas never widen it.
     A head whose own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
@@ -95,7 +95,7 @@ Long jobs, CI waits and rotation through refs follow `fixer.md`'s preamble: betw
     in that command's stderr** (once per conflicting claim file, if installed),
     never inferred from paths or wording after it. `resolved` settles
     that file; a non-zero exit beside it is another path's. `refused` is the
-    orchestrator's to resolve by hand, not the author's: say which file and why.
+    orchestrator's to hand-resolve, not the author's: say which file and why.
 
     Never classify by line shape: a `may-drift` line **is** a `#` comment to
     `_comment_lines`, and `merge_claim_defect` refuses losing one.
@@ -119,7 +119,7 @@ Long jobs, CI waits and rotation through refs follow `fixer.md`'s preamble: betw
     configuration, and a check drives the refusal's entry state (the previous
     release's persisted state included) to that end. A release needing a person
     at the pump or an optimizer toggle is `blocked` unless the owner accepted it
-    in person on the pull request.
+    in person on the PR.
 
 Return your verdict with RESULT lines, first line and `bus-nonce:` line
 in the grammar above (one that does not parse is refused), only once the packet's closing self-audit (`carry_audit.py check`) exits 0.
