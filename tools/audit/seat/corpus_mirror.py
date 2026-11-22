@@ -1042,7 +1042,7 @@ def cases(m) -> dict[str, bool]:
             rc == 0 and ma.cur["state"] == "complete" and whole == list(range(1, 251)) and len(issue_pages(a)) == 3 \
             and len(set(issue_pages(a))) == 3
         r["budget: rate_limit is read before the first call, and the gap is kept between calls"] = \
-            a.calls[0] == ["gh", "api", "rate_limit"] and len(a.sleeps) >= len(a.fresh) - 1 and set(a.sleeps) == {m.gh_read.MIN_GAP_S}
+            a.calls[0] == ["gh", "api", "rate_limit"] and a.events[1][0] == "call" and len(a.sleeps) >= len(a.fresh) - 1 and set(a.sleeps) == {m.gh_read.MIN_GAP_S}
         r["reads only: every gh call is a read or a query, and none names a search endpoint"] = \
             all(m.gh_read.is_read(c) or m.gh_read.is_query(c[:2] + c[3:] if c[2:3] == ["-i"] else c) for c in a.calls if c[:1] == ["gh"]) \
             and not any("search" in " ".join(c) for c in a.calls)
@@ -1363,7 +1363,11 @@ def cases(m) -> dict[str, bool]:
         example = "query{viewer{login repositories(first:100){edges{node{id issues(first:50){edges{node{id labels(first:60){edges{node{id name}}}}}}}}}}}"
         item_doc = lambda n_: m.ITEM_QUERY % "\n".join(m.ITEM_FIELDS % (k_, k_) for k_ in range(1, n_ + 1))  # noqa: E731
         r["cost: GitHub's documented example costs 51 by the formula, and one item query of GRAPHQL_BATCH items stays under QUERY_COST_CAP"] = \
-            fc is not None and fc(example) == 51 and fc(item_doc(m.GRAPHQL_BATCH)) <= getattr(m, "QUERY_COST_CAP", 0) < fc(item_doc(m.GRAPHQL_BATCH + 3))
+            fc is not None and fc(example) == 51 and fc(item_doc(m.GRAPHQL_BATCH)) <= getattr(m, "QUERY_COST_CAP", 0) < fc(item_doc(m.GRAPHQL_BATCH + 3)) \
+            and (fc(item_doc(m.GRAPHQL_BATCH)), m.QUERY_COST_CAP) == (92, 100)
+        r["cost: the formula counts each connection once per parent node, rounds the hundreds and is at least 1"] = \
+            fc is not None and (fc("query{a(first:148){b(first:1){x}}}"), fc("query{a(first:100){b(first:100){c(first:100){x}}}}"),
+                                fc("query{viewer{login}}")) == (1, 101, 1)
         z = Stub()
         real_batch = m.GRAPHQL_BATCH
         m.GRAPHQL_BATCH = 7
@@ -1375,6 +1379,38 @@ def cases(m) -> dict[str, bool]:
         uz = mz.man["sources"]["S3"]["units"]["item batches"]
         r["partition: a batch key of another GRAPHQL_BATCH kept in the cursor is no unit of this pass: universe and examined count the current batches"] = \
             rc == 0 and (uz["universe"], uz["examined"]) == (n_batches, n_batches) and len(mz.cur["items"]["item batches"]) == n_batches
+        w_ = Stub()
+        mw_ = m.Mirror(Path(td) / "unit", run=w_.run, run_bytes=w_.run_bytes, git=w_.git, http=w_.http, new_bare=w_.new_bare, sleep=w_.sleep,
+                       now=lambda: 1000.0, repo="o/r")
+        good = {"cost": 92, "remaining": 5000, "limit": 5000, "resetAt": "1970-01-01T01:00:00Z"}
+
+        def observed(rate):
+            mw_.gql = {}
+            try:
+                mw_.observe(rate)
+                return mw_.gql
+            except Exception as e_:  # noqa: BLE001 -- the defect: an answer's shape raises
+                return "RAISED " + type(e_).__name__
+        r["graphql observe: a rateLimit missing, malformed, with no positive limit or a reset that is no UTC stamp keeps no pacing state and never raises"] = \
+            all(observed(b_) == {} for b_ in (None, {}, {**good, "cost": "x"}, {**good, "limit": 0}, {**good, "limit": -5},
+                                              {**good, "resetAt": "not a time"}, {**good, "resetAt": "1970-01-01T01:00:00"})) \
+            and observed(good) == {"cost": 92, "remaining": 5000, "limit": 5000, "reset": 3600.0, "next": 1000.0 + 92 * 3600 / 5000} \
+            and observed({**good, "limit": 1})["limit"] == 1
+
+        def waited(remaining, reset, nxt):
+            mw_.gql = {"cost": 92, "remaining": remaining, "limit": 5000, "reset": reset, "next": nxt}
+            try:
+                return mw_.graphql_wait()
+            except m.Paused:
+                return "paused"
+        mw_.gql = {}
+        r["graphql wait: none before any answer; the pace at exactly the floor; the reset up to 3599 s and a pause at 3600; nothing once both are past"] = \
+            mw_.graphql_wait() == 0.0 and waited(3092, 9999.0, 1066.0) == 66.0 and waited(3091, 4599.0, 0.0) == 3599.0 \
+            and waited(3091, 4600.0, 0.0) == "paused" and waited(5000, 0.0, 900.0) == 0.0 and waited(3091, 990.0, 900.0) == 0.0
+        sw_ = lambda after, msg="You have exceeded a secondary rate limit.": mw_.secondary_wait(  # noqa: E731
+            Stub.inc(403, [("Retry-After", after)], json.dumps({"message": msg}), "gh: (HTTP 403)\n"))
+        r["graphql secondary: a Retry-After of 300 s is waited, 301 s is not, and a primary or unreadable one never"] = \
+            (sw_("300"), sw_("301"), sw_("60", "API rate limit exceeded"), sw_("soon")) == (300.0, None, None, None)
         j = Stub()
         mj = m.Mirror(Path(td) / "gate", run=j.run, run_bytes=j.run_bytes, git=j.git, http=j.http, new_bare=j.new_bare, sleep=j.sleeps.append, repo="o/r")
         blocked = []
