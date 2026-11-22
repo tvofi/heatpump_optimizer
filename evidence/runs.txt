@@ -1,0 +1,11 @@
+head dc974231e4a1ead408defa2447cf7ba37186011c, base 3a98735a7e, round 1
+merge_train classify: GREEN dc974231e4a1ead408defa2447cf7ba37186011c pending: none red: none (rc 0)
+git merge-tree --write-tree origin/main dc974231e4a1ead408defa2447cf7ba37186011c: c79da9e9c45fabe0492ce5a2ad9b43a804364f3d rc 0
+fold_ledger check at head: 181 rca entries, 0 violation(s)
+mutant A (delete _rca R11-RCA-BOTMERGE-ROW): 180 rca entries, UNKNOWN-RCA: N-postreview-merge-red cites R11-RCA-BOTMERGE-ROW, which _rca does not index; 1 violation(s)
+mutant B (remove R11-RCA-BOTMERGE-ROW from N-postreview-merge-red.rca, _rca kept): 181 rca entries, 0 violation(s) (survives)
+origin/main _rca count: 180
+17 cited SHAs resolve as commits (045f358a4f 382df86816 011a463926 f50a75b4f7 430bc6bfad 5e4a4a6a24 d4bd8ed29e ef7d2e4038 0800f342ef b278df39d6 611f843468 8f34cd23e0 726e5bbc32 4ebd430fbf e698fc8ac3 20cafac7df 40683e8d7d)
+design/R11-PRE-SHARED-FILES 20cafac7df design.md line 69 holds "the smaller of the base's budget and the value measured on the merge-base tree"; line 98 holds G1 "whose value must equal the head's measurement"
+726e5bbc32:tests/structure_budgets.json has no module_excess_loc key (0 matches); it reached main later with #3735 (59b17e97ae)
+git rev-list --first-parent --count --since=2026-11-18T15:01:46Z --until=2026-11-22T06:45:00Z 726e5bbc32: 59
