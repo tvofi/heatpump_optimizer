@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+# Metric: buffer-cooling samples HeatPumpOptimizerCoordinator._async_learn_buffer_cooling folds (and the learned
+#   rate's move, degC/h) from one quiet 1 h interval 27.0 -> 26.8 degC (7.0 -> 6.8 K above the 20 degC ambient).
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_0e6080e5385399cb.py
+# EXPECTED RESULT samples_baseline=1 count (rate +0.006576) ; samples_mutant=0 count
+# EXPECTED RESULT null_delta=0 count  (40.0 -> 39.8 degC: both deltas above 8 K, folded either way)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling
+#   (the start/end delta gates at coordinator.py:5663/5665 read BUFFER_COOLING_MIN_DELTA, coordinator.py:1624).
+# Perturbation: key 0e6080e5385399cb, `BUFFER_COOLING_MIN_DELTA = 4.0` -> `= 8.0`, in memory (mock.patch.multiple).
+#   Direction: an interval with a 4..8 K tank-to-ambient delta folded -> refused.
+# Null control: deltas of 20 K, above both minimums.

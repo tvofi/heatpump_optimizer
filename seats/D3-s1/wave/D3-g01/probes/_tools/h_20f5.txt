@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: the hot-water circulation (VVC) pump command HeatPumpOptimizerCoordinator._async_drive_pumps issues at 12:00 on a
+#   live coordinator configured with a VVC pump, a 06:00-08:30 DHW window and DHW disabled (dhw_enabled False).
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_20f57d1eea0a5a1d.py
+# EXPECTED RESULT dhw_disabled_vvc_baseline=[('turn_on', 'switch.vvc')] ; dhw_disabled_vvc_mutant=[('turn_off', 'switch.vvc')]
+# EXPECTED RESULT null_delta=0 count  (DHW enabled with the schedule on, and DHW disabled with the schedule off: operands agree)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps
+#   line 4508 (`if params.dhw_enabled and params.dhw_windows_active`), live coordinator from config, dt_util.now pinned to
+#   12:00, hass.services.async_call recorded.
+# Perturbation: key 20f57d1eea0a5a1d, `and` -> `or` (BOOLOP), in memory (method recompiled from source).
+#   Direction: with DHW disabled the loop is left on (no frame to exploit) -> it is switched off outside the windows.
+# Null control: dhw_enabled with the schedule on (both operands true) and DHW disabled with the schedule off (both false).

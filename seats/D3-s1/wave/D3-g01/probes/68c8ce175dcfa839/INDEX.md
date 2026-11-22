@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_68c8ce175dcfa839.py: pins DEBUG records 'Open-Meteo irradiance covered %d/%d steps' emitted when Open-Meteo covers 2 of 6 steps; baseline 1, mutant 0 (returned series identical) (candidate)

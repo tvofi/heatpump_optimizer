@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_0e6080e5385399cb.py: pins buffer-cooling samples folded from one quiet 1 h interval 27.0 -> 26.8 degC (7.0 -> 6.8 K above ambient); baseline 1 (rate +0.006576 degC/h), mutant 0 (candidate)

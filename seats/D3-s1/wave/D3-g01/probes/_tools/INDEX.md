@@ -1,0 +1,1 @@
+- scratch builders: prelude.py + h_<tag>.txt + b_<tag>.py -> probe file (build.sh); analysis.py = per-key step-4 analysis; write_result.py writes results/<key>.json from gates/<key>.json; waitnext.sh waits for the next gate record

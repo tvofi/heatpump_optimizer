@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_97628f4b14aec1b9.py: pins pump service calls (and any exception) in one tick with no VVC pump and no drivable space pump; baseline [] for every input, mutant [] for every input (moved 0 of 6) (equivalent-candidate)

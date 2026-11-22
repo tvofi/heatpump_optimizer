@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+# Metric: space-pump service calls (or the exception) HeatPumpOptimizerCoordinator._async_drive_pumps makes in one tick
+#   with a configured space circulation pump and a fresh plan started 2 h ago, across plan step lengths.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_e0bd801049aba41a.py
+# EXPECTED RESULT production_step_calls_baseline=[('turn_on', 'switch.space')] ; _mutant identical (moved 0)
+# EXPECTED RESULT production_dt_hours=0.25 for every config tried (time_step_minutes is never read from config)
+# EXPECTED RESULT dt0_direct_baseline=turn_on ; dt0_direct_mutant=ZeroDivisionError  (only by writing the frozen ctx)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps
+#   line 4524 (`dt_hours = max(ctx._opt_config.dt_hours, 1e-6)`); OptimizationConfig.dt_hours (optimizer.py:2745) =
+#   time_step_minutes / 60, time_step_minutes defaults to 15.0 (optimizer.py:2667) and no config key sets it.
+# Perturbation: key e0bd801049aba41a, the max(.., 1e-6) clamp dropped (CLAMP_DROP), in memory (method recompiled).
+#   Direction: none at any production step length (equivalent-candidate); dt 0, reachable only by an out-of-band write
+#   to the frozen context, raises ZeroDivisionError.
+# Null control: the production 15-minute step.

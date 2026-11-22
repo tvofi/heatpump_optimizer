@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+# Metric: the learned COP scale after HeatPumpOptimizerCoordinator._fold_cop_evidence folds ONE outlier interval
+#   (3 kW commanded at a modelled COP 3.0 drawing 0.5 kW: cop_evidence's target scale 6.0) from scale 1.0.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_1165914e57f5bd08.py
+# EXPECTED RESULT cop_scale_outlier_baseline=1.05 ; cop_scale_outlier_mutant=1.1  (per-sample cap 5 % -> 10 %)
+# EXPECTED RESULT null_delta=0 count  (draws of 2.0 and 5.0 kW: EWMA step under 5 %, the clip inert either way)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_cop_evidence
+#   (max_step = cop_scale * COP_LEARNING_MAX_STEP at coordinator.py:5399; the constant is coordinator.py:1796), live
+#   coordinator, real cop_evidence; probe_install is stubbed to a sample that is an inference (cop_sample -> False),
+#   because the default probe config has no heat meter and would refuse the interval before the clip.
+# Perturbation: key 1165914e57f5bd08, `COP_LEARNING_MAX_STEP = 0.05` -> `= 0.1`, in memory (mock.patch.object).
+#   Direction: one outlier moves the scale 5 % -> 10 %.
+# Null control: in-band intervals where the EWMA step is below 5 %.

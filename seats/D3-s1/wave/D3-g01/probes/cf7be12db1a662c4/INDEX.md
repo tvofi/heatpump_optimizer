@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_cf7be12db1a662c4.py: pins price_shape00 after _apply_learner_payloads restores a snapshot whose price-shape model differs from the fresh state; baseline 1.3, mutant 1.0 (the snapshot's price-shape model is ignored) (candidate)

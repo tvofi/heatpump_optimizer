@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: DEBUG records "Open-Meteo irradiance covered %d/%d steps" HeatPumpOptimizerCoordinator._apply_open_meteo emits
+#   on the coordinator logger when Open-Meteo covers 2 of 6 horizon steps.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_68c8ce175dcfa839.py
+# EXPECTED RESULT partial_cover_log_baseline=1 count ; partial_cover_log_mutant=0 count
+# EXPECTED RESULT series_delta=0 count  (the returned series is identical: the guard gates only the log)
+# EXPECTED RESULT null_delta=0 count  (full coverage: no record either way)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._apply_open_meteo
+#   line 7422 (`if missing:`), live coordinator, Open-Meteo stub; a handler on the coordinator module's logger counts records.
+# Perturbation: key 68c8ce175dcfa839, `if missing:` -> `if False:` (GUARD_OFF), in memory (method recompiled from source).
+#   Direction: 1 -> 0 debug records; the plan input is unchanged.
+# Null control: full Open-Meteo coverage (missing == 0).

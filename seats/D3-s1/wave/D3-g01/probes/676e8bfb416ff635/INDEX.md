@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_676e8bfb416ff635.py: pins in-process (GIL-holding) solves _await_optimize carries while the process worker is unusable before it raises UpdateFailed; baseline 3, mutant 6 (candidate)

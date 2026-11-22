@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: repair issues ("solve_failures") _note_solve_failure creates over N consecutive failed solves on a live
+#   coordinator, and the first failure count at which the issue is raised.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_fafb0d2c15e72efb.py
+# EXPECTED RESULT issues_after_3_baseline=1 count ; issues_after_3_mutant=0 count
+# EXPECTED RESULT first_issue_at_baseline=3 ; first_issue_at_mutant=6
+# EXPECTED RESULT null_delta=0 count  (2 failures: below both thresholds, no issue either way)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:_note_solve_failure (reads
+#   SOLVE_FAILURE_ISSUE_COUNT at coordinator.py:705; the constant is coordinator.py:822); _create_issue is spied.
+# Perturbation: key fafb0d2c15e72efb, `SOLVE_FAILURE_ISSUE_COUNT = 3` -> `= 6`, in memory (mock.patch.object on the
+#   module global the function reads at call time). Direction: issue at failure 3 -> at failure 6.
+# Null control: two consecutive failures, where neither threshold is reached.

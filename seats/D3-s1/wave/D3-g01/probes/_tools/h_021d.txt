@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: the learned house heat-loss scale after HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale restores
+#   a store fitted against a nameplate UA 7 % off today's (scale 1.2, 200 samples), and whether it re-anchored.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_021dc21415f3229e.py
+# EXPECTED RESULT reanchor_7pct_baseline=(True, 1.279005) ; reanchor_7pct_mutant=(False, 1.2)  (kept verbatim)
+# EXPECTED RESULT null_delta=0 count  (3 % and 12 % edits: on the same side of both gates)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale
+#   (passes step=HOUSE_LOSS_MAX_STEP to heat_loss_anchor_pair at coordinator.py:5572; the constant is coordinator.py:1651),
+#   on a live coordinator; the stored anchor dict is the coordinator's own _heat_loss_anchors() with the UA scaled.
+# Perturbation: key 021dc21415f3229e, `HOUSE_LOSS_MAX_STEP = 0.05` -> `= 0.1`, in memory (mock.patch.object).
+#   Direction: a 5..10 % nameplate edit re-anchored -> kept verbatim (the learned scale stays fitted to the old UA).
+# Null control: a 3 % edit (below both gates) and a 12 % edit (above both).

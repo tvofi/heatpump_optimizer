@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_021dc21415f3229e.py: pins learned house heat-loss scale after restoring a store fitted against a nameplate UA 7 % off today's (scale 1.2, 200 samples); baseline (re-anchored, 1.279005), mutant (kept verbatim, 1.2) (candidate)

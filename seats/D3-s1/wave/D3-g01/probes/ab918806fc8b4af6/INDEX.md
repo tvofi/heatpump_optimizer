@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_ab918806fc8b4af6.py: pins ledger lines booked for one settled 0.25 h interval with 0 kW drawn (energy == 0); baseline 0 lines [], mutant 3 lines ['dhw', 'space', 'spot'] at 0 kWh / 0 SEK (energy and cost totals unchanged) (candidate)
