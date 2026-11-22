@@ -3994,7 +3994,13 @@ def _p2_registry(sources):
                  # #2234: which age TABLE applies, never the age itself.
                  "inputs.py::source_polls":
                      "compares last_reported with last_updated, the re-report "
-                     "that marks a polling source; the age stays state_stamp's"}),
+                     "that marks a polling source; the age stays state_stamp's",
+                 # R11-OWNER-FAULT-TEXT: where a fault row starts or ends.
+                 "fault_log.py::_seconds":
+                     "stamps a fault row's start or end at the instant the "
+                     "fault's VALUE changed (last_changed); state_stamp answers "
+                     "when the entity was last heard from, which a re-reported "
+                     "code resets"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(

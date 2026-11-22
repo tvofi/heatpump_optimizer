@@ -99160,7 +99160,9 @@ from homeassistant.const import CONF_NAME as _FL_CONF_NAME, EVENT_HOMEASSISTANT_
 from homeassistant.helpers import storage as _fl_storage  # noqa: E402
 from harness import FakeEntry as _fl_entry  # noqa: E402
 from heatpump_optimizer import diagnostics as _fl_diag  # noqa: E402
+from heatpump_optimizer import const as _FL_C  # noqa: E402
 from heatpump_optimizer import fault_log as _fl  # noqa: E402
+from heatpump_optimizer.entry_config import EntryConfig as _FlConfig  # noqa: E402
 from heatpump_optimizer import replay_doc as _fl_rd  # noqa: E402
 from heatpump_optimizer.store import admitted as _fl_storage_admitted  # noqa: E402
 
@@ -99286,7 +99288,7 @@ class _FlHass(FakeHass):
 _FL_CLOCK = [1000.0]
 _fl.time = _fl_types.SimpleNamespace(monotonic=lambda: _FL_CLOCK[0])
 _FL_T0 = _fl_dt(2026, 11, 1, tzinfo=_fl_tz.utc)
-_FL_TEXT = {_fl.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fd"]}
+_FL_TEXT = {_FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fd"]}
 
 
 def _fl_state(text, seconds):
@@ -99309,7 +99311,7 @@ async def _fl_flaps(entry_id, min_s):
     _fl.SAVE_MIN_S, saved_min = min_s, _fl.SAVE_MIN_S
     try:
         hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id=entry_id)
-        await _fl.async_setup(hass, entry, _FL_TEXT)
+        await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
         for k in range(120):
             _FL_CLOCK[0] += 1.0
             await _fl_fire(hass, "sensor.fd", "E5" if k % 2 == 0 else "OK", k + 1)
@@ -99345,7 +99347,7 @@ R.check(
 
 async def _fl_restart():
     hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id="fl_restart")
-    await _fl.async_setup(hass, entry, _FL_TEXT)
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
     await _fl_fire(hass, "sensor.fd", "E5", 30)
     unavailable_open = None
     await _fl_fire(hass, "sensor.fd", "unavailable", 40)
@@ -99356,7 +99358,7 @@ async def _fl_restart():
         await stop(None)
     _FL_STOPPED.extend([_fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0) - before, len(hass.state_listeners)])
     hass2, entry2 = _FlHass({"sensor.fd": _fl_state("E5", 30)}), _fl_entry(entry_id="fl_restart")
-    await _fl.async_setup(hass2, entry2, _FL_TEXT)
+    await _fl.async_setup(hass2, entry2, _FlConfig.from_mapping(_FL_TEXT))
     continued = _fl._RECORDS[entry2].log
     return len(stops), unavailable_open, continued.open, continued.episodes
 
@@ -99375,7 +99377,7 @@ R.check(
 
 async def _fl_unload():
     hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id="fl_unload")
-    await _fl.async_setup(hass, entry, _FL_TEXT)
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
     _FL_CLOCK[0] += 1000.0
     await _fl_fire(hass, "sensor.fd", "P3", 10)
     action = hass.state_listeners[0][1]
@@ -99402,10 +99404,10 @@ R.check(
 
 async def _fl_late():
     hass, entry = _FlHass({"sensor.fd": _fl_state("P3", 5)}), _fl_entry(entry_id="fl_late")
-    await _fl.async_setup(hass, entry, _FL_TEXT)
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
     await _fl.async_close(entry)
     hass2, entry2 = _FlHass({"sensor.fd": _fl_state("OK", 500)}), _fl_entry(entry_id="fl_late")
-    await _fl.async_setup(hass2, entry2, _FL_TEXT)
+    await _fl.async_setup(hass2, entry2, _FlConfig.from_mapping(_FL_TEXT))
     await _fl_fire(hass2, "sensor.fd", "E5", 600)
     await _fl_fire(hass2, "sensor.fd", "OK", 640)
     return _fl._RECORDS[entry2].log
@@ -99425,11 +99427,11 @@ R.check(
 async def _fl_members():
     states = {"sensor.b1": _fl_state("OK", 0), "sensor.b3": _fl_state(_FL_B3, 0)}
     hass, entry = _FlHass(dict(states)), _fl_entry(entry_id="fl_members")
-    config = {_fl.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.b1", "sensor.b3"]}
-    await _fl.async_setup(hass, entry, config)
+    config = {_FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.b1", "sensor.b3"]}
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(config))
     await _fl.async_close(entry)
     hass2, entry2 = _FlHass(dict(states)), _fl_entry(entry_id="fl_members")
-    await _fl.async_setup(hass2, entry2, config)
+    await _fl.async_setup(hass2, entry2, _FlConfig.from_mapping(config))
     return _fl._RECORDS[entry2].log
 
 
@@ -99444,7 +99446,7 @@ R.check(
 
 async def _fl_none():
     hass, entry = _FlHass({}), _fl_entry(entry_id="fl_none")
-    await _fl.async_setup(hass, entry, {})
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping({}))
     return _fl.diagnostics_view(entry), getattr(hass, "state_listeners", []), hass.bus.listeners
 
 
@@ -99458,7 +99460,7 @@ R.check(
 
 async def _fl_view():
     hass, entry = _FlHass({"binary_sensor.alarm": _fl_state("off", 0)}), _fl_entry(entry_id="fl_view")
-    await _fl.async_setup(hass, entry, {_fl.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.alarm"})
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping({_FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.alarm"}))
     await _fl_fire(hass, "binary_sensor.alarm", "on", 60)
     await _fl_fire(hass, "binary_sensor.alarm", "off", 90)
     rec = _fl._RECORDS[entry]
@@ -99484,7 +99486,7 @@ R.check(
 
 async def _fl_bitmap():
     hass, entry = _FlHass({"sensor.fault_code": _fl_state("0", 0)}), _fl_entry(entry_id="fl_bitmap")
-    await _fl.async_setup(hass, entry, {_fl.CONF_HEAT_PUMP_FAULT_ENTITY: "sensor.fault_code"})
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping({_FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "sensor.fault_code"}))
     await _fl_fire(hass, "sensor.fault_code", "2080", 10)
     mid = list(_fl._RECORDS[entry].log.open or [])
     await _fl_fire(hass, "sensor.fault_code", "heating", 20)
@@ -99505,7 +99507,7 @@ R.check(
 
 async def _fl_edges():
     hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id="fl_edges")
-    await _fl.async_setup(hass, entry, _FL_TEXT)
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
     rec = _fl._RECORDS[entry]
     rec.saved_at = _FL_CLOCK[0] - (_fl.SAVE_MIN_S - 1.0)
     _fl._request_save(rec)
@@ -99517,7 +99519,7 @@ async def _fl_edges():
 
     rec.store = _Refusing()
     await _fl._save(rec)
-    await _fl.async_setup(hass, entry, {})
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping({}))
     return delays, _fl.diagnostics_view(entry)
 
 
@@ -99532,22 +99534,22 @@ R.check(
 # 9: the prefill rows (the device route's roles are pinned in W1067-G7b-1's table above).
 _fl_dev = {"sensor.rw_fault_description": FakeState("OK"), "binary_sensor.rw_fault_alarm": FakeState("off")}
 _fl_dev_roles = {
-    _fl.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: _g7_mp.ResolvedRole(("sensor.rw_fault_description",)),
-    _fl.CONF_HEAT_PUMP_FAULT_ENTITY: _g7_mp.ResolvedRole(("binary_sensor.rw_fault_alarm",)),
+    _FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: _g7_mp.ResolvedRole(("sensor.rw_fault_description",)),
+    _FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: _g7_mp.ResolvedRole(("binary_sensor.rw_fault_alarm",)),
 }
 _fl_dev_snap = _g7_mp.snapshot(_fl_dev.get, _fl_dev_roles)
 _fl_gchv_snap = _g7_mp.snapshot({"binary_sensor.hp_alarm": FakeState("off")}.get, _g7_mp.candidates("hp"))
-_fl_set = {_fl.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.mine",
-           _fl.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.mine"]}
+_fl_set = {_FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.mine",
+           _FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.mine"]}
 R.check(
     "pre-fill: a signed Tuya device suggests a one-member text list and its fault binary sensor; a GCHV "
     "prefix suggests binary_sensor.<p>_alarm and no text slot; null controls, slots already set are not "
     "suggested, and a device whose records lack the signature resolves neither",
     {k: v for k, v in _g7_mp.infer(_fl_dev_snap, {}).items() if "fault" in k} == {
-        _fl.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.rw_fault_description"],
-        _fl.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.rw_fault_alarm"}
+        _FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.rw_fault_description"],
+        _FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.rw_fault_alarm"}
     and {k: v for k, v in _g7_mp.infer(_fl_gchv_snap, {}).items() if "fault" in k} == {
-        _fl.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.hp_alarm"}
+        _FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.hp_alarm"}
     and not any("fault" in k for k in _g7_mp.infer(_fl_dev_snap, _fl_set))
     and not any("fault" in k for k in _g7b_dp.resolve(_g7b_records(drop={
         f"{_G7B_SLUG}_T4", f"{_G7B_SLUG}_Tin", f"{_G7B_SLUG}_night_mode", f"{_G7B_SLUG}_DHWSET"}))),
@@ -99567,7 +99569,7 @@ async def _fl_entry_path(entry_id, options):
 
 
 _fl_ep_view, _fl_ep_ok, _fl_ep_doc = _fl_aio.run(
-    _fl_entry_path("fl_entry", {_fl.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fd"]}))
+    _fl_entry_path("fl_entry", {_FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fd"]}))
 _fl_ep_null = _fl_aio.run(_fl_entry_path("fl_entry_none", {}))
 R.check(
     "through async_setup_entry: the download's coordinator.fault_log shows the open E5 read at setup, and "

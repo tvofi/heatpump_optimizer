@@ -106,6 +106,7 @@ class EntryConfig(Mapping[str, Any]):
     grid_fee_entity: str | None = _entity_slot()
     heat_pump_capacity_limited_entity: str | None = _entity_slot()
     heat_pump_defrost_entity: str | None = _entity_slot()
+    heat_pump_fault_entity: str | None = _entity_slot()
     heat_pump_mode_entity: str | None = _entity_slot()
     heat_pump_power_entity: str | None = _entity_slot()
     heat_pump_supply_temp_entity: str | None = _entity_slot()
@@ -127,6 +128,8 @@ class EntryConfig(Mapping[str, Any]):
     weather_entity: str | None = _entity_slot()
     # The room thermometers (#3616): an entity list, not a slot.
     room_temperature_entities: tuple[str, ...] = _key((), _entities)
+    # The pump's fault-description entities (R11-OWNER-FAULT-TEXT), a list too.
+    heat_pump_fault_text_entities: tuple[str, ...] = _key((), _entities)
 
     # Switches.
     capacity_curve_enabled: bool = _key(const.DEFAULT_CAPACITY_CURVE_ENABLED, _flag)

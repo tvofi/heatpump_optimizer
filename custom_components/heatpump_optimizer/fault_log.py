@@ -36,12 +36,8 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
-from .const import (
-    CONF_HEAT_PUMP_FAULT_ENTITY,
-    CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES,
-    DOMAIN,
-    FAULT_TEXT_ENTITIES_MAX,
-)
+from .const import DOMAIN, FAULT_TEXT_ENTITIES_MAX
+from .entry_config import EntryConfig
 from .inputs import AMBIGUOUS_ACTIVITY_TOKENS, BOOL_FALSE, is_flag_domain, parse_bool
 from .store import QuarantiningStore, admitted, load_mapping
 
@@ -200,12 +196,12 @@ def loaded(raw: Any, now_s: int) -> Log:
     )
 
 
-def sources(config: Mapping[str, Any]) -> tuple[str, list[str]] | None:
-    """``("text", members)`` or ``("flag", [slot])`` from the config, else ``None``."""
-    members = [e for e in config.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES) or () if e]
+def sources(config: EntryConfig) -> tuple[str, list[str]] | None:
+    """``("text", members)`` or ``("flag", [slot])`` from the entry's config, else ``None``."""
+    members = list(config.heat_pump_fault_text_entities)
     if members:
         return ("text", members[:FAULT_TEXT_ENTITIES_MAX])
-    flag = config.get(CONF_HEAT_PUMP_FAULT_ENTITY)
+    flag = config.heat_pump_fault_entity
     return ("flag", [flag]) if flag else None
 
 
@@ -295,7 +291,7 @@ async def _save(rec: _Record) -> None:
         _LOGGER.debug("Could not save the fault record: %s", err)
 
 
-async def async_setup(hass: HomeAssistant, entry: Any, config: Mapping[str, Any]) -> None:
+async def async_setup(hass: HomeAssistant, entry: Any, config: EntryConfig) -> None:
     """Build the entry's record afresh, load it, read once, subscribe, hook the stop."""
     _RECORDS.pop(entry, None)
     source = sources(config)

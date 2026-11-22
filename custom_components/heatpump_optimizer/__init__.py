@@ -350,7 +350,7 @@ async def async_setup_entry(
     )
 
     # The pump's fault record (R11-OWNER-FAULT-TEXT): its own listener and store.
-    await (await _async_lazy(hass, "fault_log")).async_setup(hass, entry, config)
+    await (await _async_lazy(hass, "fault_log")).async_setup(hass, entry, EntryConfig.from_mapping(config))
 
     # Serve and register the Lovelace dashboard card (idempotent; runs once).
     await (await _async_lazy(hass, "frontend")).async_register_frontend(

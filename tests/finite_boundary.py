@@ -490,7 +490,8 @@ _FAULT_LOG_CONFIG = {const.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fault_de
 async def _load_fault_log(coord):
     """The fault record's one loader: setup, which loads before it reads or subscribes."""
     from heatpump_optimizer import fault_log
-    await fault_log.async_setup(coord.hass, coord.entry, _FAULT_LOG_CONFIG)
+    from heatpump_optimizer.entry_config import EntryConfig
+    await fault_log.async_setup(coord.hass, coord.entry, EntryConfig.from_mapping(_FAULT_LOG_CONFIG))
 
 
 async def _save_fault_log(coord):
