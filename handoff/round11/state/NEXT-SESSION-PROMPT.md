@@ -24,6 +24,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SEAM-learners (stage in-progress, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-release (stage in-progress, branch `handoff/r11-seam-actuation-release`): `git fetch origin handoff/r11-seam-actuation-release && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-solve (stage in-progress, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-cycle-reporting (stage in-progress, branch `handoff/r11-seam-cycle-reporting`): `git fetch origin handoff/r11-seam-cycle-reporting && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-entity-service (stage in-progress, branch `handoff/r11-seam-entity-service`): `git fetch origin handoff/r11-seam-entity-service && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-card (stage in-progress, branch `handoff/r11-seam-card`): `git fetch origin handoff/r11-seam-card && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-tests (stage in-progress, branch `handoff/r11-seam-tests`): `git fetch origin handoff/r11-seam-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
