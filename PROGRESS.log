@@ -8,3 +8,5 @@
 1795301170 DONE verdict pushed: blocked mutation-vacuous (probe/rev-3838-531c711f cb04e382)
 1795318274 HB alive
 1795318444 CKPT round 2: delta ffb12a931 read; C1 mutants running on P2 block; CI WAIT snapshot 8b53940a9644
+1795318585 HB alive
+1795318585 CKPT C1/C1a/C1b/C1c all killed by P2 block at head; awaiting CI snapshot c6f97a192b34
