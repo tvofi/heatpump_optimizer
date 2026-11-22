@@ -1,0 +1,16 @@
+agreement_py restore: 22 closure file(s), 22 covered by the wave-script restore list, 0 missing
+  pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
+  pair finding-class-id: 3 readers, 92 items, 0 divergent
+  pair finder-report-form: 2 readers, 279 items, 0 divergent
+  pair merge-subject-pr: 4 readers, 1998 items, 0 divergent
+  merge-subject guard: 1230 first-parent commit(s) past 07a09406a, 90 merge call(s) in 12 file(s)
+  pair dead-member-liveness: 2 readers, 181 items, 0 divergent
+  pair governance-workflow-jobs: 2 readers, 54 items, 0 divergent
+  pair budget-raise: 2 readers, 72 items, 0 divergent
+  pair entity-names: 2 readers, 143 items, 0 divergent
+  pair attribution: 2 readers, 370 items, 0 divergent
+  pair raise-justification: 2 readers, 50 items, 0 divergent
+  discovery: 718 governance code files, 2698 distinct grammars, 34 shared by two or more files
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=7.3
+AGREEMENT ok
+rc=0

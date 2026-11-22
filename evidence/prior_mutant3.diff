@@ -1,0 +1,13 @@
+diff --git a/tools/policy/brief_lint.mjs b/tools/policy/brief_lint.mjs
+index dc9b234e8e..904a5843e1 100644
+--- a/tools/policy/brief_lint.mjs
++++ b/tools/policy/brief_lint.mjs
+@@ -73,7 +73,7 @@ const EXT_SET = new Set(CODE_EXTS)
+ 
+ export function git(args, opts = {}) {
+   try {
+-    return gitRead(args, { stdio: ['ignore', 'pipe', 'pipe'], ...opts })
++    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts })
+   } catch (e) {
+     if (opts.allowFail) return null
+     throw e
