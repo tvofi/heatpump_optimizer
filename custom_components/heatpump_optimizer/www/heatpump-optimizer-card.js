@@ -3067,18 +3067,25 @@ const PLAN_ID_DERIVE = {
 const INPUT_PROBLEM_SUFFIX = "_input_problem";
 const EXTERNAL_HEAT_SUFFIX = "_external_heat_source";
 
-/** The state of `binary_sensor.<prefix><suffix>`, where `<prefix>` is the
- * resolved plan id with its PLAN_ID_DERIVE suffix stripped; null if neither
- * plan resolves to a present twin. */
-function planBinaryTwin(plan, suffix) {
+/** Each resolved plan id with its PLAN_ID_DERIVE suffix stripped, space
+ * first ("sensor.<prefix>"): the stem a sibling entity of the same config
+ * entry is derived from. A plan id no suffix matches gives no stem. */
+function planIdStems(plan) {
+  const stems = [];
   for (const kind of ["space", "dhw"]) {
-    const planId = plan.resolveEntity(kind);
-    if (!planId) continue;
-    for (const sfx of PLAN_ID_DERIVE[kind]) {
-      if (!planId.endsWith(sfx)) continue;
-      const st = plan.stateOf(`binary_sensor.${planId.slice(planId.indexOf(".") + 1, -sfx.length)}${suffix}`);
-      if (st) return st;
-    }
+    const planId = plan.resolveEntity(kind) || "";
+    const sfx = PLAN_ID_DERIVE[kind].find((s) => planId.endsWith(s));
+    if (sfx) stems.push(planId.slice(0, -sfx.length));
+  }
+  return stems;
+}
+
+/** The state of `binary_sensor.<prefix><suffix>`, `<prefix>` a plan id's
+ * stem without its domain; null if no stem has a present twin. */
+function planBinaryTwin(plan, suffix) {
+  for (const stem of planIdStems(plan)) {
+    const st = plan.stateOf(`binary_sensor.${stem.slice(stem.indexOf(".") + 1)}${suffix}`);
+    if (st) return st;
   }
   return null;
 }
@@ -7308,14 +7315,8 @@ class HistorySource {
     const derive = (suffix) => {
       const forms = [suffix].concat(LEGACY_STAT_SUFFIXES[suffix] || []);
       for (const form of forms) {
-        for (const kind of ["space", "dhw"]) {
-          const planId = plan.resolveEntity(kind);
-          if (!planId) continue;
-          for (const planSuffix of PLAN_ID_DERIVE[kind]) {
-            if (!planId.endsWith(planSuffix)) continue;
-            const candidate = planId.slice(0, -planSuffix.length) + form;
-            if (states[candidate]) return candidate;
-          }
+        for (const stem of planIdStems(plan)) {
+          if (states[stem + form]) return stem + form;
         }
       }
       if (!shapes[suffix]) return null;
