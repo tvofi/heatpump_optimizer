@@ -1,0 +1,72 @@
+[
+ {
+  "name": "refresh",
+  "status": "completed",
+  "conclusion": "success"
+ },
+ {
+  "name": "prelude",
+  "status": "completed",
+  "conclusion": "success"
+ },
+ {
+  "name": "cancel-superseded",
+  "status": "completed",
+  "conclusion": "success"
+ },
+ {
+  "name": "budget-raise-gate / budget-raise-gate",
+  "status": "completed",
+  "conclusion": "success"
+ },
+ {
+  "name": "arch-score / arch-score",
+  "status": "completed",
+  "conclusion": "success"
+ },
+ {
+  "name": "kernel-points",
+  "status": "completed",
+  "conclusion": "skipped"
+ },
+ {
+  "name": "validate",
+  "status": "completed",
+  "conclusion": "skipped"
+ },
+ {
+  "name": "governance",
+  "status": "completed",
+  "conclusion": "skipped"
+ },
+ {
+  "name": "hassfest",
+  "status": "completed",
+  "conclusion": "skipped"
+ },
+ {
+  "name": "tests",
+  "status": "completed",
+  "conclusion": "skipped"
+ },
+ {
+  "name": "codeql",
+  "status": "completed",
+  "conclusion": "skipped"
+ },
+ {
+  "name": "gate",
+  "status": "completed",
+  "conclusion": "failure"
+ },
+ {
+  "name": "pr-contract",
+  "status": "completed",
+  "conclusion": "skipped"
+ },
+ {
+  "name": "sweep-self",
+  "status": "completed",
+  "conclusion": "skipped"
+ }
+]
