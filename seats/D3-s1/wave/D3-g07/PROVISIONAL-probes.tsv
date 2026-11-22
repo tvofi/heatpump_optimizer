@@ -1,0 +1,17 @@
+key	probe_class_if_survived	baseline	mutant
+d3cad40ffce9b765	candidate	scale_baseline_at_min=2.000000	scale_mutant_at_min=1.000000	rc=0
+e163f6fbc359cd4c	candidate	scale_baseline_tie=1.000000	scale_mutant_tie=2.000000	rc=0
+67495f7b404053fc	equivalent-candidate	fields_differing=0	fields_differing=0	rc=0
+f0146f6f4901ec82	candidate	humidity_mean_baseline=95.0	humidity_mean_mutant=85.0	rc=0
+5f950692fab8eb1b	equivalent-candidate	production_inputs_differing=0	production_inputs_differing=0	rc=0
+4410da4e8eb84cb8	candidate	hold_baseline=0	hold_mutant=1	rc=0
+7ec91efc2c6deffd	candidate	hold_baseline=0	hold_mutant=1	rc=0
+f11665aaedbf2550	candidate	hold_baseline=1	hold_mutant=0	rc=0
+9b72b944ac12fa25	candidate	hold_baseline=1	hold_mutant=0	rc=0
+fd1cc23d380739ba	candidate	hold_baseline=0	hold_mutant=1	rc=0
+c20f346300d7efc1	candidate	margin_baseline=2.0	margin_mutant=0.0	rc=0
+60f673da42f9d671	candidate	margin_baseline=2.0	margin_mutant=0.0	rc=0
+661116d11d6faa49	equivalent-candidate	inputs_differing=0	inputs_differing=0	rc=0
+b6ac2d53028d45a3	candidate	space_kw_baseline=-1	space_kw_mutant=0	rc=0
+7f2768bd0a78b4bf	equivalent-candidate	inputs_differing=0	inputs_differing=0	rc=0
+1ee0ec8960fb9a66	candidate	rise_dhw_baseline=71.659	rise_dhw_mutant=409.483	rc=0
