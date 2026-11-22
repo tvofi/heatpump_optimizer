@@ -1,0 +1,43 @@
+{
+ "key": "ea0b9abd134c33cd",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6497 CMP_BOUND",
+ "patch": "out_t = outdoor_temps[i] if i < len(outdoor_temps) else outdoor_temps[-1] -> out_t = outdoor_temps[i] if i <= len(outdoor_temps) else outdoor_temps[-1]",
+ "function": "HeatPumpOptimizer._power_to_displace_schedule",
+ "cluster": "optimizer.py:HeatPumpOptimizer._power_to_displace_schedule@6497-6509",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3826.9,
+  "load1_start": 0.83,
+  "load1_end": 0.99,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/ea0b9abd134c33cd.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ea0b9abd134c33cd",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ea0b9abd.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ea0b9abd.py",
+  "baseline_value": "short_outdoor (power 4, outdoor 3): 4 values (pads with outdoor[-1])",
+  "mutant_value": "IndexError",
+  "inputs_tried": [
+   "power 4 / outdoor 3 (moves: 4 -> IndexError)",
+   "power 48 / outdoor 48 linspace (equal_len_delta=0)",
+   "7 real solves (reach_scan.py: disp_outdoor_shorter_than_power=0)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "unreachable through production: the one caller (optimizer.py:3881) passes h.outdoor_temps and space_power, both n_steps long, so the padding branch never runs (reach 0 of 7 real solves)"
+ },
+ "should_fail": "tests/features.py (R9-F2.1 P3 block, ~68727) calls _power_to_displace_schedule only with equal-length series; no check passes an outdoor series shorter than the power schedule"
+}
