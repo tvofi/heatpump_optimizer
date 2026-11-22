@@ -5255,12 +5255,13 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-seam-store",
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (none)",
-    "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json | set-files files ['custom_components/heatpump_optimizer/store.py', 'custom_components/heatpump_optimizer/snapshots.py', 'custom_components/heatpump_optimizer/boost.py', 'custom_components/heatpump_optimizer/comfort_learning.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/accuracy.py', 'custom_components/heatpump_optimizer/off_restore.py', 'custom_components/heatpump_optimizer/coordinator.py'] -> ['custom_components/heatpump_optimizer/store.py', 'custom_components/heatpump_optimizer/snapshots.py', 'custom_components/heatpump_optimizer/boost.py', 'custom_components/heatpump_optimizer/comfort_learning.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/accuracy.py', 'custom_components/heatpump_optimizer/off_restore.py', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/dhw_draws.py', 'custom_components/heatpump_optimizer/tariff.py', 'custom_components/heatpump_optimizer/legionella.py'] (cite origin/main@e3cb5c019b464a770cc7c6fe2fbc858ed29debf7)"
+    "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json | set-files files ['custom_components/heatpump_optimizer/store.py', 'custom_components/heatpump_optimizer/snapshots.py', 'custom_components/heatpump_optimizer/boost.py', 'custom_components/heatpump_optimizer/comfort_learning.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/accuracy.py', 'custom_components/heatpump_optimizer/off_restore.py', 'custom_components/heatpump_optimizer/coordinator.py'] -> ['custom_components/heatpump_optimizer/store.py', 'custom_components/heatpump_optimizer/snapshots.py', 'custom_components/heatpump_optimizer/boost.py', 'custom_components/heatpump_optimizer/comfort_learning.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/accuracy.py', 'custom_components/heatpump_optimizer/off_restore.py', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/dhw_draws.py', 'custom_components/heatpump_optimizer/tariff.py', 'custom_components/heatpump_optimizer/legionella.py'] (cite origin/main@e3cb5c019b464a770cc7c6fe2fbc858ed29debf7)",
+    "pr": 3875
    }
   },
   {
@@ -5570,9 +5571,9 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-seam-actuation-release",
-    "commit": null,
+    "commit": "9276ddf6b122816149ecba82a607aedf38d87ba1",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer dispatched 2026-11-18T18:17Z (dispatch/fixer-r11-seam-actuation-release) on design approved at 4554fc2d66, plan revision 4",
     "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
@@ -6815,12 +6816,13 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-arch-cycle-surface",
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-005)",
-    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3873
    }
   },
   {
@@ -7175,12 +7177,13 @@
     "From R11-OWNER-EXTHEAT-OVERRIDE (design/r11-owner-extheat-override at ee6bb4da, \"Card reconciliation\"), re-chained 2026-11-22 so this group builds after EXTHEAT-OVERRIDE (orchestrator ruling under mandate 6893738184; the override group publishes `block_ignored` in the binary sensor's attributes): `statusPill` (custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js) takes the `external_heat` key, and its \"Planned heating is held back while they stay warm enough\" title, only when the twin `binary_sensor.<prefix>_external_heat_source` is `on` and `attributes.block_ignored !== true`; otherwise it falls through to the `heating`/`idle` branch the plan earns. The card reads `block_ignored` from the twin's state object that `planBinaryTwin` already finds, without a second derivation. No new string; `statusSignature` keys on `key:text`, so a flip of the switch redraws; switch off gives today's markup byte for byte. Mutation target: drop the `block_ignored` test and a case in tests/card.mjs with the switch effective must fail; the group's own switch-off case is the null."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "commit": null,
     "branch": "handoff/r11-owner-card-external-heat",
     "last_step": null,
     "next_step": "designer (S, light note) then fixer",
-    "note": "owner item, tvofi 2026-11-21, via the orchestrator; not dispatched (open PRs 18, new groups start below 10); overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-product-text, R11-ARCH-fabric-learner, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst): owner item: a new pill state is a feature, not product-text verification; card file shared with R11-SEAM-product-text, features.py checks are additive"
+    "note": "owner item, tvofi 2026-11-21, via the orchestrator; not dispatched (open PRs 18, new groups start below 10); overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-product-text, R11-ARCH-fabric-learner, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst): owner item: a new pill state is a feature, not product-text verification; card file shared with R11-SEAM-product-text, features.py checks are additive",
+    "pr": 3871
    }
   },
   {
@@ -7325,7 +7328,8 @@
     "branch": "handoff/r11-owner-fault-hold",
     "last_step": null,
     "next_step": "fixer",
-    "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner): owner item 2026-11-22: owner priority, above every cap"
+    "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner): owner item 2026-11-22: owner priority, above every cap",
+    "pr": 3872
    }
   },
   {
@@ -7374,7 +7378,8 @@
     "branch": "handoff/r11-owner-mode-legs",
     "last_step": null,
     "next_step": "fixer",
-    "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD): owner item 2026-11-22: owner priority, above every cap"
+    "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD): owner item 2026-11-22: owner priority, above every cap",
+    "pr": 3869
    }
   },
   {
@@ -7516,7 +7521,8 @@
     "branch": "handoff/r11-owner-fault-text",
     "last_step": null,
     "next_step": "fixer",
-    "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK): owner item 2026-11-22: owner priority, above every cap"
+    "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK): owner item 2026-11-22: owner priority, above every cap",
+    "pr": 3870
    }
   },
   {
@@ -7561,7 +7567,8 @@
     "branch": "handoff/r11-owner-extheat-override",
     "last_step": null,
     "next_step": "fixer",
-    "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK, R11-OWNER-FAULT-TEXT): owner item 2026-11-22: owner priority, above every cap"
+    "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK, R11-OWNER-FAULT-TEXT): owner item 2026-11-22: owner priority, above every cap",
+    "pr": 3874
    }
   },
   {
