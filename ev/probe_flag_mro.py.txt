@@ -1,0 +1,8 @@
+"""Reviewer probe: MRO position of each available() owner for the five refactored sensors."""
+import sys, importlib
+sys.path[:0] = [sys.argv[1] + "/tests/hastub", sys.argv[1] + "/custom_components"]
+s = importlib.import_module("heatpump_optimizer.sensor")
+for n in ("MeasuredPowerSensor", "MonthlyPeakSensor", "PVSurplusSensor", "MixedHotWaterSensor", "CompressorStartsSensor"):
+    c = getattr(s, n)
+    owners = [k.__name__ for k in c.__mro__ if "available" in vars(k)]
+    print(n, "available owners in MRO:", owners, "flag:", getattr(c, "_available_flag", "<none>"))

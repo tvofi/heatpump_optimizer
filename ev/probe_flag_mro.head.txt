@@ -1,0 +1,5 @@
+MeasuredPowerSensor available owners in MRO: ['PayloadFlagMixin', 'CoordinatorEntity'] flag: ('measured_power_available',)
+MonthlyPeakSensor available owners in MRO: ['PayloadFlagMixin', 'CoordinatorEntity'] flag: ('peak_tariff_enabled',)
+PVSurplusSensor available owners in MRO: ['PayloadFlagMixin', 'CoordinatorEntity'] flag: ('pv_enabled',)
+MixedHotWaterSensor available owners in MRO: ['PayloadFlagMixin', 'DHWEntityMixin', '_MeasuredTemperatureMixin', 'CoordinatorEntity'] flag: ('dhw_mixed',)
+CompressorStartsSensor available owners in MRO: ['PayloadFlagMixin', 'CoordinatorEntity'] flag: ('measured_power_available',)

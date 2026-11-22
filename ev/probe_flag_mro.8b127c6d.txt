@@ -1,0 +1,5 @@
+MeasuredPowerSensor available owners in MRO: ['MeasuredPowerSensor', 'CoordinatorEntity'] flag: <none>
+MonthlyPeakSensor available owners in MRO: ['MonthlyPeakSensor', 'CoordinatorEntity'] flag: <none>
+PVSurplusSensor available owners in MRO: ['PVSurplusSensor', 'CoordinatorEntity'] flag: <none>
+MixedHotWaterSensor available owners in MRO: ['MixedHotWaterSensor', 'DHWEntityMixin', '_MeasuredTemperatureMixin', 'CoordinatorEntity'] flag: <none>
+CompressorStartsSensor available owners in MRO: ['CompressorStartsSensor', 'CoordinatorEntity'] flag: <none>

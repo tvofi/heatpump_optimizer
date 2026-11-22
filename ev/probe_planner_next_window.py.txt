@@ -1,0 +1,37 @@
+# inserted into a copy of tests/features.py before the line '_mon_req = _weekly_requirement_hours(_SPEC', run with features_block.py --through that line
+
+# PROBE-START reviewer probe: the planner's published next-window hours on a weekly spec
+def _probe_next(spec, start, h0):
+    _cfg = _grad_house(two_zone=False, dhw=True)
+    _cfg["dhw_windows"] = spec
+    _p = ThermalParameters.from_config(_cfg)
+    _m = ThermalModel(_p)
+    _o = _PvOpt(_m, _PvOptCfg(horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    _n = 96
+    import datetime as _dtm
+    t0 = _WDT.combine(start.date(), _WDT.min.time()) + _dtm.timedelta(hours=h0)
+    _ts = [t0 + _dtm.timedelta(hours=i * 0.25) for i in range(_n)]
+    _hours = np.array([t.hour + t.minute / 60.0 for t in _ts])
+    _plan, _ = _dhw_planner(_o)._build_dhw_requirements(
+        _dhw_horizon(prices=np.full(_n, 1.0), outdoor=np.full(_n, -5.0), n=_n, dt=0.25, step_hours=_hours,
+            step_weekdays=np.array([(t0 + _dtm.timedelta(hours=(i - 1) * 0.25)).weekday() for i in range(_n + 1)])),
+        p_max=4.0)
+    return _plan.next_window_in_hours, _o
+_PS = "weekdays 06:00-08:30, weekend 08:00-09:30"
+for _lab, _d in (("mon", _WDT(2026, 1, 12)), ("sat", _WDT(2026, 1, 17))):
+    print("PROBE", _lab, "07:00 planner next_window_in_hours =", _probe_next(_PS, _d, 7.0)[0])
+print("PROBE control flat spec sat 07:00 =", _probe_next("06:00-08:30", _WDT(2026, 1, 17), 7.0)[0])
+print("PROBE control weekly sat 05:00 (before both) =", _probe_next(_PS, _WDT(2026, 1, 17), 5.0)[0])
+from heatpump_optimizer.dhw_schedule import hours_until_next_window as _ph, windows_in_force as _pw
+from heatpump_optimizer.thermal_model import ThermalParameters as _PTP
+_pc = _grad_house(two_zone=False, dhw=True); _pc["dhw_windows"] = _PS; _pp = _PTP.from_config(_pc)
+import datetime as _pd
+_pt = _pd.datetime(2026, 1, 17, 7, 0, tzinfo=_pd.timezone.utc)
+print("PROBE windows_in_force sat =", _pw(_pp, None, _pt), "flat =", list(_pp.dhw_demand_windows), "day answer =", _ph(7.0, _pw(_pp, None, _pt), _pw(_pp, None, _pt, days=1)))
+
+# round 2 additions: across midnight inside the horizon, and a horizon ending before midnight
+print("PROBE fri 23:00 (next is sat 08:00 = 9.0) =", _probe_next(_PS, _WDT(2026, 1, 16), 23.0)[0])
+print("PROBE sun 23:00 (next is mon 06:00 = 7.0) =", _probe_next(_PS, _WDT(2026, 1, 18), 23.0)[0])
+print("PROBE sat 05:00 (day answer 3.0) =", _probe_next(_PS, _WDT(2026, 1, 17), 5.0)[0])
+print("PROBE sat 10:00 (next is sun 08:00 = 22.0) =", _probe_next(_PS, _WDT(2026, 1, 17), 10.0)[0])
+# PROBE-END

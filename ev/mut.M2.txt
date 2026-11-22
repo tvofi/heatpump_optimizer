@@ -1,0 +1,4 @@
+  ok   the census grid holds cells where the flat every-day set and the day's windows disagree on the next window (its own precondition)
+  FAIL the planner's published next window reads the day's windows, today's and the next day's, in every census cell (D17-s3-51, windows_in_force's answer)  [10 of 58 wrong (planner, owner, flat): [(('weekly', '2026-01-16T08:45:00'), (21.25, 23.25, 0.0)), (('weekly', '2026-01-16T09:00:00'), (21.0, 23.0, 0.0)), (('weekly', '2026-01-16T12:00:00'), (18.0, 20.0, 18.0)), (('weekly', '2026-01-16T23:30:00'), (6.5, 8.5, 6.5))]]
+1 of 476 FEATURES THROUGH FAILED
+rc=1
