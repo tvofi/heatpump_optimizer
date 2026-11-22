@@ -69,7 +69,7 @@
   "title": "No check reads the thermal view's two-tank keys; dropping the two-tank block from the payload is unseen",
   "scope": "D3-s1",
   "step": "D3.M3",
-  "claim": "Mutant 205660ee362d1a07 at coordinator.py:7861 (if ctx._thermal_params.two_tank_modelled: -> if False:) is red only as the null is (RED-AS-NULL) the full GATE_SCOPE=full GOLDEN_MODE=drift gate, yet the probe's number moves: baseline 2 keys (wood 55.0), mutant 0 keys (wood None).",
+  "claim": "Mutant 205660ee362d1a07 at coordinator.py:7861 (if ctx._thermal_params.two_tank_modelled: -> if False:) turns the full GATE_SCOPE=full GOLDEN_MODE=drift gate red only on the null control scripts (RED-AS-NULL: no script beyond the null), yet the probe's number moves: baseline 2 keys (wood 55.0), mutant 0 keys (wood None).",
   "mechanism": "Check that should have failed (D3.M4): tests/features.py drives two-tank topologies (_w2t_* ~15885-15930, the two-tank capture ~6402) and features.py:72533 reads coord._thermal_view() keys, but no check reads two_tank_modelled / wood_tank_temperature from the thermal view of a two_tank_modelled install; entities.py configures no two-tank topology. Executing scripts (traced baseline): tests/config_flow_steps.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/manual_plan.py.",
   "class_guess": "new",
   "severity_claimed": "medium",

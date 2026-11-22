@@ -66,7 +66,7 @@ def build(key):
     rec["finding"] = {
         "title": m["title"], "scope": "D3-s1", "step": "D3.M3",
         "claim": f"Mutant {key} at {r['file'].split('/')[-1]}:{r['line']} ({mut['old'].strip()} -> {mut['new'].strip()}) "
-                 f"{'survives' if v == 'SURVIVED' else 'is red only as the null is (RED-AS-NULL)'} the full GATE_SCOPE=full GOLDEN_MODE=drift gate, "
+                 f"{'survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (SURVIVED)' if v == 'SURVIVED' else 'turns the full GATE_SCOPE=full GOLDEN_MODE=drift gate red only on the null control scripts (RED-AS-NULL: no script beyond the null)'}, "
                  f"yet the probe's number moves: baseline {m['base']}, mutant {m['mut']}.",
         "mechanism": f"Check that should have failed (D3.M4): {m['assertion']}. Executing scripts (traced baseline): {', '.join(m['scripts'])}.",
         "class_guess": m["cls"], "severity_claimed": m["sev"], "stop_rule_class": "hygiene",
