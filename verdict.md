@@ -1,0 +1,19 @@
+Fix review: merge 15d4b6e00c598a786f24488c126fcb69ad94c09a
+
+bus-nonce: a724db91aef465ba66178a7849856b24
+
+Round: 4. Rounds 1 to 3 blocked 76f30b596a, 1ab809af50 and 6c5e3d8677 on the same `mutation-vacuous` survivors. Under step 12 this round reviews the delta: 56f9e3758a (self-test cases plus three `MUTANTS` entries, no production line changed) and the merge 15d4b6e00c, whose tree equals 56f9e3758a's. The fourth round owes a re-cut only on a block, and this round does not block.
+
+## Evidence
+
+- Head measured: 15d4b6e00c598a786f24488c126fcb69ad94c09a (ev/HEAD.txt). `refs/pull/3834/head` still points at it at verdict time. The body's `## Head` names it.
+- Merge with main: `git merge-tree --write-tree origin/main 15d4b6e00c598a786f24488c126fcb69ad94c09a` at origin/main baa9a467ac gives rc 0. The `tests/closures.json` ledger merge reports resolved (ev/merge-tree.txt).
+- Prior block resolved. The round-3 driver ev/mut.py is unchanged from `probe/rev-3834-82bf621d`. Run in a detached worktree at this head (ev/reviewer-mutants.txt), it kills M1 and M2 (173/1), M5 and M6 (393/1), M9 and M8 (51/2) and M7 (51/3). Each of those is the body's `## Review survivors` figure exactly. The tree was restored after each mutant, and `git status` was clean.
+- M10 (`--no-renames` dropped) still survives its own self-test (51/0). `tests/closure.py selftest` kills it with `1 of 118 closure shrink pins FAILED` (ev/m10-closure.txt). M11 (`stop_on_signal()` dropped) still survives its own self-test. `pr_args.sh --pushers` kills it: the census goes from `ok ... selftest_absorb.py runner-py` rc 0 to `OPEN ... a stop SIGKILLs or orphans its tool` rc 1 (ev/m11-census.txt). Neither is a survivor of the suite.
+- Null control re-run. `selftest_scope.py --self-test --workflow <origin/main governance.yml>` at this head gives `173 checks, 3 failed`, the three "the bot's step" checks (ev/null-control-main-wf.txt). This matches the body.
+- Body figures re-derived at this head (ev/figures.txt): selftest_absorb 51/0, orchestrator_tick 393/0, beat_jobs 309/0, and `selftest_scope static` 128 gated steps with 0 problems. `python3 tests/structure.py` gives STRUCTURE RATCHET PASSED. `node tools/policy/policy_lint.mjs` gives `TOTAL: 0 error(s) across 58 policy file(s)`. The body's beatd 157/0, the selftest_wiring figure and the beat's `OWED 738 read(s), 7 step(s)` were not re-run this round. The delta leaves their inputs unchanged, and round 1 re-ran the fixtures.
+- Delta review. The new cases drive the real guard paths: an empty trace, a planted UNGATED step, `ahead_by 0`, a foreign lane carrying the drift step's name, a paged jobs response, a non-zero absorb rc, and CLEAN/RECORD-OWED regenerations under verify. The `MUTANTS` entries split their match strings into adjacent literals only so that the external driver's patterns stay unique. The file's runtime strings are unchanged.
+- No `VERSION`, `RELEASE_NOTES.md`, manifest, claim file, golden fixture or `custom_components/` path is in the three-dot diff from 35c3e31cc9.
+- CI: `merge_train.py classify 15d4b6e00c598a786f24488c126fcb69ad94c09a --pr 3834` prints `GREEN 15d4b6e00c598a786f24488c126fcb69ad94c09a pending: none red: none` (ev/classify.log, re-read live before this verdict). The owed-reds set is in ev/owed-reds.txt, and no required check is red at this head. The body's red-check answers for 76f30b59, 9103b628 and 1ab809af are present. The heavy gate and the mutation table were cited from CI, not re-run.
+- Finder's harness: none. This PR is the process countermeasure for R11-RCA-SELFTEST-TABLE-DRIFT. Its fixtures were re-run in round 1, and this delta does not touch them.
+- Policy: `dev/governance/roles/fix-review.md` gains the standing-absorb bullet. That is a policy change, and it merges only on the owner's approving review at the head. This verdict does not stand in for that review.
