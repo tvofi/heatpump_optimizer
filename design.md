@@ -1,286 +1,252 @@
 # Design note: R11-OWNER-EXTHEAT-OVERRIDE -- one switch that overrides the external-heat block
 
-Code read at `origin/main` 8ef450936a1786abf4bb9610dc3336da4e77e8de. There is no predecessor
+Revision 2. Answers `design-verdict/R11-OWNER-EXTHEAT-OVERRIDE` 2a019ea9 (revise:
+R1 seam and names, R2 persistence cost), built on 1f9f94b2. Code read at
+`origin/main` 8ef450936a1786abf4bb9610dc3336da4e77e8de. There is no predecessor
 handoff head. Owner group, above every cap. Evidence: the owner's request,
 verbatim (tvofi, 2026-11-22): "I want one new switch, an override switch that
 overrides the external heat detection block." **No finder harness: owner
 report.** The failing tests below are the harness.
 
+## Two overrides, kept apart (R1)
+
+`external_heat.py` already has an **override**: `ExternalHeatObservation.override`,
+fed by `coordinator._external_heat_override` from the configured stove/flue
+entity (`CONF_EXTERNAL_HEAT_ENTITY`) and applied first in `_update_activation`:
+"yes" activates (`source="entity"`), "no" deactivates. It asserts or denies
+**that a fire exists**. The module docstring, `docs/how-it-works.md` and the
+log line "External heat override %s" use that word.
+
+The new switch **ignores the block**: detection, the fire and the stove entity
+keep their meaning; only the plan's reaction is lifted. Every new identifier
+uses the stem `ignore_block`, never `override`: `BoostState.ignore_extheat_block`,
+`boost.extheat_block_ignored`, `boost.set_extheat_block_ignored`,
+`ExternalHeatDetector.ignore_effective` and `.blocking`, payload key
+`block_ignored`, unique and translation key `external_heat_ignore_block`,
+diagnostics row `external_heat_block_ignore`. The user-facing name keeps the
+owner's word (Q9).
+
 ## What the block is today
 
 `ExternalHeatDetector.suppressing` (active, or fading through the decay
-window) is copied each cycle into `coordinator._external_heat_active` by
-`_update_external_heat_detection`. Five readers act on it:
+window) is copied each cycle into `coordinator._external_heat_active`
+(coordinator.py:5203). Its readers:
 
 | site | effect | class |
 |---|---|---|
-| `_solve_hubs` → `ThermalState.external_heat_active` → `dhw_planner` "External heat source (item 5)" | discretionary DHW slots zeroed for up to 2 h while coasting meets the requirement | **planning** |
-| `_external_heat_forecast` (gate `if not ...suppressing`) → `external_heat_kw` into the solve | space plan credited with the fire's free heat | **planning** |
-| `_learning_frozen` → `"external_heat_source"` | every learner freezes | learning hygiene |
-| `DhwLearner` `external_heat_active` lambda (`dhw_learning.py`) | draw attribution skipped | learning hygiene |
-| `_external_heat_view` → `external_heat_suppressing` → binary-sensor attribute `suppressing_electric_dhw` | what the user sees | presentation |
+| solve state `external_heat_active=self._external_heat_active` (coordinator.py:6225) → `dhw_planner` item 5 | discretionary DHW slots zeroed while coasting suffices | **planning** |
+| `_external_heat_forecast` gate `if not self._external_heat.suppressing` (coordinator.py:5218) | space plan credited with the fire's free heat | **planning** |
+| `_learning_frozen` (coordinator.py:6844), `DhwLearner` lambda (coordinator.py:3757) | learners freeze, draw attribution skipped | learning hygiene |
+| `_external_heat_view` (coordinator.py:8089) → `suppressing_electric_dhw` | what the user sees | presentation |
 
-No actuator reads detection directly: `grep -rn external_heat custom_components/heatpump_optimizer/pump_arbiter.py custom_components/heatpump_optimizer/inputs.py custom_components/heatpump_optimizer/duty_switch.py`
-finds nothing. Actuation follows the plan, so overriding the two planning
-inputs overrides actuation.
+No actuator reads detection: `grep -n external_heat custom_components/heatpump_optimizer/pump_arbiter.py custom_components/heatpump_optimizer/inputs.py custom_components/heatpump_optimizer/duty_switch.py`
+is empty. Actuation follows the plan.
 
 ## Behaviour
 
-**The planning set**, defined by a rule: every solve input that
-`coordinator.py` derives from the detector. It is enumerated by
+**The planning set**, by rule: every solve input `coordinator.py` derives from
+the detector, enumerated by
 `grep -n "_external_heat\.\|_external_heat_active" custom_components/heatpump_optimizer/coordinator.py`
-and filtered to the call sites inside `_solve_hubs` and
-`_external_heat_forecast`. While the override is **effective**, both see "no
-external heat": `ThermalState.external_heat_active=False` and a forecast of
-`None`. Everything else in the grep is in the residue, by category:
+and filtered to the two planning rows above. While the switch is
+**effective**, both see "no external heat". Residue, by category: detection
+itself (`_update_external_heat_detection`, `_external_heat_config`,
+`_external_heat_override`: unchanged); learning hygiene (raw value kept, Q6);
+settlement of the fire's own heat (ledger `wood_heated`,
+`wood_fuel_from_parts`, `simulate_wood_slots`).
 
-- **Detection itself**: `_update_external_heat_detection` and
-  `_external_heat_config`. These keep running, unchanged.
-- **Learning hygiene**: `_learning_frozen` and the `DhwLearner` lambda keep
-  reading the raw `_external_heat_active`. A fire still contaminates the data
-  whether or not the plan ignores it. (Q6 asks the owner.)
-- **Presentation and settlement of the fire's own heat**: the ledger's
-  `wood_heated` sample (`state.heating()`), `wood_fuel_from_parts` and the
-  wood what-if `simulate_wood_slots`. These price the fire, not the plan's
-  reaction to it.
+**Effective** = switch on **and** `ExternalHeatConfig.enabled`. With detection
+disabled `suppressing` is already False; the switch is inert and publishes
+`block_ignored: false`.
 
-**Effective** means the switch is on **and** detection is enabled
-(`ExternalHeatConfig.enabled`: wood furnace on and the detection option on).
-When detection is disabled, `suppressing` is already False, so the switch has
-no effect, and the field reports `override_active: false`.
+**Precedence (R1b)**:
 
-**Visible**: the External Heat Source binary sensor keeps its state from
-`external_heat_active` (raw detection). It gains `override_active` (the
-effective override). `suppressing_electric_dhw` now reports the **effective**
-block, which is False while overridden. Today that attribute is identical to
-the raw value, because no override exists.
-
-**Precedence**: the user's Block DHW and Block Space switches, boosts, the
-legionella cycle, peak-guard suppression (ORed into the same DHW gate in
-`dhw_planner`), FAULT-HOLD, FROST-HOLD and FLOWCAP do not change. The
-override only removes the external-heat term.
-
-## Orchestrator defaults (each is an R-question, below)
-
-1. Off by default.
-2. Persists across restarts, as a `RestoreEntity`.
-3. No automatic timeout.
-4. No effect while detection is disabled.
-5. The diagnostics bundle records its state.
+- **Inferred fire** (`source="inferred"`, or fading): the switch lifts the block.
+- **Entity-sourced fire** (`source="entity"`, the stove entity says "yes"):
+  **the switch lifts this block too.** `blocking` reads no `source`; the
+  owner's request names "the external heat detection block", and the entity
+  is one of detection's three signals. The binary sensor stays on with
+  `source: entity`. Pinned by evidence test 3b. Q8 asks the owner to confirm;
+  a "no" is one clause in `blocking` (`and self.state.source != "entity"`).
+- **Entity says "no"**: there is no block; the switch changes nothing.
+- Block DHW/Space switches, boosts, legionella, peak-guard suppression,
+  FAULT-HOLD, FROST-HOLD, FLOWCAP: unchanged. A user block still wins.
 
 ## Owning seam and shape
 
-**Owner: `custom_components/heatpump_optimizer/external_heat.py`.** It owns
-the detector and the published `ExternalHeat` shape, and it gains the
-override's state and the one rule that composes the two. It stays free of
-Home Assistant imports (`weakref` is stdlib). These only call it:
-`custom_components/heatpump_optimizer/switch.py` (writer),
-`custom_components/heatpump_optimizer/coordinator.py` (three reads),
-`custom_components/heatpump_optimizer/binary_sensor.py` and
-`custom_components/heatpump_optimizer/diagnostics.py` (readers). There is one
-owner and no import cycle.
+**The block rule: `custom_components/heatpump_optimizer/external_heat.py`**
+(gains no state and no Home Assistant import). **The held toggle and its
+persistence: `custom_components/heatpump_optimizer/boost.py`**, which already
+holds and stores every persisted user duty toggle (timed boosts, Block
+DHW/Space) and owns the restore gate (`spawn_restore_session`,
+`session_restored`) that the first refresh awaits (coordinator.py:6136). Today's
+blocks already split this way: boost holds the toggle, the planner path applies
+it. Neither module imports the other; `coordinator.py` and `switch.py` already
+import `boost`. Callers only: `switch.py` (writer), `coordinator.py` (three
+reads), `binary_sensor.py` and `diagnostics.py` (readers; `diagnostics.py` adds
+`boost` to its `from . import` line).
 
-The new API is in `external_heat.py`:
+`boost.py`:
 
-- `_OVERRIDES: WeakKeyDictionary[Any, bool]` holds the switch state per
-  coordinator, on boost's `_STATES` pattern. The coordinator grows no
-  attribute, so `coordinator_attrs` is unchanged.
-- `override_on(coord) -> bool` and `set_override(coord, on: bool) -> None`.
-- `ExternalHeatDetector.override_effective(on: bool) -> bool` returns
-  `on and self.config.enabled`.
-- `ExternalHeatDetector.blocking(on: bool) -> bool` returns
-  `self.suppressing and not self.override_effective(on)`.
-- `ExternalHeatDetector.view(on: bool) -> ExternalHeatView` is the body of
-  `coordinator._external_heat_view`, **moved**, with
-  `"external_heat_suppressing": self.blocking(on)`.
-- `ExternalHeatState.as_dict(override_active: bool = False)` adds
-  `"override_active": True` **only when true**, as `_displacement_dict` does.
-  An install that never touches the switch then publishes exactly today's
-  dictionary, and the `tests/golden/coord_*.json` captures stay still.
-  `payload.ExternalHeat` gains `override_active: bool`.
+- `BoostState.ignore_extheat_block: bool = False`.
+- `extheat_block_ignored(coord) -> bool` = `held_for(coord).ignore_extheat_block`.
+- `async set_extheat_block_ignored(coord, on, *, refresh=True)`: awaits
+  `session_restored`, sets, `persist`, optional refresh, as `set_block` does.
+- `_store_payload` adds `"ignore_extheat_block": True` **only when on**, so the
+  store of an install that never touches the switch is byte-identical;
+  `restore` adopts `bool(raw.get("ignore_extheat_block"))`. No timeout field (Q3).
 
-The coordinator's edits change no lines anywhere else:
+`external_heat.py`:
 
-- `_solve_hubs`: `external_heat_active=self._external_heat.blocking(override_on(self))`.
-- `_external_heat_forecast`: `if not self._external_heat.blocking(override_on(self)):`.
-- `_external_heat_view`: its body becomes
-  `return self._external_heat.view(override_on(self))`. The method stays,
-  because `tests/entities.py` lists it among the views.
-- `override_on` joins the existing `from .external_heat import (...)` tuple.
+- `ExternalHeatDetector.ignore_effective(ignored) -> bool` = `ignored and self.config.enabled`.
+- `ExternalHeatDetector.blocking(ignored) -> bool` = `self.suppressing and not self.ignore_effective(ignored)`.
+- `ExternalHeatDetector.view(ignored) -> ExternalHeatView`: `_external_heat_view`'s
+  body, **moved**, with `"external_heat_suppressing": self.blocking(ignored)`.
+- `ExternalHeatState.as_dict(block_ignored: bool | None = None)` adds
+  `"block_ignored"` **only when not None**; `view` passes
+  `self.ignore_effective(ignored)` when the switch is on, else None.
+  `payload.ExternalHeat` (total=False) gains `block_ignored: bool`. Switch off
+  ⇒ today's dict, so `tests/golden/coord_*.json` stay still. This answers
+  carry switch-detection-attr: on-and-False means detection is off, so no
+  `enabled` field is published.
 
-The switch is `ExternalHeatOverrideSwitch(HeatPumpOptimizerEntity,
-SwitchEntity, RestoreEntity)` in `switch.py`, with unique key
-`external_heat_override` and translation key `external_heat_override`.
-`is_on` is `override_on(coordinator)`. Turning it on or off calls
-`set_override`, then `publish_then_refresh(self)`, as `AwaySwitch` does.
-`async_added_to_hass` calls super, reads `async_get_last_state()`, adopts
-`state == "on"` and, only when the result is on, calls
-`coordinator.async_request_refresh()`. Its attributes are
-`detection_enabled` and `override_active`, read from the published payload.
-The switch is created unconditionally, beside the binary sensor, which is
-also unconditional.
+`coordinator.py` (call sites line-neutral; no new import):
 
-**Diagnostics**: a `_VIEWS` row,
-`("external_heat_override", lambda c: {"switch_on": override_on(c), "override_active": bool(((c.data or {}).get("external_heat") or {}).get("override_active"))})`.
-It does no private reach (`coordinator_private_reach`).
+- coordinator.py:6225 → `external_heat_active=self._external_heat.blocking(boost.extheat_block_ignored(self))`.
+- coordinator.py:5218 → `if not self._external_heat.blocking(boost.extheat_block_ignored(self)):`.
+- `_external_heat_view` → `return self._external_heat.view(boost.extheat_block_ignored(self))`
+  (the method stays; `tests/entities.py` lists it among the views).
+- coordinator.py:5203, 3757 and 6844 unchanged (raw).
 
-**Flow**: user toggles → `set_override` → `publish_then_refresh` → cycle:
-`_update_external_heat_detection` (unchanged) → `_solve_hubs` and
-`_external_heat_forecast` read `blocking(on)` → solve → `_external_heat_view`
-publishes the raw `active` plus `override_active`. Restart: the platform
-setup restores the state after the first refresh, and one refresh follows
-when it is on.
+`switch.py`: `ExternalHeatIgnoreBlockSwitch(HeatPumpOptimizerEntity, SwitchEntity)`,
+`_pin_identity(entry, "external_heat_ignore_block")`, `is_on` =
+`boost.extheat_block_ignored(coordinator)`; on/off call
+`set_extheat_block_ignored(..., refresh=False)` then `publish_then_refresh(self)`,
+as `AwaySwitch` does. Attribute `block_ignored`, read from the published
+`external_heat` payload. Created unconditionally. **No `RestoreEntity`.**
+
+Diagnostics: `_VIEWS` row `("external_heat_block_ignore", lambda c: {"switch_on":
+boost.extheat_block_ignored(c), "block_ignored": bool(((c.data or
+{}).get("external_heat") or {}).get("block_ignored"))})`; no private reach.
+
+```
+user ─toggle─▶ switch.py ─set_extheat_block_ignored─▶ boost (await gate, set, persist)
+                   └─publish_then_refresh─▶ coordinator cycle:
+  _update_external_heat_detection (raw, unchanged)
+  solve state / _external_heat_forecast ─blocking(ignored)─▶ external_heat.py
+  _external_heat_view ─view(ignored)─▶ external_heat.py ─▶ payload external_heat.block_ignored
+restart: spawn_restore_session ─▶ away + boost restore (flag included) ─▶ gate opens ─▶ first refresh
+```
 
 ## Alternatives
 
-1. **HA-free store (`QuarantiningStore`, boost or away pattern), loaded in the
-   coordinator's `for load in (...)` set.** It is durable at once and present
-   before the first solve. It lost because it adds a coordinator line and a
-   store file, against `RestoreEntity`'s zero. The gap it closes is at most
-   one cycle after a restart, in the safe direction (the block applies), plus
-   a crash within HA's restore-state save interval. This is Q2's fallback if
-   the owner wants no gap.
-2. **The override state in a new module (`external_heat_override`, not created).** It
-   lost because it splits one concern, the block and its override, across two
-   owners (`dev/governance/roles/designer.md` step 2), and it needs closure classification and a
-   new import in the coordinator.
-3. **Clear the cached `_external_heat_active` when overridden.** It lost
-   because that one attribute feeds both planning and the learning freeze, so
-   the override would silently unfreeze the learners during a real fire. It
-   would also break the harnesses that set it directly to drive the freeze
+1. **`RestoreEntity` on the switch** (revision 1's choice; R2). Lost: no entity
+   uses it today; it needs a new stub `tests/hastub/homeassistant/helpers/restore_state.py`
+   with closure classification, a new name in `tests/ha_floor_names.json` and an
+   `ha_floor.py record` against the floor tag (`tests/ha_floor.py` fails closed
+   on an unrecorded name); and it restores after the first refresh, so one
+   solve plans with the block applied and the entity must request a refresh.
+   The boost store costs none of these.
+2. **A store owned by `external_heat.py`.** Lost: `store.py` imports
+   `homeassistant.helpers.storage`, so `external_heat.py` would leave the
+   own-import-free set the layering metric counts, and its load would be a new
+   coordinator spawn outside the restore gate (a post-restart gap again).
+3. **A new module for the toggle.** Lost: a new tracked file to classify, a
+   new coordinator import, and a third home for user toggles beside `away.py`
+   and `boost.py`.
+4. **The switch forces `obs.override=False`** (R1a). Lost: `_deactivate` clears
+   evidence and `since`, so detection goes dark (binary sensor off); the cached
+   `_external_heat_active` drops, so the learners unfreeze during a real fire;
+   the stove entity's "yes" is silently overruled; and `_decay` still fades
+   `suppressing`, so the block lingers through the decay window instead of
+   lifting at once.
+5. **Clear the cached `_external_heat_active`.** Lost: that one attribute
+   feeds planning and the learning freeze, and harnesses set it directly
    (`tests/features.py`, `dev/audit/harnesses/solve_inputs_parity.py`).
-4. **Feed the detector `enabled=False` while overridden.** It lost because
-   `_reset()` erases the evidence and the state, and detection must stay
-   visible.
+6. **Feed the detector `enabled=False`.** Lost: `_reset()` erases evidence and
+   state; detection must stay visible.
 
 ## Sibling sites
 
-- `grep -rn "external_heat_active\|external_heat_kw" custom_components/heatpump_optimizer/dhw_planner.py custom_components/heatpump_optimizer/optimizer.py`
-  finds the two planning consumers. Both are covered through their two
-  inputs.
-- The same grep over `thermal_model.py` and `diagnosis.py` finds the field
-  declaration and the re-run input. The re-run records whatever was passed,
-  so it is covered.
-- The coordinator grep above is classified in Behaviour.
-- `mixing_valve.target_temp(free_heat_kw=...)` has no detector caller. It is
-  out of scope.
+`grep -rn "external_heat_active\|external_heat_kw" custom_components/heatpump_optimizer/dhw_planner.py custom_components/heatpump_optimizer/optimizer.py custom_components/heatpump_optimizer/thermal_model.py custom_components/heatpump_optimizer/diagnosis.py`
+finds the two planning consumers, the field declaration and the re-run record;
+all are covered through the two inputs. `mixing_valve.target_temp(free_heat_kw=...)`
+has no detector caller: out of scope.
 
 ## Evidence plan (failing first; a null control in each)
 
-In `tests/features.py`, beside the existing external-heat cases (`_xh`,
-`_xh2`):
+In `tests/features.py` beside `_xh`/`_xh2`, unless named:
 
-1. **Detector unit.** Drive an active detector, then a fading one.
-   `blocking(False)` is True and `blocking(True)` is False. The null control
-   is a quiet detector, which gives False for both.
-2. **Disabled.** With `enabled=False`, `override_effective(True)` is False
-   and `as_dict(...)` carries no `override_active`. The null control is
-   `enabled=True`, which gives True.
-3. **DHW block.** Use a fixture where `dhw_planner` suppresses slots
-   (`external_heat_suppressed_steps > 0`). With the switch on, the solve
-   state has `external_heat_active=False` and the plan equals the no-fire
-   plan, slot for slot. With the switch off (the null control), the
-   suppression is reproduced unchanged.
-4. **Free-heat credit.** With a wood-tank fixture where
-   `_external_heat_forecast` returns an array, the switch on gives `None`.
-   The switch off gives the same array as today.
-5. **Learning unchanged.** With the switch on during an active fire,
-   `_learning_frozen()` still returns `"external_heat_source"` and the
-   `DhwLearner` lambda is True. The null control is no fire.
-6. **Visibility.** With the switch on and a fire, the binary sensor is on,
-   `override_active` is True and `suppressing_electric_dhw` is False. With
-   the switch off, today's attributes apply and `override_active` is False.
-7. **Switch.** Turning it on and off flips `override_on`. A restored `"on"`
-   adopts and requests one refresh. A restored `"off"` or `None` adopts off
-   and requests no refresh. In `tests/entities.py`, the platform count of
-   switches moves to seven, and the unique id and entity id are pinned.
-8. **Diagnostics.** The row reports both fields. A coordinator never touched
-   reports `{"switch_on": false, "override_active": false}`.
-9. **Goldens.** The `coord_*.json` captures must not move, because the switch
-   is off in every fixture. A moved fixture is a defect here, not a claim.
+1. **Detector unit.** Active, then fading: `blocking(False)` True, `blocking(True)` False. Null: quiet detector, both False.
+2. **Disabled.** `enabled=False`: `ignore_effective(True)` False; `as_dict(False)` carries `block_ignored: false`, `as_dict(None)` no key. Null: `enabled=True` gives True.
+3. **DHW block.** Fixture with `external_heat_suppressed_steps > 0`: switch on ⇒ solve state `external_heat_active=False`, plan equal to the no-fire plan slot for slot. Null: switch off reproduces today's suppression.
+   **3b. Entity fire.** Same with `override=True` (`source="entity"`): switch on lifts the block, binary sensor stays on with `source: entity`. Null: switch off, block applies.
+4. **Free-heat credit.** Wood-tank fixture: switch on ⇒ `_external_heat_forecast` None. Null: switch off, today's array.
+5. **Learning unchanged.** Switch on during a fire: `_learning_frozen()` is `"external_heat_source"`, the `DhwLearner` lambda True. Null: no fire.
+6. **Visibility.** Switch on + fire: binary sensor on, `block_ignored` True, `suppressing_electric_dhw` False. Null: switch off, today's attributes, no `block_ignored` key.
+7. **Persistence.** `_store_payload` with the flag on carries `ignore_extheat_block`; off equals today's payload (null). `restore` from a stored `true` sets the flag before `session_restored` returns, so the first refresh's solve sees it; stored absent or `false` ⇒ off. `set_extheat_block_ignored` waits on an unopened gate. In `tests/entities.py`: switch count 6 → 7 and its message, unique id and entity id pinned.
+8. **Diagnostics.** The row reports both fields; an untouched coordinator gives `{"switch_on": false, "block_ignored": false}`.
+9. **Goldens.** `coord_*.json` must not move (switch off in every fixture). A moved fixture is a defect, not a claim.
 
-**Mutation targets**: the `and not` in `blocking`, the `and
-self.config.enabled` in `override_effective`, the `if override_active` in
-`as_dict`, the two coordinator call sites (revert either one to
-`.suppressing`), the restore's `== "on"`, and the switch's
-`set_override(..., True)`.
+**Mutation targets**: `and not` in `blocking`; `and self.config.enabled` in
+`ignore_effective`; `is not None` in `as_dict`; both coordinator call sites
+(revert to `.suppressing`); the `if` guarding the store key; `restore`'s
+`bool(raw.get(...))`; the `True` in the switch's `async_turn_on`.
 
 ## Hot files, serial position, ratchet, docs
 
-**Hot files**: `coordinator.py`, `external_heat.py`, `switch.py`,
+**Hot files**: `coordinator.py`, `external_heat.py`, `boost.py`, `switch.py`,
 `binary_sensor.py`, `diagnostics.py`, `payload.py`, `strings.json`,
 `icons.json`, `translations/en.json`, `translations/sv.json`,
-`translations/de.json`, `tests/features.py` and `tests/entities.py`, plus the
-docs. No new tracked file, so nothing needs closure classification.
+`translations/de.json`, `tests/features.py`, `tests/entities.py`, docs. **No
+new tracked file and no new Home Assistant name** (`boost.py` already imports
+`QuarantiningStore`): no closure classification, no stub, no floor re-record.
 
-**Serial position**: there is no `after` edge. FROST-HOLD, FAULT-HOLD and
-FLOWCAP edit `_write_supply`, the arbiter, `early_cutoff`, `inputs` and
-`config_flow`, and none touches these sites. A design-ref scan for
-`_external_heat_view`, `_external_heat_forecast`, `external_heat.py` and
-`external_heat_suppressing` found no other round-11 note. This group
-therefore lands after whichever of them merge first, and the fixer rebases
-and re-measures at the merge base.
-
-**Interactions**:
-
-- **FROST-HOLD**: no shared state. With the block applied, idle steps below
-  the threshold are held by the frost hold as for any idle step. With the
-  override on, fewer steps are idle.
-- **FAULT-HOLD**: suspends writes while a fault is latched. The override
-  changes only the plan, so the fault hold wins.
-- **FLOWCAP**: clamps every space write. A larger plan without the
-  free-heat credit is still clamped.
-- **Manual blocks and boosts**: these are unchanged, and a block wins.
+**Serial position**: no `after` edge. FROST-HOLD, FAULT-HOLD and FLOWCAP edit
+`_write_supply`, the arbiter, `early_cutoff`, `inputs` and `config_flow`; none
+touches these sites. The fixer rebases and re-measures at the merge base.
+Interactions: FAULT-HOLD wins (plan-only change); FLOWCAP still clamps;
+FROST-HOLD sees fewer idle steps; user blocks win.
 
 **Ratchet (payment by a real move, never a raise)**: the coordinator class
-loses the four lines of `_external_heat_view`'s dict body, which are moved
-into `ExternalHeatDetector.view`, the module that already owns `as_dict`. At
-module level it gains one import name. The two call-site edits are
-line-neutral. Net: `class_excess_loc` and `max_class_loc` go down by about 4,
-and `module_excess_loc` goes down by about 3. `external_heat.py` and
-`switch.py` stay under the module limit. No claimed move is used:
-quiet_windows, duty_ledger, grid_fee, flow_anchor, the config_flow helpers
-and dhw_start are all untouched. The fixer runs `tools/audit/archscore/`
-before and after and records dS. If a wrapped call line erases the margin,
-the line is split by an extracted local, never by a raise.
+loses `_external_heat_view`'s four-line dict body (moved to
+`ExternalHeatDetector.view`); the call sites are line-neutral and no import is
+added (`boost.` is already used). Net: `class_excess_loc`, `max_class_loc` and
+`module_excess_loc` go down by about 4. `BoostState` (about 180 lines),
+`boost.py` (820), `external_heat.py` (497) and `switch.py` (234) stay under
+their limits. The fixer runs `tools/audit/archscore/` before and after and
+records dS; a wrapped line is split by an extracted local, never a raise.
 
-**Docs**:
+**Docs**: `docs/how-it-works.md`, "Wood furnaces and other external heat": one
+paragraph naming **both** controls and setting them apart: the stove/flue
+entity says whether a fire burns; the switch keeps the fire detected but stops
+the plan reacting (DHW suppression and free-heat credit), keeps the learning
+freeze, persists, has no timeout, is inert with detection off, and lifts an
+entity-reported fire's block too. `README.md`: entity-table row and a sentence
+under the switch paragraphs. `docs/architecture.md`: the `switch.py` tree line.
+`switch.py` docstring: "Six switches" → seven.
 
-- `docs/how-it-works.md`, "Wood furnaces and other external heat": one
-  paragraph on the override. It covers what it overrides (the DHW suppression
-  and the free-heat credit) and what it does not (detection, the learning
-  freeze). It states that it persists and has no timeout, and that it is
-  inert with detection off.
-- `README.md`: a row in the entity table (Override External Heat Block,
-  switch) and a sentence under the switch paragraphs.
-- `docs/architecture.md`: the `switch.py` tree line names the override switch.
-- `switch.py`'s module docstring: "Six switches" becomes seven.
+**Strings**: `entity.switch.external_heat_ignore_block.name`: "Override
+external heat block" (en), "Åsidosätt blockering vid extern värme" (sv),
+"Sperre bei Fremdwärme übersteuern" (de), in `strings.json` and the three
+translations; `icons.json` `mdi:fire-off` / `mdi:fire`.
 
-**Strings**: `entity.switch.external_heat_override.name` is "Override External
-Heat Block" (en), "Åsidosätt blockering vid extern värme" (sv) and "Sperre bei
-Fremdwärme übersteuern" (de), in `strings.json` and the three translations.
-`icons.json` gets a `mdi:fire-off` / `mdi:fire` state pair.
-
-## Questions for the owner (R-questions)
+## Questions for the owner
 
 - **Q1**: off by default?
-- **Q2**: persist across restarts as a `RestoreEntity`, accepting at most
-  one post-restart cycle with the block applied (alternative 1 closes it,
-  with one coordinator line and a store)?
+- **Q2**: persists across restarts? (Stored with the boost/block toggles and restored before the first solve: no post-restart gap.)
 - **Q3**: no automatic timeout?
-- **Q4**: no effect while detection is disabled (the switch exists but is
-  inert, and reports `override_active: false`)?
-- **Q5**: does the diagnostics bundle record `switch_on` and the effective
-  `override_active`?
-- **Q6 (the designer's)**: the learners stay frozen during a detected fire
-  even when it is overridden. Should the override also lift the learning
-  freeze, for a detector the owner judges to be a false positive?
-- **Q7 (the designer's)**: does the override also drop the free-heat credit
-  to the space plan, not only the DHW suppression, as "as if no external heat
-  were detected" reads?
+- **Q4**: no effect while detection is disabled (the switch exists, inert, `block_ignored: false`)?
+- **Q5**: the diagnostics bundle records `switch_on` and the effective `block_ignored`?
+- **Q6**: the learners stay frozen during an ignored fire. Should the switch also lift the learning freeze?
+- **Q7**: the switch drops the free-heat credit to the space plan as well as the DHW suppression. Confirm?
+- **Q8**: when your stove/flue entity reports a fire, the switch lifts that block too. Confirm, or should the entity win?
+- **Q9**: entity name "Override external heat block", while code identifiers say `ignore_block` to stay distinct from the stove-entity override. Keep the name?
 
 ## Notes for the fixer
 
-- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item restore-order) -- `HeatPumpOptimizerEntity` already defines `async_added_to_hass` via `CoordinatorEntity`; call super before reading the last state.
-- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item attr-semantics) -- `tests/entities.py` asserts `suppressing_electric_dhw is True` under a fire; that holds with the switch off; add the overridden case beside it rather than editing it.
-- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item golden-still) -- if any `tests/golden/coord_*.json` moves, `override_active` was published unconditionally; fix the code, do not claim drift.
+- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item attr-semantics) -- `tests/entities.py` asserts `suppressing_electric_dhw is True` under a fire; that holds with the switch off; add the ignored case beside it rather than editing it.
+- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item golden-still) -- if any `tests/golden/coord_*.json` moves, `block_ignored` was published unconditionally; fix the code, do not claim drift.
+- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item switch-detection-attr) -- answered in the shape: `block_ignored` is published only while the switch is on and is False when detection is off; no `enabled` field is published and the switch reads no private detector attribute.
+- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item seam-learners-rebase) -- design/R11-SEAM-learners rewrites `_learning_frozen` into a facts function; whichever lands second keeps the `external_heat_source` reason reading the raw detection, not `blocking(...)`, and evidence test 5 pins it.
+- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item switch-count-pin) -- tests/entities.py:11769 pins `len(switches) == 6` with a message naming the switches; update both the count and the message.
+- Carry: R11-OWNER-EXTHEAT-OVERRIDE (item store-unchanged) -- the boost store payload of an install that never touches the switch must stay byte-identical; evidence test 7's null control pins it.
