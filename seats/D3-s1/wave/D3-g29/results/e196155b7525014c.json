@@ -1,0 +1,40 @@
+{
+ "key": "e196155b7525014c",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2844 GUARD_OFF",
+ "patch": "if result.success: -> if False:",
+ "function": "_solver_status",
+ "cluster": "optimizer.py:_solver_status@2844-2844",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/stress.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3491.6,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/stress.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5891.4,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/e196155b7525014c.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e196155b7525014c",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "killed",
+ "killed_by": [
+  "python3 tests/stress.py"
+ ],
+ "failing_check_lines": [
+  "python3 tests/stress.py: FAIL no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)  [summer/1z/space: 87905 production calls against the baseline's 81453 = 1.079x on work the counts vouch at 1.002x, over the 1.05x allowance (thermal_model.py +6202, optimizer.py +83, batchma",
+  "python3 tests/stress.py: 1 of 116 STRESS CHECKS FAILED",
+  "python3 tests/stress.py: >>> FAILED: python3 tests/stress.py"
+ ],
+ "non_finding": "the suite fails on this mutant: python3 tests/stress.py (gate_rc 1)"
+}
