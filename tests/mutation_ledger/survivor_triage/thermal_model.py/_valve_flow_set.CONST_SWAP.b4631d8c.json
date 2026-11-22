@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_valve_flow_set CONST_SWAP b4631d8c",
-  "old": "    lower_heat_loss_coefficient: float = 0.0,",
-  "reason": "Equivalent (CONST_SWAP, the lower floor's loss defaulting to 1.0). Only single-zone callers omit it (`_single_valve_rates`, `_valve_draw_circuits`' single-zone branch), and `_valve_flow_set`'s single-zone branch never reads it; every two-zone caller passes the floor's own loss. The two-zone branches are killed by tests/features.py's R11-SEAM-two-zone-slab block: dropping the argument at `_valve_draw_circuits`, `_valve_two_zone_delivery` or the batch twin fails its checks (a) to (d).",
-  "verdict": "equivalent"
-}
