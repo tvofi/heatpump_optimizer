@@ -2291,14 +2291,15 @@ def _valve_flow_set(
     valve-fed slab each term weighs a zone as the steady ``_two_zone_rates``
     solution weighs it in the room the thermostat reads (R11-SEAM-two-zone-slab)."""
     target = (p.mixing_valve_target or p.comfort_ceiling) if valve_target is None else float(valve_target)
-    free_heat_kw, k_slab = 0.0, p.slab_heat_transfer_floored
+    free_heat_kw = 0.0
     if not p.two_zone_enabled:
+        k_slab = p.slab_heat_transfer_floored
         emitter_ua = emitter_ua * k_slab / (emitter_ua + k_slab)
         free_heat_kw = p.internal_gains
     elif p.slab_fed_direct:
         heat_loss_coefficient += lower_heat_loss_coefficient
     else:
-        r, c = p.upper_floor_area_ratio, p.inter_zone_transfer
+        r, c, k_slab = p.upper_floor_area_ratio, p.inter_zone_transfer, p.slab_heat_transfer_floored
         ua_rad = p.radiator_power_fraction * emitter_ua
         ua_floor = (1.0 - p.radiator_power_fraction) * emitter_ua
         ua_slab = ua_floor * k_slab / (ua_floor + k_slab)  # the slab in series
@@ -4669,8 +4670,7 @@ class ThermalModel:
             # to the configured one when the plan names none.
             vt = float(valve_targets[i]) if valve_targets is not None else None
             if p.two_zone_enabled and throttled:  # the curve's inputs are per step
-                flow_set = _valve_flow_set(
-                    p, vt, out_i, u_first, ua_rad + ua_floor, u_second)
+                flow_set = _valve_flow_set(p, vt, out_i, u_first, ua_rad + ua_floor, u_second)
             for _sub in range(n_sub):
                 dt = dt_hours / n_sub
                 if p.two_zone_enabled:
