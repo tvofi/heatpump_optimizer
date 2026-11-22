@@ -1,0 +1,50 @@
+KILLED rc=1 A heat_energy: tank pair never shifts (rise always 0) :: 2 of 22 FEATURES BLOCK FAILED
+     FAIL the coordinator's own cycle read hands the tank sensor to the meter: a rise past the band over an unobserved, plan-space-only cycle leaves the interval no space power; the same cycles with the tank flat give the com
+     FAIL a stale first tank read is no evidence: the meter's tank span opens on None and the interval keeps its commanded space draw; the fresh rise and fresh flat arms above are its controls (review of 3d8679b765)  [((53.0,
+     2 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 B heat_energy: span opening tank read never set :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL a counter span whose tank rise is spread under the band on every cycle but past it over the span is an unplanned charge at its close; a span with no rise is not (null control)  [(([False], False), ([False], False))]
+     1 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 C heat_energy: unplanned_charge ignores observed :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL an unobserved, plan-space-only cycle whose tank rose past the band folds no flow-curve bias (its supply is the tank's charge temperature); null controls: no rise folds, a planned hot-water share under the curve shar
+     1 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 D draw_range: at_running_floor tolerance sign flipped :: 2 of 22 FEATURES BLOCK FAILED
+     FAIL a ceiling sample at the floor in force (learned 1.5 kW, or the configured 1.0 kW unlearned) is ceiling-frozen and reaches neither the ceiling store nor the window; a 4.0 kW ceiling sample is kept in the store (null 
+     FAIL the coordinator's ceiling ask freezes a draw at the floor in force and keeps a 4.0 kW draw and an unread one (null controls)  [{'floor': False, 'top_4': False, 'unread': False}]
+     2 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 E dhw_learning: away no longer holds usage/draws (`if occupied: return occupied` dropped) :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL away holds the tank's usage hours and draw booking, and returns the reason; the same fall at home moves both (D7-s2-01)  [away=(None, 1, True) 0.0 kWh home=(None, 1, True) 0.359 kWh]
+     1 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 F learning_freeze: CEILING dropped from room-air kinds :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL each shared freeze reason refuses exactly its kinds, and the reasons rank in today's order (external heat, signals, defrost, unusable key, ventilation, boost, tail), then away and away recovery; an unusable key the 
+     1 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 G learning_freeze: away_recovery raised by away :: 3 of 22 FEATURES BLOCK FAILED
+     FAIL each shared freeze reason refuses exactly its kinds, and the reasons rank in today's order (external heat, signals, defrost, unusable key, ventilation, boost, tail), then away and away recovery; an unusable key the 
+     FAIL each additive reason refuses only its own kinds; a clean interval refuses nothing, and a defrosting interval still reaches the delivered-ratio ask (#944)  [bad=[('away_recovery', 'comfort')]]
+     FAIL on a real coordinator away refuses the occupancy and comfort asks and not a room-air or plant one, and the recovery refuses the comfort ask alone (the curve tracker's own test, moved into the predicate)  [occ=away r
+     3 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 H learning_freeze: unplanned charge stops refusing METERED_SPACE_HEAT :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL each additive reason refuses only its own kinds; a clean interval refuses nothing, and a defrosting interval still reaches the delivered-ratio ask (#944)  [bad=[('unplanned_charge', 'metered_space_heat')]]
+     1 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 I learning_freeze: boost reason dropped :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL each shared freeze reason refuses exactly its kinds, and the reasons rank in today's order (external heat, signals, defrost, unusable key, ventilation, boost, tail), then away and away recovery; an unusable key the 
+     1 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 J learning_freeze: unusable-key loop dropped :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL each shared freeze reason refuses exactly its kinds, and the reasons rank in today's order (external heat, signals, defrost, unusable key, ventilation, boost, tail), then away and away recovery; an unusable key the 
+     1 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 K coordinator: _freeze_facts away_recovery=False :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL on a real coordinator away refuses the occupancy and comfort asks and not a room-air or plant one, and the recovery refuses the comfort ask alone (the curve tracker's own test, moved into the predicate)  [occ=away r
+     1 of 22 FEATURES BLOCK FAILED
+SURVIVED rc=0 L coordinator: _freeze_facts drops the entity_id guard :: ALL 22 FEATURES BLOCK PASSED
+KILLED rc=1 M coordinator: span-close refusal returns without noting (note lines deleted) :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL a span closed on an unplanned charge reaches neither the house learner nor the COP fold, refuses the COP as frozen and notes the freeze once; the same span with no charge reaches both (null control)  [(([], 'learner
+     1 of 22 FEATURES BLOCK FAILED
+KILLED rc=1 N coordinator: quiet-comfort ask back to ROOM_AIR :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL the quiet-comfort record asks the occupancy kind: away refuses it, home does not  [away=[None] home=[None]]
+     1 of 22 FEATURES BLOCK FAILED
+SURVIVED rc=0 O coordinator: lower-floor learner drops the unplanned evidence :: ALL 22 FEATURES BLOCK PASSED
+SURVIVED rc=0 P coordinator: house learner drops the unplanned evidence :: ALL 22 FEATURES BLOCK PASSED
+KILLED rc=1 Q coordinator: draw-range window fold drops the unplanned evidence :: 1 of 22 FEATURES BLOCK FAILED
+     FAIL the draw-range window refuses an unplanned charge on the pending interval's own split (frozen=True, so no window sample and no map run commits); null controls: no rise, or a planned hot-water share, hands frozen=Fal
+     1 of 22 FEATURES BLOCK FAILED
+clean tree: yes
