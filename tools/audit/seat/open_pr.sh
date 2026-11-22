@@ -113,15 +113,11 @@ op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin ho
   printf '%s: ROW LANDED: #%s has its row on origin at %s, but the row push then failed (exit status %s); #%s is left open: %s\n' \
     "$PR_NAME" "$N" "$H" "$1" "$N" "${OP_WHY:-${PR_STOPPED_AT:-a stop signal after the push}}" >&2
 }
-op_figures() { # <p1|p2>: re-render the body's generated figure blocks at this worktree's head; a block names the head it was rendered at
-  grep -q '^<!-- figure-block: ' $D/body.md || return 0
-  # p1 runs before the pull request exists, so its base is the one the open will record, origin/main; p2 renders
-  # against the recorded base.sha, which pr-contract verifies with.
-  local fb=origin/main
-  if [ "$1" = p2 ]; then fb=$(pr_recorded_base $R "$N") || { OP_WHY="the recorded base.sha of #$N could not be read"; echo "$PR_NAME: $OP_WHY" >&2; return 1; }; fi  # mut:opbase
-  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base "$fb" --head HEAD > $D/fig-$1.log 2>&1 && return 0
-  OP_WHY="the figure-block refresh at $1 failed:
-$(tail -n 20 $D/fig-$1.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
+op_figures() { # a body stores no figure block (pr-contract renders the registered instruments); cut one a body written before that rule carries
+  grep -q '^<!-- /\{0,1\}figure-block' $D/body.md || return 0
+  python3 -I "$PRT/figure_block.py" strip $D/body.md > $D/fig.log 2>&1 && return 0
+  OP_WHY="the figure-block strip failed:
+$(tail -n 20 $D/fig.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
 }
 op_clear_leftover() { # a closed-after-p2 open leaves its branch and detached checkout; both go when origin holds all of them
   git -C "$M" worktree prune
@@ -165,7 +161,7 @@ python3 "$PRT/ci_predict.py" --rekey-body $D/body.md --from $C || echo "open_pr:
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
-[ "$(git rev-parse HEAD)" = "$C" ] || op_figures p1 || pr_refuse "the figure-block refresh at the merged head failed; nothing is pushed"  # mut:opfig1
+op_figures || pr_refuse "the figure-block strip failed; nothing is pushed"  # mut:opfig1
 RU=--reuse  # mut:opreuse
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" ${RU-} $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 pr_wait $! $D/p1.log
@@ -182,7 +178,6 @@ p,H,N,C=sys.argv[1:5]; s=open(p).read()
 s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
 open(p,'w').write(s)
 E
-op_figures p2 || pr_refuse "the figure-block refresh at the row head failed"  # mut:opfig2
 RO=--row-only  # mut:oprowonly
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 rc=0; wait $! || rc=$?
