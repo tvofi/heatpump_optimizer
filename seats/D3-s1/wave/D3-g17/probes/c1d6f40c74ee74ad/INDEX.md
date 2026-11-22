@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_c1d6f40c74ee74ad.py (stored as .py.txt):  numpy RuntimeWarnings DhwPlanner._plan_dhw_min_cost emits on one call, and max |plan delta| (kW).

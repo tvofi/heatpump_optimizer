@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_6e1174561ae9297c.py (stored as .py.txt):  max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_min_cost when the largest refill premium is exactly 1e-9.

@@ -1,0 +1,9 @@
+RESULT nan_price_linprog_raised=ValueError
+RESULT nan_price_baseline=None
+RESULT nan_price_mutant=UnboundLocalError
+RESULT finite_differing=0
+RESULT reach=the line IS reachable by a direct call: one NaN price makes linprog raise ValueError on its first pass; whether DhwPlanner.optimize can hand this method a NaN price is not established here (no closure script's traced baseline executes line 1606)
+RESULT inputs_tried=one NaN price at step 3; all-finite prices (null)
+RESULT thread_factor=1.019
+RESULT load1=1.31
+RESULT swapins=0

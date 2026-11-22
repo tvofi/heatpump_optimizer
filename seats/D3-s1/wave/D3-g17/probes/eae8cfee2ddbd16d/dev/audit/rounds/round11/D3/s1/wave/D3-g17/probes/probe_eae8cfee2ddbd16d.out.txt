@@ -1,0 +1,10 @@
+RESULT edge_inputs=9
+RESULT edge_delta_kw=0 kW
+RESULT sweep_inputs=160
+RESULT differing_inputs=0
+RESULT sweep_max_delta_kw=0 kW
+RESULT null_delta_kw=0 kW
+RESULT inputs_tried=derate 0/0.2/0.9 x prices (falling, all-zero, one NaN) at min_run_power 1.5; 160 random
+RESULT thread_factor=1.000
+RESULT load1=1.36
+RESULT swapins=0

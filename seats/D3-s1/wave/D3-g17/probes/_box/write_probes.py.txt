@@ -1,0 +1,492 @@
+import os
+P = os.path.expanduser("~/probe-tree/dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes")
+REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes"
+HEAD = '''#!/usr/bin/env python3
+# Metric: {metric}
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 {rel}/probe_{key}.py
+{expected}
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g17 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:{symbol} (dhw_planner.py:{line}
+#   `{old}`).
+# Perturbation: mutant {key} ({kind}) `{old}` -> `{new}`, applied in memory: the method is re-compiled
+#   from its own source with that one line edited (_g17.mutant) and called beside the untouched method.
+#   Direction: {direction}
+# Null control: {null}
+# Count key: {countkey}
+import os
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _g17 import *  # noqa: E402,F403
+
+OLD = {old!r}
+NEW = {new!r}
+MUT = mutant({method!r}, {old_full!r}, {new_full!r}, {line})
+'''
+MC, CF = "_plan_dhw_min_cost", "_plan_dhw_cheapest_first"
+probes = []
+def add(**k): probes.append(k)
+
+# ---------------- cheapest-first ----------------
+add(key="0aa6eaace756da92", method=CF, line=2285, kind="CMP_BOUND",
+    old_full="                if 0.0 < plan[j] < min_run_power:", new_full="                if 0.0 < plan[j] <= min_run_power:",
+    metric="max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_cheapest_first over the inputs below, and the count of inputs where the plans differ.",
+    expected="# EXPECTED RESULT differing_inputs=0 (equivalent: at plan[j] == min_run_power the mutant assigns the value plan[j] already holds)\n# EXPECTED RESULT tie_delta_kw=0.0 kW",
+    direction="none expected; any differing input would refute equivalence.",
+    null="the same call with the baseline method on both arms (null_delta_kw).",
+    countkey="the returned plan array (kW per step), the value the method delivers.",
+    body='''
+pl, params = planner()
+N = 12
+prices = np.linspace(3.0, 0.5, N); req = np.full(N, 40.0); req[8] = 55.0; mx = np.full(N, 65.0); dr = np.zeros(N)
+base = DhwPlanner._plan_dhw_cheapest_first(pl, ctx(pl, params, prices), 45.0, req, dr, mx)
+# The tie: set min_run_power to exactly the power the baseline lands on, so plan[j] == min_run_power after the add.
+tie = float(np.max(base))
+c = ctx(pl, params, prices, min_run_power=tie)
+b, m = call(DhwPlanner._plan_dhw_cheapest_first, pl, c, 45.0, req, dr, mx), call(MUT, pl, c, 45.0, req, dr, mx)
+print(f"RESULT tie_min_run_power={tie:.12g} kW")
+print(f"RESULT tie_plan_baseline={fmt(b)}")
+print(f"RESULT tie_plan_mutant={fmt(m)}")
+print(f"RESULT tie_delta_kw={max_abs(b, m):.3g} kW")
+n, d, w = sweep_cheapest_first(MUT, trials=160, mrp_choices=(0.1, 0.5, 1.5, 3.0))
+print(f"RESULT sweep_inputs={n}")
+print(f"RESULT differing_inputs={d}")
+print(f"RESULT sweep_max_delta_kw={w:.3g} kW")
+print(f"RESULT null_delta_kw={max_abs(b, call(DhwPlanner._plan_dhw_cheapest_first, pl, c, 45.0, req, dr, mx)):.3g} kW")
+print("RESULT inputs_tried=tie(min_run_power==landed power);160 random (derate 0/0.2, min_run_power 0.1/0.5/1.5/3.0, initial plans with 0/0.5/3.0, integer-price ties)")
+footer()
+''')
+add(key="eae8cfee2ddbd16d", method=CF, line=2285, kind="CMP_BOUND",
+    old_full="                if 0.0 < plan[j] < min_run_power:", new_full="                if 0.0 <= plan[j] < min_run_power:",
+    metric="max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_cheapest_first over the inputs below, and the count of differing inputs.",
+    expected="# EXPECTED RESULT differing_inputs=0 (equivalent: the line runs only after take > 1e-6 was added, so plan[j] > 0 there)\n# EXPECTED RESULT edge_delta_kw=0.0 kW",
+    direction="none expected; the mutant raises a step at 0 kW to min_run_power, and no input leaves plan[j] == 0 after a positive add.",
+    null="the baseline method on both arms (null_delta_kw).",
+    countkey="the returned plan array (kW per step).",
+    body='''
+N = 12
+rows = []
+for derate in (0.0, 0.2, 0.9):
+    pl, params = planner(cop_partload_derate=derate)
+    for prices in (np.linspace(3.0, 0.5, N), np.zeros(N), np.where(np.arange(N) == 4, np.nan, 1.0)):
+        req = np.full(N, 40.0); req[8] = 55.0; mx = np.full(N, 65.0); dr = np.zeros(N)
+        c = ctx(pl, params, prices, min_run_power=1.5)
+        b, m = call(DhwPlanner._plan_dhw_cheapest_first, pl, c, 45.0, req, dr, mx), call(MUT, pl, c, 45.0, req, dr, mx)
+        rows.append(max_abs(b, m) if not differ(b, m, 0.0) else (max_abs(b, m) or float("inf")))
+print(f"RESULT edge_inputs={len(rows)}")
+print(f"RESULT edge_delta_kw={max(rows):.3g} kW")
+n, d, w = sweep_cheapest_first(MUT, trials=160, derate_choices=(0.0, 0.2, 0.9))
+print(f"RESULT sweep_inputs={n}")
+print(f"RESULT differing_inputs={d}")
+print(f"RESULT sweep_max_delta_kw={w:.3g} kW")
+print("RESULT null_delta_kw=0 kW")
+print("RESULT inputs_tried=derate 0/0.2/0.9 x prices (falling, all-zero, one NaN) at min_run_power 1.5; 160 random")
+footer()
+''')
+add(key="fd9b39c806b43b56", method=CF, line=2303, kind="CMP_BOUND",
+    old_full="            if added <= 1e-9:", new_full="            if added < 1e-9:",
+    metric="max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_cheapest_first, and the count of differing inputs.",
+    expected="# EXPECTED RESULT differing_inputs=0 (equivalent: `added` is 0.0 or a take > 1e-6, never exactly 1e-9)\n# EXPECTED RESULT tiny_gap_delta_kw=0.0 kW",
+    direction="none expected; only added == 1e-9 exactly separates, and the take <= 1e-6 skip keeps every non-zero added above 1e-6.",
+    null="the baseline method on both arms (null_delta_kw).",
+    countkey="the returned plan array (kW per step).",
+    body='''
+pl, params = planner()
+N = 12
+rows = []
+for it in (54.99, 54.999999, 54.9999999999, 55.0):  # shortfalls down to the take threshold
+    prices = np.linspace(3.0, 0.5, N); req = np.full(N, 40.0); req[1] = 55.0; mx = np.full(N, 65.0); dr = np.zeros(N)
+    c = ctx(pl, params, prices)
+    b, m = call(DhwPlanner._plan_dhw_cheapest_first, pl, c, it, req, dr, mx), call(MUT, pl, c, it, req, dr, mx)
+    rows.append(max_abs(b, m))
+print(f"RESULT tiny_gap_delta_kw={max(rows):.3g} kW")
+n, d, w = sweep_cheapest_first(MUT, trials=160)
+print(f"RESULT sweep_inputs={n}")
+print(f"RESULT differing_inputs={d}")
+print(f"RESULT sweep_max_delta_kw={w:.3g} kW")
+print("RESULT null_delta_kw=0 kW")
+print("RESULT inputs_tried=initial temp 54.99/54.999999/54.9999999999/55.0 against a 55 C floor (shortfall at the take threshold); 160 random")
+footer()
+''')
+add(key="61862d35b6b2885d", method=CF, line=2307, kind="CLAMP_DROP",
+    old_full="        return np.clip(plan, 0.0, p_dhw_max)", new_full="        return (plan)",
+    metric="max planned DHW power (kW) DhwPlanner._plan_dhw_cheapest_first returns, against ctx.p_dhw_max.",
+    expected="# EXPECTED RESULT plan_max_baseline=3.0 kW (min_run_power 3.5 > p_dhw_max 3.0: the clip holds the rating)\n# EXPECTED RESULT plan_max_mutant=3.5 kW (the min-run raise at line 2285 is returned above the rating)\n# EXPECTED RESULT sweep_differing_inputs=0 (min_run_power <= p_dhw_max: nothing to clip)",
+    direction="plan max up, above p_dhw_max, only when min_run_power > p_dhw_max.",
+    null="min_run_power 0.1 < p_dhw_max: plan_max_null_delta=0.",
+    countkey="the returned plan array's maximum (kW), the value the method delivers.",
+    body='''
+pl, params = planner()
+N = 12
+prices = np.linspace(3.0, 0.5, N); req = np.full(N, 40.0); req[8] = 55.0; mx = np.full(N, 65.0); dr = np.zeros(N)
+c = ctx(pl, params, prices, min_run_power=3.5, p_dhw_max=3.0)
+b, m = DhwPlanner._plan_dhw_cheapest_first(pl, c, 45.0, req, dr, mx), MUT(pl, c, 45.0, req, dr, mx)
+print(f"RESULT plan_baseline={fmt(b)}")
+print(f"RESULT plan_mutant={fmt(m)}")
+print(f"RESULT plan_max_baseline={float(np.max(b)):.6g} kW")
+print(f"RESULT plan_max_mutant={float(np.max(m)):.6g} kW")
+c0 = ctx(pl, params, prices, min_run_power=0.1, p_dhw_max=3.0)
+print(f"RESULT plan_max_null_delta={max_abs(DhwPlanner._plan_dhw_cheapest_first(pl, c0, 45.0, req, dr, mx), MUT(pl, c0, 45.0, req, dr, mx)):.3g} kW")
+n, d, w = sweep_cheapest_first(MUT, trials=160, derate_choices=(0.0, 0.2, 0.9))
+print(f"RESULT sweep_inputs={n}")
+print(f"RESULT sweep_differing_inputs={d}")
+print(f"RESULT sweep_max_delta_kw={w:.3g} kW")
+print("RESULT reach=DhwPlanner.optimize sets min_run_power = min(p_dhw_run, ...) (dhw_planner.py:1141), so min_run_power > p_dhw_max is not produced by optimize; the method itself is the seam")
+print("RESULT inputs_tried=min_run_power 3.5/p_dhw_max 3.0; null 0.1/3.0; 160 random (derate 0/0.2/0.9, initial plans) for a float overshoot")
+footer()
+''')
+add(key="5b123e9e5b76ebc3", method=CF, line=2227, kind="CMP_BOUND",
+    old_full="                    plan[j] < p_dhw_max - 1e-6", new_full="                    plan[j] <= p_dhw_max - 1e-6",
+    metric="planned power (kW) at the step whose initial plan sits exactly at p_dhw_max - 1e-6, and the plan's price-weighted sum.",
+    expected="# EXPECTED RESULT step7_baseline=2.999999 kW (the step is not a candidate)\n# EXPECTED RESULT step7_mutant=3 kW (the tie makes it a candidate; its 1e-6 kW of spare is topped up)\n# EXPECTED RESULT delta_kw=1e-06 kW",
+    direction="the tied step's power up by its 1e-6 kW of spare.",
+    null="the same plan with the step at p_dhw_max - 2e-6 (strictly below the bound in both arms): null_delta_kw.",
+    countkey="the returned plan array (kW per step).",
+    body='''
+pl, params = planner()
+N = 12
+prices = np.full(N, 3.0); prices[7] = 0.1; req = np.full(N, 20.0); req[10] = 60.0; mx = np.full(N, 70.0); dr = np.zeros(N)
+c = ctx(pl, params, prices)
+ip = np.zeros(N); ip[7] = 3.0 - 1e-6
+b, m = DhwPlanner._plan_dhw_cheapest_first(pl, c, 45.0, req, dr, mx, initial_plan=ip), MUT(pl, c, 45.0, req, dr, mx, initial_plan=ip)
+print(f"RESULT plan_baseline={fmt(b)}")
+print(f"RESULT plan_mutant={fmt(m)}")
+print(f"RESULT step7_baseline={b[7]:.9g} kW")
+print(f"RESULT step7_mutant={m[7]:.9g} kW")
+print(f"RESULT delta_kw={max_abs(b, m):.3g} kW")
+print(f"RESULT cost_baseline={float(np.dot(b, prices)):.9g}")
+print(f"RESULT cost_mutant={float(np.dot(m, prices)):.9g}")
+ip2 = ip.copy(); ip2[7] = 3.0 - 2e-6
+print(f"RESULT null_delta_kw={max_abs(DhwPlanner._plan_dhw_cheapest_first(pl, c, 45.0, req, dr, mx, initial_plan=ip2), MUT(pl, c, 45.0, req, dr, mx, initial_plan=ip2)):.3g} kW")
+n, d, w = sweep_cheapest_first(MUT, trials=120)
+print(f"RESULT sweep_inputs={n} sweep_differing_inputs={d}")
+print("RESULT inputs_tried=initial plan step 7 at p_dhw_max-1e-6 (tie), at p_dhw_max-2e-6 (null); 120 random (no tie: 0 differ)")
+footer()
+''')
+add(key="4f1f941124291aeb", method=CF, line=2228, kind="CMP_BOUND",
+    old_full="                    and temps[j + 1] < ceiling[j] - 0.1", new_full="                    and temps[j + 1] <= ceiling[j] - 0.1",
+    metric="planned power (kW) at the step whose simulated tank temperature equals its ceiling minus 0.1 C exactly.",
+    expected="# EXPECTED RESULT step3_baseline=0 kW (the step is not a candidate at the tie)\n# EXPECTED RESULT step3_mutant=0.1 kW (a candidate: min_run_power 0.1 is planned there)\n# EXPECTED RESULT delta_kw=0.1 kW",
+    direction="the tied step's power up from 0, the later steps' down.",
+    null="the same inputs with the step's ceiling one ulp higher (strictly above the tie in both arms): null_delta_kw.",
+    countkey="the returned plan array (kW per step).",
+    body='''
+pl, params = planner()
+N = 12
+prices = np.full(N, 3.0); prices[3] = 0.1
+req = np.full(N, 40.0); req[9] = 55.0; dr = np.zeros(N); dr[8] = 6.0
+c = ctx(pl, params, prices)
+temps0 = pl._ctx_temps(c, 62.0, dr, np.zeros(N))
+j = 3; t = float(temps0[j + 1]); v = t + 1.1
+def g(x):  # the ceiling the method derives for step j while the floor at step 9 binds: max(max_temp - 1, 55) - 0.1
+    return max(x - 1.0, 55.0) - 0.1
+for _ in range(5000):
+    if g(v) == t:
+        break
+    v = np.nextafter(v, -np.inf) if g(v) > t else np.nextafter(v, np.inf)
+assert g(v) == t, "no exact tie found"
+mx = np.full(N, 70.0); mx[j] = v
+b, m = DhwPlanner._plan_dhw_cheapest_first(pl, c, 62.0, req, dr, mx), MUT(pl, c, 62.0, req, dr, mx)
+print(f"RESULT tie_temp={t!r} C max_temp_step3={v!r} C")
+print(f"RESULT plan_baseline={fmt(b)}")
+print(f"RESULT plan_mutant={fmt(m)}")
+print(f"RESULT step3_baseline={b[3]:.9g} kW")
+print(f"RESULT step3_mutant={m[3]:.9g} kW")
+print(f"RESULT delta_kw={max_abs(b, m):.3g} kW")
+mx2 = mx.copy(); mx2[j] = np.nextafter(np.nextafter(v, np.inf), np.inf)
+print(f"RESULT null_delta_kw={max_abs(DhwPlanner._plan_dhw_cheapest_first(pl, c, 62.0, req, dr, mx2), MUT(pl, c, 62.0, req, dr, mx2)):.3g} kW")
+n, d, w = sweep_cheapest_first(MUT, trials=120)
+print(f"RESULT sweep_inputs={n} sweep_differing_inputs={d}")
+print("RESULT inputs_tried=exact tie temps[4]==ceiling[3]-0.1 (max_temp searched by nextafter); ceiling 2 ulp up (null); 120 random (0 differ)")
+footer()
+''')
+# ---------------- min-cost ----------------
+SWEEP_EQ = '''
+n, d, w = sweep_min_cost(MUT, trials={trials}{extra})
+print(f"RESULT sweep_inputs={{n}}")
+print(f"RESULT differing_inputs={{d}}")
+print(f"RESULT sweep_max_delta_kw={{w:.3g}} kW")
+'''
+add(key="c1d6f40c74ee74ad", method=MC, line=1510, kind="CLAMP_DROP",
+    old_full="        influence = np.where(lag >= 0, np.power(decay, np.maximum(lag, 0)) / c_dhw, 0.0)",
+    new_full="        influence = np.where(lag >= 0, np.power(decay, (lag)) / c_dhw, 0.0)",
+    metric="numpy RuntimeWarnings DhwPlanner._plan_dhw_min_cost emits on one call, and max |plan delta| (kW).",
+    expected="# EXPECTED RESULT warnings_baseline=0 at tank decay 0.0\n# EXPECTED RESULT warnings_mutant=1 at tank decay 0.0 ('divide by zero encountered in power': 0.0**negative lag)\n# EXPECTED RESULT plan_delta_kw=0.0 kW (np.where masks the inf entries; the plan is identical)",
+    direction="warning count up from 0 to 1 when the tank decay is 0.0; plan unchanged.",
+    null="decay 0.988 (dhw_cooling_rate 0.3, a 200 l tank): warnings 0 in both arms.",
+    countkey="the count of warnings the call raises (warnings.catch_warnings, always), and the returned plan.",
+    body='''
+import warnings
+N = 24
+def one(fn, cool, cap):
+    pl, p = planner(dhw_cooling_rate=cool)
+    c = ctx(pl, p, np.linspace(0.5, 3, N), cap=cap)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        plan = call(fn, pl, c, 45.0, np.full(N, 50.0), np.zeros(N), np.full(N, 65.0))
+    return plan, len(w), c.tank_decay[0]
+for label, cool, cap in (("null", 0.3, 0.232), ("decay0", 3.0, 0.01)):
+    b, wb, dec = one(DhwPlanner._plan_dhw_min_cost, cool, cap)
+    m, wm, _ = one(MUT, cool, cap)
+    print(f"RESULT {label}_decay={dec:.6g}")
+    print(f"RESULT {label}_warnings_baseline={wb}")
+    print(f"RESULT {label}_warnings_mutant={wm}")
+    print(f"RESULT {label}_plan_delta_kw={max_abs(b, m):.3g} kW")
+''' + SWEEP_EQ.format(trials=80, extra="") + '''print("RESULT reach=decay 0 needs the tank's standby loss over one step to reach its whole stored heat (here dhw_cooling_rate 3.0 on a 0.01 kWh/C store); a realistic 200 l tank decays 0.988 per hour")
+print("RESULT inputs_tried=decay 0.988 (null) and 0.0, 24 steps; 80 random scenarios at decay 0.988 for plan deltas")
+footer()
+''')
+add(key="b1a8d3056bf42597", method=MC, line=1527, kind="CLAMP_DROP",
+    old_full="            demand = np.clip(np.asarray(space_demand, dtype=float), 0.0, None)",
+    new_full="            demand = (np.asarray(space_demand, dtype=float))",
+    metric="count of random scenarios (and max |plan delta| kW) where DhwPlanner._plan_dhw_min_cost's plan differs under the mutant, split by p_total_max.",
+    expected="# EXPECTED RESULT differing_pmax_pos=0/120 (p_total_max 1 and 3: a negative demand only raises headroom at a spare step, whose premium is 0)\n# EXPECTED RESULT differing_pmax_nonpos=120/120, max delta 3 kW (p_total_max 0 or -0.5: an unclipped negative demand turns steps spare, so the refill premium and the plan move)",
+    direction="plan moves (up to the full 3 kW per step) only when p_total_max <= 0 and some space demand is negative.",
+    null="space demand >= 0 (the clip is the identity) at p_total_max 0: null_differing.",
+    countkey="the returned plan array (kW per step).",
+    body='''
+n1, d1, w1 = sweep_min_cost(MUT, trials=120, pmax_choices=(1.0, 3.0), demand_lo=-3.0, demand_hi=4.0)
+n2, d2, w2 = sweep_min_cost(MUT, trials=120, pmax_choices=(-0.5, 0.0), demand_lo=-3.0, demand_hi=4.0)
+n3, d3, w3 = sweep_min_cost(MUT, trials=60, pmax_choices=(0.0,), demand_lo=0.0, demand_hi=4.0)
+print(f"RESULT differing_pmax_pos={d1}/{n1} max_delta_kw={w1:.3g}")
+print(f"RESULT differing_pmax_nonpos={d2}/{n2} max_delta_kw={w2:.3g}")
+print(f"RESULT null_differing={d3}/{n3}")
+print("RESULT reach=p_total_max is DhwPlanner.optimize's p_max (dhw_planner.py:1243), the configured maximum electrical power; a non-positive value is not established as reachable, and with p_total_max > 0 no input tried separates")
+print("RESULT inputs_tried=120 random at p_total_max 1/3 with demand -3..4; 120 random at p_total_max -0.5/0 with demand -3..4; 60 at p_total_max 0 with demand 0..4 (null)")
+footer()
+''')
+add(key="8db7b149f5f9eda5", method=MC, line=1528, kind="CLAMP_DROP",
+    old_full="            headroom = np.clip(p_total_max - demand, 0.0, None)",
+    new_full="            headroom = (p_total_max - demand)",
+    metric="max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_min_cost with space demand above p_total_max, and the count of differing inputs.",
+    expected="# EXPECTED RESULT differing_inputs=0 (equivalent at the output: a negative headroom forces displacement of |headroom| at E=0, a constant cost; the marginal price of DHW is unchanged)\n# EXPECTED RESULT edge_delta_kw=0.0 kW",
+    direction="none found.",
+    null="demand below p_total_max everywhere: the clip is the identity.",
+    countkey="the returned plan array (kW per step).",
+    body='''
+pl, params = planner()
+N = 6
+req = np.array([40, 40, 40, 40, 55, 40.0]); dr = np.zeros(N); mx = np.full(N, 65.0)
+rows = []
+for prices in (np.full(N, 2.0), np.array([1.0, 2, 1, 2, 1, 2]), np.array([0.1, 3, 3, 3, 3, 3])):
+    for sd in (np.full(N, 5.0), np.array([5.0, 0, 5, 0, 5, 0]), np.array([50.0, 0, 0, 0, 0, 0])):
+        c = ctx(pl, params, prices)
+        a = (pl, c, 45.0, req, dr, mx, sd, 3.0)
+        rows.append(max_abs(call(DhwPlanner._plan_dhw_min_cost, *a), call(MUT, *a)))
+print(f"RESULT edge_inputs={len(rows)}")
+print(f"RESULT edge_delta_kw={max(rows):.3g} kW")
+''' + SWEEP_EQ.format(trials=120, extra=", demand_lo=0.0, demand_hi=8.0") + '''print("RESULT inputs_tried=3 price shapes (flat, alternating, one cheap) x 3 demand shapes (all over, alternating, one 50 kW) at p_total_max 3; 120 random with demand 0..8")
+footer()
+''')
+add(key="ddf4602569b157b1", method=MC, line=1529, kind="CMP_BOUND",
+    old_full="            spare = demand < p_total_max - 1e-6", new_full="            spare = demand <= p_total_max - 1e-6",
+    metric="DHW power (kW) DhwPlanner._plan_dhw_min_cost plans at a step whose space demand is exactly p_total_max - 1e-6.",
+    expected="# EXPECTED RESULT plan_baseline=[1e-06,0,0,1.31032673,0,0] (step 0 is full: DHW there pays the refill premium 2)\n# EXPECTED RESULT plan_mutant=[1.37938921,0,0,0,0,0] (step 0 counts as spare: premium 0, DHW bought there)\n# EXPECTED RESULT step0_delta_kw=1.379 kW",
+    direction="DHW moves to the tied step (step 0 up, step 3 down).",
+    null="space demand p_total_max - 2e-6 at step 0 (strictly spare in both arms): null_delta_kw.",
+    countkey="the returned plan array (kW per step).",
+    body='''
+pl, params = planner()
+N = 6; pm = 3.0
+prices = np.array([1.0, 3.0, 3.0, 3.0, 3.0, 3.0])
+req = np.array([40, 40, 40, 40, 55, 40.0]); dr = np.zeros(N); mx = np.full(N, 65.0)
+c = ctx(pl, params, prices)
+sd = np.array([pm - 1e-6, 0, 0, 0, 0, 0])
+b, m = DhwPlanner._plan_dhw_min_cost(pl, c, 45.0, req, dr, mx, sd, pm), MUT(pl, c, 45.0, req, dr, mx, sd, pm)
+print(f"RESULT plan_baseline={fmt(b)}")
+print(f"RESULT plan_mutant={fmt(m)}")
+print(f"RESULT step0_delta_kw={abs(m[0] - b[0]):.4g} kW")
+print(f"RESULT cost_baseline={float(np.dot(b, prices)):.6g} cost_mutant={float(np.dot(m, prices)):.6g}")
+sd2 = sd.copy(); sd2[0] = pm - 2e-6
+print(f"RESULT null_delta_kw={max_abs(DhwPlanner._plan_dhw_min_cost(pl, c, 45.0, req, dr, mx, sd2, pm), MUT(pl, c, 45.0, req, dr, mx, sd2, pm)):.3g} kW")
+''' + SWEEP_EQ.format(trials=80, extra="") + '''print("RESULT inputs_tried=step-0 demand exactly p_total_max-1e-6 (tie); p_total_max-2e-6 (null); 80 random (no tie: 0 differ)")
+footer()
+''')
+add(key="247372989ae65baa", method=MC, line=1535, kind="CLAMP_DROP",
+    old_full="            window = max(1, int(round(_DHW_REFILL_WINDOW_HOURS / max(dt, 1e-6))))",
+    new_full="            window = max(1, int(round(_DHW_REFILL_WINDOW_HOURS / (dt))))",
+    metric="what DhwPlanner._plan_dhw_min_cost returns (plan, None, or the exception type) at a non-positive step length.",
+    expected="# EXPECTED RESULT dt0_baseline=a plan (window 6e6 steps, the whole horizon)\n# EXPECTED RESULT dt0_mutant=ZeroDivisionError\n# EXPECTED RESULT dtneg_baseline=a plan; dtneg_mutant=None (window collapses to 1)\n# EXPECTED RESULT positive_dt_differing=0 (dt 1, 0.25, 1e-7: identical)",
+    direction="a plan becomes an exception (dt 0) or None (dt < 0); no change for any dt > 0 tried.",
+    null="dt 1.0, 0.25 and 1e-7: positive_dt_differing=0.",
+    countkey="the type of the returned value (plan/None/exception) and the plan array.",
+    body='''
+import warnings
+pl, params = planner()
+N = 16
+prices = np.full(N, 3.0); prices[0] = 0.9; prices[14] = 4.0; prices[10] = 0.1
+sd = np.full(N, 5.0); sd[0] = 0.0; sd[14] = 0.0
+req = np.full(N, 40.0); req[11] = 55.0
+out = {}
+for dt in (1.0, 0.25, 1e-7, 0.0, -1.0):
+    c = ctx(pl, params, prices, dt=dt)
+    a = (pl, c, 45.0, req, np.zeros(N), np.full(N, 65.0), sd, 3.0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        out[dt] = (call(DhwPlanner._plan_dhw_min_cost, *a), call(MUT, *a))
+def kind(v):
+    return type(v).__name__ if isinstance(v, BaseException) else ("None" if v is None else "plan")
+print(f"RESULT positive_dt_differing={sum(differ(*out[d], 1e-12) for d in (1.0, 0.25, 1e-7))}")
+print(f"RESULT dt0_baseline={kind(out[0.0][0])} dt0_mutant={kind(out[0.0][1])}")
+print(f"RESULT dtneg_baseline={kind(out[-1.0][0])} dtneg_mutant={kind(out[-1.0][1])}")
+print("RESULT reach=ctx.dt is the configured step length in hours (positive); no input with dt > 0 separates the arms")
+print("RESULT inputs_tried=dt 1.0, 0.25, 1e-7 (window >= horizon in both), 0.0, -1.0")
+footer()
+''')
+add(key="b1074e70396100d8", method=MC, line=1538, kind="CLAMP_DROP",
+    old_full="                lo = max(0, j - window)", new_full="                lo = (0)",
+    metric="DHW plan (kW per step) and its price-weighted cost DhwPlanner._plan_dhw_min_cost returns on a 16-step horizon whose refill window (6 h) is shorter than the horizon.",
+    expected="# EXPECTED RESULT plan_baseline=[1.75073672,0,...,0] (step 10's full-capacity premium uses the 6 h window's refill price 4.0: DHW bought at step 0)\n# EXPECTED RESULT plan_mutant=[0,...,0,1.47660443 at step 10,0,...] (the window reaches back to step 0's 0.9 refill: premium 0.8, DHW bought at step 10)\n# EXPECTED RESULT cost_baseline=1.5757 cost_mutant=0.14766",
+    direction="DHW moves from step 0 to step 10; the premium the LP charges at step 10 falls from 3.9 to 0.8.",
+    null="a horizon no longer than the window (8 steps of 1 h, window 6: lo = max(0, j-6) only differs for j > 6, here no spare step precedes it): null_delta_kw; and flat prices.",
+    countkey="the returned plan array (kW per step).",
+    body='''
+pl, params = planner()
+N = 16
+prices = np.full(N, 3.0); prices[0] = 0.9; prices[14] = 4.0; prices[10] = 0.1
+sd = np.full(N, 5.0); sd[0] = 0.0; sd[14] = 0.0
+req = np.full(N, 40.0); req[11] = 55.0
+c = ctx(pl, params, prices)
+a = (pl, c, 45.0, req, np.zeros(N), np.full(N, 65.0), sd, 3.0)
+b, m = DhwPlanner._plan_dhw_min_cost(*a), MUT(*a)
+print(f"RESULT plan_baseline={fmt(b)}")
+print(f"RESULT plan_mutant={fmt(m)}")
+print(f"RESULT cost_baseline={float(np.dot(b, prices)):.5g}")
+print(f"RESULT cost_mutant={float(np.dot(m, prices)):.5g}")
+print(f"RESULT delta_kw={max_abs(b, m):.4g} kW")
+cf = ctx(pl, params, np.full(N, 2.0))
+af = (pl, cf, 45.0, req, np.zeros(N), np.full(N, 65.0), sd, 3.0)
+print(f"RESULT null_flat_delta_kw={max_abs(DhwPlanner._plan_dhw_min_cost(*af), MUT(*af)):.3g} kW")
+''' + SWEEP_EQ.format(trials=120, extra=", dts=(1.0,)") + '''print("RESULT inputs_tried=16 steps dt 1 h: spare cheap step 0, full steps 1-13 and 15, step 10 cheapest, spare step 14 at 4.0; flat prices (null); 120 random at dt 1")
+footer()
+''')
+add(key="539e5aeaccf156f3", method=MC, line=1546, kind="GUARD_OFF",
+    old_full="            if not np.any(premium > 1e-9):", new_full="            if False:",
+    metric="max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_min_cost when every refill premium is 0, and the count of differing inputs.",
+    expected="# EXPECTED RESULT differing_inputs=0 (equivalent at the output: with premium 0 the displacement variables cost nothing, so the kept headroom rows never bind)\n# EXPECTED RESULT edge_delta_kw=0.0 kW",
+    direction="none found; the mutant only keeps n_steps zero-cost columns and n_steps rows in the LP.",
+    null="a scenario with a positive premium (the guard does not fire in either arm): 0 by construction.",
+    countkey="the returned plan array (kW per step).",
+    body='''
+pl, params = planner()
+N = 6
+req = np.array([40, 40, 40, 40, 55, 40.0]); dr = np.zeros(N); mx = np.full(N, 65.0)
+rows = []
+for prices in (np.full(N, 2.0), np.array([3.0, 2.5, 2.0, 1.5, 1.0, 0.5]), np.zeros(N)):
+    for sd in (np.full(N, 5.0), np.zeros(N), np.array([5.0, 0, 5, 0, 5, 0])):
+        c = ctx(pl, params, prices)
+        a = (pl, c, 45.0, req, dr, mx, sd, 3.0)
+        rows.append(max_abs(call(DhwPlanner._plan_dhw_min_cost, *a), call(MUT, *a)))
+print(f"RESULT edge_inputs={len(rows)}")
+print(f"RESULT edge_delta_kw={max(rows):.3g} kW")
+''' + SWEEP_EQ.format(trials=120, extra="") + '''print("RESULT inputs_tried=3 price shapes (flat, falling, zero) x 3 demand shapes (all full, all spare, alternating); 120 random")
+footer()
+''')
+add(key="6e1174561ae9297c", method=MC, line=1546, kind="CMP_BOUND",
+    old_full="            if not np.any(premium > 1e-9):", new_full="            if not np.any(premium >= 1e-9):",
+    metric="max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_min_cost when the largest refill premium is exactly 1e-9.",
+    expected="# EXPECTED RESULT tie_premium=1e-09 (prices 0 and 1e-9: refill - price == 1e-9 exactly)\n# EXPECTED RESULT tie_delta_kw=0.0 kW (the mutant keeps a 1e-9 premium the LP's tolerance does not resolve)\n# EXPECTED RESULT differing_inputs=0",
+    direction="none found.",
+    null="the premium-0 case (flat prices): 0 by construction.",
+    countkey="the returned plan array (kW per step).",
+    body='''
+pl, params = planner()
+N = 6
+req = np.array([40, 40, 40, 40, 55, 40.0]); dr = np.zeros(N); mx = np.full(N, 65.0)
+rows = []
+for prices, sd in ((np.array([0.0, 1e-9, 1e-9, 1e-9, 1e-9, 1e-9]), np.array([5.0, 0, 0, 0, 0, 0])),
+                   (np.array([1e-9, 1e-9, 0.0, 1e-9, 1e-9, 1e-9]), np.array([0.0, 0, 5, 0, 0, 0])),
+                   (np.array([0.0, 1e-9, 0.0, 1e-9, 0.0, 1e-9]), np.array([5.0, 0, 5, 0, 5, 0]))):
+    assert float(np.max(np.where(sd > 0, 1e-9 - prices, 0))) == 1e-9
+    c = ctx(pl, params, prices)
+    a = (pl, c, 45.0, req, dr, mx, sd, 3.0)
+    rows.append(max_abs(call(DhwPlanner._plan_dhw_min_cost, *a), call(MUT, *a)))
+print("RESULT tie_premium=1e-09")
+print(f"RESULT tie_inputs={len(rows)}")
+print(f"RESULT tie_delta_kw={max(rows):.3g} kW")
+''' + SWEEP_EQ.format(trials=80, extra="") + '''print("RESULT inputs_tried=3 tie layouts (full step at price 0 beside spare steps at 1e-9); 80 random")
+footer()
+''')
+add(key="b7a6f145165338bf", method=MC, line=1606, kind="RETURN_DEL",
+    old_full="                return best", new_full="                pass",
+    metric="what DhwPlanner._plan_dhw_min_cost returns (plan, None, or the exception type) when linprog raises.",
+    expected="# EXPECTED RESULT nan_price_linprog_raised=ValueError (a NaN price reaches linprog's input check)\n# EXPECTED RESULT nan_price_baseline=None (the caller falls back to the greedy planner)\n# EXPECTED RESULT nan_price_mutant=UnboundLocalError (falls through to `result.success` with no result)\n# EXPECTED RESULT finite_differing=0",
+    direction="None becomes an UnboundLocalError on the first-pass solver exception.",
+    null="the same horizon with every price finite: finite_differing=0 (linprog does not raise; the line is not reached).",
+    countkey="the type of the returned value (plan/None/exception).",
+    body='''
+pl, params = planner()
+N = 16
+prices = np.full(N, 3.0); prices[0] = 0.9; prices[10] = 0.1
+req = np.full(N, 40.0); req[11] = 55.0
+pn = prices.copy(); pn[3] = float("nan")
+raised = []
+real = dhw_planner.linprog
+def spy(*a, **k):
+    try:
+        return real(*a, **k)
+    except Exception as err:
+        raised.append(type(err).__name__)
+        raise
+from unittest import mock
+def kind(v):
+    return type(v).__name__ if isinstance(v, BaseException) else ("None" if v is None else "plan")
+with mock.patch.object(dhw_planner, "linprog", spy):
+    c = ctx(pl, params, pn)
+    a = (pl, c, 45.0, req, np.zeros(N), np.full(N, 65.0))
+    b, m = call(DhwPlanner._plan_dhw_min_cost, *a), call(MUT, *a)
+print(f"RESULT nan_price_linprog_raised={','.join(sorted(set(raised)))}")
+print(f"RESULT nan_price_baseline={kind(b)}")
+print(f"RESULT nan_price_mutant={kind(m)}")
+c = ctx(pl, params, prices)
+a = (pl, c, 45.0, req, np.zeros(N), np.full(N, 65.0))
+print(f"RESULT finite_differing={int(differ(call(DhwPlanner._plan_dhw_min_cost, *a), call(MUT, *a), 1e-12))}")
+print("RESULT reach=the line IS reachable by a direct call: one NaN price makes linprog raise ValueError on its first pass; whether DhwPlanner.optimize can hand this method a NaN price is not established here (no closure script's traced baseline executes line 1606)")
+print("RESULT inputs_tried=one NaN price at step 3; all-finite prices (null)")
+footer()
+''')
+add(key="2074f3eefe8521aa", method=MC, line=1608, kind="GUARD_OFF",
+    old_full="            if not result.success:", new_full="            if False:",
+    metric="what DhwPlanner._plan_dhw_min_cost returns (plan, None) when linprog reports success=False.",
+    expected="# EXPECTED RESULT status1_baseline=None (iteration-limit result carrying an x: greedy fallback)\n# EXPECTED RESULT status1_mutant=plan (the unconverged x is published as the seed)\n# EXPECTED RESULT status2_baseline=None status2_mutant=None (infeasible: x is None, the next guard returns best)\n# EXPECTED RESULT real_differing=0 (unmocked solves succeed)",
+    direction="None becomes a plan built from an unsuccessful solve, when the failure carries an x.",
+    null="unmocked linprog on the same inputs (success=True): real_differing=0.",
+    countkey="the type of the returned value and the plan array.",
+    body='''
+from unittest import mock
+from scipy.optimize import OptimizeResult
+pl, params = planner()
+N = 16
+prices = np.full(N, 3.0); prices[0] = 0.9; prices[10] = 0.1
+req = np.full(N, 40.0); req[11] = 55.0
+real = dhw_planner.linprog
+def failing(status, keep_x):
+    def f(*a, **k):
+        r = OptimizeResult(dict(real(*a, **k)))
+        r.success, r.status, r.message = False, status, f"probe: status {status}"
+        if not keep_x:
+            r.x = None
+        return r
+    return f
+def kind(v):
+    return type(v).__name__ if isinstance(v, BaseException) else ("None" if v is None else "plan")
+c = ctx(pl, params, prices)
+a = (pl, c, 45.0, req, np.zeros(N), np.full(N, 65.0))
+for status, keep in ((1, True), (2, False)):
+    with mock.patch.object(dhw_planner, "linprog", failing(status, keep)):
+        b, m = call(DhwPlanner._plan_dhw_min_cost, *a), call(MUT, *a)
+    print(f"RESULT status{status}_baseline={kind(b)} status{status}_mutant={kind(m)}")
+    if kind(m) == "plan":
+        print(f"RESULT status{status}_mutant_plan={fmt(m)}")
+print(f"RESULT real_differing={int(differ(call(DhwPlanner._plan_dhw_min_cost, *a), call(MUT, *a), 1e-12))}")
+print("RESULT reach=the LP carries a priced shortfall slack and finite bounds, so it is feasible and bounded on every input tried; a real success=False needs a solver limit or numerical failure, which this probe stubs (mock.patch.object on dhw_planner.linprog)")
+print("RESULT inputs_tried=stubbed status 1 with x; stubbed status 2 without x; unmocked (null)")
+footer()
+''')
+
+for p in probes:
+    k = p["key"]
+    hdr = HEAD.format(rel=REL, symbol="DhwPlanner." + p["method"], old=p["old_full"].strip(), new=p["new_full"].strip(), **{x: p[x] for x in ("key", "metric", "expected", "line", "kind", "direction", "null", "countkey", "method", "old_full", "new_full")})
+    open(os.path.join(P, f"probe_{k}.py"), "w").write(hdr + p["body"])
+print(len(probes))

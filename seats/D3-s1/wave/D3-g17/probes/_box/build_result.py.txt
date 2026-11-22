@@ -1,0 +1,162 @@
+"""Write wave/D3-g17/results/<key>.json for one gated key (box D3-g17). Usage: build_result.py <key>"""
+import json, os, re, sys
+H = os.path.expanduser("~")
+TR = f"{H}/audit-r11-D3-s1"; S1 = f"{TR}/dev/audit/rounds/round11/D3/s1"; W = f"{S1}/wave/D3-g17"
+PT = f"{H}/probe-tree/dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes"
+REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g17"
+BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+MACHINE = "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+CONTENTION = ("probe values are deterministic floats/counts; the probes ran in a separate baseline worktree "
+              "(~/probe-tree) while this box's gates ran (load1 ~1)")
+LP_CHECK = ("tests/features.py check 'the DHW cost program plans under space-heating contention' (features.py:63744), "
+            "the suite's only _plan_dhw_min_cost call with space_demand/p_total_max")
+CF_CHECKS = ("tests/features.py _plan_dhw_cheapest_first callers (_r7d203_greedy_steps at features.py:63168, the derate "
+             "check at features.py:82539, the min-cost/greedy comparison at features.py:63622)")
+META = {
+ "0aa6eaace756da92": dict(cls="equivalent-candidate", reach="executed",
+   should="none: at plan[j] == min_run_power the mutant assigns plan[j] the value it already holds; no check can fail",
+   metric="tie_delta_kw", ),
+ "eae8cfee2ddbd16d": dict(cls="equivalent-candidate", reach="executed",
+   should="none: the line runs only after a take > 1e-6 was added, so plan[j] > 0 and 0.0 < / 0.0 <= agree",
+   metric="differing_inputs"),
+ "fd9b39c806b43b56": dict(cls="equivalent-candidate", reach="executed",
+   should="none: added is 0.0 or a take > 1e-6 (the take <= 1e-6 skip), never exactly 1e-9",
+   metric="differing_inputs"),
+ "61862d35b6b2885d": dict(cls="candidate", reach="method-level only: DhwPlanner.optimize sets min_run_power <= p_dhw_run (dhw_planner.py:1141), and its _ctx_clamp re-clamps later",
+   should=CF_CHECKS + ": none passes min_run_power > p_dhw_max and asserts the returned plan stays <= ctx.p_dhw_max",
+   metric="plan_max", title="No check pins cheapest-first's final clip to p_dhw_max; dropping it is unseen",
+   b="plan_max_baseline", m="plan_max_mutant", nullk="plan_max_null_delta", direction="up", unit="kW (max planned DHW step power)",
+   prop="DhwPlanner._plan_dhw_cheapest_first never returns a step above ctx.p_dhw_max"),
+ "5b123e9e5b76ebc3": dict(cls="candidate", reach="boundary only: an initial plan step exactly at p_dhw_max - 1e-6",
+   should=CF_CHECKS + ": none seeds an initial_plan step at exactly p_dhw_max - 1e-6",
+   metric="delta_kw", title="No check seeds cheapest-first at p_dhw_max-1e-6; the candidate bound's < -> <= is unseen",
+   b="step7_baseline", m="step7_mutant", nullk="null_delta_kw", direction="up", unit="kW at the tied step",
+   prop="a step within 1e-6 kW of p_dhw_max is not a cheapest-first candidate"),
+ "4f1f941124291aeb": dict(cls="candidate", reach="boundary only: a tank temperature exactly 0.1 C under the step's ceiling",
+   should=CF_CHECKS + ": none places a step's simulated temperature exactly at ceiling - 0.1",
+   metric="delta_kw", title="No check ties a tank temperature to ceiling-0.1 in cheapest-first; < -> <= is unseen",
+   b="step3_baseline", m="step3_mutant", nullk="null_delta_kw", direction="up", unit="kW at the tied step",
+   prop="a step whose tank sits within 0.1 C of its ceiling is not a cheapest-first candidate"),
+ "c1d6f40c74ee74ad": dict(cls="candidate", reach="decay 0 only (standby loss over one step >= the stored heat); a realistic tank decays ~0.988/h; plan output unchanged",
+   should="none in the suite: no check runs _plan_dhw_min_cost with tank decay 0 under warnings-as-errors or counts its RuntimeWarnings",
+   metric="decay0_warnings", title="No check sees the DHW LP's 0**negative RuntimeWarning at tank decay 0 once the lag clamp is dropped",
+   b="decay0_warnings_baseline", m="decay0_warnings_mutant", nullk="null_warnings_mutant", direction="up", unit="RuntimeWarnings per call",
+   prop="_plan_dhw_min_cost's influence matrix raises no floating-point warning at any tank decay in [0, 1]"),
+ "b1a8d3056bf42597": dict(cls="candidate", reach="p_total_max <= 0 only (DhwPlanner.optimize passes the configured p_max); with p_total_max > 0, 0/120 inputs separate",
+   should=LP_CHECK + ": it feeds demand >= 0 with p_total_max 5, never a negative space demand",
+   metric="differing_pmax_nonpos", title="No check feeds the DHW LP a negative space demand; dropping its clip is unseen",
+   b=None, m="differing_pmax_nonpos", nullk="null_differing", direction="up", unit="scenarios (of 120) whose plan differs",
+   prop="a negative space demand is read as zero by the DHW cost program's contention model"),
+ "8db7b149f5f9eda5": dict(cls="equivalent-candidate", reach="executed",
+   should="none: a negative headroom forces a constant displacement at E=0; the marginal DHW price, hence the plan, is unchanged",
+   metric="differing_inputs"),
+ "ddf4602569b157b1": dict(cls="candidate", reach="boundary only: a step's space demand exactly p_total_max - 1e-6",
+   should=LP_CHECK + ": it never places a step's demand exactly at p_total_max - 1e-6",
+   metric="step0_delta_kw", title="No check places space demand at p_total_max-1e-6; the DHW LP's spare test < -> <= is unseen",
+   b="plan_baseline", m="plan_mutant", nullk="null_delta_kw", direction="up", unit="kW at the tied step 0",
+   prop="a step with less than 1e-6 kW of compressor room left is not spare for the refill premium"),
+ "247372989ae65baa": dict(cls="candidate", reach="dt <= 0 only (ctx.dt is the configured positive step length); dt 1, 0.25, 1e-7 do not separate",
+   should="none in the suite: no check calls _plan_dhw_min_cost with a zero step length",
+   metric="dt0", title="No check calls the DHW LP at dt 0; dropping the window's max(dt, 1e-6) floor is unseen",
+   b="dt0_baseline", m="dt0_mutant", nullk="positive_dt_differing", direction="sign_flip", unit="returned value kind",
+   prop="_plan_dhw_min_cost returns a plan or None, never raises, for any step length"),
+ "b1074e70396100d8": dict(cls="candidate", reach="realistic: any horizon longer than the 6 h refill window (a 24 h horizon) with a cheap spare step more than 6 h before a full one",
+   should=LP_CHECK + ": its 8-step 1 h horizon never puts a spare step more than the 6 h window before a full one, so the window's lower bound is never exercised",
+   metric="delta_kw", title="No check bounds the DHW LP's refill search window backwards; lo = 0 is unseen",
+   b="cost_baseline", m="cost_mutant", nullk="null_flat_delta_kw", direction="down", unit="price-weighted DHW plan (price x kW summed)",
+   prop="the refill premium of a full step reads only spare steps within _DHW_REFILL_WINDOW_HOURS of it"),
+ "539e5aeaccf156f3": dict(cls="equivalent-candidate", reach="executed",
+   should="none: with every premium 0 the kept displacement columns cost nothing and the headroom rows never bind",
+   metric="differing_inputs"),
+ "6e1174561ae9297c": dict(cls="equivalent-candidate", reach="executed",
+   should="none observable: at a premium of exactly 1e-9 the mutant keeps a 1e-9 premium below HiGHS's tolerance; the plan is unchanged",
+   metric="tie_delta_kw"),
+ "b7a6f145165338bf": dict(cls="candidate", reach="the probe reaches line 1606 by a direct call with one NaN price (linprog raises ValueError); no traced closure baseline executes it, and whether DhwPlanner.optimize can pass a NaN price is not established: the line is reachable at the method, not shown reachable end to end",
+   should="none in the suite executes line 1606: a direct check that _plan_dhw_min_cost returns None (greedy fallback) when linprog raises",
+   metric="nan_price", title="No check makes the DHW LP's solver raise; deleting the fallback return is unseen",
+   b="nan_price_baseline", m="nan_price_mutant", nullk="finite_differing", direction="sign_flip", unit="returned value kind",
+   prop="_plan_dhw_min_cost returns None (the greedy fallback) whenever linprog raises"),
+ "2074f3eefe8521aa": dict(cls="candidate", reach="solver failure only: the LP is feasible and bounded on every input tried (priced shortfall slack); the probe stubs a status-1 result with an x",
+   should="none in the suite: no check makes linprog report success=False with an x and asserts the greedy fallback (None)",
+   metric="status1", title="No check feeds the DHW LP an unsuccessful solve; dropping the success guard is unseen",
+   b="status1_baseline", m="status1_mutant", nullk="real_differing", direction="sign_flip", unit="returned value kind",
+   prop="_plan_dhw_min_cost never builds a plan from a solve linprog reports unsuccessful"),
+}
+
+def results(path):
+    out = {}
+    for line in open(path):
+        if line.startswith("RESULT "):
+            for m in re.finditer(r"(\w+)=(\S+)", line[7:]):
+                out.setdefault(m.group(1), m.group(2))
+            if "inputs_tried=" in line:
+                out["inputs_tried"] = line.split("inputs_tried=", 1)[1].strip()
+            if "reach=" in line:
+                out["reach"] = line.split("reach=", 1)[1].strip()
+    return out
+
+def main(key):
+    row = [l.split("\t") for l in open(f"{W}/keys.tsv").read().splitlines()]
+    hdr = row[0]; rec = dict(zip(hdr, [r for r in row if r[0] == key][0]))
+    mut = json.load(open(f"{S1}/state/results/{rec['src']}/{key}.json"))["mutant"]
+    gate = json.load(open(f"{W}/gates/{key}.json"))
+    meta = META[key]
+    probe = f"{REL}/probes/probe_{key}.py"
+    cmd = f"PYTHONPATH=tests/hastub python3 {probe}"
+    r = results(f"{PT}/probe_{key}.out.txt")
+    v = gate.get("verdict")
+    if v == "KILLED":
+        cls = "killed"
+    elif v == "TIMEOUT":
+        cls = "timeout"
+    else:
+        cls = meta["cls"]
+    d = dict(
+        key=key, site=f"{rec['file']}:{rec['line']} {rec['kind']}",
+        patch=f"{mut['old'].strip()} -> {mut['new'].strip()}", function=rec["function"], cluster=rec["cluster"],
+        slice=rec["slice"], fullnet=rec["fullnet"],
+        gate={k: gate.get(k) for k in ("verdict", "killed_by", "gate_rc", "wall_s", "load1_start", "load1_end", "failed_scripts", "summary", "command", "cap_s", "note")},
+        gate_record=f"{REL}/gates/{key}.json", gate_command=f"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src {rec['src']} --key {key}",
+        provisional_walls=True, machine=MACHINE,
+        **{"class": cls},
+        m4_carried_from=rec["m4_source"],
+        probe=dict(path=probe, command=cmd, results=r, inputs_tried=r.get("inputs_tried", "")),
+        reach=meta["reach"],
+        should_fail=meta["should"],
+    )
+    if v == "KILLED":
+        d["killed_by"] = gate.get("killed_by")
+        d["killed_note"] = "non-finding: the full gate fails on the mutant beyond this box's null control"
+    if v == "TIMEOUT":
+        d["timeout_note"] = "past the box cap; neither finding nor non-finding (unfinished)"
+    if cls == "candidate":
+        bval = r.get(meta["b"]) if meta.get("b") else None
+        mval = r.get(meta["m"])
+        d["finding"] = dict(
+            title=meta["title"], step="D3.M3", scope="D3-s1", class_guess="new", severity_claimed="low",
+            stop_rule_class="hygiene",
+            claim=(f"Mutant {key} at {rec['file'].split('/')[-1]}:{rec['line']} ({rec['kind']}: {mut['old'].strip()} -> {mut['new'].strip()}) "
+                   f"survives the full gate ({v}), yet the probe's number moves: baseline {meta.get('b')}={bval}, mutant {meta['m']}={mval}."),
+            mechanism=f"Reach: {meta['reach']}. Check that should have failed (D3.M4): {meta['should']}.",
+            metric_definition=meta["unit"] + " -- see the probe header's Metric line",
+            instrumented_symbol=f"custom_components.heatpump_optimizer.dhw_planner:{rec['function'].split('.usable')[0]}",
+            perturbation=dict(change=f"the one-line mutant at dhw_planner.py:{rec['line']} applied in memory by the probe; full gate: fullgate.py run --key {key}",
+                              expected_direction=meta["direction"], observed_value=f"{meta.get('b')}={bval} -> {meta['m']}={mval}"),
+            null_control=dict(command=cmd, value=f"{meta['nullk']}={r.get(meta['nullk'])}", note="the arm where the edit cannot matter (probe header's Null control line); box null gate: gates/null.json"),
+            harness_paths=["dev/audit/rounds/round11/D3/s1/fullgate.py", probe],
+            evidence=dict(command=cmd, harness_path=probe, value=str(mval), unit=meta["unit"], baseline_sha=BASE, machine=MACHINE,
+                          cpu_or_wall="count" if "kind" not in meta["unit"] else "n/a", contention_note=CONTENTION, tolerance="exact",
+                          load1=float(r.get("load1", 0) or 0), thread_factor=float(r.get("thread_factor", 1) or 1)),
+            phenomenon_property=meta["prop"],
+            seam_rule="awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+            reproduction_steps=[cmd, d["gate_command"]],
+            proposed_fix_scope="tests only: a check at the probe's separating input pinning the baseline value",
+            files=[rec["file"], "tests/features.py"],
+        )
+    os.makedirs(f"{W}/results", exist_ok=True)
+    json.dump(d, open(f"{W}/results/{key}.json", "w"), indent=1)
+    print(key, v, cls)
+
+if __name__ == "__main__":
+    for k in sys.argv[1:]:
+        main(k)
