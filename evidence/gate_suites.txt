@@ -1,0 +1,9 @@
+# merge_train.gate_suites at db727d36e02f837e587bc049069d586a587fb913, read 2026-11-22 ~01:40 UTC, gate_outcome of each job log
+136969344649 red ('fail', ['run(s) [44942948357, 44943642493] at this head are still being judged; their gate decides'])
+136975236298 red None   (cancelled, run 44943642493)
+136975307180 red None   (cancelled, run 44942948357)
+136999930894 red ('fail', ['run(s) [44947168836] at this head are still being judged; their gate decides'])
+137044070127 red ('fail', ['budget-raise-gate / budget-raise-gate: failure (this run)'])
+137047381856 red ('fail', ['budget-raise-gate / budget-raise-gate: failure (run 44957111216)'])
+gate_raise_only: False
+approval_owed: None
