@@ -19,3 +19,4 @@
 1795310327 HB alive
 1795310678 CKPT round 3: mutants A1 A2, finder harness both ends, beatd re-run at head snapshot 703b9120757b
 1795310685 HB alive
+1795310794 CKPT round 3: verdict drafted, carry_audit rc 0; waiting on classify (gate pending, sweep-self queued) snapshot ecb81513909e
