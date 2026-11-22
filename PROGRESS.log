@@ -20,3 +20,4 @@
 1795318035 CKPT round 4: mutation red at head lists 7 ADDED UNPINNED; pins shards in progress; mutant _release_row running; classify WAIT snapshot b70353f99d49
 1795318109 CKPT round 4: verdict drafted (merge, carry); awaiting mutant run and classify snapshot df2408f58e6a
 1795318144 HB alive
+1795318748 HB alive
