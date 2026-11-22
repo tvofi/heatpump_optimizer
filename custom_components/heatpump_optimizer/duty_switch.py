@@ -92,10 +92,9 @@ SPAN_DAYS_ON = 2
 #: episode a half-life old. Without it the first day never moved, and a year-old
 #: episode made six stops on one day read as a year's span.
 SPAN_FLOOR_N = 0.5
-#: Kept episodes the price of an unlatched direction is shrunk by,
-#: ``k / (n + PRIOR_N)``: no evidence prices nothing, and a direction that
-#: stopped at every switch is priced at half when it reaches the latch's
-#: weight, :data:`N_ON`, which this is.
+#: Kept episodes an unlatched direction's price is shrunk by: ``k / (n + PRIOR_N)``.
+#: No evidence prices nothing. It is :data:`N_ON`, so a direction that stopped
+#: at every switch is priced at half when it reaches the latch's weight.
 PRIOR_N = N_ON
 OFF_SAMPLES_MAX = 32
 #: Load bounds: a count or an off time past these was not written here.

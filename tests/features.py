@@ -94633,7 +94633,7 @@ R.check(
 
 
 # R11-OUTSIDE-3849 (issue 3849, Bankaifan): the hot water to heating stop was
-# priced at zero until the learner latched (n >= N_ON over two days), so an
+# priced at zero until the learner latched (n >= N_ON over two days). An
 # install whose switch stopped the compressor three times in three was planned
 # as if it never did. Before the latch the planner now prices k / (n + PRIOR_N)
 # (``Direction.priced``); the arbiter's leg order and merge still move on a
