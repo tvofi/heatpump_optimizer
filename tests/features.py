@@ -92696,9 +92696,11 @@ R.check(
     f"{_p3_none} {_p3_live} {_p3_cancel} {_p3_press}",
 )
 class _P3Coord:
-    mode = "auto"
+    pass
 _p3_c = _P3Coord()
-_p3_mode = type("C", (), {"mode": boost_mod.MODE_BOOST})()
+_p3_mode = _P3Coord()
+# Boost reads the mode it was told (ADR-005), not an attribute of the coordinator.
+boost_mod.note_mode_change(_p3_mode, "auto", boost_mod.MODE_BOOST, NOW)
 # Both hold a running tail, so only the global mode can make the end unknown.
 boost_mod.held_for(_p3_c).space_settle_until = NOW + _p3_td(hours=5)
 boost_mod.held_for(_p3_mode).space_settle_until = NOW + _p3_td(hours=5)
