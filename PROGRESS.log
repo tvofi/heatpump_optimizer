@@ -32,3 +32,4 @@
 1795387406 HB alive
 1795388009 HB alive
 1795388150 CKPT code at handoff/r11-owner-frost-hold 8ea9f282; body_push exit 4 CARRY-LANDED; BLOCKED.md pushed snapshot 694fd62f06aa
+1795388153 DONE blocked: body_push CARRY-LANDED (2 carries for the relay); code at handoff/r11-owner-frost-hold 8ea9f282, prepr rc=0
