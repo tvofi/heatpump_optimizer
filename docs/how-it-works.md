@@ -515,8 +515,9 @@ offers it; otherwise nothing else is written and the pump runs on its own
 thermostat and curve. That can use energy the plan does not price. The
 learners freeze for an interval in which a held pump ran, and, without a
 power sensor, for every held interval. The diagnostics name the hold, its
-cause (cold, or no reading), the threshold and the reading. Turning the
-*Frost hold* option off keeps the old behaviour.
+cause (cold, or no reading), the threshold and the reading. With the
+*Frost hold* option off, an idle step switches the pump off whatever the
+outdoor temperature.
 
 ### How the schedule is produced
 

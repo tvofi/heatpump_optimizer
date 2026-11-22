@@ -795,3 +795,4 @@
 # against the merge base, one environment). Claimed rather than re-recorded, as
 # R10-COP-GATE-D's keys were: the committed files were patched in those three
 # paths alone, each null because a coord fixture holds no plan.
+config_flow # R11-OWNER-FROST-HOLD (#3855): the entities page gains the frost_hold toggle and the frost_hold_below_c threshold, shown where a power switch is configured, so the seed gains frost_hold and the seeded render gains both rows; every leaf that moves is "present on one side only", ADDED at this head (19 insertions, 0 deletions). Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No solve fixture actuates a power switch, so every other fixture is byte-identical to the merge base (env_drift.py --all, one environment), which is the null.

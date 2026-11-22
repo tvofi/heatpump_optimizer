@@ -116,6 +116,7 @@ class EntryConfig(Mapping[str, Any]):
     indoor_temp_entity: str | None = _entity_slot()
     lower_floor_temp_entity: str | None = _entity_slot()
     mixing_valve_write_entity: str | None = _entity_slot()
+    outdoor_temp_entity: str | None = _entity_slot()
     heat_curve_displace_entity: str | None = _entity_slot()
     price_entity: str | None = _entity_slot()
     pv_export_price_entity: str | None = _entity_slot()

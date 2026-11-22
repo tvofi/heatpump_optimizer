@@ -87379,13 +87379,14 @@ def _fh_health(value=None, problem=None):
 
 
 _fh_fc = lambda: -4.0  # noqa: E731
+_FH_SENSOR = {"outdoor_temp_entity": "sensor.out"}
 for _fh_name, _fh_got, _fh_want in (
-    ("a sensor reading ok is the reading", _fh.reading(_fh_health(-1.5), _fh_fc, True), -1.5),
-    ("a stale sensor is no reading, not the forecast", _fh.reading(_fh_health(-1.5, "stale"), _fh_fc, True), None),
-    ("an unavailable sensor is no reading", _fh.reading(_fh_health(None, "unavailable"), _fh_fc, True), None),
-    ("no cycle read yet is no reading", _fh.reading(None, _fh_fc, True), None),
-    ("no sensor configured: the forecast is the reading", _fh.reading(None, _fh_fc, False), -4.0),
-    ("no sensor and no forecast is no reading", _fh.reading(None, lambda: None, False), None),
+    ("a sensor reading ok is the reading", _fh.reading(_fh_health(-1.5), _fh_fc, _FH_SENSOR), -1.5),
+    ("a stale sensor is no reading, not the forecast", _fh.reading(_fh_health(-1.5, "stale"), _fh_fc, _FH_SENSOR), None),
+    ("an unavailable sensor is no reading", _fh.reading(_fh_health(None, "unavailable"), _fh_fc, _FH_SENSOR), None),
+    ("no cycle read yet is no reading", _fh.reading(None, _fh_fc, _FH_SENSOR), None),
+    ("no sensor configured: the forecast is the reading", _fh.reading(None, _fh_fc, {}), -4.0),
+    ("no sensor and no forecast is no reading", _fh.reading(None, lambda: None, {}), None),
 ):
     R.check(f"frost hold reading: {_fh_name}", _fh_got == _fh_want, f"{_fh_got!r} != {_fh_want!r}")
 
@@ -87527,9 +87528,9 @@ for _fh_name, _fh_kw, _fh_want in (
     _fh_got = _asyncio.run(_fh_run(*_FH_IDLE, until=40, **_fh_kw))
     R.check(f"frost hold, real coordinator: {_fh_name}", _fh_got == _fh_want, f"{_fh_got}")
 
-# Entry from the warm side: a switch off since 05:57 (a pause three minutes
-# old) on an idle step at -3 °C is switched on at once -- MIN_PAUSE never
-# delays a hold; the null control at +4 °C writes main's OFF to it.
+# Entry from the warm side: a switch off since 05:57, a pause three minutes
+# old, on an idle step at -3 °C is switched on at once. MIN_PAUSE never
+# delays a hold. The null control at +4 °C writes main's OFF to it.
 _fh_cold_on = _asyncio.run(_fh_run("--", ("off", -3), {0: False}, -3.0, until=12))
 _fh_warm_off = _asyncio.run(_fh_run("--", ("off", -3), {0: False}, 4.0, until=12))
 R.check(
@@ -87662,10 +87663,10 @@ R.check(
 )
 
 
-# The options (design test 18): both rows on the entities page, shown only
-# where a power switch is configured, the threshold's bounds and the
-# defaults the const module states, and a label and a description in the
-# strings file and each translation.
+# The options (design test 18): both rows are on the entities page, shown only
+# where a power switch is configured. The threshold has its bounds and both
+# have the defaults the const module states. Each has a label and a
+# description in the strings file and each translation.
 import json as _fh_json  # noqa: E402
 
 from pathlib import Path as _fh_Path  # noqa: E402

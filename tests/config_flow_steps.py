@@ -4343,6 +4343,9 @@ REGISTRY_SEED = {
     # A water space set-point reveals its lift and ceiling.
     const.CONF_SPACE_SETPOINT_UNIT: "flow",
 }
+#: The render check's seed: a power switch also reveals the frost hold's two
+#: rows. Kept apart, as the clearable roster needs the switch offered undefaulted.
+REGISTRY_RENDER_SEED = {**REGISTRY_SEED, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp"}
 
 
 def bare_options(pre_options=None):
@@ -4468,7 +4471,7 @@ async def registry_drives_every_page():
     undeclared = {}
     unrendered = {}
     for page in pages:
-        flow = bare_options(REGISTRY_SEED)
+        flow = bare_options(REGISTRY_RENDER_SEED)
         form = await getattr(flow, f"async_step_{page}")(None)
         rendered = rendered_keys(form)
         declared = {row.key for row in rows if row.step == page}
@@ -4482,7 +4485,7 @@ async def registry_drives_every_page():
             # check would be comparing the page with itself.
             declared |= {
                 str(getattr(marker, "schema", marker))
-                for marker in row.widget(dict(REGISTRY_SEED))
+                for marker in row.widget(dict(REGISTRY_RENDER_SEED))
             }
         if rendered - declared:
             undeclared[page] = sorted(rendered - declared)

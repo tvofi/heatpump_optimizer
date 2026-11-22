@@ -56,15 +56,15 @@ CAUSE_COLD = "frost_hold"
 CAUSE_NO_READING = "frost_hold_no_reading"
 
 
-def reading(health: Any, forecast_c: Callable[[], float | None], configured: bool) -> float | None:
+def reading(health: Any, forecast_c: Callable[[], float | None], config: Any) -> float | None:
     """The outdoor temperature the latch judges, °C, or ``None`` for none.
 
-    ``configured``: an outdoor sensor is configured; its verdict in
-    ``health`` (``inputs.InputHealth``) is then the reading, and a stale or
-    missing one is ``None``, never the forecast standing in for it. With no
-    sensor, ``forecast_c()`` is the forecast's value for now.
+    Where ``config`` names an outdoor sensor, its verdict in ``health``
+    (``inputs.InputHealth``) is the reading, and a stale or missing one is
+    ``None``, never the forecast standing in for it. With no sensor,
+    ``forecast_c()`` is the forecast's value for now.
     """
-    if not configured:
+    if not EntryConfig.from_mapping(config).outdoor_temp_entity:
         return forecast_c()
     got = None if health is None else health.readings.get(CONF_OUTDOOR_TEMP_ENTITY)
     return got.value if got is not None and got.ok else None
