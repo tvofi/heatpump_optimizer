@@ -8,3 +8,4 @@
 1795385364 HB alive
 1795385386 CKPT D3-s1 107 file(s)
 1795385389 HB NOTE 1 and 2 obeyed: 16 probes + scratch builder saved under wave/D3-g16/probes/<key>/ (repo-relative path, INDEX.md) and checkpointed. Deviation: probes saved as .py.txt while gates run, because tests/harness_headers.py rglobs every .py/.sh/.js/.mjs under dev/audit/rounds and an untracked .py added mid-wave could red a mutant gate beyond the null; renamed to .py in the final report checkpoint.
+1795385399 CKPT D3-s1 108 file(s)
