@@ -12265,6 +12265,82 @@ check("without an indoor reading the corner now label is absent",
   const pHeat = pillOf(build(withPlan(idle(), "dhw", { attributes: { active_now: true } })));
   check("UI-3 pill: a plan step active now reads heating",
     !!pHeat && pHeat.key === "heating" && pHeat.tone === "ok", JSON.stringify(pHeat));
+
+  // R11-OWNER-CARD-EXTERNAL-HEAT (#3861): the heating pill names which plan
+  // is heating, and external heat detected has its own pill. mkStates
+  // publishes no external-heat sensor, so every pill check above is already
+  // the "sensor absent" arm.
+  const EXT_ID = "binary_sensor.heat_pump_optimizer_external_heat_source";
+  const on = (states, kind) => withPlan(states, kind, { attributes: { active_now: true } });
+  const pSpace = pillOf(build(on(idle(), "space")));
+  check("external heat: only the space plan active now reads 'Heating space' (key heating)",
+    !!pSpace && pSpace.key === "heating" && pSpace.tone === "ok" && pSpace.text === "Heating space",
+    JSON.stringify(pSpace));
+  check("external heat: only the DHW plan active now reads 'Heating DHW' (key heating)",
+    !!pHeat && pHeat.text === "Heating DHW", JSON.stringify(pHeat));
+  const pBoth = pillOf(build(on(on(idle(), "space"), "dhw")));
+  check("external heat: both plans active now read 'Heating space+DHW' (key heating)",
+    !!pBoth && pBoth.key === "heating" && pBoth.tone === "ok" && pBoth.text === "Heating space+DHW",
+    JSON.stringify(pBoth));
+  // A kind whose plan sensor is unavailable counts inactive, as before.
+  const pUnav = pillOf(build(withPlan(on(on(idle(), "space"), "dhw"), "space",
+    { state: "unavailable" })));
+  check("external heat: an unavailable space plan counts inactive, so both-active reads 'Heating DHW'",
+    !!pUnav && pUnav.key === "heating" && pUnav.text === "Heating DHW", JSON.stringify(pUnav));
+  const withExt = (states, state) => ({ ...states, [EXT_ID]: { state, attributes: {} } });
+  const extPillHtml = (states) => (collect(build(states).shadowRoot).join("\n")
+    .match(/<span class="status-pill[^>]*>[^<]*<\/span>/) || [""])[0];
+  const pExt = pillOf(build(withExt(on(idle(), "space"), "on")));
+  const extHtml = extPillHtml(withExt(on(idle(), "space"), "on"));
+  check("external heat: the sensor on over a heating plan reads external_heat, tone accent, with its title",
+    !!pExt && pExt.key === "external_heat" && pExt.tone === "accent" &&
+      pExt.text === "External heat detected" && /title="Something other than the heat pump/.test(extHtml),
+    `${JSON.stringify(pExt)} ${extHtml}`);
+  const pExtIdle = pillOf(build(withExt(idle(), "on")));
+  check("external heat: the sensor on over an idle plan reads external_heat",
+    !!pExtIdle && pExtIdle.key === "external_heat", JSON.stringify(pExtIdle));
+  const nulls = ["off", "unavailable", "unknown"].map((s) => [s, pillOf(build(withExt(on(idle(), "space"), s)))]);
+  check("external heat (null): the sensor off, unavailable or unknown leaves the heating pill",
+    nulls.every(([, p]) => !!p && p.key === "heating" && p.text === "Heating space"), JSON.stringify(nulls));
+  check("external heat (null): sensor off gives the idle pill byte-identical to no sensor",
+    extPillHtml(withExt(idle(), "off")) === extPillHtml(idle()) && extPillHtml(idle()).length > 0,
+    extPillHtml(withExt(idle(), "off")));
+  // Entry-scoped: another entry's sensor (a different prefix) is not read.
+  const otherEntry = { ...on(idle(), "space"),
+    "binary_sensor.other_house_external_heat_source": { state: "on", attributes: {} } };
+  const pOther = pillOf(build(otherEntry));
+  check("external heat: another config entry's external-heat sensor does not light this card's pill",
+    !!pOther && pOther.key === "heating", JSON.stringify(pOther));
+  // Precedence: stale and manual still win over external heat.
+  const pExtStale = pillOf(build(withExt({ ...on(idle(), "space"),
+    [LAST_ID]: { state: iso(FROZEN - 4 * 3600e3), attributes: {} } }, "on")));
+  check("external heat: a stale plan with external heat on still reads stale",
+    !!pExtStale && pExtStale.key === "stale", JSON.stringify(pExtStale));
+  const pExtMan = pillOf(build(withExt(withPlan(on(idle(), "space"), "space",
+    { attributes: { manual_override: { active: true, expires_at: null } } }), "on")));
+  check("external heat: a manual plan with external heat on still reads manual",
+    !!pExtMan && pExtMan.key === "manual", JSON.stringify(pExtMan));
+  // sv and de resolve every new key: no raw key text on the pill or its title.
+  const langPills = ["sv", "de"].map((lang) => {
+    const texts = [withExt(idle(), "on"), on(idle(), "space"), on(idle(), "dhw"), on(on(idle(), "space"), "dhw")]
+      .map((states) => {
+        const c = build(states);
+        c.hass = { states, language: lang };
+        return (collect(c.shadowRoot).join("\n").match(/<span class="status-pill[^>]*>[^<]*<\/span>/) || [""])[0];
+      });
+    return { lang, texts };
+  });
+  build(idle()); // back to English
+  const STR = fn("STRINGS");
+  check("external heat: sv and de render every new pill text and title from their own table",
+    langPills.every(({ lang, texts }) => texts.every((t) => t && !/status\./.test(t)) &&
+      texts[0].includes(STR[lang]["status.external_heat"]) &&
+      texts[0].includes(STR[lang]["status.external_heat_title"]) &&
+      texts[1].includes(STR[lang]["status.heating_space"]) &&
+      texts[2].includes(STR[lang]["status.heating_dhw"]) &&
+      texts[3].includes(STR[lang]["status.heating_both"]) &&
+      STR[lang]["status.external_heat"] !== STR.en["status.external_heat"]),
+    JSON.stringify(langPills));
   const staleStates = { ...idle(), [LAST_ID]: { state: iso(FROZEN - 4 * 3600e3), attributes: {} } };
   const pStale = pillOf(build(staleStates));
   check("UI-3 pill: a plan last solved 4 h ago, past max(3 x 30 min, 90 min), reads stale",

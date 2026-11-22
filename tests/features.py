@@ -25860,6 +25860,31 @@ R.check(
     f"suffix {_le_card_suffix and _le_card_suffix.group(1)} pub {[(v, a) for _, v, a in _le_pub]}",
 )
 
+# R11-OWNER-CARD-EXTERNAL-HEAT (#3861): the card's external-heat pill reads
+# the External Heat Source binary sensor as the twin of its plan id, by the
+# suffix the card names in EXTERNAL_HEAT_SUFFIX. This is the backend half of
+# that contract: the sensor's pinned id ends with that suffix and its state is
+# the payload's external_heat_active. Null arm: the payload false reads off
+# under the same id. The pill itself is pinned in tests/card.mjs.
+from heatpump_optimizer import binary_sensor as _eh_bs  # noqa: E402
+
+_eh_card_suffix = _le_re.search(r'const EXTERNAL_HEAT_SUFFIX = "([a-z_]+)";', _le_card_src)
+_eh_read = []
+for _eh_active in (True, False):
+    _le_c.data = {"external_heat_active": _eh_active}
+    _eh_ent = _eh_bs.ExternalHeatBinarySensor(_le_c, _FakeEntry(data={}))
+    _eh_read.append((_eh_ent.entity_id, _eh_ent.is_on))
+R.check(
+    "R11-OWNER-CARD-EXTERNAL-HEAT: the sensor the card's pill reads ends with the card's suffix and is on "
+    "exactly when external_heat_active is",
+    _eh_card_suffix is not None
+    and _eh_read[0][0].startswith("binary_sensor.")
+    and _eh_read[0][0].endswith(_eh_card_suffix.group(1))
+    and _eh_read[1][0] == _eh_read[0][0]
+    and [on for _, on in _eh_read] == [True, False],
+    f"suffix {_eh_card_suffix and _eh_card_suffix.group(1)} read {_eh_read}",
+)
+
 # --- #29 the narrative -----------------------------------------------------------
 for _lang6 in narrative_mod.TEMPLATES:  # the languages the narratives ship
     R.check(
