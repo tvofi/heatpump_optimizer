@@ -87294,9 +87294,9 @@ except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
 R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
         _sh_ns == ([], False), f"{_sh_ns}")
 
-# Cooling is the user's season (``pump_arbiter.cooling_mode``): while the
-# pump's mode reads Cooling or Cooling + DHW the cycle's supply gate writes
-# the power switch in neither direction, a live space boost included, and
+# Cooling is the user's season (``pump_arbiter.cooling_mode``). While the
+# pump's mode reads Cooling or Cooling + DHW, the cycle's supply gate writes
+# the power switch in neither direction, a live space boost included. It
 # raises ``ISSUE_COOLING`` once per episode, cleared when the mode leaves
 # cooling. Driven as the cycle drives it: ``cycle_supply`` with the
 # coordinator's own boost record, then ``_write_supply``.
