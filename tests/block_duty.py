@@ -20,6 +20,7 @@ sys.path.insert(0, "custom_components")
 
 from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
 from heatpump_optimizer import boost as boost_mod  # noqa: E402
+from heatpump_optimizer import duty_ledger  # noqa: E402
 from heatpump_optimizer import entity as entity_mod  # noqa: E402
 from heatpump_optimizer import pump_arbiter as arb  # noqa: E402
 from heatpump_optimizer import setpoint_check  # noqa: E402
@@ -1108,7 +1109,7 @@ def hysteresis_checks() -> None:
            "dhw_mode": False, "start_below": 51.0}
 
     def verdict(tank=52.0, **over):
-        return arb._verdict({**row, "tank": tank, **over}, tank)["verdict"]
+        return duty_ledger.step_verdict({**row, "tank": tank, **over}, tank)["verdict"]
 
     check("an idle hot water step on a tank above the start temperature is not-startable",
           lambda: verdict() == "not-startable")
@@ -1118,12 +1119,16 @@ def hysteresis_checks() -> None:
           lambda: verdict(50.0) == "idle-instead")
     check("an idle hot water step with no start temperature, or a row without the key, is idle-instead",
           lambda: verdict(start_below=None) == "idle-instead"
-          and arb._verdict({k: v for k, v in row.items() if k != "start_below"}, 52.0)["verdict"]
+          and duty_ledger.step_verdict({k: v for k, v in row.items() if k != "start_below"}, 52.0)["verdict"]
           == "idle-instead")
     check("a planned both step idle above the start temperature is idle-instead",
           lambda: verdict(planned="both") == "idle-instead")
     check("a hot water step that ran the space pump on a warm tank is space-instead",
           lambda: verdict(ran=True) == "space-instead")
+    check("with no power meter and no tank rise a planned step is unknown, a both step too",
+          lambda: verdict(measured=False) == "unknown" and verdict(measured=False, planned="both") == "unknown")
+    check("null control: with no power meter a tank rise reads as hot water delivered",
+          lambda: duty_ledger.step_verdict({**row, "measured": False}, 53.0)["verdict"] == "delivered")
 
     def unwritten(**kwargs):
         snap = _hyst_snap(4.0, **kwargs)
