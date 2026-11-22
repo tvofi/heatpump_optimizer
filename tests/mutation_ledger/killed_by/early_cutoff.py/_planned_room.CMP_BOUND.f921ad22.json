@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_planned_room CMP_BOUND f921ad22",
+  "killed_by": "tests/features.py",
+  "old": "    return [float(trajectory[i + 1])] if i is not None and i < len(trajectory) - 1 else []",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return [float(trajectory[i + 1])] if i is not None and i <= len(trajectory) - 1 else []`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

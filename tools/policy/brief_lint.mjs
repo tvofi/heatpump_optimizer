@@ -59,7 +59,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { COUNT_RULES, checkCounts, derivations, canonList, excludeMoved, listDir, at, locate } from './counts.mjs'
+import { COUNT_RULES, checkCounts, derivations, canonList, excludeMoved, listDir, at, locate, gitRead } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 export const ROOT = path.resolve(HERE, '..', '..')
@@ -73,7 +73,7 @@ const EXT_SET = new Set(CODE_EXTS)
 
 export function git(args, opts = {}) {
   try {
-    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts })
+    return gitRead(args, { stdio: ['ignore', 'pipe', 'pipe'], ...opts })
   } catch (e) {
     if (opts.allowFail) return null
     throw e
@@ -113,7 +113,7 @@ let _trackedFiles = null
 // paths against the wrong tree.
 export function treeListing(rev, cwd = ROOT) {
   const args = rev ? ['ls-tree', '-r', '--name-only', rev] : ['ls-files']
-  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  return gitRead(args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] })
 }
 
 // `cwd` is the acceptance probe's repo; it is never memoized, so the checkout's cache is untouched.
@@ -1539,6 +1539,33 @@ function assertLegacyListedClean() {
   return 0
 }
 
+// Node's default execFileSync maxBuffer (1 MiB) killed treeListing with ENOBUFS
+// once the repository's own listing crossed it. The index of the probe repo is
+// filled by plumbing with paths whose listing exceeds that default, in both the
+// checkout (ls-files) and the rev (ls-tree) form; the precondition is asserted,
+// so a probe that shrank under the default would refuse rather than pass.
+const NODE_DEFAULT_MAX_BUFFER = 1024 * 1024
+function treeListingOverDefaultBuffer(g, dir) {
+  const problems = []
+  const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], { cwd: dir, input: 'x', encoding: 'utf8' }).trim()
+  const names = []
+  for (let bytes = 0; bytes <= NODE_DEFAULT_MAX_BUFFER + 4096;) {
+    names.push(`big/${String(names.length).padStart(6, '0')}-${'p'.repeat(200)}.txt`)
+    bytes += names.at(-1).length + 1
+  }
+  execFileSync('git', ['update-index', '--add', '--index-info'], { cwd: dir, input: names.map((n) => `100644 ${blob}\t${n}\n`).join('') })
+  const tree = g('write-tree').trim()
+  const rev = g('commit-tree', tree, '-m', 'big').trim()
+  for (const [form, arg] of [['rev', rev], ['checkout', undefined]]) {
+    let out
+    try { out = treeListing(arg, dir) } catch (e) { problems.push(`the ${form} listing over the default maxBuffer threw (${e.code || e.message})`); continue }
+    if (out.length <= NODE_DEFAULT_MAX_BUFFER) problems.push(`the ${form} probe listing is ${out.length} bytes, not over the ${NODE_DEFAULT_MAX_BUFFER}-byte default: vacuous`)
+    const big = out.split('\n').filter((n) => n.startsWith('big/')).length
+    if (big !== names.length) problems.push(`the ${form} listing carried ${big} of ${names.length} probe paths`)
+  }
+  return problems
+}
+
 // treeListing acceptance: a throwaway repo whose second commit adds b.txt and
 // deletes a.txt. The head listing must show the add and not the delete, the
 // first commit's the reverse (null control), the checkout form follows the
@@ -1578,6 +1605,7 @@ function assertTreeRev() {
     let threw = false
     try { treeListing('no-such-rev-probe', dir) } catch { threw = true }
     if (!threw) problems.push('an unresolvable rev did not throw; it fell back silently')
+    problems.push(...treeListingOverDefaultBuffer(g, dir))
   } catch (e) {
     problems.push(`probe repo failed: ${e.message}`)
   } finally {

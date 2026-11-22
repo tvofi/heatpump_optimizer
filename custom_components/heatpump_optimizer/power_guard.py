@@ -32,7 +32,7 @@ from datetime import datetime
 
 import numpy as np
 
-from .drift import utc_elapsed_seconds
+from .drift import EvidenceNotes, utc_elapsed_seconds
 
 #: Consecutive agreeing projections needed to engage or release.
 HYSTERESIS_SAMPLES = 2
@@ -67,7 +67,7 @@ def project_window_mean(
 
 
 @dataclass
-class GuardState:
+class GuardState(EvidenceNotes):
     """The guard's memory between meter events."""
 
     #: Whether electric DHW is currently being held back.
@@ -116,7 +116,7 @@ class GuardState:
             self._clear_count = 0
             if self.suppressing:
                 self.suppressing = False
-                self._note(now, "window closed; released")
+                self.note(now, "window closed; released")
                 window_changed = True
 
         if floor_hold:
@@ -124,7 +124,7 @@ class GuardState:
             self._clear_count = 0
             if self.suppressing:
                 self.suppressing = False
-                self._note(now, "floor takes precedence; released")
+                self.note(now, "floor takes precedence; released")
                 return True
             return window_changed
 
@@ -137,7 +137,7 @@ class GuardState:
             self._clear_count = 0
             if not self.suppressing and self._over_count >= HYSTERESIS_SAMPLES:
                 self.suppressing = True
-                self._note(
+                self.note(
                     now,
                     f"projected {projection_kw:.2f} kW over "
                     f"{threshold_kw:.2f}−{margin_kw:.2f} kW; suppressing",
@@ -148,12 +148,8 @@ class GuardState:
             self._over_count = 0
             if self.suppressing and self._clear_count >= HYSTERESIS_SAMPLES:
                 self.suppressing = False
-                self._note(
+                self.note(
                     now, f"projection back to {projection_kw:.2f} kW; released"
                 )
                 return True
         return window_changed
-
-    def _note(self, now: datetime, text: str) -> None:
-        self.evidence.append(f"{now.isoformat(timespec='seconds')}: {text}")
-        del self.evidence[:-6]
