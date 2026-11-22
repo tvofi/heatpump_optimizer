@@ -11,3 +11,4 @@
 1795365802 HB alive
 1795365846 CKPT setup done, packet rendered; record-only PR (delivery rows) snapshot 51d25aec0362
 1795365889 CKPT rows verified vs main; mutants run snapshot 97213fc25dc4
+1795365960 DONE verdict merge 8993af01 pushed to probe/rev-3844-dd79003e (9b0edc73)
