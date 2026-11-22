@@ -87391,6 +87391,14 @@ for _cg_name, _cg_cool, _cg_n in (
     R.check(f"cooling hands-off: {_cg_name}", len(_cg_calls) == _cg_n, f"{_cg_on} {_cg_calls}")
 
 
+async def _cg_read(coord, minute):
+    _cg_dt.freeze(_CG_T0 + timedelta(minutes=minute))
+    try:
+        await coord._update_current_state()
+    finally:
+        _cg_dt.freeze(None)
+
+
 # The repair: raised once for the episode however many writes ask for heat,
 # cleared when the mode leaves cooling, and raised again in the next episode.
 async def _cg_episode():
@@ -87403,11 +87411,13 @@ async def _cg_episode():
         for minute in (0, 1):
             await _cg_cycle(coord, minute=minute)
         seen.append(([i[1] for i in getattr(hass, "issues", [])], list(made)))
-        _cg_pa.note_cooling(coord, coord._pump_signals)  # the per-cycle call, no heat asked
+        coord._mode = "off"  # the clear does not wait for a supply write
+        await _cg_read(coord, 3)  # the cycle's own signal read, no heat asked
         seen.append([i[1] for i in getattr(hass, "issues", [])])
         hass.states.set("select.hp_mode", FakeState("Heating", last_updated=_CG_T0))
-        _cg_pa.note_cooling(coord, coord._pump_signals)
+        await _cg_read(coord, 4)
         seen.append([i[1] for i in getattr(hass, "issues", [])])
+        coord._mode = "auto"
         hass.states.set("select.hp_mode", FakeState("Cooling + DHW", last_updated=_CG_T0))
         await _cg_cycle(coord, minute=2)
         seen.append((([i[1] for i in getattr(hass, "issues", [])]), len(made)))
