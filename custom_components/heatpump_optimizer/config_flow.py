@@ -1146,10 +1146,8 @@ def _entity_of(
     }
     if device_class is not None:
         entity_filter["device_class"] = [device_class]
-    config = selector.EntitySelectorConfig(filter=[entity_filter])
-    if multiple:
-        config["multiple"] = True
-    return selector.EntitySelector(config)
+    multi: dict[str, bool] = {"multiple": True} if multiple else {}
+    return selector.EntitySelector(selector.EntitySelectorConfig(filter=[entity_filter], **multi))
 
 
 def _room_thermometers() -> selector.EntitySelector:
