@@ -8108,21 +8108,21 @@ bat = battery_view.build(
     dhw_max=65.0,
     cop=3.2,
 )
-view = bat.as_dict()
-R.check("stored energy is positive for a warm house", view["stored_energy_kwh"] > 0)
-R.check("state of charge is a percentage", 0 <= view["state_of_charge_percent"] <= 100)
+_bat_view = bat.as_dict()
+R.check("stored energy is positive for a warm house", _bat_view["stored_energy_kwh"] > 0)
+R.check("state of charge is a percentage", 0 <= _bat_view["state_of_charge_percent"] <= 100)
 R.check(
     "the charge rate is thermal, not electrical",
-    view["charge_rate_kw"] > view["charge_power_electrical_kw"],
+    _bat_view["charge_rate_kw"] > _bat_view["charge_power_electrical_kw"],
     "charging happens at COP > 1",
 )
-R.check("autonomy is reported", view["hours_of_autonomy"] is not None)
+R.check("autonomy is reported", _bat_view["hours_of_autonomy"] is not None)
 R.check(
     "round-trip efficiency is thermal and at most 100%",
-    0 <= view["round_trip_efficiency_6h"] <= 100,
+    0 <= _bat_view["round_trip_efficiency_6h"] <= 100,
     "an electrical figure would exceed 100% and mean nothing",
 )
-R.check("every store is listed", len(view["components"]) >= 3)
+R.check("every store is listed", len(_bat_view["components"]) >= 3)
 
 cold = battery_view.build(
     bat_params,
