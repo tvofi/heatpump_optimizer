@@ -95567,8 +95567,33 @@ R.check(
     "the what-if solve takes the reading the live plan was solved with, not a "
     "fresh one: the two start counts the card compares share r[-1]",
     "compressor_running=duty_switch.record_for(self).solved_running" in _hsr_inspect.getsource(Coord._whatif_solve)
-    and "compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action)"
+    and "duty_switch.running_now(duty_switch.record_for(self), self._current_action)"
     in _hsr_inspect.getsource(Coord._solve_record),
+)
+# The same reading tells the planner whether a hot-water charge runs now
+# (pump_signals.with_dhw_under_way): the scheduled solve's state carries it.
+from heatpump_optimizer import pump_mode as _hsr_pm, pump_signals as _hsr_ps  # noqa: E402
+
+
+def _hsr_under_way(mode, action):
+    _hsr_live._pump_signals = _hsr_ps.PumpSignals(mode=_hsr_pm.capability(mode), mode_observed=True)
+    _hsr_live._current_action = action
+    now = _hsr_pss(datetime(2026, 1, 10, 12, 0, tzinfo=UTC))
+    return _hsr_live._solve_record(now, _hsr_live._forecast_arrays(now)).inputs.state.dhw_charge_under_way
+
+
+_hsr_under = [
+    _hsr_under_way("DHW", {"power": 0.0, "dhw_power": 2.0}),
+    _hsr_under_way("Heating", {"power": 3.0, "dhw_power": 0.0}),
+    _hsr_under_way("DHW", {}),
+]
+_hsr_live._pump_signals = _hsr_ps.PumpSignals()
+R.check(
+    "the scheduled solve's state holds a hot-water charge under way only while the "
+    "compressor runs in a mode serving hot water: running on hot water, not running "
+    "on heating, not stopped",
+    _hsr_under == [True, False, False],
+    f"{_hsr_under}",
 )
 
 # What the commit program is told is fixed: a forced-on pin and a step hot
