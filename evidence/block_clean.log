@@ -23,9 +23,8 @@
   ok   the coordinator's ceiling ask freezes a draw at the floor in force and keeps a 4.0 kW draw and an unread one (null controls)
   ok   the interval's space power is None on an unplanned charge; no rise, or a planned hot-water share, gives the commanded space draw (null controls)
   ok   the coordinator's own cycle read hands the tank sensor to the meter: a rise past the band over an unobserved, plan-space-only cycle leaves the interval no space power; the same cycles with the tank flat give the commanded space draw (null control)
-PROBE stale-first-read ((50.0, 53.0), None)
-  FAIL REVIEWER PROBE: a stale first tank read is no evidence: tank_c opens None and the interval keeps its space power  [((50.0, 53.0), None)]
+  ok   a stale first tank read is no evidence: the meter's tank span opens on None and the interval keeps its commanded space draw; the fresh rise and fresh flat arms above are its controls (review of 3d8679b765)
   ok   a 60-minute charge whose start dip reaches a heated sample books no draw (the interval ending on it is charge-open: no unheated rise ever takes the dip back) (D2-s3-08); null control, the same 4 K fall with no charge flag books it
   ok   the defrost inference folds no ratio once the probe reads the ask ignored; pending folds it (null control), and so does a defrosting interval, the derate's own evidence (#944, note 9b3d1e16)
 
-1 of 22 FEATURES BLOCK FAILED
+ALL 22 FEATURES BLOCK PASSED

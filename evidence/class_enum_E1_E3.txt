@@ -1,0 +1,14 @@
+78d3b40221 E1=35 E2=57 E3=14
+608c95decc94a8240565aba68fa8f0e1dece8c3d E1=35 E2=57 E3=15
+fab2d371ede00e9168843c18f6c47dc2425046f9 E1=42 E2=57 E3=15
++                              evidence=_space_evidence(coord, coord._commanded_split())) is not None:
++        if heat_energy.ran_hot_water((m := heat_energy.meter_of(self)).attribution(split := (commanded_space, dhw_share))) or m.unplanned_charge(split):
++        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, sample=learning_freeze.space_heat(heat_kw is not None or heat_energy.meter_of(self).counter), evidence=_space_evidence(self, self._commanded_split())):
++            sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, self._commanded_split()))
++            sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, self._commanded_split()),
++        dhw_share = heat_energy.meter_of(self).booked_dhw_share((planned_space, planned_dhw))
++                                  evidence=_space_evidence(self, self._commanded_split())),
++        return unplanned_charge(self.attribution(plan_split), rise)
++    def booked_dhw_share(self, plan_split: tuple[float, float]) -> float:
++        return dhw_share(self.attribution(plan_split))
++                e, self.refusal, *self._anchor, self._clean, self._plan, attribution(shares, self._plan),
