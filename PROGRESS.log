@@ -23,3 +23,4 @@
 1795318748 HB alive
 1795319092 CKPT round 4: _release_row pin mutant KILLED by named check; waiting classify snapshot 6c328370cc24
 1795319351 HB alive
+1795319769 DONE returned: Fix review: merge dd399a0078 (pending-ci: gate) on probe/rev-3812-ad9c4650 at 04553e79a3
