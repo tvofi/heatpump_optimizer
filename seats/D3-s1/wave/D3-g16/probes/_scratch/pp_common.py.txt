@@ -1,0 +1,11 @@
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig  # noqa: E402
+
+CFG = OptimizationConfig(horizon_hours=4, time_step_minutes=60)  # pv_export_price default 0.0
+MODEL = ThermalModel(ThermalParameters(dhw_enabled=True))
+
+
+def planning_prices(prices, surplus, space_demand=None, p_run=3.0, fn=None):
+    """DhwPlanner._dhw_planning_prices: the per-step prices the DHW planners rank steps by."""
+    planner = DhwPlanner(MODEL, CFG, None if surplus is None else np.asarray(surplus, dtype=float), None)
+    return (fn or DhwPlanner._dhw_planning_prices)(planner, np.asarray(prices, dtype=float), p_run, space_demand)

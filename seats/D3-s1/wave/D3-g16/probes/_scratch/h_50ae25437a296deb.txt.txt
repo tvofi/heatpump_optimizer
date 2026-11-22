@@ -1,0 +1,15 @@
+# Metric: the DHW power planned at step 0 (kW) when the binding headroom times c_dhw is exactly 1e-6 kWh.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py
+# EXPECTED RESULT step0_kw_baseline=0.0000 kW
+# EXPECTED RESULT step0_kw_mutant=0.1000 kW (the 1e-6 kWh top-up is rounded up to min_run_power)
+# EXPECTED RESULT off_tie_inputs_moved=0 of 4
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_cheapest_first (custom_components/heatpump_optimizer/dhw_planner.py:2280 `if take <= 1e-6:`).
+# Perturbation: mutant 50ae25437a296deb, `if take <= 1e-6:` -> `if take < 1e-6:`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: step 0 power up (0 -> min_run_power) on the exact tie only.
+# Reach: exact float tie only: needed, spare and headroom never land on 1e-6 kWh to the last bit except by construction (here c_dhw is tuned to 0.2319999999922984).
+# Null control: headroom 1e-9 K either side, c_dhw 0.232 and a loose ceiling: 0 moved.
+# Count key: the value the production method returns (never an input attribute).

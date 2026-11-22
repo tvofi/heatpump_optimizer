@@ -1,0 +1,15 @@
+# Metric: DhwPlanner._dhw_raise_fits's verdict (1 fits, 0 refused) when one simulated tank temperature equals its limit + 1e-9 exactly.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py
+# EXPECTED RESULT raise_fits_baseline=1
+# EXPECTED RESULT raise_fits_mutant=0
+# EXPECTED RESULT non_tie_inputs_moved=0 of 4
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_raise_fits (custom_components/heatpump_optimizer/dhw_planner.py:2140 `if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)):`).
+# Perturbation: mutant a21e5757eab163a7, `if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)):` -> `if not bool(np.all(candidate[pos + 1: end + 1] < limit + 1e-9)):`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: verdict down (fits -> refused) on the exact tie only.
+# Reach: exact float tie only: a candidate temperature equal to max(ceiling + 0.5, base) + 1e-9 to the last bit.
+# Null control: a rounded ceiling, the ceiling at the temperature, 2e-9 and 0.1 below: 0 moved.
+# Count key: the value the production method returns (never an input attribute).

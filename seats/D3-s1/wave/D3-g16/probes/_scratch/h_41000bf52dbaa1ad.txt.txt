@@ -1,0 +1,16 @@
+# Metric: hours covered by the learned DHW demand windows DhwPlanner._effective_dhw_windows derives (schedule on, no windows entered) from a mean-1 learned hourly pattern whose 60th percentile is above 1.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_41000bf52dbaa1ad.py
+# EXPECTED RESULT window_hours_baseline=10.0 h
+# EXPECTED RESULT window_hours_mutant=13.0 h
+# EXPECTED RESULT null_delta_hours=0.0 h (the shipped default pattern: p60 = 0.83 < 1)
+# EXPECTED RESULT inputs_moved=1 of 10
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._effective_dhw_windows (custom_components/heatpump_optimizer/dhw_planner.py:547 `threshold = max(1.0, float(np.percentile(pattern, 60)))`).
+# Perturbation: mutant 41000bf52dbaa1ad, `threshold = max(1.0, float(np.percentile(pattern, 60)))` -> `threshold = (1.0)`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: window hours up: shoulder hours between 1.0 and the 60th percentile join the demand window.
+# Reach: production: a learned profile is normalised to mean 1 (DhwUsageLearner.normalize_profile), and any profile with 40 % of its hours above 1 has p60 > 1.
+# Null control: the shipped DHW_HOURLY_DRAW_PATTERN (p60 = 0.83): 0 h.
+# Count key: the value the production method returns (never an input attribute).

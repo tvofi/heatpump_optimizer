@@ -1,0 +1,51 @@
+OLD = "known_mask[: min(reach_step, n_steps)] = False"
+NEW = "known_mask[: (reach_step)] = False"
+MUT = mutant_method("_dhw_legionella_due", OLD, NEW)
+from types import SimpleNamespace  # noqa: E402
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig  # noqa: E402
+
+N = 24
+
+
+def legionella(known, prices, *, tank=55.0, p_run=3.0, volume=200.0, ceiling=1.0, off=None, fn=None):
+    """(due, hour, step, ready_temps) from DhwPlanner._dhw_legionella_due inside the elastic window (130 h since
+    the last cycle: past the 5-day minimum, before the 7-day deadline, so the hard-deadline branch is not taken)."""
+    p = ThermalParameters(dhw_enabled=True, dhw_legionella_enabled=True, dhw_elastic_legionella_enabled=True,
+                          dhw_legionella_price_ceiling=ceiling, dhw_tank_volume=volume)
+    planner = DhwPlanner(ThermalModel(p), OptimizationConfig(horizon_hours=N, time_step_minutes=60), None, known)
+    h = SimpleNamespace(initial_state=ThermalState(dhw_temperature=tank, dhw_hours_since_legionella=130.0),
+                        n_steps=N, dt=1.0, outdoor_temps=np.full(N, 5.0), humidity=None)
+    ready = np.zeros(N)
+    due, hour, step = (fn or DhwPlanner._dhw_legionella_due)(
+        planner, h, params=p, hours_mod=np.arange(N, dtype=float), draw_rates=np.zeros(N),
+        ready_temps=ready, p_dhw_run=p_run, dhw_prices=np.asarray(prices, dtype=float), off_steps=off)
+    return due, hour, step, ready.tobytes()
+
+# Every input that reaches line 692: tank temperatures from cold (reach_step == n_steps, the clamp's only
+# candidate case) to hot (reach_step 0), small and big tanks, small and big pumps, partial/None/full known masks,
+# cheap steps early, late and at the last step, an Off window, and ceilings that pass and refuse.
+grid = []
+for tank in (10.0, 30.0, 45.0, 55.0, 59.9, 65.0):
+    for volume, p_run in ((200.0, 3.0), (3000.0, 0.5), (50.0, 6.0)):
+        for known_name, known in (("None", None), ("all", np.ones(N, dtype=bool)),
+                                  ("first12", np.array([True] * 12 + [False] * 12)), ("short5", np.ones(5, dtype=bool))):
+            for cheap in (0, 11, 23):
+                for ceiling in (1.0, 1e-6):
+                    for off_name in ("none", "steps0-3"):
+                        off = None if off_name == "none" else np.array([True] * 4 + [False] * (N - 4))
+                        grid.append((tank, volume, p_run, known_name, known, cheap, ceiling, off_name, off))
+moved, placed, reach_end = [], 0, 0
+for tank, volume, p_run, kn, known, cheap, ceiling, on, off in grid:
+    prices = np.full(N, 2.0)
+    prices[cheap] = 0.1
+    b = legionella(known, prices, tank=tank, p_run=p_run, volume=volume, ceiling=ceiling, off=off)
+    m = legionella(known, prices, tank=tank, p_run=p_run, volume=volume, ceiling=ceiling, off=off, fn=MUT)
+    placed += int(b[0])
+    if b != m:
+        moved.append((tank, volume, p_run, kn, cheap, ceiling, on))
+print(f"RESULT inputs_tried={len(grid)} count")
+print(f"RESULT baseline_cycles_placed={placed} count")
+print(f"RESULT outputs_differing={len(moved)} count")
+print(f"# differing inputs: {moved[:5]}")
+footer()

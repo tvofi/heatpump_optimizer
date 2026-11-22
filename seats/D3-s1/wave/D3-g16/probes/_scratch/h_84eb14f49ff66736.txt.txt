@@ -1,0 +1,16 @@
+# Metric: the first step DhwPlanner._plan_dhw_cheapest_first charges at on a 12 h horizon, need at step 10, max_lead_steps 2, cheapest price at step 0.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py
+# EXPECTED RESULT first_charge_step_baseline=10
+# EXPECTED RESULT first_charge_step_mutant=0
+# EXPECTED RESULT charge_steps_outside_lead_window_mutant=1 count
+# EXPECTED RESULT null_inputs_moved=0 of 3
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_cheapest_first (custom_components/heatpump_optimizer/dhw_planner.py:2232 `j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j)`).
+# Perturbation: mutant 84eb14f49ff66736, `j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j)` -> `j for j in range((0), k + 1) if usable(j)`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: charge moves earlier than the configured lead limit allows (step 10 -> step 0).
+# Reach: production: ctx.max_lead_steps is ceil(ThermalModel.dhw_hold_hours() / dt) (dhw_planner.py:1173, 1214), the hours the tank holds heat, under the horizon whenever the tank's standby loss is material.
+# Null control: a lead covering the horizon, flat prices, the cheapest step inside the lead window: 0 moved.
+# Count key: the value the production method returns (never an input attribute).

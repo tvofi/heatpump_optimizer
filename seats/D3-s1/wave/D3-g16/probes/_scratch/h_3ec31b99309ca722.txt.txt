@@ -1,0 +1,16 @@
+# Metric: whether DhwPlanner._effective_dhw_windows raises (0/1) on a 24-entry pattern with every hour below 1.0.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py
+# EXPECTED RESULT window_hours_baseline=24.0 h
+# EXPECTED RESULT mutant_raises=1 (IndexError on busy_hours[0])
+# EXPECTED RESULT null_delta_hours=0.0 h
+# EXPECTED RESULT inputs_moved=2 of 10 (flat 0.5 and all 1 - 1e-12)
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._effective_dhw_windows (custom_components/heatpump_optimizer/dhw_planner.py:549 `if not busy_hours:`).
+# Perturbation: mutant 3ec31b99309ca722, `if not busy_hours:` -> `if False:`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: an IndexError instead of the full-day fallback.
+# Reach: direct call; through production only at a learned profile whose every hour sits below 1.0, which normalize_profile's mean-1 rescale admits only within its 1e-12 tolerance (all_just_below_1).
+# Null control: the shipped default pattern: 0 h.
+# Count key: the value the production method returns (never an input attribute).

@@ -1,0 +1,17 @@
+# Metric: the DHW planning price of a step whose PV surplus is exactly 1e-6 kW, the largest anywhere (per-kWh).
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_8fc6a207d6600867.py
+# EXPECTED RESULT step0_price_baseline=2.000000000
+# EXPECTED RESULT step0_price_mutant=1.999999333
+# EXPECTED RESULT max_abs_delta=6.667e-07
+# EXPECTED RESULT rank_changed=0
+# EXPECTED RESULT inputs_moved=1 of 6 (the exact-tie input only)
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_planning_prices (custom_components/heatpump_optimizer/dhw_planner.py:470 `if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):`).
+# Perturbation: mutant 8fc6a207d6600867, `if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):` -> `if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: price down by surplus/p_run * margin, only when the largest surplus is exactly 1e-6.
+# Reach: exact float tie only: a forecast surplus equal to 1e-6 kW at its maximum; any other surplus gives identical prices.
+# Null control: no surplus, zero surplus, 2e-6, 1 kW and nextafter(1e-6, 0): 0 moved.
+# Count key: the value the production method returns (never an input attribute).

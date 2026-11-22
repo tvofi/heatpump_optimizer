@@ -1,0 +1,24 @@
+exec(open('/root/probe-src/common.py').read().replace('repo_root(__file__)','repo_root("/root/probe-tree/x")'))
+from types import SimpleNamespace
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig
+OLD="if known is not None:"; NEW="if False:"
+MUT=mutant_method("_dhw_legionella_due",OLD,NEW)
+N=24
+p=ThermalParameters(dhw_enabled=True,dhw_legionella_enabled=True,dhw_elastic_legionella_enabled=True,
+    dhw_legionella_price_ceiling=1.0, dhw_tank_volume=200.0)
+print(p.dhw_legionella_interval_days,p.dhw_legionella_min_interval_days,p.dhw_legionella_temp, p.legionella_cycle_active)
+model=ThermalModel(p)
+def run(known, prices, fn=None):
+    pl=DhwPlanner(model, OptimizationConfig(horizon_hours=N,time_step_minutes=60), None, known)
+    h=SimpleNamespace(initial_state=ThermalState(dhw_temperature=55.0,dhw_hours_since_legionella=130.0),n_steps=N,dt=1.0,
+        outdoor_temps=np.full(N,5.0),humidity=None)
+    ready=np.zeros(N)
+    out=(fn or DhwPlanner._dhw_legionella_due)(pl,h,params=p,hours_mod=np.arange(N,dtype=float),draw_rates=np.zeros(N),
+        ready_temps=ready,p_dhw_run=3.0,dhw_prices=prices)
+    return out
+prices=np.full(N,2.0); prices[20]=0.1
+known=np.array([True]*12+[False]*12)
+print(run(known,prices), run(known,prices,MUT))
+print(run(None,prices), run(None,prices,MUT))
+print(run(np.ones(N,bool),prices), run(np.ones(N,bool),prices,MUT))

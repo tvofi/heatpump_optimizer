@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_9b890e4f1fdfcd41.py (saved as .py.txt while gates run; rename on restore): pins hours and shape of the learned DHW windows over 10 patterns (contiguous runs, wrap past midnight, alternating hours, plateaus, single peaks, non-normalised).

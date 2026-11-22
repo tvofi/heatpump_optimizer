@@ -1,0 +1,73 @@
+"""build_record.py <key>: results/<key>.json from the gate record, the keys.tsv row, the probe run and static.json."""
+import json, subprocess, sys, re, os
+from pathlib import Path
+key = sys.argv[1]
+TR = Path('/root/audit-r11-D3-s1'); S1 = TR / 'dev/audit/rounds/round11/D3/s1'; W = Path(os.environ.get('WAVE_DIR', str(S1 / 'wave/D3-g16')))
+REL = 'dev/audit/rounds/round11/D3/s1/wave/D3-g16'
+BASE = '92d38ecb640bd462f2e19c0814d0f0b7df1ee692'
+MACH = 'box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box'
+rows = {l.split('\t')[0]: l.split('\t') for l in (W / 'keys.tsv').read_text().splitlines()[1:] if l.strip()}
+_, src, file, line, func, cluster, slice_, fullnet, kind, reach, m4src = rows[key]
+mut = json.loads((S1 / f'state/results/{src}/{key}.json').read_text())['mutant']
+gate = json.loads((W / f'gates/{key}.json').read_text())
+st = json.load(open('/root/probe-src/static.json'))[key]
+hd = json.load(open('/root/probe-src/headers.json'))[key]
+probe_rel = f'{REL}/probes/probe_{key}.py'
+cmd = f'PYTHONPATH=tests/hastub python3 {probe_rel}'
+out = subprocess.run(['/root/probe-src/run.sh', key], capture_output=True, text=True).stdout
+res = dict(re.findall(r'^RESULT (\S+?)=(.*)$', out, re.M))
+fl = lambda s: float(re.match(r'[-+0-9.eEnaif]+', s).group(0)) if s and re.match(r'[-+0-9.eEnaif]+', s) else None
+verdict = gate.get('verdict')
+cls = {'KILLED': 'killed', 'TIMEOUT': 'timeout'}.get(verdict) or ('candidate' if st['moved'] else 'equivalent-candidate')
+rec = {
+  'key': key, 'site': f'{file.split("/")[-1]}:{line} {kind}', 'file': file, 'line': int(line),
+  'patch': f"{mut['old'].strip()} -> {mut['new'].strip()}", 'function': func, 'cluster': cluster,
+  'slice': slice_, 'fullnet': fullnet, 'm4_source': m4src,
+  'gate': {k: gate.get(k) for k in ('verdict', 'killed_by', 'gate_rc', 'wall_s', 'child_cpu_s', 'load1_start', 'load1_end', 'failed_scripts', 'summary', 'cap_s')},
+  'gate_record': f'{REL}/gates/{key}.json', 'gate_command': f'PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src {src} --key {key}',
+  'gate_provisional': True, 'class': cls,
+}
+if cls == 'killed':
+    log = (W / f'gates/{key}.log')
+    fails = [l.strip() for l in log.read_text(errors='replace').splitlines() if re.search(r'\bFAIL\b|FAILED', l)][:40] if log.exists() else []
+    rec['failing_check_lines'] = fails
+    rec['non_finding'] = f"the suite fails on mutant {key}: killed_by={gate.get('killed_by')}, gate_rc={gate.get('gate_rc')}"
+if cls == 'timeout':
+    log = W / f'gates/{key}.log'
+    last = [l for l in log.read_text(errors='replace').splitlines() if re.search(r'^(==|---|\+\+\+|RUN|>>>|\[)', l)][-3:] if log.exists() else []
+    rec['timeout'] = {'cap_s': gate.get('cap_s', 14400), 'last_lines': last}
+if cls in ('candidate', 'equivalent-candidate'):
+    rec['probe'] = {'path': probe_rel, 'command': cmd, 'results': res,
+                    'baseline_value': res.get(st.get('base', ''), 'see results'), 'mutant_value': res.get(st.get('mut', ''), 'see results'),
+                    'inputs_tried': st['inputs'], 'machine': MACH, 'baseline_sha': BASE}
+if cls == 'equivalent-candidate':
+    rec['why_equivalent'] = st['why']
+    rec['should_fail'] = 'none: no input found that the mutant changes (equivalent-candidate); the closure scripts executing the line (m4_source) cannot fail on it'
+if cls == 'candidate':
+    reach = st.get('reach', 'production')
+    rec['reach'] = {'production': 'production: ' + hd['reach'].split(': ', 1)[-1], 'exact-tie': hd['reach'], 'direct-call': hd['reach']}[reach]
+    rec['should_fail'] = st['should_fail']
+    sym = f"custom_components.heatpump_optimizer.dhw_planner:{func}"
+    rec['finding'] = {
+      'title': st['title'], 'step': 'D3.M3', 'scope': 'D3-s1', 'class_guess': 'new', 'severity_claimed': st['sev'],
+      'stop_rule_class': 'bug',
+      'claim': f"Mutant {key} at {file.split('/')[-1]}:{line} ({rec['patch']}) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate ({verdict}), yet probe_{key}.py moves: {st['base']}={rec['probe']['baseline_value']} vs {st['mut']}={rec['probe']['mutant_value']}.",
+      'mechanism': f"Reach: {rec['reach']}. Check that should have failed (D3.M4): {st['should_fail']}.",
+      'instrumented_symbol': sym, 'metric_definition': hd['metric'],
+      'phenomenon_property': st['prop'],
+      'seam_rule': "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list), each key's fullgate.py verdict SURVIVED or RED-AS-NULL and its probe moving",
+      'files': [file], 'proposed_fix_scope': st['fix'],
+      'harness_paths': ['dev/audit/rounds/round11/D3/s1/fullgate.py', probe_rel],
+      'evidence_command': cmd,
+      'evidence': {'command': cmd, 'harness_path': probe_rel, 'value': rec['probe']['mutant_value'], 'unit': st['mut'],
+                   'baseline_sha': BASE, 'machine': MACH, 'cpu_or_wall': 'n/a',
+                   'contention_note': 'deterministic value; the probe ran from a separate baseline worktree while this box\'s gates ran (load1 ~1); gate walls are provisional',
+                   'tolerance': 'exact', 'load1': fl(res.get('load1', '0')) or 0.0, 'thread_factor': fl(res.get('thread_factor', '1')) or 1.0},
+      'perturbation': {'change': f"the one-line mutant {key} applied in memory by the probe (method re-compiled from its source); full gate: {rec['gate_command']}",
+                       'expected_direction': hd['direction'], 'observed_value': rec['probe']['mutant_value']},
+      'null_control': {'command': cmd, 'value': hd['null'], 'note': 'arms where the edit cannot matter, identical outputs under baseline and mutant; the full-gate null is gates/null.json'},
+      'reproduction_steps': [cmd, rec['gate_command']],
+    }
+(W / 'results').mkdir(exist_ok=True)
+(W / f'results/{key}.json').write_text(json.dumps(rec, indent=1) + '\n')
+print(key, verdict, cls)

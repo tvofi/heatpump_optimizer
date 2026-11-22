@@ -1,0 +1,16 @@
+# Metric: whether DhwPlanner._dhw_legionella_due places the elastic anti-legionella cycle (due flag, 0/1) on a 24 h horizon whose only price under the ceiling is a prior-estimated (unpublished) step.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py
+# EXPECTED RESULT cycle_placed_baseline=0 count (baseline waits: the one cheap step is estimated)
+# EXPECTED RESULT cycle_placed_mutant=1 count (mutant books the cycle at step 20, an estimated price)
+# EXPECTED RESULT mutant_step_price_known=0
+# EXPECTED RESULT null_inputs_moved=0 of 3
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_due (custom_components/heatpump_optimizer/dhw_planner.py:680 `if known is not None:`).
+# Perturbation: mutant 35d61c87783ebe66, `if known is not None:` -> `if False:`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: cycles placed up (0 -> 1): every step is treated as a published price.
+# Reach: production: optimizer.py passes the per-step price_known mask to DhwPlanner (optimizer.py:4373) whenever the horizon runs past the published day-ahead prices.
+# Null control: an all-known mask, the None mask of a fresh optimizer and a horizon whose cheap step is published: the guard cannot matter, 0 moved.
+# Count key: the value the production method returns (never an input attribute).

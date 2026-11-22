@@ -1,0 +1,14 @@
+# Metric: count of inputs on which DhwPlanner._dhw_legionella_due's (due, hour, step, ready_temps) differ between the baseline and the mutant, over an 864-input grid of the elastic branch.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_01acd6cc2431d71d.py
+# EXPECTED RESULT inputs_tried=864 count
+# EXPECTED RESULT outputs_differing=0 count
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_due (custom_components/heatpump_optimizer/dhw_planner.py:692 `known_mask[: min(reach_step, n_steps)] = False`).
+# Perturbation: mutant 01acd6cc2431d71d, `known_mask[: min(reach_step, n_steps)] = False` -> `known_mask[: (reach_step)] = False`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: none found: reach_step is int(hot[0]) < n_steps or n_steps itself, so min(reach_step, n_steps) == reach_step, and numpy slicing clamps besides.
+# Reach: production elastic-legionella branch.
+# Null control: the grid itself: equal outputs on every input; liveness is baseline_cycles_placed > 0.
+# Count key: the value the production method returns (never an input attribute).

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py (saved as .py.txt while gates run; rename on restore): pins the first step DhwPlanner._plan_dhw_cheapest_first charges at on a 12 h horizon, need at step 10, max_lead_steps 2, cheapest price at step 0.

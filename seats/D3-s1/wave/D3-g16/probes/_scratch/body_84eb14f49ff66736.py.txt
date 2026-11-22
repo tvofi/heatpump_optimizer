@@ -1,0 +1,45 @@
+OLD = "j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j)"
+NEW = "j for j in range((0), k + 1) if usable(j)"
+MUT = mutant_method("_plan_dhw_cheapest_first", OLD, NEW)
+from dataclasses import replace  # noqa: E402
+from custom_components.heatpump_optimizer.dhw_planner import _DhwPlanContext  # noqa: E402
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig  # noqa: E402
+
+PARAMS = ThermalParameters(dhw_enabled=True, dhw_tank_volume=200.0, dhw_cooling_rate=0.3)
+PLANNER = DhwPlanner(ThermalModel(PARAMS), OptimizationConfig(horizon_hours=12, time_step_minutes=60), None, None)
+
+
+def ctx(prices, lead, n, c_dhw=0.232):
+    prices = np.asarray(prices, dtype=float)
+    return _DhwPlanContext(prices=prices, import_prices=prices, outdoor_temps=np.full(n, -5.0), humidity=None,
+                           n_steps=n, dt=1.0, store=replace(PARAMS.dhw_store, capacity_kwh_per_c=c_dhw),
+                           p_dhw_max=3.0, min_run_power=0.1, max_lead_steps=lead, tank_exo_kw=None)
+
+
+def greedy(prices, lead, req, max_temp, t0=45.0, draws=None, forced_off=None, c_dhw=0.232, fn=None):
+    """The plan DhwPlanner._plan_dhw_cheapest_first returns (kW per step)."""
+    n = len(prices)
+    return (fn or DhwPlanner._plan_dhw_cheapest_first)(
+        PLANNER, ctx(prices, lead, n, c_dhw), t0, np.asarray(req, dtype=float).copy(),
+        np.zeros(n) if draws is None else np.asarray(draws, dtype=float), np.asarray(max_temp, dtype=float).copy(),
+        forced_off=forced_off)
+
+
+N = 12
+CHEAP_EARLY = np.array([0.1] + [5.0] * 11)        # the cheapest hour is 10 h before the need
+REQ = np.zeros(N)
+REQ[10] = 55.0                                    # hot water needed at 10:00
+MAX_T = np.full(N, 65.0)
+
+b = greedy(CHEAP_EARLY, 2, REQ, MAX_T)
+m = greedy(CHEAP_EARLY, 2, REQ, MAX_T, fn=MUT)
+print(f"# max_lead_steps=2: baseline={np.round(b, 3).tolist()} mutant={np.round(m, 3).tolist()}")
+print(f"RESULT first_charge_step_baseline={int(np.flatnonzero(b)[0])}")
+print(f"RESULT first_charge_step_mutant={int(np.flatnonzero(m)[0])}")
+print(f"RESULT charge_steps_outside_lead_window_mutant={int(np.count_nonzero(m[: 10 - 2]))} count")
+nulls = {"lead_24_covers_horizon": (CHEAP_EARLY, 24), "flat_prices_lead_2": (np.ones(N), 2),
+         "cheapest_inside_lead_window": (np.where(np.arange(N) == 9, 0.1, 5.0), 2)}
+moved = [k for k, (pr, lead) in nulls.items() if not np.array_equal(greedy(pr, lead, REQ, MAX_T), greedy(pr, lead, REQ, MAX_T, fn=MUT))]
+print(f"RESULT null_inputs_moved={len(moved)} of {len(nulls)} ({','.join(moved) or '-'})")
+footer()

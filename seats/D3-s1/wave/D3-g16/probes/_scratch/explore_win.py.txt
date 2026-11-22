@@ -1,0 +1,16 @@
+exec(open('/root/probe-src/common.py').read().replace('repo_root(__file__)','repo_root("/root/probe-tree/x")'))
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, DHW_HOURLY_DRAW_PATTERN
+pairs={'41':("threshold = max(1.0, float(np.percentile(pattern, 60)))","threshold = (1.0)"),
+'88':("busy_hours = [h for h in range(24) if pattern[h] >= threshold]","busy_hours = [h for h in range(24) if pattern[h] > threshold]"),
+'3e':("if not busy_hours:","if False:"),'9b':("if hour == prev + 1:","if False:")}
+M={k:mutant_method('_effective_dhw_windows',*v) for k,v in pairs.items()}
+def run(pat,fn=None):
+    p=ThermalParameters(dhw_enabled=True,dhw_schedule_enabled=True,dhw_windows=[],dhw_hourly_draw_pattern=list(pat))
+    pl=DhwPlanner(ThermalModel(p),None)
+    try: return (fn or DhwPlanner._effective_dhw_windows)(pl)
+    except Exception as e: return repr(e)
+print('default',[round(x,2) for x in DHW_HOURLY_DRAW_PATTERN], np.percentile(DHW_HOURLY_DRAW_PATTERN,60))
+pats={'default':DHW_HOURLY_DRAW_PATTERN,'flat1':[1.0]*24,'flat05':[0.5]*24,'step':[1.0]*20+[2.0]*4,'gaps':[2,0.2,2,0.2]*6}
+for n,pat in pats.items():
+    print(n,'base',run(pat))
+    for k,f in M.items(): print('  ',k,run(pat,f))

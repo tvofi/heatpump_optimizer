@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_b16740061447ef70.py (saved as .py.txt while gates run; rename on restore): pins count of inputs on which any of the seven arrays DhwPlanner._dhw_window_floors returns differs, over 600 window specs x step sizes x horizons x starts x learned stats.

@@ -1,0 +1,40 @@
+exec(open('/root/probe-src/common.py').read().replace('repo_root(__file__)','repo_root("/root/probe-tree/x")'))
+from dataclasses import replace
+from custom_components.heatpump_optimizer.dhw_planner import _DhwPlanContext
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig
+P=ThermalParameters(dhw_enabled=True,dhw_tank_volume=200.0,dhw_cooling_rate=0.3)
+model=ThermalModel(P); pl=DhwPlanner(model,OptimizationConfig(horizon_hours=6,time_step_minutes=60),None,None)
+N=6; C=0.232
+MUT=mutant_method("_plan_dhw_cheapest_first","if take <= 1e-6:","if take < 1e-6:")
+prices=np.ones(N)
+draws=np.array([0,0,8.0,8.0,0,0])
+ctx=_DhwPlanContext(prices=prices,import_prices=prices,outdoor_temps=np.full(N,5.0),humidity=None,n_steps=N,dt=1.0,
+      store=replace(P.dhw_store,capacity_kwh_per_c=C),p_dhw_max=3.0,min_run_power=0.1,max_lead_steps=24,tank_exo_kw=None)
+print('c_dhw',ctx.c_dhw)
+temps=pl._dhw_plan_temps(np.zeros(N),60.0,np.full(N,5.0),draws,1.0,None,None)
+print(np.round(temps,4))
+draws=np.array([0,0,0.6,0.6,0,0])
+temps=pl._dhw_plan_temps(np.zeros(N),60.0,np.full(N,5.0),draws,1.0,None,None); print(np.round(temps,4))
+req=np.zeros(N); req[4]=58.0
+fo=np.array([False,True,True,True,True,True])
+def run(mt,fn=None):
+    return (fn or DhwPlanner._plan_dhw_cheapest_first)(pl,ctx,60.0,req.copy(),draws,mt.copy(),forced_off=fo)
+base_mt=np.full(N,90.0)
+print('loose',run(base_mt),run(base_mt,MUT))
+t2=float(temps[2])
+x=t2+1.0+1e-6/0.232
+d=float((x-1.0)-t2)
+c=1e-6/d; found=None
+for direction in (np.inf,-np.inf):
+    y=c
+    for _ in range(200):
+        if d*y==1e-6: found=y;break
+        y=np.nextafter(y,direction)
+    if found: break
+print('d',repr(d),'C',repr(found))
+ctx=replace(ctx,store=replace(P.dhw_store,capacity_kwh_per_c=found))
+mt=base_mt.copy(); mt[1]=x
+print('tie', run(mt), run(mt,MUT))
+mt2=base_mt.copy(); mt2[1]=x+1e-9
+print('off-tie', run(mt2), run(mt2,MUT))

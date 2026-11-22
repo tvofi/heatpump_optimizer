@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_72882f2ac25c19b1.py (saved as .py.txt while gates run; rename on restore): pins the DHW planning price of a step where the space-heating profile draws more than the PV surplus (per-kWh), and the cheapest step's index.

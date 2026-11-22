@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_e19cdb6bf198d1e7.py (saved as .py.txt while gates run; rename on restore): pins count of inputs on which any of the seven arrays DhwPlanner._dhw_window_floors returns differs, over 600 inputs including learned stats with count 0, negative counts, p90 0/negative/1e300/NaN/inf and unparseable entries.

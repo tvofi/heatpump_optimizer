@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py (saved as .py.txt while gates run; rename on restore): pins whether DhwPlanner._dhw_legionella_due places the elastic anti-legionella cycle (due flag, 0/1) on a 24 h horizon whose only price under the ceiling is a prior-estimated (unpublished) step.

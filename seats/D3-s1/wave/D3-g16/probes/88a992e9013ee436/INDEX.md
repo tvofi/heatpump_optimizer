@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_88a992e9013ee436.py (saved as .py.txt while gates run; rename on restore): pins count of inputs on which the plan DhwPlanner._plan_dhw_cheapest_first returns differs, over 21 inputs that include every way to leave no usable step.

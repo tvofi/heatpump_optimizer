@@ -1,0 +1,15 @@
+# Metric: count of inputs on which any of the seven arrays DhwPlanner._dhw_window_floors returns differs, over 600 window specs x step sizes x horizons x starts x learned stats.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_b16740061447ef70.py
+# EXPECTED RESULT inputs_tried=600 count
+# EXPECTED RESULT stats_branch_live=1
+# EXPECTED RESULT outputs_differing=0 count
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_window_floors (custom_components/heatpump_optimizer/dhw_planner.py:1018 `window_hours = max((end_idx - start_idx) * dt, dt)`).
+# Perturbation: mutant b16740061447ef70, `window_hours = max((end_idx - start_idx) * dt, dt)` -> `window_hours = ((end_idx - start_idx) * dt)`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: none found: a window start has in_window[start_idx] True, so end_idx >= start_idx + 1 and the product is already >= dt.
+# Reach: production ready-temperature computation.
+# Null control: the grid itself.
+# Count key: the value the production method returns (never an input attribute).

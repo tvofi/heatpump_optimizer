@@ -1,0 +1,253 @@
+{
+ "35d61c87783ebe66": {
+  "line": 680,
+  "sym": "DhwPlanner._dhw_legionella_due",
+  "old": "if known is not None:",
+  "new": "if False:",
+  "metric": "whether DhwPlanner._dhw_legionella_due places the elastic anti-legionella cycle (due flag, 0/1) on a 24 h horizon whose only price under the ceiling is a prior-estimated (unpublished) step",
+  "expected": [
+   "cycle_placed_baseline=0 count (baseline waits: the one cheap step is estimated)",
+   "cycle_placed_mutant=1 count (mutant books the cycle at step 20, an estimated price)",
+   "mutant_step_price_known=0",
+   "null_inputs_moved=0 of 3"
+  ],
+  "direction": "cycles placed up (0 -> 1): every step is treated as a published price",
+  "reach": "production: optimizer.py passes the per-step price_known mask to DhwPlanner (optimizer.py:4373) whenever the horizon runs past the published day-ahead prices",
+  "null": "an all-known mask, the None mask of a fresh optimizer and a horizon whose cheap step is published: the guard cannot matter, 0 moved"
+ },
+ "01acd6cc2431d71d": {
+  "line": 692,
+  "sym": "DhwPlanner._dhw_legionella_due",
+  "old": "known_mask[: min(reach_step, n_steps)] = False",
+  "new": "known_mask[: (reach_step)] = False",
+  "metric": "count of inputs on which DhwPlanner._dhw_legionella_due's (due, hour, step, ready_temps) differ between the baseline and the mutant, over an 864-input grid of the elastic branch",
+  "expected": [
+   "inputs_tried=864 count",
+   "outputs_differing=0 count"
+  ],
+  "direction": "none found: reach_step is int(hot[0]) < n_steps or n_steps itself, so min(reach_step, n_steps) == reach_step, and numpy slicing clamps besides",
+  "reach": "production elastic-legionella branch",
+  "null": "the grid itself: equal outputs on every input; liveness is baseline_cycles_placed > 0"
+ },
+ "8fc6a207d6600867": {
+  "line": 470,
+  "sym": "DhwPlanner._dhw_planning_prices",
+  "old": "if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):",
+  "new": "if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):",
+  "metric": "the DHW planning price of a step whose PV surplus is exactly 1e-6 kW, the largest anywhere (per-kWh)",
+  "expected": [
+   "step0_price_baseline=2.000000000",
+   "step0_price_mutant=1.999999333",
+   "max_abs_delta=6.667e-07",
+   "rank_changed=0",
+   "inputs_moved=1 of 6 (the exact-tie input only)"
+  ],
+  "direction": "price down by surplus/p_run * margin, only when the largest surplus is exactly 1e-6",
+  "reach": "exact float tie only: a forecast surplus equal to 1e-6 kW at its maximum; any other surplus gives identical prices",
+  "null": "no surplus, zero surplus, 2e-6, 1 kW and nextafter(1e-6, 0): 0 moved"
+ },
+ "72882f2ac25c19b1": {
+  "line": 474,
+  "sym": "DhwPlanner._dhw_planning_prices",
+  "old": "surplus = np.clip(surplus - space_demand[: len(prices)], 0.0, None)",
+  "new": "surplus = (surplus - space_demand[: len(prices)])",
+  "metric": "the DHW planning price of a step where the space-heating profile draws more than the PV surplus (per-kWh), and the cheapest step's index",
+  "expected": [
+   "step0_price_baseline=2.000000",
+   "step0_price_mutant=3.333333",
+   "cheapest_step_baseline=0",
+   "cheapest_step_mutant=1",
+   "null_inputs_moved=0 of 4"
+  ],
+  "direction": "price up: a negative surplus inflates the import price by margin * deficit / p_run, and the ranking flips",
+  "reach": "production: the co-optimization replan passes the space profile (optimizer.py:2065 and 3986 -> DhwPlanner._build_dhw_requirements -> dhw_planner.py:1147); space demand above the PV surplus is the ordinary case on a cold sunny morning",
+  "null": "space demand below, equal to, absent and zero: 0 moved"
+ },
+ "ea6dfc5a3c85cce3": {
+  "line": 2133,
+  "sym": "DhwPlanner._dhw_raise_fits",
+  "old": "while pos < size:",
+  "new": "while pos <= size:",
+  "metric": "count of inputs on which DhwPlanner._dhw_raise_fits's verdict, the candidate array after the call, or an exception differ, over every size/slot pair that lands a pass at pos == size",
+  "expected": [
+   "inputs_tried=116 count",
+   "baseline_refusals=44 count",
+   "inputs_with_extra_pass=60 count",
+   "outputs_differing=0 count"
+  ],
+  "direction": "none found: the extra pass at pos == size reads candidate[size] (it exists: n + 1 temperatures), runs an empty step loop and checks empty slices",
+  "reach": "production weak-slot repair (dhw_planner.py:2091)",
+  "null": "the grid itself; liveness is both verdicts occurring"
+ },
+ "a21e5757eab163a7": {
+  "line": 2140,
+  "sym": "DhwPlanner._dhw_raise_fits",
+  "old": "if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)):",
+  "new": "if not bool(np.all(candidate[pos + 1: end + 1] < limit + 1e-9)):",
+  "metric": "DhwPlanner._dhw_raise_fits's verdict (1 fits, 0 refused) when one simulated tank temperature equals its limit + 1e-9 exactly",
+  "expected": [
+   "raise_fits_baseline=1",
+   "raise_fits_mutant=0",
+   "non_tie_inputs_moved=0 of 4"
+  ],
+  "direction": "verdict down (fits -> refused) on the exact tie only",
+  "reach": "exact float tie only: a candidate temperature equal to max(ceiling + 0.5, base) + 1e-9 to the last bit",
+  "null": "a rounded ceiling, the ceiling at the temperature, 2e-9 and 0.1 below: 0 moved"
+ },
+ "b16740061447ef70": {
+  "line": 1018,
+  "sym": "DhwPlanner._dhw_window_floors",
+  "old": "window_hours = max((end_idx - start_idx) * dt, dt)",
+  "new": "window_hours = ((end_idx - start_idx) * dt)",
+  "metric": "count of inputs on which any of the seven arrays DhwPlanner._dhw_window_floors returns differs, over 600 window specs x step sizes x horizons x starts x learned stats",
+  "expected": [
+   "inputs_tried=600 count",
+   "stats_branch_live=1",
+   "outputs_differing=0 count"
+  ],
+  "direction": "none found: a window start has in_window[start_idx] True, so end_idx >= start_idx + 1 and the product is already >= dt",
+  "reach": "production ready-temperature computation",
+  "null": "the grid itself"
+ },
+ "e19cdb6bf198d1e7": {
+  "line": 1034,
+  "sym": "DhwPlanner._dhw_window_floors",
+  "old": "if p90 is not None and np.isfinite(p90) and count > 0:",
+  "new": "if p90 is not None and np.isfinite(p90) and count >= 0:",
+  "metric": "count of inputs on which any of the seven arrays DhwPlanner._dhw_window_floors returns differs, over 600 inputs including learned stats with count 0, negative counts, p90 0/negative/1e300/NaN/inf and unparseable entries",
+  "expected": [
+   "inputs_tried=600 count",
+   "stats_branch_live=1",
+   "outputs_differing=0 count"
+  ],
+  "direction": "none found: at count 0 the blend weight w = 0 and (1 - 0) * e + 0 * max(0, p90) == e for every finite p90",
+  "reach": "production ready-temperature computation",
+  "null": "the grid itself; liveness: count 8 at p90 0 moves the ready temps against no stats"
+ },
+ "41000bf52dbaa1ad": {
+  "line": 547,
+  "sym": "DhwPlanner._effective_dhw_windows",
+  "old": "threshold = max(1.0, float(np.percentile(pattern, 60)))",
+  "new": "threshold = (1.0)",
+  "metric": "hours covered by the learned DHW demand windows DhwPlanner._effective_dhw_windows derives (schedule on, no windows entered) from a mean-1 learned hourly pattern whose 60th percentile is above 1",
+  "expected": [
+   "window_hours_baseline=10.0 h",
+   "window_hours_mutant=13.0 h",
+   "null_delta_hours=0.0 h (the shipped default pattern: p60 = 0.83 < 1)",
+   "inputs_moved=1 of 10"
+  ],
+  "direction": "window hours up: shoulder hours between 1.0 and the 60th percentile join the demand window",
+  "reach": "production: a learned profile is normalised to mean 1 (DhwUsageLearner.normalize_profile), and any profile with 40 % of its hours above 1 has p60 > 1",
+  "null": "the shipped DHW_HOURLY_DRAW_PATTERN (p60 = 0.83): 0 h"
+ },
+ "88d911d796fdd71d": {
+  "line": 548,
+  "sym": "DhwPlanner._effective_dhw_windows",
+  "old": "busy_hours = [h for h in range(24) if pattern[h] >= threshold]",
+  "new": "busy_hours = [h for h in range(24) if pattern[h] > threshold]",
+  "metric": "hours covered by the learned DHW demand windows from a mean-1 pattern with a plateau sitting exactly on the threshold (8 h at 0.5, 16 h at 1.25)",
+  "expected": [
+   "window_hours_baseline=16.0 h",
+   "window_hours_mutant=24.0 h",
+   "null_delta_hours=0.0 h",
+   "inputs_moved=3 of 10"
+  ],
+  "direction": "the plateau hours drop out of busy_hours; with none left the planner falls back to the full day (16 h -> 24 h)",
+  "reach": "production: a plateau at the 60th percentile (clipped or flat learned profiles) puts the threshold exactly on pattern values",
+  "null": "the shipped default pattern: 0 h"
+ },
+ "3ec31b99309ca722": {
+  "line": 549,
+  "sym": "DhwPlanner._effective_dhw_windows",
+  "old": "if not busy_hours:",
+  "new": "if False:",
+  "metric": "whether DhwPlanner._effective_dhw_windows raises (0/1) on a 24-entry pattern with every hour below 1.0",
+  "expected": [
+   "window_hours_baseline=24.0 h",
+   "mutant_raises=1 (IndexError on busy_hours[0])",
+   "null_delta_hours=0.0 h",
+   "inputs_moved=2 of 10 (flat 0.5 and all 1 - 1e-12)"
+  ],
+  "direction": "an IndexError instead of the full-day fallback",
+  "reach": "direct call; through production only at a learned profile whose every hour sits below 1.0, which normalize_profile's mean-1 rescale admits only within its 1e-12 tolerance (all_just_below_1)",
+  "null": "the shipped default pattern: 0 h"
+ },
+ "9b890e4f1fdfcd41": {
+  "line": 556,
+  "sym": "DhwPlanner._effective_dhw_windows",
+  "old": "if hour == prev + 1:",
+  "new": "if False:",
+  "metric": "hours and shape of the learned DHW windows over 10 patterns (contiguous runs, wrap past midnight, alternating hours, plateaus, single peaks, non-normalised)",
+  "expected": [
+   "window_hours_baseline=12.0 h",
+   "window_hours_mutant=12.0 h",
+   "inputs_moved=0 of 10"
+  ],
+  "direction": "none found: one-hour windows are merged back by dhw_schedule._normalize (start <= last_end), which parse_windows(format_windows(...)) applies",
+  "reach": "production learned windows",
+  "null": "the grid itself"
+ },
+ "84eb14f49ff66736": {
+  "line": 2232,
+  "sym": "DhwPlanner._plan_dhw_cheapest_first",
+  "old": "j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j)",
+  "new": "j for j in range((0), k + 1) if usable(j)",
+  "metric": "the first step DhwPlanner._plan_dhw_cheapest_first charges at on a 12 h horizon, need at step 10, max_lead_steps 2, cheapest price at step 0",
+  "expected": [
+   "first_charge_step_baseline=10",
+   "first_charge_step_mutant=0",
+   "charge_steps_outside_lead_window_mutant=1 count",
+   "null_inputs_moved=0 of 3"
+  ],
+  "direction": "charge moves earlier than the configured lead limit allows (step 10 -> step 0)",
+  "reach": "production: ctx.max_lead_steps is ceil(ThermalModel.dhw_hold_hours() / dt) (dhw_planner.py:1173, 1214), the hours the tank holds heat, under the horizon whenever the tank's standby loss is material",
+  "null": "a lead covering the horizon, flat prices, the cheapest step inside the lead window: 0 moved"
+ },
+ "7da9151a6a79c43e": {
+  "line": 2234,
+  "sym": "DhwPlanner._plan_dhw_cheapest_first",
+  "old": "if not candidates:\\n            candidates = [j for",
+  "new": "if False:\\n            candidates = [j for",
+  "metric": "the tank temperature at the need step (C) of the plan DhwPlanner._plan_dhw_cheapest_first returns when a manual Off pin covers the whole lead window",
+  "expected": [
+   "dhw_kw_sum_baseline=1.9870 kW",
+   "dhw_kw_sum_mutant=0.0000 kW",
+   "tank_at_need_baseline=55.451 C (requirement 55)",
+   "tank_at_need_mutant=41.891 C",
+   "null_inputs_moved=0 of 2"
+  ],
+  "direction": "nothing bought: the requirement is marked unreachable instead of being bought before the pin (55.45 C -> 41.89 C)",
+  "reach": "production: forced_off carries manual pins and the quiet Off window",
+  "null": "no pin and a pin outside the lead window: 0 moved"
+ },
+ "88a992e9013ee436": {
+  "line": 2236,
+  "sym": "DhwPlanner._plan_dhw_cheapest_first",
+  "old": "if not candidates:  (the second, line 2236)",
+  "new": "if False:",
+  "metric": "count of inputs on which the plan DhwPlanner._plan_dhw_cheapest_first returns differs, over 21 inputs that include every way to leave no usable step",
+  "expected": [
+   "inputs_tried=21 count",
+   "baseline_plans_with_nothing_bought=6 count",
+   "outputs_differing=0 count"
+  ],
+  "direction": "none found: with no candidates the fall-through sorts an empty list, buys nothing, and the `added <= 1e-9` branch adds k to unreachable exactly as the guard's `continue` does",
+  "reach": "production",
+  "null": "the grid itself; liveness is the no-candidate path being reached"
+ },
+ "50ae25437a296deb": {
+  "line": 2280,
+  "sym": "DhwPlanner._plan_dhw_cheapest_first",
+  "old": "if take <= 1e-6:",
+  "new": "if take < 1e-6:",
+  "metric": "the DHW power planned at step 0 (kW) when the binding headroom times c_dhw is exactly 1e-6 kWh",
+  "expected": [
+   "step0_kw_baseline=0.0000 kW",
+   "step0_kw_mutant=0.1000 kW (the 1e-6 kWh top-up is rounded up to min_run_power)",
+   "off_tie_inputs_moved=0 of 4"
+  ],
+  "direction": "step 0 power up (0 -> min_run_power) on the exact tie only",
+  "reach": "exact float tie only: needed, spare and headroom never land on 1e-6 kWh to the last bit except by construction (here c_dhw is tuned to 0.2319999999922984)",
+  "null": "headroom 1e-9 K either side, c_dhw 0.232 and a loose ceiling: 0 moved"
+ }
+}

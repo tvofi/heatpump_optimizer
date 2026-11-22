@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_8fc6a207d6600867.py (saved as .py.txt while gates run; rename on restore): pins the DHW planning price of a step whose PV surplus is exactly 1e-6 kW, the largest anywhere (per-kWh).

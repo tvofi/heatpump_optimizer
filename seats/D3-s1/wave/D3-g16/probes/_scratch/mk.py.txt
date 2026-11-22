@@ -1,0 +1,9 @@
+"""Assemble probe_<key>.py = header + common + body into the probe tree (and the seat dir)."""
+import sys, pathlib
+key, header, body = sys.argv[1], open(sys.argv[2]).read(), open(sys.argv[3]).read()
+common = open('/root/probe-src/common.py').read()
+out = "#!/usr/bin/env python3\n" + header.rstrip() + "\n" + common + "\n" + body
+for d in ('/root/probe-tree/dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes', '/root/d3wave-seat/wave/D3-g16/probes'):
+    pathlib.Path(d).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(d, f'probe_{key}.py').write_text(out)
+print('wrote', key)

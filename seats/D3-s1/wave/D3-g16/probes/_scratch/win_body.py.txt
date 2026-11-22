@@ -1,0 +1,35 @@
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, DHW_HOURLY_DRAW_PATTERN  # noqa: E402
+
+MUT = mutant_method("_effective_dhw_windows", OLD, NEW)
+
+
+def windows(pattern, fn=None):
+    """The (windows, learned) pair the planner plans against: schedule on, no windows entered, learned pattern."""
+    p = ThermalParameters(dhw_enabled=True, dhw_schedule_enabled=True, dhw_windows=[],
+                          dhw_hourly_draw_pattern=[float(x) for x in pattern])
+    planner = DhwPlanner(ThermalModel(p), None)
+    try:
+        return (fn or DhwPlanner._effective_dhw_windows)(planner)
+    except Exception as err:  # the mutant arm may raise
+        return f"raises {type(err).__name__}"
+
+
+def window_hours(res):
+    return float(sum(e - s for s, e in res[0])) if isinstance(res, tuple) else float("nan")
+
+
+moved = []
+for name, pat in INPUTS:
+    b, m = windows(pat), windows(pat, MUT)
+    print(f"# input {name}: baseline={b} mutant={m}")
+    if b != m:
+        moved.append(name)
+name, pat = INPUTS[MAIN]
+b, m = windows(pat), windows(pat, MUT)
+print(f"RESULT window_hours_baseline={window_hours(b)} h")
+print(f"RESULT window_hours_mutant={window_hours(m)} h")
+print(f"RESULT mutant_raises={int(isinstance(m, str))}")
+nb, nm = windows(DHW_HOURLY_DRAW_PATTERN), windows(DHW_HOURLY_DRAW_PATTERN, MUT)
+print(f"RESULT null_delta_hours={abs(window_hours(nm) - window_hours(nb)) if not isinstance(nm, str) else 'raises'} h")
+print(f"RESULT inputs_moved={len(moved)} of {len(INPUTS)} ({','.join(moved) or '-'})")
+footer()

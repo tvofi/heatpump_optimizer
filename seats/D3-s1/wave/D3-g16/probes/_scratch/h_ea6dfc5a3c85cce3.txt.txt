@@ -1,0 +1,16 @@
+# Metric: count of inputs on which DhwPlanner._dhw_raise_fits's verdict, the candidate array after the call, or an exception differ, over every size/slot pair that lands a pass at pos == size.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_ea6dfc5a3c85cce3.py
+# EXPECTED RESULT inputs_tried=116 count
+# EXPECTED RESULT baseline_refusals=44 count
+# EXPECTED RESULT inputs_with_extra_pass=60 count
+# EXPECTED RESULT outputs_differing=0 count
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_raise_fits (custom_components/heatpump_optimizer/dhw_planner.py:2133 `while pos < size:`).
+# Perturbation: mutant ea6dfc5a3c85cce3, `while pos < size:` -> `while pos <= size:`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: none found: the extra pass at pos == size reads candidate[size] (it exists: n + 1 temperatures), runs an empty step loop and checks empty slices.
+# Reach: production weak-slot repair (dhw_planner.py:2091).
+# Null control: the grid itself; liveness is both verdicts occurring.
+# Count key: the value the production method returns (never an input attribute).

@@ -1,0 +1,26 @@
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig  # noqa: E402
+
+PARAMS = ThermalParameters(dhw_enabled=True, dhw_tank_volume=200.0)
+MODEL = ThermalModel(PARAMS)
+PLANNER = DhwPlanner(MODEL, OptimizationConfig(horizon_hours=24, time_step_minutes=60))
+
+
+def sim(plan, t0=45.0, draws=None):
+    """The tank trajectory (n + 1 temperatures) the production step function gives for ``plan``."""
+    n = plan.size
+    temps = np.empty(n + 1)
+    temps[0] = t0
+    return MODEL.extend_dhw_temps(temps, 0, plan, np.full(n, 5.0), np.zeros(n) if draws is None else draws, dt_hours=1.0)
+
+
+def fits(plan, slot, ceiling, base, t0=45.0, fn=None):
+    """(verdict, candidate bytes after the call, exception) from DhwPlanner._dhw_raise_fits."""
+    n = plan.size
+    cand = sim(np.where(np.arange(n) < slot, plan, 0.0), t0)  # the prefix up to slot is already simulated
+    try:
+        ok = (fn or DhwPlanner._dhw_raise_fits)(PLANNER, cand, base, ceiling, slot, plan, np.full(n, 5.0),
+                                                 np.zeros(n), 1.0, None)
+        return ok, cand.tobytes(), None
+    except Exception as err:
+        return None, None, type(err).__name__

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_41000bf52dbaa1ad.py (saved as .py.txt while gates run; rename on restore): pins hours covered by the learned DHW demand windows DhwPlanner._effective_dhw_windows derives (schedule on, no windows entered) from a mean-1 learned hourly pattern whose 60th percentile is above 1.

@@ -1,0 +1,46 @@
+import os
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+import inspect, sys, textwrap, time
+from pathlib import Path
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
+sys.path.insert(0, str(ROOT))
+_T0 = (time.process_time(), time.thread_time())
+import numpy as np  # noqa: E402
+from custom_components.heatpump_optimizer import dhw_planner  # noqa: E402
+from custom_components.heatpump_optimizer.dhw_planner import DhwPlanner  # noqa: E402
+
+
+def mutant_method(name, old, new):
+    """DhwPlanner.<name> re-compiled from its own source with the one mutated line, in memory."""
+    src = textwrap.dedent(inspect.getsource(getattr(DhwPlanner, name)))
+    assert src.count(old) == 1, f"anchor line moved: {old!r}"
+    ns = dict(dhw_planner.__dict__)
+    exec(compile(src.replace(old, new, 1), dhw_planner.__file__, "exec"), ns)
+    return ns[name]
+
+
+def footer():
+    pc, tc = time.process_time() - _T0[0], time.thread_time() - _T0[1]
+    print(f"RESULT thread_factor={pc / tc if tc > 0 else 1.0:.3f}")
+    print(f"RESULT load1={os.getloadavg()[0]:.2f}")
+    try:
+        with open("/proc/vmstat") as f:
+            sw = next((l.split()[1] for l in f if l.startswith("pswpin ")), "0")
+    except OSError:
+        sw = "0"
+    print(f"RESULT swapins={sw}")

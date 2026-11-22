@@ -1,0 +1,15 @@
+# Metric: count of inputs on which any of the seven arrays DhwPlanner._dhw_window_floors returns differs, over 600 inputs including learned stats with count 0, negative counts, p90 0/negative/1e300/NaN/inf and unparseable entries.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_e19cdb6bf198d1e7.py
+# EXPECTED RESULT inputs_tried=600 count
+# EXPECTED RESULT stats_branch_live=1
+# EXPECTED RESULT outputs_differing=0 count
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_window_floors (custom_components/heatpump_optimizer/dhw_planner.py:1034 `if p90 is not None and np.isfinite(p90) and count > 0:`).
+# Perturbation: mutant e19cdb6bf198d1e7, `if p90 is not None and np.isfinite(p90) and count > 0:` -> `if p90 is not None and np.isfinite(p90) and count >= 0:`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: none found: at count 0 the blend weight w = 0 and (1 - 0) * e + 0 * max(0, p90) == e for every finite p90.
+# Reach: production ready-temperature computation.
+# Null control: the grid itself; liveness: count 8 at p90 0 moves the ready temps against no stats.
+# Count key: the value the production method returns (never an input attribute).
