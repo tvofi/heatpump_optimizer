@@ -1,0 +1,3 @@
+EQUIV floor_limits-shaped inputs: 20000 cases, 0 differ
+NULL CONTROL margins None + lift 1.0: old lifts [0.0, 0.0, 0.0, 0.0] new lifts [1.0, 1.0, 1.0, 1.0] differ=True
+NULL CONTROL margins shorter than lift: old [1.0, 1.0, 0.0, 0.0] new [1.0, 1.0, 1.0, 1.0] differ=True

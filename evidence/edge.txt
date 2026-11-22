@@ -1,6 +1,0 @@
-UNMUTATED edge rc=0
-A4_lift_unclipped_at0 SURVIVED (edge)
-A14_horizon_field_none KILLED rc=1 (edge) 
-A15_limits_not_passed KILLED rc=1 (edge) 
-A16_classify_no_mark KILLED rc=1 (edge) 
-A17_mold_fill_neg SURVIVED (edge)

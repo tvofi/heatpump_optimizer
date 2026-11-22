@@ -1,29 +1,44 @@
+"""Reviewer mutants for PR #3838 at 9516fcc5 (string replacements, one site each)."""
 import sys
-O="custom_components/heatpump_optimizer/optimizer.py"; S="custom_components/heatpump_optimizer/slot_drivers.py"; R="custom_components/heatpump_optimizer/rooms.py"
-MUTANTS = {
- "A1_next_temp_to_same": (O, "room_temps[min(i + 1, last)] > temp_min_bounds[i]", "room_temps[i] > temp_min_bounds[i]"),
- "A2_tol_zero": (O, "- room_lifts[i] + 0.15 else reason", "- room_lifts[i] + 0.0 else reason"),
- "A3_any_reason": (O, "REASON_ROOM_FLOOR if reason == REASON_COMFORT_FLOOR\n", "REASON_ROOM_FLOOR if True\n"),
- "A4_lift_unclipped_at0": (O, "lifts = np.maximum(temp_min_bounds - unlifted, 0.0)", "lifts = temp_min_bounds - unlifted"),
- "A5_unlifted_no_mold": (O, "margins - _padded_nonneg(room_lifts, n_steps),\n                                     min_temp_floors, n_steps)", "margins - _padded_nonneg(room_lifts, n_steps),\n                                     None, n_steps)"),
- "A6_lifts_is_input": (O, "lifts = np.maximum(temp_min_bounds - unlifted, 0.0)", "lifts = _padded_nonneg(room_lifts, n_steps)"),
- "A7_ceiling_const": (O, "return np.minimum(low, high - 0.5), comfort, mold", "return np.minimum(low, high - 0.4), comfort, mold"),
- "A8_early_return_drop": (O, "    if margins is None and floors is None:\n        return low, comfort, mold\n", ""),
- "A9_codes_order": (S, '("price_rank", "comfort_floor", "room_lift", "mold_guard", "away", "forecast")', '("price_rank", "comfort_floor", "mold_guard", "away", "forecast", "room_lift")'),
- "A10_comfort_vs_lifted": (S, "(floor - (0.0 if lifts is None else lifts) + half - room)", "(floor + half - room)"),
- "A11_rl_lift_whole_margin": (R, '"room_lifts": lift}', '"room_lifts": margins + lift}'),
- "A12_rl_zero_lift": (R, '"room_lifts": lift}', '"room_lifts": lift * 0.0}'),
- "A13_rl_anylift_guard": (R, "    if not lift.any():\n        return", "    if False:\n        return"),
- "A14_horizon_field_none": (O, "room_lifts=floors[2],", "room_lifts=None,"),
- "A15_limits_not_passed": (O, "step_datetimes, limits.room_lifts,", "step_datetimes, None,"),
- "A16_classify_no_mark": (O, "), room, h.temp_min_bounds, h.room_lifts),", "), room, h.temp_min_bounds, None),"),
- "A17_mold_fill_neg": (O, "mold = np.full(n_steps, -np.inf)", "mold = np.full(n_steps, 0.0)"),
- "A18_rl_push_half": (S, '"room_lift": None if lifts is None else np.clip(lifts / half, 0.0, 1.0)', '"room_lift": None if lifts is None else np.clip(lifts / (2 * half), 0.0, 1.0)'),
+
+CO = "custom_components/heatpump_optimizer/coordinator.py"
+OP = "custom_components/heatpump_optimizer/optimizer.py"
+RO = "custom_components/heatpump_optimizer/rooms.py"
+
+SCHED_OLD = "config, state.room_temperature, solve_now)), self._confidence_margins(n), config, solve_now, n),"
+SCHED_NEW = 'config, state.room_temperature, solve_now)), self._confidence_margins(n), config, solve_now, n)["min_temp_margins"],'
+SCHED_HEAD_OLD = "**rooms.floor_limits(rooms.hold(self, rooms.resolve("
+SCHED_HEAD_NEW = "min_temp_margins=rooms.floor_limits(rooms.hold(self, rooms.resolve("
+WI_OLD = "**rooms.floor_limits(rooms.lift_of(self), self._confidence_margins(len(horizon.prices)), scratch_config, solve_at, len(horizon.prices)),"
+WI_NEW = 'min_temp_margins=rooms.floor_limits(rooms.lift_of(self), self._confidence_margins(len(horizon.prices)), scratch_config, solve_at, len(horizon.prices))["min_temp_margins"],'
+
+M = {
+    # prior round's surviving mutant and its halves
+    "C1a": [(CO, SCHED_HEAD_OLD, SCHED_HEAD_NEW), (CO, SCHED_OLD, SCHED_NEW)],
+    "C1b": [(CO, WI_OLD, WI_NEW)],
+    "C1": [(CO, SCHED_HEAD_OLD, SCHED_HEAD_NEW), (CO, SCHED_OLD, SCHED_NEW), (CO, WI_OLD, WI_NEW)],
+    # the moved helpers in rooms.py
+    "R1_margin_add": [(RO, "low = comfort = low + margins", "low = comfort = low")],
+    "R2_ceiling": [(RO, "return np.minimum(low, high - 0.5), comfort, mold", "return low, comfort, mold")],
+    "R3_tol": [(RO, "- room_lifts[i] + 0.15 else reason", "- room_lifts[i] + 0.5 else reason")],
+    "R4_nolift": [(RO, "> temp_min_bounds[i] - room_lifts[i] + 0.15", "> temp_min_bounds[i] + 0.15")],
+    "R7_mold": [(RO, "low = np.maximum(low, mold)", "low = low")],
+    # the call site's new padding and unlifted arithmetic
+    "R5_nopad": [(OP, "margins = None if min_temp_margins is None else _padded_nonneg(min_temp_margins, n_steps)",
+                  "margins = None if min_temp_margins is None else np.asarray(min_temp_margins, dtype=float)")],
+    "R6_nounlift": [(OP, "(0.0 if margins is None else margins)\n                                    - _padded_nonneg(room_lifts, n_steps)",
+                     "(0.0 if margins is None else margins)")],
+    # equivalence probe: restore the pre-move clip of (margins - lifts) at zero
+    "E1_oldclip": [(OP, "(0.0 if margins is None else margins)\n                                    - _padded_nonneg(room_lifts, n_steps)",
+                    "np.clip((0.0 if margins is None else margins)\n                                    - _padded_nonneg(room_lifts, n_steps), 0.0, None)")],
 }
-name = sys.argv[1]
-if name == "--list":
-    print("\n".join(MUTANTS)); sys.exit(0)
-path, old, new = MUTANTS[name]
-src = open(path).read()
-assert src.count(old) == 1, (name, src.count(old))
-open(path, "w").write(src.replace(old, new))
+
+if sys.argv[1] == "--list":
+    print(" ".join(M))
+    sys.exit(0)
+for path, old, new in M[sys.argv[1]]:
+    s = open(path).read()
+    if s.count(old) != 1:
+        print(f"{sys.argv[1]}: {path} count={s.count(old)}", file=sys.stderr)
+        sys.exit(1)
+    open(path, "w").write(s.replace(old, new))
