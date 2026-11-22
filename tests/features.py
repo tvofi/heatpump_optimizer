@@ -99566,13 +99566,16 @@ def _cf_fold(drawn, floor_kw=None):
 
 
 _cf = {k: _cf_fold(*a) for k, a in {"at_learned_floor": (1.5, 1.5), "at_configured_floor": (1.1,),
-                                     "top_4": (4.0, 1.5), "top_4_cfg": (4.0,)}.items()}
+                                     "top_4": (4.0, 1.5), "top_4_cfg": (4.0,),
+                                     "zero_floor": (0.0, 0.0)}.items()}
 R.check(
     "a ceiling sample at the floor in force (learned 1.5 kW, or the configured 1.0 kW unlearned) "
     "is ceiling-frozen and reaches neither the ceiling store nor the window; a 4.0 kW ceiling "
-    "sample is kept in the store (null control) (D2-s3-09, note 9b3d1e15)",
+    "sample is kept in the store (null control) (D2-s3-09, note 9b3d1e15); a floor in force of 0 kW "
+    "is no running floor, so a 0 kW draw under it is not ceiling-frozen (zero-floor null arm)",
     _cf["at_learned_floor"] == (True, 0, 0) and _cf["at_configured_floor"] == (True, 0, 0)
-    and _cf["top_4"] == (False, 1, 0) and _cf["top_4_cfg"] == (False, 1, 0),
+    and _cf["top_4"] == (False, 1, 0) and _cf["top_4_cfg"] == (False, 1, 0)
+    and not _cf["zero_floor"][0],
     f"{_cf}",
 )
 
@@ -99615,6 +99618,33 @@ R.check(
     _uc_spaces[0] is None and _uc_spaces[1] is not None and _uc_spaces[1] > 0.0
     and _uc_spaces[2] is not None,
     f"{_uc_spaces}",
+)
+
+
+# The wiring (review of c6c11df0b8): the tank thermometer reaches the meter only
+# through ``_observe_heat_energy``. Two real cycles read the configured tank
+# sensor, rising past the band over an unobserved, plan-space-only interval;
+# the interval's space power is refused. Null control: the tank flat.
+def _uc_wired(rise):
+    c = _t2_coord()
+    c._current_action = {"power": 3.0, "dhw_power": 0.0}
+    hass = FakeHass({})
+    reader = _fmReader(hass, {_LF_DHW: "sensor.tank"}, now=lambda: NOW)
+    for i, temp in enumerate((50.0, 50.0 + rise)):
+        at = NOW + _lf_td(minutes=30 * i)
+        hass.states._states["sensor.tank"] = FakeState(str(temp), last_updated=minutes_ago(1, NOW), unit="°C")
+        _lf_cm._observe_heat_energy(c, reader, at)
+    return _uc_he.meter_of(c).tank_c, c._interval_space_power()
+
+
+_uc_wire = (_uc_wired(_UC_RISE), _uc_wired(0.0))
+R.check(
+    "the coordinator's own cycle read hands the tank sensor to the meter: a rise past the band "
+    "over an unobserved, plan-space-only cycle leaves the interval no space power; the same "
+    "cycles with the tank flat give the commanded space draw (null control)",
+    _uc_wire[0] == ((50.0, 50.0 + _UC_RISE), None)
+    and _uc_wire[1][0] == (50.0, 50.0) and _uc_wire[1][1] is not None and _uc_wire[1][1] > 0.0,
+    f"{_uc_wire}",
 )
 
 
