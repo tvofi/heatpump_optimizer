@@ -62,7 +62,8 @@ from .const import (
     WOOD_TANK_MAX_TEMP,
 )
 from .batchmath import row_sums
-from .dhw_planner import ChargeRuns, DhwPlanner
+from .dhw_charges import ChargeRuns
+from .dhw_planner import DhwPlanner
 from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
@@ -203,7 +204,7 @@ def _engaged(opt: HeatPumpOptimizer) -> bool:
 
 def _charge_runs(opt: HeatPumpOptimizer, running: bool) -> ChargeRuns | None:
     """What an engaged solve hands the hot-water planner so its charges ship
-    as runs too (``dhw_planner.commit_charges``); ``None`` unengaged."""
+    as runs too (``dhw_charges.commit_charges``); ``None`` unengaged."""
     if not _engaged(opt):
         return None
     return ChargeRuns(opt.config.start_price, running, opt.config.clamp_planned_levels)
@@ -2064,7 +2065,7 @@ def _combi_flux_exchange(
     The rounds exchange uncommitted plans, whose levels move with the flux,
     from a planner handed no runs to commit. On a solve that plans runs, one
     more build on the settled flux commits the charges
-    (``dhw_planner.commit_charges``), and is kept only where the
+    (``dhw_charges.commit_charges``), and is kept only where the
     store, walked under the flux the committed plan itself leaves, falls no
     further under the requirement than the last round's plan did.
     """

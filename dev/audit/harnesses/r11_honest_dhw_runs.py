@@ -6,7 +6,7 @@
 Synthetic throughout; no private data. The finding, the store program and
 the tail are outside pull request 3529's (Bankaifan), which has no finder
 harness; this one prints what the commit stage
-(``dhw_planner.commit_charges``) does to the plans the group's design note
+(``dhw_charges.commit_charges``) does to the plans the group's design note
 reads. Nothing here asserts; ``tests/features.py``'s block of the same name
 does.
 
@@ -78,6 +78,11 @@ from profiles import solve_inputs
 
 FIXTURES = ("cycling_cost", "everything_on")
 HAS_STAGE = hasattr(dp, "commit_charges")
+# The charge stage's own module where the tree has one; before the move the planner held it.
+try:
+    import heatpump_optimizer.dhw_charges as dc
+except ImportError:
+    dc = dp
 
 
 def low(plan, floor: float) -> tuple[int, int]:
@@ -114,8 +119,8 @@ class Watch:
         om.HeatPumpOptimizer.optimize = solve
         if not HAS_STAGE:
             return self
-        self.kept.update(runs_arg=om._charge_runs, stage=dp.commit_charges, refusal=dp.charge_refusal,
-                         plan=dp._StoreProgram.plan)
+        self.kept.update(runs_arg=om._charge_runs, stage=dp.commit_charges, refusal=dc.charge_refusal,
+                         plan=dc._StoreProgram.plan)
 
         def runs_arg(opt, running):
             got = watch.kept["runs_arg"](opt, running)
@@ -151,14 +156,14 @@ class Watch:
                 watch.builds[-1]["program"] = program
             return watch.kept["plan"](program, may_start)
 
-        om._charge_runs, dp.commit_charges, dp.charge_refusal, dp._StoreProgram.plan = runs_arg, stage, refusal, plan
+        om._charge_runs, dp.commit_charges, dc.charge_refusal, dc._StoreProgram.plan = runs_arg, stage, refusal, plan
         return self
 
     def __exit__(self, *exc):
         om.HeatPumpOptimizer.optimize = self.kept["solve"]
         if HAS_STAGE:
             om._charge_runs, dp.commit_charges = self.kept["runs_arg"], self.kept["stage"]
-            dp.charge_refusal, dp._StoreProgram.plan = self.kept["refusal"], self.kept["plan"]
+            dc.charge_refusal, dc._StoreProgram.plan = self.kept["refusal"], self.kept["plan"]
 
 
 def solve_line(label: str, got, opt, floor: float = 1.0) -> None:
@@ -178,7 +183,7 @@ def build_lines(builds: list[dict]) -> None:
             continue
         shipped = "the uncommitted plan" if np.array_equal(b["out"], b["plan"]) else "a committed plan"
         print(f"  build {i}: space plan known {b['space']}, uncommitted charges {charges(b['plan'])}"
-              f" under the floor {low(b['plan'], 1.0)[0]}, program rounds {b['rounds']} of {dp.STARTABLE_ROUNDS},"
+              f" under the floor {low(b['plan'], 1.0)[0]}, program rounds {b['rounds']} of {dc.STARTABLE_ROUNDS},"
               f" shipped {shipped} at ranked cost {b['cost'](b['out']):.4f}"
               f" (the uncommitted plan's {b['cost'](b['plan']):.4f})")
         for candidate, verdict in b["verdicts"]:
@@ -219,7 +224,7 @@ def stores() -> int:
                     line.append(float(at[0]))
                 print(f"{name} build {i} {label} plan: linear store less walk, largest"
                       f" {float(np.max(np.abs(np.array(line) - b['temps_of'](plan)))):.4f} K"
-                      f" (margin {dp._STORE_MARGIN_K} K)")
+                      f" (margin {dc._STORE_MARGIN_K} K)")
     return 0
 
 
@@ -240,7 +245,7 @@ def hysteresis() -> int:
                     continue
                 lost = 0
                 if b["start_below"] is not None:
-                    kept = dp.drop_unstartable(b["out"], b["start_below"], b["temps_of"])
+                    kept = dc.drop_unstartable(b["out"], b["start_below"], b["temps_of"])
                     lost = charges(b["out"]) - charges(kept)
                 verdicts = ", ".join("accepted" if v is None else f"{v[0]}@{v[1]}" for _c, v in b["verdicts"])
                 shipped = "uncommitted" if np.array_equal(b["out"], b["plan"]) else "committed"
