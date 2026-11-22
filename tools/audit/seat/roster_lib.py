@@ -460,12 +460,29 @@ def round_literal_hits(rel: str, src: str) -> list:
     return out
 
 
-def round_literal_defaults(root=None) -> list:
-    """Every `round_literal_hits` line under `root`/tools (the checkout)."""
-    root = Path(root or _ROOT)
-    return [h for p in sorted((root / "tools").rglob("*.py"))
-            for h in round_literal_hits(p.relative_to(root).as_posix(),
-                                        p.read_text(encoding="utf-8"))]
+def round_literal_defaults(ref: str = "HEAD", repo=None) -> list:
+    """Every `round_literal_hits` line in `tools/**/*.py` at `ref` of `repo`
+    (this checkout), read from git's object store as `tmp_paths.py --check`
+    reads it: no working-tree file is opened, so no INERT read is recorded
+    against a test that runs this self-test. Raises RuntimeError when git
+    cannot list or read `ref`."""
+    repo = str(repo or _ROOT)
+    ls = _git(repo, "ls-tree", "-r", "--name-only", ref, "--", "tools")
+    if ls.returncode:
+        raise RuntimeError(f"cannot list tools/ at {ref}: {ls.stderr.strip()[:200]}")
+    names = sorted(n for n in ls.stdout.splitlines() if n.endswith(".py"))
+    cat = subprocess.run(["git", "-C", repo, "cat-file", "--batch"],
+                         input="".join(f"{ref}:{n}\n" for n in names).encode(),
+                         capture_output=True)
+    if cat.returncode:
+        raise RuntimeError(f"cannot read tools/ at {ref}: {cat.stderr.decode()[:200]}")
+    out, buf, at = [], cat.stdout, 0
+    for name in names:
+        head_end = buf.index(b"\n", at)
+        size = int(buf[at:head_end].split()[2])
+        out += round_literal_hits(name, buf[head_end + 1:head_end + 1 + size].decode("utf-8"))
+        at = head_end + 1 + size + 1
+    return out
 
 
 def roster_shape(roster) -> str:
@@ -1822,10 +1839,19 @@ def _self_test() -> int:
         "module constant": f'ROSTER_REL = "dev/programme/rosters/{"wave-r" + "10"}-groups.json"\n',
         "docstring default": f'"""Reads --roster-ref (default origin/handoff/{r10}-roster)."""\n',
     }
-    for shape, src in plants.items():
+    plants_more = [
+        ("conditional fallback", f'def f(x):\n    return "{r10}" if x else None\n'),
+        ("docstring default", f'"""\nReads --roster-ref (default origin/handoff/{r10}-roster)."""\n'),
+    ]
+    for shape, src in list(plants.items()) + plants_more:
         got = round_literal_hits("tools/x/plant.py", src)
-        check(f"round_literal_hits refuses a round literal as {shape}",
+        check(f"round_literal_hits refuses a round literal as {shape}: {src[:40]!r}",
               len(got) == 1 and f": {shape}: " in got[0], got)
+    check("a docstring hit names the docstring line the literal sits on",
+          round_literal_hits("tools/x/plant.py", plants_more[1][1])
+          == [f"tools/x/plant.py:2: docstring default: {r10}"])
+    check("a function's local UPPER name is not a module constant (the shape is module level)",
+          round_literal_hits("tools/x/plant.py", f'def f():\n    R = "{r10}"\n    return R\n') == [])
     nulls = {
         "a self-test fixture": "def _self_test():\n" + "".join(
             "    " + ln + "\n" for src in plants.values() for ln in src.splitlines()
@@ -1838,13 +1864,14 @@ def _self_test() -> int:
         got = round_literal_hits("tools/x/null.py", src)
         check(f"round_literal_hits passes {why} (null control)", got == [], got)
     check("round_literal_hits passes a round's own instrument directory (null control)",
-          round_literal_hits("tools/audit/round4/D11/lib.py", plants["module constant"]) == [])
+          round_literal_hits("tools/audit/round4/lib.py", plants["module constant"]) == []
+          and len(round_literal_hits("tools/audit/x/round4.py", plants["module constant"])) == 1)
     rec = "tools/release/stamp.py"
     check("a ROUND_RECORDS key admits its own constant and no other",
           round_literal_hits(rec, plants["module constant"].replace("ROSTER_REL", "REGISTER_DIR")) == []
           and len(round_literal_hits(rec, plants["module constant"])) == 1)
-    live = round_literal_defaults()
-    check("no tools/ default in this checkout names a round", live == [], live)
+    live = round_literal_defaults("HEAD")
+    check("no tools/ default at this checkout's HEAD names a round", live == [], live)
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)
