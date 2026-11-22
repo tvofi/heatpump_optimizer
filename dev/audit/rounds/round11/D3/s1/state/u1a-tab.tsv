@@ -1,0 +1,409 @@
+RESULT pre_driven=333
+RESULT pre_killed=79
+RESULT pre_survived=254
+RESULT pre_timeout=0
+  pre BOOLOP KILLED 5
+  pre BOOLOP SURVIVED 10
+  pre CLAMP_DROP KILLED 10
+  pre CLAMP_DROP SURVIVED 38
+  pre CMP_BOUND KILLED 2
+  pre CMP_BOUND SURVIVED 86
+  pre CONST SURVIVED 12
+  pre GUARD_OFF KILLED 35
+  pre GUARD_OFF SURVIVED 105
+  pre RETURN_DEL KILLED 27
+  pre RETURN_DEL SURVIVED 3
+RESULT c2_driven=12
+RESULT c2_killed=1
+RESULT c2_survived=11
+RESULT c2_timeout=0
+  c2 R10C2 KILLED 1
+  c2 R10C2 SURVIVED 11
+RESULT c3c6_driven=8
+RESULT c3c6_killed=2
+RESULT c3c6_survived=6
+RESULT c3c6_timeout=0
+  c3c6 R10C2 KILLED 2
+  c3c6 R10C2 SURVIVED 6
+RESULT posctl_driven=2
+RESULT posctl_killed=2
+RESULT posctl_survived=0
+RESULT posctl_timeout=0
+  posctl GUARD_OFF KILLED 1
+  posctl RETURN_DEL KILLED 1
+RESULT complete_driven=238
+RESULT complete_killed=60
+RESULT complete_survived=178
+RESULT complete_timeout=0
+  first-kill tests/typing_ruler.py 27
+  first-kill tests/env_drift.py 17
+  first-kill tests/manual_plan.py 9
+  first-kill tests/finite_boundary.py 7
+  first-kill tests/plan_view.py 6
+  first-kill tests/structure.py 5
+  first-kill tests/validate.py 3
+  first-kill tests/solar_alignment.py 2
+  first-kill tests/doc_claims.py 2
+  first-kill tests/config_flow_steps.py 2
+  first-kill tests/deployment_shape.py 1
+  first-kill tests/block_duty.py 1
+  complete-kill tests/entities.py 4
+  complete-kill tests/features.py 59
+  complete-kill tests/harness_headers.py 2
+pre	000221f3921dd956	optimizer.py:2309	CMP_BOUND	SURVIVED	-	SURVIVED	-	if i < len(heat_loss_factors) and heat_loss_factors[i] > 1.1:	if i < len(heat_loss_factors) and heat_loss_factors[i] >= 1.1:
+pre	002980a15ae8b9a9	coordinator.py:9827	GUARD_OFF	SURVIVED	-	SURVIVED	-	if self._pv_production is not None and len(production):	if False:
+pre	00298af0aa9d1903	optimizer.py:5074	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not bool(hold.any()):	if False:
+pre	0073645b8c53b3f7	coordinator.py:7390	RETURN_DEL	KILLED	tests/solar_alignment.py	-	-	return outdoor, wind, precipitation, solar, humidity	pass
+pre	00b3b49168132037	optimizer.py:2789	CMP_BOUND	SURVIVED	-	KILLED	tests/entities.py,tests/features.py	if when is not None and when.weekday() >= 5:	if when is not None and when.weekday() > 5:
+pre	00fe4a7c3050ef6f	optimizer.py:6648	BOOLOP	SURVIVED	-	KILLED	tests/features.py	if result.dhw_power_schedule and i < len(result.dhw_power_schedule):	if result.dhw_power_schedule or i < len(result.dhw_power_schedule):
+pre	011b9e2e975b5e98	thermal_model.py:3654	CLAMP_DROP	SURVIVED	-	SURVIVED	-	return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0))	return float(((c_dhw / ua) * np.log(hot / cold)))
+pre	0120a5a672990611	optimizer.py:5235	CMP_BOUND	SURVIVED	-	SURVIVED	-	breach = temp <= floor + 0.15	breach = temp < floor + 0.15
+pre	01263b2ce66744a5	sysid.py:648	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return True, "ok"	pass
+pre	0137ee1f014fb759	sysid.py:2325	CMP_BOUND	SURVIVED	-	SURVIVED	-	if bool(np.any((dts <= 1e-3) | (dts > 2.0))):	if bool(np.any((dts < 1e-3) | (dts > 2.0))):
+pre	014494a46b1bd358	coordinator.py:490	CMP_BOUND	SURVIVED	-	KILLED	tests/features.py	if not (np.isfinite(value) and value > 0 and count >= 1):	if not (np.isfinite(value) and value > 0 and count > 1):
+pre	01acd6cc2431d71d	dhw_planner.py:692	CLAMP_DROP	SURVIVED	-	SURVIVED	-	known_mask[: min(reach_step, n_steps)] = False	known_mask[: (reach_step)] = False
+pre	01e740ed4f78ae95	optimizer.py:2126	CMP_BOUND	SURVIVED	-	SURVIVED	-	if energy_kwh <= 0 or p_max <= 0 or dt <= 0:	if energy_kwh <= 0 or p_max <= 0 or dt < 0:
+pre	0200ce8ea36e23b5	optimizer.py:4745	CMP_BOUND	SURVIVED	-	KILLED	tests/features.py	hour, when=times[i] if i < len(times) else None	hour, when=times[i] if i <= len(times) else None
+pre	021dc21415f3229e	coordinator.py:1651	CONST	SURVIVED	-	SURVIVED	-	HOUSE_LOSS_MAX_STEP = 0.05	HOUSE_LOSS_MAX_STEP = 0.1
+pre	0270b5efaac478d2	optimizer.py:6550	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not result.timestamps:	if False:
+pre	0275af9776ae709e	optimizer.py:4802	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if space_blocked:	if False:
+pre	027e7746bfe5b7bb	sysid.py:1792	RETURN_DEL	SURVIVED	-	SURVIVED	-	return None	pass
+pre	029c040224dc4e38	thermal_model.py:3483	CLAMP_DROP	SURVIVED	-	SURVIVED	-	rain_intensity = min(precipitation / 2.0, 1.0)	rain_intensity = (precipitation / 2.0)
+pre	02a5c98b8f46f724	thermal_model.py:2594	CMP_BOUND	SURVIVED	-	SURVIVED	-	if drawn > available > 0.0:	if drawn > available >= 0.0:
+pre	02b2f8a0465a4fb3	coordinator.py:1914	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if worker.poll() is None:	if False:
+pre	0301bdfcf30e84f5	thermal_model.py:680	RETURN_DEL	KILLED	tests/validate.py	-	-	return value	pass
+pre	0318c921405fefbe	dhw_planner.py:473	GUARD_OFF	SURVIVED	-	-	-	if space_demand is not None:	if False:
+pre	031dba68286ccfbf	coordinator.py:9622	GUARD_OFF	SURVIVED	-	SURVIVED	-	if isinstance(comfort, dict):	if False:
+pre	03adc7d4def6336d	optimizer.py:1938	RETURN_DEL	KILLED	tests/plan_view.py	-	-	return _memo_val	pass
+pre	046493a4202558fe	coordinator.py:9970	GUARD_OFF	KILLED	tests/typing_ruler.py	-	-	if outdoor is None:	if False:
+pre	0477379a4c507227	sysid.py:2154	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if not (-0.5 <= gains_kw <= 2.0):	if False:
+pre	04a0f37cdf676f98	optimizer.py:2172	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	elif p_max > 0:	elif False:
+pre	04bfd79fdf465dbf	optimizer.py:1578	CMP_BOUND	SURVIVED	-	SURVIVED	-	fitting = np.abs(h) <= np.maximum(lower_dist, upper_dist)	fitting = np.abs(h) < np.maximum(lower_dist, upper_dist)
+pre	050fdc4a20eba212	thermal_model.py:169	GUARD_OFF	SURVIVED	-	-	-	if not spec:	if False:
+pre	0560ccd4eaedbd09	optimizer.py:2492	CLAMP_DROP	SURVIVED	-	SURVIVED	-	for i in range(min(len(out), len(pins))):	for i in range((len(out))):
+pre	0590d17da4cd9152	coordinator.py:10030	BOOLOP	KILLED	tests/typing_ruler.py	-	-	if actual_now is not None and indoor_frozen is None:	if actual_now is not None or indoor_frozen is None:
+pre	05b5a15efaaf70de	thermal_model.py:677	CLAMP_DROP	SURVIVED	-	SURVIVED	-	rate = min(max(float(rate), low), high)	rate = (max(float(rate), low))
+pre	0600ade71e1169f8	dhw_planner.py:1174	CLAMP_DROP	KILLED	tests/manual_plan.py	-	-	requirement = np.maximum(np.maximum(floor_temps, ready_temps), runup_temps)	requirement = (np.maximum(floor_temps, ready_temps))
+pre	06bef9a53c1add56	coordinator.py:9829	CLAMP_DROP	KILLED	tests/doc_claims.py	-	-	production[0] = min(self._pv_production, config.peak_kw)	production[0] = (self._pv_production)
+pre	06cce25483d782c9	thermal_model.py:3604	RETURN_DEL	KILLED	tests/plan_view.py	-	-	return self.params.effective_dhw_draw_pattern()[int(hour_of_day) % 24]	pass
+pre	06f2ef99e24e2e24	optimizer.py:1571	CLAMP_DROP	SURVIVED	-	SURVIVED	-	np.finfo(np.float64).eps ** 0.5 * sign_x0 * np.maximum(1.0, np.abs(x0)),	np.finfo(np.float64).eps ** 0.5 * sign_x0 * (1.0),
+pre	07227ec96c3e14de	sysid.py:2126	GUARD_OFF	SURVIVED	-	SURVIVED	-	if one_over_c <= 1e-6 or ua_over_c <= 1e-6:	if False:
+pre	078e78462859ff6b	sysid.py:2187	BOOLOP	SURVIVED	-	SURVIVED	-	if drift_c_per_h is not None and a.shape[1] >= 4:	if drift_c_per_h is not None or a.shape[1] >= 4:
+pre	08553f78729bfaf8	coordinator.py:5089	CLAMP_DROP	KILLED	tests/finite_boundary.py	-	-	self._cop_scale = float(np.clip(scale, COP_SCALE_MIN, COP_SCALE_MAX))	self._cop_scale = float((scale))
+pre	08d702b88390e980	coordinator.py:7851	RETURN_DEL	KILLED	tests/structure.py	-	-	return bool(reading is not None and reading.entity_id and reading.ok)	pass
+pre	09412cb43997a47f	thermal_model.py:2851	CLAMP_DROP	SURVIVED	-	SURVIVED	-	frsi = min(max(frsi, 0.3), 0.98)	frsi = min((frsi), 0.98)
+pre	09d2740d2f74b2f1	thermal_model.py:2913	CLAMP_DROP	KILLED	tests/env_drift.py	-	-	hotter = min(1.0, max(0.0, (wood_temp - hp_temp) / m))	hotter = (1.0)
+pre	09e80cfe3036223e	optimizer.py:2130	GUARD_OFF	SURVIVED	-	SURVIVED	-	if remaining <= 0:	if False:
+pre	0a40fc8d3d37f2ba	optimizer.py:2111	GUARD_OFF	SURVIVED	-	SURVIVED	-	if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9):	if False:
+pre	0a673ba4467a184c	optimizer.py:2172	CMP_BOUND	SURVIVED	-	SURVIVED	-	elif p_max > 0:	elif p_max >= 0:
+pre	0aa3791fa3a1e986	grid_fee.py:225	GUARD_OFF	KILLED	tests/config_flow_steps.py	-	-	if line:	if False:
+pre	0aa6eaace756da92	dhw_planner.py:2285	CMP_BOUND	SURVIVED	-	SURVIVED	-	if 0.0 < plan[j] < min_run_power:	if 0.0 < plan[j] <= min_run_power:
+pre	0aa9e2e025b11284	thermal_model.py:3003	CLAMP_DROP	SURVIVED	-	SURVIVED	-	t_in = min(t_in, dhw_setpoint)	t_in = (t_in)
+pre	0acf3cb312a5b76e	coordinator.py:9849	GUARD_OFF	SURVIVED	-	SURVIVED	-	if state is None:	if False:
+pre	0b10a7c76e2514d2	price_model.py:219	GUARD_OFF	SURVIVED	-	SURVIVED	-	if self.days[idx] == 0:	if False:
+pre	0b51e1d1975513aa	dhw_planner.py:1645	CLAMP_DROP	SURVIVED	-	SURVIVED	-	for i in range(min(len(out), len(dhw_pins))):	for i in range((len(out))):
+pre	0b6e291153f1d738	sysid.py:1546	CMP_BOUND	SURVIVED	-	SURVIVED	-	in_window = cfg.start_hour <= hour < cfg.end_hour	in_window = cfg.start_hour <= hour <= cfg.end_hour
+pre	0b73e54673ad4f92	coordinator.py:9360	GUARD_OFF	KILLED	tests/structure.py	-	-	if entry is None or int(entry[1]) < CAPACITY_MIN_SAMPLES:	if False:
+pre	0b9e2f6f1c26d8cb	dhw_planner.py:1368	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if blocked:	if False:
+pre	0baef4e86433b225	sysid.py:1752	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not self.active:	if False:
+pre	0c0a6bcb94a3ba3a	sysid.py:129	CMP_BOUND	SURVIVED	-	SURVIVED	-	if ua <= 1e-9 or capacity <= 1e-9:	if ua < 1e-9 or capacity <= 1e-9:
+pre	0c3e91a6a349409a	flow_lift.py:47	CONST	SURVIVED	-	-	-	FLOW_BIAS_ALPHA = 0.1	FLOW_BIAS_ALPHA = 0.2
+pre	0c4ea7c8330c61ba	coordinator.py:5656	GUARD_OFF	KILLED	tests/structure.py	-	-	if dt_h > BUFFER_COOLING_MAX_SAMPLE_HOURS:	if False:
+pre	0c687b5146171405	coordinator.py:7271	GUARD_OFF	KILLED	tests/structure.py	-	-	if schedule.active:	if False:
+pre	0c8a89eaa504c387	grid_fee.py:363	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return worst, source	pass
+pre	0c99189b7639f1bd	coordinator.py:9980	CMP_BOUND	SURVIVED	-	SURVIVED	-	if 0.25 * interval_s <= window.seconds <= 3.0 * interval_s:	if 0.25 * interval_s <= window.seconds < 3.0 * interval_s:
+pre	0d065bc5de4f802b	sysid.py:846	GUARD_OFF	SURVIVED	-	KILLED	tests/harness_headers.py,tests/features.py	if np.isfinite(next_cost) and next_cost < cost:	if False:
+pre	0d095fb9989a9ac9	coordinator.py:7176	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return float(lat), float(lon)	pass
+pre	0d159d7ddd1702d9	price_model.py:544	CMP_BOUND	SURVIVED	-	SURVIVED	-	if model is None or model.confidence(when) <= 0.0:	if model is None or model.confidence(when) < 0.0:
+pre	0d5a6ef5041b90f9	sysid.py:1606	GUARD_OFF	SURVIVED	-	SURVIVED	-	if fits(q, bound):	if False:
+pre	0dc2a394977166ea	flow_lift.py:188	CMP_BOUND	SURVIVED	-	SURVIVED	-	if self.samples < FLOW_BIAS_MIN_SAMPLES:	if self.samples <= FLOW_BIAS_MIN_SAMPLES:
+pre	0dda214e72adcd90	optimizer.py:4761	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if min_temp_margins is not None:	if False:
+pre	0e3569fef6b39497	defrost.py:434	CMP_BOUND	SURVIVED	-	SURVIVED	-	and self.counts[t][h] > 0	and self.counts[t][h] >= 0
+pre	0e3fc2bc64c2bf63	dhw_planner.py:1649	CMP_BOUND	SURVIVED	-	SURVIVED	-	if pin >= 0.5:	if pin > 0.5:
+pre	0e6080e5385399cb	coordinator.py:1624	CONST	SURVIVED	-	SURVIVED	-	BUFFER_COOLING_MIN_DELTA = 4.0	BUFFER_COOLING_MIN_DELTA = 8.0
+pre	0e752f692873e876	dhw_planner.py:740	CLAMP_DROP	SURVIVED	-	SURVIVED	-	runup_temps = np.zeros(max(n_steps, 0))	runup_temps = np.zeros((n_steps))
+pre	0e94685aa803560d	tariff.py:573	CMP_BOUND	SURVIVED	-	SURVIVED	-	if per_window <= 1:	if per_window < 1:
+pre	0ea7620ce058c489	price_model.py:66	CONST	SURVIVED	-	SURVIVED	-	SHAPE_ALPHA = 0.12	SHAPE_ALPHA = 0.24
+pre	0ecb763c4bcb0828	optimizer.py:5237	CMP_BOUND	SURVIVED	-	SURVIVED	-	breach = temp < floor - 0.25	breach = temp <= floor - 0.25
+pre	0f03bb94bcab1682	optimizer.py:4067	GUARD_OFF	SURVIVED	-	SURVIVED	-	if phase == 0:	if False:
+pre	0f54d210701a25a5	sysid.py:877	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return rooms, outdoors, powers, dts	pass
+pre	0fcdd4bdabc205ea	optimizer.py:2794	GUARD_OFF	SURVIVED	-	SURVIVED	-	if self.day_start_hour_weekend is not None:	if False:
+pre	10029dbeeeade224	price_model.py:247	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if len(quarter_prices) != QUARTERS_PER_DAY:	if False:
+pre	10121dc4af0f8a00	optimizer.py:6081	CLAMP_DROP	SURVIVED	-	KILLED	tests/features.py	q_house = max(0.0, u_house * (target - out_mean) - p.internal_gains)	q_house = (0.0)
+pre	104db258fed59c2d	coordinator.py:11000	CMP_BOUND	SURVIVED	-	SURVIVED	-	if mean_price <= 1e-6:	if mean_price < 1e-6:
+pre	105586602a5ac403	optimizer.py:6573	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if start_s <= now_s < starts[i + 1]:	if False:
+pre	10665a84dc064489	sysid.py:2114	GUARD_OFF	SURVIVED	-	SURVIVED	-	if rank < 2:	if False:
+pre	10ba5036744c9a99	coordinator.py:9155	CLAMP_DROP	SURVIVED	-	SURVIVED	-	dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0	dt_h = (ctx._opt_config.time_step_minutes) / 60.0
+pre	10de422e4e1024a7	optimizer.py:2786	GUARD_OFF	SURVIVED	-	SURVIVED	-	if self.holiday_day_end_hour is not None:	if False:
+pre	10e3ee99c90d4d48	optimizer.py:1567	CMP_BOUND	SURVIVED	-	SURVIVED	-	sign_x0 = (x0 >= 0).astype(float) * 2 - 1	sign_x0 = (x0 > 0).astype(float) * 2 - 1
+pre	1108e8140e06404e	thermal_model.py:4696	CLAMP_DROP	SURVIVED	-	SURVIVED	-	/ max(dt, 1e-6)	/ (dt)
+pre	1110101b6e52a494	thermal_model.py:4476	CMP_BOUND	SURVIVED	-	SURVIVED	-	if carnot_ref > 1e-9:	if carnot_ref >= 1e-9:
+pre	1111a3e5d9c44e3f	thermal_model.py:2854	CMP_BOUND	SURVIVED	-	SURVIVED	-	if e <= 1e-9:	if e < 1e-9:
+pre	111763243ac44278	dhw_planner.py:2075	GUARD_OFF	SURVIVED	-	SURVIVED	-	if bool(np.all(joint_temps <= joint_limit + 1e-9)):	if False:
+pre	115a9088296b9d8c	sysid.py:140	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return peak, abs(after_relax - baseline)	pass
+pre	1165914e57f5bd08	coordinator.py:1796	CONST	SURVIVED	-	SURVIVED	-	COP_LEARNING_MAX_STEP = 0.05	COP_LEARNING_MAX_STEP = 0.1
+pre	119b25afdd5d4988	optimizer.py:6655	GUARD_OFF	SURVIVED	-	SURVIVED	-	if result.predictive_info.get("dhw_target_temperature") is not None:	if False:
+pre	11a2ac52c11f1501	price_model.py:609	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if len(hours) == HOURS_PER_DAY:	if False:
+pre	11e5b20214193190	thermal_model.py:672	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if rate <= 0.0:	if False:
+pre	11f4ed3e5be70ac0	coordinator.py:7069	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if result and weather_entity in result:	if False:
+pre	11fa5e8872af1e16	coordinator.py:8928	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	elif self._measured_power is not None:	elif False:
+pre	121362d48b408236	grid_fee.py:173	GUARD_OFF	SURVIVED	-	-	-	if not sep:	if False:
+pre	122b599ee0b9a419	coordinator.py:9780	GUARD_OFF	KILLED	tests/config_flow_steps.py	-	-	if house is None:	if False:
+pre	12cd6ddd79fb36fc	price_model.py:269	GUARD_OFF	SURVIVED	-	SURVIVED	-	if self.quarter_days[idx] == 0:	if False:
+pre	12cfe812f3ea1d0a	tariff.py:465	CMP_BOUND	KILLED	tests/finite_boundary.py	-	-	or not 0.0 <= tracker._window_factor <= 1.0	or not 0.0 <= tracker._window_factor < 1.0
+pre	13116b538ae4ca30	coordinator.py:2076	GUARD_OFF	KILLED	tests/typing_ruler.py	-	-	if stdin is None or stdout is None:	if False:
+pre	133158399eac10ae	optimizer.py:2357	CMP_BOUND	SURVIVED	-	SURVIVED	-	if power[i] <= threshold:	if power[i] < threshold:
+pre	134126ee4914191f	coordinator.py:10561	CMP_BOUND	SURVIVED	-	SURVIVED	-	if kwh < 0.2 or hours < 1.0:	if kwh <= 0.2 or hours < 1.0:
+pre	134d9411b323ef8a	tariff.py:832	CLAMP_DROP	SURVIVED	-	SURVIVED	-	z = np.clip((x - mid[:, None]) / scale[:, None], -60.0, 60.0)	z = ((x - mid[:, None]) / scale[:, None])
+pre	13bc8afdb0e8cb66	coordinator.py:8974	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if self._fuse_advisor_at is None:	if False:
+pre	13cadf1ab9a2de61	price_model.py:400	CMP_BOUND	SURVIVED	-	SURVIVED	-	if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX:	if var is not None and max(max(s) for s in var) < RESIDUAL_VAR_MAX:
+pre	140cd06a7d92f278	thermal_model.py:4722	CMP_BOUND	SURVIVED	-	SURVIVED	-	cond_scale = (drawn > delivered) & (delivered > 0.0)	cond_scale = (drawn >= delivered) & (delivered > 0.0)
+pre	142ac0136fa77610	coordinator.py:7792	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if not self._current_action or self._mode == MODE_OFF:  # off writes nothing	if False:  # off writes nothing
+pre	1464945cc9856c90	coordinator.py:2626	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return round(min(min(s) for s in series), 2) if series else None	pass
+pre	1468c48931d6a214	dhw_planner.py:1526	BOOLOP	KILLED	tests/plan_view.py	-	-	if space_demand is not None and p_total_max is not None:	if space_demand is not None or p_total_max is not None:
+pre	146d687b30889301	coordinator.py:10504	GUARD_OFF	SURVIVED	-	SURVIVED	-	if closed:	if False:
+pre	14772f298ca0d4f4	optimizer.py:2363	CMP_BOUND	SURVIVED	-	KILLED	tests/features.py	if i < len(ready_temps) and ready_temps[i] > 0:	if i <= len(ready_temps) and ready_temps[i] > 0:
+pre	15246a8d0989c594	coordinator.py:9223	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return np.asarray(np.minimum(floors, cap))	pass
+pre	15273e1ccee37ae1	optimizer.py:4069	CLAMP_DROP	SURVIVED	-	KILLED	tests/features.py	return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6))))	return (0)
+pre	15456e64946920b5	coordinator.py:5108	GUARD_OFF	SURVIVED	-	SURVIVED	-	if capacity <= 1e-6:	if False:
+pre	15678f8db1a80b1d	defrost.py:546	GUARD_OFF	KILLED	tests/finite_boundary.py	-	-	if duty is not None and duty_counts is not None:	if False:
+pre	168e4035dbc9bb84	defrost.py:204	CLAMP_DROP	SURVIVED	-	SURVIVED	-	duty = min(max(float(duty), 0.0), DEFROST_DUTY_MAX)	duty = min((float(duty)), DEFROST_DUTY_MAX)
+pre	16ae60a54c58bb01	optimizer.py:6573	CMP_BOUND	SURVIVED	-	KILLED	tests/features.py	if start_s <= now_s < starts[i + 1]:	if start_s <= now_s <= starts[i + 1]:
+pre	16c46fe4d7970cab	thermal_model.py:3005	CLAMP_DROP	SURVIVED	-	KILLED	tests/features.py	reduced = draw_kw * max(0.0, dhw_setpoint - t_in) / span	reduced = draw_kw * (0.0) / span
+pre	16f7665306eebdf3	coordinator.py:8419	BOOLOP	SURVIVED	-	SURVIVED	-	if isinstance(since, str) and since:	if isinstance(since, str) or since:
+pre	1721e50b7537a426	optimizer.py:4532	GUARD_OFF	SURVIVED	-	SURVIVED	-	if dhw_pins is not None:	if False:
+pre	176d8ddb23988b95	sysid.py:1853	GUARD_OFF	SURVIVED	-	SURVIVED	-	if self.result.completed:	if False:
+pre	176e4dd6d5aec097	optimizer.py:3408	CMP_BOUND	SURVIVED	-	SURVIVED	-	if future_loss > 1.1:	if future_loss >= 1.1:
+pre	1785780ac9dd1b18	coordinator.py:9836	GUARD_OFF	SURVIVED	-	SURVIVED	-	if self._pv_production is not None:	if False:
+pre	178eb3274b552c1c	optimizer.py:3481	CLAMP_DROP	KILLED	tests/validate.py	-	-	undershoot_u = np.maximum(0, temp_min_bounds - upper_t)	undershoot_u = (0)
+pre	17baf60252f616f6	coordinator.py:4079	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return self._mode	pass
+pre	17f81cef49680004	defrost.py:169	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return len(edges) - 2 if value >= edges[-1] else 0	pass
+pre	1804d4836b895e9a	coordinator.py:5453	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if self._weather_forecast:	if False:
+pre	186b3076dcce442c	sysid.py:897	CMP_BOUND	SURVIVED	-	SURVIVED	-	if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):	if not (0.1 <= tau <= 200.0) or not (0.01 <= ua < 5.0):
+pre	1894e6dcd2251a30	tariff.py:570	GUARD_OFF	SURVIVED	-	SURVIVED	-	if house.size == 0:	if False:
+pre	1897b1e8f0e09c02	optimizer.py:6509	CLAMP_DROP	SURVIVED	-	SURVIVED	-	filtered.append(round(float(np.clip(effective, d_min, d_max)), 1))	filtered.append(round(float((effective)), 1))
+pre	18fe89552892dc4b	coordinator.py:7130	GUARD_OFF	SURVIVED	-	SURVIVED	-	if self._weather_outage_cycles:	if False:
+pre	19141bef62ecb4a6	optimizer.py:4766	CMP_BOUND	SURVIVED	-	SURVIVED	-	if f.size < n_steps:	if f.size <= n_steps:
+pre	19404e3632806509	thermal_model.py:2554	CLAMP_DROP	SURVIVED	-	SURVIVED	-	floor_temp = min(T_upper, T_slab)	floor_temp = (T_upper)
+pre	19ac62540d0d5ee8	flow_lift.py:232	CMP_BOUND	SURVIVED	-	SURVIVED	-	if not np.isfinite(bias) or samples < 0:	if not np.isfinite(bias) or samples <= 0:
+pre	1a0866a6f1911f9b	thermal_model.py:4934	BOOLOP	SURVIVED	-	KILLED	tests/features.py	if coil and state.wood_tank_temperature is not None:	if coil or state.wood_tank_temperature is not None:
+pre	1a24365a55bfb2c7	coordinator.py:9402	BOOLOP	SURVIVED	-	SURVIVED	-	if m["n"] >= SOLAR_APERTURE_MIN_SAMPLES and m["var"] > 1e-6:	if m["n"] >= SOLAR_APERTURE_MIN_SAMPLES or m["var"] > 1e-6:
+pre	1a9ac2bac45ef9e0	thermal_model.py:270	CMP_BOUND	SURVIVED	-	SURVIVED	-	if not np.isfinite(value) or value < THERMAL_MASS_FLOOR:	if not np.isfinite(value) or value <= THERMAL_MASS_FLOOR:
+pre	1b3cbaddab6e496f	optimizer.py:3402	GUARD_OFF	SURVIVED	-	SURVIVED	-	if end <= i:	if False:
+pre	1b476993921016f9	thermal_model.py:852	CLAMP_DROP	SURVIVED	-	SURVIVED	-	recovery = float(np.clip(self.greywater_recovery, 0.0, 0.9))	recovery = float((self.greywater_recovery))
+pre	1b4a38fcc92b5f4f	coordinator.py:6839	GUARD_OFF	SURVIVED	-	KILLED	tests/entities.py,tests/features.py	if "displace_value" in self._current_action:	if False:
+pre	1b4b41a4fe9fb7ee	thermal_model.py:5045	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return state	pass
+pre	1b52f885f823b9e6	coordinator.py:8900	GUARD_OFF	KILLED	tests/env_drift.py	-	-	elif tariff.enabled and tariff.sample_factor(dt_util.now()) > 0.0:	elif False:
+pre	1ba9abbe8e702464	defrost.py:537	CMP_BOUND	SURVIVED	-	SURVIVED	-	return 0.0 <= v <= 1.0  # observe_duty's gate; NaN fails it	return 0.0 <= v < 1.0  # observe_duty's gate; NaN fails it
+pre	1c0e818b4bb24fcd	dhw_planner.py:2106	CLAMP_DROP	SURVIVED	-	SURVIVED	-	repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max)	repaired: np.ndarray = (plan)
+pre	1c4c4eb12388c035	coordinator.py:9368	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return caps if any_cap else None	pass
+pre	1c54ccad2d097c2a	process_worker.py:28	GUARD_OFF	KILLED	tests/deployment_shape.py	-	-	if resolved != here:	if False:
+pre	1c8abc3565f228b8	dhw_planner.py:1996	CLAMP_DROP	KILLED	tests/manual_plan.py	-	-	plan[i] = float(np.clip(plan[i], 0.0, max(0.0, allowed)))	plan[i] = float(np.clip(plan[i], 0.0, (0.0)))
+pre	1d0c70b3b63230eb	optimizer.py:4913	CMP_BOUND	SURVIVED	-	SURVIVED	-	planned = planned[1:] if planned.size > req.size else planned	planned = planned[1:] if planned.size >= req.size else planned
+pre	1d11f24436471959	optimizer.py:6651	CMP_BOUND	SURVIVED	-	SURVIVED	-	action["dhw_heating_active"] = dhw_power > 0.1	action["dhw_heating_active"] = dhw_power >= 0.1
+pre	1d455987c970dfde	dhw_planner.py:790	CMP_BOUND	SURVIVED	-	SURVIVED	-	if need > everyday:	if need >= everyday:
+pre	1d53decaebe0c79c	optimizer.py:2102	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return clipped, bang_bang	pass
+pre	1d9e90551530caa3	sysid.py:2089	CLAMP_DROP	SURVIVED	-	KILLED	tests/features.py	k_prior = float(np.clip(k_hat, 1.0 / 200.0, 1.0 / 0.1))	k_prior = float((k_hat))
+pre	1dcb273b03f63a4e	optimizer.py:4943	CLAMP_DROP	SURVIVED	-	SURVIVED	-	guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)	guess = np.minimum((guess), headroom)
+pre	1e3d68358832d695	optimizer.py:1957	GUARD_OFF	SURVIVED	-	SURVIVED	-	if solve_index:	if False:
+pre	1e9d97a860146a80	sysid.py:890	CMP_BOUND	SURVIVED	-	SURVIVED	-	if ua <= 1e-6 or room_cap <= 1e-6:	if ua <= 1e-6 or room_cap < 1e-6:
+pre	1ee0ec8960fb9a66	coordinator.py:5104	GUARD_OFF	SURVIVED	-	SURVIVED	-	if tank == "dhw":	if False:
+pre	1f180135a90bbae6	optimizer.py:2303	CMP_BOUND	SURVIVED	-	KILLED	tests/features.py	if surplus is not None and i < len(surplus) and surplus[i] > 1e-6:	if surplus is not None and i <= len(surplus) and surplus[i] > 1e-6:
+pre	1f1dc504455f17da	optimizer.py:5699	CMP_BOUND	SURVIVED	-	SURVIVED	-	if self._pv_surplus is None or not np.any(self._pv_surplus > 1e-6):	if self._pv_surplus is None or not np.any(self._pv_surplus >= 1e-6):
+pre	1f3459d36af9fdd8	coordinator.py:6716	BOOLOP	KILLED	tests/manual_plan.py	-	-	if not solar_from_sensor and self._open_meteo is not None:	if not solar_from_sensor or self._open_meteo is not None:
+pre	1f35d649548001df	dhw_planner.py:1872	GUARD_OFF	KILLED	tests/block_duty.py	-	-	if runnable > plan[j] + room_kw + 1e-9:	if False:
+pre	1f4a10ae90bbf2d9	sysid.py:1705	CMP_BOUND	SURVIVED	-	SURVIVED	-	dt = utc_elapsed_seconds(rows[-1].when, rows[-2].when) / 3600.0 if len(rows) > 1	dt = utc_elapsed_seconds(rows[-1].when, rows[-2].when) / 3600.0 if len(rows) >= 
+pre	1ff2ade15ace6231	price_model.py:896	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if isinstance(parsed, str):	if False:
+pre	201955bf671ce8aa	coordinator.py:4396	CMP_BOUND	SURVIVED	-	SURVIVED	-	if flow > 0:	if flow >= 0:
+pre	2043855ef5cf151d	grid_fee.py:219	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not spec:	if False:
+pre	205660ee362d1a07	coordinator.py:7861	GUARD_OFF	SURVIVED	-	SURVIVED	-	if ctx._thermal_params.two_tank_modelled:	if False:
+pre	205d200980d58e9e	coordinator.py:9390	CMP_BOUND	SURVIVED	-	SURVIVED	-	if x <= 1e-6 or not np.isfinite(y):	if x < 1e-6 or not np.isfinite(y):
+pre	2060258af92f3051	optimizer.py:5699	GUARD_OFF	KILLED	tests/typing_ruler.py	-	-	if self._pv_surplus is None or not np.any(self._pv_surplus > 1e-6):	if False:
+pre	206a570d8cc784e3	coordinator.py:5800	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not np.isfinite(residual):	if False:
+pre	2074f3eefe8521aa	dhw_planner.py:1608	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not result.success:	if False:
+pre	2082af2f72a47999	coordinator.py:6689	BOOLOP	KILLED	tests/typing_ruler.py	-	-	if valve_target.ok and (valve_value := valve_target.value) is not None:	if valve_target.ok or (valve_value := valve_target.value) is not None:
+pre	20cde1046cbd5681	sysid.py:2154	CMP_BOUND	SURVIVED	-	SURVIVED	-	if not (-0.5 <= gains_kw <= 2.0):	if not (-0.5 <= gains_kw < 2.0):
+pre	20e001c48fb19330	sysid.py:1549	CMP_BOUND	SURVIVED	-	SURVIVED	-	in_window = hour >= cfg.start_hour or hour < cfg.end_hour	in_window = hour >= cfg.start_hour or hour <= cfg.end_hour
+pre	20f57d1eea0a5a1d	coordinator.py:4508	BOOLOP	SURVIVED	-	KILLED	tests/features.py	if params.dhw_enabled and params.dhw_windows_active	if params.dhw_enabled or params.dhw_windows_active
+pre	20f72103eda78713	sysid.py:2018	GUARD_OFF	SURVIVED	-	SURVIVED	-	if h_prev <= 1e-6:	if False:
+pre	213a122afd9ff3e1	price_model.py:69	CONST	SURVIVED	-	SURVIVED	-	SHAPE_CONFIDENCE_DAYS = 5	SHAPE_CONFIDENCE_DAYS = 10
+pre	218ac218da41d87d	coordinator.py:5156	CMP_BOUND	SURVIVED	-	SURVIVED	-	return probe.value > 30.0	return probe.value >= 30.0
+pre	21a2563e1beb213f	coordinator.py:9486	CMP_BOUND	SURVIVED	-	SURVIVED	-	if count >= COP_BASELINE_MIN_SAMPLES and baseline > 0.5:	if count > COP_BASELINE_MIN_SAMPLES and baseline > 0.5:
+pre	21aa638cadb2e8db	tariff.py:388	GUARD_OFF	KILLED	tests/manual_plan.py	-	-	if not self.peaks:	if False:
+pre	21d66d7588ebfd2b	optimizer.py:6169	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if p.two_zone_enabled:	if False:
+pre	22205dc8a4a6e79b	coordinator.py:9628	GUARD_OFF	SURVIVED	-	SURVIVED	-	if isinstance(defrost, dict):	if False:
+pre	223ac303af04edde	coordinator.py:5671	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not np.isfinite(observed):	if False:
+pre	225f2998edf914d3	defrost.py:111	CMP_BOUND	SURVIVED	-	KILLED	tests/features.py	return FROST_BAND_MIN_C <= float(outdoor_temp) < FROST_BAND_MAX_C	return FROST_BAND_MIN_C <= float(outdoor_temp) <= FROST_BAND_MAX_C
+pre	2288dfa73cab6c1a	thermal_model.py:2587	CMP_BOUND	SURVIVED	-	SURVIVED	-	elif delivered <= 0.0:	elif delivered < 0.0:
+pre	22da59ac14ca5c1f	tariff.py:289	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return None	pass
+pre	22dd975583db1b89	tariff.py:828	CMP_BOUND	SURVIVED	-	SURVIVED	-	over = count > k	over = count >= k
+pre	23621370731667b7	defrost.py:559	GUARD_OFF	SURVIVED	-	-	-	elif any(k in data for k in ("duty", "duty_counts")):	elif False:
+pre	239f6bd0cbfde34f	price_model.py:513	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if known_count == 0:	if False:
+pre	23b144fb9583c5c7	optimizer.py:2156	CONST	SURVIVED	-	SURVIVED	-	_MIN_MODULATION_BAND_KW = 0.1	_MIN_MODULATION_BAND_KW = 0.2
+pre	23cef0388badde6a	thermal_model.py:3980	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if two_tank and wood_temp is not None:	if False:
+pre	23de54dffd7c23a2	dhw_planner.py:1650	CLAMP_DROP	KILLED	tests/manual_plan.py	-	-	out[i] = max(out[i], min_run_power)	out[i] = (out[i])
+pre	23e80c695d9842c4	dhw_planner.py:2056	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if weak.size == 0:	if False:
+pre	246043395831f540	tariff.py:128	CMP_BOUND	SURVIVED	-	SURVIVED	-	if not self.enabled or self.peaks_averaged <= 0:	if not self.enabled or self.peaks_averaged < 0:
+pre	247372989ae65baa	dhw_planner.py:1535	CLAMP_DROP	SURVIVED	-	SURVIVED	-	window = max(1, int(round(_DHW_REFILL_WINDOW_HOURS / max(dt, 1e-6))))	window = max(1, int(round(_DHW_REFILL_WINDOW_HOURS / (dt))))
+pre	247c5eb9b7dd7655	dhw_planner.py:1034	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if p90 is not None and np.isfinite(p90) and count > 0:	if False:
+pre	24aa39e8c4c6d26a	sysid.py:2325	CMP_BOUND	SURVIVED	-	SURVIVED	-	if bool(np.any((dts <= 1e-3) | (dts > 2.0))):	if bool(np.any((dts <= 1e-3) | (dts >= 2.0))):
+pre	24b4b77cf3c37e25	optimizer.py:3580	GUARD_OFF	KILLED	tests/typing_ruler.py	-	-	if not params.buffer_is_store or cap is None:	if False:
+pre	24d9995ccee4252e	defrost.py:642	CMP_BOUND	SURVIVED	-	SURVIVED	-	if self.duty_counts[t][h] > 0:	if self.duty_counts[t][h] >= 0:
+pre	24ef8e54dad20484	optimizer.py:4249	CMP_BOUND	SURVIVED	-	SURVIVED	-	if typical_heat_loss > 0:	if typical_heat_loss >= 0:
+pre	25046a23fd9c38c2	coordinator.py:2630	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if not plan.dhw_temp_trajectory:	if False:
+pre	256e285aadb8b31d	thermal_model.py:3389	GUARD_OFF	SURVIVED	-	SURVIVED	-	if carnot_ref <= 1e-9:	if False:
+pre	257e584754b810d3	coordinator.py:6059	RETURN_DEL	KILLED	tests/manual_plan.py	-	-	return await self._async_first_refresh_light()	pass
+pre	2580fdeb3923a03e	dhw_planner.py:1613	RETURN_DEL	SURVIVED	-	SURVIVED	-	return best	pass
+pre	2586e058970a3baf	coordinator.py:8380	GUARD_OFF	KILLED	tests/finite_boundary.py	-	-	if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:	if False:
+pre	25fb4eaf35cfdda5	coordinator.py:8806	CMP_BOUND	SURVIVED	-	SURVIVED	-	if tariff.enabled and factor > 0.0:	if tariff.enabled and factor >= 0.0:
+pre	260c31a09510e48a	coordinator.py:2605	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if record is None:	if False:
+pre	26180738b4dfa52e	optimizer.py:2126	GUARD_OFF	SURVIVED	-	SURVIVED	-	if energy_kwh <= 0 or p_max <= 0 or dt <= 0:	if False:
+pre	262fe0a0413fc61b	tariff.py:391	GUARD_OFF	KILLED	tests/finite_boundary.py	-	-	if len(self.peaks) < n:	if False:
+pre	2693e4fc04518cbf	optimizer.py:4560	BOOLOP	SURVIVED	-	SURVIVED	-	if not _pin_is_free(value) and value < 0.5:	if not _pin_is_free(value) or value < 0.5:
+pre	2699efc070f5d4e3	coordinator.py:5176	GUARD_OFF	SURVIVED	-	SURVIVED	-	if probe.problem != "not_numeric":	if False:
+pre	2700e28d79c64bd8	coordinator.py:5665	CMP_BOUND	SURVIVED	-	SURVIVED	-	if end_delta < BUFFER_COOLING_MIN_DELTA:	if end_delta <= BUFFER_COOLING_MIN_DELTA:
+pre	27276e5dd1792818	optimizer.py:3803	RETURN_DEL	KILLED	tests/validate.py	-	-	return upper, lower	pass
+pre	27570146df313476	thermal_model.py:3479	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if precipitation > 0.1:  # threshold for "raining"	if False:  # threshold for "raining"
+pre	2765114b9329f57f	tariff.py:588	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not pieces:	if False:
+pre	276c2221c806f38b	coordinator.py:8895	BOOLOP	KILLED	tests/manual_plan.py	-	-	if v is not None and np.isfinite(v)	if v is not None or np.isfinite(v)
+pre	279eb64b238384d3	coordinator.py:9498	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if self._cop_health_cusum.tripped:	if False:
+pre	27fd894dfdb586fc	coordinator.py:4842	RETURN_DEL	KILLED	tests/plan_view.py	-	-	return out	pass
+pre	28b6107a17d9b814	thermal_model.py:2852	CLAMP_DROP	SURVIVED	-	SURVIVED	-	rh = min(max(indoor_rh_percent, 0.0), 100.0) / 100.0	rh = min((indoor_rh_percent), 100.0) / 100.0
+pre	28de20de50a9540b	price_model.py:155	CMP_BOUND	SURVIVED	-	SURVIVED	-	return PROFILE_WEEKEND if when.weekday() >= 5 else PROFILE_WEEKDAY	return PROFILE_WEEKEND if when.weekday() > 5 else PROFILE_WEEKDAY
+pre	29065b9e48071934	thermal_model.py:4475	CLAMP_DROP	SURVIVED	-	SURVIVED	-	carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)	carnot_ref = (ref + 273.15) / (ref + 273.15 - t_out)
+pre	291748b42a54c1f6	sysid.py:846	BOOLOP	SURVIVED	-	SURVIVED	-	if np.isfinite(next_cost) and next_cost < cost:	if np.isfinite(next_cost) or next_cost < cost:
+pre	2921ac9548c17b7c	sysid.py:2246	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10:	if False:
+pre	2984551869a3c5fa	coordinator.py:1696	CLAMP_DROP	KILLED	tests/env_drift.py	-	-	return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** max(0, int(samples))	return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** (0)
+pre	29bad645ca2c2438	coordinator.py:4471	CMP_BOUND	SURVIVED	-	SURVIVED	-	if meets and (best is None or cost_day < best["cost_per_day"]):	if meets and (best is None or cost_day <= best["cost_per_day"]):
+pre	29db99dee6a5debd	price_model.py:532	CLAMP_DROP	SURVIVED	-	SURVIVED	-	for i in range(min(known_count, len(step_start_times)))	for i in range((known_count))
+pre	2a5eb287df8a3b83	optimizer.py:2790	GUARD_OFF	SURVIVED	-	KILLED	tests/entities.py,tests/features.py	if self.comfort_temp_day_weekend is not None:	if False:
+pre	2aa0f17a216035ee	flow_lift.py:51	CONST	SURVIVED	-	SURVIVED	-	FLOW_BIAS_MIN_SAMPLES = 5	FLOW_BIAS_MIN_SAMPLES = 10
+pre	2ae9ff3138f9364d	optimizer.py:4235	CLAMP_DROP	SURVIVED	-	SURVIVED	-	n_12h = min(int(12 / dt_hours), n)	n_12h = (int(12 / dt_hours))
+pre	2aff1f5c0b10dffa	optimizer.py:2303	CMP_BOUND	SURVIVED	-	SURVIVED	-	if surplus is not None and i < len(surplus) and surplus[i] > 1e-6:	if surplus is not None and i < len(surplus) and surplus[i] >= 1e-6:
+pre	2b110fb8ff1ba07e	optimizer.py:4879	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if steps > 0:	if False:
+pre	2b17eec1371e3cce	coordinator.py:9126	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if self._immersion_active and self._immersion_clear_count >= 2:	if False:
+pre	2b5a8949055ecd4c	sysid.py:129	CMP_BOUND	SURVIVED	-	SURVIVED	-	if ua <= 1e-9 or capacity <= 1e-9:	if ua <= 1e-9 or capacity < 1e-9:
+pre	2c33fd33c0285a59	optimizer.py:1946	GUARD_OFF	KILLED	tests/plan_view.py	-	-	if np.isfinite(score):	if False:
+pre	2cede36930d96d70	tariff.py:314	GUARD_OFF	KILLED	tests/typing_ruler.py	-	-	if average is None:	if False:
+pre	2d037a10caa62e28	tariff.py:1225	GUARD_OFF	SURVIVED	-	SURVIVED	-	if house.size == 0:	if False:
+pre	2d4e3ff8e818b777	optimizer.py:2294	CMP_BOUND	SURVIVED	-	SURVIVED	-	if power[i] <= threshold:	if power[i] < threshold:
+pre	2d537b5a3b978dc0	optimizer.py:6644	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if result.solar_gain_trajectory and i < len(result.solar_gain_trajectory):	if False:
+pre	2d64a114647f1551	tariff.py:747	CMP_BOUND	SURVIVED	-	SURVIVED	-	if not np.any(x > 0):	if not np.any(x >= 0):
+pre	2d6701afc323e1e8	coordinator.py:10192	CMP_BOUND	SURVIVED	-	SURVIVED	-	if 0 < idx < len(trajectory):	if 0 <= idx < len(trajectory):
+pre	2e20bf308c37e0e5	coordinator.py:8966	GUARD_OFF	SURVIVED	-	SURVIVED	-	if fuse is None:	if False:
+pre	2e4d4a89570a1b24	coordinator.py:9383	CMP_BOUND	SURVIVED	-	SURVIVED	-	if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE:	if irradiance <= SOLAR_APERTURE_MIN_IRRADIANCE:
+pre	2e8f01731da78bde	thermal_model.py:3073	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if base_u <= 1e-6 or capacity <= 1e-6:	if False:
+pre	2e93bbc02c6c2b89	optimizer.py:2798	RETURN_DEL	KILLED	tests/plan_view.py	-	-	return day, night, start, end	pass
+pre	2ec5fda238265712	coordinator.py:9685	GUARD_OFF	SURVIVED	-	SURVIVED	-	if day_counted:	if False:
+pre	2ee20371dee7b495	optimizer.py:2417	GUARD_OFF	KILLED	tests/manual_plan.py	-	-	if pin >= 0.5:	if False:
+pre	2f1d8ae8f4fe57f6	coordinator.py:2632	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return round(float(min(plan.dhw_temp_trajectory)), 2)	pass
+pre	2f4fb53cfaaec6c0	tariff.py:798	CMP_BOUND	SURVIVED	-	KILLED	tests/entities.py	if m == 0 or k <= 0:	if m == 0 or k < 0:
+pre	2f668c5e3097fc68	coordinator.py:10040	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if dhw_now is not None:	if False:
+pre	2f9698f87498faa9	optimizer.py:5785	CLAMP_DROP	SURVIVED	-	KILLED	tests/features.py	init_base = np.clip(init_base, p_min * 0.5, p_max * 0.8)	init_base = (init_base)
+pre	2fb50046706b55a1	coordinator.py:4805	GUARD_OFF	KILLED	tests/typing_ruler.py	-	-	if value is None:	if False:
+pre	30388e6abe3391be	dhw_planner.py:2224	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if forced_off is not None and forced_off[j]:	if False:
+pre	304942bb11a1349f	optimizer.py:4798	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if throttling or power_caps_extra is not None or space_blocked:	if False:
+pre	3067ff76235329e4	optimizer.py:1871	CMP_BOUND	SURVIVED	-	SURVIVED	-	if np.isfinite(score) and (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale:	if np.isfinite(score) and (prior - score) >= _LBFGSB_RESTART_KEEP_REL * scale:
+pre	307dd583be33cad9	grid_fee.py:311	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if self.mode == MODE_RULES:	if False:
+pre	30fcf9ba50130ea2	coordinator.py:9386	CMP_BOUND	SURVIVED	-	SURVIVED	-	if capacity <= 1e-6 or dt_h <= 1e-6:	if capacity <= 1e-6 or dt_h < 1e-6:
+pre	31bb6bebd6b45f0e	sysid.py:2141	CMP_BOUND	SURVIVED	-	SURVIVED	-	if solution.shape[0] >= 3:	if solution.shape[0] > 3:
+pre	31c1881164f2dcdf	dhw_planner.py:626	CMP_BOUND	SURVIVED	-	SURVIVED	-	hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0]	hot = np.where(ramp[1:] > params.dhw_legionella_temp - 1e-6)[0]
+pre	326b26f53972df61	coordinator.py:9810	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not entity_id:	if False:
+pre	329e5c87f53f77bd	coordinator.py:8531	GUARD_OFF	KILLED	tests/manual_plan.py	-	-	if override.is_expired(solve_now):	if False:
+pre	3304e65ba361587f	coordinator.py:4831	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not n:	if False:
+pre	3351754da55a2896	coordinator.py:5940	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not np.isfinite(residual):	if False:
+pre	33d708ab867fe5e7	coordinator.py:10262	CLAMP_DROP	SURVIVED	-	SURVIVED	-	/ max(ctx._opt_config.time_step_minutes, 1.0)	/ (ctx._opt_config.time_step_minutes)
+pre	33f34d42b3bd2d73	thermal_model.py:4723	CMP_BOUND	SURVIVED	-	SURVIVED	-	drawn_safe = np.where(drawn > 0.0, drawn, 1.0)	drawn_safe = np.where(drawn >= 0.0, drawn, 1.0)
+pre	341d807c3a3d361d	coordinator.py:9030	CMP_BOUND	SURVIVED	-	SURVIVED	-	"feasible": breach <= 0.05,	"feasible": breach < 0.05,
+pre	344ea1d3fa8920f6	coordinator.py:6089	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if self._entry_released:	if False:
+pre	3459b45a8d76c5a3	coordinator.py:10472	CLAMP_DROP	SURVIVED	-	KILLED	tests/features.py	cost = max(cost, self._wear_price())	cost = (cost)
+pre	349b2e117d076731	coordinator.py:6747	GUARD_OFF	SURVIVED	-	SURVIVED	-	if wood_mean is None and had:	if False:
+pre	34c20aac32a34344	coordinator.py:9273	CMP_BOUND	SURVIVED	-	SURVIVED	-	if margin <= 0.0 and self._curve_learner.bias < 0.0:	if margin <= 0.0 and self._curve_learner.bias <= 0.0:
+pre	355c3d7dd36a1b90	coordinator.py:5782	CMP_BOUND	SURVIVED	-	SURVIVED	-	if delta_t < HOUSE_LOSS_MIN_DELTA:	if delta_t <= HOUSE_LOSS_MIN_DELTA:
+pre	3586dc5cb9d6da0a	coordinator.py:3168	BOOLOP	SURVIVED	-	KILLED	tests/features.py	if result.displace_schedule and idx < len(result.displace_schedule)	if result.displace_schedule or idx < len(result.displace_schedule)
+pre	35a4728a5d2906b4	optimizer.py:4069	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6))))	pass
+pre	35d104f30f878131	optimizer.py:6661	GUARD_OFF	SURVIVED	-	SURVIVED	-	if result.predictive_info:	if False:
+pre	35d61c87783ebe66	dhw_planner.py:680	GUARD_OFF	SURVIVED	-	SURVIVED	-	if known is not None:	if False:
+pre	360e3bfd097d4eb7	tariff.py:287	CMP_BOUND	KILLED	tests/finite_boundary.py	-	-	if self._window_samples > 0:	if self._window_samples >= 0:
+pre	36117bb3a189672b	thermal_model.py:3576	CLAMP_DROP	SURVIVED	-	SURVIVED	-	np.clip(effective, p.ecl110_displace_min, p.ecl110_displace_max)	(effective)
+pre	3652dbb5880d62c8	optimizer.py:3969	CMP_BOUND	SURVIVED	-	SURVIVED	-	pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3)	pinned = (dhw_power > 1e-6) & (space_power > headroom - 1e-3)
+pre	367b68a0397503ff	price_model.py:57	CONST	SURVIVED	-	KILLED	tests/features.py	QUARTERS_PER_HOUR = 4	QUARTERS_PER_HOUR = 8
+pre	3685cdbd27c1680f	dhw_planner.py:2076	CLAMP_DROP	SURVIVED	-	SURVIVED	-	jointly_raised: np.ndarray = np.clip(joint, 0.0, p_dhw_max)	jointly_raised: np.ndarray = (joint)
+pre	369caabae412d193	optimizer.py:4055	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return energy_cost	pass
+pre	372a4f4fcc8de86f	coordinator.py:490	CMP_BOUND	SURVIVED	-	SURVIVED	-	if not (np.isfinite(value) and value > 0 and count >= 1):	if not (np.isfinite(value) and value >= 0 and count >= 1):
+pre	373207a8e12c37c5	sysid.py:842	CLAMP_DROP	SURVIVED	-	SURVIVED	-	np.clip(candidate[clip[0]], clip[1], clip[2])	(candidate[clip[0]])
+pre	374096d7847d70d3	defrost.py:137	CONST	SURVIVED	-	KILLED	tests/features.py	DEFROST_LOSS_MULTIPLIER = 1.5	DEFROST_LOSS_MULTIPLIER = 3.0
+pre	375376c4733a1a51	coordinator.py:5174	RETURN_DEL	SURVIVED	-	SURVIVED	-	return None	pass
+pre	37b3c9a03326d207	tariff.py:489	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not day:	if False:
+pre	37cd346e2d518b58	coordinator.py:4888	BOOLOP	SURVIVED	-	KILLED	tests/features.py	return codes[index] if codes and index < len(codes) else None	return codes[index] if codes or index < len(codes) else None
+pre	37cd831dca21d553	defrost.py:111	CMP_BOUND	SURVIVED	-	KILLED	tests/features.py	return FROST_BAND_MIN_C <= float(outdoor_temp) < FROST_BAND_MAX_C	return FROST_BAND_MIN_C < float(outdoor_temp) < FROST_BAND_MAX_C
+pre	37e0face2a901e71	coordinator.py:7419	CMP_BOUND	SURVIVED	-	SURVIVED	-	value = solar[i] if i < len(solar) else 0.0	value = solar[i] if i <= len(solar) else 0.0
+pre	37e281ab084b40ae	coordinator.py:8785	CMP_BOUND	SURVIVED	-	SURVIVED	-	if 0.0 < spacing <= 0.25:	if 0.0 <= spacing <= 0.25:
+pre	3830bef11ff6ed78	defrost.py:204	CLAMP_DROP	KILLED	tests/structure.py	-	-	duty = min(max(float(duty), 0.0), DEFROST_DUTY_MAX)	duty = (max(float(duty), 0.0))
+pre	3885e472b8297a90	flow_lift.py:183	GUARD_OFF	SURVIVED	-	-	-	if not np.isfinite(measured_supply) or not np.isfinite(curve_supply):	if False:
+pre	39041ccf21eedba6	thermal_model.py:2583	GUARD_OFF	SURVIVED	-	SURVIVED	-	if drawn > delivered > 0.0:	if False:
+pre	3918ca4fedbfc5bb	sysid.py:1979	CLAMP_DROP	SURVIVED	-	SURVIVED	-	dof = max(len(rows) - n_cols, 1)	dof = (len(rows) - n_cols)
+pre	39a6d2e97fd44ed5	optimizer.py:5478	CLAMP_DROP	SURVIVED	-	SURVIVED	-	initial_power = np.clip(initial_power, p_min, p_max)	initial_power = (initial_power)
+pre	3a064c11321daba7	price_model.py:417	CLAMP_DROP	SURVIVED	-	SURVIVED	-	round(float(np.sqrt(max(0.0, v))), 4)	round(float(np.sqrt((0.0))), 4)
+pre	3a3da1cdfc7549de	coordinator.py:5259	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return arr if bool(np.any(arr > 0.0)) else None	pass
+pre	3a664825725b1c2c	sysid.py:2103	GUARD_OFF	KILLED	tests/typing_ruler.py	-	-	if solution is None or not np.all(np.isfinite(solution)) or rank < n_cols:	if False:
+pre	3b309a621fc76efd	optimizer.py:4760	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if min_temp_margins is not None or min_temp_floors is not None:	if False:
+pre	3b458790a543507e	coordinator.py:5248	GUARD_OFF	SURVIVED	-	SURVIVED	-	if not self._external_heat.suppressing:	if False:
+pre	3b6228b7d69c32bc	coordinator.py:7693	CLAMP_DROP	SURVIVED	-	SURVIVED	-	np.clip(displace_value, self._ecl110_displace_min, self._ecl110_displace_max)	(displace_value)
+pre	3b87cd840077679e	grid_fee.py:445	CONST	SURVIVED	-	SURVIVED	-	CATALOG_VERSION = 1	CATALOG_VERSION = 2
+pre	3b8e7ac1f9bf5654	coordinator.py:9107	CMP_BOUND	SURVIVED	-	KILLED	tests/features.py	if not self._immersion_active and self._immersion_over_count >= 2:	if not self._immersion_active and self._immersion_over_count > 2:
+pre	3b922d8eb244ef5c	coordinator.py:773	GUARD_OFF	KILLED	tests/solar_alignment.py	-	-	if not forecast:	if False:
+pre	3b989943cc05b614	thermal_model.py:2594	CMP_BOUND	SURVIVED	-	SURVIVED	-	if drawn > available > 0.0:	if drawn >= available > 0.0:
+pre	3b9eddc7ba9a7488	defrost.py:124	CONST	SURVIVED	-	SURVIVED	-	DERATE_ALPHA = 0.05	DERATE_ALPHA = 0.1
+pre	3c5cb0676614db29	dhw_planner.py:1822	GUARD_OFF	KILLED	tests/doc_claims.py	-	-	if decay > 1e-6:	if False:
+pre	3c6e75178a60d75e	dhw_planner.py:1870	CMP_BOUND	SURVIVED	-	SURVIVED	-	if new_level < min_run_power - 1e-9:	if new_level <= min_run_power - 1e-9:
+pre	3c8082fb8164e990	sysid.py:612	RETURN_DEL	KILLED	tests/typing_ruler.py	-	-	return c_r * c_s / ((c_r + c_s) * k_s)	pass
+pre	3ceb6a076659004f	price_model.py:510	GUARD_OFF	SURVIVED	-	SURVIVED	-	if known_count >= n_steps:	if False:
+pre	3cfe39778305daba	coordinator.py:11008	CMP_BOUND	SURVIVED	-	SURVIVED	-	if heating_kwh < 1.0:	if heating_kwh <= 1.0:
+pre	3d3ecb9c22116ac1	dhw_planner.py:1804	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if forced_off is not None:	if False:
+pre	3d405dada2b1f9b5	optimizer.py:2132	CLAMP_DROP	KILLED	tests/env_drift.py	-	-	take = min(p_max, remaining / dt)	take = (p_max)
+pre	3d468643db7d9ee4	thermal_model.py:668	GUARD_OFF	SURVIVED	-	SURVIVED	-	if cached is not None and cached[0] == key:	if False:
+pre	3d4899a05eb126c3	thermal_model.py:940	CMP_BOUND	SURVIVED	-	SURVIVED	-	if total <= 1e-6:	if total < 1e-6:
+pre	3d83c32f185cf411	coordinator.py:9819	CMP_BOUND	SURVIVED	-	SURVIVED	-	if not config.enabled or config.peak_kw <= 0:	if not config.enabled or config.peak_kw < 0:
+pre	3d998bda0f1b7edd	tariff.py:716	GUARD_OFF	SURVIVED	-	KILLED	tests/harness_headers.py,tests/features.py	if window_days is None:	if False:
+pre	3d9b27d70c056e6b	coordinator.py:10441	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if kwh > 0 and fixed_price > 0:	if False:
+pre	460217277822d5bd	sysid.py:610	GUARD_OFF	SURVIVED	-	-	-	if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):	if False:
+pre	4b3795aece73ba73	price_model.py:201	GUARD_OFF	SURVIVED	-	-	-	if not np.all(np.isfinite(values)):	if False:
+pre	4e2df5f23e4eff29	coordinator.py:422	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if isinstance(value, dict):	if False:
+pre	61f74c4474262dad	coordinator.py:687	GUARD_OFF	SURVIVED	-	-	-	if (message, cause) not in _FENCED_CAUSES:	if False:
+pre	639d439d71b731ce	dhw_planner.py:75	GUARD_OFF	SURVIVED	-	-	-	if holiday_flags is not None and index < len(holiday_flags):	if False:
+pre	65f121eb047174ad	optimizer.py:773	GUARD_OFF	SURVIVED	-	-	-	if not holiday_dates:	if False:
+pre	73bc722df73caecb	price_model.py:198	GUARD_OFF	SURVIVED	-	-	-	if len(hourly_prices) != HOURS_PER_DAY:	if False:
+pre	74663a5c0f4ca765	tariff.py:146	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if not offpeak:	if False:
+pre	7f4bad9f8a29e68a	grid_fee.py:164	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if self.hours is not None:	if False:
+pre	9d53f6b3dbe7b735	optimizer.py:814	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if not params.dhw_day_windows:	if False:
+pre	a0605da712a6a070	defrost.py:419	GUARD_OFF	SURVIVED	-	KILLED	tests/features.py	if not 0.0 <= duty <= 1.0:	if False:
+pre	a35e03bd09f563c7	sysid.py:677	GUARD_OFF	SURVIVED	-	-	-	if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9:	if False:
+pre	acc8fa3942789f45	thermal_model.py:270	GUARD_OFF	SURVIVED	-	-	-	if not np.isfinite(value) or value < THERMAL_MASS_FLOOR:	if False:
+pre	bdcf7589b0a0a6df	coordinator.py:539	GUARD_OFF	SURVIVED	-	-	-	if displace_raw is None and isinstance(data.get("command"), dict):	if False:
+pre	f90f4647e02e45f8	dhw_planner.py:543	GUARD_OFF	KILLED	tests/env_drift.py	-	-	if not params.dhw_schedule_enabled:	if False:
+pre	fb16c7b0cbbfc63d	tariff.py:64	GUARD_OFF	SURVIVED	-	-	-	if window <= 60:	if False:
+c2	0e172028a23d9372	sysid.py:2246	R10C2	SURVIVED	-	-	-	if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10:	if ua_ss > 0.0 or abs(ua_ss - ua) / ua > 0.10:
+c2	2719aef4cbb8b464	price_model.py:337	R10C2	SURVIVED	-	-	-	if not day_types or not np.isfinite(level) or level <= 0.0:	if not day_types or not np.isfinite(level) or level < 0.0:
+c2	394593612514d4bb	tariff.py:805	R10C2	KILLED	tests/env_drift.py	-	-	peak = np.max(x, axis=1)	peak = np.min(x, axis=1)
+c2	66f8a4fb50e0b1f3	defrost.py:783	R10C2	SURVIVED	-	-	-	if flag and not self._state:	if flag or not self._state:
+c2	8e82d7a0b3617003	sysid.py:1549	R10C2	SURVIVED	-	-	-	in_window = hour >= cfg.start_hour or hour < cfg.end_hour	in_window = hour > cfg.start_hour or hour < cfg.end_hour
+c2	95779f9d6d71c50d	grid_fee.py:355	R10C2	SURVIVED	-	-	-	if abs(rule.rate) > worst:	if abs(rule.rate) >= worst:
+c2	a0b3b28854fa500c	flow_lift.py:188	R10C2	SURVIVED	-	-	-	if self.samples < FLOW_BIAS_MIN_SAMPLES:	if self.samples <= FLOW_BIAS_MIN_SAMPLES:
+c2	aae7c9c380c3c5cf	sysid.py:1593	R10C2	SURVIVED	-	-	-	return peak <= bound and final <= bound	return peak <= bound or final <= bound
+c2	ad5900dadd86e9f9	tariff.py:64	R10C2	SURVIVED	-	-	-	if window <= 60:	if window < 60:
+c2	c38d53ab787ddbfa	price_model.py:252	R10C2	SURVIVED	-	-	-	if float(np.mean(values)) <= 1e-6:	if float(np.mean(values)) < 1e-6:
+c2	d931ab195b940b0c	tariff.py:744	R10C2	SURVIVED	-	-	-	if x.size == 0 or k <= 0:	if x.size == 0 or k < 0:
+c2	fc395b83eeb1ddbf	price_model.py:532	R10C2	SURVIVED	-	-	-	for i in range(min(known_count, len(step_start_times)))	for i in range(max(known_count, len(step_start_times)))
+c3c6	0911281eca895664	dhw_planner.py:1559	R10C2	SURVIVED	-	-	-	shortfall_price = 1000.0 * (float(np.max(np.abs(prices))) + 1.0)	shortfall_price = 1000.0 * (float(np.min(np.abs(prices))) + 1.0)
+c3c6	22b5ec8775d5bd50	thermal_model.py:2593	R10C2	SURVIVED	-	-	-	) / max(dt_hours, 1e-6)	) / min(dt_hours, 1e-6)
+c3c6	5cc84148fa68bda1	grid_fee.py:383	R10C2	SURVIVED	-	-	-	if rule.rate < lowest:	if rule.rate <= lowest:
+c3c6	5e8d48eff7e4fa8d	coordinator.py:8806	R10C2	SURVIVED	-	-	-	if tariff.enabled and factor > 0.0:	if tariff.enabled or factor > 0.0:
+c3c6	6e6026d857732e96	tariff.py:595	R10C2	SURVIVED	-	-	-	return bool(tariff.months) or (	return bool(tariff.months) and (
+c3c6	8c103ec32f70dd43	thermal_model.py:730	R10C2	KILLED	tests/env_drift.py	-	-	return max(self.slab_heat_transfer, 1e-6)	return min(self.slab_heat_transfer, 1e-6)
+c3c6	a4b00ac3ca662eec	thermal_model.py:835	R10C2	SURVIVED	-	-	-	if swing <= 0.0:	if swing < 0.0:
+c3c6	e5c132b92eb60042	coordinator.py:6995	R10C2	KILLED	tests/finite_boundary.py	-	-	not auth and self._known_prices_for([plan_step_start(dt_util.now())])):	not auth or self._known_prices_for([plan_step_start(dt_util.now())])):
+posctl	1579a4d09c6461e8	optimizer.py:1052	GUARD_OFF	KILLED	tests/manual_plan.py	-	-	if not p.two_tank_modelled or state.wood_tank_temperature is None or reference_k	if False:
+posctl	a45125c6f64eb6e8	coordinator.py:8535	RETURN_DEL	KILLED	tests/manual_plan.py	-	-	return None, None	pass
+RESULT load1=0.19
+RESULT thread_factor=1.00

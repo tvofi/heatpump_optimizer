@@ -24,7 +24,10 @@ WORKSET is the units a kind's run owns; a code run on a PR carrying the
 
 A dispatch naming `pr` is VERIFIED against the live PR (open, from this
 repository, headed by this SHA, based on `base`) or the prelude fails, and the
-gate, which re-verifies, fails with it. A non-code run waits (`wait_sources`)
+gate, which re-verifies, fails with it. A verified one is scoped like that PR's
+pull_request run (CI-2): its legs, machinery and self-tests read the three-dot
+diff against origin/<base>, which `dispatch_diff` reads from the checkout; an
+unreadable or empty diff leaves it unscoped. A non-code run waits (`wait_sources`)
 until no run at its head that it orders after can still add a source: every
 EARLIER run and every CODE run, whatever its id (a held run aside). GitHub
 does not number a same-second push and body edit in event order
@@ -41,6 +44,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -423,8 +427,21 @@ def selftest_scope(ctx: dict) -> str:
     return st.selection(ctx["base_sha"], ctx["head"])
 
 
+def dispatch_diff(ctx: dict, cwd: Path = HERE.parents[1]) -> "tuple[str, list[str]] | None":
+    """(origin/<base>'s sha, the three-dot file list) for a dispatch naming a PR, from the
+    checkout at `cwd`; None when git cannot say."""
+    r = subprocess.run(["git", "rev-parse", "--verify", "-q", f"refs/remotes/origin/{ctx['input_base']}^{{commit}}"],
+                       cwd=cwd, capture_output=True, text=True)
+    if r.returncode != 0 or not r.stdout.strip():
+        return None
+    try:
+        return r.stdout.strip(), _codeql_scope().changed_files(r.stdout.strip(), ctx["head"], cwd=str(cwd))
+    except subprocess.CalledProcessError:
+        return None
+
+
 def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
-            selftests=selftest_scope) -> tuple[dict, str]:
+            selftests=selftest_scope, dispatch_diff=dispatch_diff) -> tuple[dict, str]:
     """(the outputs, '' or why the prelude fails)."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
@@ -433,16 +450,26 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
            "workset": " ".join(sorted(workset(kind, pr, ctx.get("labels", ()))))}
     codeql_scope = _codeql_scope()
     ref, proven = ("" if ctx.get("input_pr") else ctx.get("ref", "")), None
+    why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
+    # `scoped` is the event the diff-scoped outputs read. CI-2 (owner, 2026-11-21): a VERIFIED
+    # dispatch naming a PR -- the umbrella a bot head's token push dispatches -- is that PR's code
+    # run, scoped by the same three-dot list; a batch/ proof keeps its own rule below, and a diff
+    # git cannot read leaves the dispatch unscoped (every leg analyzes, every lane runs).
+    scoped = ev
+    if ev == "workflow_dispatch" and ctx.get("input_pr") and not why \
+            and not ctx.get("ref", "").startswith(codeql_scope.PROOF_REF):
+        got = dispatch_diff(ctx)
+        if got and got[1]:
+            scoped, changed, ctx = "pull_request", got[1], {**ctx, "base_sha": got[0]}
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
-    out["machinery"] = "true" if ev != "pull_request" or machinery(changed) else "false"
+    out["machinery"] = "true" if scoped != "pull_request" or machinery(changed) else "false"
     # R10-CI-SELFTEST-SCOPE: only a pull request is scoped; every other event,
     # a push to main above all, runs every step and re-measures them.
-    out["selftests"] = selftests(ctx) if ev == "pull_request" else "all"
-    out["machinery_rowblind"] = "true" if ev != "pull_request" or machinery(changed, pr=pr) else "false"
-    out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
+    out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
+    out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
+    out["legs"] = json.dumps({leg: codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
-    why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
     if not why and kind == "edit":
         try:
             if defer_to(ctx, pr, get) is not None:
@@ -702,6 +729,49 @@ def self_test() -> int:
         _st.selection = _real
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))
     check("legs from codeql_scope", json.loads(out["legs"]), {"actions": "skip", "javascript-typescript": "skip", "python": "skip"})
+    # CI-2: a verified dispatch naming a PR (a bot head) is scoped by its own three-dot diff, as a
+    # pull_request run is; anything unreadable leaves it analyzing every leg and running every step.
+    doc_only = lambda c: ("B", ["README.md"])  # noqa: E731
+    asked = []
+    d_out, d_why = outputs(dctx, None, g(live), selftests=lambda c: asked.append(c["base_sha"]) or "none",
+                           dispatch_diff=doc_only)
+    check("CI-2: a verified PR dispatch of a doc-only diff skips every leg, idles machinery, scopes self-tests",
+          (json.loads(d_out["legs"]), d_out["machinery"], d_out["machinery_rowblind"], d_out["selftests"],
+           asked, d_why),
+          ({leg: "skip" for leg in _codeql_scope().LEGS}, "false", "false", "none", ["B"], ""))
+    import tempfile
+    sys.path.insert(0, str(HERE.parents[1] / "tests"))
+    try:
+        from throwaway_git import throwaway_git_environ, throwaway_git_init
+    finally:
+        sys.path.pop(0)
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        def git(*a):
+            return subprocess.run(["git", *a], cwd=td, capture_output=True, text=True, check=True).stdout.strip()
+        throwaway_git_init(td, "-q")
+        Path(td, "a.py").write_text("x = 1\n")
+        git("add", "a.py")
+        git("commit", "-qm", "base")
+        b = git("rev-parse", "HEAD")
+        git("update-ref", "refs/remotes/origin/main", b)
+        Path(td, "README.md").write_text("doc\n")
+        git("add", "README.md")
+        git("commit", "-qm", "doc")
+        h = git("rev-parse", "HEAD")
+        check("CI-2: dispatch_diff reads origin/<base> and the three-dot list from the checkout",
+              (dispatch_diff({"input_base": "main", "head": h}, Path(td)),
+               dispatch_diff({"input_base": "gone", "head": h}, Path(td))), ((b, ["README.md"]), None))
+    for name, c, gg, diff in (
+            ("an unreadable diff", dctx, g(live), lambda c: None),
+            ("an empty diff", dctx, g(live), lambda c: ("B", [])),
+            ("an unverified dispatch", dctx, g({**live, "head": {**live["head"], "sha": "X"}}), doc_only),
+            ("a dispatch naming no PR", ctx("workflow_dispatch"), g(live), doc_only),
+            ("a batch/ proof naming a PR", context("workflow_dispatch", {"inputs": {"pr": "7", "base": "main"}},
+                                                   {**env, "GITHUB_REF": "refs/heads/batch/t-1"}), g(live), doc_only)):
+        o = outputs(c, None, gg, selftests=lambda c: "none", dispatch_diff=diff)[0]
+        check(f"CI-2: {name} analyzes every leg and runs every lane (null control)",
+              (set(json.loads(o["legs"]).values()), o["machinery"], o["machinery_rowblind"], o["selftests"]),
+              ({"analyze"}, "true", "true", "all"))
 
     # A train proof (r10-proof-codeql): the evidence is each entry head's own
     # pull_request runs; a dispatch at that head carries none.
