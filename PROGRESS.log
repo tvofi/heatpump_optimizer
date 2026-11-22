@@ -4,3 +4,4 @@
 1795385307 CKPT added real-coordinator mode check in entities.py; running head + M8 snapshot 3f84573e783a
 1795385817 HB alive
 1795385861 CKPT entities.py ALL 2762 PASSED at 768417ad3f; pushed wip snapshot a3710ee84d1a
+1795385899 CKPT M8 killed by new check; body drafted; prepr running snapshot b0a61cabcb60
