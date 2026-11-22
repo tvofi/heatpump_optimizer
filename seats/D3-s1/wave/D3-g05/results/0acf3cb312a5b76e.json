@@ -1,0 +1,58 @@
+{
+ "key": "0acf3cb312a5b76e",
+ "site": "coordinator.py:9849 GUARD_OFF",
+ "patch": "if state is None: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._entity_state",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._entity_state@9846-9849",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3588.3,
+  "child_cpu_s": 5958.7,
+  "load1_start": 0.94,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/0acf3cb312a5b76e.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0acf3cb312a5b76e",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.out",
+  "baseline_value": "(None, {}) for an absent entity",
+  "mutant_value": "(None, {})",
+  "inputs_tried": [
+   "sensor.absent",
+   "sensor.present (state 'on', attrs)",
+   "attribute-less state object",
+   "''",
+   "None"
+  ]
+ },
+ "m4_answer": "Equivalent: with the guard off, getattr(None, 'attributes', None) or {} and getattr(None, 'state', None) return exactly the guard's (None, {}); no input separates the arms (moved_inputs=0).",
+ "should_fail": "none: no assertion can separate the arms; traced by tests/config_flow_steps.py and tests/features.py",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "non_finding": "equivalent-candidate: Equivalent: with the guard off, getattr(None, 'attributes', None) or {} and getattr(None, 'state', None) return exactly the guard's (None, {}); no input separates the arms (moved_inputs=0)."
+}
