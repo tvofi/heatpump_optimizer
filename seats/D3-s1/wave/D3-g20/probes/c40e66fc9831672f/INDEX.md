@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_c40e66fc9831672f.py (+ shared helpers _ceiling.py _mutant.py): _buffer_charge_ceiling:6069 lo=max(20,ref) -> 20; ceiling in cold weather

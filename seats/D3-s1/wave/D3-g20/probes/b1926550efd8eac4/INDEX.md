@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_b1926550efd8eac4.py (+ shared helpers _coopt.py _mutant.py): _co_optimize:3969 dhw>1e-6 -> >=1e-6; pinned/replan at dhw exactly 1e-6

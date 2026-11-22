@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_19141bef62ecb4a6.py (+ shared helpers _arrays.py _bounds_cases.py _mutant.py): _build_comfort_bounds:4766 f.size<n -> <=; bounds tuple over floor sizes

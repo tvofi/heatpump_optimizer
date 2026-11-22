@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_7452dcf280ce931f.py (+ shared helpers _ceiling.py _mutant.py): _buffer_charge_ceiling:6070 hi<=lo -> hi<lo; ceiling at hi==lo

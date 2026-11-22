@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_bf2229e3f179f4b6.py (+ shared helpers _ceiling.py _mutant.py): _buffer_charge_ceiling:6097 net(mid)>0 -> >=0; ceiling at constructed tie net(mid)==0

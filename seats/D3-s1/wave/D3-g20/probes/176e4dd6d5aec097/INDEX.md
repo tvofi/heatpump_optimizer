@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_176e4dd6d5aec097.py (+ shared helpers _weights.py _mutant.py): _anticipatory_weights:3408 loss >1.1 -> >=1.1; weight at mean loss exactly 1.1
