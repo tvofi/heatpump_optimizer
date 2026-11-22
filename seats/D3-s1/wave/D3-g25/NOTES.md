@@ -13,3 +13,4 @@
   (placeholder `SPEC = @SPEC@`) sat in the gate tree and broke the repo_root corpus ast.parse. Kept as null-take1.{json,log}.
   Fix: template renamed .tmpl, probes use tools/audit/repo_root.py's helper verbatim. The f3126 gate started at 22:33Z was stopped by SIGINT (~25 min in,
   fullgate's finally reset the tree; no record kept) and the null re-taken once, as the brief allows.
+- 23:23Z null take 2 (gate_rc 1, 2889 s, load1 0.53..0.94): red only on artefact checks: closure.py selftest 2 (skip-not-under-scoped), entities.py 1 (one-script re-derive), harness_headers.py 3 (round4/D6/claims.py header + byte-identical in the stripped tree). Usable; it is this box's null.
