@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -215,10 +215,12 @@ class _Record:
     #: True until the first reading after load decides the restored open row.
     fresh: bool = True
     closed: bool = False
-    #: What close releases: the state listener.
+    #: What release cancels: the state listener.
     releases: list[Callable[[], None]] = field(default_factory=list)
     timer: Callable[[], None] | None = None
     saved_at: float | None = None
+    #: The save a failed setup's on_unload callback leaves running.
+    ending: Awaitable[None] | None = None
 
 
 _RECORDS: WeakKeyDictionary[Any, _Record] = WeakKeyDictionary()
@@ -292,7 +294,9 @@ async def _save(rec: _Record) -> None:
 
 async def async_setup(hass: HomeAssistant, entry: Any, config: EntryConfig) -> None:
     """Build the entry's record afresh, load it, read once, subscribe, hook the stop."""
-    _RECORDS.pop(entry, None)
+    old = _RECORDS.pop(entry, None)
+    if old is not None and old.ending is not None:
+        await old.ending  # the previous record's last save lands before this load
     source = sources(config)
     if source is None:
         return
@@ -316,17 +320,31 @@ async def async_setup(hass: HomeAssistant, entry: Any, config: EntryConfig) -> N
 
     entry.async_on_unload(hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _stop))
 
+    @callback
+    def _ended() -> None:
+        """A setup that fails after this one runs only these callbacks, never the unload."""
+        if _release(rec):
+            rec.ending = hass.async_create_task(_save(rec))
 
-async def async_close(entry: Any) -> None:
-    """Unsubscribe, cancel the deferred save, then save; a second call does nothing."""
-    rec = _RECORDS.get(entry)
-    if rec is None or rec.closed:
-        return
+    entry.async_on_unload(_ended)
+
+
+def _release(rec: _Record) -> bool:
+    """Unsubscribe and cancel the deferred save, once: whether this call did it."""
+    if rec.closed:
+        return False
     rec.closed = True
     for release in (*rec.releases, rec.timer):
         if release is not None:
             release()
-    await _save(rec)
+    return True
+
+
+async def async_close(entry: Any) -> None:
+    """Unsubscribe, cancel the deferred save, then save; a second call does nothing."""
+    rec = _RECORDS.get(entry)
+    if rec is not None and _release(rec):
+        await _save(rec)
 
 
 def _iso(seconds: int) -> str:

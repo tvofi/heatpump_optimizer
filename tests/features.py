@@ -99298,6 +99298,13 @@ R.check(
     and _fl.code_text(["Unit in heat mode"]) == "Unit in heat mode",
     f"{_fl.code_text(['defrosting'])}",
 )
+R.check(
+    "an empty item between or after commas records nothing: E5, reads E5 and E5,,E6 reads E5, E6; "
+    "null control, a lone comma is no item, so the member reads healthy",
+    _fl.code_text(["E5,"]) == "E5" and _fl.code_text(["E5,,E6"]) == "E5, E6"
+    and _fl.code_text([" , "]) is None and _fl.code_text(["E5, E6"]) == "E5, E6",
+    f"{_fl.code_text(['E5,'])!r} {_fl.code_text(['E5,,E6'])!r} {_fl.code_text([' , '])!r}",
+)
 
 # 7: the ring and the tally.
 _fl_ring = _fl.Log(0)
@@ -99314,6 +99321,17 @@ R.check(
     and sum(c[1] for c in _fl_ring.codes.values()) == sum(7 + i % 3 for i in range(250)),
     f"{len(_fl_ring.episodes)} {_fl_ring.dropped} {len(_fl_ring.codes)}",
 )
+_fl_back = _fl.Log(0, open=[100, "E5"])
+_fl.note(_fl_back, 40, None)
+_fl_fwd = _fl.Log(0, open=[100, "E5"])
+_fl.note(_fl_fwd, 130, None)
+R.check(
+    "a reading stamped before the open row's start closes it at its start: zero seconds, never a "
+    "negative row or tally; null control, a reading 30 s after the start closes a 30 s row",
+    _fl_back.episodes == [[100, 100, "E5", False]] and _fl_back.codes == {"E5": [1, 0, 100]}
+    and _fl_fwd.episodes == [[100, 130, "E5", False]] and _fl_fwd.codes == {"E5": [1, 30, 130]},
+    f"{_fl_back.episodes} {_fl_back.codes} {_fl_fwd.episodes}",
+)
 _fl_short = _fl.loaded({**_fl.stored(_fl_ring), "episodes": [[1, 2, "E5"], [3, 4, "P3", False]]}, 77)
 _fl_off = _fl.loaded({**_fl.stored(_fl_ring), "dropped": -1}, 77)
 _fl_bare = _fl.loaded({"since_s": 5}, 77)
@@ -99326,6 +99344,16 @@ R.check(
     and _fl_off.episodes == [] and _fl_off.since_s == 77 and _fl_off.codes == {}
     and (_fl_bare.since_s, _fl_bare.dropped, _fl_bare.episodes, _fl_bare.open) == (5, 0, [], None),
     f"{_fl_short.episodes} {_fl_off.since_s}",
+)
+_FL_ROWS = [[i, i + 1, "E5", False] for i in range(250)]
+_fl_big = _fl.loaded({**_fl.stored(_fl_ring), "episodes": _FL_ROWS}, 77)
+_fl_cap = _fl.loaded({**_fl.stored(_fl_ring), "episodes": _FL_ROWS[:200]}, 77)
+R.check(
+    "a stored document of 250 rows, which the store's declaration admits, loads as its newest 200; "
+    "null control, a document of exactly 200 rows loads whole",
+    _fl_storage_admitted("fault_log", {**_fl.stored(_fl_ring), "episodes": _FL_ROWS})
+    and _fl_big.episodes == _FL_ROWS[-200:] and _fl_cap.episodes == _FL_ROWS[:200],
+    f"{len(_fl_big.episodes)} {_fl_big.episodes[0]} {len(_fl_cap.episodes)}",
 )
 
 
@@ -99451,6 +99479,44 @@ R.check(
     _fl_ul[0] == _fl_ul[1] == 2 and _fl_ul[2] == [int(_FL_T0.timestamp()) + 10, "P3"] and _fl_ul[3] == []
     and _fl_ul[4] == [] and _fl_ul[5] == [],
     f"{_fl_ul}",
+)
+
+
+async def _fl_failed_setup(failed):
+    """An open row closed inside the save window, the entry's end, a second setup, one event."""
+    hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id=f"fl_failed_{failed}")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+    _FL_CLOCK[0] += 1000.0
+    await _fl_fire(hass, "sensor.fd", "P3", 5)
+    await _fl_fire(hass, "sensor.fd", "OK", 6)  # deferred: only the entry's end saves this row
+    if not failed:  # the unload path: async_unload_entry closes, then Home Assistant runs the callbacks
+        await _fl.async_close(entry)
+    # A setup that raises after fault_log's runs only the entry's on_unload callbacks.
+    for unload in list(entry._on_unload):
+        unload()
+    entry._on_unload.clear()
+    left = len(hass.state_listeners), len(getattr(hass, "timers", []))
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))  # no yield first
+    restored = [list(r) for r in _fl._RECORDS[entry].log.episodes]
+    for _ in range(3):
+        await _fl_aio.sleep(0)
+    _FL_CLOCK[0] += 1000.0
+    before = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0)
+    await _fl_fire(hass, "sensor.fd", "E5", 10)
+    return (*left, restored, len(hass.state_listeners),
+            _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0) - before)
+
+
+_fl_fs = _fl_aio.run(_fl_failed_setup(True))
+_fl_fs_null = _fl_aio.run(_fl_failed_setup(False))
+_FL_P3 = [[int(_FL_T0.timestamp()) + 5, int(_FL_T0.timestamp()) + 6, "P3", False]]
+R.check(
+    "a setup that fails after the record's (only the entry's on_unload callbacks run) releases the "
+    "listener and the deferred save, and its last save lands before the next setup loads: that setup "
+    "holds the P3 row watched to its end, one listener, and one event is one save; null control, the "
+    "unload path (close, then the callbacks) reads the same, the callbacks releasing nothing twice",
+    _fl_fs == _fl_fs_null == (0, 0, _FL_P3, 1, 1),
+    f"failed={_fl_fs} unload={_fl_fs_null}",
 )
 
 
