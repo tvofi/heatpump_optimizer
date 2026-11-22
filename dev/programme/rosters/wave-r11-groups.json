@@ -775,7 +775,7 @@
    "resume": {
     "stage": "done",
     "branch": "fix/r11-pre-toolchain-pin-p3",
-    "commit": "2d7161a4b70923da910f9997e18db632c0d4ec2d",
+    "commit": "e352724335c136b65562cd3e71f728549ad04a82",
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move",
