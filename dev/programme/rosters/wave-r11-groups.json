@@ -7354,7 +7354,9 @@
    "size": "M",
    "wave": 1,
    "issues": [],
-   "fixes": [],
+   "fixes": [
+    3860
+   ],
    "after": [
     "R11-OWNER-MODE-LEGS"
    ],
