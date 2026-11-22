@@ -31,3 +31,4 @@
 1795322274 HB alive
 1795322360 CKPT round 4 at eb1df490: delta = main merge + comment-only tests/card.mjs; FRESH-REVIEW by review_carry snapshot 11ac9ef69bc5
 1795322496 CKPT merge-tree clean vs 35c3e31cc9; comment ratchet OK at head, FAIL with delta reverted; card+doc_claims running snapshot da31f2ba2efc
+1795322583 HB alive
