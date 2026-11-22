@@ -8,3 +8,8 @@
   pre-horizon block uses a 3-step plan and skews 5 min / 2 h only.
 - Records are written by probes/_shared/write_result.py once each key's gate lands (auto loop $HOME/scratch/autoresult.sh).
 - Enumerator SURVIVORS.tsv is not in the baseline tree, e3cb5c0 or origin/main: the wave list is the orchestrator's; named as given.
+- 22:33Z null take 1 (gate_rc 1, 2975 s): closure.py selftest 2 (skip-not-under-scoped, git/derive artefact), entities.py 1 ("one-script re-derive ... accepted when it does", derive artefact),
+  harness_headers.py 4: three round4/D6/claims.py header/byte-identical (stripped-tree artefacts) and ONE caused by this box: probes/_shared/probe_template.py
+  (placeholder `SPEC = @SPEC@`) sat in the gate tree and broke the repo_root corpus ast.parse. Kept as null-take1.{json,log}.
+  Fix: template renamed .tmpl, probes use tools/audit/repo_root.py's helper verbatim. The f3126 gate started at 22:33Z was stopped by SIGINT (~25 min in,
+  fullgate's finally reset the tree; no record kept) and the null re-taken once, as the brief allows.
