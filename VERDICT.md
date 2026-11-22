@@ -1,48 +1,24 @@
-Fix review: merge 0bfce347d8aa2d26f8401f656576a044ef6e815f
+Fix review: merge 8e9886731eac90a687b0207c82a40431fa67ed24
 
-bus-nonce: a5fc23aeda3564f97ee8c5266dfe49ec
+bus-nonce: 41a1c9b88f1a41510bd69dbc095c1f8a
 pending-ci: gate
 
-## Scope
-
-Round 3. This is a delta review over the last head that got a merge verdict, 8e9886731eac90a687b0207c82a40431fa67ed24 (probe/rev-3728-41a1c9b8, `pending-ci: gate`). The gate went red there on the comment ratchet. `review_carry.py 8e988673 0bfce347` prints FRESH-REVIEW because the authored commit 00b60ee41 changes content. The delta has three commits. 7725103872 merges origin/main a8efe1d1; its remerge-diff resolves only `tests/closures.json`, which the ledger driver merged as a set. 00b60ee41 changes `drift.utc_instant`'s docstring and `plan_step.covering_index`'s docstring, sentence splits only, with no code token changed (ev/delta_00b60ee4.diff). 0bfce347 merges that commit and has an empty remerge-diff. Nothing was widened: the production delta is docstring text only. Main's merged code was checked only for interaction with this PR, by re-running the PR's class rules and its check blocks at the head. I measured from detached worktrees at 0bfce347d8aa2d26f8401f656576a044ef6e815f (merge base a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b). I re-read the head before returning (refs/pull/3728/head) and it has not moved.
+Round 2 review of #3728: a delta round over the reviewed head f6905ea04733853483524802345b499ef41ebbb1 (blocked there, `class-open: wood_fuel.py:182 wood_fuel.py:556`). Scope: the packet's `## Review scope: delta`. That is the branch's own commits since f6905ea0: b32a4ce1ed (wood_fuel), the conflict resolution in 2385016abd (sensor.py), 224f5007fe (manual_plan), d646047469 and 8e9886731e (tests only), plus the previous verdict's finding. Main's own merged code was not reviewed. `review_carry.py f6905ea0 8e988673` prints FRESH-REVIEW, because 2385016abd is a hand-resolved merge. Measured from detached worktrees at 8e9886731eac90a687b0207c82a40431fa67ed24, merge base 689f33e2653f90ef0abeb10d1fc45be83a2d01cd. The head was re-read before returning and has not moved.
 
 ## Evidence
 
-- RESULT prior-red: the 8e988673 `tests / fast (3.14)` red, the doc_claims comment ratchet (`long units` on drift.py and plan_step.py), is repaired by 00b60ee41. `python3 tests/doc_claims.py` at the head reads ALL 441 checks PASSED, rc 0 (ev/doc_claims_head.txt).
-- RESULT reviewer-mutants at the head (ev/reviewer_mutant_driver.py, ev/mutants_head.txt, ev/mutants_head_R3_rerun.txt; bytecode off, each file restored, tree clean afterwards). Two controls pass: M0 ALL 9 FEATURES BLOCK PASSED (the ADR-001 block, through `features_block.py` with an emitted prelude) and M0w ALL 26 wood-advisor checks PASSED. 9 of 9 mutants are killed:
-  - R1, covering_index's end rule: 4 of 9 red.
-  - R2, plan_step_index without last_span: the last-step width check red.
-  - R3, utc_instant's naive branch: naive instant check red, `drift` False. The first R3 run was a malformed mutant (IndentationError); this is the re-run.
-  - R4, payload_number's finite guard: finite check red.
-  - R5, EVIDENCE_KEEP 7: D7-s1-05 note check red.
-  - R6, sensor's 4.187/3600: water check red.
-  - R7, manual_plan._instant to when.timestamp(): naive instant check red, `manual_plan` False.
-  - R8, _in_zone without utc_instant: 1 of 26 wood-advisor checks red.
-  - R9, replay_doc.numeric's bool guard dropped: 1 of 164 debug_collect checks red.
-- RESULT finder-harness (m8_agree.py sha1 aaef9a3b34b9c3d8a523eb24410ff97f7ce6b0d1, git archive of 819aa2e354b4e5baaf824b8568fd72bea8168a75, through the in-tree adapter sha1 a3ceb0fa51ea48fd46d3ccbe43fae05c4278918b, which I copied into the base tree for the base run; ev/finder_water_both_ends.txt, ev/finder_harness_head.txt):
-  - Base: step_covering_now 4, naive_instant 2, finite_number 9.
-  - Head: 0, 0, 2. The 2 are the text probes, as the body states.
-  - no_value_state reads 3 at both ends.
-  - water_heat errors at both ends (`ZeroDivisionError`, reads -1); see the Note under Findings. With the reviewer's one-line adaptation (ev/m8_agree_dhw_reviewer_adaptation.py, an instrument I built, not the finder's), it reads 1 at the base (sensor 0.0011631 against 0.0011600) and 0 at the head.
-- RESULT class rules at the head (ev/class_rules_head.txt, ev/seams_head.txt):
-  - `bisect_right(` has 2 code sites, `plan_step.py:69` (the owner) and `coordinator.py:7334` (`_weather_series`, dispositioned by `_R10_COVERING_ALLOWED`).
-  - `git grep 'astimezone('` returns the same 9 sites the body dispositions; `astimezone()` returns 0.
-  - `--seams` reads total 53: aware 8, utc_instant-first 1, as_utc 16, naive test 16, aligned 7, stripped 4, relabel 1. Every count equals the body's. The main merge added no site.
-- RESULT merge-tree: `git merge-tree --write-tree origin/main 0bfce347` (origin/main a8efe1d1) exits 0 (ev/mergetree_version_budgets.txt).
-- RESULT version-files: VERSION, manifest.json, RELEASE_NOTES.md, claimed_drift.txt and card_claimed_drift.txt are untouched three-dot against a8efe1d1.
-- RESULT budgets: three-dot `structure_budgets.json` moves down only (class_excess_loc 17322 -> 17317, duplication_copies 7 -> 5, max_class_loc 7873 -> 7868). `python3 tests/structure.py` reads STRUCTURE RATCHET PASSED (ev/structure_head.txt). The delta moves no budget.
-- RESULT body head: `## Head` names 0bfce347d8aa2d26f8401f656576a044ef6e815f, the head measured here.
-- RESULT red-history: the owed reds (ev/owed_reds.txt) on this range's heads are named in `## Red checks`: `tests / fast (3.14)`, `pr-contract` and `gate` at 8e988673, and earlier heads as the round-2 verdicts recorded. Answered (but see the body-stale note).
-- RESULT figures not re-derived: the whole-suite counts (`ALL 5939 FEATURE CHECKS PASSED` and the like) were not re-run. CI's `tests / fast` at this head is the authority (fix-review.md step 11).
-- RESULT CI: see `## CI`.
-
-## Findings
-
-- Note: body-stale: `## Red checks` still says the `tests / fast (3.14)` red at 8e988673 is "Not yet repaired: it needs a fixer commit that splits those sentences". 00b60ee41 is that commit, and doc_claims passes at the head. Carry: dismissed: body paperwork, which the fixer's next body refresh settles; no stage changes
-- Note: figure: `## Figures` gives `water_heat_disagreements 0` at the head (and 1 at the base) from the finder's m8_agree.py. The finder's harness as archived no longer measures that family. `fam_water_heat` calls `sensor._gap_probe_terms({}, ...)`, and main's D8-s1-01 gate (kept by 2385016abd) prices no DHW-coast term without hot water. So the term is 0.0 and the family raises ZeroDivisionError at both a8efe1d1 and the head. This is the same cause as the 4fd8d2a2 features red. With `{CONF_DHW_ENABLED: True}` (the reviewer's adaptation) it reads 1 -> 0. The finding stays pinned in the tree by features.py's `D7-s3-04 water` check, which drives hot water on and which R6 kills. Carry: dismissed: the finder's harness is an out-of-tree round-11 artifact on plan/r11; the committed pin measures the finding, and no later stage reads that family
+- RESULT previous-finding resolved: `wood_fuel.cheaper_windows`'s `day` and `_attach_windows`'s `iso` now both go through `wood_fuel._in_zone`, which reads the stamp with `drift.utc_instant` before `astimezone(local_tz)`. The body's third site in the same class, `manual_plan._coerce_awareness` (`value.astimezone()` for a naive reference), now strips the zone in UTC.
+- RESULT reviewer-mutants: 6 run, 6 killed (ev/reviewer_mutant_driver.py; ev/mutants_wood_advisor.txt, ev/mutant_D4.txt, ev/mutant_D5.txt, ev/mutant_D6.txt). D1 (`_in_zone` without `utc_instant`), D2 (`day` back to `ts.astimezone(local_tz)`) and D3 (`iso` the same) each turn `tests/wood_advisor.py` 1 of 26 red, on `a naive plan stamp is UTC under a non-UTC host zone ...`. D4 (`_coerce_awareness` back to `value.astimezone().replace(tzinfo=None)`) turns `tests/features.py` 1 of 5947 red, on `D7-s3-04 naive instant ...`, arm `manual_plan coerce` False. D4 survives wood_advisor.py, which is expected: that file does not drive the function. D5 (the merge resolution's `WATER_SPECIFIC_HEAT` back to `4.187 / 3600.0`) turns 1 of 5947 red, on `D7-s3-04 water ...`. D6 (main's kept `dhw_enabled_from_config` gate forced true) turns 1 of 5947 red, on `R11-SEAM-plant-model D8-s1-01 ...`. So the 2385016abd resolution keeps both sides, and a test pins each side. Each file was restored after its run. The unmutated `tests/features.py` at the head reads ALL 5947 FEATURE CHECKS PASSED, rc 0 (ev/features_base.log), and the unmutated `tests/wood_advisor.py` reads ALL 26 wood-advisor checks PASSED. The body's M11-M14 rows match D1-D4.
+- RESULT class-rule at the head (ev/class_rule_head.txt): `git grep -n 'astimezone(' -- custom_components` returns 9 sites, and `astimezone()` returns 0. `r11_kernel_step_agree.py --seams` returns total 53, with aware conversions 8, utc_instant-first 1 (`wood_fuel.py:170`), dt_util.as_utc 16, naive-test guards 16, reference-zone aligned 7, stripped 4 and relabel 1. Every count equals the body's `## Figures` figures. I read each of the 8 aware conversions against the body's dispositions (`drift.py:49/73/92-93`, `ledger.py:154`, `tariff.py:650/652`, `store.py:168`), and each is guarded as the body states. The rule returns no seam outside the diff that the body leaves without a disposition.
+- RESULT widened read, which follows the delta rule (production delta, non-obvious risk): `custom_components/heatpump_optimizer/manual_plan.py` `_coerce_awareness`. The risk was a persisted or production expiry that moves by the host's offset. Every production caller passes an aware `now` from Home Assistant as the reference (`build_override`'s `expires_ref`, line 294), so the stored `expires_at` is aware. The naive-reference branch that changed is reached only when the reference is naive (lines 175 and 211 with a naive `expires_at`), and that cannot happen on the Home Assistant path. No production behaviour moves for an aware clock.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 8e988673` (origin/main e698fc8ac3) exits 0. The only driver line is `LEDGER-MERGE: resolved tests/closures.json`.
+- RESULT version-files: `git diff 689f33e2...8e988673` is empty for VERSION, the manifest, RELEASE_NOTES.md, `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`.
+- RESULT budgets: three-dot `tests/structure_budgets.json` moves down only: duplication_copies 7 -> 5, class_excess_loc 17322 -> 17317, max_class_loc 7873 -> 7868. No `*_budgets.json` key rises.
+- RESULT head: the body's `## Head` names 8e9886731eac90a687b0207c82a40431fa67ed24, the head measured here.
+- RESULT red-history: the reds on this range's heads that are in the `owed-reds` set are answered in the body's `## Red checks`, each with a cause and a cheaper detector or a recorded none. They are `tests / fast (3.14)` at dd7149fe (doc_claims comment ratchet) and at 4fd8d2a2 (the water check's config after the merge resolution), `governance / wave-script` at 23003a38, `pr-contract` and `gate` at ce9c3d9e, and the cancelled `env-matrix` runs.
+- RESULT mutation ledger: the bot's 23003a38 pins `wood_fuel._in_zone` RETURN_DEL. The body's `## Unpinned sites` names it.
+- CI: heavy runs were cited, not re-run. The classify result is under `## CI`.
 
 ## CI
 
-- RESULT classify, polled every ~90 s from 18:17Z to 18:48Z (ev/classify.log): last line `WAIT 0bfce347d8aa2d26f8401f656576a044ef6e815f pending: gate red: none`. No required check is red at this head, and only `gate` is pending. The packet's `introduced-red` refusal came from `governance / instrument-self-tests` still being in progress when the packet rendered. Classify shows no red, so classify decides. The relay posts this verdict only once the head is GREEN.
-- RESULT live checks (get_check_runs, re-read): one `gate` run (job 136937205840) concluded failure at 18:13Z, an early aggregate while its inputs were still running. Classify reads `gate` as pending, not red; it decides.
+- RESULT classify, polled from 15:44Z to 16:17Z: `WAIT 8e9886731eac90a687b0207c82a40431fa67ed24 pending: gate red: none`. No required check is red at this head, and only `gate` was still pending when the polling stopped. The packet's `introduced-red` refusal was raised because `instrument-self-tests` was in progress when the packet rendered. Classify has since shown no red, so classify decides. The relay posts this verdict only once the head is GREEN.

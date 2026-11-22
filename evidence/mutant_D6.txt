@@ -1,0 +1,11 @@
+RESULT mutant D6 tests/features.py rc=1 KILLED
+      ok   a pump command that FAILED is not remembered as done
+      FAIL R11-SEAM-plant-model D8-s1-01: no hot water prices no DHW coast; hot water (null control) still does  [off={'outdoor_load_kw': 0.5, 'outdoor_hours': 360.0, 'outdoor_price': 1.5, 'dhw_extra_kwh': 69.6, 'dhw_price': 1.5} on={'outdoor_load_kw': 0.5, 'outdoor_hours': 360.0, 'outdoor_price': 1.5, 
+    1 of 5947 FEATURE CHECKS FAILED
+    Traceback (most recent call last):
+    Traceback (most recent call last):
+    Traceback (most recent call last):
+    Traceback (most recent call last):
+    Traceback (most recent call last):
+   tail: RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+done
