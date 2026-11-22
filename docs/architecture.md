@@ -199,6 +199,8 @@ custom_components/heatpump_optimizer/
 │                         #   integration asks
 ├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
 │                         #   plan step, and stands down on a manual change
+├── flow_anchor.py        # The water a heating floor is anchored on: the inlet
+│                         #   rungs, and the settle after a hot-water leg
 ├── supply_hold.py        # The supply switch's minimum run and pause, held
 │                         #   across a re-solve, a cycle or a restart
 ├── duty_switch.py        # Learns per direction whether a duty switch stops
