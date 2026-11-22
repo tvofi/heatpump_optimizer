@@ -99318,19 +99318,25 @@ async def _fl_flaps(entry_id, min_s):
         for _ in range(3):
             await _fl_aio.sleep(0)
         doc = _fi_json.loads(_fl_storage._DISK.get(_fl_key(entry), "{}"))
-        return _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0), doc.get("data", doc), _fl.stored(_fl._RECORDS[entry].log)
+        saves = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0)
+        live = _fl.stored(_fl._RECORDS[entry].log)
+        _FL_CLOCK[0] += 61.0
+        await _fl_fire(hass, "sensor.fd", "P3", 200)
+        _FL_AFTER[entry_id] = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0) - saves
+        return saves, doc.get("data", doc), live
     finally:
         _fl.SAVE_MIN_S = saved_min
 
 
-_FL_DELAYS = {}
+_FL_DELAYS, _FL_AFTER = {}, {}
 _fl_saves, _fl_last_doc, _fl_live = _fl_aio.run(_fl_flaps("fl_flap", _fl.SAVE_MIN_S))
 _fl_saves0, _, _ = _fl_aio.run(_fl_flaps("fl_flap_null", 0.0))
 R.check(
     "120 flaps in 120 s write at most 3 saves, the last state saved by the deferred timer; null "
     "control, with the limiter's window at zero every one of the 120 opens and closes is a save",
     1 <= _fl_saves <= 3 and _fl_last_doc == _fl_live and len(_fl_live["episodes"]) == 60
-    and _fl_saves0 == 120 and _FL_DELAYS["fl_flap"] == [_fl.SAVE_MIN_S - 1.0] == [59.0],
+    and _fl_saves0 == 120 and _FL_DELAYS["fl_flap"] == [_fl.SAVE_MIN_S - 1.0] == [59.0]
+    and _FL_AFTER["fl_flap"] == 1,
     f"saves={_fl_saves} null={_fl_saves0} rows={len(_fl_live['episodes'])}",
 )
 
@@ -99343,20 +99349,24 @@ async def _fl_restart():
     await _fl_fire(hass, "sensor.fd", "unavailable", 40)
     unavailable_open = list(_fl._RECORDS[entry].log.open or [])
     stops = hass.bus.listeners_for(_FL_STOP)
+    before = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0)
     for stop in stops:
         await stop(None)
+    _FL_STOPPED.extend([_fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0) - before, len(hass.state_listeners)])
     hass2, entry2 = _FlHass({"sensor.fd": _fl_state("E5", 30)}), _fl_entry(entry_id="fl_restart")
     await _fl.async_setup(hass2, entry2, _FL_TEXT)
     continued = _fl._RECORDS[entry2].log
     return len(stops), unavailable_open, continued.open, continued.episodes
 
 
+_FL_STOPPED = []
 _fl_stops, _fl_unav, _fl_cont_open, _fl_cont_rows = _fl_aio.run(_fl_restart())
 _FL_S30 = int(_FL_T0.timestamp()) + 30
 R.check(
     "unavailable mid-episode does not close the row; open, the stop event, then a reload whose first "
     "read is the same code: the row continues with its original start",
-    _fl_stops == 1 and _fl_unav == [_FL_S30, "E5"] and _fl_cont_open == [_FL_S30, "E5"] and _fl_cont_rows == [],
+    _fl_stops == 1 and _fl_unav == [_FL_S30, "E5"] and _fl_cont_open == [_FL_S30, "E5"] and _fl_cont_rows == []
+    and _FL_STOPPED == [1, 0],
     f"stops={_fl_stops} unavailable={_fl_unav} open={_fl_cont_open} rows={_fl_cont_rows}",
 )
 
@@ -99394,14 +99404,18 @@ async def _fl_late():
     await _fl.async_close(entry)
     hass2, entry2 = _FlHass({"sensor.fd": _fl_state("OK", 500)}), _fl_entry(entry_id="fl_late")
     await _fl.async_setup(hass2, entry2, _FL_TEXT)
+    await _fl_fire(hass2, "sensor.fd", "E5", 600)
+    await _fl_fire(hass2, "sensor.fd", "OK", 640)
     return _fl._RECORDS[entry2].log
 
 
 _fl_late_log = _fl_aio.run(_fl_late())
 R.check(
-    "a stored P3 whose first read after a restart is OK closes at that read, marked late",
+    "a stored P3 whose first read after a restart is OK closes at that read, marked late; the next row, "
+    "watched from start to end, is not",
     _fl_late_log.open is None
-    and _fl_late_log.episodes == [[int(_FL_T0.timestamp()) + 5, int(_FL_T0.timestamp()) + 500, "P3", True]],
+    and _fl_late_log.episodes == [[int(_FL_T0.timestamp()) + 5, int(_FL_T0.timestamp()) + 500, "P3", True],
+                                  [int(_FL_T0.timestamp()) + 600, int(_FL_T0.timestamp()) + 640, "E5", False]],
     f"{_fl_late_log.episodes}",
 )
 
@@ -99487,6 +99501,32 @@ R.check(
     f"{_fl_bm_mid} {_fl_bm_held} {_fl_bm}",
 )
 
+async def _fl_edges():
+    hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id="fl_edges")
+    await _fl.async_setup(hass, entry, _FL_TEXT)
+    rec = _fl._RECORDS[entry]
+    rec.saved_at = _FL_CLOCK[0] - (_fl.SAVE_MIN_S - 1.0)
+    _fl._request_save(rec)
+    delays = [delay for delay, _a in getattr(hass, "timers", [])]
+
+    class _Refusing:
+        async def async_save(self, data):
+            raise OSError("disk full")
+
+    rec.store = _Refusing()
+    await _fl._save(rec)
+    await _fl.async_setup(hass, entry, {})
+    return delays, _fl.diagnostics_view(entry)
+
+
+_fl_edge_delays, _fl_edge_view = _fl_aio.run(_fl_edges())
+R.check(
+    "one second before the save window ends a change waits one second, never saves at once; a save that "
+    "raises is logged, not raised; setting the entry up again with no fault slot drops the old record",
+    _fl_edge_delays == [1.0] and _fl_edge_view is None,
+    f"{_fl_edge_delays} {_fl_edge_view}",
+)
+
 # 9: the prefill rows (the device route's roles are pinned in W1067-G7b-1's table above).
 _fl_dev = {"sensor.rw_fault_description": FakeState("OK"), "binary_sensor.rw_fault_alarm": FakeState("off")}
 _fl_dev_roles = {
@@ -99552,6 +99592,7 @@ R.check(
     "a synthetic day of one 4-hour P3 and twelve 40-second E5s gives 13 rows and an E5 tally of 12; "
     "null control, sampling the same day once per 30-minute cycle, today's path, sees at most 2",
     len(_fl_events.episodes) == 13 and _fl_events.codes["E5"][0] == 12 and _fl_events.codes["P3"][1] == 4 * 3600
+    and _fl_events.codes["E5"][2] == 19 * 3600 + 640
     and len(_fl_cycles.episodes) <= 2,
     f"events={len(_fl_events.episodes)} cycles={len(_fl_cycles.episodes)}",
 )

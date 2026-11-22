@@ -242,9 +242,8 @@ def _seconds(state: Any) -> int:
 def _reading(rec: _Record, entity_id: str, state: Any) -> tuple[bool, str | None]:
     """``(readable, text)`` after ``entity_id`` reads ``state``."""
     raw = getattr(state, "state", None)
-    if raw is None or str(raw).strip().lower() in _UNREAD:
+    if not isinstance(raw, str) or raw.strip().lower() in _UNREAD:
         return (False, None)
-    raw = str(raw)
     if rec.kind == "text":
         rec.last[entity_id] = raw
         rec.log.source = "text"
@@ -332,7 +331,6 @@ async def async_close(entry: Any) -> None:
     for release in (rec.unsub, rec.timer):
         if release is not None:
             release()
-    rec.unsub = rec.timer = None
     await _save(rec)
 
 
