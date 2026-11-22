@@ -1,0 +1,34 @@
+RESULT module_excess_loc=21779 count
+FAIL module_excess_loc 21779 > 21718 (+61)
+1 STRUCTURE BUDGET(S) BREACHED
+rc=1
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_copies 5 <= 5
+  ok   functions_cc_over_15 26 <= 26
+  ok   functions_cc_over_25 7 <= 7
+  ok   import_cycle_modules 0 <= 0
+  ok   max_cc 44 <= 44
+  ok   max_class_loc 7868 <= 7868
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 14 <= 14
+  ok   methods_over_200 7 <= 7
+FAIL module_excess_loc 21779 > 21718 (+61)
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 413 <= 413
+
+1 STRUCTURE BUDGET(S) BREACHED
+Three responses, all of them deliberate: pay for the lines
+elsewhere; re-record because the tree genuinely improved; or, for
+a genuine new production FEATURE, RAISE the budget because the
+capability is worth the structure it costs. Paying is the first
+question; a raise is for when the honest answer is that you
+cannot. A raise needs the repository OWNER'S EXPLICIT CONFIRMATION
+before the branch is pushed -- stop and ask, do not push and
+explain.
+A budget may only be re-recorded deliberately, on a clean tree,
+with the reason in the COMMIT -- never to make a failure go away.
+--record refuses any row that moves the wrong way unless you pass
+--allow-regression="<reason>", and that reason belongs in the commit
+message: main's history keeps it and never a pull-request body.
+rc=1
