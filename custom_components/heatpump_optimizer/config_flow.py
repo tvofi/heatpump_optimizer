@@ -63,6 +63,8 @@ from .const import (
     CONF_HEAT_PUMP_DEFROST_ENTITY,
     CONF_HEAT_PUMP_ONLINE_ENTITY,
     CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES,
+    FAULT_TEXT_ENTITIES_MAX,
     CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
     CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
     CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
@@ -1127,7 +1129,7 @@ def _valid_months_spec(spec: Any) -> bool:
 
 
 def _entity_of(
-    domain: str | list[str], device_class: str | None = None
+    domain: str | list[str], device_class: str | None = None, *, multiple: bool = False
 ) -> selector.EntitySelector:
     """An entity picker, optionally narrowed to a device class.
 
@@ -1145,7 +1147,7 @@ def _entity_of(
     if device_class is not None:
         entity_filter["device_class"] = [device_class]
     return selector.EntitySelector(
-        selector.EntitySelectorConfig(filter=[entity_filter])
+        selector.EntitySelectorConfig(filter=[entity_filter], multiple=multiple)
     )
 
 
@@ -1424,31 +1426,18 @@ def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
 
     Flat, and deliberately so: this is the reconfigure path's key source and
     ``_first_screen_schema`` merges it, both of which want the bare markers.
-    ``_user_sensors_sections`` is what the setup page renders (#824).
+    ``_user_sensors_sections`` is what the setup page renders (#824). The keys
+    are ``_USER_SENSORS_GROUPS``'s, each rendered by its registry row; two
+    carry a default.
     """
+    defaults = {
+        CONF_SOLAR_FORECAST_SOURCE: DEFAULT_SOLAR_FORECAST_SOURCE,
+        CONF_SOLAR_LOCATION: _default_location(hass, {}),
+    }
     return {
-        vol.Optional(CONF_INDOOR_TEMP_ENTITY): _prefill_row(CONF_INDOOR_TEMP_ENTITY).widget,
-        vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _prefill_row(CONF_OUTDOOR_TEMP_ENTITY).widget,
-        vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _prefill_row(CONF_HEAT_PUMP_SWITCH_ENTITY).widget,
-        vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _prefill_row(CONF_SOLAR_RADIATION_ENTITY).widget,
-        vol.Optional(
-            CONF_SOLAR_FORECAST_SOURCE,
-            default=DEFAULT_SOLAR_FORECAST_SOURCE,
-        ): _prefill_row(CONF_SOLAR_FORECAST_SOURCE).widget,
-        vol.Optional(
-            CONF_SOLAR_LOCATION,
-            default=_default_location(hass, {}),
-        ): _prefill_row(CONF_SOLAR_LOCATION).widget,
-        vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _prefill_row(CONF_FLOOR_RETURN_TEMP_ENTITY).widget,
-        vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _prefill_row(CONF_LOWER_FLOOR_TEMP_ENTITY).widget,
-        vol.Optional(CONF_DHW_TEMP_ENTITY): _prefill_row(CONF_DHW_TEMP_ENTITY).widget,
-        vol.Optional(
-            CONF_BUFFER_TANK_TEMP_ENTITY
-        ): _prefill_row(CONF_BUFFER_TANK_TEMP_ENTITY).widget,
-        vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _prefill_row(CONF_HEAT_PUMP_MODE_ENTITY).widget,
-        vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _prefill_row(CONF_HEAT_PUMP_DEFROST_ENTITY).widget,
-        vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _prefill_row(CONF_HEAT_PUMP_ONLINE_ENTITY).widget,
-        vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _prefill_row(CONF_HEAT_PUMP_FAULT_ENTITY).widget,
+        (vol.Optional(key, default=defaults[key]) if key in defaults else vol.Optional(key)):
+            _prefill_row(key).widget
+        for _group, keys in _USER_SENSORS_GROUPS for key in keys
     }
 
 
@@ -1488,23 +1477,18 @@ _USER_SENSORS_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
 
 
 def _user_sensors_sections(hass: HomeAssistant) -> dict[Any, Any]:
-    """The setup page's fourteen pickers, grouped as the options flow groups them."""
+    """The setup page's fourteen pickers, grouped as the options flow groups them.
+
+    ``_user_sensors_fields`` is built from the same table, so no picker can be
+    left out of a section: the grouping cannot drop one (the defect #824's
+    flat-field fallback guarded against while the two were separate lists).
+    """
     flat = _user_sensors_fields(hass)
     by_key = {str(getattr(marker, "schema", marker)): marker for marker in flat}
-    placed: set[str] = set()
-    fields: dict[Any, Any] = {}
-    for group, keys in _USER_SENSORS_GROUPS:
-        bucket = {by_key[k]: flat[by_key[k]] for k in keys if k in by_key}
-        placed.update(k for k in keys if k in by_key)
-        if bucket:
-            fields[group] = section(vol.Schema(bucket), {"collapsed": False})
-    # Any field the table above forgot stays visible and flat rather than
-    # vanishing -- a grouping that silently drops a picker is worse than an
-    # ungrouped page, which is the defect this replaces.
-    for key, marker in by_key.items():
-        if key not in placed:
-            fields[marker] = flat[marker]
-    return fields
+    return {
+        group: section(vol.Schema({by_key[k]: flat[by_key[k]] for k in keys}), {"collapsed": False})
+        for group, keys in _USER_SENSORS_GROUPS
+    }
 
 
 def _first_screen_schema(hass: HomeAssistant) -> vol.Schema:
@@ -1769,6 +1753,9 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
+    # The fault's own code text, 1 to FAULT_TEXT_ENTITIES_MAX entities, read only
+    # by ``fault_log``; options-only like the flags below.
+    _F("entities_pump", CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES, _STORED, _entity_of(['sensor', 'text', 'input_text'], multiple=True)),
     # The pump's own electric heat and its night mode. Options-only, with no
     # row in ``topology._SLOTS`` -- the precedent is the compressor-frequency
     # pair above, which is options-only for the same reason: they are not
@@ -2666,6 +2653,12 @@ def _clear_absent(
         if row.default is _STORED and not cleaned.get(row.key):
             cleaned[row.key] = None
     return cleaned
+
+
+async def _fault_text_errors(submit: dict[str, Any], _current: dict[str, Any]) -> dict[str, str]:
+    """A fault-text list is at most ``FAULT_TEXT_ENTITIES_MAX`` entities: the selector caps nothing."""
+    too_many = len(submit.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES) or ()) > FAULT_TEXT_ENTITIES_MAX
+    return {CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: "too_many_fault_text_entities"} if too_many else {}
 
 
 async def _room_list_errors(submit: dict[str, Any], _current: dict[str, Any]) -> dict[str, str]:
@@ -3799,7 +3792,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
         return errors
 
-    async_step_entities_pump = _registry_step("entities_pump")
+    async_step_entities_pump = _registry_step("entities_pump", _fault_text_errors)
 
     async_step_rooms = _registry_step("rooms", _room_list_errors)
 

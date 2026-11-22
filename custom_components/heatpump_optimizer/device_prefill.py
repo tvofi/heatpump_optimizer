@@ -56,6 +56,8 @@ from . import name_match
 from .const import (
     CONF_DHW_TEMP_ENTITY,
     CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
@@ -128,6 +130,10 @@ _TUYA_HEAT_PUMP: dict[tuple[str, str], tuple[str, float]] = {
     ("sensor", "Tin"): (CONF_HEAT_PUMP_RETURN_TEMP_ENTITY, 1.0),
     ("switch", "night_mode"): (CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY, 1.0),
     ("number", "DHWSET"): ("r404", 1.0),
+    # R11-OWNER-FAULT-TEXT (owner ruling 2026-11-22): the model's Fault Alarm
+    # and its dp 20 "Fault Description" (``OK`` or a comma list of codes).
+    ("binary_sensor", "fault"): (CONF_HEAT_PUMP_FAULT_ENTITY, 1.0),
+    ("sensor", "fault_description"): (CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES, 1.0),
 }
 
 #: The pairs above that no other model file in that repo defines at

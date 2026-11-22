@@ -143,12 +143,20 @@ CONF_HOUSE_POWER_ENTITY: Final = "house_power_entity"
 #     the outdoor coil; the interval's electricity bought no room heat at all.
 #   * Online. The one signal that closes a real gap in cloud mode — see the
 #     horizon comment below.
-#   * Fault. Non-zero means the unit is reporting a problem. The code itself
-#     is discarded by the source integration, so what reaches us is a flag.
+#   * Fault. Non-zero means the unit is reporting a problem. This slot is
+#     read as a flag; the codes themselves come from the fault-text slot
+#     below, which only ``fault_log.py`` reads.
 CONF_HEAT_PUMP_MODE_ENTITY: Final = "heat_pump_mode_entity"
 CONF_HEAT_PUMP_DEFROST_ENTITY: Final = "heat_pump_defrost_entity"
 CONF_HEAT_PUMP_ONLINE_ENTITY: Final = "heat_pump_online_entity"
 CONF_HEAT_PUMP_FAULT_ENTITY: Final = "heat_pump_fault_entity"
+#: The pump's fault-description entities (R11-OWNER-FAULT-TEXT): 1 to
+#: ``FAULT_TEXT_ENTITIES_MAX`` sensors whose state is ``OK`` or a comma list of
+#: codes -- the Tuya integration's "Fault Description", the GCHV package's four
+#: "HP Alarm bitmap" sensors. Options-only; the options step enforces the cap,
+#: which a multiple entity selector does not.
+CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: Final = "heat_pump_fault_text_entities"
+FAULT_TEXT_ENTITIES_MAX: Final = 4
 
 # --- What the pump's own electric heat and its night mode are doing --------
 #

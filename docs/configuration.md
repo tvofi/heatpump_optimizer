@@ -96,7 +96,7 @@ Every picker on this second screen is optional; skip any you do not have. Withou
 | Heat pump operating mode | none | The pump's own mode selector — cooling, heating, hot water, or a combination of two. Read only unless **Pump duty control** is set to Control. Left empty, the optimizer assumes the pump can do everything. |
 | Defrosting | none | On while the pump reverses to melt frost off the outdoor coil. A sample of defrost activity, not a stopwatch — many pumps are only polled every few minutes. |
 | Pump online | none | Strongly recommended for a cloud-connected pump. On while the pump is actually reachable, which a stale cloud republish cannot tell you on its own. |
-| Fault alarm | none | On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself. |
+| Fault alarm | none | On while the pump is reporting a fault. The optimizer pauses its learning while it is on, and discards a duty-switch measurement with a fault in it. Without a Fault text entity (options, Heat pump telemetry), each fault's start and end are kept for Download diagnostics, with a numeric reading's code in hex. |
 
 The heat-curve settings (the MQTT topics and the entity, for the three ways
 in [heat-curve.md](heat-curve.md)) are not asked during setup. Questions only
@@ -160,6 +160,8 @@ empty skips the screen. Where each suggestion comes from is listed under
 | Return water temperature | read from the device | Suggested only while the slot is empty. |
 | Actual frequency sensor (recommended for control) | read from the device | Suggested only while the slot is empty. |
 | Capacity limited (night mode) | read from the device | Suggested only while the slot is empty. |
+| Fault alarm | read from the device | Suggested only while the slot is empty: the Tuya integration's *Fault Alarm*, the GCHV Modbus package's *HP Alarm*. Keeping it brings the install under the readers of that slot: learning pauses while the pump reports a fault, and a duty-switch measurement with a fault in it is discarded. The GCHV alarm registers also report non-blocking warnings, and *HP Alarm* reads on for those too. |
+| Fault text | read from the device | Suggested only while the slot is empty, as a one-entity list: the Tuya integration's *Fault Description*. A GCHV package's four alarm sensors are not suggested; pick them on **Heat pump telemetry**. |
 | After saving | Menu | The options page's own navigation control, shown on this form too; setup continues to the finish menu whatever it says. |
 
 ### 4 · Temperature Settings
@@ -580,7 +582,7 @@ What the second form can suggest, and where each value comes from:
 | Heat pump max power (kW) | Unit capacity (1006H) | the unit's thermal capacity divided by the nominal COP in force |
 | What that set-point entity expects | Control mode (100DH) | *flow* when the unit runs on water temperature control |
 | What the control entity expects | Control mode (100DH) | *flow* on water temperature control, and only where the two-zone model the building page requires for it is configured |
-| Outdoor temperature sensor, Hot water tank temperature sensor, Supply (flow) water temperature, Return water temperature, Actual frequency sensor (recommended for control), Capacity limited (night mode) | the package's own sensors | suggested only while that slot is empty |
+| Outdoor temperature sensor, Hot water tank temperature sensor, Supply (flow) water temperature, Return water temperature, Actual frequency sensor (recommended for control), Capacity limited (night mode), Fault alarm (*HP Alarm*) | the package's own sensors | suggested only while that slot is empty |
 
 A register that is missing or unreadable suggests nothing, a value equal to the
 one already in force is not suggested, and a value outside its field's own
@@ -664,7 +666,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Hot water start hysteresis | none | `sensor` / `number` / `input_number`, K | Optional. The pump's own hot water start hysteresis, a temperature difference; the plan places no charge on a tank at or above the hot water target less this. |
 | Defrosting | from setup | a binary sensor | On while the pump reverses to melt frost off the outdoor coil. |
 | Pump online | from setup | a binary sensor | On while the pump is actually reachable. |
-| Fault alarm | from setup | a binary sensor | On while the pump is reporting a fault. Only whether there is a fault is used. |
+| Fault alarm | from setup | a binary sensor | On while the pump is reporting a fault. The optimizer pauses its learning while it is on, and discards a duty-switch measurement with a fault in it. Without a Fault text entity, each fault's start and end are kept for Download diagnostics, with a numeric reading's code in hex. |
+| Fault text | none | 1 to 4 `sensor` / `text` / `input_text` entities | The pump's fault description: `OK`, or a comma list of codes such as `E5, P3`. Each fault's codes, start and end are kept for the last 200 faults, across restarts, and appear under `fault_log` in Download diagnostics; a fault that clears inside a minute is still recorded. A state of `OK`, `normal`, `none`, `no fault`, empty, or an off or idle word is no fault; **any other text is recorded as a code**, whatever the entity is, a status sensor or your own `input_text` included, so pick a fault description. On the Tuya integration this is the *Fault Description* sensor (pre-filled). On the GCHV Modbus package pick its four *HP Alarm bitmap 1–4* sensors: each reads `OK` or the names of its set bits, ending in the code, such as `IPM protection (P6)`. |
 | Space backup heater | none | a flag entity | On while the pump's own electric backup heater runs in the space heating circuit. Those kilowatts are not the compressor, so the optimizer stops reading the meter as an efficiency measurement while it is on — but the heat still counts, because it is real heat into the house. Worth filling in mainly on a pump that publishes no power meter, where there is otherwise no way to notice the element at all. |
 | Hot water tank booster | none | a flag entity | On while the electric heater in the hot water tank runs. Treated like the backup heater above, and each switch-on is also recorded as a hot water rescue: if those recur and you have turned on immersion feedback, the plan starts heating the tank a little earlier. |
 | Capacity limited (night mode) | none | a flag entity | On while the pump runs at a reduced compressor speed — night or silent mode on most units. Efficiency and capacity are not learned from those intervals, because what the machine shows then is the cap's. Cost and heat accounting still use the measured power: a speed-capped compressor draws exactly what the meter says. |

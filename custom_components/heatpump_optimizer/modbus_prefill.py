@@ -55,6 +55,8 @@ from .const import (
     CONF_DHW_WINDOWS,
     CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_HEAT_PUMP_COP_NOMINAL,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES,
     CONF_HEAT_PUMP_MAX_POWER,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
@@ -100,6 +102,8 @@ _NAMED = {
     CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: (
         "binary_sensor.{p}_night_mode_frequency_reduction_active"
     ),
+    # "HP Alarm": an OR over the four alarm registers, warnings included.
+    CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.{p}_alarm",
 }
 
 #: Day bitmaps put Monday on bit 7 and Sunday on bit 1; bit 0 is no day.
@@ -266,6 +270,12 @@ def infer(
     for slot in _NAMED:
         if slot in snap and slot != "unit_capacity" and not current.get(slot):
             suggestions[slot] = snap[slot][0]
+    # The one list slot, suggested as a one-member list while empty. Only a
+    # device table fills it; the GCHV package's four alarm-text sensors are the
+    # person's to pick (docs/configuration.md).
+    listed = snap.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES)
+    if listed is not None and not current.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES):
+        suggestions |= {CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: [listed[0]]}
     return suggestions
 
 

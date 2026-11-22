@@ -230,7 +230,7 @@
           "heat_pump_mode_entity": "Optional. Die eigene Betriebsartwahl der Pumpe – Kühlen, Heizen, Warmwasser oder eine Kombination aus zwei. Nur lesend, es sei denn, die Steuerung der Pumpenaufgabe ist auf „Steuern“ gesetzt. Eine Pumpe im Kühl- oder reinen Warmwasserbetrieb kann das Haus nicht heizen, und eine im reinen Heizbetrieb kann kein Warmwasser bereiten; ohne diese Angabe kann der Plan also Wärme versprechen, die die Pumpe gerade nicht liefern kann. Bleibt das Feld leer, geht der Optimierer davon aus, dass die Pumpe alles kann.",
           "heat_pump_defrost_entity": "Optional. Ein, solange die Pumpe den Kreislauf umkehrt, um Reif vom Außenregister zu schmelzen. Der während einer Abtauung eingekaufte Strom geht ins Register statt ins Haus. Beachte, dass viele Pumpen nur alle paar Minuten abgefragt werden, sodass kurze Abtauungen völlig übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
           "heat_pump_online_entity": "Optional, aber bei einer cloudverbundenen Pumpe dringend empfohlen. Ein, solange die Pumpe tatsächlich erreichbar ist. Eine Cloud-Integration kann ihre zuletzt bekannten Werte weiter veröffentlichen, obwohl die Pumpe selbst vom Netzwerk getrennt ist; dadurch wirken alle anderen Sensoren völlig aktuell, und dies ist das einzige Signal, das etwas anderes anzeigt. Bei einer lokalen Verbindung (LAN) werden die Sensoren von selbst nicht verfügbar und dies bringt wenig.",
-          "heat_pump_fault_entity": "Optional. Ein, solange die Pumpe eine Störung meldet. Verwendet wird nur, ob eine Störung vorliegt, nie der Code selbst."
+          "heat_pump_fault_entity": "Optional. Ein, solange die Wärmepumpe eine Störung meldet. Der Optimierer pausiert sein Lernen, solange sie ein ist. Ohne eine Störungstext-Entität werden Beginn und Ende jeder Störung für Diagnose herunterladen gespeichert, bei einem numerischen Wert mit dem Code in Hex."
         },
         "sections": {
           "indoor": {
@@ -275,7 +275,7 @@
               "dhw_temp_entity": "Optional, aber empfohlen. Die tatsächliche Speichertemperatur. Ermöglicht außerdem, dass ein manueller Warmwasser-Boost den Legionellen-Timer zurücksetzt.",
               "floor_return_temp_entity": "Optional. Ein Sensor im Fußbodenkreis selbst: das Wasser, das aus den Fußbodenkreisen zurückkommt, nach Pufferspeicher oder Mischventil. Damit wird geschätzt, wie viel Wärme der Estrich hält. Nicht den Rücklaufsensor der Wärmepumpe verwenden: Bei einer Anlage mit Pufferspeicher misst er den Kreis der Wärmepumpe, weit wärmer als der Boden, und der Plan hielte den Estrich für voll und plante keine Heizung. Ein Wert mehr als 12 K über dem Raum wird ignoriert und meldet einen Reparaturhinweis. Leer lassen, wenn es keinen Sensor im Fußbodenkreis gibt.",
               "heat_pump_defrost_entity": "Optional. Ein, solange die Pumpe den Kreislauf umkehrt, um Reif vom Außenregister zu schmelzen. Der während einer Abtauung eingekaufte Strom geht ins Register statt ins Haus. Beachte, dass viele Pumpen nur alle paar Minuten abgefragt werden, sodass kurze Abtauungen völlig übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
-              "heat_pump_fault_entity": "Optional. Ein, solange die Pumpe eine Störung meldet. Verwendet wird nur, ob eine Störung vorliegt, nie der Code selbst.",
+              "heat_pump_fault_entity": "Optional. Ein, solange die Wärmepumpe eine Störung meldet. Der Optimierer pausiert sein Lernen, solange sie ein ist. Ohne eine Störungstext-Entität werden Beginn und Ende jeder Störung für Diagnose herunterladen gespeichert, bei einem numerischen Wert mit dem Code in Hex.",
               "heat_pump_mode_entity": "Optional. Die eigene Betriebsartwahl der Pumpe – Kühlen, Heizen, Warmwasser oder eine Kombination aus zwei. Nur lesend, es sei denn, die Steuerung der Pumpenaufgabe ist auf „Steuern“ gesetzt. Eine Pumpe im Kühl- oder reinen Warmwasserbetrieb kann das Haus nicht heizen, und eine im reinen Heizbetrieb kann kein Warmwasser bereiten; ohne diese Angabe kann der Plan also Wärme versprechen, die die Pumpe gerade nicht liefern kann. Bleibt das Feld leer, geht der Optimierer davon aus, dass die Pumpe alles kann.",
               "heat_pump_online_entity": "Optional, aber bei einer cloudverbundenen Pumpe dringend empfohlen. Ein, solange die Pumpe tatsächlich erreichbar ist. Eine Cloud-Integration kann ihre zuletzt bekannten Werte weiter veröffentlichen, obwohl die Pumpe selbst vom Netzwerk getrennt ist; dadurch wirken alle anderen Sensoren völlig aktuell, und dies ist das einzige Signal, das etwas anderes anzeigt. Bei einer lokalen Verbindung (LAN) werden die Sensoren von selbst nicht verfügbar und dies bringt wenig.",
               "heat_pump_switch_entity": "Optional. Ein Schalter, mit dem die Wärmepumpe in teuren Stunden ausgeschaltet wird.",
@@ -351,7 +351,9 @@
           "dhw_temp_entity": "Temperatursensor Warmwasserspeicher",
           "heat_pump_supply_temp_entity": "Vorlauftemperatur",
           "heat_pump_return_temp_entity": "Rücklauftemperatur",
-          "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)"
+          "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",
+          "heat_pump_fault_entity": "Störungsmeldung",
+          "heat_pump_fault_text_entities": "Störungstext"
         },
         "data_description": {
           "prefill_device": "Das eigene Gerät der Pumpe. Seine Entitäten werden anhand der veröffentlichten Definitionen dieser Integration oder, wo nichts veröffentlicht ist, anhand ihrer Namen den Einstellungen zugeordnet – nicht aus einer Auslesung deines Geräts –, prüfe die Vorschläge daher, bevor du sie übernimmst. Lass es leer, um die Einrichtung ohne Vorausfüllung fortzusetzen.",
@@ -370,7 +372,9 @@
           "dhw_temp_entity": "Der Temperatursensor des Warmwasserspeichers der Wärmepumpe, wird nur vorgeschlagen, solange dieser Platz leer ist.",
           "heat_pump_supply_temp_entity": "Der Sensor für die Austrittswassertemperatur (T1) der Wärmepumpe, wird nur vorgeschlagen, solange dieser Platz leer ist.",
           "heat_pump_return_temp_entity": "Der Sensor für die Eintrittswassertemperatur (Tw-in) der Wärmepumpe, wird nur vorgeschlagen, solange dieser Platz leer ist.",
-          "heat_pump_capacity_limited_entity": "Der Sensor der Wärmepumpe für aktiven Nachtmodus (Frequenzreduzierung), wird nur vorgeschlagen, solange dieser Platz leer ist."
+          "heat_pump_capacity_limited_entity": "Der Sensor der Wärmepumpe für aktiven Nachtmodus (Frequenzreduzierung), wird nur vorgeschlagen, solange dieser Platz leer ist.",
+          "heat_pump_fault_entity": "Die Störungsmeldung der Wärmepumpe (Fault Alarm der Tuya-Integration, HP Alarm des GCHV-Pakets), nur vorgeschlagen, solange dieser Platz leer ist. Wird sie übernommen, pausiert der Optimierer sein Lernen, solange die Wärmepumpe eine Störung meldet, und verwirft eine Messung des Betriebswechsels mit einer Störung darin. Die GCHV-Alarmregister melden auch nicht blockierende Warnungen, die hier ebenfalls als Störung gelten.",
+          "heat_pump_fault_text_entities": "Der Störungsbeschreibungs-Sensor der Wärmepumpe (Fault Description der Tuya-Integration), nur vorgeschlagen, solange dieser Platz leer ist. Codes, Beginn und Ende jeder Störung werden dann für Diagnose herunterladen gespeichert."
         }
       }
     },
@@ -1283,6 +1287,7 @@
           "heat_pump_defrost_entity": "Abtauen",
           "heat_pump_online_entity": "Pumpe online",
           "heat_pump_fault_entity": "Störungsmeldung",
+          "heat_pump_fault_text_entities": "Störungstext",
           "heat_pump_backup_heater_entity": "Zuheizer für Raumheizung",
           "heat_pump_dhw_booster_entity": "Heizstab im Warmwasserspeicher",
           "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",
@@ -1297,7 +1302,8 @@
           "dhw_hysteresis_entity": "Optional. Ein Sensor oder eine Zahl mit der eigenen Starthysterese der Pumpe für Warmwasser als Temperaturdifferenz in K (°C gilt unverändert, °F wird umgerechnet; 0 bis 20 K): Die Pumpe startet eine Ladung erst, wenn der Speicher unter dem Warmwasser-Sollwert minus diesem Wert liegt. Der Plan setzt dann keine Ladung auf einen wärmeren Speicher (eine für den aktuellen Schritt geplante Ladung bleibt, da sie schon laufen kann; eine Desinfektionsladung wird an der Desinfektionstemperatur gemessen), und das Funktionsprotokoll markiert einen Warmwasser-Leerlaufschritt auf so einem Speicher als not-startable statt idle-instead. Ein Warmwasser-Minimum über dieser Starttemperatur kann die Pumpe nicht halten und löst eine Warnung aus. Bleibt sie leer, unlesbar oder 0, gilt jede geplante Ladung als startend.",
           "heat_pump_defrost_entity": "Optional. Ein, solange die Wärmepumpe den Kreislauf umkehrt, um Frost vom Außenwärmetauscher zu schmelzen. Der während einer Abtauung bezogene Strom geht in den Wärmetauscher statt ins Haus. Beachte, dass viele Wärmepumpen nur alle paar Minuten abgefragt werden, kurze Abtauvorgänge also komplett übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
           "heat_pump_online_entity": "Optional und bei einer cloudverbundenen Wärmepumpe dringend empfohlen. Ein, solange die Wärmepumpe tatsächlich erreichbar ist. Eine Cloud-Integration kann ihre letzten bekannten Werte weiter veröffentlichen, obwohl die Wärmepumpe selbst vom Netzwerk getrennt ist, sodass alle anderen Sensoren völlig aktuell aussehen; dies ist das einzige Signal, das etwas anderes sagt. Bei einer lokalen Verbindung (LAN) werden die Sensoren von selbst nicht verfügbar, und dies bringt wenig.",
-          "heat_pump_fault_entity": "Optional. Ein, solange die Wärmepumpe eine Störung meldet. Verwendet wird nur, ob eine Störung vorliegt, nie der Code selbst.",
+          "heat_pump_fault_entity": "Optional. Ein, solange die Wärmepumpe eine Störung meldet. Der Optimierer pausiert sein Lernen, solange sie ein ist. Ohne eine Störungstext-Entität werden Beginn und Ende jeder Störung für Diagnose herunterladen gespeichert, bei einem numerischen Wert mit dem Code in Hex.",
+          "heat_pump_fault_text_entities": "Optional. Bis zu 4 Entitäten, deren Zustand die Störungsbeschreibung der Wärmepumpe ist: OK oder eine kommagetrennte Liste von Codes wie \"E5, P3\" - die Fault Description der Tuya-Integration oder die vier HP Alarm bitmap-Sensoren des GCHV-Modbus-Pakets. Codes, Beginn und Ende jeder Störung werden für die letzten 200 Störungen gespeichert und erscheinen in Diagnose herunterladen. Jeder andere Text als OK, normal oder ein Ruhe-Wort wird als Code gespeichert, gleich welche Entität es ist, daher eine Störungsbeschreibung wählen und keinen Statussensor.",
           "heat_pump_backup_heater_entity": "Optional. Ein, solange der eigene elektrische Zuheizer der Wärmepumpe im Raumheizkreis läuft. Resistive Kilowatt am Zähler bedeuten nicht, dass der Verdichter ineffizient ist; solange dies eingeschaltet ist, wertet der Optimierer den Zähler daher nicht als Effizienzmessung. Die Wärme zählt weiterhin: Sie ist echte Wärme im Haus, und die Hauslernmodelle laufen weiter. Vor allem nützlich, wenn deine Wärmepumpe keinen Leistungsmesser veröffentlicht, da es sonst keine Möglichkeit gibt, das Heizelement überhaupt zu bemerken.",
           "heat_pump_dhw_booster_entity": "Optional. Ein, solange der elektrische Heizstab im Warmwasserspeicher läuft. Wird wie der Zuheizer oben behandelt, und jedes Einschalten wird zusätzlich als Warmwasser-Notfall erfasst – wiederholt sich das und du hast die Option für die Heizstab-Rückmeldung eingeschaltet, beginnt der Plan, den Speicher etwas früher zu heizen, statt für die Differenz resistive Preise zu zahlen.",
           "heat_pump_capacity_limited_entity": "Optional. Ein, solange die Wärmepumpe mit reduzierter Verdichterdrehzahl läuft, was die meisten Geräte Nachtmodus oder Flüstermodus nennen. Was die Wärmepumpe dann aufnimmt und abgibt, entspricht nicht ihrem uneingeschränkten Verhalten, daher lernt der Optimierer aus diesen Intervallen weder Effizienz noch Leistung. Für Kosten und Wärmebilanz verwendet er weiterhin die gemessene Leistung, denn ein drehzahlbegrenzter Verdichter nimmt genau das auf, was der Zähler anzeigt.",
@@ -1558,6 +1564,8 @@
           "heat_pump_return_temp_entity": "Rücklauftemperatur",
           "compressor_freq_sensor": "Sensor der Ist-Frequenz (für die Steuerung empfohlen)",
           "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",
+          "heat_pump_fault_entity": "Störungsmeldung",
+          "heat_pump_fault_text_entities": "Störungstext",
           "after_save": "Nach dem Speichern",
           "prefill_offer": "Diese Vorbefüllung bei der Einrichtung anbieten"
         },
@@ -1580,6 +1588,8 @@
           "heat_pump_return_temp_entity": "Der Sensor für die Eintrittswassertemperatur (Tw-in) des Pakets, nur vorgeschlagen, solange dieser Platz leer ist.",
           "compressor_freq_sensor": "Der Sensor für die tatsächliche Verdichterfrequenz des Pakets, nur vorgeschlagen, solange dieser Platz leer ist.",
           "heat_pump_capacity_limited_entity": "Der Sensor des Pakets für aktiven Nachtmodus (Frequenzreduzierung), nur vorgeschlagen, solange dieser Platz leer ist.",
+          "heat_pump_fault_entity": "Die Störungsmeldung der Wärmepumpe (Fault Alarm der Tuya-Integration, HP Alarm des GCHV-Pakets), nur vorgeschlagen, solange dieser Platz leer ist. Wird sie übernommen, pausiert der Optimierer sein Lernen, solange die Wärmepumpe eine Störung meldet, und verwirft eine Messung des Betriebswechsels mit einer Störung darin. Die GCHV-Alarmregister melden auch nicht blockierende Warnungen, die hier ebenfalls als Störung gelten.",
+          "heat_pump_fault_text_entities": "Der Störungsbeschreibungs-Sensor der Wärmepumpe (Fault Description der Tuya-Integration), nur vorgeschlagen, solange dieser Platz leer ist. Codes, Beginn und Ende jeder Störung werden dann für Diagnose herunterladen gespeichert.",
           "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt.",
           "prefill_offer": "Wenn aktiviert, bietet das Einrichten eines neuen Eintrags diese Seite an, falls ein zu dieser Installation hinzugefügtes Wärmepumpen-Gerät eine dieser Einstellungen füllen kann. Standardmäßig aus: Der Einrichtungsassistent bleibt unverändert, solange sie aus ist, und dieser Schalter wird gespeichert, übersteht also einen Neustart."
         }
@@ -1631,7 +1641,8 @@
       "heat_curve_unreadable": "Diese Entität hat gerade keinen Wert, daher ist unbekannt, auf welchen Wert sie beim Ausschalten zurückgesetzt würde. Wähle eine Entität, die einen Wert meldet, oder speichere erneut, sobald sie es tut.",
       "heat_curve_out_of_range": "Diese Entität zeigt einen Wert außerhalb ihres eigenen angegebenen Bereichs, daher kann sie nicht sicher verschoben werden. Prüfe die Entität zuerst in ihrer Integration.",
       "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität.",
-      "too_many_rooms": "Es können höchstens 32 Raumthermometer angegeben werden."
+      "too_many_rooms": "Es können höchstens 32 Raumthermometer angegeben werden.",
+      "too_many_fault_text_entities": "Es können höchstens 4 Störungstext-Entitäten angegeben werden."
     },
     "abort": {
       "factory_reset_done": "Zurücksetzen abgeschlossen. Die Integration wurde neu geladen und plant wieder. Um das Zurücksetzen rückgängig zu machen, führe die Aktion „Gelernte Momentaufnahme wiederherstellen“ aus.",
