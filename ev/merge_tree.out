@@ -1,0 +1,4 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+LEDGER-MERGE: resolved tests/closures.json
+7be14e4df133a7e230882212ce647ff14e8ec31d
+rc=0

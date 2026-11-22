@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index f703901770..65aaf832d4 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -2268,7 +2268,7 @@ async def _release_row(_hass: Any, entry: Any, _config: Any, reason: str) -> boo
+     writes drops only what is cleared here anyway.
+     """
+     coord = getattr(entry, "runtime_data", None)
+-    if coord is None:
++    if False:
+         return False
+     inp, held, now = coord.arbiter_inputs(), state_for(coord), dt_util.now()
+     if reason != "unload" and _pump_off(inp, held):

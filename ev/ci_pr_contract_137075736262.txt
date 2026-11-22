@@ -1,0 +1,5 @@
+pr-contract / pr-contract, job 137075736262, at head dd399a0078992afd9d55e6e3d1a0849b575fdb14, conclusion failure. Excerpt:
+ERROR   [figure-block] line 139: block `scope-line` names head=6e37c4c3362f mb=4ebd430fbff9, this run is head=dd399a007899 mb=4ebd430fbff9; re-render with `figure_block.py refresh <body>`
+figure_block verify: 1 block(s), 1 refused
+CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+no version edit: origin/main...dd399a00 moves none of VERSION, the manifest version or a notes heading

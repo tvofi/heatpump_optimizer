@@ -1,0 +1,10 @@
+tests / mutation, job 137048858549 (run 44969842900), at head dd399a0078992afd9d55e6e3d1a0849b575fdb14, conclusion failure. Excerpt of the job log read via get_job_logs:
+ADDED UNPINNED custom_components/heatpump_optimizer/freq_control.py:319 CMP_BOUND
+ADDED UNPINNED custom_components/heatpump_optimizer/freq_control.py:325 RETURN_DEL
+ADDED UNPINNED custom_components/heatpump_optimizer/mixing_valve.py:244 RETURN_DEL
+ADDED UNPINNED custom_components/heatpump_optimizer/off_restore.py:234 GUARD_OFF
+ADDED UNPINNED custom_components/heatpump_optimizer/off_restore.py:235 GUARD_OFF
+ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1833 BOOLOP
+ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:2281 GUARD_OFF
+MUTATION TABLE REFUSED -- 1954 unpinned site(s) against 1950 at the ratchet base e4c929bd1c96e8a23636d1f1f086c38de1852853, 7 of them added by this diff.
+Pin shards: count=2 shards=[1, 2]; tests / mutation-pins (1) id=137054148530 and (2) id=137054148519 in_progress at packet render.

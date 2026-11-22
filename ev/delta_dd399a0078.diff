@@ -1,0 +1,54 @@
+commit dd399a0078992afd9d55e6e3d1a0849b575fdb14
+Author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+Date:   Sun Nov 22 01:06:02 2026 +0000
+
+    ci: pin killed mutants
+
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._command_valve_target.GUARD_OFF.9a0bd3f8.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._command_valve_target.GUARD_OFF.9a0bd3f8.json
+new file mode 100644
+index 0000000000..531472148a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._command_valve_target.GUARD_OFF.9a0bd3f8.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._command_valve_target GUARD_OFF 9a0bd3f8",
++  "killed_by": "tests/features.py",
++  "old": "        if log_held(self, \"valve_write\", valve.problem is not None, \"Valve write entity %s %s\", entity_id, valve.problem):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/mixing_valve.py/ValveTarget.command.CMP_BOUND.9e52e37e.json b/tests/mutation_ledger/killed_by/mixing_valve.py/ValveTarget.command.CMP_BOUND.9e52e37e.json
+new file mode 100644
+index 0000000000..d3cc27d781
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/mixing_valve.py/ValveTarget.command.CMP_BOUND.9e52e37e.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/mixing_valve.py:ValveTarget.command CMP_BOUND 9e52e37e",
++  "killed_by": "tests/features.py",
++  "old": "        if self.commanded_c is not None and abs(target_c - self.commanded_c) < self.epsilon_k:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if self.commanded_c is not None and abs(target_c - self.commanded_c) <= self.epsilon_k:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/off_restore.py/_arm_restorer.GUARD_OFF.72d8a4e6.json b/tests/mutation_ledger/killed_by/off_restore.py/_arm_restorer.GUARD_OFF.72d8a4e6.json
+new file mode 100644
+index 0000000000..4be5e21131
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/off_restore.py/_arm_restorer.GUARD_OFF.72d8a4e6.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/off_restore.py:_arm_restorer GUARD_OFF 72d8a4e6",
++  "killed_by": "tests/features.py",
++  "old": "    if baseline is None and restorer.neutral is None and not restorer.write_unread:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/pump_arbiter.py/_release_row.GUARD_OFF.88e2f26e.json b/tests/mutation_ledger/killed_by/pump_arbiter.py/_release_row.GUARD_OFF.88e2f26e.json
+new file mode 100644
+index 0000000000..00db37f89b
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/pump_arbiter.py/_release_row.GUARD_OFF.88e2f26e.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_release_row GUARD_OFF 88e2f26e",
++  "killed_by": "tests/features.py",
++  "old": "    if coord is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}

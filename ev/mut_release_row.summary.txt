@@ -1,0 +1,4 @@
+Mutant: pump_arbiter.py:2271 `if coord is None:` -> `if False:` (the pinned _release_row GUARD_OFF 88e2f26e), detached worktree at dd399a0078992afd9d55e6e3d1a0849b575fdb14, `PYTHONPATH=tests/hastub python3 tests/features.py`.
+KILLED: output line 5742 reads
+  FAIL the row's release on an entry whose coordinator is gone answers not done without raising: the row stays armed and nothing is logged as failed
+and its null control on 5743 passes. Run stopped by the reviewer after the kill (~15 min in, 7395 lines), so no final summary line; this is a kill check only, not a full-suite count.
