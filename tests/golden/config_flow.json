@@ -1078,6 +1078,7 @@
   "heat_pump_dhw_booster_entity": "sensor.seed_heat_pump_dhw_booster_entity",
   "heat_pump_energy_entity": "sensor.seed_heat_pump_energy_entity",
   "heat_pump_fault_entity": "sensor.seed_heat_pump_fault_entity",
+  "heat_pump_fault_text_entities": "sensor.seed_heat_pump_fault_text_entities",
   "heat_pump_heat_energy_entity": "sensor.seed_heat_pump_heat_energy_entity",
   "heat_pump_mode_entity": "sensor.seed_heat_pump_mode_entity",
   "heat_pump_online_entity": "sensor.seed_heat_pump_online_entity",
@@ -2368,6 +2369,15 @@
      "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
     },
     "default": "'sensor.seed_heat_pump_fault_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_pump_fault_text_entities": {
+    "config": {
+     "filter": "[{'domain': ['sensor', 'text', 'input_text']}]",
+     "multiple": "True"
+    },
+    "default": "'sensor.seed_heat_pump_fault_text_entities'",
     "required": "Optional",
     "selector": "EntitySelector"
    },
@@ -5121,6 +5131,15 @@
   "heat_pump_fault_entity": {
    "config": {
     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_fault_text_entities": {
+   "config": {
+    "filter": "[{'domain': ['sensor', 'text', 'input_text']}]",
+    "multiple": "True"
    },
    "default": null,
    "required": "Optional",

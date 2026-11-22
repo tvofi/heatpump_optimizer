@@ -795,3 +795,4 @@
 # against the merge base, one environment). Claimed rather than re-recorded, as
 # R10-COP-GATE-D's keys were: the committed files were patched in those three
 # paths alone, each null because a coord fixture holds no plan.
+config_flow # R11-OWNER-FAULT-TEXT (#3857): Heat pump telemetry gains the fault-text list (heat_pump_fault_text_entities, a multiple entity selector of sensor, text and input_text), so the plain render, the seeded render and the seed each gain it; the 3 leaves that move are each "present on one side only", ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No plan reads the slot: the other 55 fixtures are byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
