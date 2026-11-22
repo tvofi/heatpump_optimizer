@@ -1,0 +1,155 @@
+### dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py
+RESULT ingest_comfort_away=1 count
+RESULT ingest_dhw_draws_away=1 count
+RESULT ingest_internal_gains_away=1 count
+RESULT learners_universe=21 count
+RESULT learners_examined=21 count
+RESULT contaminated_ingest=3 count
+RESULT thread_factor=1.000
+RESULT load1=0.91
+RESULT swapins=0
+### dev/audit/rounds/round11/D7/s2/m3_away_drift.py
+RESULT comfort_weight_ratio_away_14d=1.0000 ratio
+RESULT comfort_weight_ratio_home_null_14d=1.0000 ratio
+RESULT dhw_zero_occurrences_0600_0900_away0d=0 count (of 26)
+RESULT dhw_p50_0600_0900_away0d=1.600 kWh
+RESULT dhw_p90_0600_0900_away0d=2.066 kWh
+RESULT dhw_zero_occurrences_1800_2200_away0d=0 count (of 26)
+RESULT dhw_p50_1800_2200_away0d=1.593 kWh
+RESULT dhw_p90_1800_2200_away0d=2.079 kWh
+RESULT dhw_zero_occurrences_0600_0900_away14d=14 count (of 40)
+RESULT dhw_p50_0600_0900_away14d=1.248 kWh
+RESULT dhw_p90_0600_0900_away14d=2.066 kWh
+RESULT dhw_zero_occurrences_1800_2200_away14d=14 count (of 40)
+RESULT dhw_p50_1800_2200_away14d=1.250 kWh
+RESULT dhw_p90_1800_2200_away14d=2.079 kWh
+RESULT dhw_zero_occurrences_0600_0900_away28d=28 count (of 40)
+RESULT dhw_p50_0600_0900_away28d=0.025 kWh
+RESULT dhw_p90_0600_0900_away28d=1.832 kWh
+RESULT dhw_zero_occurrences_1800_2200_away28d=28 count (of 40)
+RESULT dhw_p50_1800_2200_away28d=0.031 kWh
+RESULT dhw_p90_1800_2200_away28d=1.821 kWh
+RESULT gains_profile_mean_over_g0_absent50pct_14d=0.6898 ratio
+RESULT gains_profile_mean_over_g0_absent100pct_14d=0.3796 ratio
+RESULT thread_factor=1.000
+RESULT load1=1.08
+RESULT swapins=0
+### dev/audit/rounds/round11/D12/s3/counter_spans.py --sees-dhw --no-mode
+RESULT arm=sees_dhw+no_mode+dhw_timer
+RESULT cycles_ok=16 count (of 16)
+RESULT plans_published=16 count
+RESULT spans_closed=7 count
+RESULT spans_with_dhw=0 count
+RESULT spans_observed=0 count
+RESULT spans_plan_dhw_share=1 count
+RESULT bad_spans=0 count
+RESULT spans_true_dhw=3 count
+RESULT inflated_space_spans=2 count
+RESULT inflated_spans_folded=2 count
+RESULT space_spans_folded=4 count
+RESULT cop_records=5 count
+RESULT dhw_cop_records=0 count
+RESULT dhw_cop_records_unseen=0 count
+RESULT wall_s=16.4 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=1.57
+RESULT swapins=0
+### dev/audit/rounds/round11/D12/s3/counter_spans.py --plan-only
+RESULT arm=unseen+tuya_mode+plan_only
+RESULT cycles_ok=16 count (of 16)
+RESULT plans_published=16 count
+RESULT spans_closed=7 count
+RESULT spans_with_dhw=0 count
+RESULT spans_observed=7 count
+RESULT spans_plan_dhw_share=0 count
+RESULT bad_spans=0 count
+RESULT spans_true_dhw=0 count
+RESULT inflated_space_spans=0 count
+RESULT inflated_spans_folded=0 count
+RESULT space_spans_folded=4 count
+RESULT cop_records=4 count
+RESULT dhw_cop_records=0 count
+RESULT dhw_cop_records_unseen=0 count
+RESULT wall_s=12.4 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=1.89
+RESULT swapins=0
+### dev/audit/rounds/round11/D2/s3/m5_tankfall.py
+RESULT booked_kwh_long_max=3.0160 kWh
+RESULT booked_kwh_short_max=0.0389 kWh
+RESULT booked_kwh_unplanned_max=3.0160 kWh
+RESULT thread_factor=1.0000
+RESULT load1=1.89
+RESULT swapins=0
+### dev/audit/rounds/round11/D2/s3/m5_drawrange.py --run-samples 200
+RESULT narrowing_censored_kw=4.100 kW
+RESULT narrowing_uncensored_agree_kw=0.000 kW
+RESULT uncensored_overstated_learned_max_kw=4.000 kW
+RESULT thread_factor=1.0000
+RESULT load1=1.89
+RESULT swapins=0
+### dev/audit/rounds/round11/D2/s3/m5_crosscov.py
+RESULT gain_recovery_mean=0.5573 ratio
+RESULT gain_shortfall_mean=0.4427 ratio
+RESULT gain_spurious_max=0.0293 kW
+RESULT scale_err_max=0.0600 ratio
+RESULT scale_bias_genuine_mean=-0.0081 ratio
+RESULT scale_bias_nogain_mean=+0.0201 ratio
+RESULT gain_recovery_min=0.5401 ratio
+RESULT gain_recovery_max=0.5687 ratio
+RESULT premature_folds=0 count
+RESULT thread_factor=1.0000
+RESULT load1=1.98
+RESULT swapins=0
+### dev/audit/harnesses/cop_duty_floor.py
+RESULT duty_floor_kw=0.800
+RESULT on_threshold_kw=0.500
+RESULT min1_idle_folded=0/9
+RESULT min1_standby_folded=0/9
+RESULT min1_duty_cycled_folded=0/6
+RESULT min1_running_folded=15/15
+RESULT min3_idle_folded=0/9
+RESULT min3_standby_folded=0/9
+RESULT min3_duty_cycled_folded=0/6
+RESULT min3_running_folded=3/15
+RESULT selfmod_independent=5/96_scale=0.987
+RESULT selfmod_independent_4kw=5/96_scale=0.987
+RESULT selfmod_matched=96/96_scale=1.000
+RESULT true_0.6=282/288_scale=0.603
+RESULT true_0.7=285/288_scale=0.704
+RESULT true_0.8=288/288_scale=0.805
+RESULT true_1.3=288/288_scale=1.307
+RESULT true_0.7_4kw=285/288_scale=0.704
+RESULT fixed3_duty50=0/5_scale=1.000
+RESULT fixed3_duty70=0/5_scale=1.000
+RESULT fixed3_duty85=5/5_scale=1.000
+RESULT liveness_folded=3/3
+RESULT selfset_hourly=5/96_scale=0.985
+RESULT selfset_three_hour=0/96_scale=1.000
+RESULT selfset_flat=0/96_scale=1.072
+RESULT p4_follow_noise10=96/96_scale=1.028
+RESULT p4_follow_noise20=96/96_scale=1.116
+RESULT p4_eff0.8_noise5=96/96_scale=0.634
+RESULT p4_eff0.8_noise10=96/96_scale=0.614
+RESULT p4_follow_lag1tick=16/96_scale=1.006
+RESULT true_0.7_reload150=285/288_scale=0.704
+RESULT min3_running_warm_run_led_folded=9/15 per_draw=[0, 0, 3, 3, 3]
+RESULT min3_running_warm_run_low_folded=9/15 per_draw=[0, 0, 3, 3, 3]
+RESULT min3_running_warm_own_folded=3/15 per_draw=[0, 0, 0, 0, 3]
+RESULT min1_duty_cycled_warm_own_folded=0/6
+RESULT fixed3_duty50_warm_own=0/5_scale=1.000
+RESULT fixed3_duty70_warm_own=0/5_scale=1.000
+RESULT held_full=0/96_scale=1.000
+RESULT held_filling=0/96_scale=1.072
+RESULT true_0.6_max_cycle_move=0.292
+### dev/audit/rounds/round11/D5/s4/comments.py --file custom_components/heatpump_optimizer/sysid.py
+RESULT units=143 count
+RESULT unresolved_units=1 count
+RESULT long_units=43 count
+RESULT hist_units=15 count
+RESULT num_units=4 count
+RESULT unresolved_tokens=2 count
+RESULT thread_factor=1.000
+RESULT load1=5.54
+RESULT swapins=0
+RESULT wall=11.5 s provisional cpu=8.6

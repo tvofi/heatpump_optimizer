@@ -1,0 +1,9 @@
+
+== dev/programme/carries/carry-3767.json ==
+  ERROR   [carry-3767.json] carry: issue 3767 already has a live roster group (wave-r11-groups.json R11-SEAM-learners), whose `brief` is that stage's destination. Two destinations is the failure this file replaces: carry it to the group instead.
+  -- 1 error(s), 0 warning(s)
+
+== dev/programme/carries/carry-3769.json ==
+  ERROR   [carry-3769.json] carry: issue 3769 already has a live roster group (wave-r11-groups.json R11-SEAM-learners), whose `brief` is that stage's destination. Two destinations is the failure this file replaces: carry it to the group instead.
+  -- 1 error(s), 0 warning(s)
+
