@@ -1,0 +1,7 @@
+  ok   a refused push (detached worktree) exits non-zero and says REMERGE FAILED at push
+  ok   null control: the attached worktree pushes and exits 0
+  ok   a stale fork head (main moved past it) is refused, naming the fork and saying the contributor brings the branch up to date with main
+  ok   ... for a stale fork head (main moved past it): nothing is fetched, minted, curled, app_pushed or pushed, and no ref or worktree moved
+  ok   a fork head main conflicts with is refused, naming the fork and saying the contributor brings the branch up to date with main
+  ok   ... for a fork head main conflicts with: nothing is fetched, minted, curled, app_pushed or pushed, and no ref or worktree moved
+remerge_main self-test: 6 checks, 0 failed

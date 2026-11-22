@@ -1,0 +1,10 @@
+ dev/governance/config/outside_contributors.json    |  12 ++-
+ ...side-contributors-are-adopted-on-our-machine.md |  72 +++++++--------
+ dev/programme/delivery/3867.md                     |   1 +
+ docs/CONTRIBUTING.md                               |  10 +-
+ tools/audit/seat/instruments/merge_train.py.md     |   8 +-
+ tools/audit/seat/instruments/remerge_main.sh.md    |  19 ++--
+ tools/audit/seat/merge_train.py                    | 101 +++++++--------------
+ tools/audit/seat/remerge_main.sh                   |  51 ++---------
+ tools/audit/seat/remerge_main_selftest.py          |  98 +++++++-------------
+ 9 files changed, 140 insertions(+), 232 deletions(-)

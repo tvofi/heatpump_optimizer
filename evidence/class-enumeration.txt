@@ -1,0 +1,26 @@
+# enumeration: tools reading a PR's head repository, or calling update-branch / pushing to a non-origin remote
+.github/workflows/ci.yml:148:      && github.event.pull_request.head.repo.full_name == github.repository
+.github/workflows/dependabot-automerge.yml:53:      && github.event.pull_request.head.repo.full_name == github.repository
+.github/workflows/tests.yml:1142:      && github.event.pull_request.head.repo.full_name == github.repository
+.github/workflows/tests.yml:1762:           && github.event.pull_request.head.repo.full_name == github.repository)
+.github/workflows/tests.yml:2374:      && github.event.pull_request.head.repo.full_name == github.repository
+.github/workflows/tests.yml:2421:          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+.github/workflows/tests.yml:2646:      && github.event.pull_request.head.repo.full_name == github.repository
+.github/workflows/tests.yml:2688:          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+.github/workflows/tests.yml:2905:      && github.event.pull_request.head.repo.full_name == github.repository
+.github/workflows/tests.yml:2962:          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+tools/audit/seat/bus.sh:410:    && uid=$(json_field "$t/pull.json" user.id) && full=$(json_field "$t/pull.json" head.repo.full_name) \
+tools/audit/seat/ci_pause.py:154:                                '.[] | {n: .number, sha: .head.sha, ref: .head.ref, fork: (.head.repo.full_name != "'
+tools/audit/seat/ci_probe.py:208:            print(f"dry-run: git push {self.remote} {sha}:refs/heads/{short}")
+tools/audit/seat/open_pr.sh:67:# A row push can fail after its git push landed (app_push.sh's refused body PATCH or read-back, a stop
+tools/audit/seat/pr_args.sh:1660:  # A row push can fail after its git push landed (app_push.sh's refused body PATCH, its read-back
+tools/audit/seat/ref_privacy.py:1138:             ("tools/x/note.sh", 1, "# git push in a comment"),
+tools/pr/app_push.sh:752:  *"push https://github.com/"*)
+tools/pr/app_push.sh:880:st "$(grep -c " push https://github.com/o/r.git $BR" "$W/ok/log")" 1 "and pushes over a token-free https URL to the branch"
+tools/pr/app_push.sh:1002:st "$(grep -c '^git .*push https://github.com/' "$W/pushflaky/log")" 2 "the push was tried twice (one transient failure, one success)"
+tools/pr/app_push.sh:1003:st "$(grep -c '^git .*push https://github.com/' "$W/pushfail/log")" 1 "a refused push is tried once, never retried"
+tools/pr/app_push.sh:1025:st "$(grep -c ' push https://github.com/o/r.git batch/proof-1' "$W/bonly/log")" 1 "through the App's helper, once"
+tools/pr/cancel_superseded.py:402:    `prs` are open pull requests (number, head.sha, head.ref, head.repo); `bot_heads`
+tools/pr/outside.py:1107:    st(bool(m) and "github.event.pull_request.head.repo.full_name == github.repository" in m.group(1), True,
+tools/pr/push.sh:275:  git push --set-upstream origin "$BR" || { say REFUSE "push" "git push failed"; exit 5; }
+tools/release/stamp.py:2882:                  + (why[-1] if why else "git push failed"), file=sys.stderr)

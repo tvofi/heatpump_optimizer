@@ -1,0 +1,36 @@
+2026-11-22T18:53:51.5715343Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-22T18:53:51.5735135Z /github/runner_temp/git-credentials-9b41345e-e71c-4a06-ae91-457d892ca4c7.config
+2026-11-22T18:53:51.5743013Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-9b41345e\-e71c\-4a06\-ae91\-457d892ca4c7\.config
+2026-11-22T18:53:51.5777245Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-22T18:53:51.6034231Z Removing credentials config '/home/runner/work/_temp/git-credentials-9b41345e-e71c-4a06-ae91-457d892ca4c7.config'
+2026-11-22T18:53:51.6035375Z ##[endgroup]
+2026-11-22T18:53:51.6273920Z ##[group]Run set -euo pipefail
+2026-11-22T18:53:51.6274320Z [36;1mset -euo pipefail[0m
+2026-11-22T18:53:51.6274845Z [36;1mif [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then[0m
+2026-11-22T18:53:51.6275314Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-22T18:53:51.6275794Z [36;1m  PINNED=$(git rev-parse "refs/remotes/origin/$INPUT_BASE")[0m
+2026-11-22T18:53:51.6276134Z [36;1mfi[0m
+2026-11-22T18:53:51.6276366Z [36;1mif [ -n "$PINNED" ]; then[0m
+2026-11-22T18:53:51.6276935Z [36;1m  git checkout "$PINNED" -- 'tools/ci/*.py'[0m
+2026-11-22T18:53:51.6277269Z [36;1m  echo "programs restored from $PINNED"[0m
+2026-11-22T18:53:51.6277558Z [36;1mfi[0m
+2026-11-22T18:53:51.6305726Z shell: /usr/bin/bash -e {0}
+2026-11-22T18:53:51.6306015Z env:
+2026-11-22T18:53:51.6306284Z   PINNED: 8cc3fb3e35b8cf320124af236f1c713a928e5685
+2026-11-22T18:53:51.6306852Z   INPUT_BASE: 
+2026-11-22T18:53:51.6307081Z ##[endgroup]
+2026-11-22T18:53:51.8151897Z programs restored from 8cc3fb3e35b8cf320124af236f1c713a928e5685
+2026-11-22T18:53:51.8270539Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+2026-11-22T18:53:51.8271110Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+2026-11-22T18:53:51.8295480Z shell: /usr/bin/bash -e {0}
+2026-11-22T18:53:51.8295772Z env:
+2026-11-22T18:53:51.8299094Z   GH_TOKEN: ***
+2026-11-22T18:53:51.8299343Z   PR: 3867
+2026-11-22T18:53:51.8299557Z   BASE: main
+2026-11-22T18:53:51.8299769Z   KIND: edit
+2026-11-22T18:53:51.8300004Z   WORKSET: arch-score budget-raise-gate
+2026-11-22T18:53:51.8300299Z ##[endgroup]
+2026-11-22T18:53:53.8235302Z FAIL run(s) [45056082768] at this head are still being judged; their gate decides
+2026-11-22T18:53:53.8390235Z ##[error]Process completed with exit code 1.
+2026-11-22T18:53:53.8533226Z Post job cleanup.
+2026-11-22T18:53:53.9360289Z [command]/usr/bin/git version
