@@ -31387,8 +31387,10 @@ async def _shutdown_after_completed_refresh(*, light: bool = False) -> dict:
     survived = []
 
     async def caller():
-        await coord._async_update_data()
-        refreshed.set()
+        try:
+            await coord._async_update_data()
+        finally:
+            refreshed.set()  # a refresh that raises ends the scenario at `await task`, never parks it
         await gate.wait()
         survived.append(True)
 
