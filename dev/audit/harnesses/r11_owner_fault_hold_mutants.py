@@ -57,6 +57,10 @@ M = [
  ("frequency guard", "coordinator.py", " or self._mode == MODE_OFF or fault_hold.held(self.entry):", " or self._mode == MODE_OFF:"),
  ("switch gate wired", "coordinator.py", "value = fault_hold.gate(self.entry, held, self.arbiter_inputs(), supply_hold.hold_supply(", "value = (lambda *a: a[3])(self.entry, held, self.arbiter_inputs(), supply_hold.hold_supply("),
  ("cut-off entry wired", "coordinator.py", "self.entry.async_on_unload, entry=self.entry)", "self.entry.async_on_unload)"),
+ ("consult released", "fault_hold.py", "off=inp.mode == MODE_OFF, released=inp.entry_released", "off=inp.mode == MODE_OFF"),
+ ("consult Off", "fault_hold.py", "off=inp.mode == MODE_OFF, released=inp.entry_released", "off=False, released=inp.entry_released"),
+ ("publish mode_off", "heat_curve.py", "fault_hold.holding(entry, hass, config, off=mode_off, released=released)", "fault_hold.holding(entry, hass, config, off=False, released=released)"),
+ ("diagnostics since", "fault_hold.py", '"since": latch.since.isoformat() if latch.since else None', '"since": None'),
 ]
 
 

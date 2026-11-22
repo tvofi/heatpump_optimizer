@@ -87727,6 +87727,69 @@ for _fh_lang in ("en", "sv", "de"):
 R.check("the option and the repair are translated in every shipped language",
         _fh_tr == {k: (True, True) for k in ("en", "sv", "de")}, f"{_fh_tr}")
 
+# 15. Each call site hands the latch its own Off and unload: the checks above
+# drive ``holding`` directly, so these drive ``consult`` (through
+# ``pump_arbiter.apply``) and ``heat_curve.publish`` with the pass's own state.
+_fh_cs_rel = _fh_coord(since=-30)
+_fh_cs_rel._entry_released = True
+_pa_run(_fh_cs_rel, 0)
+_fh_cs_rel_null = _fh_coord(since=-30)
+_pa_run(_fh_cs_rel_null, 0)
+R.check("a pass queued before the unload (entry_released) with a 30-minute fault raises no fault repair",
+        _fh_issue(_fh_cs_rel) == [], f"{_fh_issue(_fh_cs_rel)}")
+R.check("null control: the same pass on a loaded entry raises the fault repair",
+        len(_fh_issue(_fh_cs_rel_null)) == 1, f"{_fh_issue(_fh_cs_rel_null)}")
+
+
+def _fh_then(mode):
+    """(held, repairs) after a held pass, then one more pass in ``mode``."""
+    c = _fh_coord(since=-30)
+    _pa_run(c, 0)
+    c._mode = mode
+    _pa_run(c, 1)
+    return _fh.held(c.entry), len(_fh_issue(c))
+
+
+_fh_cs_off = _fh_then(_PA_OFF)
+_fh_cs_off_null = _fh_then(_PA_AUTO)
+R.check("an Optimizer Off pass after a held pass clears the latch and the fault repair",
+        _fh_cs_off == (False, 0), f"{_fh_cs_off}")
+R.check("null control: the same next pass in auto keeps the latch and the repair",
+        _fh_cs_off_null == (True, 1), f"{_fh_cs_off_null}")
+
+
+def _fh_publish_then(mode_off):
+    """Calls, latch and repairs of a publish after a held one, the second at ``mode_off``."""
+    hass = FakeHass({_FH_FAULT: FakeState("on", last_updated=_PA_T0 - timedelta(minutes=30))})
+    cfg = EntryConfig.from_mapping({"heat_pump_fault_entity": _FH_FAULT,
+                                    "ecl110_displace_set_topic": "ecl/displace/set"})
+    entry = _pa_entry(entry_id=f"fh{next(_PA_IDS)}")
+    _sa_dt.freeze(_PA_T0)
+    try:
+        _asyncio.run(_fh_hc.publish(hass, entry, cfg, -3, {"displace": -3}))
+        first = ([c[0] for c in hass.services.calls], _fh.held(entry))
+        _asyncio.run(_fh_hc.publish(hass, entry, cfg, 0, {"displace": 0}, mode_off=mode_off))
+    finally:
+        _sa_dt.freeze(None)
+    return first, ([c[0] for c in hass.services.calls], _fh.held(entry), [i[1] for i in getattr(hass, "issues", [])])
+
+
+_fh_cs_pub = _fh_publish_then(True)
+_fh_cs_pub_null = _fh_publish_then(False)
+R.check("the Off displace under a held latch is published, and clears the latch and the fault repair",
+        _fh_cs_pub == (([], True), (["mqtt"], False, [])), f"{_fh_cs_pub}")
+R.check("null control: the same second displace outside Off is not published and the hold stays",
+        _fh_cs_pub_null == (([], True), ([], True, [_fh.ISSUE])), f"{_fh_cs_pub_null}")
+
+_fh_dv_since = {m: _fh_coord(since=m) for m in (-30, -45)}
+for _fh_c in _fh_dv_since.values():
+    _pa_run(_fh_c, 0)
+_fh_dv_since = {m: _fh_dv(c)["since"] for m, c in _fh_dv_since.items()}
+R.check("the diagnostics row's since is the latch's start, the alarm's last change",
+        _fh_dv_since == {m: (_PA_T0 + timedelta(minutes=m)).isoformat() for m in (-30, -45)}, f"{_fh_dv_since}")
+R.check("null control: with no fault the diagnostics row's since is empty",
+        _fh_dv(_fh_dv_null)["since"] is None, f"{_fh_dv(_fh_dv_null)}")
+
 
 R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
 # A hot water -> heating mode write while the compressor runs stops it on some
