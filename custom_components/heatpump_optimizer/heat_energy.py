@@ -457,6 +457,16 @@ class HeatEnergyMeter:
             return 1.0
         return dhw_share(self.attribution(plan_split))
 
+    def served_space_alone(self, plan_split: tuple[float, float] | None) -> bool:
+        """This cycle's interval heated the house alone: the whole-unit rule, never an unplanned charge.
+
+        Its attribution on ``plan_split`` (the dwell's where observed); no split is no answer, ``False``.
+        """
+        if plan_split is None:
+            return False
+        a = self.attribution(plan_split)
+        return a.dhw <= 0.0 < a.space and not self.unplanned_charge(plan_split)
+
     def attribution(self, plan_split: tuple[float, float]) -> Attribution:
         """This cycle's interval, split by the dwell where observed, else by ``plan_split``."""
         return attribution(self.dwell.shares(*self.cycle), plan_split)

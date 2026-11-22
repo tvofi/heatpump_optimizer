@@ -6124,14 +6124,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             await _best_effort_cycle_step(
                 self._async_drive_pumps, "Pump scheduling skipped: %s")
 
-            # Close the loop: pair the previous interval's prediction with
-            # what actually happened, accumulate energy, and train the
-            # derate. #1644 (D1-s2-91): each step owns its own failure.
-            await _best_effort_cycle_step(
-                self._record_accuracy, "Accuracy pairing skipped: %s"
-            )
-            await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(  # #3616 phase 3a
-                _ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power, float(self._current_action.get("power", 0.0)), float(self._current_action.get("dhw_power", 0.0)))), "Room history skipped: %s")
+            # #3616 phase 3a, before the pairing replaces the settled interval's split.
+            await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(_ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp,
+                self._measured_power, heat_energy.meter_of(self).served_space_alone((self._pending_prediction or {}).get("split")))), "Room history skipped: %s")
+            # Close the loop: pair the previous interval's prediction with what
+            # actually happened, accumulate energy, and train the derate.
+            # #1644 (D1-s2-91): each step owns its own failure.
+            await _best_effort_cycle_step(self._record_accuracy, "Accuracy pairing skipped: %s")
             await _best_effort_cycle_step(
                 self._track_realised_peak, "Realised-peak tracking skipped: %s"
             )
