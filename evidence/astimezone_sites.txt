@@ -1,0 +1,9 @@
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/drift.py:49:    return value.astimezone(timezone.utc)
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/drift.py:73:    return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/drift.py:92:    base = start.astimezone(timezone.utc)
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/drift.py:93:    return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/ledger.py:154:        start, end = start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/store.py:168:        clamped = limit.astimezone(when.tzinfo)
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/tariff.py:650:    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/tariff.py:652:    return [s if tz is None else s.astimezone(tz) for s in starts]
+dd7149fe8c5f6aecece7a0b46abb62d3d22b4e20:custom_components/heatpump_optimizer/wood_fuel.py:170:    return utc_instant(ts).astimezone(local_tz) if local_tz is not None else ts
