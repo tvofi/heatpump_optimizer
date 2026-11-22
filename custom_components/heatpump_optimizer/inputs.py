@@ -722,14 +722,14 @@ def quantise_setpoint_c(
 async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     """Write ``value``, already in the entity's own unit, to a set-point entity.
 
-    The one service call every set-point write goes through, so the value
-    sent is on the entity's step (``setpoint_step``, whole degrees where it
-    states none) -- a whole one as an integer, which a pump that takes no
-    decimals accepts -- and inside the range the entity states when written
-    (:func:`_own_range`), its maximum rounded down onto the step and its
-    minimum up, whichever caller asked: a caller's own bound
-    (``SetpointGrid.bounded``) is the meaning of its value, this one is what
-    the entity accepts. Crossed ends send the maximum. ``False``, and nothing
+    The one service call every set-point write goes through. The value sent
+    is on the entity's step (``setpoint_step``, whole degrees where it states
+    none), a whole one as an integer, which a pump that takes no decimals
+    accepts. It is inside the range the entity states when written
+    (:func:`_own_range`): the maximum rounded down onto the step, the minimum
+    up, whichever caller asked. A caller's own bound (``SetpointGrid.bounded``)
+    is the meaning of its value; this one is what the entity accepts. Crossed
+    ends send the maximum. ``False``, and nothing
     called, for a domain with no set-point service.
     """
     domain = entity_id.split(".", 1)[0]
