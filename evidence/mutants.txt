@@ -1,0 +1,13 @@
+RESULT A timeout guard drops 'hung and': SURVIVED
+RESULT B ungated counted unreached: KILLED by tools/audit/seat/merge_train.py: FAIL selftest_unreached: the gated steps the diff's read sets miss, by selftest_scope's select
+RESULT C push-only not subtracted: KILLED by tools/audit/seat/merge_train.py: FAIL introduced: a head red the scope reaches is the PR's; one on an unreached step is inherited | tools/audit/seat/review_packet.py: FAIL introduced: the head's red the scope reaches is INTRODUCED, the unreached one is not, by 1 job-step read
+RESULT D two-dot diff: KILLED by tools/audit/seat/merge_train.py: FAIL introduced_cmd: rc 1, one INTRODUCED line per step the scope reaches, scoped against git merge-base origin/main
+RESULT E no merge base reads all inherited: SURVIVED
+RESULT F unreadable diff read as empty set: KILLED by tools/audit/seat/merge_train.py: FAIL selftest_unreached: git unable to diff is None, every red counts
+RESULT G FULL read as scoped: KILLED by tools/audit/seat/merge_train.py: FAIL selftest_unreached: a gate file in the diff (FULL) is None, every red counts
+RESULT H base tree workflow: SURVIVED
+RESULT I review_packet git_out swallows to empty: NOT-APPLIED (count 2)
+RESULT J review_packet scope ignored: KILLED by tools/audit/seat/review_packet.py: FAIL introduced: the head's red the scope reaches is INTRODUCED, the unreached one is not, by 1 job-step read
+RESULT K timeout never added: KILLED by tools/audit/seat/merge_train.py: FAIL a hang the PR makes (job timed_out, its reached step cancelled) is RED under classify --pr, step and timeout INTRODUCED | tools/audit/seat/review_packet.py: FAIL a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused
+RESULT L ci_rerun cap off-by-one: KILLED by tools/audit/seat/ci_rerun.py: FAIL attempt cap -> CAP, not RERUN: got False, want True
+done

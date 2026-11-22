@@ -1,0 +1,39 @@
+== python3 tools/audit/seat/merge_train.py --self-test
+  ok   fail closed: the head's job concluded startup_failure is a Stop (rc 2), never a clean read
+  ok   fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
+merge_train self-test: 843 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/review_packet.py --self-test
+  ok   fail closed: a job still running at the head refuses introduced-red, never reads clean
+  ok   gather's ci_facts carries the INTRODUCED reading build refuses (M9: its wiring)
+review_packet self-test: 131 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/ci_rerun.py --self-test
+  ok   --dispatch with no run at the head starts ci.yml naming the PR and its base
+  ok   an unreadable ruleset reruns and dispatches nothing
+ci_rerun self-test: 16 checks, 0 failed
+rc=0
+== bash tools/audit/seat/ci_supersede.sh --self-test
+  ok   --loop without HPO_STATE_DIR refuses (rc 2)
+  ok   --loop goes on past a failed sweep and stops on the STOP file
+ci_supersede self-test: 6 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/selftest_wiring.py --check
+selftest_wiring: 153 self-testing, 153 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+rc=0
+== node tools/policy/rules_sync.mjs --check
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+== python3 -I tools/ci/selftest_scope.py static
+selftest_scope static: 127 gated step(s), 0 problem(s)
+rc=0
+== python3 tests/structure.py
+  ok   unloaded_package_imports 14 <= 14
+
+STRUCTURE RATCHET PASSED
+rc=0
+== python3 tools/audit/seat/tmp_paths.py --check
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since f269ecccb5f1
+rc=0
