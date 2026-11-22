@@ -860,11 +860,6 @@ def _full_draw_c(inp: ArbiterInputs, ceiling_c: float) -> float:
     return ceiling_c if headroom else ceiling_c + FLOW_MIN_LIFT_K
 
 
-def _or_hold(floor_c: float | None, config: Any) -> float:
-    """``floor_c``, else the rated hold as the entity's own target."""
-    return _as_target(config, FLOW_HOLD_C) if floor_c is None else floor_c
-
-
 def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
     """The space water set-point a live boost writes, °C in the entity's own terms, or ``None``.
 
@@ -959,6 +954,13 @@ class MapInputs(NamedTuple):
     boost: bool
 
 
+def _floor_on(inp: ArbiterInputs, inlet_c: float | None) -> float:
+    """The modulation floor a lift above ``inlet_c``, else the rated hold as the entity's own target."""
+    floor_c = modulation_floor_flow_c(
+        inlet_c, _gate_c(inp), start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)))
+    return _as_target(inp.config, FLOW_HOLD_C) if floor_c is None else floor_c
+
+
 def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool, settle: flow_anchor.Settle | None = None) -> MapInputs:
     """The level, band, heat ceiling and floor a heating step maps, read once
     for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`).
@@ -969,12 +971,12 @@ def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool, settle: flow_a
     p_min, p_max = _band_kw(inp)
     boost_c = _boost_ceiling_c(inp) if boosted else None
     heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
-    lift_k, live_c = start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)), _flow_inlet_c(inp)
-    floor_c = _or_hold(modulation_floor_flow_c(live_c, _gate_c(inp), lift_k), inp.config)
+    live_c = _flow_inlet_c(inp)
+    floor_c = _floor_on(inp, live_c)
     if settle is not None:
         anchor_c = flow_anchor.settled_inlet_c(
             live_c, settle, _flow_inlet_c(inp, past_loop=True), now, FEEDBACK_START_HOLD.total_seconds())
-        floor_c = min(floor_c, _or_hold(modulation_floor_flow_c(anchor_c, _gate_c(inp), lift_k), inp.config))
+        floor_c = min(floor_c, _floor_on(inp, anchor_c))
     return MapInputs(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c, boost_c is not None)
 
 

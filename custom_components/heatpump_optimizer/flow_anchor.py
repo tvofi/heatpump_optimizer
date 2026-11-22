@@ -4,8 +4,8 @@ R11-OWNER-STEP-KICK (#3860; design ``design/R11-OWNER-STEP-KICK`` 09fecb1b,
 option D). The arbiter's flow floor is the measured inlet plus a lift
 (``thermal_model.modulation_floor_flow_c``), the inlet being the first fresh
 rung of :data:`FLOW_INLET_KEYS`. Right after the pump swaps from hot water to
-heating, the pump-loop return reads the tank coil's water, so inlet plus lift
-lands at or above the heating ceiling and the step's first writes are the
+heating, the pump-loop return reads the tank coil's water. Inlet plus lift then
+lands at or above the heating ceiling, and the step's first writes are the
 ceiling, falling minute by minute with the probe. For the settle window after
 such a swap the floor is anchored on the space loop's own water instead
 (:func:`settled_inlet_c`), never above today's anchor.
