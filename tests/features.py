@@ -80794,9 +80794,12 @@ R.check(
 # line to the plan's raw value turns the first check red.
 def _ec_cycle_writes(minutes_since_cut):
     hass = FakeHass({"switch.hp": FakeState("off"), "sensor.indoor": FakeState("22.0")})
+    # No outdoor reading: the frost hold would switch the pump on through the
+    # cut's MIN_OFF, as a hold's switch-on waits on no minimum, so it is opted
+    # out to pin the cut-off's own hold (R11-OWNER-FROST-HOLD).
     coord = _Coord(hass, _FakeEntry(data={
         "tibber_token": "x", "heat_pump_switch_entity": "switch.hp",
-        "indoor_temp_entity": "sensor.indoor"}))
+        "indoor_temp_entity": "sensor.indoor", "frost_hold": False}))
     now = _ec_dt.now()
     coord._optimization_result = _ec_plan("ss")
     coord._current_action = {"heat_pump_on": True, "displace_value": 0.0}
