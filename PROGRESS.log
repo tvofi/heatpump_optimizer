@@ -11,3 +11,4 @@
 1795320653 HB alive
 1795320731 CKPT round 2: delta read (fc469477e2 + clean main merges); running mutants L and H at head snapshot e263dce67275
 1795320872 CKPT L and H killed in block at head; own mutant L2 (tank.ok gate) survives block, full features running; classify polling snapshot 1bfcf767c2c0
+1795320938 CKPT mutation red read: 37 added-unpinned sites, the body's list; harnesses and full features under L2 running snapshot 6a2e10a4ce9b
