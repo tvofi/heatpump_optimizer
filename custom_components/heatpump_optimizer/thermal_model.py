@@ -2277,6 +2277,7 @@ def _valve_ua(p: ThermalParameters) -> float:
 def _valve_flow_set(
     p: ThermalParameters, valve_target: float | None, outdoor_temp: float,
     heat_loss_coefficient: float, emitter_ua: float,
+    lower_heat_loss_coefficient: float = 0.0,
 ) -> float:
     """The flow temperature the valve regulates to this step. A per-step
     ``valve_target`` (how a commanded valve holds its charge) beats the
@@ -2285,16 +2286,29 @@ def _valve_flow_set(
     A single-zone valve feeds every emitter into the slab, which reaches the
     room through ``slab_heat_transfer`` in series, and the room's
     ``internal_gains`` cover part of its loss: the curve holds its target only
-    with both in it (R11-VALVE-REFERENCE). Two zones pass through unchanged."""
-    if valve_target is not None:
-        target = float(valve_target)
-    else:
-        target = p.mixing_valve_target or p.comfort_ceiling
-    free_heat_kw = 0.0
+    with both in it (R11-VALVE-REFERENCE). Two zones take the upper floor's
+    loss and ``lower_heat_loss_coefficient``: a direct slab sums them; behind a
+    valve-fed slab each term weighs a zone as the steady ``_two_zone_rates``
+    solution weighs it in the room the thermostat reads (R11-SEAM-two-zone-slab)."""
+    target = (p.mixing_valve_target or p.comfort_ceiling) if valve_target is None else float(valve_target)
+    free_heat_kw, k_slab = 0.0, p.slab_heat_transfer_floored
     if not p.two_zone_enabled:
-        k_slab = p.slab_heat_transfer_floored
         emitter_ua = emitter_ua * k_slab / (emitter_ua + k_slab)
         free_heat_kw = p.internal_gains
+    elif p.slab_fed_direct:
+        heat_loss_coefficient += lower_heat_loss_coefficient
+    else:
+        r, c = p.upper_floor_area_ratio, p.inter_zone_transfer
+        ua_rad = p.radiator_power_fraction * emitter_ua
+        ua_floor = (1.0 - p.radiator_power_fraction) * emitter_ua
+        ua_slab = ua_floor * k_slab / (ua_floor + k_slab)  # the slab in series
+        w_upper = r * (ua_slab + lower_heat_loss_coefficient + c) + (1.0 - r) * c
+        w_lower = r * c + (1.0 - r) * (ua_rad + heat_loss_coefficient + c)
+        w_sum = w_upper + w_lower
+        free_heat_kw = (w_upper * r + w_lower * (1.0 - r)) * p.internal_gains / w_sum
+        emitter_ua = (w_upper * ua_rad + w_lower * ua_slab) / w_sum
+        heat_loss_coefficient = (
+            w_upper * heat_loss_coefficient + w_lower * lower_heat_loss_coefficient) / w_sum
     return mixing_valve.flow_setpoint(
         target_temp=target,
         outdoor_temp=outdoor_temp,
@@ -2371,7 +2385,7 @@ def _valve_draw_circuits(
     ua_floor = (1.0 - p.radiator_power_fraction) * _valve_ua(p)
     u_upper, u_lower = model._zone_loss(wind_speed, precipitation)
     flow_set = _valve_flow_set(
-        p, None, outdoor_temp, u_upper + u_lower, ua_rad + ua_floor)
+        p, None, outdoor_temp, u_upper, ua_rad + ua_floor, u_lower)
     return [
         (ua_rad, flow_set, state.upper_floor_temperature),
         (ua_floor, math.inf if p.slab_fed_direct else flow_set,
@@ -2495,7 +2509,7 @@ def valve_charge_demand(
 def _valve_two_zone_delivery(
     p: ThermalParameters, state: ThermalState, thermal_power: float, ext: float,
     q_buf_loss: float, valve_target: float | None, outdoor_temp: float,
-    u_eff: float, dt_hours: float, two_tank: bool,
+    zone_loss: tuple[float, float], dt_hours: float, two_tank: bool,
 ) -> tuple[float, float, float, float, float]:
     """What the two-zone emitters get from the store behind a valve:
     ``(q_rad, q_floor, wood_draw, q_wood_loss, C_w)``, the last three for the
@@ -2526,16 +2540,8 @@ def _valve_two_zone_delivery(
     # The plan lowers the curve between charging and the price peak
     # so the tank keeps its heat for when it is worth most, which a
     # fixed target physically cannot do.
-    if valve_target is not None:
-        target = float(valve_target)
-    else:
-        target = p.mixing_valve_target or p.comfort_ceiling
-    flow_set = mixing_valve.flow_setpoint(
-        target_temp=target,
-        outdoor_temp=outdoor_temp,
-        heat_loss_coefficient=u_eff,
-        emitter_ua=ua_rad + ua_floor,
-    )
+    flow_set = _valve_flow_set(
+        p, valve_target, outdoor_temp, zone_loss[0], ua_rad + ua_floor, zone_loss[1])
     # The valve mixes return water into the flow, so the emitters see
     # the curve temperature, never raw tank water -- that is what makes
     # stored heat leave at house-demand rate instead of dumping within
@@ -3513,11 +3519,12 @@ class ThermalModel:
 
     def flow_target_for_indoor(self, indoor_target: float, outdoor_temp: float) -> float:
         """The flow temperature the valve curve implies for `indoor_target` (#398): the plant's
-        own behind a single-zone valve, at zero wind; else `flow_setpoint` on both floors' loss."""
+        own behind a valve feeding the slab, at zero wind; else `flow_setpoint` on both floors' loss."""
         p = self.params
-        if not p.two_zone_enabled and p.mixing_valve_mode in mixing_valve.THROTTLING_MODES:
-            u = self.effective_heat_loss_coefficient(p.heat_loss_coefficient)
-            return _valve_flow_set(p, indoor_target, outdoor_temp, u, _valve_ua(p))
+        if p.mixing_valve_mode in mixing_valve.THROTTLING_MODES and not p.slab_fed_direct:
+            u, u_lower = self._zone_loss(0.0, 0.0) if p.two_zone_enabled else (
+                self.effective_heat_loss_coefficient(p.heat_loss_coefficient), 0.0)
+            return _valve_flow_set(p, indoor_target, outdoor_temp, u, _valve_ua(p), u_lower)
         heat_loss = self.effective_heat_loss_coefficient(
             p.upper_floor_heat_loss
         ) + self.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
@@ -3988,7 +3995,7 @@ class ThermalModel:
             (q_rad_from_buf, q_floor_from_buf, wood_draw, q_wood_loss,
              C_w) = _valve_two_zone_delivery(
                 p, state, thermal_power, ext, q_buf_loss, valve_target,
-                outdoor_temp, u_upper + u_lower, dt_hours, two_tank,
+                outdoor_temp, (u_upper, u_lower), dt_hours, two_tank,
             )
         else:
             # No valve: whatever the pump makes reaches the emitters. These two
@@ -4661,6 +4668,9 @@ class ThermalModel:
             # This step's commanded target, if any; each branch falls back
             # to the configured one when the plan names none.
             vt = float(valve_targets[i]) if valve_targets is not None else None
+            if p.two_zone_enabled and throttled:  # the curve's inputs are per step
+                flow_set = _valve_flow_set(
+                    p, vt, out_i, u_first, ua_rad + ua_floor, u_second)
             for _sub in range(n_sub):
                 dt = dt_hours / n_sub
                 if p.two_zone_enabled:
@@ -4678,16 +4688,6 @@ class ThermalModel:
                     if throttled and exo_i:
                         thermal_power = thermal_power + exo_i
                     if throttled:
-                        target = (
-                            vt if vt is not None
-                            else (p.mixing_valve_target or p.comfort_ceiling)
-                        )
-                        flow_set = mixing_valve.flow_setpoint(
-                            target_temp=target,
-                            outdoor_temp=out_i,
-                            heat_loss_coefficient=u_upper + u_lower,
-                            emitter_ua=ua_rad + ua_floor,
-                        )
                         supply = (
                             np.maximum(T_wood, T_buf)
                             if two_tank and T_wood is not None

@@ -92,10 +92,14 @@
 # one was restored.
 #
 #
-# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R11-SEAM-two-zone-slab suspends valve_storage_smart_write's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R11-SEAM-two-zone-slab suspends wood_two_tank's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R11-SEAM-two-zone-slab suspends wood_two_tank_smart_write's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R11-SEAM-two-zone-slab suspends wood_coil's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
@@ -181,7 +185,8 @@
 # byte-identical on the dev box), runner-conditional for the same reason;
 # judged keys still fail. Remove when drift lanes are pinned or the polish
 # improvement scale leaves 5e-5-2e-2.
-# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# (R11-SEAM-two-zone-slab suspends valve_storage's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
 # the runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
@@ -795,3 +800,22 @@
 # against the merge base, one environment). Claimed rather than re-recorded, as
 # R10-COP-GATE-D's keys were: the committed files were patched in those three
 # paths alone, each null because a coord fixture holds no plan.
+# R11-SEAM-two-zone-slab (#3713): behind a two-zone valve that feeds the slab,
+# the curve counts the slab in series with the floor circuit, weighs the two
+# floors as the steady two-zone solution weighs them in the room the thermostat
+# reads, and counts the house's internal gains (`_valve_flow_set`). Measured
+# with tests/env_drift.py --all against the merge base e3cb5c019b46 in one
+# environment: exactly these eight fixtures, each a two-zone install whose valve
+# feeds the slab, move; every other fixture is byte-identical, which is the null
+# (valve_upper_direct_slab, whose slab bypasses the valve, among them). Five
+# carry a may-drift entry whose judged key, baseline_cost, it cannot excuse, so
+# those five are suspended above for this release. Direction per fixture,
+# baseline_cost base -> head:
+valve_storage  # baseline_cost LOWER (129.949 -> 129.251)
+valve_storage_flat_prices  # baseline_cost HIGHER (105.998 -> 107.513), plan re-solved
+valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 127.893), plan re-solved
+valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 127.884), plan re-solved
+valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
+wood_coil  # baseline_cost LOWER (144.781 -> 144.082)
+wood_two_tank  # baseline_cost LOWER (129.949 -> 129.251)
+wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.251)

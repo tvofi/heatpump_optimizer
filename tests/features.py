@@ -47784,7 +47784,7 @@ _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
     # The literal is the persisted stamp this release writes: a bump is deliberate.
-    _sb_meta == {"sum": 4.0, "count": 1} and _SB_NOW == 4 and _sb_row["old_basis"] is False
+    _sb_meta == {"sum": 5.0, "count": 1} and _SB_NOW == 5 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
@@ -47807,9 +47807,11 @@ R.check(
 # two-zone reference at the valve top: a month it opened mixes two references
 # once it books on under this code. A stamp 3.0 held a single-zone valved house
 # short of its setpoint, before R11-VALVE-REFERENCE's curve reached it. A stamp
-# 4.0, this release's, keeps its saving.
+# 4.0 held a two-zone house whose valve feeds the slab short of its setpoint,
+# before R11-SEAM-two-zone-slab's curve reached it. A stamp 5.0, this release's,
+# keeps its saving.
 _sb_by_stamp = {}
-for _sb_stamp in (2.0, 3.0, 4.0):
+for _sb_stamp in (2.0, 3.0, 4.0, 5.0):
     _sb_s = _sb_copy.deepcopy(_sb_led.as_dict())
     _sb_s["months"]["2026-02"]["meta"][_SB_META] = {"sum": _sb_stamp, "count": 1}
     _sb_s_led = _SavLedger.from_dict(_sb_s)
@@ -47833,10 +47835,18 @@ R.check(
 )
 _sb_v4_row, _sb_v4_meta = _sb_by_stamp[4.0]
 R.check(
-    "a month stamped 4, the reference in force, keeps stating its saving as it books on",
-    _sb_v4_row["old_basis"] is False and _sb_v4_row["savings_sek"] is not None
-    and _sb_v4_row["savings_pct"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
+    "a month stamped 4, booked before the two-zone valve-fed slab reached its setpoint, states no saving after the change",
+    _sb_v4_row["old_basis"] is True and _sb_v4_row["savings_sek"] is None
+    and _sb_v4_row["savings_pct"] is None and _sb_v4_row["baseline_sek"] is not None
+    and _sb_v4_row["actual_sek"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
     repr(_sb_by_stamp[4.0]),
+)
+_sb_v5_row, _sb_v5_meta = _sb_by_stamp[5.0]
+R.check(
+    "a month stamped 5, the reference in force, keeps stating its saving as it books on",
+    _sb_v5_row["old_basis"] is False and _sb_v5_row["savings_sek"] is not None
+    and _sb_v5_row["savings_pct"] is not None and _sb_v5_meta == {"sum": 5.0, "count": 1},
+    repr(_sb_by_stamp[5.0]),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
@@ -47960,8 +47970,8 @@ R.check(
     "the booked reference reproduces its recorded digest on every pinned install "
     "(a change re-records it and bumps REFERENCE_BASIS)",
     _vr_digests == {
-        "install +5": "2f088060f8fe63dd",
-        "install -15": "35cc1d0d71a4414b",
+        "install +5": "b7300f2dfadef8eb",
+        "install -15": "c94024cf8a5fa259",
         "one-tank +5": "ba516c4bb8328b78",
         "one-tank -15": "cb3e0ea30949c952",
         "no valve +5": "514d1532f1b30760",
