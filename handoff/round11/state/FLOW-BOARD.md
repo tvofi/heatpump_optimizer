@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-22T21:50:47+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-22T22:38:26+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r11-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 62 / 24.0 |
-| fly-ins closed | 0 | 17 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 5 / 1 / 1 / 17 |
-| first-pass fix-review yield | 0/0 (-) | 14/21 (0.67) |
-| blocked-class mix | none | ci-red:2, class-open:3, head-moved:1, introduced-red:1, mutation-vacuous:4, release-unaccepted:1 |
+| roster groups closed vs takt | 0 / 1.0 | 3 / 24.0 |
+| fly-ins closed | 0 | 16 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 5 / 0 / 0 / 16 |
+| first-pass fix-review yield | 0/1 (0.00) | 13/21 (0.62) |
+| blocked-class mix | lifecycle-leak:1 | ci-red:2, class-open:3, head-moved:1, introduced-red:1, lifecycle-leak:1, mutation-vacuous:4, release-unaccepted:1 |
 | lead time per size (h, n/p50/max) | none | L n=1 p50=24.93 max=24.93; M n=3 p50=84.72 max=101.11; S n=1 p50=89.54 max=89.54 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 4 | 39 | 0 | 0 |
+| 4 | 42 | 0 | 0 |
 
 ## Rules
 
