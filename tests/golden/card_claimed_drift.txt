@@ -862,3 +862,48 @@ history_deep_panned # R11-SEAM-card: stylesheet tokens, status-role colours, not
 history_no_power # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
 history_unavailable # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
 history_pending # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+
+# R11-OWNER-CARD-EXTERNAL-HEAT (#3861): the heating pill names the plan heating
+# now; these states have both plans active, so "Heating now" reads
+# "Heating space+DHW" (sv, de alike). Direction: pill text only, no other markup.
+plan_inline # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+plan_inline_sv # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+plan_short_window # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+custom_title_currency # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+hidden_series # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+score_open # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+expanded_plan # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+what_if_off # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+expanded_zoomed # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+draft_dirty_menu_open # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+draft_mid_drag # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+whatif_edited # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+whatif_weekly # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+shared_steps # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+shared_steps_hover # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+tooltip_hover # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+coarse_pointer # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+reduced_motion # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+setup_single_buffer # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+setup_two_tank # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+setup_coil # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+advisor_page # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+savings_page # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+savings_empty # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+health_page # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+setup_not_published # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+advisor_empty # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+layout_editing_dragged # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+layout_editing_tidy # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+picker_open_filtered # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+wood_alert # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+wood_lane # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+wood_whatif # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+away_toggle # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+away_return # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+away_status # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+history_panned # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+history_deep_panned # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+history_no_power # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+history_unavailable # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW
+history_pending # R11-OWNER-CARD-EXTERNAL-HEAT: heating pill names space+DHW

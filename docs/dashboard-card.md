@@ -72,10 +72,14 @@ precedence:
 | **Manual plan until HH:MM** | You applied a plan by hand; it holds until the time shown. |
 | **Fallback: pump's own curve** | Neither plan sensor has a plan, so the optimizer actuates nothing and the pump follows its own heating curve. |
 | **Plan stale** | No new plan for longer than three solve intervals, and never less than 90 minutes: the same rule the integration uses to stop acting on an old plan. |
-| **Heating now** | A plan step is heating right now. |
+| **External heat detected** | The External Heat Source binary sensor is on: something other than the heat pump is heating the tanks, and planned hot-water heating is held back while the tank stays warm enough. |
+| **Heating space** | A space-heating plan step is heating right now. |
+| **Heating DHW** | A hot-water plan step is heating right now. |
+| **Heating space+DHW** | Both plans have a step heating right now. |
 | **Idle** | The plan is current and nothing is heating at this moment. |
 
-Hovering the stale or fallback pill says what the pump does meanwhile. With no
+Hovering the stale or fallback pill says what the pump does meanwhile; hovering
+the external-heat pill says what the plan holds back. With no
 plan sensor at all the pill is left out, because the card's diagnostics already
 say why.
 
