@@ -30,6 +30,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import math
 import re
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any, cast
@@ -178,13 +179,18 @@ def choose_price_entity(
 
 
 def numeric(state: object) -> bool:
-    if not isinstance(state, (str, int, float)):
+    """Whether a recorded state is a finite number or its spelling.
+
+    ``const.finite_float``'s domain (round-11 D7-s3-04: this copy admitted
+    ``True``, ``"nan"`` and ``"inf"``), written out because this file imports
+    no sibling; ``tests/debug_collect.py`` drives both with the same probes.
+    """
+    if isinstance(state, bool) or not isinstance(state, (str, int, float)):
         return False
     try:
-        float(state)
-    except ValueError:
+        return math.isfinite(float(state))
+    except (ValueError, OverflowError):
         return False
-    return True
 def json_decimal_places(value: object) -> int | None:
     """Decimal places in the JSON spelling -- ``tests/nightly_ha.py``'s rule."""
     if isinstance(value, bool):

@@ -1,0 +1,29 @@
+{
+ "key": "bdcf7589b0a0a6df",
+ "mutant": {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "line": 539,
+  "old": "        if displace_raw is None and isinstance(data.get(\"command\"), dict):",
+  "new": "        if False:",
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846"
+ },
+ "gate_rc": -15,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2
+ },
+ "summary": [],
+ "wall_s": 32.4,
+ "child_cpu_s": 2.5,
+ "load1_start": 4.65,
+ "load1_end": 4.02,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}
