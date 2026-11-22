@@ -369,8 +369,8 @@ def with_dhw_under_way(state: Any, signals: PumpSignals, running: bool, action: 
     """``state`` with ``dhw_charge_under_way`` set: whether a hot-water charge runs now.
 
     The compressor runs (``running``, ``duty_switch.running_now``) and the
-    observed mode serves hot water: hot water only, or a combined mode
-    while the executing step (``action``) plans hot water, which is what
+    observed mode serves hot water: hot water only, or a combined mode while
+    the executing step (``action``) plans hot water. A combined mode is what
     the arbiter writes for a hot-water duty on a select with no hot-water
     only option. With no mode observed a running compressor keeps the first
     step's charge as before, and so does an unsettled or missing running

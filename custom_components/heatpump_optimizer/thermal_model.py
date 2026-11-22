@@ -2032,14 +2032,9 @@ class ThermalState:
     # planned charge and every heating write is taken to start the pump.
     dhw_start_hysteresis_k: float | None = None
     space_start_hysteresis_k: float | None = None
-    # The grid the hot-water set-point entity is written on
-    # (``inputs.SetpointGrid``); None with no entity to write.
+    # The hot-water set-point entity's grid (``inputs.SetpointGrid``); None with no entity to write.
     dhw_setpoint_grid: Any = None
-    # Whether a hot-water charge runs as the solve starts: the compressor
-    # runs and the observed mode serves the step's hot water, or no mode is
-    # observed (``pump_signals.with_dhw_under_way``). Only then is a charge
-    # on the first step kept whatever the tank (``dhw_planner.drop_unstartable``).
-    dhw_charge_under_way: bool = True
+    dhw_charge_under_way: bool = True  # a hot-water charge runs now (``pump_signals.with_dhw_under_way``)
 
     # ECL110 control state
     ecl110_displace_command: float = 0.0  # °C requested parallel shift

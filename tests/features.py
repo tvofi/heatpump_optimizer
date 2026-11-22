@@ -40982,7 +40982,7 @@ R.check(
 # repair's own ceiling, and what left the ramp short.
 def _lg_whole_tail_repair(
     self, ctx, *, plan, initial_temp, draw_rates, requirement, max_temp,
-    forced_off=None,
+    forced_off=None, charge_running=True,
 ):
     outdoor_temps = ctx.outdoor_temps
     dt = ctx.dt
