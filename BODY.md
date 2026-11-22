@@ -23,6 +23,8 @@ Departures from the approved design, each measured:
 
 ## Head
 
+`566727d1db0f460811b6f729f3473e56773bf2b9` adds one commit to `f36611dd23`, repairing its two `tests / fast (3.14)` reds: it splits one comment sentence in `tests/features.py` and re-records `dev/audit/rounds/round4/D6/claims.py`'s module census header with its regenerated `claims.json`/`claims.md`. It changes no production line. Measured against `origin/main` `e3cb5c019b` at 2026-11-22T21:01Z: `git merge-tree --write-tree origin/main HEAD` merges cleanly.
+
 `f36611dd23542a73d141963c1eb7860f8a219edb` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3866.md`. The authored code head is `0d1cae21a695abbc4c951143b854d2a2a45e16b6`.
 
 `c6d5d822e3067cc7df2345d7ddffc4cf593f3cd0` merges origin/main `8cc3fb3e35` into the authored code head `0d1cae21a695abbc4c951143b854d2a2a45e16b6` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
@@ -105,6 +107,12 @@ Option mutants, in `flow_limit.py` / `pump_arbiter.py`. Each was run on the R11-
   - The rest of `scope.run` is left to CI, because the host is heavily loaded.
 
 
+- Repair of `tests / fast (3.14)` at `566727d1db`:
+  - `python3 tests/doc_claims.py`: at `f36611dd23` 1 of 441 failed (`REFUSE tests/features.py: long units 465 -> 466`); at the head `ALL 441 checks PASSED`. The sentence is split, the ratchet is not raised.
+  - `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: at `f36611dd23` 3 of 115 failed (`arch_modules_on_disk` and `arch_map_listed` header 98, printed 99; `claims.json`, `claims.md` left modified). At the head: `ALL 115 HARNESS HEADER CHECKS PASSED`, and `git status --short` after the run printed nothing.
+  - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+  - `PREPR_SKIP_CLOSURES=1 PREPR_SKIP_CODE=1 bash tools/pr/prepr.sh` at `566727d1db`. Code steps are skipped because the delta since `f36611dd23` is one comment and the D6 harness outputs, with no production line. CI ran the scoped scripts at `f36611dd23` (run 45055462774), and `tests / fast (3.14)` failed only on the two checks repaired here. A first run without `PREPR_SKIP_CODE` was stopped at the 30-minute background limit inside the code steps, so it gave no verdict on them.
+
 ## Unpinned sites
 
 - custom_components/heatpump_optimizer/flow_limit.py:32 BOOLOP: pinned by mutation-autofix
@@ -136,8 +144,8 @@ Option mutants, in `flow_limit.py` / `pump_arbiter.py`. Each was run on the R11-
 
 ## Red checks
 
-- `tests / mutation` at f36611dd2354: red by construction on the 26 site(s) under `## Unpinned sites` (flow_limit.py 8, inputs.py 6, pump_arbiter.py 10, quiet_windows.py 2, all logged ADDED UNPINNED); mutation-autofix pins killed sites after the push.
-- `gate` at f36611dd2354: red only because it reports that run 45055462774's other checks were still being judged when it ran (`FAIL run(s) [45055462774] at this head are still being judged`); it decides again when they finish, and it holds no finding of its own.
+- `tests / fast (3.14)` at f36611dd2354: red on this PR's own two checks, `tests/doc_claims.py`'s comment ratchet (one new sentence over 40 words in `tests/features.py`) and `tests/harness_headers.py` (the D6 claims harness header at 98 modules after `flow_limit.py` made 99). Both are repaired at `566727d1db`, figures above. Cheaper detector: both scripts are in this diff's `scope.run` and run locally (`doc_claims.py` in seconds, `harness_headers.py` in minutes), and `prepr.sh` runs the scoped set; the previous head was handed off without a local prepr run (state b, the process existed and was not followed). Standing cost of the detector: zero new, it exists; no countermeasure is built.
+- `tests / mutation` at f36611dd2354: red by construction on the 26 site(s) under `## Unpinned sites` (flow_limit.py 8, inputs.py 6, pump_arbiter.py 10, quiet_windows.py 2, all logged ADDED UNPINNED); mutation-autofix pins killed sites after the push. The head's delta adds no `.py` line outside `tests/` and `dev/`.
 
 ## Forward-carry
 
