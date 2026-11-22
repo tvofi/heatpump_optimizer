@@ -3,3 +3,4 @@
 1795366781 CKPT worktree cut at origin/main baa9a467; design ee6bb4da read; card group not merged snapshot 04603bc6d86c
 1795367358 HB alive
 1795367961 HB alive
+1795367968 CKPT step 1 pushed: switch, block rule, persistence, 20 feature checks green; failing-first at base snapshot 806f9032f4c5
