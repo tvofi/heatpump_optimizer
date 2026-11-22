@@ -7528,7 +7528,7 @@
    "resume": {
     "stage": "not-started",
     "commit": null,
-    "branch": "handoff/r11-owner-fault-text",
+    "branch": "handoff/r11-owner-extheat-override",
     "last_step": null,
     "next_step": "fixer",
     "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK, R11-OWNER-FAULT-TEXT): owner item 2026-11-22: owner priority, above every cap"
