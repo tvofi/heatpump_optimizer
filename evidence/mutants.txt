@@ -1,0 +1,61 @@
+features_block: prelude of 0 statement(s) written to ~/hpo-seats/r10s6/rev-3866-local/clamp_prelude.py
+CLAMP HEAD rc=0 ALL 7 FEATURES BLOCK PASSED
+MUTANT O-M1 min->max: rc=1 failed=3 3 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is dropped and named with the other in force, one equal to it kept; 
+    FAIL R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, the option where the sensor is unavailable or its pair crossed, a
+    FAIL R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); null control: with neither it is the 55 degC heating ceiling  [_
+MUTANT O-M2 >= strict: rc=1 failed=1 1 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is dropped and named with the other in force, one equal to it kept; 
+MUTANT O-M3 dropped voids other: rc=1 failed=1 1 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is dropped and named with the other in force, one equal to it kept; 
+MUTANT O-M4 floor off: rc=1 failed=1 1 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: the option reads only inside the 30-70 degC the options flow offers; outside it, not a number, or unset is no option  [_fl_opts=[29.5, 30.0, 70.0,
+MUTANT O-M5 ceiling off: rc=1 failed=1 1 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: the option reads only inside the 30-70 degC the options flow offers; outside it, not a number, or unset is no option  [_fl_opts=[None, 30.0, 70.0,
+MUTANT O-M6 indoor reads: rc=1 failed=1 1 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: an indoor unit reads no high limit and writes the same room value with the option stored as without; null control: the same option on a flow unit 
+MUTANT O-M7 boost_ceiling cap GUARD_OFF: rc=0 failed=0 ALL 12 FEATURES BLOCK PASSED
+MUTANT O-M8 map top ignores limit: rc=1 failed=4 4 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating ceiling; null controls: an option above the ceiling and no option both writ
+    FAIL R11-OWNER-FLOWCAP: a limit above the entity's own maximum never lifts a heating write past it: a band-top step under a 70 degC heating ceiling with option 65 on a 60
+    FAIL R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the limit and the unlimited level's value, not on the limit itself; n
+    FAIL R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top draw (written 46 under the 55 ceiling draw_range keys on); null con
+MUTANT O-M7+M8: rc=1 failed=6 6 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, the option where the sensor is unavailable or its pair crossed, a
+    FAIL R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating ceiling; null controls: an option above the ceiling and no option both writ
+    FAIL R11-OWNER-FLOWCAP: an option under the entity's minimum (35 under 40, and under 41 on a 5-degree step) is under the gate the minimum lifts, so it is dropped and a bo
+    FAIL R11-OWNER-FLOWCAP: a limit above the entity's own maximum never lifts a heating write past it: a band-top step under a 70 degC heating ceiling with option 65 on a 60
+    FAIL R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the limit and the unlimited level's value, not on the limit itself; n
+    FAIL R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top draw (written 46 under the 55 ceiling draw_range keys on); null con
+MUTANT O-M9 hold ignores limit: rc=1 failed=1 1 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: the fallback's hold stays under the limit (option 30 holds 30); null control: no option holds above it  [_fl_hold={30: 35.0, None: 35.0}]
+MUTANT O-M10 feedback ignores limit: rc=1 failed=1 1 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); null control: with neither it is the 55 degC heating ceiling  [_
+MUTANT O-M11 sensor bypasses crossed-pair rule: rc=1 failed=1 1 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, the option where the sensor is unavailable or its pair crossed, a
+MUTANT O-M12 option never read: rc=1 failed=10 10 of 12 FEATURES BLOCK FAILED
+    FAIL R11-OWNER-FLOWCAP: the option reads only inside the 30-70 degC the options flow offers; outside it, not a number, or unset is no option  [_fl_opts=[None, None, None,
+    FAIL R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, the option where the sensor is unavailable or its pair crossed, a
+    FAIL R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating ceiling; null controls: an option above the ceiling and no option both writ
+    FAIL R11-OWNER-FLOWCAP: an option under the entity's minimum (35 under 40, and under 41 on a 5-degree step) is under the gate the minimum lifts, so it is dropped and a bo
+    FAIL R11-OWNER-FLOWCAP: a limit above the entity's own maximum never lifts a heating write past it: a band-top step under a 70 degC heating ceiling with option 65 on a 60
+    FAIL R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the limit and the unlimited level's value, not on the limit itself; n
+    FAIL R11-OWNER-FLOWCAP: the fallback's hold stays under the limit (option 30 holds 30); null control: no option holds above it  [_fl_hold={30: 35.0, None: 35.0}]
+    FAIL R11-OWNER-FLOWCAP: an indoor unit reads no high limit and writes the same room value with the option stored as without; null control: the same option on a flow unit 
+    FAIL R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top draw (written 46 under the 55 ceiling draw_range keys on); null con
+    FAIL R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); null control: with neither it is the 55 degC heating ceiling  [_
+MUTANT C-M1 max clamp off: rc=1 failed=4 4 of 7 FEATURES BLOCK FAILED
+    FAIL a set-point above the entity's maximum is sent as the maximum, below its minimum as the minimum: a number's min/max and a climate's min_temp/max_temp  [[65] [5] [65]
+    FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it rounds up; crossed ends send the maximum  [[65] [25] [60]]
+    FAIL a degC write to a Fahrenheit entity is clamped in the entity's own unit: 65 degC (149 degF) to a 140 degF maximum sends 140  [[149]]
+    FAIL a production caller that bounds nothing itself, the mixing-valve write, is held inside the entity's maximum by the one call  [[65] [45]]
+MUTANT C-M2 min clamp off: rc=1 failed=2 2 of 7 FEATURES BLOCK FAILED
+    FAIL a set-point above the entity's maximum is sent as the maximum, below its minimum as the minimum: a number's min/max and a climate's min_temp/max_temp  [[62] [3] [62]
+    FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it rounds up; crossed ends send the maximum  [[60] [10] [40]]
+MUTANT C-M3 max rounds nearest: rc=1 failed=1 1 of 7 FEATURES BLOCK FAILED
+    FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it rounds up; crossed ends send the maximum  [[65] [25] [40]]
+MUTANT C-M4 min rounds nearest: rc=1 failed=1 1 of 7 FEATURES BLOCK FAILED
+    FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it rounds up; crossed ends send the maximum  [[60] [20] [40]]
+MUTANT C-M5 number keys every domain: rc=1 failed=1 1 of 7 FEATURES BLOCK FAILED
+    FAIL a set-point above the entity's maximum is sent as the maximum, below its minimum as the minimum: a number's min/max and a climate's min_temp/max_temp  [[62] [5] [65]
+BATCH-DONE
