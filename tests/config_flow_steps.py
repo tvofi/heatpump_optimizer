@@ -2791,8 +2791,9 @@ NO_DEFAULT = object()
 STORED_ARM_PAGES = ("entities", "comfort", "hot_water", "building")
 
 
-def entity_field_defaults(result):
-    """Every entity picker on a form, mapped to the value it presents.
+def entity_field_defaults(result, kinds=("EntitySelector",)):
+    """Every entity picker on a form (every field of a selector in ``kinds``),
+    mapped to the value it presents.
 
     A picker is pre-filled either from ``default`` or from
     ``description["suggested_value"]``, and the frontend shows and posts both
@@ -2807,7 +2808,7 @@ def entity_field_defaults(result):
     schema = result.get("data_schema")
     out = {}
     for key, value in _presented_fields(schema):
-        if type(value).__name__ != "EntitySelector":
+        if type(value).__name__ not in kinds:
             continue
         name = str(getattr(key, "schema", key))
         try:
@@ -2930,7 +2931,7 @@ async def entity_clear_survives_the_flow_manager():
     not_presented: dict[str, list[str]] = {}
     for step in pages:
         keys = [row.key for row in rows if row.step == step]
-        seed = {key: f"sensor.stored_{key}" for key in keys}
+        seed = {row.key: _stored_seed(row, row.key) for row in rows if row.step == step}
         # The wood block renders only with its gate on, and the gate is a
         # field of the same page: seeding it drives the gated slots too.
         seed[config_flow.CONF_WOOD_FURNACE_ENABLED] = True
@@ -4374,6 +4375,13 @@ def offered_entity_fields(result):
     return entity_field_defaults(result)
 
 
+def offered_clearable_fields(result):
+    """:func:`offered_entity_fields` and every number field too: the one
+    offered undefaulted (``space_setpoint_high_limit_c``) is a ``_STORED`` row
+    and clears the same way; a number with a default is never ``NO_DEFAULT``."""
+    return entity_field_defaults(result, ("EntitySelector", "NumberSelector"))
+
+
 def rendered_keys(result):
     """Every option key a rendered page presents, section nesting included."""
     schema = result.get("data_schema")
@@ -4500,12 +4508,16 @@ async def registry_drives_every_page():
     # named ``away_return_entity`` -- a key no option page has ever offered --
     # and nothing failed, because its only reader is a seven-key hand list
     # that does not mention it.
+    # The one number on the roster (``space_setpoint_high_limit_c``) is read
+    # with the pickers; the other undefaulted numbers are model parameters a
+    # page suggests from the learned model, not ``_STORED`` rows.
     two_armed = {}
     for page in pages:
         flow = bare_options(REGISTRY_SEED)
-        offered = offered_entity_fields(await getattr(flow, f"async_step_{page}")(None))
-        for key, default in offered.items():
-            if default is NO_DEFAULT:
+        shown = await getattr(flow, f"async_step_{page}")(None)
+        pickers = offered_entity_fields(shown)
+        for key, default in offered_clearable_fields(shown).items():
+            if default is NO_DEFAULT and (key in pickers or key == const.CONF_SPACE_SETPOINT_HIGH_LIMIT_C):
                 two_armed.setdefault(key, []).append(page)
     roster = set(Flow._OPTIONAL_ENTITY_KEYS)
     check(
@@ -4523,11 +4535,12 @@ async def registry_drives_every_page():
     per_page = {}
     for key, owners in two_armed.items():
         for page in owners:
-            per_page.setdefault(page, {})[key] = f"sensor.registry_{key}"
+            per_page.setdefault(page, {})[key] = (
+                51.0 if key == const.CONF_SPACE_SETPOINT_HIGH_LIMIT_C else f"sensor.registry_{key}")
     not_carried = {}
     for page, stored in sorted(per_page.items()):
         flow = bare_options({**REGISTRY_SEED, **stored})
-        rendered = offered_entity_fields(
+        rendered = offered_clearable_fields(
             await getattr(flow, f"async_step_{page}")(None)
         )
         wrong = {k: rendered.get(k) for k, v in stored.items() if rendered.get(k) != v}
@@ -7855,7 +7868,16 @@ def _page_stored_entities(step, base):
         )
         if row.default is config_flow._STORED
     ]
-    return {row.key: f"sensor.stored_{i}" for i, row in enumerate(rows)}
+    return {row.key: _stored_seed(row, i) for i, row in enumerate(rows)}
+
+
+def _stored_seed(row, tag):
+    """A distinct stored value for a ``_STORED`` row: an entity id for a
+    picker, an in-range number for the one optional number
+    (``space_setpoint_high_limit_c``), which clears the same way."""
+    if isinstance(row.widget, selector.NumberSelector):
+        return float(row.widget.config["min"]) + 1.0
+    return f"sensor.stored_{tag}"
 
 
 async def options_rejected_page_rerenders_the_clear():
