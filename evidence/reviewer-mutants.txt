@@ -1,0 +1,24 @@
+== M1 archive_refusal target==base site back to info.is_dir()
+ tools/audit/seat/corpus_mirror.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+FAIL archives: a member with an empty name is refused whole as the directory itself, read from the name under any interpreter's ZipInfo.is_dir; got ('RAISED IndexError', None)
+ok   local failure: a healthy archive this host could not write because a write fails with no OSError is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined
+corpus_mirror self-test: FAIL archives: a member with an empty name is refused whole as the directory itself, read from the name under any interpreter's ZipInfo.is_dir; got ('RAISED IndexError', None)
+== M2 parents/files site back to info.is_dir()
+ tools/audit/seat/corpus_mirror.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+FAIL archives: a member with an empty name is refused whole as the directory itself, read from the name under any interpreter's ZipInfo.is_dir; got ('RAISED IndexError', None)
+ok   local failure: a healthy archive this host could not write because a write fails with no OSError is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined
+corpus_mirror self-test: FAIL archives: a member with an empty name is refused whole as the directory itself, read from the name under any interpreter's ZipInfo.is_dir; got ('RAISED IndexError', None)
+== M3 safe_extract site back to info.is_dir()
+ tools/audit/seat/corpus_mirror.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+ok   local failure: a healthy archive this host could not write because a write fails with no OSError is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined
+corpus_mirror self-test: ok (without mutants)
+== M4 helper returns name[-1]=='/' (3.11.5 body)
+ tools/audit/seat/corpus_mirror.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+FAIL archives: a member with an empty name is refused whole as the directory itself, read from the name under any interpreter's ZipInfo.is_dir; got ('RAISED IndexError', None)
+FAIL archives: each of 1429 archives one byte away from a well-formed one extracts or is refused by a rule, and none raises; raised ['IndexError']
+ok   local failure: a healthy archive this host could not write because a write fails with no OSError is no answer: not_reached in its pass, nothing refused, nothing left, downloaded again by the next pass and examined
+corpus_mirror self-test: FAIL archives: a member with an empty name is refused whole as the directory itself, read from the name under any interpreter's ZipInfo.is_dir; got ('RAISED IndexError', None); archives: each of 
