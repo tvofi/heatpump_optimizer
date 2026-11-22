@@ -87451,6 +87451,18 @@ R.check("cooling repair: null control: a boost in Heating raises no cooling repa
         _CG_ID not in _asyncio.run(_cg_no_episode()), "")
 
 
+# Nor does a write that asks for no heat: a plan OFF in Cooling.
+async def _cg_off_in_cooling():
+    hass, coord = _cg_coord("Cooling", switch="on")
+    await _cg_cycle(coord, boosted=False)
+    return [i[1] for i in getattr(hass, "issues", [])]
+
+
+_cg_off_issues = _asyncio.run(_cg_off_in_cooling())
+R.check("cooling repair: a plan OFF in Cooling asks for no heat and raises no cooling repair",
+        _CG_ID not in _cg_off_issues, f"{_cg_off_issues}")
+
+
 # The early cut-off writes the same switch (OFF) through ``switch_supply``:
 # a cooling mode exempts its step, as the gate leaves the switch alone.
 def _cg_cutoff(mode_state):
