@@ -51099,6 +51099,9 @@ _RC2_ROWS = [
     (_S.BlockDhwSwitch, "async_turn_off", (), ("block-dhw", True), ("is_on", False)),
     (_S.BlockSpaceSwitch, "async_turn_on", (), ("block-space", False), ("is_on", True)),
     (_S.BlockSpaceSwitch, "async_turn_off", (), ("block-space", True), ("is_on", False)),
+    # #3862: the override switch persists through the boost store, no timeout.
+    (_S.ExternalHeatIgnoreBlockSwitch, "async_turn_on", (), ("extheat-ignore", False), ("is_on", True)),
+    (_S.ExternalHeatIgnoreBlockSwitch, "async_turn_off", (), ("extheat-ignore", True), ("is_on", False)),
     (_C.HeatPumpOptimizerClimate, "async_turn_off", (), ("mode", "auto"), ("hvac_mode", _C.HVACMode.OFF)),
     (_C.HeatPumpOptimizerClimate, "async_turn_on", (), ("mode", "off"), ("hvac_mode", _C.HVACMode.AUTO)),
     (_C.HeatPumpOptimizerClimate, "async_set_hvac_mode", (_C.HVACMode.HEAT,), ("mode", "auto"), ("hvac_mode", _C.HVACMode.HEAT)),
@@ -51191,6 +51194,9 @@ async def _rc2_prelude(coord, what, value):
     elif what == "heat-loss":
         coord._apply_house_heat_loss_scale(value)
         await coord._async_save_thermal_learning()
+    elif what == "extheat-ignore":
+        boost_mod.held_for(coord).ignore_extheat_block = value
+        await boost_mod.persist(coord)
     elif isinstance(what, str) and what.startswith("block-"):
         boost_mod.held_for(coord).set(
             what.removeprefix("block-"), value, _rc2_dt_util.now(), block=True,

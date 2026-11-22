@@ -750,7 +750,7 @@ the heat pump's supply off.
 external heat (a wood fire) is detected: the fire stays detected and shown, but
 hot water and space heating are planned as if there were none. It stays on
 until you turn it off, survives a restart, and does nothing while external heat
-detection is off. See [How it works](docs/how-it-works.md#wood-furnaces-and-other-external-heat).
+detection is off. See [How it works](./docs/how-it-works.md#wood-furnaces-and-other-external-heat).
 
 The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
 and presets (auto, comfort, economy, boost). Its target temperature is *your*
