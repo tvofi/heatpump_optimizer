@@ -99178,7 +99178,8 @@ R.check(
     "OK, E5, OK 40 s apart is one row of 40 s with E5; null control, OK then OK makes no row; "
     "ok, Ok and OK all read healthy",
     _fl_one.episodes == [[10, 50, "E5", False]] and _fl_one.open is None and _fl_null.episodes == []
-    and _fl_null.open is None and all(_fl.code_text([w]) is None for w in ("ok", "Ok", "OK", " OK ")),
+    and _fl_null.open is None and all(_fl.code_text([w]) is None for w in ("ok", "Ok", "OK", " OK "))
+    and _fl.note(_fl.Log(0), 5, None) is False and _fl.note(_fl.Log(0), 5, "E5") is True,
     f"{_fl_one.episodes} {_fl_null.episodes}",
 )
 _fl_two = _fl_feed([(0, ["E5"]), (10, ["E5, P3"])])
@@ -99196,6 +99197,15 @@ _fl_many = _fl.code_text([", ".join(_fl_many_items)])
 _fl_kept = _fl_many.rsplit(" +", 1)[0].split(", ")
 _fl_long = "x" * 200 + " overheat (H9)" + "y" * 86
 _fl_tail = _fl.code_text([_fl_long])
+_fl_at = _fl.code_text(["a" * 79 + ", " + "b" * 79 + ", c"])
+_fl_over = _fl.code_text(["a" * 79 + ", " + "b" * 80])
+_fl_whole = _fl.code_text(["z" * 160])
+R.check(
+    "the 160-character budget is inclusive: two items joining to exactly 160 characters are both kept, "
+    "one character more drops the second; a single item of exactly 160 is kept whole, without an ellipsis",
+    _fl_at == "a" * 79 + ", " + "b" * 79 + " +1" and _fl_over == "a" * 79 + " +1" and _fl_whole == "z" * 160,
+    f"{_fl_at[-6:]!r} {_fl_over[-6:]!r} {len(_fl_whole)}",
+)
 R.check(
     "two faulted GCHV members keep their items in slot order and the (P6) and (H6) names whole; "
     "30 items keep a whole-item prefix with +N counting the rest, within 168 characters; a single "
@@ -99216,6 +99226,11 @@ R.check(
     and _fl.flag_text("binary_sensor.f", "off") == ("flag", None)
     and _fl.flag_text("sensor.f", "2080") == _fl.flag_text("sensor.f", "2080.0") == ("bitmap", "0x0820")
     and _fl.flag_text("sensor.f", "1.5") == ("flag", _fl.NO_CODE)
+    and _fl.flag_text("sensor.f", "1") == ("bitmap", "0x0001")
+    and _fl.flag_text("sensor.f", "-5") == ("bitmap", _fl.NO_CODE)
+    and _fl.flag_text("sensor.f", "0") == ("bitmap", None)
+    and _fl.flag_text("sensor.f", str(0xFFFFFFFF)) == ("bitmap", "0xFFFFFFFF")
+    and _fl.flag_text("sensor.f", str(0x100000000)) == ("bitmap", _fl.NO_CODE)
     and _fl.flag_text("sensor.f", "heating") is None
     and _fl.flag_text("binary_sensor.f", "heating") == ("flag", _fl.NO_CODE),
     f"{_fl.flag_text('sensor.f', 'heating')} {_fl.flag_text('binary_sensor.f', 'heating')}",
@@ -99245,13 +99260,15 @@ R.check(
 )
 _fl_short = _fl.loaded({**_fl.stored(_fl_ring), "episodes": [[1, 2, "E5"], [3, 4, "P3", False]]}, 77)
 _fl_off = _fl.loaded({**_fl.stored(_fl_ring), "dropped": -1}, 77)
+_fl_bare = _fl.loaded({"since_s": 5}, 77)
 R.check(
     "the store round-trips the record and declares every field; a row of the wrong shape is dropped "
     "alone; a field outside its declaration starts the record afresh at the load's time",
     _fl.stored(_fl.loaded(_fl.stored(_fl_ring), 1)) == _fl.stored(_fl_ring)
     and _fl_storage_admitted("fault_log", _fl.stored(_fl_ring))
     and _fl_short.episodes == [[3, 4, "P3", False]] and _fl_short.since_s == 0
-    and _fl_off.episodes == [] and _fl_off.since_s == 77 and _fl_off.codes == {},
+    and _fl_off.episodes == [] and _fl_off.since_s == 77 and _fl_off.codes == {}
+    and (_fl_bare.since_s, _fl_bare.dropped, _fl_bare.episodes, _fl_bare.open) == (5, 0, [], None),
     f"{_fl_short.episodes} {_fl_off.since_s}",
 )
 
@@ -99295,6 +99312,7 @@ async def _fl_flaps(entry_id, min_s):
             _FL_CLOCK[0] += 1.0
             await _fl_fire(hass, "sensor.fd", "E5" if k % 2 == 0 else "OK", k + 1)
         timers = list(getattr(hass, "timers", []))
+        _FL_DELAYS[entry_id] = [delay for delay, _a in timers]
         for _delay, action in timers:
             action(None)
         for _ in range(3):
@@ -99305,13 +99323,14 @@ async def _fl_flaps(entry_id, min_s):
         _fl.SAVE_MIN_S = saved_min
 
 
+_FL_DELAYS = {}
 _fl_saves, _fl_last_doc, _fl_live = _fl_aio.run(_fl_flaps("fl_flap", _fl.SAVE_MIN_S))
 _fl_saves0, _, _ = _fl_aio.run(_fl_flaps("fl_flap_null", 0.0))
 R.check(
     "120 flaps in 120 s write at most 3 saves, the last state saved by the deferred timer; null "
     "control, with the limiter's window at zero every one of the 120 opens and closes is a save",
     1 <= _fl_saves <= 3 and _fl_last_doc == _fl_live and len(_fl_live["episodes"]) == 60
-    and _fl_saves0 == 120,
+    and _fl_saves0 == 120 and _FL_DELAYS["fl_flap"] == [_fl.SAVE_MIN_S - 1.0] == [59.0],
     f"saves={_fl_saves} null={_fl_saves0} rows={len(_fl_live['episodes'])}",
 )
 
@@ -99443,8 +99462,29 @@ R.check(
     and _fl_v["episodes"][0]["start"] == _fl_dt.fromtimestamp(_FL_T0.timestamp() + 60, _fl_tz.utc).isoformat()
     and len("Pumphouse") >= _fl_rd.LEAK_MIN_CHARS
     and _fl_red["episodes"][1]["code"] != "Pumphouse" and "Pumphouse" not in _fl_red["codes"]
-    and _fl_v["open"] is None and _fl_v["dropped"] == 0,
+    and _fl_v["open"] is None and _fl_v["dropped"] == 0 and set(_fl_v["codes"]) == {"Pumphouse"},
     f"{_fl_v} {_fl_red}",
+)
+
+async def _fl_bitmap():
+    hass, entry = _FlHass({"sensor.fault_code": _fl_state("0", 0)}), _fl_entry(entry_id="fl_bitmap")
+    await _fl.async_setup(hass, entry, {_fl.CONF_HEAT_PUMP_FAULT_ENTITY: "sensor.fault_code"})
+    await _fl_fire(hass, "sensor.fault_code", "2080", 10)
+    mid = list(_fl._RECORDS[entry].log.open or [])
+    await _fl_fire(hass, "sensor.fault_code", "heating", 20)
+    held = list(_fl._RECORDS[entry].log.open or [])
+    await _fl_fire(hass, "sensor.fault_code", "0", 30)
+    return mid, held, _fl.diagnostics_view(entry)
+
+
+_fl_bm_mid, _fl_bm_held, _fl_bm = _fl_aio.run(_fl_bitmap())
+_FL_S10 = int(_FL_T0.timestamp()) + 10
+R.check(
+    "a sensor fault slot reading a register: 2080 opens a 0x0820 row, heating mid-episode is no reading "
+    "and leaves it open, 0 closes it after 20 s; the section names the source bitmap",
+    _fl_bm_mid == _fl_bm_held == [_FL_S10, "0x0820"] and _fl_bm["source"] == "bitmap"
+    and [(e["seconds"], e["code"]) for e in _fl_bm["episodes"]] == [(20, "0x0820")],
+    f"{_fl_bm_mid} {_fl_bm_held} {_fl_bm}",
 )
 
 # 9: the prefill rows (the device route's roles are pinned in W1067-G7b-1's table above).
@@ -99470,6 +99510,30 @@ R.check(
     and not any("fault" in k for k in _g7b_dp.resolve(_g7b_records(drop={
         f"{_G7B_SLUG}_T4", f"{_G7B_SLUG}_Tin", f"{_G7B_SLUG}_night_mode", f"{_G7B_SLUG}_DHWSET"}))),
     f"{_g7_mp.infer(_fl_dev_snap, {})} {_g7_mp.infer(_fl_gchv_snap, {})}",
+)
+
+# The entry's own path: setup subscribes, the download carries the section, unload saves.
+async def _fl_entry_path(entry_id, options):
+    hass = FakeHass({"sensor.fd": FakeState("E5")})
+    _seed_prices(hass)
+    entry = FakeEntry(data=_LC_DATA, options=options, entry_id=entry_id)
+    await _ha_setup_entry(_integ, hass, entry)
+    diag = await _fl_diag.async_get_config_entry_diagnostics(hass, entry)
+    unloaded = await _ha_unload_entry(_integ, hass, entry)
+    doc = _fi_json.loads(_fl_storage._DISK.get(_fl_key(entry), "null") or "null")
+    return diag["coordinator"].get("fault_log", "missing"), unloaded, doc
+
+
+_fl_ep_view, _fl_ep_ok, _fl_ep_doc = _fl_aio.run(
+    _fl_entry_path("fl_entry", {_fl.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fd"]}))
+_fl_ep_null = _fl_aio.run(_fl_entry_path("fl_entry_none", {}))
+R.check(
+    "through async_setup_entry: the download's coordinator.fault_log shows the open E5 read at setup, and "
+    "async_unload_entry saves it; null control, an entry with no fault slot has a null section and no store",
+    _fl_ep_ok and _fl_ep_view["source"] == "text" and _fl_ep_view["open"]["code"] == "E5"
+    and (_fl_ep_doc or {}).get("data", _fl_ep_doc or {}).get("open", [None, None])[1] == "E5"
+    and _fl_ep_null[0] is None and _fl_ep_null[1] and _fl_ep_null[2] is None,
+    f"view={_fl_ep_view} doc={_fl_ep_doc} null={_fl_ep_null}",
 )
 
 # 10: a synthetic day (no install data): one multi-hour P3 and twelve sub-minute E5s.

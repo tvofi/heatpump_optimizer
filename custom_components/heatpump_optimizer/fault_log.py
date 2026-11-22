@@ -63,6 +63,9 @@ SAVE_MIN_S = 60.0
 HEALTHY: frozenset[str] = frozenset(
     {"ok", "none", "normal", "no fault", ""} | BOOL_FALSE | AMBIGUOUS_ACTIVITY_TOKENS
 )
+#: The widest register read as a code (32 bits); a larger number is a flag, so
+#: a row's text stays within its bound.
+REGISTER_MAX = 0xFFFFFFFF
 #: A flag-slot fault with no code: recorded as a span, shown with a null code.
 NO_CODE = ""
 _UNREAD = ("unavailable", "unknown")
@@ -154,20 +157,22 @@ def flag_text(entity_id: str, state: str) -> tuple[str, str | None] | None:
     """The flag slot's reading as ``(source, text)``, or ``None`` when it is no reading.
 
     The canonical strict read: free text that only names an activity is no
-    evidence. A fault reading an integral number is the register, in hex.
+    evidence. An integral number is a register (``bitmap``), healthy at zero,
+    and a positive one is the fault's code, in hex.
     """
     flag = parse_bool(state, strict=not is_flag_domain(entity_id))
     if flag is None:
         return None
-    if not flag:
-        return ("flag", None)
     try:
-        number = float(state)
+        number: float | None = float(state)
     except (TypeError, ValueError):
-        return ("flag", NO_CODE)
-    if number.is_integer() and number >= 0:
-        return ("bitmap", f"0x{int(number):04X}")
-    return ("flag", NO_CODE)
+        number = None
+    source = "bitmap" if number is not None and number.is_integer() else "flag"
+    if not flag:
+        return (source, None)
+    if source == "bitmap" and number is not None and 0 < number <= REGISTER_MAX:
+        return (source, f"0x{int(number):04X}")
+    return (source, NO_CODE)
 
 
 def stored(log: Log) -> dict[str, Any]:
@@ -189,7 +194,7 @@ def loaded(raw: Any, now_s: int) -> Log:
         since_s=int(raw.get("since_s", now_s)),
         source=raw.get("source"),
         episodes=episodes,
-        dropped=int(raw.get("dropped") or 0),
+        dropped=int(raw.get("dropped", 0)),
         open=list(opened) if isinstance(opened, list) and len(opened) == 2 else None,
         codes={k: list(v) for k, v in (raw.get("codes") or {}).items() if len(v) == 3},
     )
