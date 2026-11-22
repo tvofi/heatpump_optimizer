@@ -34,6 +34,10 @@
   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_15456e64946920b5.py",
   "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_15456e64946920b5.out",
   "result_lines": [
+   "RESULT dhw_cap=0.0_baseline=None",
+   "RESULT dhw_cap=0.0_mutant=raises ZeroDivisionError",
+   "RESULT dhw_cap=5e-07_baseline=None",
+   "RESULT dhw_cap=5e-07_mutant=2.8875e+07",
    "RESULT dhw_cap=1e-06_baseline=None",
    "RESULT dhw_cap=1e-06_mutant=1.44375e+07",
    "RESULT dhw_cap=1.0000001e-06_baseline=1.44375e+07",

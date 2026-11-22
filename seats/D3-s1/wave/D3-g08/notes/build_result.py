@@ -81,7 +81,7 @@ else:
     assert p.returncode == 0, out[-2000:]
     rec["class"] = A["probe_class"]
     rec["probe"] = {"path": probe, "command": cmd, "output": f"{REL}/probes/probe_{KEY}.out",
-                    "result_lines": [l for l in out.splitlines() if l.startswith("RESULT")][-40:],
+                    "result_lines": [l for l in out.splitlines() if l.startswith("RESULT")],
                     "baseline_value": A["baseline_value"], "mutant_value": A["mutant_value"],
                     "inputs_tried": A["inputs_tried"], "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"}
     rec["reach"] = A["reach"]
