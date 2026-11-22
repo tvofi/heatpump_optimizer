@@ -28,3 +28,4 @@
 1795307403 HB alive
 1795307446 DONE verdict merge c4766c32 pending-ci gate at probe/rev-3734-dfc6dc40 bb2b4d9e
 1795327551 HB alive
+1795327763 CKPT class-open found: _whole hour keys (day_start_hour) fail every cycle at head; finder harness running snapshot 924a8e19e441
