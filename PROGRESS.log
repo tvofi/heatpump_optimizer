@@ -21,3 +21,4 @@
 1795310685 HB alive
 1795310794 CKPT round 3: verdict drafted, carry_audit rc 0; waiting on classify (gate pending, sweep-self queued) snapshot ecb81513909e
 1795311132 HB waiting on CI classify
+1795311551 DONE verdict blocked db727d36e0 ci-red: gate (stale gate suites); pushed probe/rev-3825-23455ea9 (bef3842c44)
