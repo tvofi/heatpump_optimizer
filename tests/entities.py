@@ -15730,11 +15730,12 @@ R.check(
 
 # D1-s2-05, the whole class: every numeric option a release stores. The rule
 # enumerates it from where the keys come from and where they are read, not
-# from the repair's own key set: the options flow's number rows (a money row
-# builds its NumberSelector per currency), the building questionnaire's number
-# fields, every key ThermalParameters.from_config or comfort_band.violations
-# reads with a numeric default (recorded by a mapping that answers every read
-# with its default), and every field EntryConfig parses as a number.
+# from the repair's own key set. Those are the options flow's number rows (a
+# money row builds its NumberSelector per currency) and the building
+# questionnaire's number fields. They are also every key
+# ThermalParameters.from_config or comfort_band.violations reads with a
+# numeric default (recorded by a mapping that answers every read with its
+# default), and every field EntryConfig parses as a number.
 import inspect as _mig_inspect  # noqa: E402
 from homeassistant.helpers import selector as _mig_selector  # noqa: E402
 from heatpump_optimizer import comfort_band as _mig_band  # noqa: E402
