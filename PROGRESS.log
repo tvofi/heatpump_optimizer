@@ -9,3 +9,4 @@
 1795308292 CKPT mutant L (tank reading not passed to meter) survives full features.py and undoes D12-s3-03 harness; drafting block snapshot 7c52128d4d51
 1795309466 DONE verdict pushed: blocked mutation-vacuous at c6c11df0b8 (probe/rev-3835-0e66ef5e f044c884cb)
 1795320653 HB alive
+1795320731 CKPT round 2: delta read (fc469477e2 + clean main merges); running mutants L and H at head snapshot e263dce67275
