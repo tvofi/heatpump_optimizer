@@ -6,7 +6,7 @@ the PR's head SHA. You check that the numbers are real, not that the code looks 
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
 Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. Evidence names differ beyond case. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+`, then your brief's `bus-nonce: <nonce>`.
 **Block only on code, tests and harness** (C5): paperwork (a stale body, a carry route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
-Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
+Long jobs, CI waits and rotation through refs follow `fixer.md`'s preamble: between rounds, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
@@ -17,17 +17,20 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    SHA and at the PR head. One flat by design (`fixer.md` step 3): confirm
    it flat at both ends and run its companion yourself at both.
 3. Re-run the null control and the both-ends check where the PR claims one.
-4. Compare the claim files with the actual drift: run `env_drift.py --all`
-   (`card_drift.mjs` for a card) against the merge base; every moved fixture
-   is claimed and every claim moved.
+4. Compare the claim files with the drift: run `env_drift.py --all`
+   (`card_drift.mjs` for a card) against the merge base; every
+   moved fixture is claimed and every claim moved.
 5. Check `VERSION`, the manifest version and the notes heading are untouched.
 6. Attack the fix at other configurations the finding's harness accepts:
-   the other topologies, the other price profiles, the zero-evidence install.
+   other topologies and price profiles, the zero-evidence install.
    **And open the class: a harness's configurations are its parameters, not its
    population.** Run the enumeration rule the body names and compare its output to
    the diff: a seam it returns neither in the diff nor dispositioned in the body
    is `blocked <sha> class-open: <seams>`, a site or a predicate's unguarded
-   domain: every one the review found, not one per round, no hunt past it owed.
+   domain: every one found, no hunt past it owed. A seam of a set the claim
+   quantifies over that no named rule reads nor stated residue category holds blocks
+   the set: `class-open: axis <set> unenumerated (e.g. <seam>)`, `<set>` repeated
+   verbatim (`bus.sh` compares).
    An item whose harness does not move under its own perturbation is void
    (`judge.md`). A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A rule returning
    nothing means a one-seam class: say so, never read the absence as compliance.
@@ -47,12 +50,14 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     exception is `blocked <sha> carry-missing: own-group`.
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger, over its owed-reds set). Read the PR's own checks (`get_check_runs`
-    or the commit's `check-runs` API), never a one-run-per-check listing. An unanswered owed red is a `Note:` line, never a block (C5):
+    or the `check-runs` API), never a listing that shows one run per
+    check. An unanswered owed red is a `Note:` line, never a block (C5):
     root-cause-detectable where a cheaper detector could have shown
     the red before the handoff (name it), `root-cause-unrecorded` where that check
-    is the cheapest, `root-cause-unanswered` if you cannot tell. The wave routes
-    an old `blocked <sha> root-cause-detectable: <check>`. `UNDER-SCOPED` and
-    `INHERITED CLAIMS` are answered by naming them (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
+    is the cheapest, `root-cause-unanswered` if you cannot tell. An old
+    `blocked <sha> root-cause-detectable: <check>` is routed.
+    `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
+    (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     The rule's `instrument-self-tests` block is `classify --pr`'s INTRODUCED.
 
     **The head's runs are not the range's** (#1144). The body check prints
@@ -78,7 +83,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     <head>` (a main merge: its resolution), each prior finding resolved, the live
     required checks. Only a production (`custom_components/`) delta putting reviewed
     functionality at a non-obvious risk CI would not detect widens it, to exactly
-    that code; the verdict names path and risk.
+    that code; the verdict names path and risk. Other deltas never widen it.
     A head whose own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
@@ -88,15 +93,16 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     main only on one, never on a head behind main that merges cleanly (tvofi
     11-07). A conflict off the two claim files is yours.
 
-    **The driver's verdict is its `MERGE-CLAIM: resolved|refused <path>` marker
-    in that command's stderr** (once per conflicting claim file, if installed),
-    never inferred from the paths or the wording after it. `resolved` settles
-    that file; a non-zero exit beside it is another path's. `refused` is the
-    orchestrator's to resolve by hand, not the author's: say which file and why.
+    **The driver's verdict is in that command's stderr; read it, never infer it
+    from the paths.** `merge-tree` invokes the driver once per conflicting claim
+    file if you installed it. Key on
+    `MERGE-CLAIM: resolved|refused <path>`, not the wording after it. A `resolved` line settles
+    that file; a non-zero exit beside it is another path's. A `refused`
+    line is the orchestrator's to resolve by hand, not the author's defect: say
+    which file refused and why.
 
-    Never classify by line shape: to `_comment_lines` a `may-drift` line **is**
-    a `#` comment, and `merge_claim_defect` refuses losing one, so "only comment
-    notes conflict" waves a real refusal through.
+    Never classify by line shape: a `may-drift` line **is** a `#` comment to
+    `_comment_lines`, and `merge_claim_defect` refuses losing one.
 
 14. **Every number the diff moves is earned by the change, not the instrument**:
     a structure, policy or mutation budget, the architecture score or its
@@ -122,7 +128,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 Return a verdict with your RESULT lines, its first line and `bus-nonce:` line
 in the grammar above; one that does not parse is refused. Return it only once the packet's closing self-audit (`carry_audit.py check`) exits 0.
 
-**Say which round this is**: from the fourth, `fixer.md` owes a re-cut.
+**Say which round this is**: from the fourth, a re-cut is owed.
 
 - **An outside reviewer (decision 0017).** An allowlisted contributor's reviewer runs steps 1 to 16 unchanged and publishes from the fork: the verdict file and `ev/` in one commit there, then a PR comment opening with the verdict's first line and carrying `review-commit: <sha40>`; no nonce (`bus.sh adopt` adds it). Any head move but our automatic merge of main voids the verdict.
 - **The standing absorb PR (P-R11-SELFTEST-ABSORB)**, a `handoff/selftest-absorb` head changing only `selftest_closures.json`: steps 1 to 16 are `selftest_absorb.py verify --repo-dir <checkout> --head <head40>` (its instrument page), quoted with its line; `SELFTEST-ABSORB VERIFIED` is `merge`, else `blocked <sha> absorb-verify: <line>`. Any other path: full review.
