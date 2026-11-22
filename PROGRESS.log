@@ -7,3 +7,4 @@
 1795348883 HB alive
 1795348955 CKPT packet+role pack rendered snapshot 005bf0abac7b
 1795349189 CKPT probes re-run (prior block resolved), classify GREEN, lint default ok; p2 harness running snapshot 26a7418f9530
+1795349236 CKPT verdict drafted, carry_audit rc=0; waiting on p2 harness snapshot 4f1d744e3852
