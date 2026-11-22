@@ -19,6 +19,15 @@ Alternatives not taken:
 
 ## Head
 
+`ce185aeaf998928227a9e88076ae72a0ae9e3c34` is the code head of this handoff, merged into #3845's branch. It is four commits on `fa1a024782`, the merge of `origin/main` `608c95decc94` (main's tip at 2026-11-22T10:56Z) into `f418d51c77`, which merged with no conflict but `tests/structure_budgets.json`, resolved by the ledger driver. At `fa1a024782`, `python3 tests/structure.py` printed `FAIL module_excess_loc 21802 > 21779 (+23)`: this branch's growth past `MODULE_LOC_LIMIT` is coordinator.py +19, config_flow.py +1, optimizer.py +2 and pump_arbiter.py +1. It is paid in production code, not by a raise:
+
+- `eded0bde02` moves the #13 peak-tariff option parsers, `_peak_tariff_months` and `_peak_tariff_hours`, from `coordinator.py` to `tariff.py` as `peak_tariff_months` and `peak_tariff_hours`, beside `CapacityTariff`, whose options they parse. Their bodies are unchanged, and `tariff.py` now imports `GridFeeError` and `parse_month_range` from `grid_fee.py`, which imports nothing from `tariff.py`. `coordinator.py` drops 39 lines, and `tariff.py` stays under the limit at 1262. The five mutation-ledger rows of the two parsers move with their sites (`tests/mutation_ledger/{killed_by,survivor_triage}/tariff.py/`), each keeping its digest, with its anchor re-keyed to `tariff.py:peak_tariff_*`. `mutation_table.completeness_problems` over `tariff.py` and `coordinator.py` reports 0 problems. The R10-FEEDS flood probe in `tests/features.py` calls `tariff_mod.peak_tariff_*`, and `tests/entities.py`'s unlatched-WARNING allowance names `("tariff.py", "peak_tariff_*")`.
+- `abb3d7a8b8` deletes the two pins whose `old` text the move edited, `_tariff_months` `RETURN_DEL 44fd15ab` and `_tariff_hours` `RETURN_DEL af10f4de` (both killed by `tests/structure.py`). They are listed under `## Unpinned sites`, where mutation-autofix pins them afresh.
+- `49d7af550a` records `module_excess_loc` 21779 -> 21767, with only that row moved: `tests/structure.py` exits 2 on an unrecorded gain.
+- `ce185aeaf9` adds `grid_fee.py` and `currency.py` to the five closures holding `tariff.py`, as `ci_predict.py` predicted UNDER-SCOPED. `tests/backtest.py` and `tests/edge.py` were re-recorded with `tests/derive_closures.sh --single`, and each gained exactly those two files; the CI-recorded seconds are kept. `tests/optimality.py` exited 1 under this host's recording, and `tests/stress.py` runs about 15 CI minutes, so those two and `tests/validate.py` gained the same two files by hand. `ci_predict.py --only under-scoped` then predicts no closures red. `closures-autofix` re-measures them on CI.
+
+The move is score-neutral: `score.py --diff 608c95decc94 fa1a024782` and `--diff 608c95decc94 eded0bde02` both print `Architecture score: dS +5.7671 IMPROVES`, with the same three rows (see `## Architecture score`). This host has no interpreter carrying Home Assistant and scipy together, so the HA-driven suites were not re-run here. The scoped gate in this update's prepr and CI are the authority for `tests/features.py` and `tests/entities.py`. A stub-package import of `tariff.py` parses `nov-mar` to `[1, 2, 3, 11, 12]` and `07:00-20:00` to `((7.0, 20.0),)`, and logs one WARNING each for `Smarch` and `25:99`.
+
 `f418d51c7719209d311aab8895328249472e312b` is the code head of this handoff; its merge base is `f269ecccb5f1dfd21eca03a3d5dcc43b3a145603`, which is `origin/main` at 2026-11-22T01:31Z. It is two merges of `origin/main` into the reviewed head `7dd02c4135d851fa03afb2f9b2abed65014eaaf7` (merge base `a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b`): ec1b533f53 merges `e4c929bd1c`, with the resolutions below; f418d51c77 merges `f269ecccb5` (#3729), which touches only `tests/entities.py`, `tests/structure.py`, `tests/structure_budgets.json`, `tools/policy/field_coverage.mjs` and its delivery row, and merges with no conflict but the budget file, resolved by the ledger driver. `git diff 7dd02c4135 f418d51c77` is main's delta plus those resolutions.
 
 - Merge resolutions, each keeping both sides:
@@ -134,13 +143,15 @@ None of the light harnesses below reads these.
     - `features.py`: `ALL 6000 FEATURE CHECKS PASSED`.
   - The block at 7dd02c4135 prints `ALL 12 FEATURES BLOCK PASSED`, and the exception-translation section (`features_block.py` from "# D10-17 (#217, …" to "# #226: …", prelude from `--emit-prelude`) prints `ALL 33 FEATURES BLOCK PASSED`.
 - **Structure.** `python3 tests/structure.py --record`, in its own commit with the reason, moves `class_excess_loc` 17322 → 17318 and `max_class_loc` 7873 → 7865. No other row moves.
-<!-- figure-block: scope-line mb=f269ecccb5f1dfd21eca03a3d5dcc43b3a145603 head=f418d51c7719209d311aab8895328249472e312b -->
+<!-- figure-block: scope-line mb=608c95decc94a8240565aba68fa8f0e1dece8c3d head=ce185aeaf998928227a9e88076ae72a0ae9e3c34 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
 <!-- /figure-block -->
 
 ## Architecture score
+
+At this handoff's head, `python3 tools/audit/archscore/score.py --diff 608c95decc94a8240565aba68fa8f0e1dece8c3d eded0bde02` prints "Architecture score: dS +5.7671 IMPROVES": `hub_solve_writes` 1 -> 0 (+5.4429), `private_cross_module` 9 -> 7 (+0.3219) and `coord_footprint` 2525 -> 2521 (+0.0023). The figure is the same at `fa1a024782`, before the module_excess payment, so the move reads as neither better nor worse.  `score.py --diff fa1a024782 eded0bde02`, the payment alone, prints "Architecture score: dS +0.0000 NULL".
 
 `python3 tools/audit/archscore/score.py --diff a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b`, at 7dd02c4135, printed "Architecture score: dS +5.7671 IMPROVES" with these rows:
 
@@ -150,31 +161,33 @@ MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 
 ## Unpinned sites
 
-`python3 tools/pr/ci_predict.py` at ec1b533f53 names 11 sites, the same 11 as at 7dd02c4135 (f418d51c77 changes no file under `custom_components/`); the merge of `origin/main` moved five of them, re-anchored here by matching each site's code text at 7dd02c4135 to the one same-kind site at ec1b533f53 (coordinator.py 6133→6120, 6180→6167, 10625→10607; store.py 740→744, 742→746). The kill evidence below was taken at 7dd02c4135. Each is driven by `tools/audit/seat/mutant_run.py --spec` (the NULL run `SURVIVED`) against the command named:
+`python3 tools/pr/ci_predict.py --base origin/main --only mutation`, at #3845's head `ce251f9f0f` merged with `eded0bde02` (a scratch merge, which is what this update pushes), names 9 sites. The 11 sites the handoff at `f418d51c77` listed are re-anchored to the head's lines by matching each site's code text (coordinator.py 6120→6085, 6167→6132, 10607→10572). Four of them are already pinned on #3845's branch by mutation-autofix's `e82a26569c`: away.py:621, coordinator.py:10572, optimizer.py:1866 and store.py:746. The payment adds two sites, coordinator.py:8589 and 8593. The kill evidence for the first eleven was taken at 7dd02c4135, each driven by `tools/audit/seat/mutant_run.py --spec` (the NULL run `SURVIVED`) against the command named:
 
-- custom_components/heatpump_optimizer/away.py:621 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D10-s1-01: set_away refuses each of six return times …")
-- custom_components/heatpump_optimizer/coordinator.py:6120 RETURN_DEL: pinned by mutation-autofix (KILLED by `tests/features.py`, `mutant_run.py --spec --in-place --timeout 3000`, at 7dd02c4135: `SURVIVED NULL`, `KILLED coord6133_RETURN_DEL`. The default 600 s timeout cut the NULL run short, which read as `KILLED NULL`)
-- custom_components/heatpump_optimizer/coordinator.py:6167 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-06: …", whose recovered refresh reads the payload)
-- custom_components/heatpump_optimizer/coordinator.py:10607 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-07: diagnosis inputs whose state cannot be copied are None, …")
+- custom_components/heatpump_optimizer/away.py:621 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D10-s1-01: set_away refuses each of six return times …"; pinned in `e82a26569c`)
+- custom_components/heatpump_optimizer/coordinator.py:6085 RETURN_DEL: pinned by mutation-autofix (KILLED by `tests/features.py`, `mutant_run.py --spec --in-place --timeout 3000`, at 7dd02c4135: `SURVIVED NULL`, `KILLED coord6133_RETURN_DEL`. The default 600 s timeout cut the NULL run short, which read as `KILLED NULL`)
+- custom_components/heatpump_optimizer/coordinator.py:6132 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-06: …", whose recovered refresh reads the payload)
+- custom_components/heatpump_optimizer/coordinator.py:8589 RETURN_DEL: pinned by mutation-autofix (KILLED by `tests/structure.py`, `mutant_run.py --spec --in-place --cmd 'python3 tests/structure.py'` at 49d7af550a: `SURVIVED NULL`, `KILLED tariff_months_RETURN_DEL`; the deleted pin's killer, re-driven on the edited line)
+- custom_components/heatpump_optimizer/coordinator.py:8593 RETURN_DEL: pinned by mutation-autofix (KILLED by `tests/structure.py`, `mutant_run.py --spec --in-place --cmd 'python3 tests/structure.py'` at 49d7af550a: `SURVIVED NULL`, `KILLED tariff_hours_RETURN_DEL`; the deleted pin's killer, re-driven on the edited line)
+- custom_components/heatpump_optimizer/coordinator.py:10572 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-07: diagnosis inputs whose state cannot be copied are None, …"; pinned in `e82a26569c`)
 - custom_components/heatpump_optimizer/diagnosis.py:95 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-07 seam rule: a diagnosis whose baseline cannot be simulated is no report (None), …")
 - custom_components/heatpump_optimizer/diagnostics.py:375 RETURN_DEL: pinned by mutation-autofix (KILLED by "D1-s3-07: the L-BFGS-B restart, a learner summary and a diagnostics view that raise …")
-- custom_components/heatpump_optimizer/optimizer.py:1866 RETURN_DEL: pinned by mutation-autofix (KILLED by the same check)
+- custom_components/heatpump_optimizer/optimizer.py:1866 RETURN_DEL: pinned by mutation-autofix (KILLED by the same check; pinned in `e82a26569c`)
 - custom_components/heatpump_optimizer/services.py:640 BOOLOP: pinned by mutation-autofix (KILLED by "D10-s1-01: …")
 - custom_components/heatpump_optimizer/services.py:640 GUARD_OFF: pinned by mutation-autofix (KILLED by "D10-s1-01: …")
 - custom_components/heatpump_optimizer/store.py:744 RETURN_DEL: pinned by mutation-autofix (KILLED by "D1-s3-05: a save failing on three passes …", which reads each call's return)
-- custom_components/heatpump_optimizer/store.py:746 RETURN_DEL: pinned by mutation-autofix (KILLED by the same check)
+- custom_components/heatpump_optimizer/store.py:746 RETURN_DEL: pinned by mutation-autofix (KILLED by the same check; pinned in `e82a26569c`)
 
 Two survivors are triaged as equivalent in `tests/mutation_ledger/survivor_triage/`, each with its reason:
 
 - `away.py/parse_return_time.GUARD_OFF.48f338a4.json`: every clearing spelling reaches `stored_instant` and returns `None` without the guard (measured).
 - `coordinator.py/_stored_fuse_advisor.RETURN_DEL.d7923b87.json`: nothing follows the `try`.
 
-The two stale pins the diff edited (`_async_update_data` `RETURN_DEL 3bda3d97`, `_async_first_refresh_light` `RETURN_DEL 35324698`, both success returns) were deleted by hand. The `_parse_return_time` kill pin is renamed to `parse_return_time`, with its anchor updated.
+The two stale pins the diff edited (`_async_update_data` `RETURN_DEL 3bda3d97`, `_async_first_refresh_light` `RETURN_DEL 35324698`, both success returns) were deleted by hand. The `_parse_return_time` kill pin is renamed to `parse_return_time`, with its anchor updated. The payment's two stale pins (`_tariff_months` `RETURN_DEL 44fd15ab`, `_tariff_hours` `RETURN_DEL af10f4de`) were deleted by hand in `abb3d7a8b8`; their lines are 8589 and 8593 above.
 
 ## Red checks
 
-- `tests / mutation` (predicted at 7dd02c4135 by `tools/pr/ci_predict.py`; no commit of this branch has run CI): red by construction on the 11 sites under `## Unpinned sites`, which are lines this diff adds and none is yet in the ledger. Each is driven there, killed by a named check, or triaged as equivalent; `mutation-autofix` pins the killed sites after the push. Cheaper detector: `ci_predict.py`, which `prepr.sh` already runs offline, so no countermeasure is owed.
-- `governance / instrument-self-tests` (predicted by `ci_predict.py`; WORKAROUND P-R11-PREPR-TTL0-FIND): the `reds_arm` self-test (P351) reads 0 where 1 is wanted on a macOS host, because BSD `find` matches `-mmin -0`; this diff touches no instrument. The open ran with `~/.local/state/hpo/overlay-find`, a local shim answering `-mmin -0` with no match. Cheaper detector: the self-test itself, which `prepr.sh` already runs; the fault is the host's, so no countermeasure is owed here.
+- `tests / mutation` (predicted by `tools/pr/ci_predict.py` at #3845's head merged with this code): red by construction on the 9 sites still unpinned under `## Unpinned sites`, which are lines this diff adds and none is yet in the ledger. Each is driven there, killed by a named check, or triaged as equivalent; `mutation-autofix` pins the killed sites after the push. Cheaper detector: `ci_predict.py`, which `prepr.sh` already runs offline, so no countermeasure is owed.
+- `governance / instrument-self-tests` (predicted by `ci_predict.py`; WORKAROUND P-R11-PREPR-TTL0-FIND): the `reds_arm` self-test (P351) reads 0 where 1 is wanted on a macOS host, because BSD `find` matches `-mmin -0`; this diff touches no instrument. The open ran with `~/.local/state/hpo/overlay-find`, a local shim answering `-mmin -0` with no match. Cheaper detector: the self-test itself, which `prepr.sh` already runs; the fault is the host's, so no countermeasure is owed here. At #3845's head merged with this code, `ci_predict.py --only step-replay`, run with the shim first on PATH, predicts no STEP REPLAY red. `selftest_wiring.py --self-test` (26 checks, 0 failed) and `--check` (151 wired, 0 unwired) exit 0 at both `f418d51c77` and the merged head, so the arm the open predicted does not reproduce here.
 
 ## Forward-carry
 
