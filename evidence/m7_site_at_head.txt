@@ -1,0 +1,25 @@
+HEAD:custom_components/heatpump_optimizer/pump_arbiter.py:913:def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
+HEAD:custom_components/heatpump_optimizer/pump_arbiter.py:1009:    boost_c = _boost_ceiling_c(inp) if boosted else None
+    high = setpoint_range_c(inp.hass, entity)[1] if entity else None
+    if high is None or not _gate_floor_c(inp.config) < high <= FLOW_HEAT_C_MAX:
+        return None
+    caps = [high]
+    if (ceiling := _heat_ceiling_c(inp.config)) != DEFAULT_FLOW_HEAT_C:
+        caps.append(ceiling)
+    if (limit := _space_limit_c(inp)) is not None:
+        caps.append(limit)
+    return min(caps)
+    for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`)."""
+    p_min, p_max = _band_kw(inp)
+    boost_c = _boost_ceiling_c(inp) if boosted else None
+    # The level map's top is one the pump takes: under the high limit.
+    heat_c = min(_heat_ceiling_c(inp.config) if boost_c is None else boost_c, _space_limit_c(inp) or math.inf)
+    floor_c = _or_hold(modulation_floor_flow_c(
+commit ea4b6dd401a12c638f00d1c61be40c0d81c2ca83
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Sun Nov 22 13:17:10 2026 +0100
+
+    flow limit: the level map alone caps a boost under the high limit; a crossed-pair check that reads the sensor rule
+
+ tests/features.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)

@@ -1,0 +1,33 @@
+custom_components/heatpump_optimizer/pump_arbiter.py:438:_SLOTS = ("mode", "dhw_setpoint", "space_setpoint", "silent")
+custom_components/heatpump_optimizer/pump_arbiter.py:462:        "space_setpoint": cfg.space_setpoint_entity,
+custom_components/heatpump_optimizer/pump_arbiter.py:622:    entity = _entities(inp.config)["space_setpoint"]
+custom_components/heatpump_optimizer/pump_arbiter.py:623:    if _grid(inp, "space_setpoint") is None or not _flow_unit(inp.config):
+custom_components/heatpump_optimizer/pump_arbiter.py:651:    entity = _entities(inp.config)["space_setpoint"]
+custom_components/heatpump_optimizer/pump_arbiter.py:672:    return _bounded(inp, "space_setpoint", room)
+custom_components/heatpump_optimizer/pump_arbiter.py:832:    return _bounded(inp, "space_setpoint", gate, gate, rounding="down")
+custom_components/heatpump_optimizer/pump_arbiter.py:873:    written = state.written.get("space_setpoint")
+custom_components/heatpump_optimizer/pump_arbiter.py:878:        inp, "space_setpoint", _heat_ceiling_c(inp.config), _gate_floor_c(inp.config),
+custom_components/heatpump_optimizer/pump_arbiter.py:929:    entity = _entities(inp.config)["space_setpoint"]
+custom_components/heatpump_optimizer/pump_arbiter.py:972:            "space_setpoint",
+custom_components/heatpump_optimizer/pump_arbiter.py:990:    return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config), hi=_space_limit_c(inp))
+custom_components/heatpump_optimizer/pump_arbiter.py:1079:    out = _bounded(inp, "space_setpoint", rec.w_c, _gate_floor_c(inp.config), lo=lo, hi=hi)
+custom_components/heatpump_optimizer/pump_arbiter.py:1123:    return clear, _bounded(inp, "space_setpoint", clear, lo=clear) or clear
+custom_components/heatpump_optimizer/pump_arbiter.py:1160:    recorded = held.written.get("space_setpoint")
+custom_components/heatpump_optimizer/pump_arbiter.py:1164:        rec.prev_c = held.dropped["space_setpoint"] = recorded[0]
+custom_components/heatpump_optimizer/pump_arbiter.py:1166:    held.written.pop("space_setpoint", None)
+custom_components/heatpump_optimizer/pump_arbiter.py:1211:    if slot != "space_setpoint":
+custom_components/heatpump_optimizer/pump_arbiter.py:1222:    held.written["space_setpoint"] = (observed, at)
+custom_components/heatpump_optimizer/pump_arbiter.py:1319:        return PumpCommand(mode, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
+custom_components/heatpump_optimizer/pump_arbiter.py:1592:    record, before = held.written.get("space_setpoint"), held.space_before
+custom_components/heatpump_optimizer/pump_arbiter.py:1595:        and not held.misses.get("space_setpoint") \
+custom_components/heatpump_optimizer/pump_arbiter.py:1596:        and _differs("space_setpoint", observed, record[0]) \
+custom_components/heatpump_optimizer/pump_arbiter.py:1597:        and _differs("space_setpoint", observed, before) \
+custom_components/heatpump_optimizer/pump_arbiter.py:1626:    held.dropped = {} if own is None else {"space_setpoint": own}
+custom_components/heatpump_optimizer/pump_arbiter.py:1633:    record = held.written.get("space_setpoint")
+custom_components/heatpump_optimizer/pump_arbiter.py:1634:    return record[0] if record is not None else held.dropped.get("space_setpoint")
+custom_components/heatpump_optimizer/pump_arbiter.py:1743:    entity = _entities(inp.config)["space_setpoint"]
+custom_components/heatpump_optimizer/pump_arbiter.py:1744:    edit = _observed(inp, "space_setpoint")
+custom_components/heatpump_optimizer/pump_arbiter.py:1750:    baseline = cast(float, _bounded(inp, "space_setpoint", edit))
+custom_components/heatpump_optimizer/pump_arbiter.py:1765:    return slot == "space_setpoint" and not await _arm_space(inp, entry, held, entity, now)
+custom_components/heatpump_optimizer/pump_arbiter.py:1785:        and reading is not None and not _differs("space_setpoint", reading, last)
+custom_components/heatpump_optimizer/pump_arbiter.py:2326:            record.pop("space_setpoint", None)

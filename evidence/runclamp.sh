@@ -1,0 +1,1 @@
+PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude 'exec(open("~/hpo-seats/r10s6/rev-3866-local/clamp_prelude.py").read())' "# (C) Set-points are written on the entity's own step" "def _bst_q(value_c" 2>&1

@@ -1,0 +1,18 @@
+Pump duty: the option high limit leaves no heating value on number.water_set; not used
+Pump duty: the option high limit leaves no heating value on number.water_set; not used
+
+=== features block ===
+  FAIL R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is dropped and named with the other in force, one equal to it kept; null control: neither source is no limit  [_fl_pure={'both, option lower': HighLimit(limit_c=46.0, dropped=()), 'both, sensor lower': HighLimit(limit_c=52.0, dropped=()), 'option only': HighLimit(limit_c=46.0, dropped=()), 'neither': HighLimit(limit_c=None, dropped=()), 'sensor under lowest': HighLimit(limit_c=46.0, dropped=('sensor',)), 'option under lowest': HighLimit(limit_c=52.0, dropped=('option',)), 'sensor at lowest': HighLimit(limit_c=None, dropped=('sensor',))}]
+  ok   R11-OWNER-FLOWCAP: the option reads only inside the 30-70 degC the options flow offers; outside it, not a number, or unset is no option
+  ok   R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, the option where the sensor is unavailable or its pair crossed, and never above the entity's maximum; null control: with neither it writes the entity's maximum, 70
+  ok   R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating ceiling; null controls: an option above the ceiling and no option both write the ceiling
+  ok   R11-OWNER-FLOWCAP: an option under the entity's minimum (35 under 40, and under 41 on a 5-degree step) is under the gate the minimum lifts, so it is dropped and a boost writes the entity's maximum, never a value under the minimum, with the record equal to what was sent; null control: an option over the minimum is written as itself
+  ok   R11-OWNER-FLOWCAP: a limit above the entity's own maximum never lifts a heating write past it: a band-top step under a 70 degC heating ceiling with option 65 on a 60 maximum writes and records 60, not 65 (which the entity would read back as 60, an edit); option 50 writes 50; null control: no option writes the maximum, 60
+  ok   R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the limit and the unlimited level's value, not on the limit itself; null control: no option maps on 55
+  ok   R11-OWNER-FLOWCAP: the fallback's hold stays under the limit (option 30 holds 30); null control: no option holds above it
+  ok   R11-OWNER-FLOWCAP: an indoor unit reads no high limit and writes the same room value with the option stored as without; null control: the same option on a flow unit is its limit, 46
+  ok   R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top draw (written 46 under the 55 ceiling draw_range keys on); null control: with no option the band-top write is the ceiling
+  ok   R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); null control: with neither it is the 55 degC heating ceiling
+  ok   R11-OWNER-FLOWCAP: the option row offers 30 to 70 degC with no default, and a stored 80 widens it and is named for stored_value_out_of_range; null control: a stored 46 widens nothing
+
+1 of 12 FEATURES BLOCK FAILED
