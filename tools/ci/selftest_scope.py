@@ -2319,11 +2319,13 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
             f"import sys\nfrom pathlib import Path\nsys.path.insert(0, {str(Path(__file__).resolve().parent)!r})\n"
             f"import selftest_scope\nsys.exit(selftest_scope.main(sys.argv[1:], Path({str(pr)!r})))\n")
 
-        def bot_run(table: bytes, drop: str = "") -> tuple[int, str, Path, Path]:
+        def bot_run(table: bytes, drop: str = "", empty: str = "") -> tuple[int, str, Path, Path]:
             rt = Path(tempfile.mkdtemp(dir=pr.parent))
             shutil.copytree(ptr, rt / TRACE_DIR)
             if drop:
                 (rt / TRACE_DIR / drop).unlink()
+            if empty:
+                (rt / TRACE_DIR / empty).write_text("")
             (pr / TABLE).write_bytes(table)
             p = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", bot[0].run or ""],
                                cwd=pr, env={**os.environ, "RUNNER_TEMP": str(rt),
@@ -2353,6 +2355,25 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
                "keeps no table",
                rc_bs == 1 and "  STALE step b: its run text changed since the record" in out_bs
                and "ABSORB OWED" not in out_bs and not kept_s.exists())
+            # A broken trace, and a wiring gap, each beside the absorbable
+            # read: absorb is never tried, so the run is red with no ABSORB
+            # OWED and no kept table. Absorbing past either would recompute a
+            # `remain` that cannot hold them, and the drift step would print
+            # its green ABSORB OWED line over a refusal only `record` or the
+            # workflow repairs (the guard's `not broken`, `not gaps`).
+            rc_be, out_be, kept_e, _ = bot_run(before, empty="step-b.trace")
+            ck(f"the bot's step: {BOT_STEP} stays red on an EMPTY trace beside an absorbable read: absorb is "
+               "not tried, no ABSORB OWED, no table kept",
+               rc_be == 1 and "  EMPTY trace step-b.trace (step b): no traced call" in out_be
+               and "ABSORB OWED" not in out_be and not kept_e.exists())
+            wf_live = (pr / WORKFLOW).read_text()
+            (pr / WORKFLOW).write_text(wf_live + "      - name: C\n        run: true\n")
+            rc_bg, out_bg, kept_g, _ = bot_run(before)
+            (pr / WORKFLOW).write_text(wf_live)
+            ck(f"the bot's step: {BOT_STEP} stays red on a wiring gap beside an absorbable read: absorb is "
+               "not tried, no ABSORB OWED, no table kept",
+               rc_bg == 1 and "  UNGATED step 'C'" in out_bg
+               and "ABSORB OWED" not in out_bg and not kept_g.exists())
             rc_bu, out_bu, kept_u, _ = bot_run(before, drop="step-b.trace")
             ck(f"the bot's step: {BOT_STEP} stays red on an UNMEASURED step beside an absorbable read: the "
                "absorbed table is kept, the refusal it still makes is named",
