@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_4c7e296370fc452d.py: step-4 probe for 4c7e296370fc452d. Metric: rain_anticipation_factor _analyze_forecast_trajectory returns when the decay-weighted mean precipitation is exactly 0.1 mm/h (a 1-step forecast of 0.1 mm/h).

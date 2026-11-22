@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py: step-4 probe for 9644a454ac8f288b. Metric: rain_anticipation_factor _analyze_forecast_trajectory returns for 4.0 mm/h of rain all day (intensity 2, past the 1.0 cap), 24 x 1 h.

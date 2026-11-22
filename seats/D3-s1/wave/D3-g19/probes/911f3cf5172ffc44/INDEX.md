@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_911f3cf5172ffc44.py: step-4 probe for 911f3cf5172ffc44. Metric: whether grid_fee.apply_catalog writes fields (a dict) or refuses (None) for a catalog row whose

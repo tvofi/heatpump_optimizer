@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_be95c184bf4746ff.py: step-4 probe for be95c184bf4746ff. Metric: pre_heat_urgency HeatPumpOptimizer._analyze_forecast_trajectory returns for an EMPTY forecast (n = 0).

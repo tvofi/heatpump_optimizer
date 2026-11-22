@@ -1,0 +1,30 @@
+import numpy as np  # noqa: E402
+from custom_components.heatpump_optimizer import optimizer as O  # noqa: E402
+from custom_components.heatpump_optimizer.thermal_model import ThermalParameters, ThermalModel  # noqa: E402
+
+H = O.HeatPumpOptimizer
+opt = H(ThermalModel(ThermalParameters()), O.OptimizationConfig(
+    horizon_hours=24, time_step_minutes=60, target_temp=21.0, min_temp=19.0, max_temp=23.0))
+mut = mutated(O, H, "_analyze_forecast_trajectory", 4235, '        n_12h = min(int(12 / dt_hours), n)', '        n_12h = (int(12 / dt_hours))')
+base = H._analyze_forecast_trajectory
+
+
+def call(fn, sr, precip, out, dt=1.0):
+    n = len(sr)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return fn(opt, np.asarray(sr, float), np.zeros(n), np.asarray(precip, float), np.asarray(out, float), dt)
+
+
+def delta(case):
+    b, m = call(base, **case), call(mut, **case)
+    return b, m, {k: (b.get(k), m.get(k)) for k in set(b) | set(m) if repr(b.get(k)) != repr(m.get(k))}
+moved = 0
+tried = 0
+for n in (1, 3, 6, 11, 12, 13, 24):
+    for dt in (0.25, 1.0, 3.0, 7.0, 13.0):
+        tried += 1
+        moved += int(bool(delta(dict(sr=[500.0] * n, precip=[0.0] * n, out=[-5.0] * n, dt=dt))[2]))
+print(f"RESULT grids_tried={tried} count")
+print(f"RESULT grids_moved={moved} count")
+tail()

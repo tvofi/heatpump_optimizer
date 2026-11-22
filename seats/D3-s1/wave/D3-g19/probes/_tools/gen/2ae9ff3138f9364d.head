@@ -1,0 +1,12 @@
+# Metric: number of (n, dt) forecast grids on which any output of _analyze_forecast_trajectory differs between the arms.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_2ae9ff3138f9364d.py
+# EXPECTED RESULT grids_tried=35 count
+# EXPECTED RESULT grids_moved=0 count  (EQUIVALENT: a slice end past len(solar_gains_kw) clamps to n)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._analyze_forecast_trajectory (line 4235
+#   `n_12h = min(int(12 / dt_hours), n)`), called once per solve at optimizer.py:4377; its dict shapes the initial guess and is
+#   published as the plan's predictive_info (solar_reduction_factor, pre_heat_urgency, ...).
+# Perturbation: `n_12h = min(int(12 / dt_hours), n)` -> `n_12h = (int(12 / dt_hours))` (CLAMP_DROP 2ae9ff3138f9364d), applied in memory (method recompiled from its own
+#   source, called on the same optimizer instance for the mutant arm only). Direction: none observable (numpy slicing clamps the end index).
+# Null control: not applicable: the null is the 35-grid sweep itself.
+# Inputs tried: n in (1,3,6,11,12,13,24) x dt in (0.25,1.0,3.0,7.0,13.0) h, sun 500 W/m2, cold outdoor.

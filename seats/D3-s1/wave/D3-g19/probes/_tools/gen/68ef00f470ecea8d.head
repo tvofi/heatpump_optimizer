@@ -1,0 +1,18 @@
+# Metric: how many times HeatPumpOptimizer.optimize consults _safety_release_steps (repair rounds + the final check) on a
+#   manual space plan that never converges (the stub tests/manual_plan.py:test_release_always_resolves uses: one more
+#   forced-off step released per round), 24 x 1 h horizon, every step pinned off.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68ef00f470ecea8d.py
+# EXPECTED RESULT release_calls_baseline=4 count  (3 rounds, then the out-of-rounds check that abandons the pins)
+# EXPECTED RESULT release_calls_mutant=7 count  (6 rounds + the final check: three extra full solves)
+# EXPECTED RESULT moved=1 count
+# EXPECTED RESULT released_baseline=24 / released_mutant=24 count  (both end by abandoning every pin: the check the suite
+#   makes, `len(manual_released_space) == N`, holds in both arms)
+# EXPECTED RESULT real_rounds_used: the rounds the REAL _safety_release_steps needs on the same all-off plan (reach; if
+#   it is <= 3 the constant is unobservable on that input)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize, the manual-plan repair
+#   loop `for _ in range(_SAFETY_REPAIR_ROUNDS)` (optimizer.py:4514; constant at optimizer.py:2385; also read at 5163).
+# Perturbation: `_SAFETY_REPAIR_ROUNDS = 3` -> `_SAFETY_REPAIR_ROUNDS = 6` (CONST 68ef00f470ecea8d), applied in memory with
+#   mock.patch.object on the module constant (read at loop entry). Direction: release_calls 4 -> 7.
+# Null control: no pins (the repair loop is not entered): 0 release calls in both arms.
+# Inputs tried: the never-converging stub; the real release rule on an all-off 24 h winter plan; no pins.

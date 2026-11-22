@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_2043855ef5cf151d.py: step-4 probe for 2043855ef5cf151d. Metric: what grid_fee.parse_rules returns for spec=None (its signature's `str | None`, docstring "Empty input is an

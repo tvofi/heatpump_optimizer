@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_24ef8e54dad20484.py: step-4 probe for 24ef8e54dad20484. Metric: solar_reduction_factor _analyze_forecast_trajectory returns when the mean outdoor temperature equals the target (typical heat loss exactly 0) with 500 W/m2 sun all day, 24 x 1 h.

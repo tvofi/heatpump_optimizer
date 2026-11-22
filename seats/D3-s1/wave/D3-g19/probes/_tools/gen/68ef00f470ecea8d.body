@@ -1,0 +1,58 @@
+import math  # noqa: E402
+from datetime import datetime  # noqa: E402
+import numpy as np  # noqa: E402
+from custom_components.heatpump_optimizer import optimizer as O  # noqa: E402
+from custom_components.heatpump_optimizer.thermal_model import ThermalParameters, ThermalState, ThermalModel  # noqa: E402
+
+N = 24
+assert O._SAFETY_REPAIR_ROUNDS == 3
+H = O.HeatPumpOptimizer
+real_release = H._safety_release_steps
+
+
+def solve(pins):
+    opt = H(ThermalModel(ThermalParameters()), O.OptimizationConfig(
+        horizon_hours=N, time_step_minutes=60, target_temp=21.0, min_temp=19.0, max_temp=23.0))
+    pr = np.full(N, 2.0)
+    pr[:6] = 0.5
+    return opt.optimize(inputs=O.SolveInputs(
+        state=ThermalState(room_temperature=20.0, slab_temperature=22.0, outdoor_temperature=-10.0),
+        start_time=datetime(2026, 1, 15, 12, 0),
+        forecast=O.ForecastSeries(prices=pr, outdoor_temps=np.full(N, -10.0)),
+        limits=O.SolveLimits(space_pins=pins)))
+
+
+def run(stub, pins, rounds):
+    calls = []
+
+    def spy(self, result, tmin, sp, dp):
+        calls.append(1)
+        if stub:
+            if sp is None:
+                return [], []
+            free = [i for i in range(len(sp)) if not math.isnan(float(sp[i])) and float(sp[i]) < 0.5]
+            return free[:1], []
+        return real_release(self, result, tmin, sp, dp)
+
+    with mock.patch.object(H, "_safety_release_steps", spy), mock.patch.object(O, "_SAFETY_REPAIR_ROUNDS", rounds):
+        r = solve(None if pins is None else pins.copy())
+    return len(calls), len(r.manual_released_space)
+
+
+cb, rb = run(True, np.zeros(N), 3)
+cm, rm = run(True, np.zeros(N), 6)
+real_b, real_rel_b = run(False, np.zeros(N), 3)
+real_m, real_rel_m = run(False, np.zeros(N), 6)
+nb, _ = run(True, None, 3)
+nm, _ = run(True, None, 6)
+print(f"RESULT release_calls_baseline={cb} count")
+print(f"RESULT release_calls_mutant={cm} count")
+print(f"RESULT moved={int(cb != cm)} count")
+print(f"RESULT released_baseline={rb} count")
+print(f"RESULT released_mutant={rm} count")
+print(f"RESULT real_release_calls_baseline={real_b} count")
+print(f"RESULT real_release_calls_mutant={real_m} count")
+print(f"RESULT real_released_baseline={real_rel_b} count")
+print(f"RESULT real_released_mutant={real_rel_m} count")
+print(f"RESULT null_release_calls={nb}/{nm} count")
+tail()

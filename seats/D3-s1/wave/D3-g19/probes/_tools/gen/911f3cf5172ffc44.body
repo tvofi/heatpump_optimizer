@@ -1,0 +1,29 @@
+from custom_components.heatpump_optimizer import grid_fee as gf  # noqa: E402
+
+mut = mutated(gf, gf, "apply_catalog", 496, "        return None", "        pass")
+shipped = list(gf.SWEDEN_CATALOG)
+reach = 0
+for pid in shipped:
+    try:
+        gf.parse_rules(str(gf.SWEDEN_CATALOG[pid]["grid_fee_rules"]))
+    except gf.GridFeeError:
+        reach += 1
+null_delta = sum(int(gf.apply_catalog(p) != mut(p)) for p in shipped + [None, gf.DSO_PRODUCT_NONE, "no_such_product"])
+template = dict(next(iter(gf.SWEDEN_CATALOG.values())))
+moved = 0
+for bad in ("garbage", "Mon = abc"):
+    row = dict(template, grid_fee_rules=bad)
+    with mock.patch.dict(gf.SWEDEN_CATALOG, {"stale_probe_row": row}):
+        b, m = gf.apply_catalog("stale_probe_row"), mut("stale_probe_row")
+    moved += int((b is None) != (m is None))
+    if bad == "garbage":
+        print(f"RESULT stale_row_baseline={None if b is None else type(b).__name__}")
+        print(f"RESULT stale_row_mutant={None if m is None else type(m).__name__}")
+        if m is not None:
+            print(f"RESULT stale_row_mutant_rules_written={m.get(gf.CONF_GRID_FEE_RULES)!r}")
+print(f"RESULT moved={int(moved > 0)} count")
+print(f"RESULT stale_inputs_moved={moved} of 2 count")
+print(f"RESULT shipped_rows={len(shipped)} count")
+print(f"RESULT shipped_rows_reaching_line={reach} count")
+print(f"RESULT null_delta={null_delta} count")
+tail()

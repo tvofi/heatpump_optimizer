@@ -1,0 +1,17 @@
+# Metric: the initial-guess weights optimizer._price_guess_weights returns for a 4-step horizon whose mean price lies
+#   between the mutant's and the baseline's threshold (prices [0.0, 0.0004, 0.0008, 0.0012], mean 6e-4 SEK/kWh):
+#   max |weight_baseline - weight_mutant| over the steps.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_eee37674711fa45f.py
+# EXPECTED RESULT weights_baseline=[1.0, 0.7333, 0.4667, 0.2]  (rank fill: mean 6e-4 <= 1e-3)
+# EXPECTED RESULT weights_mutant=[1.0, 0.8336, 0.2, 0.2]  (smooth mean-normalised clip: mean 6e-4 > 2e-6; the two most
+#   expensive steps saturate at the 0.2 floor, the rank order between them is lost)
+# EXPECTED RESULT max_abs_delta=0.2667 (tolerance 1e-3)
+# EXPECTED RESULT null_max_abs_delta=0.0  (mean 0.5 SEK/kWh, above both thresholds; and mean -0.1, below both)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:_price_guess_weights (reads PRICE_MEAN_GUESS_EPS,
+#   optimizer.py:2006, at line 2082).
+# Perturbation: `PRICE_MEAN_GUESS_EPS = 1e-3` -> `PRICE_MEAN_GUESS_EPS = 0.002e-3` (CONST eee37674711fa45f), applied in memory
+#   with mock.patch.object on the module constant (read at call time). Direction: rank weights -> smooth clipped weights
+#   for a horizon mean in (2e-6, 1e-3].
+# Null control: prices mean 0.5 and mean -0.1 (both arms take the same branch; delta 0).
+# Inputs tried: the 4-step ramp above; a 24-step ramp 0..0.0012; the two null horizons.

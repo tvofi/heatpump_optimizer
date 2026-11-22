@@ -1,0 +1,14 @@
+# Metric: optimizer._power_fraction(1.10 kW) on a pump whose modulation band is 0.15 kW (min 1.00, max 1.15 kW), i.e.
+#   a band between the baseline threshold 0.1 and the mutant's 0.2.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py
+# EXPECTED RESULT fraction_baseline=0.6667  (graded inside the band: (1.10-1.00)/0.15)
+# EXPECTED RESULT fraction_mutant=0.9565  (graded as fixed-speed: 1.10/1.15)
+# EXPECTED RESULT abs_delta=0.2899 (tolerance 1e-3)
+# EXPECTED RESULT null_abs_delta=0.0  (band 0.5 kW and band 0.0 kW, both arms take the same branch)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:_power_fraction (reads _MIN_MODULATION_BAND_KW,
+#   optimizer.py:2156, at line 2170); the one normalisation the setpoint, displace and action sites share.
+# Perturbation: `_MIN_MODULATION_BAND_KW = 0.1` -> `_MIN_MODULATION_BAND_KW = 0.2` (CONST 23b144fb9583c5c7), applied in memory
+#   with mock.patch.object on the module constant (read at call time). Direction: fraction rises for bands in [0.1, 0.2).
+# Null control: band 0.5 kW (min 1.0, max 1.5; both modulating) and band 0 (fixed speed 1.0/1.0; both fixed-speed).
+# Inputs tried: bands 0.10, 0.15, 0.19 kW at mid-band power; the two null bands.

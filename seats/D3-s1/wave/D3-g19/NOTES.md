@@ -1,0 +1,4 @@
+# D3-g19 working notes (partial, checkpointed)
+- Probes are executed from a separate baseline worktree ($HOME/probe-tree), never in the gate tree; copies live here under probes/<key>/.
+- Probe pre-run (2026-11-22 ~21:45Z, during the null gate): moved for 911f (injected stale row only; 0 of 2 shipped rows reach), b5f0, 68cc, 2043, eee3, 23b1, 68ef (stub only; real rule converges in 1 round), be95 (direct call only; optimize n=0 raises IndexError in both arms), e535, 24ef, 7f04, 4c7e, 9644. Not moved: aebe, 2ae9 (slice clamp), 1b3c (nan mean leaves weight 1.0) -> equivalent-candidate if the gate survives.
+- Null gate: closure.py selftest red with 2 FAILs (merge-reason pins, status skip-not-under-scoped), same artefact as the D3-top6 null.

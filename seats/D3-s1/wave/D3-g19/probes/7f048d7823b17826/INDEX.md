@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_7f048d7823b17826.py: step-4 probe for 7f048d7823b17826. Metric: solar_reduction_factor _analyze_forecast_trajectory returns when 6 x typical heat loss is below the 0.1 floor (outdoor 20.99 C vs target 21.0, 0.15 kW/K) with 1 W/m2 sun, 24 x 1 h.

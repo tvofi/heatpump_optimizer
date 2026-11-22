@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py: step-4 probe for 23b144fb9583c5c7. Metric: optimizer._power_fraction(1.10 kW) on a pump whose modulation band is 0.15 kW (min 1.00, max 1.15 kW), i.e.

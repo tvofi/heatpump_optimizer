@@ -1,0 +1,17 @@
+# Metric: whether grid_fee.apply_catalog writes fields (a dict) or refuses (None) for a catalog row whose
+#   grid_fee_rules fail parse_rules (a stale row), and how many SHIPPED catalog rows reach that branch at all.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_911f3cf5172ffc44.py
+# EXPECTED RESULT stale_row_baseline=None
+# EXPECTED RESULT stale_row_mutant=dict  (the mutant falls through and returns the unparseable rules for writing)
+# EXPECTED RESULT moved=1 count
+# EXPECTED RESULT shipped_rows_reaching_line=0 count  (every shipped SWEDEN_CATALOG row parses: line 496 is
+#   reachable only from a stale row, which the shipped catalog does not contain)
+# EXPECTED RESULT null_delta=0 count  (every shipped row: identical return in both arms)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.grid_fee:apply_catalog (line 496 `        return None`
+#   in the `except GridFeeError` arm), called by config_flow._apply_dso_catalog.
+# Perturbation: line 496 `        return None` -> `        pass` (RETURN_DEL 911f3cf5172ffc44), applied in memory (function
+#   recompiled from its own source, patched onto the module for the mutant arm only). Direction: None -> dict.
+#   The stale row is injected in memory (mock.patch.dict on SWEDEN_CATALOG) because no shipped row is stale.
+# Null control: every shipped catalog product id (both arms identical).
+# Inputs tried: one injected row with rules "garbage" (no '='), one with "Mon = abc"; every shipped product id; None; "none"; unknown id.

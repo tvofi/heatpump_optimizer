@@ -1,0 +1,4 @@
+- analysis.py: hand-written step-4 answers per key (should_fail, reach, finding fields, equivalence notes) read by build_result.py
+- build_result.py: writes results/<key>.json from gates/<key>.json + a probe run in a separate baseline worktree ($HOME/probe-tree) + analysis.py
+- mutlib.py: the in-memory line mutator the probes inline (recompile a function from its source with one line swapped)
+- gen/: the probe sources (<key>.head header, pre.py shared preamble, <key>.body) the probes were assembled from
