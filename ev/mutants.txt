@@ -1,0 +1,51 @@
+MUT C-max-off: rc=1 KILLED fails=4 last=['4 of 7 FEATURES BLOCK FAILED']
+     FAIL a set-point above the entity's maximum is sent as the maximum, below its minimum as the minimum: a number
+     FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it 
+     FAIL a degC write to a Fahrenheit entity is clamped in the entity's own unit: 65 degC (149 degF) to a 140 degF
+     FAIL a production caller that bounds nothing itself, the mixing-valve write, is held inside the entity's maxim
+MUT C-min-off: rc=1 KILLED fails=2 last=['2 of 7 FEATURES BLOCK FAILED']
+     FAIL a set-point above the entity's maximum is sent as the maximum, below its minimum as the minimum: a number
+     FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it 
+MUT C-max-nearest: rc=1 KILLED fails=1 last=['1 of 7 FEATURES BLOCK FAILED']
+     FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it 
+MUT C-min-nearest: rc=1 KILLED fails=1 last=['1 of 7 FEATURES BLOCK FAILED']
+     FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it 
+MUT C-ownrange-numberkeys: rc=1 KILLED fails=1 last=['1 of 7 FEATURES BLOCK FAILED']
+     FAIL a set-point above the entity's maximum is sent as the maximum, below its minimum as the minimum: a number
+MUT F-max: rc=1 KILLED fails=3 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is dropp
+     FAIL R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, the o
+     FAIL R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); null
+MUT F-strict: rc=1 KILLED fails=1 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is dropp
+MUT F-opt-floor: rc=1 KILLED fails=1 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: the option reads only inside the 30-70 degC the options flow offers; outside it, not a
+MUT F-opt-ceil: rc=1 KILLED fails=1 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: the option reads only inside the 30-70 degC the options flow offers; outside it, not a
+MUT F-indoor: rc=1 KILLED fails=1 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: an indoor unit reads no high limit and writes the same room value with the option stor
+MUT F-map-top: rc=1 KILLED fails=4 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating ceiling; null c
+     FAIL R11-OWNER-FLOWCAP: a limit above the entity's own maximum never lifts a heating write past it: a band-top
+     FAIL R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the limit
+     FAIL R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top draw (w
+MUT F-hold: rc=1 KILLED fails=1 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: the fallback's hold stays under the limit (option 30 holds 30); null control: no optio
+MUT F-loop: rc=1 KILLED fails=1 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); null
+MUT F-option-never: rc=1 KILLED fails=9 last=['9 of 12 FEATURES BLOCK FAILED']
+     FAIL R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, the o
+     FAIL R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating ceiling; null c
+     FAIL R11-OWNER-FLOWCAP: an option under the entity's minimum (35 under 40, and under 41 on a 5-degree step) is
+     FAIL R11-OWNER-FLOWCAP: a limit above the entity's own maximum never lifts a heating write past it: a band-top
+     FAIL R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the limit
+     FAIL R11-OWNER-FLOWCAP: the fallback's hold stays under the limit (option 30 holds 30); null control: no optio
+     FAIL R11-OWNER-FLOWCAP: an indoor unit reads no high limit and writes the same room value with the option stor
+     FAIL R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top draw (w
+     FAIL R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); null
+MUT F-sensor-raw: rc=1 KILLED fails=1 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, the o
+MUT F-boost-cap-off: rc=0 SURVIVED fails=0 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+MUT F-floor-lowest-is-clear: rc=0 SURVIVED fails=0 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+MUT F-dropped-voids: rc=1 KILLED fails=1 last=['Pump duty: the option high limit leaves no heating value on number.water_set; not used']
+     FAIL R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is dropp

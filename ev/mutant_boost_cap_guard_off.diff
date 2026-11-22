@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 6a6f8d9fbc..38e176f7ca 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -933,7 +933,7 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
+     caps = [high]
+     if (ceiling := _heat_ceiling_c(inp.config)) != DEFAULT_FLOW_HEAT_C:
+         caps.append(ceiling)
+-    if (limit := _space_limit_c(inp)) is not None:
++    if False:
+         caps.append(limit)
+     return min(caps)
+ 

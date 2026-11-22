@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 6a6f8d9fbc..39395fda17 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -625,7 +625,7 @@ def _space_limit_c(inp: ArbiterInputs) -> float | None:
+     out = flow_limit.high_limit(
+         _setpoint_limits_c(inp)[1],
+         flow_limit.option_c(EntryConfig.from_mapping(inp.config).space_setpoint_high_limit_c),
+-        _heating_floor_c(inp)[1],
++        _heating_floor_c(inp)[0],
+     )
+     log_held(inp.hass, f"space_limit_dropped:{entity}", bool(out.dropped), "Pump duty: the %s high "
+              "limit leaves no heating value on %s; not used", " and ".join(out.dropped), entity)

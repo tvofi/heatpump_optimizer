@@ -1,0 +1,11 @@
+
+=== features block ===
+  ok   no decimal reaches the service call on an entity that states no step; a 0.5-step entity keeps its halves; a stated 0.1 step keeps tenths
+  ok   null control: an already-whole write sends the same whole number
+  FAIL a set-point above the entity's maximum is sent as the maximum, below its minimum as the minimum: a number's min/max and a climate's min_temp/max_temp  [[65] [3] [65]]
+  FAIL the range ends land on the step the entity accepts: a maximum off the step rounds down, a minimum off it rounds up; crossed ends send the maximum  [[65] [10] [50]]
+  ok   null control: a value inside the range, an entity stating no range, a non-numeric bound and an entity with no state are sent unchanged
+  FAIL a degC write to a Fahrenheit entity is clamped in the entity's own unit: 65 degC (149 degF) to a 140 degF maximum sends 140  [[149]]
+  FAIL a production caller that bounds nothing itself, the mixing-valve write, is held inside the entity's maximum by the one call  [[65] [45]]
+
+4 of 7 FEATURES BLOCK FAILED
