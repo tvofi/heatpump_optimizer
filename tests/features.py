@@ -94727,6 +94727,16 @@ R.check(
     == sorted([("unlatched", b) for b in _dsp_states] + [("latched", "unlatched")]),
     f"bad {_dsp_rule_bad} nomask {_dsp_rule_nomask}",
 )
+# A design choice, not an accident of the default: a configuration that never
+# sets the mask (a harness handed a pair, the R10 fixtures above) reads its
+# pair as latched, so every pair it prices also moves the legs as before.
+_dsp_nomask_cfg = _DspCfg()
+_dsp_nomask_cfg.duty_switch_stop_probability = (1.0, 0.0)
+R.check(
+    "a configuration that never sets the mask reads its pair as latched: hot "
+    "water to heating alone stopping serves space first",
+    _dsp_om._leg_rule(_DspOpt(_DspTM(_DspTP()), _dsp_nomask_cfg)) == ("space", None),
+)
 _dsp_i49_rec = _dsp_ds._Record(None, None, learner=_dsp_i49, loaded=True)
 _dsp_i49_start = datetime(2026, 11, 21, 12, 30, tzinfo=UTC)
 _dsp_i49_legs = [
