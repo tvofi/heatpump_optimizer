@@ -18,3 +18,4 @@
 1795361986 HB alive
 1795362219 CKPT mutants M1-M6 killed; finder harnesses reproduce; awaiting M7/M8, env_drift, CI snapshot 38a9d37dab86
 1795362590 HB alive
+1795363011 DONE verdict merge 868e00db0b pushed to probe/rev-3845-034586e8 (aa3fd0041f); classify rc=2 unreadable: instrument-self-tests cancelled
