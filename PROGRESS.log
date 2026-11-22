@@ -19,3 +19,4 @@
 1795366068 HB alive
 1795366140 CKPT setup ok; packet rendered; merge clean; classify polling snapshot 696c80081a8f
 1795366301 CKPT own mutants run on learner block: 14 killed, L/O/P survive; full features.py on L/O/P running snapshot 5501650bc7ea
+1795366438 CKPT E1-E3 re-run: E3 15 at head vs body 14; room_record.House site undispositioned -> class-open; waiting on full-features mutants + harnesses snapshot 4aadc4f6bbb3
