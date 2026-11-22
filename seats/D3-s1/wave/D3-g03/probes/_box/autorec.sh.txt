@@ -1,0 +1,6 @@
+# autorec.sh: every 120 s, write results/<key>.json for newly gated keys and checkpoint right after
+while [ ! -f $HOME/.autorec_stop ]; do
+  out=$(/opt/hpo/venv-ci/bin/python3 $HOME/pbody/build_records.py 2>&1)
+  if [ -n "$out" ]; then echo "$(date -u +%FT%TZ) $out"; bash $HOME/gate_wave.sh ckpt; echo "AUTOREC ckpt rc=$?"; fi
+  sleep 120
+done
