@@ -5077,9 +5077,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-seam-inputs-guards",
-    "commit": null,
+    "commit": "e3cb5c019b464a770cc7c6fe2fbc858ed29debf7",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (none)",
     "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
@@ -7213,7 +7213,8 @@
     "branch": "handoff/r11-owner-flowcap",
     "last_step": null,
     "next_step": "fixer",
-    "note": "owner priority, above every cap; a fixer seat is building the approved design; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner): owner item 2026-11-22: owner priority, above every cap"
+    "note": "owner priority, above every cap; a fixer seat is building the approved design; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner): owner item 2026-11-22: owner priority, above every cap",
+    "pr": 3866
    }
   },
   {
@@ -7446,7 +7447,8 @@
     "branch": "handoff/r11-owner-cooling-guard",
     "last_step": null,
     "next_step": "fixer",
-    "note": "owner priority, above every cap; stage build in progress; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK): owner item 2026-11-22: owner priority, above every cap"
+    "note": "owner priority, above every cap; stage build in progress; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK): owner item 2026-11-22: owner priority, above every cap",
+    "pr": 3864
    }
   },
   {
