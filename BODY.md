@@ -174,6 +174,7 @@ The two stale pins the diff edited (`_async_update_data` `RETURN_DEL 3bda3d97`, 
 ## Red checks
 
 - `tests / mutation` (predicted at 7dd02c4135 by `tools/pr/ci_predict.py`; no commit of this branch has run CI): red by construction on the 11 sites under `## Unpinned sites`, which are lines this diff adds and none is yet in the ledger. Each is driven there, killed by a named check, or triaged as equivalent; `mutation-autofix` pins the killed sites after the push. Cheaper detector: `ci_predict.py`, which `prepr.sh` already runs offline, so no countermeasure is owed.
+- `governance / instrument-self-tests` (predicted by `ci_predict.py`; WORKAROUND P-R11-PREPR-TTL0-FIND): the `reds_arm` self-test (P351) reads 0 where 1 is wanted on a macOS host, because BSD `find` matches `-mmin -0`; this diff touches no instrument. The open ran with `~/.local/state/hpo/overlay-find`, a local shim answering `-mmin -0` with no match. Cheaper detector: the self-test itself, which `prepr.sh` already runs; the fault is the host's, so no countermeasure is owed here.
 
 ## Forward-carry
 
