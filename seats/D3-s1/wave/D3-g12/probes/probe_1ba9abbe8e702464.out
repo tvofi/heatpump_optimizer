@@ -1,0 +1,30 @@
+RESULT duty0.0_restored_duty_count_baseline=12 count
+RESULT duty0.0_published_factor_baseline=1.0
+RESULT duty0.0_restored_duty_count_mutant=12 count
+RESULT duty0.0_published_factor_mutant=1.0
+RESULT duty0.0_measured_cells_kept_baseline=1 count
+RESULT duty0.0_measured_cells_kept_mutant=1 count
+RESULT duty0.5_restored_duty_count_baseline=12 count
+RESULT duty0.5_published_factor_baseline=0.6785714285714286
+RESULT duty0.5_restored_duty_count_mutant=12 count
+RESULT duty0.5_published_factor_mutant=0.6785714285714286
+Defrost derate: 1 stored bucket value(s) were unreadable or outside what the learner writes; those buckets restart unlearned and the rest are kept
+RESULT duty1.0_restored_duty_count_baseline=12 count
+RESULT duty1.0_published_factor_baseline=0.6785714285714286
+RESULT duty1.0_restored_duty_count_mutant=0 count
+RESULT duty1.0_published_factor_mutant=1.0
+RESULT duty0.25_restored_duty_count_baseline=12 count
+RESULT duty0.25_published_factor_baseline=0.7321428571428572
+RESULT duty0.25_restored_duty_count_mutant=12 count
+RESULT duty0.25_published_factor_mutant=0.7321428571428572
+RESULT duties_moved=1 count
+RESULT with_inferred_duty0.0_factor_before_restore=1.0
+RESULT with_inferred_duty0.0_factor_after_restore_baseline=1.0
+RESULT with_inferred_duty0.0_factor_after_restore_mutant=1.0
+Defrost derate: 1 stored bucket value(s) were unreadable or outside what the learner writes; those buckets restart unlearned and the rest are kept
+RESULT with_inferred_duty1.0_factor_before_restore=0.6785714285714286
+RESULT with_inferred_duty1.0_factor_after_restore_baseline=0.6785714285714286
+RESULT with_inferred_duty1.0_factor_after_restore_mutant=0.8571428571428572
+RESULT thread_factor=1.000
+RESULT load1=1.12
+RESULT swapins=0

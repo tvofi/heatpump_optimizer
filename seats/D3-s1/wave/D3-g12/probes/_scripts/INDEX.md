@@ -1,0 +1,1 @@
+- _scripts/: the generator (build.py + common_head/tail + bodies1-3) that wrote every probe_<key>.py, meta.py (per-key step-4 notes: should-fail check, severity, claim) and record.py (builds results/<key>.json from gates/, probes/ and meta.py)

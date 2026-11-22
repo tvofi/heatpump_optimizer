@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_d1197dfed14a6927.py: step-4 probe for d1197dfed14a6927; pins the estimator DefrostDerate._decide names (source, value, samples) for a bucket whose inferred and measured trust-blended derates are exactly equal while the du (output beside it, .out)

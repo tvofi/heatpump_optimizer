@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_4aac8e694ddc5dfe.py: step-4 probe for 4aac8e694ddc5dfe; pins the duty count a DefrostDerate bucket keeps across as_dict -> from_dict when its stored duty is exactly 0.0 (12 = kept, 0 = the bucket restarts unmeasured), the (output beside it, .out)

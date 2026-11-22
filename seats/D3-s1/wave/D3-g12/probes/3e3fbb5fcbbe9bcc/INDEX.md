@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e3fbb5fcbbe9bcc.py: step-4 probe for 3e3fbb5fcbbe9bcc; pins INFO records 'a pre-v5.3.0 store was upgraded' DefrostDerate.from_dict logs for a v1 store (factors/counts only), plus the restored `migrated` flag and factor g (output beside it, .out)

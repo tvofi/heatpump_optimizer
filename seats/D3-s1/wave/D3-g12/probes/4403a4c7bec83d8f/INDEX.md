@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_4403a4c7bec83d8f.py: step-4 probe for 4403a4c7bec83d8f; pins state-machine lookups _price_entity_state makes with a falsy entity id for a config with no price entity (the API-price install), and whether the lookup raises  (output beside it, .out)

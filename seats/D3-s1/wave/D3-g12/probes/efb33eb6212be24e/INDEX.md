@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_efb33eb6212be24e.py: step-4 probe for efb33eb6212be24e; pins samples DefrostDerate.observe folds into a bucket (counts) and the resulting factor for delivered_ratio exactly 3.0 (1 = folded, 0 = dropped). (output beside it, .out)
