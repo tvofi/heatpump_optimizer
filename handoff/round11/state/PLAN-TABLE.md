@@ -177,7 +177,7 @@ gantt
 | R11-SEAM-comments-production | CORE | 3 | carries-open | #3746, #3778 | opus/opus | - | Criterion C5 over production comments (921 units in two seats' cells, 155 of them in the card's script) and one false docstring. |  |
 | R11-SEAM-comments-tests | CORE | 1 | carries-open | #3746, #3777, #3778 | opus/opus | - | Text in the test suite: criterion C5 over tests/ with the dead names and false count D5-s7-01 lists, and the paths a test comment cites that do not resolve (... |  |
 | R11-ARCH-cycle-surface | CORE | 1 | not-started | - | opus/opus | - | Refactor group with no finding (ADR-005, its approved design). |  |
-| R11-ARCH-fabric-learner | CORE | 2 | not-started | - | opus/opus | - | Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. |  |
+| R11-ARCH-fabric-learner | CORE | 2 | not-started | #3795 | opus/opus | - | Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. |  |
 | R11-READS-RESIDUE | IN | 1 | done | - | opus/opus | - | Round 11. |  |
 | R11-SEAM-two-zone-slab | CORE | 1 | not-started | **#3713** | opus/opus | - | Issue 3713: the two-zone valve-fed slab model omits the series term between the valve and the slab (R11-VALVE-REFERENCE carry 3, item 2c38f69d; that group's... |  |
 | R11-SEAM-wallclock-dst | CORE | 2 | not-started | **#3786** | opus/opus | - | Class P7 residual (issue 3786), re-homed from R11-SEAM-money, which closed the class's verified finding D2-s3-07: ledger.month_hours counts the zone's real h... |  |
