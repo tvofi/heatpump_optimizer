@@ -1,0 +1,13 @@
+Box D3-g09 full-gate null control (fullgate.py null), 2026-11-22, nproc 4 Intel Xeon @ 2.10GHz, load1 0.67 -> 1.02, wall 3868.5 s (provisional).
+gate_rc=1, 3 scripts red, the same three and the same fail-line counts as box D3-rem's null (state/gates/null-D3-rem-note.txt):
+- tests/closure.py selftest, 2 lines: "a refused merge surfaces merge()'s reason, not just skip-merge-failed" and "and a merge that succeeds carries no merge reason (null control)" [status='skip-not-under-scoped']: branch/merge-tool pins, no production file.
+- tests/entities.py, 1 line: "and is accepted when it does [the scoped path records only what the diff can reach]" (scoped-gate pin, branch-environment artefact). The a3:/a4:/a5:/a8:/a9:/a10: FAIL lines in the log are the script's own negative-control rails and are not counted (fail_lines 1).
+- tests/harness_headers.py, 4 lines: the stripped finder tree's untracked round-11 harnesses and timing positive controls; no production file.
+Not machine-caused (no card.mjs heap failure), so not re-taken. fullgate.py reads KILLED only for a script beyond this null or more FAIL lines in one; gate verdicts on this box are usable.
+Red lines in other scripts (first few, for the record):
+9163:  FAIL hb:changed_save  [max gap 1000.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+9164:  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want True)]
+9166:  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want False)]
+9167:  FAIL hb:changed_save  [max gap 10.0 ms over 0 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+9169:  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True); raised KeyError: x]
+9172:  FAIL hb:positive_control  [a 600 ms spin read as 599.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
