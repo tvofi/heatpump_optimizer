@@ -7678,7 +7678,8 @@
    "reviewerModel": "opus",
    "source": "user",
    "after": [
-    "R11-OWNER-COOLING-GUARD"
+    "R11-OWNER-COOLING-GUARD",
+    "R11-OWNER-FAULT-HOLD"
    ],
    "files": [
     "custom_components/heatpump_optimizer/pump_arbiter.py",
