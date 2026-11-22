@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py: pins HeatPumpOptimizerCoordinator.async_run_optimization line 6454 (GUARD_OFF `if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:` -> `if False:`): solve_failures repair issues left open after 3 failed cycles then one successful cycle

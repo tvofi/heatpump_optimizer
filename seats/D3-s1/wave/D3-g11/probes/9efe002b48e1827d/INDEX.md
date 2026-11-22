@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9efe002b.py: pins HeatPumpOptimizerCoordinator.async_run_optimization line 6360 (RETURN_DEL `return None` -> `pass`): solves started by async_run_optimization called while _optimization_running is True

@@ -1,0 +1,10 @@
+box D3-g11 full-gate null control (fullgate.py null, comment-only marker), 2026-11-22 21:39-22:34Z, nproc 4 Intel Xeon @ 2.10GHz, 16 GB,
+load1 0.54..0.92, wall 3288.9 s, child CPU 5307.4 s (provisional). gate_rc=1, 3 scripts red, all artefact checks (the same set box D3-rem's null showed):
+- python3 tests/closure.py selftest, 2 of 118: "a refused merge surfaces merge()'s reason" / "and a merge that succeeds carries no merge reason (null control)"
+  [status='skip-not-under-scoped']: merge-tool pins of the detached worktree, no production file read.
+- python3 tests/entities.py, 1 of 2723: "and is accepted when it does [the scoped path records only what the diff can reach]"
+  (tests/entities.py:22790, closure check --partial over the committed open_meteo.py closure in the finder-wall-stripped tree), no production file read.
+- python3 tests/harness_headers.py, 3 of 115: dev/audit/rounds/round4/D6/claims.py RESULT claims_true/claims_false vs its header (123/0 vs 122/1)
+  and its committed output left modified: the round-4 D6 claim harness over the stripped tree, no production file read.
+No script red because of the machine (card.mjs passed at the default heap), so no re-take. fullgate.py counts KILLED only on more failing
+checks in a script than this null (fail_lines {closure.py selftest: 2, entities.py: 1, harness_headers.py: 3}). Null usable.

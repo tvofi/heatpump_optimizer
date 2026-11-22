@@ -1,0 +1,4 @@
+- meta.py: per-key step-4 metadata (site, patch, moved/equivalent, should_fail, finding fields) read by build_result.py
+- build_result.py: writes results/<key>.json from gates/<key>.json plus the key's probe, run in the clean baseline checkout (never the gate's tree)
+- _common.txt, rig.txt, h_*.txt, b_*.txt: the fragments each probes/probe_<k8>.py is assembled from (header + _common + [rig] + body)
+- root/recorder.sh: the background loop that records each gated key and runs gate_wave.sh ckpt; root/waitev.sh: the event wait

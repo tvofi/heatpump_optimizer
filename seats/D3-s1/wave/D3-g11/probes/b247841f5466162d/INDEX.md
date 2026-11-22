@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_b247841f.py: pins _open_loop_plan_value line 2539 (CMP_BOUND `if now_s < starts[0]:` -> `if now_s <= starts[0]:`): equivalence search: tests/entities.py and tests/features.py execute line 2539; none can fail on a valid plan: at the tie both arms return trajectory[0]; only a malformed 

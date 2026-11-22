@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a7488872.py: pins HeatPumpOptimizerCoordinator.async_run_optimization line 6379 (CMP_BOUND `if len(prices) < 4:` -> `if len(prices) <= 4:`): equivalence search: tests/config_flow_steps.py, tests/entities.py, tests/features.py execute line 6379; none can fail: the horizon is 0 or opt_config.n_steps (96) steps l

@@ -1,0 +1,34 @@
+
+from dataclasses import replace
+
+ha_dt.freeze(NOW)
+t0, t1 = time.process_time(), time.thread_time()
+MUT = mutate(CLS.async_simulate, "if len(horizon.prices) < 4:", "if len(horizon.prices) <= 4:")
+
+
+def outcome(fn, hours, start, horizon=None):
+    _, c = make("sim")
+    if horizon is not None:
+        c._opt_config = replace(c._opt_config, horizon_hours=horizon)
+    assert run(CLS.async_run_optimization, c) is None
+    _, other = make("prices", hours, start)
+    c._prices = other._prices
+    n = len(c._forecast_arrays(ha_dt.now()).prices)
+    p = run(fn, c, {"target_temperature": 22.0}, limited=False)
+    return n, p.get("error", "priced")
+
+
+seen, moved = set(), 0
+for name, (h, s) in PRICE_CASES.items():
+    (n, b), (_, m) = outcome(CLS.async_simulate, h, s), outcome(MUT, h, s)
+    seen.add(n)
+    moved += int(b != m)
+    print(f"RESULT {name}_len={n} baseline={b} mutant={m}")
+print(f"RESULT lengths_seen={sorted(seen)}")
+print(f"RESULT moved_production={moved} count")
+(n, b), (_, m) = outcome(CLS.async_simulate, 50, -2, 1.0), outcome(MUT, 50, -2, 1.0)
+print(f"RESULT sensitivity_1h_horizon_len={n} baseline={b} mutant={m}  (not a production horizon)")
+(n, b), (_, m) = outcome(CLS.async_simulate, 50, -2, 1.25), outcome(MUT, 50, -2, 1.25)
+print(f"RESULT null_moved={int(b != m)} count  (len={n})")
+ha_dt.freeze(None)
+tail_results(t0, t1)

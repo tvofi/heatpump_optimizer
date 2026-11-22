@@ -1,0 +1,14 @@
+
+import time
+import numpy as np
+
+MUT = mutate(co._liquid_fraction, "precip > 1e-9,", "precip >= 1e-9,")
+t0, t1 = time.process_time(), time.thread_time()
+snow = co.SNOW_CM_PER_MM_WATER * 1e-9  # snowfall in cm whose water equivalent is 1e-9 mm
+b = float(co._liquid_fraction(np.array([1e-9]), np.array([snow]))[0])
+m = float(MUT(np.array([1e-9]), np.array([snow]))[0])
+print(f"RESULT precip_1e-9_snow_baseline={b} mutant={m}")
+P = np.array([0.0, 2e-9, 1.0, 0.0, 2e-9, 1.0, 1e-9])
+S = np.array([0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.0])
+print(f"RESULT null_moved={int(np.sum(co._liquid_fraction(P, S) != MUT(P, S)))} count")
+tail_results(t0, t1)

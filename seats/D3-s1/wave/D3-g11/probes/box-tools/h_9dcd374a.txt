@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+# Metric: whether the what-if payload HeatPumpOptimizerCoordinator.async_simulate returns carries the key
+#   "power_cap_breach_c" (1 = present, with its value), for a what-if that does NOT cap power ({"target_temperature": 22.0}).
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py
+# Expected: RESULT no_cap_breach_key_baseline=0, mutant=1 (value 0.0); null_moved=0 (a power_cap_kw what-if carries the
+#   key in both arms).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g11 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_simulate
+#   (line 11271, `                if "power_cap_kw" in overrides and simulated.predictive_info`), driven after one real
+#   async_run_optimization on tests/features.py:_r9f13_make's rig (frozen clock, in-process solve), limited=False.
+# Perturbation: mutant 9dcd374ac007dfc9, `and` -> `or`, in memory (the method recompiled from its own source in the module
+#   namespace). Direction: key absent -> present on every uncapped what-if (predictive_info is never empty after a solve),
+#   so the payload claims a power-cap comfort breach field for a what-if that set no cap (the comment at
+#   coordinator.py:11265 says the key is "present only when the what-if capped power").
+# Null control: {"power_cap_kw": 3.0}, where both arms carry the key with the same value.

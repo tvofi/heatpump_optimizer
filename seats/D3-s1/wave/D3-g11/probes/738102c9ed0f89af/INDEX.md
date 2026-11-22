@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_738102c9.py: pins _fold_flow_lift line 984 (GUARD_OFF `if curve is None:` -> `if False:`): outcome of one _fold_flow_lift call with a fresh supply reading and a non-finite outdoor temperature

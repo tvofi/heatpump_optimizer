@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: solves started by a call to HeatPumpOptimizerCoordinator.async_run_optimization made while another
+#   optimization is already in flight (_optimization_running True), and the in-flight flag left after that call.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9efe002b.py
+# Expected: RESULT reentrant_solves_baseline=0 (re-run recorded, flag still True), mutant=2 (a concurrent solve, then the
+#   re-run its own finally honours; it clears _optimization_running under the in-flight solve); null_moved=0.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g11 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_run_optimization
+#   (line 6360, `            return None` in the `if self._optimization_running:` re-run branch), on
+#   tests/features.py:_r9f13_make's rig (frozen clock, in-process solve counted per call).
+# Perturbation: mutant 9efe002b48e1827d, `return None` -> `pass`, in memory (the method recompiled from its own source in
+#   the module namespace). Direction: 0 -> 2 solves for the re-entrant call; flag True -> False.
+# Null control: the same call with no optimization in flight, where both arms solve once and clear the flag.

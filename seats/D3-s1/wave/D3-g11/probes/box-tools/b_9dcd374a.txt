@@ -1,0 +1,22 @@
+
+ha_dt.freeze(NOW)
+t0, t1 = time.process_time(), time.thread_time()
+MUT = mutate(CLS.async_simulate, 'if "power_cap_kw" in overrides and simulated.predictive_info',
+             'if "power_cap_kw" in overrides or simulated.predictive_info')
+
+
+def key_of(fn, overrides):
+    _, c = make("sim")
+    assert run(CLS.async_run_optimization, c) is None
+    p = run(fn, c, dict(overrides), limited=False)
+    assert "error" not in p, p
+    return (1, p["power_cap_breach_c"]) if "power_cap_breach_c" in p else (0, None)
+
+
+for name, ov in {"no_cap": {"target_temperature": 22.0}, "no_cap_empty": {}}.items():
+    b, m = key_of(CLS.async_simulate, ov), key_of(MUT, ov)
+    print(f"RESULT {name}_breach_key_baseline={b[0]} mutant={m[0]} (mutant value {m[1]})")
+b, m = key_of(CLS.async_simulate, {"power_cap_kw": 3.0}), key_of(MUT, {"power_cap_kw": 3.0})
+print(f"RESULT null_moved={int(b != m)} count  (capped: {b})")
+ha_dt.freeze(None)
+tail_results(t0, t1)

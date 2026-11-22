@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_dc6c13ec.py: pins _ensure_worker line 1864 (GUARD_OFF `if worker is not None and worker.poll() is None:` -> `if False:`): live process_worker.py children after three consecutive _ensure_worker calls

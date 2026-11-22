@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_69b933a6.py: pins HeatPumpOptimizerCoordinator.async_shutdown line 6620 (GUARD_OFF `if still_pending:` -> `if False:`): 'did not finish within 5 s of shutdown' warnings logged for a 7 s background task at unload
