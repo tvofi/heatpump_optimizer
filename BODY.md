@@ -1,6 +1,21 @@
 Part of #3616 (the room lift made visible; R11-OUTSIDE-ROOMS-3B)
 
-Built to the approved design `design/R11-OUTSIDE-ROOMS-3B` at `09049ddb` (`Design review: approve`, design-verdict `5554b972`), on `origin/main` `e698fc8ac374a1d72c230b55d938d75b03b7de67`. The why-now comfort-floor row and the daily narrative published the room lift as "holding the minimum temperature": the lift reached the solve folded into `min_temp_margins`, and nothing on the solve's result said which part of the floor was the rooms'. The plan is not changed: no variable, constraint or objective term moves, and `temp_min_bounds` is the same array (invariant iii, measured under `## Null control`).
+Built to the approved design `design/R11-OUTSIDE-ROOMS-3B` at `09049ddb` (`Design review: approve`, design-verdict `5554b972`), on `origin/main` `e698fc8ac374a1d72c230b55d938d75b03b7de67`. The why-now comfort-floor row and the daily narrative published the room lift as "holding the minimum temperature": the lift reached the solve folded into `min_temp_margins`, and nothing on the solve's result said which part of the floor was the rooms'. The plan is not changed: no variable, constraint or objective term moves, and `temp_min_bounds` is the same array (invariant iii, measured under `C1, the review's mutant (`coordinator.py`'s scheduled `_solve_record` build and the what-if `_whatif_solve` build each take `rooms.floor_limits(...)["min_temp_margins"]` in place of the `**rooms.floor_limits(...)` splat, so `SolveLimits.room_lifts` is None on every coordinator-driven solve). `tests/edge.py` built the keywords itself and no check drove a coordinator with the lift on, so C1 passed everything. `ffb12a9319` extends the P2 block's coordinator spy (`_rl_coord`) to record `record.inputs.limits.room_lifts` and `_rl_whatif` to read any `SolveLimits` field, and adds two checks after `_rl_whatif`:
+
+- `R11-OUTSIDE-ROOMS-3B: the scheduled build hands the solve its room lifts, 1.0 K at the cap and never above the margins; null control, the flag off or never stored hands None`
+- `R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a 19.5 day target clips them to its 0.5 K band; null control, the flag off hands None`
+
+Driven by `PYTHONPATH=tests/hastub OPENBLAS_NUM_THREADS=1 python3 tools/audit/seat/features_block.py --prelude 'exec(open("P").read())' '#3616 R11-OUTSIDE-ROOMS-P2: a room short of its target' 'R.section("R10-DRAW-MAP-EVIDENCE part A'`, P from `--emit-prelude` with the same markers plus `import asyncio as _asyncio` (the emitter misses it: `_t5_drive` swallows its NameError; local overlay, proposal for round-end triage). Each mutant is applied as a diff to the checkout and reverted:
+
+- the P2 block before the two checks, unmutated and under C1: `ALL 24 FEATURES BLOCK PASSED`, rc 0 both (the failing-first proof: C1 survives the old block).
+- with the checks, unmutated: `ALL 26 FEATURES BLOCK PASSED`, rc 0.
+- C1 (both builds): `2 of 26 FEATURES BLOCK FAILED`, both new checks, `lifts=None`.
+- C1a (the scheduled build alone): `2 of 26 FEATURES BLOCK FAILED` (`lifts=None`; the what-if check compares to the scheduled lifts and fails with it).
+- C1b (the what-if build alone): `1 of 26 FEATURES BLOCK FAILED`, the what-if check alone (`lifts=None target=None`), so each build has its own killing check.
+
+The splat lines are not drawn by `mutant_run.py` (no operator rewrites a `**` argument); C1, C1a and C1b are hand mutants and their diffs travel with this handoff's evidence.
+
+## Null control`).
 
 ## What it does
 
@@ -28,7 +43,15 @@ The room is named as a cause, not by entity (the note's routed decision): its en
 
 ## Head
 
-`ddfc28e0993ed0bb7822eed43ecfe9b353947d9a`
+`aeced5ecfe3604b5c0a010d7db2d75d262d2fd30`
+
+Measured against origin/main `e4c929bd1c96e8a23636d1f1f086c38de1852853` at 2026-11-22T00:13Z (`date -u`), which is also the merge base.
+
+Delta since the reviewed head `6ef32c22f3d3cc8e80207cd85900879ab1816d05` (review round 1, `blocked mutation-vacuous`): `git diff 6ef32c22f3 aeced5ecfe -- ':!tests/mutation_ledger' ':!dev/audit/rounds'` less main's own commits:
+
+- `f9ce3efe2a` merges origin/main `4ebd430fbf` (the head was `DIRTY` in `tests/structure_budgets.json` only). The `claimnotes`/ledger merge driver resolved it as main's recorded rows plus this branch's deliberate change: `class_excess_loc` 17322 at the old base, 17306 on the branch (-16, the T5 arithmetic moved to `_raised_floor`), 17317 on main (-5), recorded 17301 (17322 less both deltas); `duplication_copies` 5 and `max_class_loc` 7868 are main's. No row is raised against either side; `recorded_at` stays the branch's `e698fc8ac3`, which `tests/structure.py` resolves. No other file conflicted.
+- `84ae6ce8aa` (the merge-main bot's `ci: merge main` of `e4c929bd1c` into `6ef32c22f3`, which moved the PR head meanwhile) is merged into this head by `aeced5ecfe`: no conflict; the bot resolved `tests/structure_budgets.json` to the same rows (17301, 5, 7868), and main's `e4c929bd1c` changes no production file and no `tests/*.py` (its delta is `dev/audit/rounds/`, `tests/closures.json`, a delivery row and `killed_by` pins, four of which pin sites this diff added).
+- `ffb12a9319` adds the two coordinator-build checks under `## Mutation proof` (tests only; no production line changed: the block exposed no defect).
 
 ## Mutation proof
 
@@ -62,50 +85,53 @@ So no drawn mutant survives all three. The block's first full draw (at `2f3c14dc
 ## Figures
 
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`.
-<!-- figure-block: scope-line mb=e698fc8ac374a1d72c230b55d938d75b03b7de67 head=ddfc28e0993ed0bb7822eed43ecfe9b353947d9a -->
+<!-- figure-block: scope-line mb=e4c929bd1c96e8a23636d1f1f086c38de1852853 head=aeced5ecfe3604b5c0a010d7db2d75d262d2fd30 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
 <!-- /figure-block -->
-- The scoped gate at the head, `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`, on a tree left untouched for the run: `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, `30 TEST SCRIPT(S) PASSED; 4 SCOPED OUT AND NOT RUN`, rc 0; among them `tests/features.py`, `tests/edge.py`, `tests/entities.py`, `tests/env_drift.py --all`, `tests/golden.py`, `tests/card.mjs`, `tests/doc_claims.py`, `tests/stress.py` (`ALL 122 STRESS CHECKS PASSED`, `tests/stress_budgets.json` unchanged) and `tests/harness_headers.py`. An earlier run of the same command at `13f8317e7c` failed `tests/features.py` (the R10-WHY-NOW-WIDGET key-set check read all of `DRIVER_CODES`; its stand-in horizon lacked `room_lifts`; two unpacks read two floor arrays) and `tests/doc_claims.py` (one comment sentence over 40 words), each fixed by a later commit of this branch.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; `class_excess_loc` recorded `17322 -> 17306`: the T5 arithmetic left `HeatPumpOptimizer` for `_raised_floor`, which the attribution calls a second time, and the result-build call site is one line shorter. No other row moved.
+- The scope line above is re-taken at `aeced5ecfe` over merge base `e4c929bd1c` (`MODE: SCOPED -- 28 script(s) run, 5 scoped out.`). The delta since the reviewed head reaches `tests/features.py` only, whose changed block (P2, with the two new checks) is run under `## Mutation proof`; the full `tests/features.py` is left to CI's `tests` lane at this head. The scoped gate below was run at the authored head and is not re-run: main's merged commits are CI's.
+- The scoped gate at the authored head, `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`, on a tree left untouched for the run: `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, `30 TEST SCRIPT(S) PASSED; 4 SCOPED OUT AND NOT RUN`, rc 0; among them `tests/features.py`, `tests/edge.py`, `tests/entities.py`, `tests/env_drift.py --all`, `tests/golden.py`, `tests/card.mjs`, `tests/doc_claims.py`, `tests/stress.py` (`ALL 122 STRESS CHECKS PASSED`, `tests/stress_budgets.json` unchanged) and `tests/harness_headers.py`. An earlier run of the same command at `13f8317e7c` failed `tests/features.py` (the R10-WHY-NOW-WIDGET key-set check read all of `DRIVER_CODES`; its stand-in horizon lacked `room_lifts`; two unpacks read two floor arrays) and `tests/doc_claims.py` (one comment sentence over 40 words), each fixed by a later commit of this branch.
+- `python3 tests/structure.py` at `aeced5ecfe`: `STRUCTURE RATCHET PASSED`, `ok class_excess_loc 17301 <= 17301`, `ok duplication_copies 5 <= 5`, `ok max_class_loc 7868 <= 7868` (the merge's resolution, under `## Head`). At the authored head: `class_excess_loc` recorded `17322 -> 17306`: the T5 arithmetic left `HeatPumpOptimizer` for `_raised_floor`, which the attribution calls a second time, and the result-build call site is one line shorter. No other row moved.
 - `python3 tools/audit/archscore/score.py --diff e698fc8ac374a1d72c230b55d938d75b03b7de67`: `Architecture score: dS +0.0000 NULL`.
+- `python3 tools/audit/archscore/score.py --diff 4ebd430fbff9a7b19582ca530a817f34abbafa16` (then the merge base) at `ffb12a9319`: `Architecture score: dS +0.0000 NULL`; main's `e4c929bd1c` changes no production file, so the score's inputs at `aeced5ecfe` are the same.
 - `tests/card_browser.mjs` was not run: no scope selects it, and the card change is two strings tables, one map entry and no layout.
 
 ## Red checks
 
-- `tests / mutation`: predicted red at the head by the unpinned sites below, which `mutation-autofix` pins once the pull request exists (`ci-autofix.md`: never duplicated by the fixer). Cheaper detector: `prepr.sh`'s step 6d, which ran before the handoff and named every site, at no standing cost beyond the prepr run; the red is the lane's own pinning step, so none cheaper exists.
+At the reviewed head `6ef32c22f3` (run 44950602271 and the `gate` run 44950608192), and at the bot's `84ae6ce8aa`, whose runs were still queued when this body was written; this head re-runs every lane.
+
+- `gate`: concluded failure at 21:56:21Z with `FAIL run(s) [44950602271] at this head are still being judged; their gate decides`: it ran while the `tests` run was still in progress and failed on that, not on any lane's result. Cause: the gate's own timing at the head; no lane it reads had failed. Cheaper detector: none, it is the gate's own arbitration; the rerun at this head decides.
+- `tests / mutation`: red in its `Drive the table over what this diff tested` step on the `ADDED UNPINNED` sites listed under `## Unpinned sites` (job 136987740328, first line `ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:731 BOOLOP`), as predicted; `mutation-autofix` pins them once the run completes (`ci-autofix.md`: never duplicated by the fixer). Cheaper detector: `prepr.sh` step 6d, which named every site before the handoff; the red is the lane's own pinning step.
+- `tests / mutation-pins (2)`: pending at that head, not red.
+- `governance / policy-docs`, `tests / closures` and `governance / wave-script`: red on `b644331735`, `0151b17020` and `5becddba58`, commits of #3814's branch that `84ae6ce8aa` brought in through main (`e4c929bd1c`); none is a commit of this branch, and all are inside this head's merge base. Cheaper detector: none owed here; they are main's own branch history.
 
 ## Unpinned sites
 
-The 24 sites `python3 tools/pr/ci_predict.py --base origin/main` lists as `ADDED UNPINNED` at the head, each under `custom_components/`. `2f3c14dc6f` drops ten `killed_by` pins whose pinned lines this diff moved (`ci_predict.py` read each as `STALE PIN` on the ledger); the sites they pinned are now in `rooms.floor_limits`, `_raised_floor`, `_build_comfort_bounds`' return and `slot_drivers.space_pushes`.
+The 20 sites `python3 tools/pr/ci_predict.py --base origin/main` lists as `ADDED UNPINNED` at `aeced5ecfe`, each under `custom_components/` (24 at `6ef32c22f3`; `mutation-autofix`'s pins, on main by `e4c929bd1c`, cover `optimizer.py:743` CLAMP_DROP, `optimizer.py:4938` RETURN_DEL, `rooms.py:319` CLAMP_DROP and `slot_drivers.py:126` CLAMP_DROP). `2f3c14dc6f` drops ten `killed_by` pins whose pinned lines this diff moved (`ci_predict.py` read each as `STALE PIN` on the ledger); the sites they pinned are now in `rooms.floor_limits`, `_raised_floor`, `_build_comfort_bounds`' return and `slot_drivers.space_pushes`.
 
 - custom_components/heatpump_optimizer/optimizer.py:731 BOOLOP: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:731 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:733 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:735 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:739 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:743 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:743 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:2532 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:2537 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:2537 CMP_BOUND: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:4933 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/optimizer.py:4937 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:4938 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/rooms.py:310 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:319 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/rooms.py:321 CLAMP_DROP*3: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/rooms.py:322 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/rooms.py:324 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/slot_drivers.py:116 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/slot_drivers.py:125 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/slot_drivers.py:126 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/slot_drivers.py:127 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/slot_drivers.py:128 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
 - custom_components/heatpump_optimizer/slot_drivers.py:131 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
 
-The 8 sites `prepr.sh` step 2 reports `SURVIVED` under the 3B block, each a production-solve site the block does not drive, killed by the detector named under `## Mutation proof`:
+The 8 sites `prepr.sh` step 2 reported `SURVIVED` under the 3B block at the authored head `ddfc28e099` (its line numbers; main's merge moved `coordinator.py`'s two splat builds, in `_solve_record` and `_whatif_solve`, to lines 6293 and 11311 at `aeced5ecfe`), each a production-solve site the block does not drive, killed by the detector named under `## Mutation proof`:
 
 - custom_components/heatpump_optimizer/optimizer.py:3112 STMT_DEL: killed by `tests/edge.py` (a value check: the `room_lifts` field of `_Horizon`)
 - custom_components/heatpump_optimizer/optimizer.py:3179 STMT_DEL: killed by `tests/edge.py` (the `room_lifts` field of `SolveLimits`)
@@ -123,3 +149,4 @@ none
 ## Friction
 
 design-review.md: unenforced: the approved note's interface 4 put an 11th parameter on `classify_space_steps`, which `tools/audit/archscore/score.py --diff` refuses (`params_over_10 6 -> 7`); the review did not price the interface with the instrument the fix is graded by. Built as a post-pass with identical labels. Carry: dismissed: one instance, resolved in this pull request.
+
