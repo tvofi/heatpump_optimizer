@@ -17,6 +17,6 @@ RESULT moved_ua6.0_c4.0_g2.5: baseline=(False, 'fitted gains outside plausible b
 RESULT inputs_moved=16/21 count  (refused fit -> completed=True)
 RESULT null_in_band_delta=0 count
 RESULT thread_factor=1.000
-RESULT load1=1.17
+RESULT load1=0.98
 RESULT swapins=0
 # exit 0

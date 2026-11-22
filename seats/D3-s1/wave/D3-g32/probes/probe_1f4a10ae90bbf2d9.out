@@ -12,6 +12,6 @@ RESULT rows4_mutant='even a noise-free night on the declared plant places the he
 RESULT rows4_moved=0 count
 RESULT step_driven_unadoptable_calls=4 count  min_settling_rows=2
 RESULT thread_factor=1.000
-RESULT load1=1.24
+RESULT load1=0.98
 RESULT swapins=0
 # exit 0

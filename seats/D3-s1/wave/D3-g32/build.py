@@ -16,7 +16,7 @@ from pathlib import Path
 
 W = Path(__file__).resolve().parent
 S1 = W.parent.parent
-ROOT = S1.parents[5]
+ROOT = next(p for p in S1.parents if (p / "custom_components/heatpump_optimizer/manifest.json").is_file())
 REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g32"
 BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
 BOX = "D3-g32"
