@@ -10,3 +10,4 @@
 1795309466 DONE verdict pushed: blocked mutation-vacuous at c6c11df0b8 (probe/rev-3835-0e66ef5e f044c884cb)
 1795320653 HB alive
 1795320731 CKPT round 2: delta read (fc469477e2 + clean main merges); running mutants L and H at head snapshot e263dce67275
+1795320872 CKPT L and H killed in block at head; own mutant L2 (tank.ok gate) survives block, full features running; classify polling snapshot 1bfcf767c2c0
