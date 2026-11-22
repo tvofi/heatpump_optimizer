@@ -24,3 +24,4 @@
 1795311551 DONE verdict blocked db727d36e0 ci-red: gate (stale gate suites); pushed probe/rev-3825-23455ea9 (bef3842c44)
 1795323149 HB alive
 1795323318 CKPT round 4: packet rendered; classify RED; gate suites read (3 stale) snapshot e4a4e4985b1e
+1795323443 CKPT round 4: A1 mutant killed at head; drafting verdict snapshot c103ce6a65bb
