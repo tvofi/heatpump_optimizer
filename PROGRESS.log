@@ -21,3 +21,4 @@
 1795305592 HB alive
 1795305687 CKPT delta read: merge resolution + c4766c3 floor repair snapshot bc9af497c5a8
 1795305747 CKPT delta mutants 4/4 killed; control at fa5/head confirmed; waiting CI snapshot 6857a1bfa592
+1795305791 HB waiting CI classify
