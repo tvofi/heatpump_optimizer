@@ -53,7 +53,6 @@ from .const import (
     DEFAULT_PRICE_VAT,
     DEFAULT_PRICE_SURCHARGE,
     PRICE_SOURCE_ENTITY,
-    PRICE_SOURCE_TIBBER,
     PRICE_SOURCES,
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
@@ -441,7 +440,6 @@ from .const import (
     DEFAULT_PV_EFFICIENCY,
     DEFAULT_PV_EXPORT_PRICE,
     CONF_AWAY_PRESENCE_ENTITY,
-    CONF_AWAY_RETURN_ENTITY,
     CONF_AWAY_TEMPERATURE,
     CONF_AWAY_DHW_MIN_TEMP,
     DEFAULT_AWAY_TEMPERATURE,
@@ -1521,12 +1519,9 @@ def _first_screen_schema(hass: HomeAssistant) -> vol.Schema:
 #
 # Two tables -- one of pages, one of fields -- and every option page is a
 # query over them: which fields does this step declare, and which menu does
-# this step appear in. Before this, each page hand-listed its own markers,
-# repeated ``default=current.get(KEY, DEFAULT_KEY)`` for each one, declared
-# the two-armed entity default as its own identical nested helper, and named
-# its clearable keys a third time in a clearing loop. Three hand-kept copies
-# of one fact is how a page came to null a key its schema never presented
-# (#542) and how the clearable roster came to name one no page offers.
+# this step appear in. No page hand-lists its markers, defaults or clearable
+# keys: three hand-kept copies of one fact let a page null a key its schema
+# never presented (#542).
 #
 # What is deliberately NOT in the tables: validation, error text and the
 # after-save routing. Those differ per page for reasons the page owns, and a
@@ -1696,8 +1691,7 @@ def _single_zone(config: Mapping[str, Any]) -> bool:
 
 
 def _power_switch(config: Mapping[str, Any]) -> bool:
-    """Whether a heat-pump power switch is configured: the frost hold's
-    only actuator (``frost_hold``), so its options mean nothing without one."""
+    """A power switch is configured: the frost hold's one actuator (``frost_hold``)."""
     return bool(config.get(CONF_HEAT_PUMP_SWITCH_ENTITY))
 
 
@@ -1743,10 +1737,6 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
     # ceiling at the gate would write "off" on every heating step.
     _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, FLOW_HEAT_C_MAX, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
-    # Frost hold (frost_hold): an idle step below the threshold, or with no
-    # outdoor reading, keeps the power switch on. On by default (tvofi,
-    # 2026-11-22); the threshold's range spans the climates an air-source
-    # unit defrosts in.
     _F("entities", CONF_FROST_HOLD, DEFAULT_FROST_HOLD, selector.BooleanSelector(), when=_power_switch, group="indoor"),
     _F("entities", CONF_FROST_HOLD_BELOW_C, DEFAULT_FROST_HOLD_BELOW_C, _number(-15, 10, 0.5, '°C'), when=_power_switch, group="indoor"),
     # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
@@ -2744,9 +2734,7 @@ class HeatPumpOptimizerConfigFlow(
     ) -> ConfigFlowResult:
         """Handle a reconfigure flow initialized by the user (D10-14).
 
-        A rotated token, a renamed sensor, a second pump where the first
-        used to be: before this step existed the only way through was to
-        delete the entry and walk all of setup again. Home Assistant
+        Home Assistant
         (2024.4+) starts the step from the entry's own page -- the manager
         stamps ``context={"source": "reconfigure", "entry_id": ...}`` and
         the entry's ``supports_reconfigure`` is what offers the button --
@@ -3893,10 +3881,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         One page for everything between the heat sources and the emitters —
         the mixing valve, the buffer tank as a store, and the wood-furnace
-        tank with its probes. These used to be spread across three pages
-        (building, mixing valve, and the wood block on the learning page),
-        which meant describing one physical system in three places.
-        The purely structural properties (windows, wind and rain) live on
+        tank with its probes. The purely structural properties (windows, wind and rain) live on
         *Building type and emitters* instead.
 
         The write-target kind (#398) is validated here rather than trusted:

@@ -146,15 +146,14 @@ def _note_run(held: ArbiterState, inp: ArbiterInputs, now: datetime | None) -> N
         held.frost_ran_until = dt_util.as_utc(now or dt_util.now()) + freeze_span(inp.config)
 
 
-def freeze_reason(held: ArbiterState, inputs: Callable[[], ArbiterInputs],
-                  now: datetime | None = None) -> str | None:
+def freeze_reason(coord: Any, now: datetime | None = None) -> str | None:
     """:data:`FREEZE_FROST` while a learner's interval may hold a held run, else ``None``.
 
-    ``inputs`` is called only while a hold is on, to note a run seen now.
+    ``coord``'s inputs are built only while a hold is on, to note a run seen now.
     """
-    now = dt_util.as_utc(now or dt_util.now())
+    held, now = state_for(coord), dt_util.as_utc(now or dt_util.now())
     if held.frost_holding:
-        _note_run(held, inputs(), now)
+        _note_run(held, coord.arbiter_inputs(), now)
     until = held.frost_ran_until
     return FREEZE_FROST if until is not None and now < until else None
 

@@ -189,7 +189,6 @@ from .const import (
     INTERNAL_GAINS_MIN_UA_CONFIDENCE,
     CONFIDENCE_MARGIN_CAP_C,
     MOLD_SURFACE_RH_LIMIT,
-    SCORE_ALPHA,
     SCORE_FREE_SPAN_RESET,
     TEMPERATURE_UNIT_TO_C,
     OUTDOOR_AIR_RANGE_C,
@@ -275,7 +274,6 @@ from .manual_plan import (
 from .price_model import (
     PriceShapeLearner,
     PriceShapeModel,
-    TIBBER_API_URL,
     _raw_value,
     entity_priced,
     extend_price_series,
@@ -296,7 +294,7 @@ from .grid_fee import (
     parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import labels_for
-from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
+from .dhw_learning import DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner, worst_zone_margin_k
@@ -340,7 +338,6 @@ from .wood_fuel import (
 )
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
-    WATER_SPECIFIC_HEAT,
     ThermalModel,
     ThermalParameters,
     ThermalState,
@@ -3459,8 +3456,7 @@ def _tail_freeze(coord: Any) -> str | None:
     """
     if early_cutoff.state_for(coord).interval_cut:
         return early_cutoff.FREEZE_CUT
-    held = pump_arbiter.state_for(coord)
-    return supply_hold.freeze_reason(held) or frost_hold.freeze_reason(held, coord.arbiter_inputs) or learner_unmetered(
+    return supply_hold.freeze_reason(pump_arbiter.state_for(coord)) or frost_hold.freeze_reason(coord) or learner_unmetered(
         getattr(getattr(coord, "_ctx", coord), "_config", None)
     )
 

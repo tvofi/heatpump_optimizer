@@ -52,7 +52,8 @@ that switch's one writer, shared by the cycle's plan write, the step tick
 (:func:`supply_tick`) and the early cut-off (``early_cutoff.py``), so the
 domain routing has one owner. The first two reach it through
 :func:`write_supply`, which writes the step's mode ahead of a switch-on
-(#3420), so the pump never starts in the last duty.
+(#3420), so the pump never starts in the last duty. A frost hold
+(``frost_hold``) is served as space at the pump's own floor (:func:`desired`).
 
 **Two transports, one logic.** The Tuya fork offers DHW-only and Heating,
 so the mode is the gate there. The GCHV/Rotenso Modbus package's mode
@@ -85,12 +86,6 @@ is not one of them. Switching the optimizer off writes nothing to it and
 undoes nothing, so a switch it turned on stays on. The reading that write causes
 keeps the learners off the interval, and it is not a further cap on the
 plan: the window's ceiling is the solve's.
-
-The v6.6.12 design stood down on any change it could not explain as an
-ignored write, turning the optimizer off. On tvofi's install the fork's
-echo, a set-point the device refused, a restart that lost the record's
-evidence and the pump's own reset to 25 degC when switched off all read as
-a person, so the optimizer kept switching itself off.
 
 **Its own writes are not evidence.** A mode the arbiter wrote must not reach
 the next solve as "the pump cannot heat" (:func:`own`), or a DHW-only step
@@ -137,7 +132,8 @@ over the step is hot water). Each step is ``delivered``,
 ``space-instead``, ``dhw-instead``, ``idle-instead``, ``not-startable`` (a
 hot-water step left idle on a tank at or above the pump's own start
 temperature, the step's target less ``dhw_hysteresis_entity``), ``unknown``
-(no power meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
+(no power meter and no tank rise), ``baseline`` or ``frost-hold`` (kept on by
+``frost_hold``). A concurrent Heating + DHW run
 reads as hot water; a big draw can hide a tank rise. The last
 :func:`log_steps` steps and their counts are in the diagnostics; the ledger
 is not persisted. It is what decides whether control is worth turning on:
@@ -176,7 +172,6 @@ from .const import (
     CONF_POWER_ENTITY,
     CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
-    CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
     DEFAULT_FLOW_HEAT_C,
     DOMAIN,
@@ -193,7 +188,7 @@ from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c,
+    InputReader, SetpointGrid, read_setpoint, setpoint_grid, setpoint_range_c,
     write_setpoint_c,
 )
 from .log_latch import log_held
@@ -399,9 +394,7 @@ class ArbiterState:
     held_until: datetime | None = None
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
-    #: ``frost_hold``'s, its one writer; read here, never persisted: the
-    #: latch (``None`` unset or opted out), whether an OFF is held now, and
-    #: until when (UTC) the learners freeze for a held run.
+    #: ``frost_hold``'s, read here, never persisted: its latch, whether an OFF is held, the learners' freeze end.
     frost: bool | None = None
     frost_holding: bool = False
     frost_ran_until: datetime | None = None
@@ -437,8 +430,7 @@ class ArbiterInputs:
     #: The running-draw window each pass record is handed to
     #: (``draw_range.note_pass``); ``None`` keeps none.
     draw: Any = None
-    #: The outdoor reading the frost hold judges (``frost_hold.reading``), °C;
-    #: ``None`` is no reading, never a default.
+    #: The outdoor reading the frost hold judges, °C (``frost_hold.reading``); ``None`` is none.
     outdoor_c: float | None = None
 
 
@@ -539,21 +531,10 @@ def step_duty(result: Any, now: datetime) -> str | None:
 
     Each circuit's draw is read by the plan's own running rule
     (``planned_draw_runs``), so the duty the arbiter serves is the duty the
-    plan booked. This used to take the threshold from its caller, which handed
-    it the METER's threshold -- half the pump's modulation floor -- and split
-    the two circuits on two different numbers (R9 D12-s2-01, #1644 P2): on a
-    fixed-speed pump a step the plan priced as 1.0 kW of delivered heat read as
-    no space duty at all, so the arbiter wrote the pump's hot-water mode over
-    it. A caller-supplied threshold is the shape that let them diverge, so the
-    parameter is gone rather than defaulted.
-
-    The plan's own floor travels as that rule's ``modulation_floor`` ARGUMENT
-    (D7-arch3-04). It used to travel through an attribute on the function
-    object, set here and cleared by a decorator's ``finally`` so a later
-    floorless caller did not inherit it: one module-level slot for a per-plan
-    value, read by every caller that passed none. No production reader runs off
-    the loop, so the harm was the channel and the second piece of state that
-    kept it clean, not a live race.
+    plan booked. No caller supplies a threshold: one that did handed it the
+    meter's and split the two circuits on two numbers (R9 D12-s2-01, #1644 P2).
+    The plan's own floor travels as that rule's ``modulation_floor`` argument,
+    never as module state (D7-arch3-04).
     """
     i = plan_step_index(result, now)
     if i is None:
@@ -1323,10 +1304,7 @@ def cycle_write(hass: Any, config: Any, params: Any) -> CycleWrite | None:
 
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime, *, frost: bool = False) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline.
-
-    ``frost``: a frost hold (``frost_hold``) is served as ``space`` at the
-    pump's own floor (:func:`_hold_floor_c`), with no loop and no boost level.
-    """
+    ``frost``: a frost hold, served as space at :func:`_hold_floor_c`, with no loop or boost level."""
     result = inp.plan
     mode_state = _slot_state(inp, "mode")
     dhw = _dhw_write(inp)
@@ -1337,10 +1315,7 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime, *, 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    if frost:
-        space = _hold_floor_c(inp)
-    else:
-        space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
+    space = _hold_floor_c(inp) if frost else _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
     if _flow_unit(inp.config) and not frost:
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
@@ -1351,17 +1326,11 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime, *, 
 
 
 def _hold_floor_c(inp: ArbiterInputs) -> float | None:
-    """The space set-point a frost hold writes: the pump's own floor, °C.
-
-    The entity's minimum, raised to the controller's lower limit where its
-    sensor reads (:func:`_setpoint_limits_c`). Where the entity states no
-    minimum: the gate in its own terms on a water unit (:func:`_gate_floor_c`,
-    the water a step that does not heat writes) and 5 °C on an indoor unit,
-    the bound a hot-water step writes it at (:func:`desired`).
-    """
+    """A frost hold's space set-point, °C: the entity's minimum, raised to the controller's
+    lower limit (:func:`_setpoint_limits_c`). With no stated minimum, the gate on a water unit
+    (:func:`_gate_floor_c`) and the 5 °C a hot-water step writes an indoor one (:func:`desired`)."""
     low = setpoint_range_c(inp.hass, _entities(inp.config)["space_setpoint"])[0]
-    if low is None:
-        low = _gate_floor_c(inp.config) if _flow_unit(inp.config) else 5.0
+    low = (_gate_floor_c(inp.config) if _flow_unit(inp.config) else 5.0) if low is None else low
     limit = _setpoint_limits_c(inp)[0]
     return _bounded(inp, "space_setpoint", low if limit is None else max(low, limit), rounding="up")
 
@@ -1820,9 +1789,8 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
     optimizer's, not the person's. The baseline captured in its place is the
     baseline row's own space target (:func:`_space_target` with no duty), the
     value the arbiter holds when the plan is not in charge, and the write is
-    sent. It used to be held until the controller read anything else, which
-    on an upgrade held every space write, a boost's included, with the pump
-    left on the optimizer's last gate (R10-HOTFIX-FLOW-SETPOINT-STUCK).
+    sent, never held: holding it froze every space write on an upgrade
+    (R10-HOTFIX-FLOW-SETPOINT-STUCK).
     """
     armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
     reading = read_setpoint(inp.hass, entity)
@@ -1996,8 +1964,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         return
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
-    # A frost hold is served as space heating, past a space block: it
-    # protects the unit, not the rooms. Its pass records no heating.
+    # A frost hold is served as space past a block (it protects the unit) and records no heating.
     frost = held.frost_holding
     served = "space" if frost else _served(coord, inp, duty, now)
     await _command(coord, inp, desired(coord, inp, served, now, frost=frost), now)
