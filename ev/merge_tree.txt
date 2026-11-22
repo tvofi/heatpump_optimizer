@@ -1,0 +1,6 @@
+MERGE-CLAIM: resolved tests/golden/card_claimed_drift.txt
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1560 entries)
+  re-run the gate that owns this file before pushing
+eaab02136f7c243964ade701be5942ba8afd0ad7
+rc=0 origin/main=4ebd430fbff9a7b19582ca530a817f34abbafa16
