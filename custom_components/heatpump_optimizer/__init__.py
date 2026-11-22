@@ -204,11 +204,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
     """Migrate a config entry created by an older version of the integration.
 
     Every option the integration reads is looked up with a default, so older
-    entries need their version stamped forward, any numeric option stored as a
-    non-number repaired -- numeric text stored as its number, anything else
-    dropped for its default (``entry_config.number_repairs``) -- and their keys
-    placed (7.2). Without this handler Home Assistant refuses to load entries
-    created before the current
+    entries need only their version stamped forward and their keys placed (7.2).
+    A numeric option stored as a non-number is repaired on the way
+    (``entry_config.number_repairs``): numeric text is stored as its number,
+    anything else is dropped for its default. Without this handler Home
+    Assistant refuses to load entries created before the current
     ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
     """
     if entry.version > CONFIG_ENTRY_VERSION:
