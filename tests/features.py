@@ -68123,6 +68123,8 @@ _P6_READ_ONLY = {
     # #3616: room thermostats' attributes are read by inputs.read_room; phase 1
     # writes no room thermostat.
     hp_const.CONF_ROOM_TEMPERATURE_ENTITIES: "room thermostats inputs.read_room reads",
+    # R11-OWNER-FAULT-TEXT: a text or input_text helper may hold the fault text.
+    hp_const.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: "the pump's fault text fault_log's listener reads",
 }
 
 
