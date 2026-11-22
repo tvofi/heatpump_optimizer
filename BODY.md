@@ -43,6 +43,16 @@ The room is named as a cause, not by entity (the note's routed decision): its en
 
 ## Head
 
+`8800ed7c6f7006ddf75898f79ac7bc22f5e11467` merges the authored code head `c03b640cd62e90d81212a74d1f06f22907d5ff51`.
+
+`5e03ce2bbe12abe05d10cd63442581acb9ea2719` merges the authored code head `c03b640cd62e90d81212a74d1f06f22907d5ff51`.
+
+`af555d51f411f41894028b6258d6c233928a7308` merges the authored code head `c03b640cd62e90d81212a74d1f06f22907d5ff51`.
+
+`48d28b55eb156a8b2585296d7d786f63f67d1247` merges the authored code head `0c0b146b5aea2b3f704edead48c98e9ceb35e89d` and then merges origin/main `f269ecccb5` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`5ac06973d155ab548ce9d34d4766d93c661560b1` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
 `aeced5ecfe3604b5c0a010d7db2d75d262d2fd30`
 
 Measured against origin/main `e4c929bd1c96e8a23636d1f1f086c38de1852853` at 2026-11-22T00:13Z (`date -u`), which is also the merge base.
@@ -85,11 +95,6 @@ So no drawn mutant survives all three. The block's first full draw (at `2f3c14dc
 ## Figures
 
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`.
-<!-- figure-block: scope-line mb=e4c929bd1c96e8a23636d1f1f086c38de1852853 head=aeced5ecfe3604b5c0a010d7db2d75d262d2fd30 -->
-~~~text
-MODE: SCOPED -- 28 script(s) run, 5 scoped out.
-~~~
-<!-- /figure-block -->
 - The scope line above is re-taken at `aeced5ecfe` over merge base `e4c929bd1c` (`MODE: SCOPED -- 28 script(s) run, 5 scoped out.`). The delta since the reviewed head reaches `tests/features.py` only, whose changed block (P2, with the two new checks) is run under `## Mutation proof`; the full `tests/features.py` is left to CI's `tests` lane at this head. The scoped gate below was run at the authored head and is not re-run: main's merged commits are CI's.
 - The scoped gate at the authored head, `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`, on a tree left untouched for the run: `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, `30 TEST SCRIPT(S) PASSED; 4 SCOPED OUT AND NOT RUN`, rc 0; among them `tests/features.py`, `tests/edge.py`, `tests/entities.py`, `tests/env_drift.py --all`, `tests/golden.py`, `tests/card.mjs`, `tests/doc_claims.py`, `tests/stress.py` (`ALL 122 STRESS CHECKS PASSED`, `tests/stress_budgets.json` unchanged) and `tests/harness_headers.py`. An earlier run of the same command at `13f8317e7c` failed `tests/features.py` (the R10-WHY-NOW-WIDGET key-set check read all of `DRIVER_CODES`; its stand-in horizon lacked `room_lifts`; two unpacks read two floor arrays) and `tests/doc_claims.py` (one comment sentence over 40 words), each fixed by a later commit of this branch.
 - `python3 tests/structure.py` at `aeced5ecfe`: `STRUCTURE RATCHET PASSED`, `ok class_excess_loc 17301 <= 17301`, `ok duplication_copies 5 <= 5`, `ok max_class_loc 7868 <= 7868` (the merge's resolution, under `## Head`). At the authored head: `class_excess_loc` recorded `17322 -> 17306`: the T5 arithmetic left `HeatPumpOptimizer` for `_raised_floor`, which the attribution calls a second time, and the result-build call site is one line shorter. No other row moved.
@@ -102,34 +107,48 @@ MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 At the reviewed head `6ef32c22f3` (run 44950602271 and the `gate` run 44950608192), and at the bot's `84ae6ce8aa`, whose runs were still queued when this body was written; this head re-runs every lane.
 
 - `gate`: concluded failure at 21:56:21Z with `FAIL run(s) [44950602271] at this head are still being judged; their gate decides`: it ran while the `tests` run was still in progress and failed on that, not on any lane's result. Cause: the gate's own timing at the head; no lane it reads had failed. Cheaper detector: none, it is the gate's own arbitration; the rerun at this head decides.
-- `tests / mutation`: red in its `Drive the table over what this diff tested` step on the `ADDED UNPINNED` sites listed under `## Unpinned sites` (job 136987740328, first line `ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:731 BOOLOP`), as predicted; `mutation-autofix` pins them once the run completes (`ci-autofix.md`: never duplicated by the fixer). Cheaper detector: `prepr.sh` step 6d, which named every site before the handoff; the red is the lane's own pinning step.
+- `tests / mutation` at `0edc7fbd8b` (job 137110653984): `MUTATION TABLE REFUSED -- 1935 unpinned site(s) against 1923 ... 17 of them added by this diff`. The cause is not a survivor. `mutation-pins` shard 2 pinned 4 sites, killed by `tests/features.py`. Shards 1, 3 and 4 each ended `MUTATION TABLE REFUSED -- nothing was measured: N mutant(s) timed out` (`skip-measure-failed`), so 13 sites were never measured. `mutation-autofix` (job 137151848606) then printed `AUTOFIX: skip-not-allowed`: the head's subject `ci: pin killed mutants` is its loop guard, so shard 2's pins were not pushed either. This head carries a new subject, so the shards and the autofix measure again; the sites are `unmeasured` until they conclude. Cheaper detector: none for the shard timeout, which is the lane's per-driver bound (3x the committed solo recording of `tests/features.py`) exceeded on the runner.
+- `tests / fast (3.14)` at `9d3d6d129b` (run 45008444973): red in `python3 tests/structure.py`, `FAIL module_excess_loc 21822 > 21779 (+43)`; the other scripts passed. Cause: `optimizer.py` crossed the module budget by 43 lines once `_raised_floor` and `_mark_room_floor` joined it after main moved. Fixed at `c03b640cd6`: both move to `rooms.py` as `raised_floor` and `mark_room_floor` (their `killed_by` pins move with them), `module_excess_loc` measures 21770 and is recorded, `class_excess_loc` stays 17301. Cheaper detector: `tests/structure.py` itself, run scoped before the handoff; a merge of main into a branch that touches a module near the limit needs it re-run, which the merge-main bot does not do. Standing cost: one structure run per merge.
+- `governance / instrument-self-tests` and `tests / mutation-autofix`: red at the same head and not required; the self-test failures are `selftest_scope` cases that spawn `bash` (`FileNotFoundError: 'bash'`), none reads a file this branch touches; `mutation-autofix` and the `mutation` lane re-pin the moved sites at the new head.
+- `codeql / Analyze (python)` at `0edc7fbd8b` (job 137152888433): it is in run 44989688292, attempt 2, and that run concluded `cancelled`. The job ran no step (it has no step list and GitHub serves no log). The same check at the same head in run 44989690481 concluded success (job 137110653982). Cause: the cancelled run, not the code. Cheaper detector: none; no analysis ran.
+- `tests / replay` at `0edc7fbd8b` (job 137112621672): `ALL 198 replay checks PASSED` at `replay lane wall time 1778.5 s`, then cancelled 5 s later by the job's `timeout-minutes: 30`. Against the merge base `f269ecccb5`, `PYTHONPATH=tests/hastub python3 tests/replay.py` ran side by side with the head on one host under the same load: base `replay lane wall time 11811.3 s`, head `11825.1 s`, both `ALL 198 replay checks PASSED` rc 0. The diff does not slow the lane (+0.1%), and the lane runs near its 30-min bound on any tree (the replay lanes of #3835 and #3738 the same day: 1627.7 s and 1098.3 s). Cheaper detector: none owed by this branch.
 - `tests / mutation-pins (2)`: pending at that head, not red.
 - `governance / policy-docs`, `tests / closures` and `governance / wave-script`: red on `b644331735`, `0151b17020` and `5becddba58`, commits of #3814's branch that `84ae6ce8aa` brought in through main (`e4c929bd1c`); none is a commit of this branch, and all are inside this head's merge base. Cheaper detector: none owed here; they are main's own branch history.
 
 ## Unpinned sites
 
-The 20 sites `python3 tools/pr/ci_predict.py --base origin/main` lists as `ADDED UNPINNED` at `aeced5ecfe`, each under `custom_components/` (24 at `6ef32c22f3`; `mutation-autofix`'s pins, on main by `e4c929bd1c`, cover `optimizer.py:743` CLAMP_DROP, `optimizer.py:4938` RETURN_DEL, `rooms.py:319` CLAMP_DROP and `slot_drivers.py:126` CLAMP_DROP). `2f3c14dc6f` drops ten `killed_by` pins whose pinned lines this diff moved (`ci_predict.py` read each as `STALE PIN` on the ledger); the sites they pinned are now in `rooms.floor_limits`, `_raised_floor`, `_build_comfort_bounds`' return and `slot_drivers.space_pushes`.
+The sites `python3 tools/pr/ci_predict.py --base origin/main` listed as `ADDED UNPINNED` at `aeced5ecfe` (their line numbers there; at `c03b640cd6` the `_raised_floor` and `_mark_room_floor` sites are in `rooms.py`, and 17 remain unpinned). At `0edc7fbd8b`, `mutation-pins` shard 2 killed `optimizer.py:739` CLAMP_DROP, `:743` RETURN_DEL, `:4933` GUARD_OFF and `slot_drivers.py:127` CLAMP_DROP with `tests/features.py`, but those pins were never pushed (see `## Red checks`), each under `custom_components/` (24 at `6ef32c22f3`; `mutation-autofix`'s pins, on main by `e4c929bd1c`, cover `optimizer.py:743` CLAMP_DROP, `optimizer.py:4938` RETURN_DEL, `rooms.py:319` CLAMP_DROP and `slot_drivers.py:126` CLAMP_DROP). `2f3c14dc6f` drops ten `killed_by` pins whose pinned lines this diff moved (`ci_predict.py` read each as `STALE PIN` on the ledger); the sites they pinned are now in `rooms.floor_limits`, `_raised_floor`, `_build_comfort_bounds`' return and `slot_drivers.space_pushes`.
 
-- custom_components/heatpump_optimizer/optimizer.py:731 BOOLOP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:731 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:733 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:735 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:739 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:743 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:2532 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:2537 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:2537 CMP_BOUND: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:4933 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/optimizer.py:4937 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:310 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:321 CLAMP_DROP*3: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:322 GUARD_OFF: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/rooms.py:324 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/slot_drivers.py:116 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/slot_drivers.py:125 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/slot_drivers.py:127 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/slot_drivers.py:128 CLAMP_DROP: pinned by mutation-autofix (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/slot_drivers.py:131 RETURN_DEL: pinned by mutation-autofix (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/optimizer.py:731 BOOLOP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:731 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:733 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:735 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:739 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:743 RETURN_DEL: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:2532 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:2537 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:2537 CMP_BOUND: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:4933 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:4937 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/rooms.py:310 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/rooms.py:321 CLAMP_DROP*3: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/rooms.py:322 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/rooms.py:324 RETURN_DEL: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/slot_drivers.py:116 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/slot_drivers.py:125 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/slot_drivers.py:127 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/slot_drivers.py:128 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/slot_drivers.py:131 RETURN_DEL: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head
+- custom_components/heatpump_optimizer/optimizer.py:4882 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/optimizer.py:4885 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/rooms.py:343 BOOLOP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/rooms.py:343 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/rooms.py:345 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/rooms.py:347 GUARD_OFF: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/rooms.py:351 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/rooms.py:355 RETURN_DEL: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/rooms.py:375 CLAMP_DROP: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
+- custom_components/heatpump_optimizer/rooms.py:375 CMP_BOUND: unmeasured; left to `mutation-pins` and `mutation-autofix` at this head (the line at `c03b640cd6` merged with origin/main, where `raised_floor` and `mark_room_floor` now live)
 
 The 8 sites `prepr.sh` step 2 reported `SURVIVED` under the 3B block at the authored head `ddfc28e099` (its line numbers; main's merge moved `coordinator.py`'s two splat builds, in `_solve_record` and `_whatif_solve`, to lines 6293 and 11311 at `aeced5ecfe`), each a production-solve site the block does not drive, killed by the detector named under `## Mutation proof`:
 
@@ -149,4 +168,7 @@ none
 ## Friction
 
 design-review.md: unenforced: the approved note's interface 4 put an 11th parameter on `classify_space_steps`, which `tools/audit/archscore/score.py --diff` refuses (`params_over_10 6 -> 7`); the review did not price the interface with the instrument the fix is graded by. Built as a post-pass with identical labels. Carry: dismissed: one instance, resolved in this pull request.
+
+
+
 
