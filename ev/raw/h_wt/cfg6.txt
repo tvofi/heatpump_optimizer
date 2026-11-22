@@ -1,0 +1,9 @@
+CTRL v6: {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+RESULT v6_mutants=200 count
+RESULT v6_migrate_fail=0 count
+RESULT v6_build_fail=0 count
+RESULT v6_permanent_cycle_fail=0 count
+RESULT v6_one_cycle_fail=0 count
+RESULT thread_factor=1.001
+RESULT load1=1.00
+RESULT swapins=0
