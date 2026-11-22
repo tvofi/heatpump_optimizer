@@ -1,9 +1,0 @@
-CTRL v2: {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
-RESULT v2_mutants=200 count
-RESULT v2_migrate_fail=0 count
-RESULT v2_build_fail=0 count
-RESULT v2_permanent_cycle_fail=0 count
-RESULT v2_one_cycle_fail=0 count
-RESULT thread_factor=1.001
-RESULT load1=1.01
-RESULT swapins=0

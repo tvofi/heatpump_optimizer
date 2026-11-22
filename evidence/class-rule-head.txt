@@ -1,0 +1,7 @@
+CLASS {'flow': 98, 'questionnaire': 1, 'thermal': 47, 'band': 7, 'parsed': 106}
+MEMBERS 106
+BYPARSE {'finite_float': 95, '_whole': 7, '_nonzero_number': 1, '_interval_minutes': 1, '_refused_number': 1, '_lead_minutes': 1}
+NODEFAULT comfort_temp_day_weekend None
+NODEFAULT comfort_temp_night_weekend None
+NODEFAULT holiday_comfort_temp_day None
+NODEFAULT holiday_comfort_temp_night None
