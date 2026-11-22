@@ -2061,11 +2061,11 @@ async def write_supply(coord: Any, entity_id: str, on: bool) -> None:
 def cooling_mode(inp: ArbiterInputs, signals: Any = None) -> Any:
     """The cooling mode the pump reads, or ``None``: the user's season, which no writer touches.
 
-    The live select, else ``signals``, the cycle's reading, which keeps the
-    last good mode across a dropout. Nothing writes Heating back over it.
+    The live select where it reads a known mode, else ``signals``, the cycle's
+    last good reading across a dropout. Nothing writes Heating back over it.
     """
     live = pump_mode.capability(getattr(_slot_state(inp, "mode"), "state", None))
-    mode = live if live.cooling else getattr(signals, "mode", live)
+    mode = live if live.known else getattr(signals, "mode", live)
     return mode if mode.cooling else None
 
 
@@ -2138,16 +2138,16 @@ def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetim
 async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | None = None) -> None:
     """At a step boundary, write the supply where the plan's command changes.
 
-    The cycle writes the switch once per interval, so without this a step
-    change reached the pump only at the next cycle, as late as one interval
-    after the boundary, and a step's duty verdict depended on the cycle's
-    phase against the step grid (#2492). Only a change is written: a step
-    that commands what the last one did leaves the switch alone, so an early
-    cut-off still holds until the next cycle, as ``early_cutoff`` documents.
+    The cycle writes once per interval: without this a step change reached
+    the pump up to one interval late, and a step's duty verdict hung on the
+    cycle's phase against the step grid (#2492). Only a change, a held write
+    or one the cooling gate refused (``cooling_asked``) is written: an early
+    cut-off holds until the next cycle, as ``early_cutoff`` documents.
     """
     now = now or dt_util.now()
     step = plan_step_start(now)
-    if held.supply is None or (held.supply[0] == step and not held.supply_held):
+    retry = held.supply_held or held.cooling_asked
+    if held.supply is None or (held.supply[0] == step and not retry):
         return
     inp = wiring.inputs()
     on = None if inp.entry_released else step_supply(inp, wiring.boosts, now)
@@ -2157,7 +2157,7 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
         held.supply_held = False  # a held write dies with its command
         return
     last, held.supply = held.supply[1], (step, on)
-    if on != last or held.supply_held:
+    if on != last or retry:
         await wiring.write(on)
 
 
