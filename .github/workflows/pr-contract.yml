@@ -384,16 +384,13 @@ jobs:
         if: always()
         run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
 
-      # Generated figure blocks are re-rendered from an instrument the BASE's
-      # tools/pr/figure_registry.json names, run by the base's restored copy of
-      # the program (tools/pr/*.py) over the head's tree, read-only. A body with
-      # no block passes.
-      - name: Every figure block is what its registered instrument renders
+      # A body stores no figure block: a rendered block names its head, and every
+      # head move no seat made (the merge-main bot, a recarry) left it false. The
+      # base's restored copy of the program (tools/pr/*.py) refuses a body that
+      # carries one, reading the body alone.
+      - name: The body stores no figure block
         if: always()
-        env:
-          PR_HEAD: ${{ steps.pr.outputs.head }}
-          PR_BASE: ${{ steps.pr.outputs.base }}
-        run: python3 -I tools/pr/figure_block.py verify /tmp/pr-body.md --base "$PR_BASE" --head "$PR_HEAD"
+        run: python3 -I tools/pr/figure_block.py verify /tmp/pr-body.md
 
       # preflight.sh refuses a closing keyword whose number is not in the
       # intended list it is given. prepr.sh's step 7 derives it with this
@@ -459,6 +456,27 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi
+
+      # The registered figures are rendered here instead, at the head this run
+      # grades, by the base's restored program over the head's tree, read-only,
+      # into the job summary. One line per instrument of
+      # tools/pr/figure_registry.json, named: tools/pr/ci_predict.py replays each
+      # pinned run line and maps no loop variable, and the program itself refuses
+      # a name the BASE's registry lacks. A render that fails is printed there
+      # with its exit status and fails nothing: this step states figures, it
+      # grades none. Written inside codeowners_gap.py's allowlist, so the
+      # program stays pinned.
+      - name: Render the registered figures at this head
+        if: always()
+        env:
+          PR_HEAD: ${{ steps.pr.outputs.head }}
+          PR_BASE: ${{ steps.pr.outputs.base }}
+        run: |
+          set -uo pipefail
+          echo "### Registered figures at $PR_HEAD" >> "$GITHUB_STEP_SUMMARY"
+          python3 -I tools/pr/figure_block.py render merge-base --base "$PR_BASE" --head "$PR_HEAD" >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "(merge-base not rendered: exit status $?)" >> "$GITHUB_STEP_SUMMARY"
+          python3 -I tools/pr/figure_block.py render scope-line --base "$PR_BASE" --head "$PR_HEAD" >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "(scope-line not rendered: exit status $?)" >> "$GITHUB_STEP_SUMMARY"
+          python3 -I tools/pr/figure_block.py render structure-ratchet --base "$PR_BASE" --head "$PR_HEAD" >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "(structure-ratchet not rendered: exit status $?)" >> "$GITHUB_STEP_SUMMARY"
 
       # finding-propagation.md's `Carry:` marker, refused where a body is
       # written: every `## Friction` and `## Forward-carry` item, and every

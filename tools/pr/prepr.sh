@@ -257,11 +257,11 @@ pinned_touched() { # file of changed paths, pins (one per line)
   return 1
 }
 
-# Step 7a2's whole body, and --body-check's: a rendered figure block is re-rendered
-# from the base's registry at HEAD and compared (read-only, offline; pr-contract
-# runs the same verify). A body with no block passes untouched.
+# Step 7a2's whole body, and --body-check's: a body that stores a figure block is
+# refused (read-only, offline; pr-contract runs the same verify, and renders the
+# registered figures itself). A body with no block passes untouched.
 figure_block_check() { # body file
-  python3 -I tools/pr/figure_block.py verify "$1" --base origin/main --head HEAD
+  python3 -I tools/pr/figure_block.py verify "$1"
 }
 
 # Step 7a's whole body, so `--self-test` drives the code the step runs rather
@@ -4941,7 +4941,7 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
   rm -f /tmp/prepr-fig.$$
 
-  # --- 7a2. every registered figure block is what the registry renders at HEAD.
+  # --- 7a2. the body stores no figure block (figure_block.py verify).
   figure_block_check "$BODY" >/tmp/prepr-fb.$$ 2>&1
   step "figure blocks" $? "$(tail -1 /tmp/prepr-fb.$$)"
   rm -f /tmp/prepr-fb.$$
