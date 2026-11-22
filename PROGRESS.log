@@ -21,3 +21,4 @@
 1795318109 CKPT round 4: verdict drafted (merge, carry); awaiting mutant run and classify snapshot df2408f58e6a
 1795318144 HB alive
 1795318748 HB alive
+1795319092 CKPT round 4: _release_row pin mutant KILLED by named check; waiting classify snapshot 6c328370cc24
