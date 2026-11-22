@@ -479,7 +479,7 @@ async def _save_room_history(coord):
         rec.period, _ = room_history.note(
             rec.history, rec.period, start + 30 * k,
             [RoomReading("climate.a", 20.5, 21.0, k % 2 == 0, "heat"), RoomReading("sensor.b", 19.5)],
-            room_history.House(-3.0, 28.0, 1.5, 2.0, 0.0))
+            room_history.House(-3.0, 28.0, 1.5, True))
     await room_record._persist(rec)
 
 

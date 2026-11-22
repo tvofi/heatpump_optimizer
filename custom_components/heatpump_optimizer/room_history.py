@@ -65,13 +65,16 @@ FLAT_IQR = 0.25
 
 @dataclass(frozen=True)
 class House:
-    """The house values one cycle hands in; None where not measured."""
+    """The house values one cycle hands in; None where not measured.
+
+    ``space_alone``: the cycle's interval heated the house and nothing else, as
+    ``heat_energy.HeatEnergyMeter.served_space_alone`` answers it.
+    """
 
     outdoor_c: float | None
     floor_return_c: float | None
     measured_kw: float | None
-    space_kw: float
-    dhw_kw: float
+    space_alone: bool
 
 
 @dataclass
@@ -125,7 +128,7 @@ def _accumulate(period: Period, readings: Sequence[RoomReading], house: House) -
         period.floor_return = floor_return
     if (kw := _centi(house.measured_kw, "power")) is not None:
         period.power.append(kw)
-    period.space += house.space_kw > 0.0 and house.dhw_kw <= 0.0
+    period.space += house.space_alone
     period.cycles += 1
 
 
