@@ -30,9 +30,9 @@ Every other event, and every re-run (attempt 2 or later), keeps its run-id group
 
 ## Head
 
-2eea9dc5590003aff93be979025c9744d4dd4063, one commit on origin/main 6fdc15354f0f6f4613370fdabe4bd82adbadc087, measured 2026-11-22T05:05Z (origin/main then f88ec8f8fa; the merge is clean). `git merge-tree --write-tree origin/main HEAD` prints one tree.
+`1740817c539cd6d7cad5379858aeb8fca86b56b7` is one commit on the PR's head `46e7faa93fdf786a39090aed84a4f91ec11599b6`, which merges the authored code head `dbe3cdb0f2e5c650e31de1c8270c6f0e463dc663` with main `40e513eea4ca3dacad882b7a1a1366b6b188f777`. Measured 2026-11-22T16:12Z, origin/main then `baa9a467ac`: `git merge-tree --write-tree origin/main HEAD` exits 0, so no merge of main was taken. The commit answers fix review `a5dea9b9c2` (`blocked 46e7faa93f mutation-vacuous: tools/ci/prelude.py`): it touches only the CI-2 arms of `prelude.py`'s self-test, no production line.
 
-The finder's harness is the study's job-minute census of the CI run history, which only a merged workflow can move. This PR does not re-run it. The study's next read after merge is the before/after measure: dispatched code runs per bot-pushed head, python CodeQL legs analyzed on dispatches, push runs cancelled in progress, and peak `mutation-pins` concurrency. The companion the tree can measure is the prelude's own reading of a verified dispatch of a doc-only diff. At the base, it analyzes every leg and runs every lane. At the head, it skips every leg, idles `machinery` and scopes `selftests` (the `CI-2:` arms in `python3 tools/ci/prelude.py --self-test`).
+The finder's harness is the study's job-minute census of the CI run history, which only a merged workflow can move. This PR does not re-run it. The study's next read after merge is the before/after measure: dispatched code runs per bot-pushed head, python CodeQL legs analyzed on dispatches, push runs cancelled in progress, and peak `mutation-pins` concurrency. The companion the tree can measure is the prelude's own reading of a verified dispatch of a doc-only diff. At the base, it analyzes every leg and runs every lane. At the head, it skips every leg, idles `machinery` and `machinery_rowblind` and scopes `selftests` (the `CI-2:` arms in `python3 tools/ci/prelude.py --self-test`).
 
 Local overlay, declared: this branch's prepr ran with an untracked `find` shim ahead on PATH. The shim answers `-mmin -0` with no match and passes every other call through. Without it, two `prepr.sh --self-test` P351 rows fail on this host whatever the branch: `ancestry_reds` turns `PREPR_ANCESTRY_TTL_S=0` into `find -mmin -0`, which the host's BSD find matches for a file written in the current second, so a TTL-0 fixture reads the previous fixture's kept lines. The same rows failed on `fix/ci-cards-b`'s tree. The fix belongs to round-end triage (workaround P-R11-PREPR-TTL0-FIND), not this PR.
 
@@ -46,6 +46,13 @@ Local overlay, declared: this branch's prepr ran with an untracked `find` shim a
 | `if got and got[1]` becomes `if got` | `CI-2: an empty diff analyzes every leg and runs every lane (null control)` |
 | `and not why` dropped | `CI-2: an unverified dispatch analyzes every leg and runs every lane (null control)` |
 | the `batch/` exclusion dropped | `CI-2: a batch/ proof naming a PR analyzes every leg and runs every lane (null control)` |
+| M7: `machinery_rowblind` reads `ev` instead of `scoped` (the reviewer's survivor) | `CI-2: a verified PR dispatch of a doc-only diff skips every leg, idles machinery, scopes self-tests` (got `'true'`, want `'false'`) |
+| `machinery_rowblind` always `"true"` | the same CI-2 positive arm, plus `C7a-row` and `C7a` |
+| `machinery_rowblind` always `"false"` | all five `CI-2: ... (null control)` arms, plus two `C7a-row` arms |
+
+Control for M7: the same mutant run against the self-test at `46e7faa93f` (this commit's test hunk stashed) prints `prelude self-test: 89 checks, 0 failed`, rc 0, so the reviewer's survival reproduces and the new expectations are what kill it. The reviewer's other prelude mutants re-run at this commit stay killed: `scoped` never `pull_request`, `if got`, `and not why` dropped, `machinery` reading `ev`. Driver: a scratch script that applies each mutant to `tools/ci/prelude.py`, runs `python3 tools/ci/prelude.py --self-test` and restores the file.
+
+Residual: An extra mutant, `machinery_rowblind` dropping its `scoped != "pull_request"` guard, survives at `1740817c539c`: the only non-PR arm with a changed list (`C7a-row: a push with the row still runs them`) lists a non-product file, so `machinery()` is already true there. The guard predates this PR (the pre-change line read `ev != "pull_request"`), and the fix review scoped this round to M7. Carry: dismissed: pre-existing guard outside fix review a5dea9b9c2's finding; not a CI-2 claim
 
 Workflow mutants: each pin in `tests/entities.py` is checked against a planted copy of the real workflow text, and each plant must be refused. A plant that the check accepted would fail the run.
 - **CI-5:** the pre-change group (`every push in its own group`); `push re-runs in the main group`; `the main group cancelling in progress`.
@@ -56,7 +63,7 @@ Workflow mutants: each pin in `tests/entities.py` is checked against a planted c
 
 ## Null control
 
-- The prelude's null arms each analyze every leg and run every lane: an unreadable diff, an empty diff, an unverified dispatch, a dispatch naming no PR, and a `batch/` proof naming a PR. A temporary git repository shows that `dispatch_diff` returns None for a base ref that does not exist.
+- The prelude's null arms each analyze every leg and run every lane, `machinery_rowblind` included: an unreadable diff, an empty diff, an unverified dispatch, a dispatch naming no PR, and a `batch/` proof naming a PR. A temporary git repository shows that `dispatch_diff` returns None for a base ref that does not exist.
 - merge-main's dispatch step, executed over two pushed heads, dispatches both when `approved.txt` is absent, empty, or names `fix/a` at a different SHA. It dispatches only `fix/b` when `fix/a` was approved at its pushed SHA, and nothing after a PAT push.
 - The CI-5 render keeps `CI-99` (a run-id group) for every event but a push's first attempt.
 
@@ -64,8 +71,8 @@ Workflow mutants: each pin in `tests/entities.py` is checked against a planted c
 
 The scope-line figure block is omitted. The gate's MODE line, from `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`, is `MODE: FULL`, because `.github/actions/nightly-ha/action.yml` changes the gate itself. CI runs the full suite.
 
-- `python3 tools/ci/prelude.py --self-test`: `prelude self-test: 89 checks, 0 failed`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `1 of 2735 ENTITY CHECKS FAILED`. The one failure is `a measured script's late-writing descendant is waited for, not recorded as nodata`, a host failure this diff does not reach. That check drives `tools/coverage/coverage_tree.sh` and reads no workflow. Run alone by a scratch driver (`crv_probe.py`, which execs `_coverage_revalidation` by `ast`), it fails the same way on the sibling worktree, whose `tools/coverage/coverage_tree.sh` and `tests/entities.py` are the base's byte for byte. The first run at this branch printed `8 of 2735` failures. Six were this diff's pins reading the new text wrongly, and they are fixed (next bullet). The other two were host failures: this one, and `hb:positive_control`, a timing check that passed on the rerun.
+- `python3 tools/ci/prelude.py --self-test`: `prelude self-test: 89 checks, 0 failed` at `1740817c539c`; the arms gained an expectation each, no new check.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` at `1740817c539c` (merge base `40e513eea4`), the only other script `tests/closures.json` reaches from `tools/ci/prelude.py`: `ALL 2740 ENTITY CHECKS PASSED`, rc 0. The rest of this bullet is the earlier handoff `2eea9dc55900`'s run at base `6fdc15354f`, kept for its six fixes: `1 of 2735 ENTITY CHECKS FAILED`. The one failure is `a measured script's late-writing descendant is waited for, not recorded as nodata`, a host failure this diff does not reach. That check drives `tools/coverage/coverage_tree.sh` and reads no workflow. Run alone by a scratch driver (`crv_probe.py`, which execs `_coverage_revalidation` by `ast`), it fails the same way on the sibling worktree, whose `tools/coverage/coverage_tree.sh` and `tests/entities.py` are the base's byte for byte. The first run at this branch printed `8 of 2735` failures. Six were this diff's pins reading the new text wrongly, and they are fixed (next bullet). The other two were host failures: this one, and `hb:positive_control`, a timing check that passed on the rerun.
 - The six fixes, all in `tests/entities.py`:
   - The autofix `if:` is rendered with the two step outputs substituted as literals, because `_ghx` reads no `steps.` context.
   - The merge-main record is matched in the YAML value, whose block indent is stripped.
@@ -74,12 +81,14 @@ The scope-line figure block is omitted. The gate's MODE line, from `python3 test
 - The pins' planted mutants, read by a scratch driver that execs the predicates by `ast` over the real files (`ent_probe.py`):
   - Each real file reads clean.
   - Each plant is refused: the dispatch beside an approval (per autofix job), an approval recorded for any workflow, no `!cancelled()`, one stripped cache pair, and the pre-CI-5 `CI-${{ github.run_id }}` group.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`, with the declared `find` shim: rc 0, its receipt written for `2eea9dc55900`. `self-test` 571 passed, 0 failed; `ci predict` predicts no closures, fast, governance or instrument red.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` at `1740817c539c`.
+- `python3 tests/comment_ratchet.py --base origin/main`: `comment_ratchet: OK` at `1740817c539c`.
+- `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>` at `1740817c539c`, no `find` shim (GNU find on this host): `PRE-PR: 1740817c539cd6d7cad5379858aeb8fca86b56b7 00000000000000000 rc=0`, no receipt (`PREPR_SKIP_CODE`). The first attempt refused the body path and the second refused a `## Friction` line, both before the code steps, so the body was moved and corrected.
+- The earlier `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`, with the declared `find` shim: rc 0, its receipt written for `2eea9dc55900`. `self-test` 571 passed, 0 failed; `ci predict` predicts no closures, fast, governance or instrument red.
 
 ## Red checks
 
-none
+- `tests / fast (3.14)`, at `547a71778069`: `tests/doc_claims.py`'s comment ratchet refused `tests/entities.py` (long units 406 -> 407). This PR's CI-1 comment was one sentence over 40 words. `dbe3cdb0f2` splits it into three sentences, and `python3 tests/comment_ratchet.py --base origin/main` now prints `comment_ratchet: OK`. The cheaper detector already exists and costs nothing new. That same command refuses the fixer's handoff `2eea9dc55900` against its base `6fdc15354f`, and the scoped gate selects `tests/doc_claims.py` for this diff. Prepr still reported rc 0 at `2eea9dc55900`, and again at `46e7faa93fdf`. Prepr runs no test script: its `ci predict` step predicts closure reds, not a refusal inside `tests/doc_claims.py`. Adding `python3 tests/comment_ratchet.py --base origin/main` to prepr costs seconds per run. That change goes to round-end triage as a proposal (P-R11-PREPR-RATCHET-MISS), not an issue.
 
 ## Forward-carry
 
