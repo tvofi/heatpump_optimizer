@@ -62,11 +62,12 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.1.2
+# claims-for: 10.1.3
 #
-# v10.1.2: one place per config entry key, room history, solver start set, comment ratchet. The stamp empties the list; the
+# v10.1.3: Dashboard card readability and input guards. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+config_flow # R11-OWNER-FROST-HOLD (#3855): the entities page gains the frost_hold toggle and the frost_hold_below_c threshold, shown where a power switch is configured, so the seed gains frost_hold and the seeded render gains both rows; every leaf that moves is "present on one side only", ADDED at this head (19 insertions, 0 deletions). Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No solve fixture actuates a power switch, so every other fixture is byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -795,4 +796,3 @@
 # against the merge base, one environment). Claimed rather than re-recorded, as
 # R10-COP-GATE-D's keys were: the committed files were patched in those three
 # paths alone, each null because a coord fixture holds no plan.
-config_flow # R11-OWNER-FROST-HOLD (#3855): the entities page gains the frost_hold toggle and the frost_hold_below_c threshold, shown where a power switch is configured, so the seed gains frost_hold and the seeded render gains both rows; every leaf that moves is "present on one side only", ADDED at this head (19 insertions, 0 deletions). Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No solve fixture actuates a power switch, so every other fixture is byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
