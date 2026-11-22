@@ -118,7 +118,7 @@ report = {
     "gated": gated, "gate_survivors": cands, "equivalent_candidates": equiv,
     "machine": machine, "null_control": {"record": REL + "/gates/null.json", "gate_rc": null.get("gate_rc"),
                                           "failed_scripts": null.get("failed_scripts"), "summary": null.get("summary"),
-                                          "wall_s": null.get("wall_s"), "load1_start": null.get("load1_start"),
+                                          "wall_s": null.get("wall_s"), "note": REL + "/gates/null-note.txt", "load1_start": null.get("load1_start"),
                                           "load1_end": null.get("load1_end"), "provisional": True},
 }
 
@@ -134,7 +134,9 @@ md = [f"# D3-s1, box D3-g09 -- full gate for 16 u1 full-net survivors (round 11)
       "## Machine and controls", "", "```", machine.strip(), "```", "",
       f"Null control (`fullgate.py null`, a comment-only marker): gate_rc {null.get('gate_rc')}, failed scripts "
       f"{null.get('failed_scripts')}, summary {null.get('summary')}, wall {null.get('wall_s')} s, load1 "
-      f"{null.get('load1_start')} -> {null.get('load1_end')} (provisional). Record `{REL}/gates/null.json`.", "",
+      f"{null.get('load1_start')} -> {null.get('load1_end')} (provisional). Record `{REL}/gates/null.json`. "
+      f"Read as artefact-only (the same three scripts and fail-line counts as box D3-rem's null; none reads a production file): "
+      f"`{REL}/gates/null-note.txt`. A key is KILLED only on a script beyond the null or more FAIL lines in one.", "",
       "Procedure: `gate_wave.sh run` (dispatch ref) applies each key's one-line mutant with `fullgate.py run --src complete "
       "--key <key>`: commit, gate_lock lease, `GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh`, "
       "record, reset; one gate at a time, 4 h cap. Wall, CPU and load numbers are provisional; verdicts and probe values are counts.", "",
