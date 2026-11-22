@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_exempt GUARD_OFF e12b716e",
+  "killed_by": "tests/structure.py",
+  "old": "    if cooling_mode(inp):  # the switch is the user's in cooling (``supply_write``)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:  # the switch is the user's in cooling (``supply_write``)`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}
