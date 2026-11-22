@@ -1,0 +1,39 @@
+head reviewed: 9f7807595e6db0a2b48f0071ac69fcc16222e4a2
+merge-base: e4c929bd1c96e8a23636d1f1f086c38de1852853
+origin/main: f269ecccb5f1dfd21eca03a3d5dcc43b3a145603
+== merge-tree --write-tree origin/main head
+584a73e68b0ea140616538735e19af8b0dab276c
+rc=0
+== listing bytes (git ls-tree -r --name-only <c> | wc -c)
+2ab3a56582 1030967
+4ebd430fbf 1033586
+89ec15b79b 1074652
+4b0f3eb96a 1069422
+0b42121411 17162
+282731eaed 164790
+64fd552732 552952
+== subtrees at 4ebd430fbf
+tests/mutation_ledger 552886
+dev/audit 356425
+custom_components/heatpump_optimizer 5989
+== first-parent main listing by date (rev-list -1 --first-parent --before=<d>T23:59:59Z 4ebd430fbf)
+2026-09-07 bcba1238c9 20402
+2026-11-05 7d95405e38 566049
+2026-11-08 fdc8d21ada 612611
+2026-11-15 921214bf42 745845
+2026-11-19 9d65fe80b0 903376
+== reader lines at 4ebd430fbf
+export function git(args, opts = {}) {
+  try {
+    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts })
+export function treeListing(rev, cwd = ROOT) {
+  const args = rev ? ['ls-tree', '-r', '--name-only', rev] : ['ls-files']
+  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' })
+== maxbuffer in policy (git grep -il maxbuffer origin/main -- dev/governance .claude/rules CLAUDE.md RELEASE_NOTES.md)
+(empty)
+== gitRead on origin/main (expect none: #3840 unmerged)
+(empty)
+== carry: roster branch handoff/audit-r11-roster tip 582010efc2; a12d6d0950 ancestor:
+yes
+Moved from the root-cause record dev/audit/rca/R11-RCA-ENOBUFS.md (handoff/rca-enobufs at 1fd53e32cf, section 6 forward-carry). The listing of tracked files on main is 1,033,586 bytes and grew about 48 KB a day over the last six days. Its growth drivers are tests/mutation_ledger/ (53%) and dev/audit/ (34%); the product is under 1%. Every tree-wide git read pays for them, brief_lint.mjs's per-symbol git grep included (about 45 min a full run at load ~44). This is a D9 or D13 question for the round's plan, not part of the hotfix #3840. The record's revisit trigger: reopen its rung 4 (a headroom sentinel) if the listing passes 16 MiB or a second ENOBUFS reaches a PR it did not touch.",
