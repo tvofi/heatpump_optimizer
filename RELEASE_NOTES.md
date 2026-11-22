@@ -1,3 +1,35 @@
+## v10.1.2
+
+**Patch stamp: 26 merges since v10.1.1 (`git log --first-parent --merges --format=%h v10.1.1..HEAD | wc -l`): settings live in one place in each config entry (entry version 7.2); the plan's start set brackets the all-off and wood-covered optima and the risk premium stays out of published money figures; an install with a room list records a room history and reports whether each room is separable; the comment ratchet reads production modules; the rest is tooling and records.**
+
+### Action needed
+
+Settings now live in one place in each config entry (entry version 7.2), and the entry is migrated on the first start after the update (#3742, below). Downgrading to an earlier release still loads with the same settings, but a reconfigure or re-authentication saved under that earlier release is shadowed by the options until the next save under this one. Nothing else asks anything of you: no option is added, no entity id changes and no option default changes. One change you may notice without acting: on an install with a room list, a Room Separability sensor appears (#3711).
+
+### #3742 One place per config entry key, entry version 7.2 (R11-SEAM-config)
+
+Each config entry key is stored in one place: the first-screen keys no options page edits stay in the entry's data and every other setting is in its options, with the effective mapping unchanged. Setup, reconfigure, re-authentication, the factory reset and its undo write that placement, and an entry below version 7.2 is migrated on start, keeping the options value where a key was on both sides. A computed default is judged over the save rather than the stored configuration, the two pre-fill pages share one builder, and a kept night-mode schedule whose power fraction in force is 1.0 or more is refused with a translated message.
+
+### #3711 Room history and the identifiability report (R11-OUTSIDE-ROOMS-P3, part of #3616)
+
+On an install with a room list, the integration records per half hour each room's temperature, target and share of samples calling for heat, beside the outdoor and floor-return temperatures, the measured power and the share of cycles on space heating, 14 days deep. The report names, per room, whether its response is separable from the outdoor temperature (`separable`, or `no_action`, `short_history`, `never_calling`, `always_calling`, `collinear`, `no_response`). It is published in diagnostics and in the new Room Separability sensor, and nothing in the plan reads it. A factory reset keeps the history.
+
+### #3736 The solver's start set and the risk premium (R11-SEAM-solver)
+
+Both solve paths now start from the all-off plan, so a plan no longer ships that the true objective scores above all-off; a wood-covered reference draws its price-ranked seeds at the reference's own energy; the risk premium stays in the objective and out of every published money figure (plan cost, reference cost, settlement prices); and a slot's reason tie goes to its first code. Plans on some installs change slightly where the all-off start is the better optimum.
+
+### #3820 and #3831 Comments: the ratchet reads production (R11-SEAM-comments-production, R11-SEAM-comments-tests part 2)
+
+The comment ratchet now covers the package's top-level modules and the card's script, and 25 released modules have their long comment sentences split at their own clause boundaries. #3831 does the same for the comment and path text in `tests/*.mjs`. Text only: no behaviour changes.
+
+### #3816 Declared tank volume and house size are read (R11-READS-RESIDUE)
+
+The tank volume and house size levels a config entry declares are now read where they were declared but not read, and the operation seed ledger is re-cut.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3708 (shared-file ownership), #3739 (security and privacy, part 2), #3808 (comments seam tests), #3801 (self-test closures for `survivor_triage` and `currency`), #3815 (lift-peak check across BLAS kernels), #3817 (class-open RCA), #3828 (CodeQL leg cap), #3830 (env-matrix cap), #3809, #3810, #3818, #3819, #3823 and #3829 (round-11 audit finder intake), #3804, #3807, #3826 and #3827 (round-11 issue numbers and delivery rows, autofix).
+
 ## v10.1.1
 
 **Patch stamp: 23 merges since v10.1.0 (`git log --first-parent --merges --format=%h v10.1.0..HEAD | wc -l`): a single-zone plan no longer publishes floor rows, and `set_thermal_parameters` refuses the whole-house fields on a two-zone model; the Monthly Savings figure waits for a day of data and counts a month's real hours; money fields in the options take the price sensor's currency; the self-setting-pump test keeps its pair across a skipped cycle; a single-zone house behind a throttling mixing valve learns no flow-curve bias; the rest is tooling and records.**

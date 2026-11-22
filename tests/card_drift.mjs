@@ -9,7 +9,7 @@
 // card makes. This script checks that claim the way tests/env_drift.py checks
 // the solver's: the working tree's card and the comparison ref's card are
 // run through the same states, in the same process, against the same plan
-// payload and the same frozen clock, and every state's rendered tree must
+// payload and the same frozen clock. Every state's rendered tree must
 // come out byte for byte identical. A state that differs must be claimed in
 // tests/golden/card_claimed_drift.txt, with a reason, by the release that
 // moves it -- unclaimed drift fails, and so does a claim nothing matched.
@@ -25,7 +25,7 @@
 // figures are pictures of the chart, drawn by running the shipped card through
 // this same rig (`docs/img/card/make_card_figures.mjs`). `docs/` is INERT in
 // tests/closure.py, so a card change selects no script that reads them and the
-// committed figures silently stop matching what the card draws -- C2's axis
+// committed figures silently stop matching what the card draws. C2's axis
 // change alone dropped two time labels out of `chart-anatomy.svg`, and the
 // band envelope appeared in both card figures. Regenerate them in the same
 // pull request; the generator's header carries the two payload commands. The
@@ -580,9 +580,9 @@ const STATES = [
   // has no history at all, so its window stays clamped at now and the diff
   // is the feature itself.
   // The history states carry withActuals: the actual sensors must be in
-  // hass.states or the card's derivation resolves nothing, and the first
-  // version of these states shipped without them -- so the markup gate
-  // compared two cards that were both silently fetching solar alone, and
+  // hass.states or the card's derivation resolves nothing. The first
+  // version of these states shipped without them, so the markup gate
+  // compared two cards that were both silently fetching solar alone. And
   // the owner's "no actioned slots" defect walked through that gap
   // (#1286 bug round). The realistic fixtures replaced the fixed-grid one:
   // sparse-then-dense gaps, microsecond+offset stamps across a DST
@@ -765,9 +765,9 @@ try {
 // card source. A solver diff can move a card STATE through the payload the
 // card renders, but the claim LIST is still not the solver branch's to
 // empty: env_drift.py's `claim_kinds` refuses exactly that (its record-PR
-// guard restores the baseline's list, #735/#662), so judging the list as
+// guard restores the baseline's list, #735/#662). So judging the list as
 // a solver branch's own here demanded the one rewrite the other gate
-// refuses -- #948 sat in that deadlock for one CI round. The stamp check
+// refuses. #948 sat in that deadlock for one CI round. The stamp check
 // above is NOT gated on it; `claims-for:` is about the release the file
 // is stamped for, not about who wrote which line, and stamp.py owns that
 // line.
@@ -783,9 +783,9 @@ if (stampError) {
 // A claim list that is exactly the baseline's -- same names, same reason
 // LISTS, line count included -- was written for the baseline's diff, not
 // this one (env_drift.py's inherited-claims rule, multi-valued since #1255
-// and ported to this lane by #1266). card_rig.mjs's `judgeCardClaims` owns
-// the rule and the claims a moved state may cite. run.sh also runs
-// env_drift.py --claims-only (never scoped out) so a roster-only PR cannot
+// and ported to this lane by #1266). `judgeCardClaims` in card_rig.mjs owns
+// the rule and the claims a moved state may cite. Also, run.sh runs
+// env_drift.py --claims-only (never scoped out), so a roster-only PR cannot
 // skip this the way #493 skipped this file.
 const cardClaims = judgeCardClaims({
   treeText: fs.existsSync(claimPath) ? fs.readFileSync(claimPath, "utf8") : null,

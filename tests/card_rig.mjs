@@ -3,9 +3,9 @@
 //
 // Issue #101 taught the lesson once: the renderer carried a verbatim copy of
 // an EARLIER revision of card.mjs's DOM stub and drifted with every
-// extension. tests/dom_stub.mjs fixed that for the stub itself; this module
+// extension. tests/dom_stub.mjs fixed that for the stub itself. This module
 // does the same for the rest of what a harness needs to run the card in
-// Node -- the vm context with its window/document/localStorage/timer shims,
+// Node. That is the vm context with its window/document/localStorage/timer shims,
 // the plan-sensor states built from plan_view.py's payload, the three
 // setup-page topologies designers review, and the frozen clock. One copy,
 // three importers, so the markup gate and the test cannot disagree about
@@ -29,7 +29,7 @@ export const HOUR = 3600000;
 
 /** The vm context the card runs in, plus the handles a harness drives it by.
  *
- * `innerHTML` is parsed rather than merely stored (see dom_stub.mjs): the
+ * `innerHTML` is parsed rather than merely stored (see dom_stub.mjs). The
  * card queries its own output for the controls it then wires up, so a stub
  * that kept the markup as an opaque string would skip every one of those
  * paths and report a pass.
@@ -185,9 +185,9 @@ export function planStates(plan, { spaceId = DEFAULT_SPACE, dhwId = DEFAULT_DHW,
 // no hass.connection, so this builds the callApi a Lovelace hass carries,
 // answering from a compact fixture: HA's shape is one array per entity, in
 // filter_entity_id order, of rows keyed as HA_HISTORY_ROW_KEYS says. The stub
-// PARSES the path the card built -- start out of the path, end_time and
-// filter_entity_id out of the query, minimal_response/no_attributes honored
-// -- so a test that fetches the wrong ids, the wrong window or a needlessly
+// PARSES the path the card built: start out of the path, end_time and
+// filter_entity_id out of the query, minimal_response/no_attributes honored.
+// So a test that fetches the wrong ids, the wrong window or a needlessly
 // fat response fails rather than passes vacuously.
 //
 // A fixture row may carry its own `stamp` (a full HA-shaped last_updated,
@@ -201,8 +201,8 @@ export function planStates(plan, { spaceId = DEFAULT_SPACE, dhwId = DEFAULT_DHW,
 // wrong while a kinder stub stayed green (bug 7; homeassistant/components/
 // history/__init__.py and recorder/history/, the /history/period view):
 //   - an entity with ZERO rows in the window is FILTERED OUT of the answer
-//     ("Filter out the empty lists if some states had 0 results"), so the
-//     answer is not positional; the first row of every list carries its
+//     ("Filter out the empty lists if some states had 0 results"). So the
+//     answer is not positional. The first row of every list carries its
 //     `entity_id` even under minimal_response, and that is the key;
 //   - `significant_changes_only` defaults to "1", under which a sensor's
 //     row is served only where its STATE changed (last_changed ==
@@ -256,9 +256,9 @@ export function historyApi(entries, opts = {}) {
           })
           .map((s, i, rows) => {
             // Row keys as a real v6.6.12 install answered (tvofi's capture,
-            // 2026-09-25): a lean list's first row carries entity_id, empty
+            // 2026-09-25). A lean list's first row carries entity_id, empty
             // attributes and both stamps, every later lean row only state and
-            // last_changed; a full row carries all five, with last_changed
+            // last_changed. A full row carries all five, with last_changed
             // held at the last STATE change under an attribute-only update.
             const stamp = s.stamp || new Date(s.t).toISOString();
             // A bare repeat (a fixture sample the recorder would not have
@@ -374,7 +374,7 @@ export const flushHistory = async () => {
  *   - the price only when it steps, roughly hourly with jitter;
  *   - the action entity as the recorder really sees it: with
  *     `power: true`, one row per ATTRIBUTE change with the state often
- *     UNCHANGED (power_kw republished every cycle); with `power: false`
+ *     UNCHANGED (power_kw republished every cycle). With `power: false`
  *     -- an install with no power attribute at all -- rows only at mode
  *     changes, sparse, which is the null control for slots-from-state;
  *   - every stamp in HA's own shape (see `haStamp`), crossing a
@@ -402,9 +402,9 @@ export function realisticHistory(endMs, { power = true, spanMs = 48 * HOUR } = {
     room += Math.sin(phase / 9) * 0.14;
     out += Math.cos(phase / 7) * 0.35;
     // A stable house stops writing: the temperatures record only during
-    // the first hour of every six, and hold silent for the five after --
-    // a 5-hour gap beside 4-minute ones is the spacing that made the old
-    // uniform-tangent curve run backward in x, and a fixed-grid fixture
+    // the first hour of every six, and hold silent for the five after.
+    // A 5-hour gap beside 4-minute ones is the spacing that made the old
+    // uniform-tangent curve run backward in x. A fixed-grid fixture
     // can never produce it.
     const recording = (t % (6 * HOUR)) < 1 * HOUR;
     if (recording) {
@@ -514,7 +514,7 @@ const TEMP_DOMAINS = ["sensor", "number", "input_number"];
 
 /** The setup page's diagram payload for the three houses designers review:
  * a two-zone, two-tank house with a throttling valve and a wood furnace, as
- * `describe_setup` publishes it -- single buffer, two tanks on a 4-way
+ * `describe_setup` publishes it. It has a single buffer, two tanks on a 4-way
  * valve, and the wood tank pre-heating hot water through a coil. */
 export function qaTopologies() {
   const base = {
@@ -571,7 +571,7 @@ export function qaTopologies() {
 }
 
 /** A topology WITH the layout catalog the coordinator publishes, so the
- * layout editor can be driven: a two-zone house with a throttling valve and
+ * layout editor can be driven. It is a two-zone house with a throttling valve and
  * no wood tank, where `valve_upper_direct_slab` and `single_tank_valve` are
  * both storable and an edit can legitimately move between them. */
 export function layoutCatalogTopo(over) {
@@ -639,15 +639,15 @@ export function layoutCatalogTopo(over) {
 // --- The markup gate's claim file ------------------------------------------
 // tests/golden/card_claimed_drift.txt follows tests/golden/claimed_drift.txt
 // to the letter, and tests/env_drift.py's `_claimed` is the reference for
-// this parser: the stamp is a comment line that BEGINS with the marker and
-// nothing else (`# claims-for: 6.2.7`), first one wins; a claim is any
+// this parser. The stamp is a comment line that BEGINS with the marker and
+// nothing else (`# claims-for: 6.2.7`), first one wins. A claim is any
 // non-comment line, its trailing comment the reason. Merely mentioning the
 // marker in prose declares nothing, and a claim line never declares either.
 //
 // A state may carry more than one bare claim line (#1266, the card-file
-// twin of #1255): the value is EVERY line's reason in file order, exactly
-// as env_drift.py's `parse_claim_map` reads the solver file, so a map keyed
-// on the name alone -- last line wins -- cannot hide a claim a branch added
+// twin of #1255). The value is EVERY line's reason in file order, exactly
+// as env_drift.py's `parse_claim_map` reads the solver file. So a map keyed
+// on the name alone (last line wins) cannot hide a claim a branch added
 // beside the baseline's own.
 export const CLAIM_FILE = "tests/golden/card_claimed_drift.txt";
 export const CLAIM_MARKER = "claims-for:";
@@ -677,11 +677,11 @@ export function parseClaims(text) {
 }
 
 /** Whether two parsed claim maps are the same names AND the same reason
- * LISTS, line count included -- env_drift.py's dict equality over
+ * LISTS, line count included. It is env_drift.py's dict equality over
  * `parse_claim_map` output (#1255), ported to the card lane by #1266.
- * parseClaims once collapsed a state's lines to the last, so a fresh claim
+ * `parseClaims` once collapsed a state's lines to the last, so a fresh claim
  * added beside an inherited line parsed exactly equal to the baseline's
- * single entry and card_drift.mjs fired INHERITED CLAIMS where the Python
+ * single entry. Then card_drift.mjs fired INHERITED CLAIMS where the Python
  * gate answered "not inherited" on the same file. The multi-value shape
  * closes that: an added line beside an inherited one is a rewrite, not an
  * inheritance; an exact copy still is one, and still gets emptied by
@@ -778,19 +778,19 @@ export function claimVersionError(declared, version) {
 // on the same tree rather than a card-shaped approximation of it.
 //
 // The contradiction it resolves is env_drift.py's own, recorded at the
-// `stale_is_ours` call site there: for a branch whose three-dot moves nothing
-// a claim excuses, byte-identical claim files are red (INHERITED CLAIMS) and
+// `stale_is_ours` call site there. For a branch whose three-dot moves nothing
+// a claim excuses, byte-identical claim files are red (INHERITED CLAIMS), and
 // an emptied list deletes another lane's line at squash-merge (#569, #633).
-// #658 gave env_drift.py `stale_claims_judged`; card_drift.mjs never received
+// #658 gave env_drift.py `stale_claims_judged`. `card_drift.mjs` never received
 // it, so on the tree that merged #735's six card claims the two instruments
-// returned opposite verdicts -- `--claims-only` printed "claims hygiene: ok"
+// returned opposite verdicts. `--claims-only` printed "claims hygiene: ok"
 // while card_drift.mjs failed the same branch seven times.
 //
 // The predicate is the UNION over both claim files, exactly as
 // `moves_claimable` is there, and not narrowed to the card. Narrowing it
-// would re-open the disagreement in the other direction: env_drift.py runs
+// would re-open the disagreement in the other direction. `env_drift.py` runs
 // `inherited_claims_error` against the CARD claim file too, gated on this
-// same union, so a branch touching only integration Python or a capture
+// same union. So a branch touching only integration Python or a capture
 // source is judged for its card claims by that instrument. Two gates reading
 // one file must not answer differently about it.
 //
@@ -853,9 +853,9 @@ export function threeDotFiles(runGit, ref) {
  * unanswerable three-dot judges, because a gate that cannot read the diff
  * must not quietly stop failing.
  *
- * `justifies` asks the question PER FILE KIND (#747), never per branch:
- * pass `justifiesCardClaim` when the claim file at stake is the card's --
- * a solver diff can move a card STATE through the payload the card
+ * `justifies` asks the question PER FILE KIND (#747), never per branch.
+ * Pass `justifiesCardClaim` when the claim file at stake is the card's.
+ * A solver diff can move a card STATE through the payload the card
  * renders, but the card claim LIST is not the solver branch's to rewrite,
  * exactly as env_drift.py's `claim_kinds` refuses on its side. The
  * default remains the shared any-claimable form so existing callers keep
@@ -873,10 +873,10 @@ export function claimsAreThisBranchs(
 // R10-HOTFIX-CARD-HEALTH-TEXT: the class and id names a card source puts in
 // front of a content blocker, one reader for tests/card.mjs's ad-list-prone
 // name check and dev/audit/harnesses/r10_card_blocker_names.py. Each entry
-// is [kind, name]: "class" or "id" for a value that reaches the DOM (a class
+// is [kind, name]. "class" or "id" is for a value that reaches the DOM (a class
 // or id attribute, a className assignment, a classList argument; a templated
-// value up to its first `${`, so `adv-${row.status}` reads as `adv-`), and
-// "token" for a `.name` / `#name` anywhere in the source (its stylesheet and
+// value up to its first `${`, so `adv-${row.status}` reads as `adv-`). And
+// "token" is for a `.name` / `#name` anywhere in the source (its stylesheet and
 // selectors included; a JS member access is read too, which errs toward
 // refusing).
 export const AD_PRONE_NAME = /^(?:ad|ads|adv|advert|banner|sponsor|promo)(?:$|[-_])/i;

@@ -1280,10 +1280,28 @@ class MeasuredCop:
         return self.probe.response
 
     @staticmethod
-    def judge_floor(asked_kw: float, drawn_kw: float | None, params: Any, draw: DrawRange | None = None) -> str | None:
-        """``COP_REFUSED_DUTY_FLOOR`` when the ask or the draw is under the duty
-        floor (``draw_range.power_floor_kw`` on the window ``draw``), else None;
-        None with no draw (a heat counter's install, judged at its span close)."""
+    def judge_floor(
+        asked_kw: float, drawn_kw: float | None, params: Any, draw: DrawRange | None = None,
+        experiment: bool = False,
+    ) -> str | None:
+        """The first judgement every interval meets, or None.
+
+        ``COP_REFUSED_OFF_ASK`` for an ``experiment`` interval (the fit, the
+        ceiling probe; the action that governed it was the
+        system-identification override, the action ``asked_kw`` is read from):
+        an experiment's ask is not the plan's, so drawn over asked is no
+        efficiency reading. Where heat is metered the COP is heat over the
+        draw, and the reason is the scale's. It is one scalar on a law of lift
+        alone, learned where the plan runs the compressor. An experiment
+        drives it to its band ends, where an inverter's efficiency departs from
+        that law (a part-load point would bias it). Then
+        ``COP_REFUSED_DUTY_FLOOR`` when the ask or the draw is under the duty
+        floor (``draw_range.power_floor_kw`` on the window ``draw``).
+        ``drawn_kw`` ``None``: no per-cycle draw (a heat counter's install),
+        judged on the experiment alone, so its span fails the cycle's gate.
+        """
+        if experiment:
+            return COP_REFUSED_OFF_ASK
         if drawn_kw is not None and min(asked_kw, drawn_kw) < power_floor_kw(draw, params):
             return COP_REFUSED_DUTY_FLOOR
         return None
@@ -1313,10 +1331,13 @@ class MeasuredCop:
         install measures no heat (``probe_install(...).measured_heat``)."""
         return state == ASK_UNOBTAINABLE and draw is not None and not measured_heat
 
-    def owed_scale(self, configured: Callable[[], float], now: datetime) -> float | None:
+    def owed_scale(self, configured: Callable[[], float], now: datetime, read: bool = True) -> float | None:
         """The COP scale ``probe`` owes this cycle, or None (``ScaleProbe.owed_scale``).
-        A frozen or unread cycle since the last one (``refusal``) read no interval."""
-        return self.probe.owed_scale(configured, now, self.refusal not in (COP_REFUSED_FROZEN, COP_REFUSED_NO_POWER))
+        A frozen or unread cycle since the last one (``refusal``) read no interval,
+        nor does this one where not ``read`` (an experiment's: the step the last
+        row earned is not taken inside it)."""
+        return self.probe.owed_scale(
+            configured, now, read and self.refusal not in (COP_REFUSED_FROZEN, COP_REFUSED_NO_POWER))
 
     def judge_ratio(
         self, ewma: float, row: CopInterval, params: Any, draw: DrawRange | None, measured_heat: bool = False
