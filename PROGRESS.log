@@ -18,3 +18,4 @@
 1795321754 DONE verdict pushed: blocked mutation-vacuous at 3d8679b765 (probe/rev-3835-a079c838 83b57bd408)
 1795366068 HB alive
 1795366140 CKPT setup ok; packet rendered; merge clean; classify polling snapshot 696c80081a8f
+1795366301 CKPT own mutants run on learner block: 14 killed, L/O/P survive; full features.py on L/O/P running snapshot 5501650bc7ea
