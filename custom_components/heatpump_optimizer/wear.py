@@ -13,7 +13,7 @@ the shape a naive edge detector would call a compressor start.
 
 The money side is deliberately simple: one start costs
 ``replacement_cost / rated_starts``. With the default replacement cost of 0
-the counter is pure observation; pricing it is the user's call, and feeding
+the counter is pure observation. Pricing it is the user's call, and feeding
 the price back into the optimizer's cycling penalty is a separate opt-in
 (``wear_autotune_enabled``), because that is the one piece that changes plans.
 
@@ -41,7 +41,7 @@ RUNNING_FLOOR_HZ = 1.0
 #: counting. A constant, not a measured threshold.
 EDGE_DEBOUNCE_S = 30.0
 #: Refreshes that must read the meter's signal settled running before a rise
-#: on it is a start (S7, owner ruling D1): the first can fall inside an
+#: on it is a start (S7, owner ruling D1). The first can fall inside an
 #: averaging meter's partial report, the second is a refresh period later,
 #: past any report period up to that interval.
 HOLD_REFRESHES = 2
@@ -74,7 +74,7 @@ class EdgeTracker:
     change, so a one-frame zero is no edge. A changed class is pending from
     its first event and becomes the settled class once it held
     :data:`EDGE_DEBOUNCE_S`, confirmed by a later event of the same class
-    (:meth:`note`) or by the caller's own clock (:meth:`confirm`): a final
+    (:meth:`note`) or by the caller's own clock (:meth:`confirm`). A final
     zero no event follows is still confirmed. The edge carries the first
     changed event's time. A time-spacing throttle would drop exactly that
     final event.
@@ -152,7 +152,7 @@ class StartCounter:
 
     A counter built bare is **unrestored**: it folds no edge but queues it in
     order, because the listener is armed before the ledger store is read.
-    :meth:`restore` reads the stored payload and replays the queue against
+    Then :meth:`restore` reads the stored payload and replays the queue against
     the stored ``running``, so an edge before the read is neither lost nor
     counted twice.
     """

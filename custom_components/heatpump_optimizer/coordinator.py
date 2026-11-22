@@ -30,7 +30,7 @@ from types import SimpleNamespace
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
@@ -261,7 +261,7 @@ from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
-from . import rooms, slab_seed
+from . import room_record, rooms, slab_seed
 from . import price_tiles
 from . import whatif
 from .pump_mode import ModeCapability
@@ -285,7 +285,7 @@ from .price_model import (
 from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
-from .plan_step import PLAN_STEP_MINUTES, plan_step_start
+from .plan_step import PLAN_STEP_MINUTES, covering_index, plan_step_start
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -302,7 +302,7 @@ from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner, worst_zone_margin_k
 from .currency import feed_currency, figure_currency, resolve_currency
 from .drift import utc_shift
-from .drift import Cusum, stored_instant, utc_step_starts
+from .drift import Cusum, EvidenceLog, stored_instant, utc_instant, utc_step_starts
 from .ledger import (
     SETTLEMENT_KEYS,
     MonthlyLedger,
@@ -585,28 +585,10 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     except (TypeError, ValueError):
         return None
     if ts.tzinfo is None and reference.tzinfo is not None:
-        return ts.replace(tzinfo=timezone.utc)
+        return utc_instant(ts)
     if ts.tzinfo is not None and reference.tzinfo is None:
         return dt_util.as_local(ts).replace(tzinfo=None)
     return ts
-
-
-def _covering_index(starts: list[Any], now: Any, lone_span: Any) -> int | None:
-    """The index of the entry whose ``[start, end)`` covers ``now``, or None.
-
-    ``starts`` is sorted. An entry ends where the next begins; the last ends
-    one predecessor's span after its own start (``lone_span`` when it is the
-    only entry), so a series its source stopped extending stops covering now
-    (R10 N-no-expiry, #2229: ``bisect_right(...) - 1`` alone held the last
-    entry current forever, and a stale price was published and booked). Before
-    the first entry nothing covers ``now`` either; a caller wanting the head
-    there says so itself. ``_known_prices_for``'s end rule, extracted.
-    """
-    i = bisect_right(starts, now) - 1
-    if i < 0 or i + 1 < len(starts):
-        return None if i < 0 else i
-    span = starts[i] - starts[i - 1] if i > 0 else lone_span
-    return i if now < starts[i] + span else None
 
 
 #: R10 N-log-flood (#2226): the transition latch lives in ``log_latch.py``, a
@@ -785,7 +767,7 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
     )
     if timed:
         starts = [ts for ts, _ in timed]
-        index = 0 if now < starts[0] else _covering_index(starts, now, timedelta(hours=1))
+        index = 0 if now < starts[0] else covering_index(starts, now, timedelta(hours=1))
         if index is None:
             return None
         entry = timed[index][1]
@@ -903,6 +885,12 @@ def _outage_reading(
     if gap_minutes <= OUTAGE_GAP_MINUTES:
         return None
     return f"Update gap of {gap_minutes:.0f} minutes"
+
+
+def _dhw_current_hour() -> float:
+    """The local hour now, fractional, as the hot-water windows read it."""
+    now = dt_util.now()
+    return now.hour + now.minute / 60.0
 
 
 def _cop_fold_blocked(coord: Any) -> bool:
@@ -2547,7 +2535,7 @@ def _open_loop_plan_value(
         return float(trajectory[0]) if starts[0] - now_s <= 900.0 else None
     # The step covering ``now``; past the plan's last step the plan says
     # nothing (#2229: it seeded a 47 h old prediction as the tank's state).
-    index = _covering_index(starts, now_s, FORECAST_STEP.total_seconds())
+    index = covering_index(starts, now_s, FORECAST_STEP.total_seconds())
     return None if index is None else float(trajectory[index])
 
 
@@ -3632,7 +3620,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._immersion_active: bool = False
         self._immersion_over_count: int = 0
         self._immersion_clear_count: int = 0
-        self._immersion_evidence: list[str] = []
+        self._immersion_log = EvidenceLog()
         self._immersion_events: list[str] = []
         # #42: the weekly ring of learner snapshots.
         self._snapshot_ring = SnapshotRing()
@@ -4124,6 +4112,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             action=self._current_action,
             measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
             defrosting=self._pump_signals.defrosting,
+            draw=self._accuracy.draw,
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
@@ -5311,13 +5300,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         commanded = self._commanded_power()
         params, measured_heat, priced = ctx._thermal_params, probe_install(ctx._config).measured_heat, self._cop_scale
-        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release``
-        # lets out, then the scale its heat-ask probe owes this cycle (``owed_scale``; owner ruling D4).
+        # Past the freeze gate (a frozen cycle moves no scale), two things happen. First the held intervals
+        # ``MeasuredCop.release`` lets out. Then the scale its heat-ask probe owes this cycle (``owed_scale``;
+        # owner ruling D4). An experiment's cycle reads as no interval: its row is never admitted.
+        experiment = self._current_action.get("mode") == "system_identification"
         for row in self._measured_cop.release(draw, params, dt_util.now(), measured_heat):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
-        if (owed := self._measured_cop.owed_scale(lambda: ctx._config.cop_scale, dt_util.now())) is not None:
+        if (owed := self._measured_cop.owed_scale(lambda: ctx._config.cop_scale, dt_util.now(), not experiment)) is not None:
             self._apply_cop_scale(owed)
-        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw):
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw, experiment):
             return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
@@ -5999,10 +5990,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             },
         )
 
-    def _dhw_current_hour(self) -> float:
-        now = dt_util.now()
-        return now.hour + now.minute / 60.0
-
     def _dhw_effective_windows(self) -> list[Any]:
         """Demand windows the optimizer is actually planning against."""
         result = self._optimization_result
@@ -6018,13 +6005,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _dhw_in_demand_window(self) -> bool:
         """Whether hot water is required right now."""
         return hour_in_windows(
-            self._dhw_current_hour(), self._dhw_effective_windows()
+            _dhw_current_hour(), self._dhw_effective_windows()
         )
 
     def _dhw_next_window_in_hours(self) -> float | None:
         """Hours until the next DHW demand window opens (0 if inside one)."""
         hours = hours_until_next_window(
-            self._dhw_current_hour(), self._dhw_effective_windows()
+            _dhw_current_hour(), self._dhw_effective_windows()
         )
         return round(hours, 2) if hours is not None else None
 
@@ -6045,7 +6032,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Raises UpdateFailed once no published price covers now -- see _fetch_tibber_prices.
             await self._fetch_tibber_prices()
 
-            # Fetch weather forecast (full 24h for solar, wind, rain, temp)
             await self._fetch_weather_forecast()
 
             # Refresh Open-Meteo irradiance, if that is the selected source.
@@ -6057,7 +6043,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # which is what fills the horizon past the published data.
             await self._async_learn_price_shape()
 
-            # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
             elif self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
@@ -6096,6 +6081,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             await _best_effort_cycle_step(
                 self._record_accuracy, "Accuracy pairing skipped: %s"
             )
+            await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(  # #3616 phase 3a
+                _ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power, float(self._current_action.get("power", 0.0)), float(self._current_action.get("dhw_power", 0.0)))), "Room history skipped: %s")
             await _best_effort_cycle_step(
                 self._track_realised_peak, "Realised-peak tracking skipped: %s"
             )
@@ -7268,7 +7255,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         starts = [ts for ts, _ in entries]
         known: list[float] = []
         for step_start in step_starts:
-            idx = _covering_index(starts, step_start, timedelta(hours=1))
+            idx = covering_index(starts, step_start, timedelta(hours=1))
             if idx is None:
                 break
             known.append(entries[idx][1])
@@ -7993,7 +7980,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "ventilation_active": self._vent_cusum.tripped,
             "ventilation_evidence": list(self._vent_cusum.evidence),
             "immersion_active": self._immersion_active,
-            "immersion_evidence": list(self._immersion_evidence),
+            "immersion_evidence": list(self._immersion_log.evidence),
             "cop_health": {
                 "watched_buckets": _watched_cop_buckets(self._cop_baseline),
                 "alarm": self._cop_health_cusum.tripped,
@@ -9087,12 +9074,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._immersion_clear_count = 0
             if not self._immersion_active and self._immersion_over_count >= 2:
                 self._immersion_active = True
-                self._immersion_evidence.append(
-                    f"{now.isoformat(timespec='seconds')}: measured "
-                    f"{measured:.1f} kW over {params.max_electrical_power:.1f} kW nameplate; "
-                    "immersion element running"
+                self._immersion_log.note(
+                    now,
+                    f"measured {measured:.1f} kW over {params.max_electrical_power:.1f} kW "
+                    "nameplate; immersion element running",
                 )
-                del self._immersion_evidence[:-6]
                 self._immersion_events.append(now.isoformat())
                 del self._immersion_events[:-20]
                 _LOGGER.info(
@@ -9106,11 +9092,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._immersion_over_count = 0
             if self._immersion_active and self._immersion_clear_count >= 2:
                 self._immersion_active = False
-                self._immersion_evidence.append(
-                    f"{now.isoformat(timespec='seconds')}: draw back under "
-                    "nameplate; released"
-                )
-                del self._immersion_evidence[:-6]
+                self._immersion_log.note(now, "draw back under nameplate; released")
         if self._pump_signals.electric_heat.dhw_booster_started:
             self._immersion_events.append(now.isoformat())
             del self._immersion_events[:-20]
@@ -11073,6 +11055,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "heat_pump_on": planned_draw_runs(float(override)),
             "mode": "system_identification",
+            "kind": self._sysid.kind,
             # T6: the experiment's draw is not the plan's -- booking it under
             # the overridden plan's reason would say "cheapest hours" or
             # whatever the plan claimed for this step; the experiment is the

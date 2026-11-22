@@ -35,12 +35,12 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { at, canon, canonList, lsFiles } from './counts.mjs'
+import { at, canon, canonList, gitRead, lsFiles } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 const rd = (rel) => fs.readFileSync(at(rel), 'utf8')
-const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' })
+const git = (args) => gitRead(args)
 
 // A definition that lives in a script with no exports is read from its source
 // text, as policy_lint.mjs reads web-fix-wave.js's VERDICT_RE: the reader

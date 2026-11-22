@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_segment_row CMP_BOUND 1179dcea",
+  "killed_by": "tests/features.py",
+  "old": "    steady = [p for p in passes if (p.at - first.at).total_seconds() >= SEGMENT_SETTLE_MIN * 60.0]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`steady = [p for p in passes if (p.at - first.at).total_seconds() > SEGMENT_SETTLE_MIN * 60.0]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}
