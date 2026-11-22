@@ -3977,6 +3977,11 @@ def _p2_registry(sources):
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
                      "last heard from, which a re-reported 'on' resets",
+                 # R11-OWNER-FAULT-HOLD: when the alarm's VALUE turned on.
+                 "fault_hold.py::holding":
+                     "seeds the latch from the fault alarm's last_changed, the "
+                     "instant its VALUE turned on; state_stamp answers when the "
+                     "entity was last heard from, which a re-reported 'on' resets",
                  # R10-HEAT-METER: where a mode split falls, never an age.
                  "pump_signals.py::read":
                      "carries the live mode's last_changed as the instant its "

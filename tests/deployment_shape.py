@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 117
+records every read, so this lane's recorded closure is the package: all 119
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
+alike (117 until R11-OWNER-FAULT-HOLD's ``duty_ledger.py`` and ``fault_hold.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
 R10-ADVISOR-STEADY-START's ``whatif.py``, 109 until R10-DUTY-SWITCH-PLANNER-PRICE's
 ``duty_legs.py``, 108 until the supply-hold PR's ``supply_hold.py``, 107 until
 R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
@@ -57,13 +57,14 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-recording finds 167 of the 528 script pairs (33 choose 2) sharing 0.80 or more
-of their production-module closure (164 on each side before the merge joining
+recording finds 166 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+of their production-module closure (167 before R11-OWNER-FAULT-HOLD's re-recording of
+the closures that import the coordinator, one pair leaving the 0.80 floor; 164 on each side before the merge joining
 R11-OUTSIDE-ROOMS-P1's rooms.py, read by every closure that imports the
 coordinator, the input reader, the config flow or the sensor platform, and
 R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which joined
 config_flow_steps.py/debug_collect.py at 0.80; 162 before #3616 re-recorded the
-closures that import the coordinator), all 167 among the 406 pairs whose two
+closures that import the coordinator), all 166 among the 406 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
@@ -112,7 +113,7 @@ count from 154 to 162; #3616's re-record moved it to 163, and
 R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which add runs.py, to 164).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
-(98 shared production files each), doc_claims.py/harness_headers.py
+(100 shared production modules each, 98 before R11-OWNER-FAULT-HOLD), doc_claims.py/harness_headers.py
 (88), structure.py/typing_ruler.py, finite_boundary.py/structure.py and
 finite_boundary.py/typing_ruler.py (80 each), plan_view.py/solar_alignment.py,
 boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
