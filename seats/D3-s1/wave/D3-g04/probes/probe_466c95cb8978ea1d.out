@@ -1,0 +1,11 @@
+RESULT inputs[None] baseline=(0, None, 0) mutant=(1, None, 0)
+RESULT inputs[''] baseline=(0, None, 0) mutant=(1, None, 0)
+RESULT warnings_baseline=0 count
+RESULT warnings_mutant=1 count
+RESULT warnings_delta=2 count
+RESULT commanded_delta=0 count
+RESULT null_warnings_delta=0 count
+RESULT null_commanded=23.0,23.0
+RESULT thread_factor=1.000
+RESULT load1=0.84
+RESULT swapins=0

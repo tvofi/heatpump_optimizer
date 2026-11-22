@@ -1,0 +1,71 @@
+{
+ "key": "466c95cb8978ea1d",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:7733 GUARD_OFF",
+ "patch": "if not entity_id: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._command_valve_target",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._command_valve_target@7733-7733",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3511.2,
+  "load1_start": 1.03,
+  "load1_end": 0.84,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 5884.5,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/466c95cb8978ea1d.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_466c95cb8978ea1d.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_466c95cb8978ea1d.py",
+  "rc": 0,
+  "baseline_value": "warnings_baseline=0 count",
+  "mutant_value": "warnings_mutant=1 count",
+  "results": {
+   "warnings_baseline": "0 count",
+   "warnings_mutant": "1 count",
+   "warnings_delta": "2 count",
+   "commanded_delta": "0 count",
+   "null_warnings_delta": "0 count",
+   "null_commanded": "23.0,23.0",
+   "thread_factor": "1.000",
+   "load1": "0.84",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "mixing_valve_write_entity unset (None)",
+   "mixing_valve_write_entity ''",
+   "null: number.valve present"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_466c95cb8978ea1d.out"
+ },
+ "should_fail": "tests/features.py: the _command_valve_target block (~13340-13410) drives smart_write with a write entity, a climate entity, a flow kind and a None current action, but no case with smart_write and NO write entity; it lacks an assertion that this case returns before _valve_write_problem (no WARNING latched, no write attempted). tests/config_flow_steps.py also executes the line and asserts nothing about it.",
+ "finding": {
+  "title": "No check drives smart_write with no valve write entity; dropping the guard turns a DEBUG skip into a WARNING",
+  "claim": "With mixing_valve_mode=smart_write and no mixing_valve_write_entity (an accepted, optional option), _command_valve_target's `if not entity_id:` guard returns with a DEBUG line. With the guard removed the write is attempted on None/'' inside _valve_write_problem, fails, and log_held latches a WARNING 'Valve write entity None could not be commanded' each time the condition starts. The full GATE_SCOPE=full GOLDEN_MODE=drift gate does not notice.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "WARNING-or-higher log records from one _command_valve_target() call with smart_write and no valve write entity, counted on the custom_components.heatpump_optimizer logger",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._command_valve_target (custom_components/heatpump_optimizer/coordinator.py:7733)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_466c95cb8978ea1d.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_466c95cb8978ea1d.py  ;  custom_components/heatpump_optimizer/coordinator.py:7733 full gate: GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 466c95cb8978ea1d",
+  "perturbation": "coordinator.py:7733 `if not entity_id:` -> `if False:`; warnings 0 -> 1 per call (None and '' each), no valve written on either arm",
+  "null_control": "the probe's null arm (null_delta/null_differing RESULT = 0 count) and this box's fullgate.py null gate (gates/null.json)"
+ }
+}
