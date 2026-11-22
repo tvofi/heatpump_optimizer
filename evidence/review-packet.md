@@ -1,63 +1,62 @@
 # Review packet #3844
-head: 6a76c6071db6d7e4abaadcc9b9f4b0605d16c3a5
-base: 8ef450936a1786abf4bb9610dc3336da4e77e8de
+head: 507e2f8740268f926bb755459f7c300b8db7512d
+base: e3cb5c019b464a770cc7c6fe2fbc858ed29debf7
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: green
-CodeQL id=137243144334 success
-arch-score / arch-score id=137249428251 success
-arm id=137238384145 skipped
-budget-raise-gate / budget-raise-gate id=137249440625 success
-cancel-superseded id=137249426859 success
-codeql id=137249395542 skipped
-codeql / Analyze (actions) id=137241156957 success
-codeql / Analyze (javascript-typescript) id=137241156902 success
-codeql / Analyze (python) id=137241156947 success
-gate id=137249395218 success
-governance id=137249396160 skipped
-governance / env-matrix id=137241156970 success
-governance / instrument-self-tests id=137241157018 success
-governance / policy-docs id=137241157041 success
-governance / record id=137241158208 skipped
-governance / wave-script id=137241157016 success
-hassfest id=137249395987 skipped
-hassfest / hassfest id=137241156843 success
-kernel-points id=137249428164 skipped
-pr-contract id=137249396399 skipped
-pr-contract / pr-contract id=137248428684 success
-prelude id=137249395357 success
-refresh id=137249395840 success
-sweep-self id=137249628327 skipped
-tests id=137249445600 skipped
-tests / arch-instrument id=137241397541 success
-tests / briefs id=137241156913 success
-tests / browser id=137241397465 success
-tests / ci-ratchet id=137246240445 skipped
-tests / claims-autofix id=137245378074 skipped
-tests / closure-scope id=137241156901 success
-tests / closures id=137241397612 success
-tests / closures-autofix id=137246241274 skipped
-tests / coverage id=137241399177 skipped
-tests / coverage-ratchet id=137241399226 skipped
-tests / fast (3.14) id=137241397507 success
-tests / graders-head-copy id=137241397792 success
-tests / lane-proofs id=137245376789 success
-tests / mutation id=137241156973 success
-tests / mutation-autofix id=137242531748 skipped
-tests / mutation-pins id=137242531034 skipped
-tests / nightly-ha id=137241399426 skipped
-tests / nightly-status id=137241157038 success
-tests / replay id=137241399064 skipped
-tests / typing id=137241397467 success
-validate id=137249432237 skipped
-validate / validate-hacs id=137241156930 success
+## Gate digest: red
+CodeQL id=137338972296 success
+arch-score / arch-score id=137338403664 success
+arm id=137334316257 skipped
+budget-raise-gate / budget-raise-gate id=137338403677 success
+cancel-superseded id=137334318331 success
+codeql id=137338405388 skipped
+codeql / Analyze (actions) id=137337453884 success
+codeql / Analyze (javascript-typescript) id=137337453911 success
+codeql / Analyze (python) id=137337454005 success
+gate id=137341747718 failure
+governance id=137338404923 skipped
+governance / env-matrix id=137337453958 success
+governance / instrument-self-tests id=137337453955 success
+governance / policy-docs id=137337453946 success
+governance / record id=137337455492 skipped
+governance / wave-script id=137337453995 success
+hassfest id=137338405404 skipped
+hassfest / hassfest id=137337453923 success
+kernel-points id=137338404801 skipped
+pr-contract id=137341748558 skipped
+prelude id=137334318005 success
+refresh id=137334317998 success
+sweep-self id=137342804154 skipped
+tests id=137338405572 skipped
+tests / arch-instrument id=137342519715 success
+tests / briefs id=137337453900 success
+tests / browser id=137342519632 success
+tests / ci-ratchet id=137346903101 skipped
+tests / claims-autofix id=137346902532 skipped
+tests / closure-scope id=137337454057 success
+tests / closures id=137342519648 success
+tests / closures-autofix id=137344846492 skipped
+tests / coverage id=137342521010 skipped
+tests / coverage-ratchet id=137342521177 skipped
+tests / fast (3.14) id=137342519695 success
+tests / graders-head-copy id=137342520002 success
+tests / lane-proofs id=137346901448 queued
+tests / mutation id=137337453956 success
+tests / mutation-autofix id=137342665033 skipped
+tests / mutation-pins id=137342664136 skipped
+tests / nightly-ha id=137342521221 skipped
+tests / nightly-status id=137337453988 success
+tests / replay id=137342520839 skipped
+tests / typing id=137342519643 success
+validate id=137338405536 skipped
+validate / validate-hacs id=137337453881 success
 
 ## Refusals
 none
 
 ## Advisories
-none
+required-wait: required context `gate` reads concluded failure at 507e2f8740268f926bb755459f7c300b8db7512d in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
 
 ## carry_audit at the head
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
@@ -77,7 +76,7 @@ not run
 ## Mutation-ledger diff
 none
 
-## Review scope: full (first round: no --reviewed-head)
+## Review scope: full (the reviewed head 70c8c8c5bf55fa811fad18d63004879838c2ee8a is not an ancestor of 507e2f8740268f926bb755459f7c300b8db7512d, so its delta is no later round's)
 
 ## Three-dot diff
 diff --git a/dev/programme/delivery/3728.md b/dev/programme/delivery/3728.md
@@ -94,6 +93,13 @@ index d95d02f4e1..179b19697e 100644
 @@ -1 +1 @@
 -- [#3729](https://github.com/tvofi/heatpump_optimizer/pull/3729) — **open**, R11-SEAM-ratchets: ratchets (R11-SEAM-ratchets)
 +- [#3729](https://github.com/tvofi/heatpump_optimizer/pull/3729) — **merged `f269ecc`**, R11-SEAM-ratchets: ratchets (R11-SEAM-ratchets).
+diff --git a/dev/programme/delivery/3734.md b/dev/programme/delivery/3734.md
+index 9740c65f90..24149b6f74 100644
+--- a/dev/programme/delivery/3734.md
++++ b/dev/programme/delivery/3734.md
+@@ -1 +1 @@
+-- [#3734](https://github.com/tvofi/heatpump_optimizer/pull/3734) — **open**, R11-SEAM-inputs-guards: input guards (R11-SEAM-inputs-guards)
++- [#3734](https://github.com/tvofi/heatpump_optimizer/pull/3734) — **merged `e3cb5c0`**, R11-SEAM-inputs-guards: input guards (R11-SEAM-inputs-guards).
 diff --git a/dev/programme/delivery/3735.md b/dev/programme/delivery/3735.md
 index 771f99440a..0d78d6dee1 100644
 --- a/dev/programme/delivery/3735.md
@@ -129,6 +135,13 @@ index 16ce753098..3704772e18 100644
 @@ -1 +1 @@
 -- [#3822](https://github.com/tvofi/heatpump_optimizer/pull/3822) — **open**, audit round 11: land finder box D3-u1a (-)
 +- [#3822](https://github.com/tvofi/heatpump_optimizer/pull/3822) — **merged `8ef4509`**, audit round 11: land finder box D3-u1a.
+diff --git a/dev/programme/delivery/3824.md b/dev/programme/delivery/3824.md
+index 52ba357f96..7a3ed6f5c9 100644
+--- a/dev/programme/delivery/3824.md
++++ b/dev/programme/delivery/3824.md
+@@ -1 +1 @@
+-- [#3824](https://github.com/tvofi/heatpump_optimizer/pull/3824) — **open**, audit round 11: land finder box D3-u1c (-)
++- [#3824](https://github.com/tvofi/heatpump_optimizer/pull/3824) — **merged `baa9a46`**, audit round 11: land finder box D3-u1c.
 diff --git a/dev/programme/delivery/3832.md b/dev/programme/delivery/3832.md
 index 3bde92fcf9..e4b22258de 100644
 --- a/dev/programme/delivery/3832.md
@@ -192,6 +205,13 @@ index 5b10861812..3fc466e28f 100644
 @@ -1 +1 @@
 -- [#3846](https://github.com/tvofi/heatpump_optimizer/pull/3846) — **open**, ci: read introduced self-test reds by the diff's scope; track the rerun and supersede seat drivers (CI-CARDS)
 +- [#3846](https://github.com/tvofi/heatpump_optimizer/pull/3846) — **merged `3a98735`**, ci: read introduced self-test reds by the diff's scope; track the rerun and supersede seat drivers.
+diff --git a/dev/programme/delivery/3847.md b/dev/programme/delivery/3847.md
+index cc374c2f45..09af922578 100644
+--- a/dev/programme/delivery/3847.md
++++ b/dev/programme/delivery/3847.md
+@@ -1 +1 @@
+-- [#3847](https://github.com/tvofi/heatpump_optimizer/pull/3847) — **open**, ci: one run per bot-pushed head, scoped dispatches, coalesced main pushes, pins capped at 4, pip cached (CI-CARDS)
++- [#3847](https://github.com/tvofi/heatpump_optimizer/pull/3847) — **merged `1207ee1`**, ci: one run per bot-pushed head, scoped dispatches, coalesced main pushes, pins capped at 4, pip cached.
 diff --git a/dev/programme/delivery/3850.md b/dev/programme/delivery/3850.md
 index 9ca1a71876..d03e708bbf 100644
 --- a/dev/programme/delivery/3850.md
@@ -220,6 +240,13 @@ index 0000000000..4456b3e889
 +++ b/dev/programme/delivery/3853.md
 @@ -0,0 +1 @@
 +- [#3853](https://github.com/tvofi/heatpump_optimizer/pull/3853) — **merged `0ff1b6b`**, build(deps): bump the pip group in /tests with 13 updates.
+diff --git a/dev/programme/delivery/3865.md b/dev/programme/delivery/3865.md
+index 1970140601..a53186e3bb 100644
+--- a/dev/programme/delivery/3865.md
++++ b/dev/programme/delivery/3865.md
+@@ -1 +1 @@
+-- [#3865](https://github.com/tvofi/heatpump_optimizer/pull/3865) — **open**, corpus_mirror: read a zip member's dir-ness from its name, not ZipInfo.is_dir (R11-HOTFIX-CORPUS-MIRROR-PY311)
++- [#3865](https://github.com/tvofi/heatpump_optimizer/pull/3865) — **merged `8cc3fb3`**, corpus_mirror: read a zip member's dir-ness from its name, not ZipInfo.is_dir.
 
 ## Before you return the verdict (P275)
 Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
