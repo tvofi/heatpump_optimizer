@@ -19,3 +19,4 @@
 1795321684 CKPT verdict drafted (merge), carry_audit rc 0; measured head table vs main f269eccc: 3 refusals; waiting classify snapshot 648446b3b828
 1795322022 HB alive
 1795322625 HB alive
+1795323326 DONE Fix review: merge dd2f26e7 (pending-ci: gate, classify WAIT 30m on queued gate-sweep); verdict a478f473 on probe/rev-3832-3fc4155d
