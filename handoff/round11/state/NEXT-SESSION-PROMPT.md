@@ -27,7 +27,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SEAM-cycle-solve (stage in-progress, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-reporting (stage in-progress, branch `handoff/r11-seam-cycle-reporting`): `git fetch origin handoff/r11-seam-cycle-reporting && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-entity-service (stage in-progress, branch `handoff/r11-seam-entity-service`): `git fetch origin handoff/r11-seam-entity-service && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-card (stage carries-open, branch `handoff/r11-seam-card`): `git fetch origin handoff/r11-seam-card && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-tests (stage in-progress, branch `handoff/r11-seam-tests`): `git fetch origin handoff/r11-seam-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-comments-production (stage carries-open, branch `handoff/r11-seam-comments-production`): `git fetch origin handoff/r11-seam-comments-production && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-comments-tests (stage carries-open, branch `handoff/r11-seam-comments-tests`): `git fetch origin handoff/r11-seam-comments-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -36,12 +35,13 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OWNER-FLOWCAP (stage in-progress, branch `handoff/r11-owner-flowcap`): `git fetch origin handoff/r11-owner-flowcap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FROST-HOLD (stage in-progress, branch `handoff/r11-owner-frost-hold`): `git fetch origin handoff/r11-owner-frost-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-HOLD (stage in-progress, branch `handoff/r11-owner-fault-hold`): `git fetch origin handoff/r11-owner-fault-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OWNER-MODE-LEGS (stage in-progress, branch `handoff/r11-owner-mode-legs`): `git fetch origin handoff/r11-owner-mode-legs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-STEP-KICK (stage in-progress, branch `handoff/r11-owner-step-kick`): `git fetch origin handoff/r11-owner-step-kick && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COOLING-GUARD (stage in-progress, branch `handoff/r11-owner-cooling-guard`): `git fetch origin handoff/r11-owner-cooling-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-TEXT (stage in-progress, branch `handoff/r11-owner-fault-text`): `git fetch origin handoff/r11-owner-fault-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-3849 (stage in-progress, branch `handoff/r11-outside-3849`): `git fetch origin handoff/r11-outside-3849 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R11-ARCH-cycle-surface, R11-CARRY-DRAWMAP, R11-CLOSEOUT-CLEANUP, R11-OUTSIDE-3849, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-3B, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-COOLING-GUARD, R11-OWNER-EXTHEAT-OVERRIDE, R11-OWNER-FLOWCAP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-release, R11-SEAM-card, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-entity-service, R11-SEAM-inputs-guards, R11-SEAM-kernel-step, R11-SEAM-learners, R11-SEAM-store, R11-SEAM-tests, R11-SEAM-two-zone-slab
+Ready next (after-edges satisfied; nothing open constrains them): R11-ARCH-cycle-surface, R11-CARRY-DRAWMAP, R11-CLOSEOUT-CLEANUP, R11-OUTSIDE-3849, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-3B, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-CARD-EXTERNAL-HEAT, R11-OWNER-COOLING-GUARD, R11-OWNER-EXTHEAT-OVERRIDE, R11-OWNER-FLOWCAP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-release, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-entity-service, R11-SEAM-inputs-guards, R11-SEAM-kernel-step, R11-SEAM-learners, R11-SEAM-store, R11-SEAM-tests, R11-SEAM-two-zone-slab
 
 ## Resume steps
 
