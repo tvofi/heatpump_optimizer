@@ -1,0 +1,5 @@
+  ok   R10-CLONE-2238 P6: the accuracy, contract-comparison and frequency-advisor sensors all publish _evidence_attributes
+  ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
+  ok   `policy_lint.mjs --budgets` prints a moved policy file at its live path, naming the old-path key its caps sit under; an unmoved file names no key
+
+ALL 2740 ENTITY CHECKS PASSED

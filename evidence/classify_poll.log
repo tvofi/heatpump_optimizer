@@ -1,0 +1,15 @@
+15:30:54 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:32:26 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:33:58 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:35:30 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:37:01 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:38:33 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:40:05 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:41:38 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:43:10 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:44:42 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:46:14 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:47:46 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:49:18 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:50:50 rc=3 WAIT 868e00db0bcfd5d3a5934412581fb8dd03c15157 pending: gate red: none
+15:52:22 rc=2 REFUSE selftests: the head's governance / instrument-self-tests job 137255502514 concluded cancelled, which reads no step: re-run it: an introduced red cannot be ruled out (fail closed)
