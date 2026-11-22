@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_953a106a1aa39cee.py: pins buffer-cooling samples/rate/saves after one interval in which the tank got WARMER. EQUIVALENT-MUTANT probe (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

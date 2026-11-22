@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_59027d3bdf2e7a0c.py: pins buffer-cooling samples taken (and rate written) from one quiet interval of exactly 3.0 h (10800 s), 50.0 -> 48.0 C (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

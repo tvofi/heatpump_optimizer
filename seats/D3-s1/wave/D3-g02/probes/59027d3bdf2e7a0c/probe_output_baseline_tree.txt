@@ -1,0 +1,17 @@
+RESULT bounds_low=0.07917596587074922 C/h high=3.167038634829969 C/h prior=0.39587982935374616 C/h (35 L default tank)
+RESULT dt_exact_3h_baseline_samples=1 count rate=0.39946104468116317 saves=1
+RESULT dt_exact_3h_mutant_samples=0 count rate=0.39587982935374616 saves=0
+RESULT dt_exact_3h_moved=1 count
+RESULT dt_2p9h_null_baseline_samples=1 count rate=0.39985755543683527 saves=1
+RESULT dt_2p9h_null_mutant_samples=1 count rate=0.39985755543683527 saves=1
+RESULT dt_2p9h_null_moved=0 count
+RESULT dt_3p5h_null_baseline_samples=0 count rate=0.39587982935374616 saves=0
+RESULT dt_3p5h_null_mutant_samples=0 count rate=0.39587982935374616 saves=0
+RESULT dt_3p5h_null_moved=0 count
+RESULT dt_1h_null_baseline_samples=1 count rate=0.42245866851014696 saves=1
+RESULT dt_1h_null_mutant_samples=1 count rate=0.42245866851014696 saves=1
+RESULT dt_1h_null_moved=0 count
+RESULT inputs_moved=1 count of 4
+RESULT thread_factor=1.000
+RESULT load1=0.98
+RESULT swapins=0

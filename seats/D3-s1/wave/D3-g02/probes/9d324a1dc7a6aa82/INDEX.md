@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_9d324a1dc7a6aa82.py: pins buffer-cooling samples taken (and rate written) from one interval whose implied rate equals this tank's ceiling bit-for-bit (35 L: 3.167038634829969 C/h) (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

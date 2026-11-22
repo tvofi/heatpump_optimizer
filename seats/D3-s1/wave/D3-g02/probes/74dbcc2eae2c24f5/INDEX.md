@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_74dbcc2eae2c24f5.py: pins the buffer-cooling rate written after one interval whose implied rate equals the current learned rate bit-for-bit (the only input on which `<` and `<=` pick different alphas) (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

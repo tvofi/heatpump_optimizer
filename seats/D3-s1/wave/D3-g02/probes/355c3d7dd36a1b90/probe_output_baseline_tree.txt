@@ -1,0 +1,22 @@
+RESULT delta6_exact_cool_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta6_exact_cool_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta6_exact_cool_moved=1 count
+RESULT delta6_exact_warm_baseline_scale=0.99 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta6_exact_warm_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta6_exact_warm_moved=1 count
+RESULT delta6_exact_flat_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta6_exact_flat_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta6_exact_flat_moved=1 count
+RESULT delta6_exact_two_zone_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta6_exact_two_zone_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta6_exact_two_zone_moved=1 count
+RESULT delta5p9_null_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta5p9_null_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta5p9_null_moved=0 count
+RESULT delta26_null_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta26_null_mutant_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1
+RESULT delta26_null_moved=0 count
+RESULT inputs_moved=4 count of 6
+RESULT thread_factor=1.000
+RESULT load1=0.98
+RESULT swapins=0

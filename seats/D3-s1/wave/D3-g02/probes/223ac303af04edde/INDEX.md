@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_223ac303af04edde.py: pins buffer-cooling samples/saves after one interval whose implied rate is non-finite, with the isfinite(observed) guard deleted; plus whether the learner's one production caller can deliver such a reading (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

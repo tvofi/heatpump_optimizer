@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_206a570d8cc784e3.py: pins house heat-loss scale/samples/open-window CUSUM/saves/return after one interval whose replay residual is non-finite, with the isfinite(residual) guard deleted. EQUIVALENT-MUTANT probe (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

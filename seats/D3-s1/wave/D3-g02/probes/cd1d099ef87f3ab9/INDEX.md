@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_cd1d099ef87f3ab9.py: pins the space circulation pump service call (turn_on/turn_off) _async_drive_pumps issues 1.25 h into a plan that heats only in steps 4-7 of its quarter grid (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

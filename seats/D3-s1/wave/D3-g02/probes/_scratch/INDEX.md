@@ -1,0 +1,1 @@
+- _scratch/: generator templates (buf_template.py, house_template.py, pump_template.py) and exploration scripts the probes were generated from; not run by the report

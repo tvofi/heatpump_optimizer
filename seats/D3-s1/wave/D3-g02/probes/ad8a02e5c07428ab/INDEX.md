@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_ad8a02e5c07428ab.py: pins the space circulation pump service call in a two-zone house whose room average is warm but one floor sits below the comfort floor + margin, with the plan off now and next (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

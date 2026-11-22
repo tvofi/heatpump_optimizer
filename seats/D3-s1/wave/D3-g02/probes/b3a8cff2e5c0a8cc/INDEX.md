@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_b3a8cff2e5c0a8cc.py: pins buffer-cooling samples the learner takes (and the rate it writes) from one quiet interval of exactly 0.15 h (540 s), 50.0 -> 49.6 C (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)
