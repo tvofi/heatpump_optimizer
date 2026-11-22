@@ -1,0 +1,8 @@
+136969344649 2026-11-21T20:28:13Z red failure ('fail', ['run(s) [44942948357, 44943642493] at this head are still being judged; their gate decides'])
+137044070127 2026-11-22T01:01:11Z red failure ('fail', ['budget-raise-gate / budget-raise-gate: failure (this run)'])
+137047381856 2026-11-22T01:12:08Z red failure ('fail', ['budget-raise-gate / budget-raise-gate: failure (run 44957111216)'])
+137062556803 2026-11-22T02:34:25Z red failure ('fail', ['run(s) [44942948357] at this head are still being judged; their gate decides'])
+137065210288 2026-11-22T02:36:40Z red failure ('fail', ['run(s) [44942948357] at this head are still being judged; their gate decides'])
+137086254280 2026-11-22T04:07:01Z red failure ('fail', ['budget-raise-gate / budget-raise-gate: failure (run 44952774191)'])
+gate_raise_only: False
+red names (all runs): ['budget-raise-gate / budget-raise-gate', 'gate']
