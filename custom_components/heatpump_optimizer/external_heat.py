@@ -463,11 +463,8 @@ class ExternalHeatDetector:
         """
         state = self.state
         cfg = self.config
-        if state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0:
-            state.confidence = 0.0
-            state.fading = False
-            return
-        if state.last_active is None or cfg.decay_minutes <= 0:
+        spent = state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0
+        if spent or state.last_active is None or cfg.decay_minutes <= 0:
             state.confidence = 0.0
             state.fading = False
             return
@@ -502,20 +499,16 @@ class ExternalHeatDetector:
         return self.state.active or self.state.fading
 
     def ignore_effective(self, ignored: bool) -> bool:
-        """Whether the #3862 switch lifts the block: on, and detection enabled."""
+        """Whether the #3862 switch lifts the block: on, with detection enabled."""
         return ignored and self.config.enabled
 
     def blocking(self, ignored: bool) -> bool:
-        """``suppressing``, unless the switch lifts it. Detection, the stove
-        entity's override and the learning freeze still read the raw value."""
+        """``suppressing`` unless the switch lifts it; the learning freeze reads the raw one."""
         return self.suppressing and not self.ignore_effective(ignored)
 
     def view(self, ignored: bool) -> ExternalHeatView:
-        """Whether something other than the heat pump is charging the tanks."""
-        return {
-            "external_heat_active": self.state.active,
-            "external_heat_suppressing": self.blocking(ignored),
-            "external_heat": self.state.as_dict(
-                self.ignore_effective(ignored) if ignored else None
-            ),
-        }
+        """The published detection; ``block_ignored`` only while the switch is on."""
+        effective = self.ignore_effective(ignored) if ignored else None
+        return {"external_heat_active": self.state.active,
+                "external_heat_suppressing": self.blocking(ignored),
+                "external_heat": self.state.as_dict(effective)}

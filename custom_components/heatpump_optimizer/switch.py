@@ -116,11 +116,11 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
         publish_then_refresh(self)
 
 
-class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
-    """Plan-page away override on/off. ``is_on`` is the override, not resolve()."""
+class _KeyedSwitch(HeatPumpOptimizerEntity, SwitchEntity):
+    """A switch whose registry identity is its class's ``_unique_key``."""
 
-    _attr_translation_key = "away"
     _platform_domain = "switch"
+    _unique_key = ""
 
     def __init__(
         self,
@@ -128,7 +128,14 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
         entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
-        self._pin_identity(entry, "away")
+        self._pin_identity(entry, self._unique_key)
+
+
+class AwaySwitch(_KeyedSwitch):
+    """Plan-page away override on/off. ``is_on`` is the override, not resolve()."""
+
+    _attr_translation_key = "away"
+    _unique_key = "away"
 
     @property
     def is_on(self) -> bool:
@@ -143,7 +150,7 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
         publish_then_refresh(self)
 
 
-class TimedDutySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+class TimedDutySwitch(_KeyedSwitch):
     """A two-hour boost or block of one duty. The four switches share this.
 
     Subclasses set the channel, the polarity and the registry key. Hot-water
@@ -151,18 +158,8 @@ class TimedDutySwitch(HeatPumpOptimizerEntity, SwitchEntity):
     map; the coordinator grows no attribute.
     """
 
-    _platform_domain = "switch"
     _channel = ""
     _block = False
-    _unique_key = ""
-
-    def __init__(
-        self,
-        coordinator: HeatPumpOptimizerCoordinator,
-        entry: HeatPumpOptimizerConfigEntry,
-    ) -> None:
-        super().__init__(coordinator)
-        self._pin_identity(entry, self._unique_key)
 
     @property
     def is_on(self) -> bool:
@@ -239,19 +236,11 @@ class BlockSpaceSwitch(TimedDutySwitch):
     _unique_key = "block_space"
 
 
-class ExternalHeatIgnoreBlockSwitch(HeatPumpOptimizerEntity, SwitchEntity):
+class ExternalHeatIgnoreBlockSwitch(_KeyedSwitch):
     """Lift the external-heat block on the plan (#3862); state held in ``boost``."""
 
     _attr_translation_key = "external_heat_ignore_block"
-    _platform_domain = "switch"
-
-    def __init__(
-        self,
-        coordinator: HeatPumpOptimizerCoordinator,
-        entry: HeatPumpOptimizerConfigEntry,
-    ) -> None:
-        super().__init__(coordinator)
-        self._pin_identity(entry, "external_heat_ignore_block")
+    _unique_key = "external_heat_ignore_block"
 
     @property
     def is_on(self) -> bool:

@@ -41996,6 +41996,8 @@ _egb3_resolve = {
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
     "rooms.published(rooms.readings_of(self), rooms.lift_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
+    # #3862: a producer that returns its owner's view whole (a listed source only).
+    "self._external_heat.view(boost.extheat_block_ignored(self))": ("external_heat", "view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
 
@@ -42010,6 +42012,8 @@ def _egb3_energy():
 
 def _egb3_enumerate(fn, unresolved):
     keys, merges = _egb3_top(fn)
+    merges += [n.value for n in ast.walk(fn) if isinstance(n, ast.Return)
+               and isinstance(n.value, ast.Call) and ast.unparse(n.value) in _egb3_resolve]
     for m in merges:
         src = ast.unparse(m)
         if src in _egb3_resolve:
