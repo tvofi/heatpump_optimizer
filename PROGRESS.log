@@ -33,3 +33,4 @@
 1795372890 HB alive
 1795372953 CKPT setup ok, packet rendered snapshot 452085827d91
 1795373004 CKPT CI GREEN; delta read; running entities.py baseline snapshot 189b7c272b4b
+1795373121 CKPT mutants all killed but pre-existing bool clause; census106 running snapshot 227ba2c6c9d0
