@@ -1,0 +1,13 @@
+MUTANT supply_write cooling term dropped: rc=1 5 of 18 FEATURES BLOCK FAILED | first: FAIL cooling hands-off: a space boost with the mode reading Cooling writes no switch-on  [True [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+MUTANT cooling_mode always None: rc=1 10 of 18 FEATURES BLOCK FAILED | first: FAIL cooling hands-off: a space boost with the mode reading Cooling writes no switch-on  [True [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+MUTANT cooling_mode live arm dropped: rc=1 10 of 18 FEATURES BLOCK FAILED | first: FAIL cooling hands-off: a space boost with the mode reading Cooling writes no switch-on  [True [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+MUTANT cooling_mode signals arm dropped: rc=1 1 of 18 FEATURES BLOCK FAILED | first: FAIL cooling hands-off: the cycle's last good Cooling holds a boost's switch-on through a dropout  [True [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+MUTANT note_cooling never clears: rc=1 1 of 18 FEATURES BLOCK FAILED | first: FAIL cooling repair: cleared when the mode leaves cooling  [['pump_mode_cooling']]
+MUTANT note_cooling once-guard dropped: rc=1 2 of 18 FEATURES BLOCK FAILED | first: FAIL cooling repair: raised once for two boosted writes in one Cooling episode  [(['pump_mode_cooling'], ['pump_mode_cooling', 'pump_mode_cooling'])]
+MUTANT note_cooling asks_heat ignored: rc=1 1 of 18 FEATURES BLOCK FAILED | first: FAIL cooling repair: a plan OFF in Cooling asks for no heat and raises no cooling repair  [['pump_mode_cooling']]
+MUTANT coordinator per-cycle note_cooling dropped: rc=1 2 of 18 FEATURES BLOCK FAILED | first: FAIL cooling repair: cleared when the mode leaves cooling  [['pump_mode_cooling']]
+MUTANT early_cutoff cooling exemption dropped: rc=1 2 of 18 FEATURES BLOCK FAILED | first: FAIL early cut-off: a space step with the mode reading Cooling -> cooling  [None]
+MUTANT desired cooling guard dropped: rc=0 ALL 18 FEATURES BLOCK PASSED | first: 
+MUTANT _mode_for cooling term dropped: rc=0 ALL 18 FEATURES BLOCK PASSED | first: 
+MUTANT blocked-both OFF skip dropped: rc=0 ALL 18 FEATURES BLOCK PASSED | first: 
+restored: production files equal HEAD
