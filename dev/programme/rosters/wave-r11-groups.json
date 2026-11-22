@@ -7859,6 +7859,77 @@
     "branch": null,
     "note": "overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT, R11-LATE-P1-OPTIONS, R11-LATE-P2-ZONE-GATE): late P2 sweep seam, round-11 late-arrival fold; the finite-test owner is merged"
    }
+  },
+  {
+   "group": "R11-SEAM-store-p2",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "S",
+   "issues": [
+    3744,
+    3757,
+    3758
+   ],
+   "fixes": [],
+   "findings": [],
+   "merged": {},
+   "classes": [
+    "N-silent-zero",
+    "P1",
+    "P2"
+   ],
+   "seam": "persisted store",
+   "hot_files": [
+    "dhw_draws.py",
+    "tariff.py",
+    "off_restore.py",
+    "coordinator.py",
+    "legionella.py",
+    "boost.py",
+    "dhw_learning.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Part 2 of R11-SEAM-store, same seam and owner (persisted store). Part 1 (the five built findings, PR from ea5c36ab) merges first; this part builds the late class sweep P1 (six loaders admitting a stored boolean as a number) and P2 (three DHW weekday/weekend window readers) carried by R11-SEAM-store.",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R11-SEAM-store"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_draws.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/off_restore.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py"
+   ],
+   "brief": "R11-SEAM-store, part 2 of 2 (the persisted store seam). Part 1 builds the five register findings of R11-SEAM-store; this part builds its roster carries 0 and 1, the late class sweeps: carry 0, six store loaders that admit a stored boolean as a number (dhw_draws.py, tariff.py, off_restore.py, two coordinator loaders, legionella.py), and carry 1, three readers that take the weekday DHW window list on a weekend day (boost.py's window test, the coordinator's circulation-pump windows, dhw_learning.py's draw label). Each fix is the store's one schema or the one weekday-or-weekend rule, never a per-loader patch; the P1 and P2 sweep enumerators read none of the sites left at the fixer's merge base. After: R11-SEAM-store, whose merge this part's branch starts from. store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it.",
+   "carry": [
+    "Late class sweep P1 (finder box SW7, landed on main by 5680abbb85 on 2026-11-21, after the register fold and the P3 plan; report `dev/audit/rounds/round11/sweep/P1/REPORT.json`): six store loaders admit a stored boolean as a number, so a persisted true loads as 1.0: the DHW draw statistics loader in dhw_draws.py (a 1.0 kWh draw), the billed-peak loader in tariff.py (a 1.0 kW billed peak), the baseline entry reader in off_restore.py, the coordinator's energy-totals and ledger loaders in coordinator.py (1.0 kWh, operation score 1.0) and the legionella guard's loader in legionella.py (attempt peak 1.0 degC). Probe: `PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_probes.py`; enumerator `dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py` (controls: plant, null, perturb). Class P1 on this group's seam, the persisted store; the P1 sweep reads none of the six left at this group's stamp. dhw_draws.py, tariff.py and legionella.py are added to this group's files with this carry. Verification: these are judged class-sweep seams marked beyond_finding, not register findings, so no verifier vote stands behind them; the fixer's failing test is the first independent measurement. Moved from R11-SEAM-store by the part split (orchestrator ruling 2026-11-22): part 1 builds the five findings, this part owns the two late class-sweep carries.",
+    "Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on handoff/audit-r11-sweep-SW8 at 872510cd3e as dev/audit/rounds/round11/sweep/P2/D14-sweep-P2/probes_p2.py): which DHW windows apply today is decided twice. Three readers take the weekday list on a weekend day: boost.py's window test (Saturday 07:00 with weekdays 06:00-08:30 and weekend 08:00-09:30 and no plan: open, where the weekend window is closed), the coordinator's pump driver for the circulation pump's windows in coordinator.py (runs on the weekday list), and the DHW profile learner's draw label in dhw_learning.py (a Saturday 07:00 draw labelled with the weekday window). This group owns boost.py and dhw_learning.py and carries class P2; each reader takes the day's windows from the one rule that resolves weekday against weekend, and the P2 sweep reads none of the three left at this group's stamp. Probe: run the SW8 harness above from a checkout of 872510cd3e with PYTHONPATH=tests/hastub. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them. Moved from R11-SEAM-store by the part split (orchestrator ruling 2026-11-22): part 1 builds the five findings, this part owns the two late class-sweep carries."
+   ],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-store-p2",
+    "commit": null,
+    "last_step": "split from R11-SEAM-store by the orchestrator's part ruling 2026-11-22",
+    "next_step": "fixer per the carries, after R11-SEAM-store merges",
+    "note": "overlap admitted (R11-SEAM-store): same seam, same hot files; the part runs after its first part; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-ARCH-cycle-surface, R11-LATE-P2-ZONE-GATE): part 2 of R11-SEAM-store (orchestrator part ruling 2026-11-22): same seam and files, after R11-SEAM-store"
+   }
   }
  ]
 }
