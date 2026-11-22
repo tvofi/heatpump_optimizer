@@ -1,0 +1,15 @@
+NOTE review 0 item 41bc3b93: dismissed:paperwork on body figures, the substance holds at this head
+NOTE review 0 item 41bc3b93: dismissed:answered in the body's Red checks
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+--- packet, body at head:
+## carry_audit at the head
+NOTE body item 401b4860: dismissed:built and pinned in this PR
+NOTE body item 85ef765b: dismissed:built in this PR
+NOTE body item db96b316: dismissed:no test shows the cancellation the note asks to report
+NOTE body item bad27f92: dismissed:one re-raise per restart, re-latched on the next solve
+NOTE body item f4f85300: dismissed:excluded by this group's approved design, as the carry's own text allows; the disposition is recorded here for the merge
+NOTE body item a0ac6ffd: dismissed:the round-11 register owns its harnesses
+NOTE body item 89a681d1: dismissed:a seat-environment conflict, recorded for the orchestrator
+NOTE body item 4b3bc46d: dismissed:an instrument conflict outside this seam, recorded for the orchestrator
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)

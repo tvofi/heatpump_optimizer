@@ -1,0 +1,25 @@
+PROD interdiff: diff of +/- lines of git diff 63c6d1cff9 827fa67eb6ee84d8874524557cdd540ca1b54593 -- custom_components/ vs git diff f269ecccb5 c931e99404d39ceaf9c8d84a68b5e24b7dec5f11 -- custom_components/:
+PROD-LINES-IDENTICAL
+null control: the same with the head's first + line dropped:
+2
+
+file sets (old < > new):
+21a22
+> tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_update_data.BOOLOP.3e107eaf.json
+31a33
+> tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.BOOLOP.6c3e48ee.json
+34a37
+> tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.CMP_BOUND.91e008d2.json
+35a39
+> tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.1f48017b.json
+52a57,58
+> tests/mutation_ledger/killed_by/solve_gate.py/absorb_request.GUARD_OFF.d99b351e.json
+> tests/mutation_ledger/killed_by/solve_gate.py/absorb_request.RETURN_DEL.355fcbc3.json
+59a66
+> tests/mutation_ledger/killed_by/solve_gate.py/begin_solve.GUARD_OFF.53abf7e8.json
+64a72
+> tests/mutation_ledger/killed_by/solve_gate.py/user_slot.GUARD_OFF.9a253a03.json
+
+review_carry 827fa67eb6ee84d8874524557cdd540ca1b54593 c931e99404d39ceaf9c8d84a68b5e24b7dec5f11:
+review_carry: FRESH-REVIEW
+tree c931e99 = tree 66fbd97: a2f90d98d5cecdd114bb97aaec1baf03e7b016ba a2f90d98d5cecdd114bb97aaec1baf03e7b016ba
