@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:handle_set_away BOOLOP b199ea6c",
+  "killed_by": "tests/features.py",
+  "old": "        if not away_mode.clears_return_time(raw) and away_mode.parse_return_time(raw) is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if not away_mode.clears_return_time(raw) or away_mode.parse_return_time(raw) is None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
