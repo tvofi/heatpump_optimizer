@@ -22613,9 +22613,9 @@ for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
 # Parsed from the non-comment lines of each step: a commented-out dispatch, or
 # one moved into the `always()` report step (which also runs when nothing was
 # pushed), must not count. CI-1 (owner 2026-11-21): the one dispatching step is
-# _AF_DISPATCH, after the approve step, run only for a token push whose approve
-# step approved no `CI` run at the pushed SHA (approved_head), and the approve
-# step sets approved_head only on such an approval.
+# _AF_DISPATCH, after the approve step. It runs only for a token push whose
+# approve step approved no `CI` run at the pushed SHA (approved_head). The
+# approve step sets approved_head only on such an approval.
 _AF_DISPATCHED = {"ci.yml"}
 _AF_DISPATCH = "Dispatch the umbrella when no held run was approved"
 _AF_APPROVED = ('              approved=$((approved + 1))\n'
