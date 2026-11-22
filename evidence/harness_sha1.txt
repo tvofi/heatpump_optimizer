@@ -1,0 +1,5 @@
+775462488a41eaaaf602f725c7f895f2dcc878e3  dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py
+2bfd5102e22e147d3ee096b09f9d61498ee4570b  dev/audit/rounds/round11/D2/s3/m5_tankfall.py
+eb188345d75661234176807212c728195492b69b  dev/audit/rounds/round11/D2/s3/m5_drawrange.py
+d5ef3fc6d148669f9f1c4ac202e6a476c0e2af0c  dev/audit/rounds/round11/D2/s3/m5_crosscov.py
+cfbd84697ed7adcc31e1cfb4ae6f5aff69526062  dev/audit/harnesses/cop_duty_floor.py

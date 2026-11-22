@@ -1,0 +1,31 @@
+Comfort miss (margin -3.50 °C) with curve bias -0.5 K applied; bias reset to 0
+learner            driver       null window  pumps   externa defrost away   
+accuracy           settle       1    0       0       0       0       1      
+buffer_cooling     buffer       1    0       0       0       0       1      
+capacity_envelope  cop          1    0       0       0       0       1      
+comfort            comfort      1    0       0       0       0       0      
+cop_health         cop_metered  1    1       0       0       0       1      
+curve              curve        1    0       0       0       0       0      
+defrost            settle       1    0       0       0       1       1      
+dhw_cooling        dhw          1    1       0       0       0       1      
+dhw_draws          dhw          1    1       0       0       0       0      
+dhw_profile        dhw          1    1       0       0       0       0      
+flow_bias          flow         1    0       0       0       0       1      
+freq_map           freq         1    1       0       1       0       1      
+house_heat_loss    house        1    0       0       0       0       1      
+immersion_log      immersion    1    1       1       1       1       1      
+internal_gains     house        1    0       0       0       0       0      
+lower_floor_loss   lower        1    0       0       0       0       1      
+measured_cop       cop          1    0       0       0       0       1      
+price_model        price        1    1       1       1       1       1      
+snow               snow         1    1       1       1       1       1      
+solar_aperture     house        1    0       0       0       0       1      
+vent_detector      house        1    1       0       0       0       1      
+RESULT learners_universe=21 count
+RESULT learners_examined=21 count
+RESULT contaminated_ingest=0 count
+RESULT thread_factor=1.000
+RESULT load1=3.24
+RESULT swapins=0
+# cpu 0.3s (provisional, not a finding)
+exit=0
