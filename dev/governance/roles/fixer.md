@@ -119,16 +119,15 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    (a `--carry` head: no re-take; name bot reds), and carries every executed
    number in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
-   Only a count whose rule is written down is re-derivable. **Name the instrument you re-ran, and its scope.** If the
-   block you are clearing was demonstrated with an *instance*, your verification
-   may not be a search for that instance — it must check the property the
-   phenomenon states, not the property the block's text states: name a rule that enumerates the class's seams (a command,
+   Only a count whose rule is written down is re-derivable. **Name the instrument you re-ran, and its scope.** A
+   block demonstrated with an *instance* is cleared by checking the property the
+   phenomenon states, never by searching for that instance: name a rule that enumerates the class's seams (a command,
    not a description), run it, and put every seam it returns in `## Figures` against
    its disposition — closed in this diff, already guarded, or a distinct finding named
-   by id. An un-dispositioned seam is an open seam, class not closed. If no such
-   instrument exists, say so and what you did instead. This is step 11 applied to
-   your own instrument: one inherited from the finder is keyed to the instance it
-   demonstrated (#592's root cause).
+   by id. An un-dispositioned seam is an open seam, class not closed. A finder's
+   instrument is keyed to its instance (#592). **Every set the claim quantifies over
+   is a named rule's output, or wholly residue by a category the claim states**;
+   one named by examples (a list, "such as", a census of one) is neither (R11-RCA-3729-OPEN-AXIS).
    For a P2 finding, the rule step 8 names is a registry entry in `tests/entities.py`'s P2
    owners block (fact, shape, owner, dispositions), landed in the same PR, not a one-shot
    command. Where the fact has no syntactic shape (physics consistency, failure signalling,
@@ -298,12 +297,13 @@ split part the approved plan names.
 
 ## Past three rounds, re-cut rather than repair
 
-The owner's rule. At the **fourth** round, replace the body under a `## Re-cut`
+At the **fourth** round, replace the body under a `## Re-cut`
 note, which `bus.sh dispatch` requires: the headings `.github/PULL_REQUEST_TEMPLATE.md`
 requires, the arms that fire, and only figures re-taken in that pass. Round
 history is deleted, not restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
-tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**:
-the orchestrator splits or closes it.
+tie-break). **A re-cut body blocked again, or a second block on one `class-open`
+axis at any round, is a signal about the fix**: the orchestrator narrows, splits
+or closes it; `bus.sh dispatch` refuses both.
 
 **Never for a mechanical-only gap** (tvofi, 2026-11-09): `bus.sh dispatch` reads the
 latest block's class and dispatches with no `## Re-cut` when it is `red-unanswered`,
