@@ -1,0 +1,21 @@
+3728 4ebd430 onmain=yes pr-match | Merge pull request #3728 from tvofi/fix/r11-seam-kernel-step
+3729 f269ecc onmain=yes pr-match | Merge pull request #3729 from tvofi/fix/r11-seam-ratchets
+3735 59b17e9 onmain=yes pr-match | Merge pull request #3735 from tvofi/fix/r11-seam-ratchet-raise
+3737 35402f7 onmain=yes pr-match | Merge pull request #3737 from tvofi/fix/r11-carry-drawmap-pr
+3814 e4c929b onmain=yes pr-match | Merge pull request #3814 from tvofi/fix/audit-r11-land-D3-top6
+3821 608c95d onmain=yes pr-match | Merge pull request #3821 from tvofi/fix/r11-seam-card-pr
+3822 8ef4509 onmain=yes pr-match | Merge pull request #3822 from tvofi/fix/audit-r11-land-D3-u1a
+3824 baa9a46 onmain=yes pr-match | Merge pull request #3824 from tvofi/fix/audit-r11-land-D3-u1c
+3832 726e5bb onmain=yes pr-match | Merge pull request #3832 from tvofi/fix/r11-hotfix-main-selftest-absorb
+3836 6f6a85c onmain=yes pr-match | Merge pull request #3836 from tvofi/fix/r11-roster-copy
+3837 fc06c46 onmain=yes pr-match | Merge pull request #3837 from tvofi/fix/r11-pre-shared-files-p2
+3839 505ed38 onmain=yes pr-match | Merge pull request #3839 from tvofi/fix/rca-open-axis
+3840 35c3e31 onmain=yes pr-match | Merge pull request #3840 from tvofi/fix/hotfix-brief-lint-maxbuffer
+3842 2ceb62b onmain=yes pr-match | Merge pull request #3842 from tvofi/fix/rca-enobufs
+3843 40e513e onmain=yes pr-match | Merge pull request #3843 from tvofi/fix/rca-modex
+3844 (no sha) | - [#3844](https://github.com/tvofi/heatpump_optimizer/pull/3844) — **open**, record: delivery rows (autofix)
+3846 3a98735 onmain=yes pr-match | Merge pull request #3846 from tvofi/fix/ci-cards-b-pr
+3850 024895c onmain=yes pr-match | Merge pull request #3850 from tvofi/fix/r11-rca-botmerge-row
+3851 eaaaf24 onmain=yes pr-match | Merge pull request #3851 from tvofi/dependabot/npm_and_yarn/tests/pwlane/pwlane-d6e1baa17c
+3852 0c69bd1 onmain=yes pr-match | Merge pull request #3852 from tvofi/dependabot/github_actions/actions-3572b65123
+3853 0ff1b6b onmain=yes pr-match | Merge pull request #3853 from tvofi/dependabot/pip/tests/pip-ac37bcd01a
