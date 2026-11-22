@@ -99194,4 +99194,224 @@ R.check(
     f"before={_rh_ul_before} after={_rh_ul_doc}",
 )
 
+# --- R11-OWNER-STEP-KICK: the step-start kick to the ceiling after a hot-water leg
+# (owner report 2026-11-22; design/R11-OWNER-STEP-KICK 09fecb1b, option D). After
+# a hot-water leg the pump-loop return reads the tank coil's water, so inlet +
+# lift sat at or above the ceiling and the first space writes asked for the top.
+# For FEEDBACK_START_HOLD after a dhw -> space swap the floor is anchored on the
+# space loop's own water (flow_anchor), never above today's floor. Readings are
+# invented: return 54 after the leg, space inlet 29, buffer 31, band 1.5-5.5 kW.
+from dataclasses import replace as _sk_replace  # noqa: E402
+from types import SimpleNamespace as _sk_ns  # noqa: E402
+
+from heatpump_optimizer import flow_anchor as _sk_fa  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _sk_pa  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_BUFFER_TANK_TEMP_ENTITY as _SK_TANK,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY as _SK_RETURN,
+)
+
+_SK_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_SK_SETTLE = _sk_pa.FEEDBACK_START_HOLD
+_SK_MAX_AGE = timedelta(minutes=_sk_pa.LEASE_MINUTES)
+
+
+def _sk_inp(kw=3.5, ret=54.0, tank=None, unit=None, action=None):
+    """One pass's inputs on a flow set-point (range 20-70, default 55 ceiling)."""
+    config = {"space_setpoint_entity": "number.sk_flow"}
+    states = {"number.sk_flow": FakeState("40", attributes={"min": 20, "max": 60})}
+    for key, value in ((_SK_RETURN, ret), (_SK_TANK, tank)):
+        if value is not None:
+            config[key] = f"sensor.sk_{key}"
+            states[config[key]] = FakeState(str(value), unit="°C")
+    if unit is not None:
+        config["space_setpoint_unit"] = unit
+    return _sk_ns(
+        config=config, hass=FakeHass(states),
+        state=_sk_ns(outdoor_temperature=0.0, buffer_tank_temperature=40.0, floor_return_temperature=None),
+        thermal=_sk_ns(params=None, curve_flow_temp=lambda _o: None),
+        params=_sk_ns(min_electrical_power=1.5, max_electrical_power=5.5),
+        plan=_sk_ns(timestamps=[_SK_T0], power_schedule=[kw]),
+        action=action,
+    )
+
+
+def _sk_rec(prev_duty="dhw", gap_s=60.0, space=(29.0, -40.0), duty="space"):
+    """The served record after a ``duty`` pass at _SK_T0, ``gap_s`` after a
+    ``prev_duty`` pass; ``space`` is (inlet, minutes before _SK_T0) or None."""
+    remembered = None if space is None else (space[0], _SK_T0 + timedelta(minutes=space[1]))
+    prev = _sk_fa.Served(prev_duty, _SK_T0 - timedelta(seconds=gap_s), None, remembered)
+    return _sk_fa.note(prev, duty, _SK_T0, _SK_SETTLE, 54.0, False)
+
+
+def _sk_write(inp, rec=None, now=_SK_T0, duty="space", boosted=False):
+    return _sk_pa._flow_target(inp, duty, now, boosted=boosted, settle=rec)
+
+
+# T1, the failing check first: main writes the ceiling on the swap pass.
+_sk_swap = _sk_rec()
+_sk_t1 = _sk_write(_sk_inp(), _sk_swap)
+_sk_t1_oracle = _sk_write(_sk_inp(ret=29.0))
+R.check(
+    "STEP-KICK T1: a mid-band space pass right after a hot-water serve, the return at 54 degC, "
+    "maps from the remembered space inlet 29 degC, not the ceiling; null control: the same pass "
+    "with no served record writes the ceiling",
+    _sk_swap.swap_at == _SK_T0 and _sk_t1 == _sk_t1_oracle and _sk_t1 < 55.0
+    and _sk_write(_sk_inp()) == 55.0,
+    f"swap_at={_sk_swap.swap_at} write={_sk_t1} oracle={_sk_t1_oracle} unsettled={_sk_write(_sk_inp())}",
+)
+# T2, T10, T3: no hot-water serve before the pass is no swap, and the hot inlet still clamps.
+R.check(
+    "STEP-KICK T2/T10/T3: a previous space or Heating + DHW serve is no swap, and a hot "
+    "return with no swap still writes the ceiling",
+    all(_sk_rec(prev).swap_at is None and _sk_write(_sk_inp(), _sk_rec(prev)) == 55.0
+        for prev in ("space", "both", None))
+    and _sk_rec("both", duty="both").swap_at is None,
+    [(prev, _sk_rec(prev).swap_at, _sk_write(_sk_inp(), _sk_rec(prev))) for prev in ("space", "both", None)],
+)
+# T4: the window's far edge, and a live inlet at or below the anchor.
+_sk_late = [_sk_write(_sk_inp(), _sk_swap, now=_SK_T0 + _SK_SETTLE + d)
+            for d in (timedelta(0), timedelta(minutes=30))]
+R.check(
+    "STEP-KICK T4: from swap + settle on the write is today's, and inside the window a live "
+    "inlet at or below the remembered one writes from the live inlet",
+    _sk_late == [55.0, 55.0]
+    and _sk_write(_sk_inp(), _sk_swap, now=_SK_T0 + _SK_SETTLE - timedelta(seconds=1)) == _sk_t1_oracle
+    and _sk_write(_sk_inp(ret=27.0), _sk_swap) == _sk_write(_sk_inp(ret=27.0))
+    and _sk_write(_sk_inp(ret=29.0), _sk_swap) == _sk_t1_oracle,
+    f"late={_sk_late}",
+)
+# T5: the fallback anchors, and the remembered inlet's age.
+_sk_none = _sk_rec(space=None)
+_sk_old = _sk_rec(space=(29.0, -(_sk_pa.LEASE_MINUTES + 1)))
+R.check(
+    "STEP-KICK T5: with no remembered space inlet the buffer rung anchors, with no buffer either "
+    "the rated hold; a remembered inlet older than the lease reads as none",
+    _sk_write(_sk_inp(tank=31.0), _sk_none) == _sk_write(_sk_inp(ret=None, tank=31.0))
+    and _sk_write(_sk_inp(), _sk_none) == _sk_write(_sk_inp(ret=None))
+    and _sk_write(_sk_inp(kw=1.5), _sk_none) == _sk_pa.FLOW_HOLD_C
+    and _sk_write(_sk_inp(tank=31.0), _sk_old) == _sk_write(_sk_inp(ret=None, tank=31.0))
+    and _sk_write(_sk_inp(tank=31.0), _sk_rec(space=(29.0, -(_sk_pa.LEASE_MINUTES - 1)))) == _sk_t1_oracle,
+    f"buffer={_sk_write(_sk_inp(tank=31.0), _sk_none)} hold={_sk_write(_sk_inp(), _sk_none)} "
+    f"old={_sk_write(_sk_inp(tank=31.0), _sk_old)}",
+)
+# T6: a return target and an experiment step stand aside (I4, I6).
+_sk_probe = {"mode": "system_identification", "power": 3.5}
+R.check(
+    "STEP-KICK T6: a return target and a system-identification step write the same with "
+    "and without the swap",
+    _sk_write(_sk_inp(unit="return"), _sk_swap) == _sk_write(_sk_inp(unit="return"))
+    and _sk_write(_sk_inp(action=_sk_probe), _sk_swap) == _sk_write(_sk_inp(action=_sk_probe)) == 55.0,
+    f"return={_sk_write(_sk_inp(unit='return'), _sk_swap)}/{_sk_write(_sk_inp(unit='return'))} "
+    f"probe={_sk_write(_sk_inp(action=_sk_probe), _sk_swap)}",
+)
+# T7: the band top and a boost still write the ceiling (I5).
+R.check(
+    "STEP-KICK T7: at the band top, and under a boost, the swap pass writes the ceiling",
+    _sk_write(_sk_inp(kw=5.5), _sk_swap) == 55.0
+    and _sk_write(_sk_inp(), _sk_swap, boosted=True) == _sk_write(_sk_inp(), boosted=True) == 60.0,
+    f"top={_sk_write(_sk_inp(kw=5.5), _sk_swap)} boost={_sk_write(_sk_inp(), _sk_swap, boosted=True)}",
+)
+# T8: the record keys on the served duty alone; a both pass after hot water is a swap too.
+R.check(
+    "STEP-KICK T8: a served hot-water -> space or -> Heating + DHW change is a swap with no mode "
+    "written or read (a gate transport's swap)",
+    _sk_rec(duty="space").swap_at == _SK_T0 and _sk_rec(duty="both").swap_at == _SK_T0
+    and _sk_write(_sk_inp(), _sk_rec(duty="both"), duty="both") == _sk_t1_oracle,
+)
+# T9: the recency guard's two sides, and a serve stamped ahead of the clock.
+R.check(
+    "STEP-KICK T9: a hot-water serve 4 min 59 s before is a swap, one 5 min 0 s before (a longer "
+    "fault gap) is not, and one stamped ahead of the pass is an unknowable age, no swap",
+    _sk_rec(gap_s=299.0).swap_at == _SK_T0 and _sk_rec(gap_s=300.0).swap_at is None
+    and _sk_rec(gap_s=-1.0).swap_at is None and _SK_SETTLE == timedelta(minutes=5),
+)
+# The space inlet record: only a running space-only pass outside a settle span.
+_sk_run = _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, True)
+R.check(
+    "STEP-KICK record: a running space pass remembers its inlet; a stopped one, a Heating + DHW "
+    "one and one inside the settle span keep the older record",
+    _sk_run.space_inlet == (30.0, _SK_T0)
+    and _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, False).space_inlet is None
+    and _sk_fa.note(None, "both", _SK_T0, _SK_SETTLE, 30.0, True).space_inlet is None
+    and _sk_fa.note(_sk_swap, "space", _SK_T0 + timedelta(minutes=1), _SK_SETTLE, 50.0, True).space_inlet
+    == _sk_swap.space_inlet
+    and _sk_fa.note(_sk_swap, "space", _SK_T0 + _SK_SETTLE, _SK_SETTLE, 30.0, True).space_inlet
+    == (30.0, _SK_T0 + _SK_SETTLE),
+)
+# I1/I2 census: every live inlet x anchor x level x window position.
+_sk_cells, _sk_bad = 0, []
+for _sk_live in (20.0, 26.0, 29.0, 34.0, 45.0, 54.0, 62.0):
+    for _sk_space in (None, (22.0, -10.0), (29.0, -10.0), (50.0, -10.0)):
+        for _sk_tank in (None, 24.0, 31.0):
+            for _sk_kw in (0.0, 1.5, 2.5, 3.5, 5.0, 5.5):
+                for _sk_at in (-60.0, 0.0, 120.0, 299.0, 300.0, 900.0):
+                    _sk_cells += 1
+                    _sk_inp_c = _sk_inp(kw=_sk_kw, ret=_sk_live, tank=_sk_tank)
+                    _sk_now = _SK_T0 + timedelta(seconds=_sk_at)
+                    _sk_r = _sk_rec(space=_sk_space)
+                    _sk_on, _sk_off = _sk_write(_sk_inp_c, _sk_r, _sk_now), _sk_write(_sk_inp_c, None, _sk_now)
+                    _sk_inside = 0.0 <= _sk_at < 300.0
+                    if _sk_on > _sk_off or (not _sk_inside and _sk_on != _sk_off):
+                        _sk_bad.append((_sk_live, _sk_space, _sk_tank, _sk_kw, _sk_at, _sk_on, _sk_off))
+R.check(
+    "STEP-KICK I1/I2 census: on every cell the settled write is never above today's, and outside "
+    "[swap, swap + settle) it equals today's",
+    _sk_cells == 7 * 4 * 3 * 6 * 6 and not _sk_bad,
+    f"{_sk_cells} cells, bad {_sk_bad[:6]} ({len(_sk_bad)})",
+)
+
+# End to end through the production _arbitrate (the note, desired's settle and the
+# pass record): a running space pass at 29 degC, then a hot-water serve, then a
+# stopped space pass on a 54 degC return. The plan here has no hot-water slot, so
+# the hot-water serve is stood in on the record the arbiter keeps.
+_SK_FB_SET = _FB_SET
+
+
+def _sk_e2e(swap, ret_b=54.0):
+    coord = _FbCoord(unit="flow", ceiling=55.0, lift=5.0, plan_kw=1.2, feedback=False)
+    coord.hass.states.set(_SK_FB_SET, FakeState("40", attributes={"min": 20, "max": 60, "step": 0.5}))
+    held = _sk_pa.state_for(coord)
+    held.loaded = True
+
+    def run(at, power, ret):
+        """One pass; the set-point entity then reads what was written, as the pump's does."""
+        coord.power = power
+        coord.hass.states.get(_FB_RETURN).state = f"{ret:.1f}"
+        seen = len(coord.hass.services.calls)
+        _fb_aio.run(_sk_pa._arbitrate(coord, held, coord.arbiter_inputs(), "control", at))
+        sent = [float(d["value"]) for _d, _s, d in coord.hass.services.calls[seen:]
+                if (d or {}).get("entity_id") == _SK_FB_SET]
+        for value in sent:
+            coord.hass.states.get(_SK_FB_SET).state = f"{value:.1f}"
+        return sent
+
+    t_a = _FB_T0 + timedelta(minutes=1)
+    run(t_a, 1.0, 29.0)
+    # A stopped space pass outside any settle span is not the loop's water.
+    run(t_a + timedelta(minutes=10), 0.0, 40.0)
+    t_b = t_a + timedelta(minutes=30)
+    if swap and held.served is not None:
+        held.served = _sk_replace(held.served, duty="dhw", at=t_b - timedelta(seconds=60))
+    return held, run(t_b, 0.0, ret_b)
+
+
+_sk_e_held, _sk_e_sent = _sk_e2e(True)
+_sk_n_held, _sk_n_sent = _sk_e2e(False)
+_sk_o_held, _sk_o_sent = _sk_e2e(False, ret_b=29.0)
+R.check(
+    "STEP-KICK end to end: _arbitrate remembers the running space pass's 29 degC over a later stopped "
+    "pass's 40, marks the swap, "
+    "writes what a 29 degC return writes and records that floor on the pass; null control, no "
+    "hot-water serve before the pass writes the ceiling and records the 54 degC floor",
+    _sk_e_held.served is not None and _sk_e_held.served.swap_at is not None
+    and _sk_e_held.served.space_inlet[0] == 29.0
+    and _sk_e_sent and _sk_o_sent and _sk_e_sent[-1] == _sk_o_sent[-1] < 55.0
+    and _sk_e_held.last_pass.floor_c == 34.0
+    and _sk_n_held.served is not None and _sk_n_held.served.swap_at is None and _sk_n_sent == [55.0]
+    and _sk_n_held.last_pass.floor_c == 59.0,
+    f"swap sent={_sk_e_sent} floor={_sk_e_held.last_pass and _sk_e_held.last_pass.floor_c} "
+    f"oracle={_sk_o_sent} no-swap sent={_sk_n_sent} floor={_sk_n_held.last_pass and _sk_n_held.last_pass.floor_c}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

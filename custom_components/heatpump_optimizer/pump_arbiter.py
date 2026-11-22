@@ -164,20 +164,16 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, draw_range, duty_switch, issues, off_restore, pump_mode, quiet_windows
+from . import boost, draw_range, duty_switch, flow_anchor, issues, off_restore, pump_mode, quiet_windows
+from .flow_anchor import FLOW_INLET_KEYS, RETURN_SKIPPED_RUNG
 from .const import (
-    CONF_BUFFER_TANK_TEMP_ENTITY,
-    CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
     CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
     CONF_HEAT_PUMP_FAULT_ENTITY,
-    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     CONF_POWER_ENTITY,
     CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
-    CONF_SPACE_SETPOINT_POWER_FEEDBACK,
-    CONF_VALVE_OUTLET_TEMP_ENTITY,
     DEFAULT_FLOW_HEAT_C,
     DOMAIN,
     FLOW_HEAT_C_MAX,
@@ -193,7 +189,7 @@ from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c,
+    InputReader, SetpointGrid, read_setpoint, setpoint_grid, setpoint_range_c,
     write_setpoint_c,
 )
 from .log_latch import log_held
@@ -399,6 +395,8 @@ class ArbiterState:
     held_until: datetime | None = None
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
+    #: The duty last served, and the swap it read (:func:`flow_anchor.note`); never persisted.
+    served: flow_anchor.Served | None = None
 
 
 @dataclass(frozen=True)
@@ -624,7 +622,8 @@ def _planned_room(
 
 
 def _space_target(
-    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None, *, boosted: bool
+    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None, *, boosted: bool,
+    settle: flow_anchor.Served | None = None,
 ) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`.
 
@@ -633,7 +632,7 @@ def _space_target(
     entity = _entities(inp.config)["space_setpoint"]
     if _flow_unit(inp.config):
         log_held(inp.hass, f"space_target_flow_declared:{entity}", False)
-        return _flow_target(inp, duty, now, boosted=boosted)
+        return _flow_target(inp, duty, now, boosted=boosted, settle=settle)
     room = _planned_room(result, now)
     low = setpoint_range_c(inp.hass, entity)[0]
     # An "indoor" entity that cannot hold the room target is a flow
@@ -721,35 +720,6 @@ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
     )
 
 
-#: The sensors that measure the water the pump heats, best first: the
-#: set-point is a power command (tvofi, 2026-10-19), so its floor sits a
-#: lift above that water. One precedence for every plant, because what a
-#: slot measures follows the plant (tvofi asked for every combination):
-#:
-#: * pump-loop return -- the condenser's own inlet on any plant;
-#: * buffer tank -- with a buffer, with or without a mixing valve, the
-#:   pump heats the tank;
-#: * floor return -- on a direct-to-radiator plant the pump's inlet; behind
-#:   a buffer, the mixed circuit's return, below the tank, so the floor
-#:   errs toward less power;
-#: * valve outlet -- house-side supply, at or above the floor return and,
-#:   on a wood topology, mixed with the wood tank, so the last rung.
-#:
-#: The pump's outgoing temperature is not a rung: it is the set-point's own
-#: controlled variable, and a floor anchored on it would chase itself. No
-#: rung read leaves the rated :data:`FLOW_HOLD_C`, today's default.
-FLOW_INLET_KEYS = (
-    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
-    CONF_BUFFER_TANK_TEMP_ENTITY,
-    CONF_FLOOR_RETURN_TEMP_ENTITY,
-    CONF_VALVE_OUTLET_TEMP_ENTITY,
-)
-#: The rung a return target is not anchored on: the valve outlet is
-#: house-side supply, and supply plus a lift written as a return target
-#: over-commands by about the spread. A return target reads the other rungs
-#: in the same precedence; none read leaves the no-inlet floor, the hold in
-#: return terms.
-RETURN_SKIPPED_RUNG = CONF_VALVE_OUTLET_TEMP_ENTITY
 #: The controller's lower and upper limit on the space water set-point, as
 #: the two optional sensors the feedback loop's bounds read.
 SETPOINT_LIMIT_KEYS = (
@@ -780,8 +750,8 @@ def live_power_kw(hass: Any, config: Mapping[str, Any]) -> float | None:
     return reading.value if reading.ok else None
 
 
-def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
-    """The first fresh reading of :data:`FLOW_INLET_KEYS` (without
+def _flow_inlet_c(inp: ArbiterInputs, keys: tuple[str, ...] = FLOW_INLET_KEYS) -> float | None:
+    """The first fresh reading of ``keys`` (without
     :data:`RETURN_SKIPPED_RUNG` for a return target), °C, or ``None``.
 
     Read through :class:`~.inputs.InputReader`, so a stale, implausible or
@@ -790,7 +760,7 @@ def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
     """
     reader = _reader(inp.hass, inp.config)
     skip = RETURN_SKIPPED_RUNG if _return_unit(inp.config) else None
-    readings = (reader.read(key) for key in FLOW_INLET_KEYS if key != skip)
+    readings = (reader.read(key) for key in keys if key != skip)
     return next(
         (reading.value for reading in readings if reading.ok), None
     )
@@ -923,6 +893,7 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
 
 def _flow_target(
     inp: ArbiterInputs, duty: str | None, now: datetime, *, boosted: bool = False,
+    settle: flow_anchor.Served | None = None,
 ) -> float | None:
     """A flow set-point per duty: heat, gate, or the fallback's hold.
 
@@ -949,7 +920,7 @@ def _flow_target(
     where that is higher.
     """
     if duty in ("space", "both"):
-        m = _map_inputs(inp, now, boosted)
+        m = _map_inputs(inp, now, boosted, settle)
         return _bounded(
             inp,
             "space_setpoint",
@@ -985,16 +956,24 @@ class MapInputs(NamedTuple):
     boost: bool
 
 
-def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool) -> MapInputs:
+def _map_inputs(
+    inp: ArbiterInputs, now: datetime, boosted: bool, settle: flow_anchor.Served | None = None,
+) -> MapInputs:
     """The level, band, heat ceiling and floor a heating step maps, read once
-    for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`)."""
+    for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`).
+
+    ``settle``: the served record, whose swap anchors a flow target's floor on
+    the space loop's water (:mod:`.flow_anchor`), never above today's floor,
+    and never under an experiment, whose fit owns its level map."""
     p_min, p_max = _band_kw(inp)
     boost_c = _boost_ceiling_c(inp) if boosted else None
     heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
-    floor_c = _or_hold(modulation_floor_flow_c(
-        _flow_inlet_c(inp), _gate_c(inp),
-        start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
-    ), inp.config)
+    lift = start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None))
+    inlets = [_flow_inlet_c(inp)]
+    if settle is not None and _experiment_kw(inp) is None and not _return_unit(inp.config):
+        side_c = _flow_inlet_c(inp, flow_anchor.SPACE_SIDE_KEYS)
+        inlets.append(settle.anchor_c(inlets[0], side_c, now, FEEDBACK_START_HOLD, timedelta(minutes=LEASE_MINUTES)))
+    floor_c = min(_or_hold(modulation_floor_flow_c(c, _gate_c(inp), lift), inp.config) for c in inlets)
     return MapInputs(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c, boost_c is not None)
 
 
@@ -1324,7 +1303,7 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
+    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now), settle=state_for(coord).served)
     if _flow_unit(inp.config):
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
@@ -1376,7 +1355,7 @@ def _pass_record(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boost
     command = _flow_command(inp, held)
     if command is None:
         return None
-    m = _map_inputs(inp, now, boosted)
+    m = _map_inputs(inp, now, boosted, held.served)
     return draw_range.PassRecord(
         now, command.written_c, command.gate_c, command.ceiling_c, m.floor_c,
         m.level_kw, finite_float(m.low_kw), finite_float(m.high_kw), m.heat_c,
@@ -1962,6 +1941,9 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
     served = _served(coord, inp, duty, now)
+    power = finite_float(inp.measured_power_kw)
+    held.served = flow_anchor.note(
+        held.served, served, now, FEEDBACK_START_HOLD, _flow_inlet_c(inp), power is not None and power >= _ran_kw(inp))
     await _command(coord, inp, desired(coord, inp, served, now), now)
     boosted = _boosted(coord, inp, now)
     _note_pass(held, inp, served, boosted, now)
