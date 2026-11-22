@@ -16,7 +16,7 @@
     "aliases": [
       "new: a post-review main merge reddens the head and no local instrument sees it"
     ],
-    "non_round_note": "Process incidents measured by the RCA seat over 2026-10-08..10-10, not audit findings, not in register_rows.tsv, not counted in total. Each row: the merge SHA and the checks the merge reddened (green at the reviewed parent).",
+    "non_round_note": "Process incidents measured by the RCA seat over 2026-10-08..10-10, not audit findings, not in register_rows.tsv, not counted in total. Each row: the merge SHA and the checks the merge reddened (green at the reviewed parent). Rows from R11-RCA-BOTMERGE-ROW: a budget key only the branch measures, breached by a merge of main (module_excess_loc on #3735), each the merge head and its tests / fast job.",
     "non_round_instances": [
       "03f7be4d3 instrument-self-tests, pr-contract",
       "0cff5a993 budget-raise-gate",
@@ -32,10 +32,17 @@
       "dc1abe654 fast (3.14), pr-contract",
       "574345d95 mutation, pr-contract",
       "4f0bde165 fast (3.14)",
-      "78a067541 budget-raise-gate"
+      "78a067541 budget-raise-gate",
+      "382df86816 fast (3.14) (job 135436031929, module_excess_loc -13 unrecorded gain)",
+      "011a463926 fast (3.14) (job 135520088877, module_excess_loc +22)",
+      "f50a75b4f7 fast (3.14) (job 135603189444, module_excess_loc +62)",
+      "430bc6bfad fast (3.14) (job 136821033342, module_excess_loc +61)",
+      "5e4a4a6a24 fast (3.14) (job 136990440813, module_excess_loc +98)",
+      "d4bd8ed29e fast (3.14) (job 137012722292, module_excess_loc +61)"
     ],
     "rca": [
-      "R9-RC-POSTREVIEW-MERGE"
+      "R9-RC-POSTREVIEW-MERGE",
+      "R11-RCA-BOTMERGE-ROW"
     ],
     "rules": [],
     "rca_planned": [],
@@ -5824,6 +5831,24 @@
       "in_tree_home": "dev/audit/rca/R11-RCA-3729-OPEN-AXIS.md",
       "doc": [
         "dev/audit/rca/R11-RCA-3729-OPEN-AXIS.md"
+      ]
+    },
+    "R11-RCA-BOTMERGE-ROW": {
+      "class": "N-postreview-merge-red",
+      "level": "instance-or-process",
+      "subject": "a tests/structure_budgets.json key only the branch measures is carried unchanged by the ledgermerge driver across every merge of main while main's code moves the quantity: 6 tests / fast reds on #3735 (module_excess_loc) in round 11, 1 in round 10 (#2340)",
+      "trigger": "red-check: tests / fast (3.14) at six merge-of-main heads of #3735",
+      "date": "2026-11-22",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built: P-R11-BOTMERGE-ROW, an amendment of R11-PRE-SHARED-FILES parts 2 and 3 (tooling freeze)"
+      ],
+      "process_state": "(d) the driver's base-plus-both-deltas rule keeps a row current only while main measures it; a key added on the branch removes main's side and nothing notices",
+      "countermeasure": "proposed narrow arm: ratchet prices a key absent at the merge base at head budget plus (merge-base measurement minus recorded_at measurement); about 11 min per such PR against about 420 min a round",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-RCA-BOTMERGE-ROW.md",
+      "doc": [
+        "dev/audit/rca/R11-RCA-BOTMERGE-ROW.md"
       ]
     }
   },
