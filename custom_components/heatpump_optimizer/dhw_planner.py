@@ -324,7 +324,7 @@ _SHORT_K = 0.05
 _STORE_GRID_K = 0.25
 _COP_KNOT_K = 1.0
 #: How far inside its bounds the program keeps its store, K, so the rating
-#: clamp trims no committed step on the walk: the linear store and the walk
+#: clamp trims no committed step on the walk. The linear store and the walk
 #: differ by about a thousandth of a kelvin along the fixtures' plans
 #: (``dev/audit/harnesses/r11_honest_dhw_runs.py``, ``stores``).
 _STORE_MARGIN_K = 0.02
@@ -362,7 +362,7 @@ def charges_run(plan: np.ndarray, floor: float, tails: bool) -> bool:
 
 def whole_charges(charge_runs: ChargeRuns | None, plan: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """``mask``, the steps a suppression would zero, without the steps of any
-    charge it does not cover whole, on a solve that plans runs: a committed
+    charge it does not cover whole, on a solve that plans runs. A committed
     charge is suppressed whole or kept whole, so no fragment is left shorter
     than a run or under the floor. ``mask`` itself on a solve that does not."""
     if charge_runs is None:
@@ -519,10 +519,10 @@ class _StoreProgram:
     :data:`_STORE_GRID_K` grid. A step pauses (``_DhwPlanContext.coast``) or
     charges at the pump's floor or at the run power, at the planning price
     and the COP of the cell's temperature. A charge that would pass the
-    ceiling fills the tank to it instead: at the level that takes, where
-    that is the floor or above; under the floor only as a run's last step,
-    which ends inside it (the contributor's tail), and only on an install
-    that can end a run at any moment. The bounds are the caller's floors
+    ceiling fills the tank to it instead, at the level that takes, where
+    that is the floor or above. Under the floor it does so only as a run's
+    last step, which ends inside it (the contributor's tail), and only on an
+    install that can end a run at any moment. The bounds are the caller's floors
     and, on a charging step, ceilings; a forced-off step stays off, and a
     start is made only where the caller says the pump would make one.
 
@@ -573,9 +573,10 @@ class _StoreProgram:
             self.params, np.where(fills, share, 0.0) * heat_per_cop_kw(self.params, self.levels[-1])), fills
 
     def _actions(self, k: int) -> tuple[list[runs.Action], list[runs.Action]]:
-        """What step ``k`` may do in a run (each level, and the fill to the
-        ceiling where its level is the floor or above) and in a pause (idle,
-        and the tail: a fill under the floor that ends the run before it)."""
+        """What step ``k`` may do in a run and in a pause. In a run: each
+        level, and the fill to the ceiling where its level is the floor or
+        above. In a pause: idle, and the tail, a fill under the floor that
+        ends the run before it."""
         ctx, price, floor = self.ctx, float(self.ctx.prices[k]) * self.ctx.dt, self.floor
         ran, paused = runs.tie_break(bool(self.asked[k] > 0.0))
 
@@ -659,7 +660,7 @@ def commit_charges(
     space_demand: np.ndarray | None,
 ) -> np.ndarray:
     """The planner's finished, uncommitted ``plan`` as charges the pump can
-    run, on a solve that plans runs (``planner.charge_runs``); ``plan``
+    run, on a solve that plans runs (``planner.charge_runs``). ``plan``
     itself on one that does not, where its cap is under the floor, and where
     it already runs and no start has a price. The finding and the program
     are Bankaifan's (pull request 3529).
