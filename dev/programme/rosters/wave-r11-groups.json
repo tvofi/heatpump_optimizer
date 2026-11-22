@@ -7133,7 +7133,8 @@
     3861
    ],
    "after": [
-    "R11-SEAM-card"
+    "R11-SEAM-card",
+    "R11-OWNER-EXTHEAT-OVERRIDE"
    ],
    "files": [
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
