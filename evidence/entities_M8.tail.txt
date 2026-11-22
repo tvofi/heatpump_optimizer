@@ -1,0 +1,61 @@
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+MUTATION LEDGER: changed -- nothing owed
+MUTATION LEDGER: skip-unchanged -- nothing owed
+MUTATION LEDGER: skip-nothing-killed -- nothing owed
+MUTATION LEDGER: skip-nothing-drivable -- nothing owed
+MUTATION LEDGER: (no status) -- a measured slice did not reach main
+MUTATION LEDGER: skip-no-measurement -- a measured slice did not reach main
+MUTATION LEDGER: skip-head-moved -- a measured slice did not reach main
+MUTATION LEDGER: skip-write-set -- a measured slice did not reach main
+MUTATION LEDGER: skip-push-refused -- a measured slice did not reach main
+MUTATION LEDGER: skip-fetch-failed -- a measured slice did not reach main
+MUTATION LEDGER: skip-apply-crashed -- a measured slice did not reach main
+MUTATION LEDGER: skip-commit-set -- a measured slice did not reach main
+MUTATION LEDGER: skip-no-writer -- a measured slice did not reach main
+MUTATION LEDGER: measured -- a measured slice did not reach main
+ci-ratchet: not counted: 3 row(s) carried by another lane's artifact (a child that inherited HPO_CI_METRICS)
+ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: HTTP 502
+ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/4 failed: gh exited 1 after 0 byte(s): gh: HTTP 502
+ci-ratchet: skipping expired artifact 12 (ci-metrics-closures): gh: Artifact has expired (HTTP 404)
+  NOT RUN x.py:1 CONST -- not started: it would have overrun --budget-minutes
+
+MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not started for --budget-minutes
+  NOT RUN x.py:1 CONST -- not started: it would have overrun --budget-minutes
+
+-- The replay lane: controls, sanitiser, fixture, wiring
+reading the recorder: SQLite database /tmp/tmpgqvm9vw2/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp1668e8yz/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpcdvpwrg1/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpg3gcri3g/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmplur0qwoz/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpxoym4myr/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpjtum1u7s/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpm183oh28/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpqcf53bbx/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmphekhl5cz/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpjr7hx2qi/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp7et48xs1/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpi7v15jlr/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmplsttp_l5/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp2vxw7uxh/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp5mjqfi6f/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp0a5qjhmc/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpvgvxqu17/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpfgt6lzh0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpaxj2f2ch/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpv4jwypq4/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpf0s0e_l2/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp9o8wa_mi/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpwz12axty/home-assistant_v2.db
+left out: entity id(s) under 1 entry key(s) this integration does not read (legacy_probe_entity)
+reading the recorder: SQLite database /tmp/tmp3a340dzn/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp_k6tm6dk/home-assistant_v2.db
+
+-- The debugger harness: ingest, store seed, week generator
+Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+
+-- Round 9: the judge's batch re-runner
+
+ALL 2761 ENTITY CHECKS PASSED
+2803
