@@ -1,30 +1,36 @@
-Fix review: blocked 46e7faa93fdf786a39090aed84a4f91ec11599b6 mutation-vacuous: tools/ci/prelude.py machinery_rowblind reading ev instead of scoped survives the closure
+Fix review: merge 17ecc009eda59ac715b148a70fc541b7c1b0a593
 
-bus-nonce: 96993dd62117e15f50d39617f0842ad9
+bus-nonce: fb79bd5c756a8d589b200d5da3cafee4
+pending-ci: gate
 
-Round 1 (first review of #3847; no --reviewed-head).
+Round 2 of #3847. The round-1 verdict `a5dea9b9c2` blocked `46e7faa93f` with `mutation-vacuous` (M7). `review_carry.py a5dea9b9c2 17ecc009ed` prints `FRESH-REVIEW`, so this round reviews the delta (fix-review.md step 12). `git diff 46e7faa93f 17ecc009ed` touches only `tools/ci/prelude.py`'s self-test (+5/-3): the CI-2 positive arm and the five null arms now read `machinery_rowblind`. The delta has no production line and no `custom_components/` path, so the review is not widened.
 
-## Block
+## Findings
 
-- Survivor M7 (`ev/M7.diff`): in `tools/ci/prelude.py` `outputs`, the changed line `out["machinery_rowblind"] = "true" if scoped != "pull_request" ...` reverted to read `ev` (the pre-change line). `python3 tools/ci/prelude.py --self-test` prints `89 checks, 0 failed` and `PYTHONPATH=tests/hastub python3 tests/entities.py`, the only other script in `tests/closures.json` that reaches `tools/ci/prelude.py`, prints `ALL 2740 ENTITY CHECKS PASSED` (`ev/entities_M7_summary.txt`, `ev/entities_M7.log`). The body says a verified PR dispatch scopes "`machinery`, `machinery_rowblind` and `selftests` exactly as for that PR's `pull_request` run". The CI-2 positive arm and its five null arms read `legs`, `machinery` and `selftests`, but none reads `machinery_rowblind`, so that part of the claim is not pinned. The mutant fails safe: arch-instrument still runs on dispatches. The test is still missing. Remedy: add `machinery_rowblind` to the CI-2 positive tuple (expect `false` for the doc-only diff) and to each null arm (expect `true`), then re-show that M7 is killed.
+- Residual: the body's extra mutant (`machinery_rowblind` drops its `scoped != "pull_request"` guard) survives at this head: `prelude self-test: 89 checks, 0 failed` (`ev/prelude_mutants.txt`, mutant G). The same guard-drop at the merge base `40e513eea4`, where the guard read `ev`, also survives: `82 checks, 0 failed` (`ev/base_guard_mutant.txt`). The gap is in the guard's domain that predates this PR. This PR changes only the guard's event variable, and reverting that change (M7) is killed. The body records it with the same dismissal. Carry: dismissed: pre-existing at base 40e513eea4 (the guard-drop survives there too); not a behaviour this PR changes
 
 ## Evidence
 
-- Head reviewed: `46e7faa93fdf786a39090aed84a4f91ec11599b6` (`ev/HEAD.txt`), which is the PR's live head and the head the body names. Merge base: `40e513eea4ca3dacad882b7a1a1366b6b188f777`. Under `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`, nothing is printed, so the role contract is current.
-- CI: `merge_train.py classify 46e7faa93fdf786a39090aed84a4f91ec11599b6 --pr 3847` exits 0 and prints `GREEN 46e7faa93fdf786a39090aed84a4f91ec11599b6 pending: none red: none` (`ev/classify.txt`).
-- Merges with main: `git merge-tree --write-tree origin/main HEAD` prints `b839c74641c7381270be292887eb8e39e079ea0d` and exits 0 (`ev/head_checks.txt`).
+- Head reviewed: `17ecc009eda59ac715b148a70fc541b7c1b0a593` (`ev/HEAD.txt`). This is the PR's live head, and the body's `## Head` names it. Merge base: `40e513eea4ca3dacad882b7a1a1366b6b188f777`. `git diff <merge-base>...origin/main -- dev/governance/roles/` prints 0 lines, so the role contract is current (`ev/head_checks.txt`).
+- Merges with main: `git merge-tree --write-tree origin/main 17ecc009ed` (origin/main `baa9a467ac`) prints `4bf85f9b386846f8b113efeefa2fea20da1afc35` and exits 0.
 - VERSION, the manifest version, RELEASE_NOTES.md and both claim files are untouched: a three-dot diff over them prints 0 lines.
-- The body's four prelude mutants (M1 to M4) are all killed by the named CI-2 arms (`ev/prelude_mutants.txt`). The reviewer's own mutants M5 (`base_sha` not replaced), M6 (`machinery` reads `ev`), M8 (`legs` read `ev`), M9 (`dispatch_diff` always None) and M10 (the base ref ignored) are also killed. M7 survives (see Block).
-- Workflow pins: the same entities.py run passes every CI-1, CI-5, CI-7 and CI-17 check at this head, null controls included, with only the prelude mutated. The reviewer did not hand-plant workflow mutants beyond the body's own plants.
-- Figures, re-derived at the current merge base:
-  - `prelude self-test: 89 checks, 0 failed` matches the body.
+- Prior finding resolved: M7 (`machinery_rowblind` reads `ev`) is now KILLED by `CI-2: a verified PR dispatch of a doc-only diff skips every leg, idles machinery, scopes self-tests`, which got `'true'` for rowblind. The driver is `ev/mut_driver.py` and the output is `ev/prelude_mutants.txt`.
+  - rowblind always `"true"` is killed by the CI-2 positive arm, `C7a` and `C7a-row`.
+  - rowblind always `"false"` is killed by the CI-2 null arms and `C7a-row`.
+- Re-run at this head and still killed: M1 (`scoped` never `pull_request`), M2 (`if got`), M3 (`and not why` dropped), M4 (the batch exclusion dropped), M6 (`machinery` reads `ev`), M8 (`legs` read `ev`), M9 (`dispatch_diff` always None) and M11 (`base_sha` not replaced). The unmutated file prints `prelude self-test: 89 checks, 0 failed`, which matches the body.
+- Class enumeration, step 6:
+  - CI-1's set is every `gh workflow run ci.yml` site paired with a token push. In `.github/` that is merge-main.yml (one site) and the three tests.yml autofix jobs (lines 2642, 2899 and 3187), which matches the four the body names.
+  - The other dispatcher of `ci.yml`, `tools/ci/sweep.py:236`, re-judges stale pins. It does not follow a bot push, so it is outside the set.
+  - CI-17's rule is every `setup-python` in a job that pip-installs a `tests/requirements-*.txt`. Enumerated over every workflow and composite action, it gives 15 steps with `cache: pip` and 0 pip-installing jobs without the cache (`ev/ci17_enumeration.txt`), which matches the body's 15.
+- Figures re-derived at this head (`ev/figures.txt`):
   - `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
-  - `python3 tests/comment_ratchet.py --base origin/main` prints `comment_ratchet: OK` with long_units 2301 -> 2301. The body's 2303 -> 2303 was taken against the older base `6fdc15354f`.
-  - entities prints 2740 checks. The body's 2735 was taken at the older base. Both differences come from the move in main's base, not from this diff.
-  - The body's "15 steps" is confirmed: 14 `setup-python` steps carry `cache: pip` across `tests.yml`, `governance.yml`, `kernel-points.yml` and `nightly.yml`, plus the composite `nightly-ha` action.
-- CI-17 cache glob: every cached `setup-python` step follows an `actions/checkout` at the workspace root, with no `path:` and no sparse checkout. The composite action is used only after a checkout. So `tests/requirements-*.txt` matches in every job, including the jobs CI skipped at this head: mutation-pins, replay, kernel-points, the nightly jobs and governance's regret-oracle.
-- CI-5: `ci.yml` triggers `push` only on `branches: [main]`, so the `CI-main` group never mixes another branch's push. The workflow-level `cancel_superseded.py main` arm is wired into no workflow, so no automated canceller fights the group. A coalesced main parent makes the push arm's coverage key (`HEAD^1`) miss, which means a full measurement: a cost, not a correctness change.
-- CI-1, autofix: `approved_head` is set only when the approved CI run's id appears in `hits`, the earlier poll at the pushed SHA. A CI run that is created between that poll and the `held` listing is approved but not counted, so the head is also dispatched. This fails toward running (two runs, the pre-change behaviour) and is not a defect.
-- Owed red: `tests / fast (3.14)`, at the earlier head `547a71778069`, is in the `owed-reds` set. The body's `## Red checks` answers it and names the cheaper detector (`tests/comment_ratchet.py`).
-- Prepr was not re-run, as the dispatch's owner rule says: the fixer's receipt covers the code.
-- Closing self-audit: `carry_audit.py check` over this verdict prints `CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)`, rc 0. The body was audited separately by the packet render at this head, with the same 0 items; this run used only the body's `## Forward-carry` and `## Friction` sections, both `none`.
+  - `python3 tests/comment_ratchet.py --base origin/main` prints `comment_ratchet: OK`, with long_units 2301 -> 2301.
+  - The body's `ALL 2740 ENTITY CHECKS PASSED` was not re-run here. The delta does not reach `tests/entities.py`, so this cites CI's `tests / fast (3.14)` at this head instead: success at 17:27:35Z.
+- Finder's harness: the body names the study's job-minute census, which only a merged workflow can move. As in round 1, its tree companion is the prelude's CI-2 arms, re-run above.
+- CI at this head:
+  - The live check runs read success on every required lane except `tests / closures` and `tests / arch-instrument`, still in progress at 17:29Z.
+  - `governance / instrument-self-tests` concluded success, which clears the packet's `introduced-red: unreadable` refusal.
+  - The `gate` run 137282290108 that concluded failure at 16:59Z ran before the lanes concluded. `merge_train.py classify` reads `WAIT ... pending: gate red: none`, and classify decides.
+- Red history: `tests / fast (3.14)` at `547a71778069` is in the `owed-reds` set, and the body's `## Red checks` answers it, naming `tests/comment_ratchet.py` as the cheaper detector. No other red is owed.
+- CI wait: `merge_train.py classify 17ecc009ed --pr 3847` was polled from 16:59Z to 17:37Z, every 75 s, and read WAIT throughout. The last line is `WAIT 17ecc009eda59ac715b148a70fc541b7c1b0a593 pending: gate red: none` (`ev/classify.log`). The verdict is returned with `pending-ci: gate`, for the relay to post only at GREEN.
+- Prepr was not re-run, as the dispatch says.
