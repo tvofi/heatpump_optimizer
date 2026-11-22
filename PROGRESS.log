@@ -40,3 +40,4 @@
 1795380634 HB alive
 1795381238 HB alive
 1795381981 CKPT code pushed handoff/r11-owner-fault-hold 5eb7083aaa; body REFUSED CARRY-LANDED (3 roster carries owed by orchestrator), kept at handoff-wip/r11-owner-fault-hold-body 6c3e5dde snapshot 1b7b9cd8201a
+1795381984 DONE code 5eb7083aaa on handoff/r11-owner-fault-hold; body held at handoff-wip/r11-owner-fault-hold-body 6c3e5dde: CARRY-LANDED needs 3 roster append-carry ops (orchestrator)
