@@ -99190,7 +99190,7 @@ _R3_ROOM = np.array([19.5, 19.6, 19.95, 20.0, 21.0])
 
 
 def _r3_classify(lifts):
-    return _r3_opt._mark_room_floor(_r3_opt.classify_space_steps(
+    return _rh_rooms.mark_room_floor(_r3_opt.classify_space_steps(
         np.full(4, 2.0), np.ones(4), _R3_ROOM, 19.5 + _R3_LIFT, np.ones(4), None, 4,
     ), _R3_ROOM, 19.5 + _R3_LIFT, lifts)
 
@@ -99211,7 +99211,7 @@ R.check(
 # temperature (20.1: room_floor), not the one before it (19.6), and step 0,
 # exactly at the floor plus 0.15 K (19.65), stays comfort_floor.
 _R3_ROOM2 = np.array([19.5, (20.0 - 0.5) + 0.15, 19.95, 19.6, 20.1])
-_r3_edge = _r3_opt._mark_room_floor(["comfort_floor"] * 4, _R3_ROOM2, 19.5 + _R3_LIFT, _R3_LIFT)
+_r3_edge = _rh_rooms.mark_room_floor(["comfort_floor"] * 4, _R3_ROOM2, 19.5 + _R3_LIFT, _R3_LIFT)
 R.check(
     "R11-OUTSIDE-ROOMS-3B: the last step is judged on the trajectory's last temperature and a step exactly at "
     "the floor less the lift plus 0.15 K is not the lift's; null control, step 1 (19.95) is room_floor",
