@@ -12,3 +12,4 @@
 1795388820 HB alive
 1795389423 HB alive
 1795389683 DONE handed off 768417ad3f: M8 killed by real-coordinator mode check in entities.py; body corrected
+1795389716 DONE handed off 768417ad3f; body a648d40775; wip-ref delete refused HTTP 403 by git proxy
