@@ -1,0 +1,6 @@
+box D3-g08 full-gate null control (fullgate.py null, comment-only marker), 2026-11-22, nproc 4 Intel Xeon @ 2.10GHz, load1 0.81..0.92, wall 3653.9 s (provisional), thread_factor 1.0.
+gate_rc=1, 3 scripts red, counted failed checks: closure.py selftest 2, entities.py 1, harness_headers.py 3.
+- closure.py selftest: "a refused merge surfaces merge()'s reason, not just skip-merge-failed" / "and a merge that succeeds carries no merge reason (null control)" [status='skip-not-under-scoped']: branch/merge-tool pins on a detached worktree; no production file involved (same pair as box D3-rem's null).
+- entities.py: the single counted red check is "and is accepted when it does [the scoped path records only what the diff can reach]" (scoped-gate pin, branch-environment artefact; same as D3-rem). Every other FAIL line in its section is a negative control's expected output.
+- harness_headers.py: dev/audit/rounds/round4/D6/claims.py prints claims_true=122/claims_false=1 against its header's 123/0, and its run rewrites its committed claims.json/claims.md: the round-4 README-claims harness measured on this stripped worktree; no production file involved.
+None of these checks reads a production cell file, so no mutant needs to fail them. fullgate.py counts KILLED only on a script beyond this null or more failing checks in one. The null is usable: not re-taken, no BLOCKED.
