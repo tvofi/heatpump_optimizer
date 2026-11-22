@@ -1,0 +1,7 @@
+611f843468 a=2026-11-22T00:03:51+01:00 tvofi structure: record module_excess_loc 21718 -> 21779 at the PR head
+bd58b7341e a=2026-11-21T15:29:58+00:00 hpo-fixer structure: record module_excess_loc 21694 -> 21718 at the PR head
+b278df39d6 a=2026-11-20T21:48:20+01:00 tvofi structure: record module_excess_loc 21633 -> 21694 at the PR head
+0800f342ef a=2026-11-19T15:43:05+01:00 tvofi structure: record module_excess_loc 21571 -> 21633 at the PR head
+ef7d2e4038 a=2026-11-19T11:30:11+01:00 tvofi structure: record module_excess_loc 21536 -> 21571 at origin/main cb8edb65a5
+0dfa61d887 a=2026-11-19T09:31:36+01:00 tvofi structure: re-record module_excess_loc 21549 -> 21536 at origin/main 99436a082c
+045f358a4f a=2026-11-18T14:23:12+00:00 hpo-fixer structure: count const fan-out by names read, price module spans past 2000 lines
