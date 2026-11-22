@@ -1,23 +1,23 @@
-Fix review: merge 8993af01a55631987d4857314b41a342576bd658
+Fix review: merge 6a76c6071db6d7e4abaadcc9b9f4b0605d16c3a5
 
-bus-nonce: dd79003e82b897e30cc7a52d8374a596
+bus-nonce: 0da85d4885983db007cb8ea87d1d1393
 
-## Scope
+## Summary
 
-Round 1, full scope. Record-only diff: 21 files, all `dev/programme/delivery/<N>.md` row files (20 rewritten or added as merged, plus this PR's own row as open). No production, test or check code; `VERSION`, the manifest version and `RELEASE_NOTES.md` are untouched (0 paths). The role contract matches main (`git diff <merge-base>...origin/main -- dev/governance/roles/` is empty).
-
-## Findings
-
-- Mutant M3 (a merged row's sha changed to `1234567`) survives `tests/delivery_status.py --require-rows` (rc 0). That is how the check is designed: `anchored()` says the merge sha is not part of a row's anchor, because the record PR's own row is written before it merges. No check reads the sha in a row, so this review checked all 20 shas by hand (see Evidence). Carry: dismissed: the instrument is designed this way and documents it in `anchored()`; every sha in this diff was verified by hand
+Round 1 (first review, scope full). Record-class PR from the hpo-author App: 20 files, all `dev/programme/delivery/<N>.md` row files (19 rows flipped or added as merged, plus its own open row). No production, test or check code; VERSION, the manifest and RELEASE_NOTES.md are untouched.
 
 ## Evidence
 
-- Head: the PR body's `## Head` is `8993af01a55631987d4857314b41a342576bd658`, the head reviewed here. Base and merge base: `baa9a46`.
-- Rows checked against main (ev/rows_verify.txt): for each of the 20 merged rows, the quoted short sha resolves to a commit that is an ancestor of origin/main, and that commit's subject is `Merge pull request #<N>` for the same N as the row file. 20 of 20 match. Row 3844 reads `**open**`, which is correct for an open PR.
-- Delivery-status at the head (ev/delivery_status_head.txt): `DELIVERY STATUS OK — 21 rowed, 0 pending, 0 overdue`. That is 20 merged rows plus this PR's own row, the same count the body lists.
-- Mutation proof (ev/mutants.txt), using `delivery_status.py --require-rows`: M0 unmutated rc 0; M1 deleting row 3851 gives rc 1 (1 pending); M2 setting row 3728 back to `**open**` gives rc 1 (1 overdue); M3 wrong sha gives rc 0 (by design, see Findings).
-- Merge with main (ev/merge_tree.txt): `git merge-tree --write-tree origin/main 8993af01a55631987d4857314b41a342576bd658` exits 0, so there is no conflict.
-- CI (ev/classify.txt): `merge_train.py classify 8993af01a55631987d4857314b41a342576bd658 --pr 3844` printed `GREEN 8993af01a55631987d4857314b41a342576bd658 pending: none red: none`, rc 0.
-- Red checks: no red at this head. The body's `## Red checks` answers `record`, `nightly-status` and `delivery-status` as reds that may be standing on main. None of them is red at this head. Owed-reds set (ev/owed_reds.txt).
-- Finder's harness: none. A record beat has no finder. The figure the body quotes names its instrument (`tests/delivery_status.py`), and this review re-ran it at the head (above).
-- Claim files and goldens: not touched by the diff, so step 4 does not apply.
+- RESULT head: the body's `## Head` names 6a76c6071db6d7e4abaadcc9b9f4b0605d16c3a5, the head reviewed (ev/HEAD.txt).
+- RESULT rows: every one of the 19 merged SHAs in the rows equals the first-parent merge commit for that PR on origin/main (3728 4ebd430, 3729 f269ecc, 3735 59b17e9, 3737 35402f7, 3814 e4c929b, 3821 608c95d, 3822 8ef4509, 3832 726e5bb, 3836 6f6a85c, 3837 fc06c46, 3839 505ed38, 3840 35c3e31, 3842 2ceb62b, 3843 40e513e, 3846 3a98735, 3850 024895c, 3851 eaaaf24, 3852 0c69bd1, 3853 0ff1b6b); checked by git log on origin/main.
+- RESULT figure: `python3 tests/delivery_status.py` at the head prints `DELIVERY STATUS OK -- 20 rowed, 0 pending, 0 overdue`, the same as the body's figure.
+- RESULT mutation: the body says n/a (no code lines). I agree. My targeted mutant that turns the 3851 row back to open moves the instrument to `19 rowed, 1 pending`, so it does see a row's state. A mutant that changes a row's SHA (3728 4ebd430 -> 4ebd431) survives; see Findings.
+- RESULT merge: `git merge-tree --write-tree origin/main <head>` exits 0, and the head is 0 commits behind main (ev/ci-and-merge.txt).
+- RESULT CI: `merge_train.py classify 6a76c6071db6d7e4abaadcc9b9f4b0605d16c3a5 --pr 3844` -> `GREEN ... pending: none red: none`. The packet's live digest shows `gate` success at this head.
+- RESULT red: the board's red `gate` is not on this head. For the earlier head f150b5dd79, classify prints `WAIT ... pending: gate`: that run was superseded, not failed on this diff. At 6a76c6071db6d7e4abaadcc9b9f4b0605d16c3a5 no context in the owed-reds set is red, so no `## Red checks` answer is owed here. The body still answers record, nightly-status and delivery-status.
+- RESULT claims and goldens: no claim file and no fixture changed, so the drift comparison is empty.
+- RESULT carry: no forward-carry named (none owed for a record beat).
+
+## Findings
+
+- Follow-up: `tests/delivery_status.py` checks that a row exists and its open or merged state, but not that the row's merged SHA matches the real merge commit. A row with a mistyped SHA passes (mutant 4ebd430 -> 4ebd431 stays OK). I checked all 19 SHAs in this PR by hand, so this PR is correct. The gap is in the instrument, not in this diff, and the rows are written by automation from REST merge facts. Carry: dismissed: instrument scope; rows are generated from API merge facts and every SHA here was verified independently
