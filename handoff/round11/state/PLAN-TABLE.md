@@ -155,7 +155,7 @@ gantt
 | R11-SEAM-kernel-layering | CORE | 1 | done | #3746 | opus/opus | - | What the pure layer offers its importers: utc_elapsed_seconds is imported from drift.py, its owner, HISTORY_LENGTH moves to const.py, and currency.py imports... |  |
 | R11-SEAM-dead-state | CORE | 2 | not-started | #3779 | opus/opus | - | State production stores and nothing reads (D7-s3-05): constants named only by tests, parameters a function never loads, locals, attributes and fields only te... |  |
 | R11-SEAM-plant-model | CORE | 1 | done | - | opus/opus | - | Physical laws and the plant shape: the scalar Carnot factor agrees with its batch twin, delivery and derate keep their sign, and one predicate each answers "... |  |
-| R11-SEAM-inputs-guards | CORE | 1 | in-progress | #3745, #3751, #3757 | opus/opus | - | Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timest... |  |
+| R11-SEAM-inputs-guards | CORE | 1 | carries-open | #3745, #3751, #3757 | opus/opus | - | Every value entering through inputs.py is scaled once and tested finite and in domain: the minor-unit price scale, the Fahrenheit inverse, boolean and timest... |  |
 | R11-SEAM-inputs-freshness | CORE | 2 | not-started | #3744, #3748, #3757, #3762, #3774, #3789 | opus/opus | - | Age and expiry of live inputs: a forecast that stopped advancing, a silent PV meter, forecast row 0 read as now, push-mode flags aged on a polling limit, and... |  |
 | R11-SEAM-store | CORE | 1 | not-started | #3744, #3757, #3758 | opus/opus | - | store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. |  |
 | R11-SEAM-money | CORE | 1 | done | #3744, #3747, #3751 | opus/opus | - | Prices, fees, capacity windows and the ledger: whole-payload parse, weekday index, highest-window aggregate, scalar and batch top-k agreeing, open-window pro... |  |
@@ -191,7 +191,7 @@ gantt
 | R11-OWNER-STEP-KICK | CORE | 6 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-COOLING-GUARD | CORE | 1 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-FAULT-TEXT | CORE | 4 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
-| R11-OWNER-EXTHEAT-OVERRIDE | CORE | 1 | not-started | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
+| R11-OWNER-EXTHEAT-OVERRIDE | CORE | 1 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OUTSIDE-3849 | CORE | 1 | in-progress | #3849 | opus/opus | - | Outside issue #3849 (Bankaifan), owner high priority 2026-11-22, fixer above the cap. |  |
 
 ## ETA
