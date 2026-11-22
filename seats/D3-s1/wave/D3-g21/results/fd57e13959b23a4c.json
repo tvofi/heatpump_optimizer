@@ -1,0 +1,92 @@
+{
+ "key": "fd57e13959b23a4c",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:3997 CMP_BOUND",
+ "patch": "if score < best_score - 1e-9: -> if score <= best_score - 1e-9:",
+ "function": "HeatPumpOptimizer._co_optimize",
+ "cluster": "optimizer.py:HeatPumpOptimizer._co_optimize@3969-3997",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3302.1,
+  "load1_start": 0.45,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/fd57e13959b23a4c.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/fd57e13959b23a4c.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.10GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_fd57e13959b23a4c.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_fd57e13959b23a4c.py",
+  "metric": "which DHW plan _co_optimize returns when the re-planned candidate scores exactly best_score - 1e-9",
+  "baseline_value": "original",
+  "mutant_value": "replanned",
+  "baseline_name": "tie_baseline",
+  "mutant_name": "tie_mutant",
+  "inputs_tried": [
+   "score == best_score - 1e-9 (the tie)",
+   "score one ulp below the tie",
+   "score one ulp above the tie"
+  ],
+  "results": {
+   "tie_baseline": "original",
+   "tie_mutant": "replanned",
+   "moved": "1 count",
+   "null_delta": "0 count",
+   "below_tie": "replanned|replanned",
+   "above_tie": "original|original",
+   "thread_factor": "1.000",
+   "load1": "1.42",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_fd57e13959b23a4c.txt"
+ },
+ "should_fail": "tests/features.py (traced baseline executes optimizer.py:3997; tests/edge.py and tests/stress.py also execute it): no co-optimize check feeds a replan scoring exactly best_score - 1e-9 and asserts the original plan is kept",
+ "title": "No check pins _co_optimize's strict adoption rule at a score exactly 1e-9 better; < -> <= is unseen",
+ "claim": "Mutant fd57e13959b23a4c at custom_components/heatpump_optimizer/optimizer.py:3997 (if score < best_score - 1e-9: -> if score <= best_score - 1e-9:) is not failed by the full gate (RED-AS-NULL), yet the probe's which DHW plan _co_optimize returns when the re-planned candidate scores exactly best_score - 1e-9 moves: baseline original, mutant replanned.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "A re-planned DHW candidate is adopted only when it scores strictly more than 1e-9 better than the plan it replaces (the docstring's 'only if it scores better')",
+ "metric_definition": "which DHW plan _co_optimize returns when the re-planned candidate scores exactly best_score - 1e-9",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._co_optimize",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_fd57e13959b23a4c.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_fd57e13959b23a4c.py",
+ "perturbation": {
+  "change": "optimizer.py:3997 if score < best_score - 1e-9: -> if score <= best_score - 1e-9:, applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fd57e13959b23a4c",
+  "expected_direction": "the plan returned at the tie moves from original to replanned"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_fd57e13959b23a4c.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/features.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}
