@@ -15,3 +15,4 @@
 1795368685 HB alive
 1795369056 CKPT all 7 survivors killed; structure/archscore/typing/doc_claims run; entities.py rerun pending snapshot b358d8d8cf40
 1795369479 HB alive
+1795369953 DONE code head 7f2e1ee90c pushed to handoff/r11-seam-entity-service; body refused by carry_audit (group id not GROUP_TOK-shaped); nightly-ha stub defect carried
