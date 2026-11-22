@@ -1,0 +1,6 @@
+Null control (comment-only marker), box D3-g31, 2026-11-22: gate_rc=1, wall 3736 s (provisional), load1 end 1.01.
+Red scripts and their counted failures (each an artefact of the stripped worktree / detached gate, none machine-caused):
+- tests/closure.py selftest 2 of 118: "a refused merge surfaces merge()'s reason" and its null control read status='skip-not-under-scoped' (the gate runs on a detached commit, not a scoped branch).
+- tests/entities.py 1 of 2723: "and is accepted when it does [the scoped path records only what the diff can reach]" (gate-scope artefact of the detached mutant commit).
+- tests/harness_headers.py 3 of 115: dev/audit/rounds/round4/D6/claims.py RESULT claims_true 122 vs header 123, claims_false 1 vs 0, and its committed output left modified (the finder-wall strip removed what claims.py counts).
+No card.mjs heap or timing failure: the null is usable, not re-taken. A mutant counts KILLED only with a script beyond these or more failures in one of them (fullgate.py's rule).
