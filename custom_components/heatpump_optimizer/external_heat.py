@@ -498,17 +498,23 @@ class ExternalHeatDetector:
         """
         return self.state.active or self.state.fading
 
-    def ignore_effective(self, ignored: bool) -> bool:
-        """Whether the #3862 switch lifts the block: on, with detection enabled."""
-        return ignored and self.config.enabled
 
-    def blocking(self, ignored: bool) -> bool:
-        """``suppressing`` unless the switch lifts it; the learning freeze reads the raw one."""
-        return self.suppressing and not self.ignore_effective(ignored)
 
-    def view(self, ignored: bool) -> ExternalHeatView:
-        """The published detection; ``block_ignored`` only while the switch is on."""
-        effective = self.ignore_effective(ignored) if ignored else None
-        return {"external_heat_active": self.state.active,
-                "external_heat_suppressing": self.blocking(ignored),
-                "external_heat": self.state.as_dict(effective)}
+def ignore_effective(detector: ExternalHeatDetector, ignored: bool) -> bool:
+    """Whether the #3862 switch lifts the block: on, with detection enabled."""
+    return ignored and detector.config.enabled
+
+
+def blocking(detector: ExternalHeatDetector, ignored: bool) -> bool:
+    """``suppressing`` unless the switch lifts it; the learning freeze reads the raw one."""
+    return detector.suppressing and not ignore_effective(detector, ignored)
+
+
+def view(detector: ExternalHeatDetector, ignored: bool) -> ExternalHeatView:
+    """The published detection; ``block_ignored`` only while the switch is on."""
+    effective = ignore_effective(detector, ignored) if ignored else None
+    return {
+        "external_heat_active": detector.state.active,
+        "external_heat_suppressing": blocking(detector, ignored),
+        "external_heat": detector.state.as_dict(effective),
+    }

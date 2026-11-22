@@ -885,7 +885,7 @@ timer resets on its own and no electric cycle is scheduled at all.
 
 Two controls act on this, and they do different things. The **stove or flue
 entity** says whether a fire burns: "on" starts detection at once, "off" ends
-it. The **Override External Heat Block** switch leaves the fire detected — the
+it. The **External Heat Block Override** switch leaves the fire detected — the
 External Heat Source sensor stays on, with `block_ignored: true` — but stops
 the plan reacting to it: hot water is no longer suppressed and the space plan
 is no longer given the fire's free heat. That holds for a fire the stove entity

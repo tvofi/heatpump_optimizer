@@ -15,7 +15,7 @@ front of the user (v6.6.12).
   water and the space heating, released when their window ends.
 * "Block DHW" and "Block Space Heating" — the opposite, for the same two
   hours. A safety floor releases a block and the switch says why.
-* "Override external heat block" — while on, a detected fire (inferred or
+* "External heat block override" — while on, a detected fire (inferred or
   from the stove entity) no longer holds the plan back; detection and the
   learning freeze are unchanged. Persisted, no timeout, inert with detection
   off (#3862).

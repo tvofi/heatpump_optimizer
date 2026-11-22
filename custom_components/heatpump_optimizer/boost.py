@@ -154,8 +154,8 @@ class BoostState:
     #: the tail on it, and it is persisted with the tail. ``None`` once a start nobody
     #: saw is in it. Cleared only by ``_clear_spent``.
     space_boosted: timedelta | None = timedelta(0)
-    #: #3862: the user's "Override external heat block" switch. Persisted, no
-    #: timeout; ``external_heat.ExternalHeatDetector.blocking`` applies it.
+    #: #3862: the user's "External heat block override" switch. Persisted, no
+    #: timeout; ``external_heat.blocking`` applies it.
     ignore_extheat_block: bool = False
 
     def settle(self, end: datetime, since: datetime | None) -> None:

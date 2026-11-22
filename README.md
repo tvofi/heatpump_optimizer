@@ -719,7 +719,7 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | Boost Space Heating | switch | Maximum space heat for two hours |
 | Block DHW | switch | Holds hot water heating at zero for two hours |
 | Block Space Heating | switch | Holds space heating at zero for two hours |
-| Override External Heat Block | switch | Lets the plan heat while external heat is detected |
+| External Heat Block Override | switch | Lets the plan heat while external heat is detected |
 | Heat Pump Optimizer | climate | A virtual thermostat for your comfort target |
 
 **Optimizer Active** turns the optimizer on and off. Turning it on only acts from
@@ -746,7 +746,7 @@ the room at the economy floor, the house below its plan while it is cold
 outside, a measurement experiment, or a stale plan. A block does not switch
 the heat pump's supply off.
 
-**Override External Heat Block** keeps the plan from holding back while
+**External Heat Block Override** keeps the plan from holding back while
 external heat (a wood fire) is detected: the fire stays detected and shown, but
 hot water and space heating are planned as if there were none. It stays on
 until you turn it off, survives a restart, and does nothing while external heat

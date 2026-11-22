@@ -11801,7 +11801,7 @@ R.check(
     "the external-heat override switch keeps its unique id and object id (#3862)",
     _xh_sw._attr_unique_id == f"{ENTRY.entry_id}_external_heat_ignore_block"
     and _xh_sw.entity_id == "switch.heat_pump_optimizer_external_heat_ignore_block"
-    and display_name("switch", _xh_sw) == "Override External Heat Block",
+    and display_name("switch", _xh_sw) == "External Heat Block Override",
     f"{_xh_sw._attr_unique_id} {getattr(_xh_sw, 'entity_id', None)} {display_name('switch', _xh_sw)}",
 )
 R.check(
@@ -41997,7 +41997,7 @@ _egb3_resolve = {
     "rooms.published(rooms.readings_of(self), rooms.lift_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
     # #3862: a producer that returns its owner's view whole (a listed source only).
-    "self._external_heat.view(boost.extheat_block_ignored(self))": ("external_heat", "view"),
+    "extheat.view(self._external_heat, boost.extheat_block_ignored(self))": ("external_heat", "view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
 

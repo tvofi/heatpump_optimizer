@@ -74532,31 +74532,31 @@ _x62_fire, _x62_fade, _x62_quiet = (
 )
 R.check(
     "an active or fading fire blocks with the switch off, and not with it on (#3862)",
-    all(d.blocking(False) is True and d.blocking(True) is False
+    all(_x62_eh.blocking(d, False) is True and _x62_eh.blocking(d, True) is False
         for d in (_x62_fire, _x62_fade)),
-    str([(d.blocking(False), d.blocking(True)) for d in (_x62_fire, _x62_fade)]),
+    str([(_x62_eh.blocking(d, False), _x62_eh.blocking(d, True)) for d in (_x62_fire, _x62_fade)]),
 )
 R.check(
     "null: a quiet detector blocks neither way (#3862)",
-    _x62_quiet.blocking(False) is False and _x62_quiet.blocking(True) is False,
+    _x62_eh.blocking(_x62_quiet, False) is False and _x62_eh.blocking(_x62_quiet, True) is False,
 )
 
 # 2. Detection disabled: the switch is inert and says so.
 _x62_off = _x62_det(enabled=False)
 R.check(
     "with detection disabled the switch is not effective and publishes block_ignored false (#3862)",
-    _x62_off.ignore_effective(True) is False
-    and _x62_off.view(True)["external_heat"]["block_ignored"] is False
+    _x62_eh.ignore_effective(_x62_off, True) is False
+    and _x62_eh.view(_x62_off, True)["external_heat"]["block_ignored"] is False
     and _x62_off.state.as_dict(False)["block_ignored"] is False
     and "block_ignored" not in _x62_off.state.as_dict(None),
-    str(_x62_off.view(True)),
+    str(_x62_eh.view(_x62_off, True)),
 )
 R.check(
     "null: with detection enabled the switch is effective, and off publishes no key (#3862)",
-    _x62_quiet.ignore_effective(True) is True
-    and _x62_quiet.view(True)["external_heat"]["block_ignored"] is True
-    and "block_ignored" not in _x62_quiet.view(False)["external_heat"],
-    str(_x62_quiet.view(True)),
+    _x62_eh.ignore_effective(_x62_quiet, True) is True
+    and _x62_eh.view(_x62_quiet, True)["external_heat"]["block_ignored"] is True
+    and "block_ignored" not in _x62_eh.view(_x62_quiet, False)["external_heat"],
+    str(_x62_eh.view(_x62_quiet, True)),
 )
 
 # 3n. The cached lever still reaches the solve with the switch off (the

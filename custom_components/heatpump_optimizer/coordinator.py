@@ -220,6 +220,7 @@ from .external_heat import (
     wood_mean_temperature,
 )
 from . import away as away_mode
+from . import external_heat as extheat
 from . import boost
 from . import driving_grade
 from . import battery as battery_view
@@ -5215,7 +5216,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         its answer into the array the optimizer takes.
         """
         ctx = getattr(self, "_ctx", self)
-        if not self._external_heat.blocking(boost.extheat_block_ignored(self)):
+        if not extheat.blocking(self._external_heat, boost.extheat_block_ignored(self)):
             return None
         forecast = self._external_heat.forecast_free_heat(
             n_steps,
@@ -6220,7 +6221,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             **self._dhw_plan_fields(now),
             **_band_fields(band or _solve_band(self._accuracy.draw, ctx._thermal_params, ctx._config)),
         )
-        block_ignored = self._external_heat.ignore_effective(boost.extheat_block_ignored(self))
+        block_ignored = extheat.ignore_effective(self._external_heat, boost.extheat_block_ignored(self))
         state = replace(
             copy.deepcopy(ctx._current_state),
             external_heat_active=self._external_heat_active and not block_ignored,
@@ -8084,7 +8085,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         }
 
     def _external_heat_view(self) -> ExternalHeatView:
-        return self._external_heat.view(boost.extheat_block_ignored(self))
+        return extheat.view(self._external_heat, boost.extheat_block_ignored(self))
 
     def configured_dhw_windows(self) -> str:
         """The hot-water windows as CONFIGURED, in the grammar the config flow
