@@ -1,0 +1,15 @@
+== owed-reds
+tests / mutation
+tests / typing
+validate / validate-hacs
+== structure
+
+STRUCTURE RATCHET PASSED
+== closure select
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+== VERSION/manifest/notes
+ dev/programme/delivery/3865.md    |  1 +
+ tools/audit/seat/corpus_mirror.py | 45 ++++++++++++++++++++++++++++++++-------
+ 2 files changed, 38 insertions(+), 8 deletions(-)
+== env_drift --all
+Terminated
