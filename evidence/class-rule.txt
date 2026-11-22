@@ -1,0 +1,36 @@
+== class rule at baa9a467ac518bc3f8733d2603ea8ae406b235af
+baa9a467ac518bc3f8733d2603ea8ae406b235af:tests/entities.py:22159:    (_closure.ROOT / _af7_dir).is_dir()
+baa9a467ac518bc3f8733d2603ea8ae406b235af:tests/entities.py:42129:               if p.is_file()} if site.is_dir() else set()
+baa9a467ac518bc3f8733d2603ea8ae406b235af:tools/audit/seat/corpus_mirror.py:151:        if target == base and not info.is_dir():
+baa9a467ac518bc3f8733d2603ea8ae406b235af:tools/audit/seat/corpus_mirror.py:155:        (parents if info.is_dir() else files).add(target)
+baa9a467ac518bc3f8733d2603ea8ae406b235af:tools/audit/seat/corpus_mirror.py:210:                if info.is_dir():
+baa9a467ac518bc3f8733d2603ea8ae406b235af:tools/audit/seat/corpus_mirror.py:1004:            and m.safe_extract(zip_of([("only/", "")]), Path(td) / "shape" / "nofile") == "" and (Path(td) / "shape" / "nofile").is_dir()
+baa9a467ac518bc3f8733d2603ea8ae406b235af:tools/audit/seat/corpus_mirror.py:1179:    "directory itself": ("        if target == base and not info.is_dir():\n", "        if False:\n", "a member that is the directory itself"),
+== class rule at f93e28bb6267d66f3cec852f9502843ea52b7fca
+f93e28bb6267d66f3cec852f9502843ea52b7fca:tests/entities.py:22159:    (_closure.ROOT / _af7_dir).is_dir()
+f93e28bb6267d66f3cec852f9502843ea52b7fca:tests/entities.py:42129:               if p.is_file()} if site.is_dir() else set()
+f93e28bb6267d66f3cec852f9502843ea52b7fca:tools/audit/seat/corpus_mirror.py:1027:                and m.safe_extract(zip_of([("only/", "")]), Path(td) / "shape" / "nofile") == "" and (Path(td) / "shape" / "nofile").is_dir()
+f93e28bb6267d66f3cec852f9502843ea52b7fca:tools/audit/seat/corpus_mirror.py:1206:    "dir-ness from the name": ('    return name.endswith("/")\n', "    return zipfile.ZipInfo(name).is_dir()\n", "a member with an empty name"),
+== wider: is_dir( / filename[-1] / ZipInfo uses in zipfile importers at head
+file dev/audit/rounds/round11/D10/s3/platinum_rules.py
+dev/audit/rounds/round11/D10/s3/platinum_rules.py:115:    return any(n.endswith("py.typed") for n in zipfile.ZipFile(whl).namelist())
+file dev/audit/rounds/round9/D6/leads/l4_currency_fallback.py
+file tests/ci_ratchet.py
+tests/ci_ratchet.py:347:            for name in zf.namelist():
+file tests/entities.py
+tests/entities.py:22159:    (_closure.ROOT / _af7_dir).is_dir()
+tests/entities.py:35336:        names = set(zipfile.ZipFile(zpath).namelist()) if zpath.is_file() else set()
+tests/entities.py:42129:               if p.is_file()} if site.is_dir() else set()
+file tools/audit/seat/corpus_mirror.py
+tools/audit/seat/corpus_mirror.py:142:    """Whether a member's name marks a directory: read from the name alone, never `ZipInfo.is_dir`.
+tools/audit/seat/corpus_mirror.py:144:    CPython 3.11.5's `is_dir` is `filename[-1] == '/'` and raises IndexError on an empty name (3.12 guards it),
+tools/audit/seat/corpus_mirror.py:154:    for info in zf.infolist():
+tools/audit/seat/corpus_mirror.py:219:            for info in zf.infolist():
+tools/audit/seat/corpus_mirror.py:1000:        real_is_dir = m.zipfile.ZipInfo.is_dir
+tools/audit/seat/corpus_mirror.py:1001:        m.zipfile.ZipInfo.is_dir = lambda self: self.filename[-1] == "/"  # CPython 3.11.5's body: IndexError on ""
+tools/audit/seat/corpus_mirror.py:1007:            m.zipfile.ZipInfo.is_dir = real_is_dir
+tools/audit/seat/corpus_mirror.py:1008:        r["archives: a member with an empty name is refused whole as the directory itself, read from the name under any interpreter's ZipInfo.is_dir"
+tools/audit/seat/corpus_mirror.py:1027:                and m.safe_extract(zip_of([("only/", "")]), Path(td) / "shape" / "nofile") == "" and (Path(td) / "shape" / "nofile").is_dir()
+tools/audit/seat/corpus_mirror.py:1206:    "dir-ness from the name": ('    return name.endswith("/")\n', "    return zipfile.ZipInfo(name).is_dir()\n", "a member with an empty name"),
+file tools/pr/codeql_scope.py
+tools/pr/codeql_scope.py:233:            names = z.namelist()
