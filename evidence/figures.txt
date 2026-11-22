@@ -1,0 +1,8 @@
+$ python3 -I tools/audit/seat/selftest_absorb.py --self-test
+selftest_absorb self-test: 51 checks, 0 failed
+$ python3 tools/audit/seat/orchestrator_tick.py --self-test
+orchestrator_tick self-test: 393 checks, 0 failed
+$ python3 tools/audit/seat/beat_jobs.py --self-test
+beat_jobs self-test: 309 checks, 0 failed
+$ python3 -I tools/ci/selftest_scope.py static
+selftest_scope static: 128 gated step(s), 0 problem(s)
