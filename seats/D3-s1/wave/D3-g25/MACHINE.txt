@@ -1,0 +1,10 @@
+date: 2026-11-22T21:43:16Z
+nproc: 4
+cpu:  Intel(R) Xeon(R) Processor @ 2.30GHz
+               total        used        free      shared  buff/cache   available
+Mem:           16087        1117       13464          12        1803       14969
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  18% /
+load1: 0.65
+python3: /opt/hpo/venv-ci/bin/python3 (/root/venv-ci absent; venv-ci at /opt/hpo/venv-ci is first on PATH per cloud-setup --check)

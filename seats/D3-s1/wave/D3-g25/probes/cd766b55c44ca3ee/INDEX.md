@@ -1,0 +1,1 @@
+probe_cd766b55c44ca3ee.py (dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_cd766b55c44ca3ee.py): pins get_current_action's outcome under mutant cd766b55c44ca3ee on its distinguishing input vs baseline, with a [null] input
