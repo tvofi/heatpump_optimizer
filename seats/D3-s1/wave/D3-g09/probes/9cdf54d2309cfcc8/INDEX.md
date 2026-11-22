@@ -1,0 +1,1 @@
+- probe_9cdf54d2309cfcc8.py: RESULT active_at_tie_{baseline,mutant}: _outage_recovery_active(now) as 0/1 at now == _outage_recovery_until -- baseline active_at_tie=0; mutant active_at_tie=1 (pre-gate class candidate); run from the repo root: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_9cdf54d2309cfcc8.py

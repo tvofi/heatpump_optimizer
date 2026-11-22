@@ -1,0 +1,19 @@
+{
+ "key": "d8101520588009d9",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "high",
+ "class_guess": "I1",
+ "metric": "RESULT available_offseason_{baseline,mutant}: _power_headroom()['available'] (0/1), capacity tariff Nov-Mar, no fuse, no peak, at 2026-07-15 12:00 UTC",
+ "base": "available_offseason=0 (unavailable)",
+ "mut": "available_offseason=1, limit_kw=0.0, limit_source='capacity tariff with no peak reference yet'",
+ "inputs": [
+  "off-season month (sample_factor 0.0)",
+  "in-season month (sample_factor 1.0)"
+ ],
+ "null": "in-season cell: both arms available with limit 0.0 kW",
+ "should": "tests/features.py, the #5 power-headroom block (~19481) 'with no limit configured the sensor says unavailable, not zero': it checks only a coordinator with no tariff; no arm enables a capacity tariff at a moment it does not bill (a month outside peak_tariff_months, or an off-peak hour at factor 0), where the sensor must stay unavailable",
+ "title": "Power headroom publishes 0 kW all off-season under a `> 0.0` -> `>= 0.0` mutant, and no check notices",
+ "claim": "HeatPumpOptimizerCoordinator._power_headroom (coordinator.py:8900) may be weakened from `sample_factor(now) > 0.0` to `>= 0.0` and the full gate passes; sample_factor is clamped to [0, 1], so the mutant takes the capacity branch whenever the tariff is enabled: for a fuse-less install with a Nov-Mar capacity tariff, in July the baseline publishes unavailable while the mutant publishes 0.0 kW headroom (probe), which a charger automation reads as 'draw nothing'.",
+ "direction": "off-season available 0 -> 1 with limit_kw 0.0"
+}

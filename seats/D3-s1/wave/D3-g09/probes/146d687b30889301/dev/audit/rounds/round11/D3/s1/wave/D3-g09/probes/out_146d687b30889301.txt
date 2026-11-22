@@ -1,0 +1,13 @@
+RESULT saves_close_baseline=1 january_receipt_frozen=1
+RESULT saves_close_mutant=0 january_receipt_frozen=1
+RESULT saves_open_baseline=0 january_receipt_frozen=0
+RESULT saves_open_mutant=0 january_receipt_frozen=0
+RESULT settle_saves_energy_baseline=2 receipt_frozen_at_last_save=1 raised=-
+RESULT settle_saves_energy_mutant=1 receipt_frozen_at_last_save=1 raised=-
+RESULT settle_saves_zero_baseline=2 receipt_frozen_at_last_save=1 raised=-
+RESULT settle_saves_zero_mutant=1 receipt_frozen_at_last_save=1 raised=-
+RESULT settle_saves_fault_baseline=1 receipt_frozen_at_last_save=1 raised=RuntimeError
+RESULT settle_saves_fault_mutant=0 receipt_frozen_at_last_save=0 raised=RuntimeError
+RESULT thread_factor=1.000
+RESULT load1=1.06
+RESULT swapins=0

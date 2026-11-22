@@ -1,0 +1,20 @@
+{
+ "key": "3d83c32f185cf411",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "low",
+ "class_guess": "I1",
+ "metric": "RESULT summary_keys_peak0_{baseline,mutant}: len(_pv_forecast(solar, 8)[1]) with pv_enabled and pv_peak_kw 0",
+ "base": "summary_keys_peak0=0 ({})",
+ "mut": "summary_keys_peak0=5 (forecast_production_kwh 0.0, ..., export_price 0.0)",
+ "inputs": [
+  "pv_peak_kw 0 (the flow's minimum, config_flow.py:1933)",
+  "pv_peak_kw 6",
+  "pv_peak_kw -1"
+ ],
+ "null": "peak 6 and peak -1 cells: equal arms",
+ "should": "tests/solar_alignment.py / tests/features.py PV checks: none configures pv_enabled with pv_peak_kw 0 and asserts the disabled-PV answer (empty summary, zero surplus, _pv_production None)",
+ "title": "A 0 kWp enabled PV array is unpinned: `peak_kw <= 0` -> `< 0` publishes an all-zero PV summary",
+ "claim": "HeatPumpOptimizerCoordinator._pv_forecast (coordinator.py:9819) may be weakened from `peak_kw <= 0` to `< 0` and the gate passes; with pv_enabled and pv_peak_kw 0 (accepted by the options flow) the baseline treats PV as off (summary {}) while the mutant publishes a five-key all-zero PV summary (probe). The surplus is 0 in both, so the plan is unchanged; only the published PV block differs.",
+ "direction": "summary keys 0 -> 5 at peak 0"
+}

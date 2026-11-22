@@ -1,0 +1,12 @@
+RESULT production_trajectory_len=97
+RESULT differ interval=30 len=1 baseline=20.0 mutant=raised IndexError
+RESULT differ interval=30 len=2 baseline=20.1 mutant=raised IndexError
+RESULT differ interval=120 len=1 baseline=20.0 mutant=raised IndexError
+RESULT differ interval=120 len=2 baseline=20.1 mutant=raised IndexError
+RESULT differ interval=120 len=8 baseline=20.7 mutant=raised IndexError
+RESULT differing_cells_at_production_len=0
+RESULT differing_cells_short_trajectory=100
+RESULT cells_tried=299
+RESULT thread_factor=1.000
+RESULT load1=0.99
+RESULT swapins=0

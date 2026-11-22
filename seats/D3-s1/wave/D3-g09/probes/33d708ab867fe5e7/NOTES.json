@@ -1,0 +1,13 @@
+{
+ "key": "33d708ab867fe5e7",
+ "pre_gate_class": "equivalent-candidate",
+ "cls": "equivalent-candidate",
+ "metric": "RESULT differing_cells_reachable: arms that disagree on _predicted_next_room_temp() at time_step_minutes >= 1",
+ "base": "differing_cells_reachable=0 (25 cells)",
+ "mut": "differing_cells_subminute_step=9 (time_step 0.5: other point; 0.0: ZeroDivisionError)",
+ "inputs": [
+  "optimization_interval 10/15/30/60/120 x time_step_minutes 15/5/1/0.5/0.0 on a 97-point ramp"
+ ],
+ "null": "time_step 15.0 cells, clamp inactive",
+ "should": "none distinguishes on a reachable input: OptimizationConfig.time_step_minutes is the dataclass default 15.0 (optimizer.py:2667) and no config path writes it (grep `time_step_minutes=` finds no writer); the clamp is defensive"
+}

@@ -1,0 +1,9 @@
+RESULT surplus0_meter_baseline=2.6000 kW  surplus_sum=11.3200 forecast_production_kwh=3.63
+RESULT surplus0_meter_mutant=0.0000 kW  surplus_sum=8.7200 forecast_production_kwh=2.88
+RESULT surplus0_meter_over_peak_baseline=5.6000 kW  surplus_sum=14.3200 forecast_production_kwh=4.38
+RESULT surplus0_meter_over_peak_mutant=0.0000 kW  surplus_sum=8.7200 forecast_production_kwh=2.88
+RESULT surplus0_nometer_baseline=0.0000 kW  surplus_sum=8.7200 forecast_production_kwh=2.88
+RESULT surplus0_nometer_mutant=0.0000 kW  surplus_sum=8.7200 forecast_production_kwh=2.88
+RESULT thread_factor=1.000
+RESULT load1=0.90
+RESULT swapins=0

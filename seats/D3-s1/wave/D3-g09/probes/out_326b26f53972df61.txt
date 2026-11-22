@@ -1,0 +1,15 @@
+RESULT default_pv_production_entity=None
+RESULT empty_string_entity_resolves_to=None
+RESULT fake_none_baseline: surplus_sum=8.7200
+RESULT fake_none_mutant: surplus_sum=8.7200
+RESULT fake_empty_baseline: surplus_sum=8.7200
+RESULT fake_empty_mutant: surplus_sum=8.7200
+RESULT ha_none_baseline: surplus_sum=8.7200
+RESULT ha_none_mutant: raised AttributeError: 'NoneType' object has no attribute 'lower'
+RESULT ha_empty_baseline: surplus_sum=8.7200
+RESULT ha_empty_mutant: raised AttributeError: 'NoneType' object has no attribute 'lower'
+RESULT ha_meter_baseline: surplus_sum=11.3200
+RESULT ha_meter_mutant: surplus_sum=11.3200
+RESULT thread_factor=1.000
+RESULT load1=0.99
+RESULT swapins=0

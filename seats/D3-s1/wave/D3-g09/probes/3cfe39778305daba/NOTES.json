@@ -1,0 +1,21 @@
+{
+ "key": "3cfe39778305daba",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "low",
+ "class_guess": "I1",
+ "metric": "RESULT calls_tie_{baseline,mutant}: record_quiet_period calls from one _record_quiet_comfort_period at exactly 1.0 kWh planned heating (4 kW x 0.25 h)",
+ "base": "calls_tie=1",
+ "mut": "calls_tie=0",
+ "inputs": [
+  "1.0 kWh as one step",
+  "1.0 kWh as two steps",
+  "0.75 kWh",
+  "1.5 kWh"
+ ],
+ "null": "0.75 and 1.5 kWh cells: equal arms",
+ "should": "tests/features.py quiet-period block (~51783): no arm plans exactly 1.0 kWh, the heating threshold's boundary",
+ "title": "The 1 kWh heating threshold of the quiet-comfort recorder is unpinned at its boundary (`< 1.0` -> `<= 1.0`)",
+ "claim": "HeatPumpOptimizerCoordinator._record_quiet_comfort_period (coordinator.py:11008) may be tightened from `heating_kwh < 1.0` to `<= 1.0` and the gate passes; at exactly 1.0 kWh the baseline records the quiet period and the mutant does not (probe). Boundary-only.",
+ "direction": "calls at the tie 1 -> 0"
+}

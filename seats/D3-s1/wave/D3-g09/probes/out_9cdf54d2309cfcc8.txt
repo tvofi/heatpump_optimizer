@@ -1,0 +1,9 @@
+RESULT active_at_tie_baseline=0
+RESULT active_at_tie_mutant=1
+RESULT active_at_before_end_baseline=1
+RESULT active_at_before_end_mutant=1
+RESULT active_at_after_end_baseline=0
+RESULT active_at_after_end_mutant=0
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

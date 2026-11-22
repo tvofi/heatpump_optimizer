@@ -1,0 +1,7 @@
+RESULT measured_production_kw_meter_baseline=3.0 stored_summary_has_key=True
+RESULT measured_production_kw_meter_mutant=None stored_summary_has_key=False
+RESULT measured_production_kw_nometer_baseline=None stored_summary_has_key=False
+RESULT measured_production_kw_nometer_mutant=None stored_summary_has_key=False
+RESULT thread_factor=1.000
+RESULT load1=0.90
+RESULT swapins=0

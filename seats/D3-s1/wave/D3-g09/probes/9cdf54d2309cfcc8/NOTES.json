@@ -1,0 +1,20 @@
+{
+ "key": "9cdf54d2309cfcc8",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "low",
+ "class_guess": "I1",
+ "metric": "RESULT active_at_tie_{baseline,mutant}: _outage_recovery_active(now) as 0/1 at now == _outage_recovery_until",
+ "base": "active_at_tie=0",
+ "mut": "active_at_tie=1",
+ "inputs": [
+  "now == until (tie)",
+  "now = until - 1 s",
+  "now = until + 1 s"
+ ],
+ "null": "before_end and after_end cells: both arms 1 and 0",
+ "should": "tests/features.py, the #22 block (~19496) 'a three-hour silence reads as an outage and opens recovery': it asserts active inside the window and inactive after it, but no arm evaluates now == _outage_recovery_until, where the recovery window must already be closed",
+ "title": "Outage recovery's end instant is unpinned: `> 0` -> `>= 0` keeps recovery active at its deadline and the gate passes",
+ "claim": "HeatPumpOptimizerCoordinator._outage_recovery_active (coordinator.py:9038) may be weakened from `> 0` to `>= 0` and the full gate still passes; at now == _outage_recovery_until the baseline answers inactive and the mutant active (probe: 0 vs 1), so one extra interval of staggered recovery (DHW queued behind space) at the boundary is invisible to the suite.",
+ "direction": "active at the tie 0 -> 1"
+}

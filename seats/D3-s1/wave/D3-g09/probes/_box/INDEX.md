@@ -1,0 +1,4 @@
+- build.py: writes results/<key>.json from gates/<key>.json + meta.py + probe output
+- meta.py: per-key step-4 analysis (class, numbers, should_fail, finding fields)
+- report.py: assembles REPORT.json/REPORT.md
+- boxes/: the 47 dispatch refs keys.tsv (not_reached by box)

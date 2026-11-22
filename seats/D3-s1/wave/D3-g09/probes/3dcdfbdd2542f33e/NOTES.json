@@ -1,0 +1,13 @@
+{
+ "key": "3dcdfbdd2542f33e",
+ "pre_gate_class": "equivalent-candidate",
+ "cls": "equivalent-candidate",
+ "metric": "RESULT differing_cells_at_production_len: arms that disagree on _predicted_next_room_temp() at trajectory length n_steps+1 = 97",
+ "base": "differing_cells_at_production_len=0 (23 intervals)",
+ "mut": "differing_cells_short_trajectory=100 (IndexError where len(trajectory) <= steps <= 8)",
+ "inputs": [
+  "optimization_interval 10..120 by 5 x trajectory length 1..12 and 97"
+ ],
+ "null": "production-length cells",
+ "should": "none on a produced plan: the one OptimizationResult constructor (optimizer.py:3848) emits n_steps+1 points with the forecasts held flat to opt_config.n_steps (coordinator.py:7475); a trajectory of <= 8 points would separate the arms (IndexError) but no solve produces one"
+}

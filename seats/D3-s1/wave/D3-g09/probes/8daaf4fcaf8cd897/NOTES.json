@@ -1,0 +1,20 @@
+{
+ "key": "8daaf4fcaf8cd897",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "low",
+ "class_guess": "I1",
+ "metric": "RESULT calls_tie_{baseline,mutant}: record_quiet_period calls from one _record_quiet_comfort_period, prices [0.6, 0.6972972972972973] ((max-min)/mean exactly 0.15), 1.5 kWh heating",
+ "base": "calls_tie=1 (evidence -0.007292)",
+ "mut": "calls_tie=0 (evidence 0.0)",
+ "inputs": [
+  "spread exactly 0.15 (ulp walk)",
+  "spread ~0.10",
+  "spread 0.30"
+ ],
+ "null": "0.10 and 0.30 cells: equal arms",
+ "should": "tests/features.py quiet-period block (~51783) and config_flow_steps.py: no arm puts the price spread at exactly 15 % of the mean",
+ "title": "The 15 % price-spread threshold of the quiet-comfort recorder is unpinned at its boundary (`< 0.15` -> `<= 0.15`)",
+ "claim": "HeatPumpOptimizerCoordinator._record_quiet_comfort_period (coordinator.py:11002) may be tightened from `< 0.15` to `<= 0.15` and the gate passes; at a spread of exactly 15 % of the mean the baseline records the quiet period and the mutant does not (probe). Boundary-only.",
+ "direction": "calls at the tie 1 -> 0"
+}

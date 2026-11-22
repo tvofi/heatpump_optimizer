@@ -1,0 +1,11 @@
+RESULT calls_tie_baseline=1 evidence_delta=-0.007292 heating_kwh=1.0
+RESULT calls_tie_mutant=0 evidence_delta=0.0 heating_kwh=1.0
+RESULT calls_kwh075_baseline=0 evidence_delta=0.0 heating_kwh=0.75
+RESULT calls_kwh075_mutant=0 evidence_delta=0.0 heating_kwh=0.75
+RESULT calls_kwh150_baseline=1 evidence_delta=-0.007292 heating_kwh=1.5
+RESULT calls_kwh150_mutant=1 evidence_delta=-0.007292 heating_kwh=1.5
+RESULT calls_tie_split_baseline=1 evidence_delta=-0.007292 heating_kwh=1.0
+RESULT calls_tie_split_mutant=0 evidence_delta=0.0 heating_kwh=1.0
+RESULT thread_factor=1.095
+RESULT load1=0.99
+RESULT swapins=0

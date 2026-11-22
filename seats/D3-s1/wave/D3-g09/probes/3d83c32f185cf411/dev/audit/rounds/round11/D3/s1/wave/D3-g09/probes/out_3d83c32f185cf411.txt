@@ -1,0 +1,11 @@
+RESULT summary_keys_peak0_baseline=0 surplus_sum_kw=0.0000
+RESULT summary_peak0_baseline={}
+RESULT summary_keys_peak0_mutant=5 surplus_sum_kw=0.0000
+RESULT summary_peak0_mutant={'forecast_production_kwh': 0.0, 'forecast_surplus_kwh': 0.0, 'surplus_hours': 0.0, 'peak_production_kw': 0.0, 'export_price': 0.0}
+RESULT summary_keys_peak6_baseline=5 surplus_sum_kw=8.7200
+RESULT summary_keys_peak6_mutant=5 surplus_sum_kw=8.7200
+RESULT summary_keys_peakneg_baseline=0 surplus_sum_kw=0.0000
+RESULT summary_keys_peakneg_mutant=0 surplus_sum_kw=0.0000
+RESULT thread_factor=1.000
+RESULT load1=0.99
+RESULT swapins=0

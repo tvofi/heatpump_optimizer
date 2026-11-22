@@ -1,0 +1,21 @@
+{
+ "key": "df697cc04154fbdd",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "low",
+ "class_guess": "I1",
+ "metric": "RESULT calls_tie_i{10,30,120}_{baseline,mutant}: observe_duty calls from one _settle_defrost on a measured-duty window exactly 0.25 x the optimization interval long",
+ "base": "calls_tie=1 at intervals 10/30/120",
+ "mut": "calls_tie=0 at intervals 10/30/120",
+ "inputs": [
+  "window = 0.25x interval (tie)",
+  "0.25x interval + 1 s",
+  "0.25x interval - 1 s",
+  "at intervals 10, 30, 120 min"
+ ],
+ "null": "the inside and outside cells: equal arms",
+ "should": "tests/features.py, the `_settle_defrost` block (~56686-56710): no arm sits at window.seconds == 0.25 * interval_s, the filter's lower boundary",
+ "title": "The measured-defrost window filter's lower bound is unpinned (`0.25 * interval <=` -> `<`)",
+ "claim": "HeatPumpOptimizerCoordinator._settle_defrost (coordinator.py:9980) may make its lower window bound strict and the gate passes; a measured-duty window exactly a quarter interval long is folded by the baseline and dropped by the mutant (probe, at intervals 10, 30 and 120 min). Boundary-only.",
+ "direction": "observe_duty calls at the tie 1 -> 0"
+}

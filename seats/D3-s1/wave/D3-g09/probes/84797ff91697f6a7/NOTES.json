@@ -1,0 +1,13 @@
+{
+ "key": "84797ff91697f6a7",
+ "pre_gate_class": "equivalent-candidate",
+ "cls": "equivalent-candidate",
+ "metric": "RESULT differing_cells_flow_reachable: arms that disagree on the adopted action's power_normalized (override 0.5 kW) at a resolved max_electrical_power >= 1.0 (the options flow minimum)",
+ "base": "differing_cells_flow_reachable=0 (5.0: 0.1/0.1, 1.0: 0.5/0.5, 0.5: 1.0/1.0)",
+ "mut": "differing_cells_below_flow_minimum=2 (0.05: 5.0 vs 10.0; 0.0: ZeroDivisionError)",
+ "inputs": [
+  "heat_pump_max_power 5.0, 1.0, 0.5, 0.05, 0.0 through the coordinator's config path"
+ ],
+ "null": "the 5.0 and 1.0 cells",
+ "should": "none on a flow-validated entry: config_flow.py:1851 bounds heat_pump_max_power to [1, 20] kW, so the 0.1 floor never binds; a hand-edited entry below 0.1 kW would separate the arms (the coordinator passes it through unclamped)"
+}

@@ -1,0 +1,20 @@
+{
+ "key": "002980a15ae8b9a9",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "medium",
+ "class_guess": "I1",
+ "metric": "RESULT surplus0_meter_{baseline,mutant}: _pv_forecast(solar, 8)[0][0] kW, 6 kWp, dark step 0, production meter 3.0 kW",
+ "base": "surplus0_meter=2.6 kW (surplus_sum 11.32)",
+ "mut": "surplus0_meter=0.0 kW (surplus_sum 8.72)",
+ "inputs": [
+  "meter 3.0 kW",
+  "meter 9.0 kW (over peak: min(meter, peak) = 6)",
+  "no meter"
+ ],
+ "null": "no-meter cell: both 0.0",
+ "should": "tests/config_flow_steps.py and the env_drift.py coordinator fixtures execute line 9827 but no scenario configures pv_production_entity with a reading that differs from the irradiance model and asserts surplus[0] (or the plan's step-0 PV) equals min(meter, peak_kw) less the baseline load",
+ "title": "The inverter meter's step-0 override of the PV forecast can be switched off and the gate passes",
+ "claim": "HeatPumpOptimizerCoordinator._pv_forecast (coordinator.py:9827) may lose its measured-production override (`if ...:` -> `if False:`) and the full gate passes; with a production meter reading 3.0 kW under a dark irradiance step the baseline plans 2.6 kW of step-0 surplus and the mutant 0.0 (probe), so the step being acted on ignores the meter.",
+ "direction": "surplus[0] 2.6 -> 0.0 kW"
+}
