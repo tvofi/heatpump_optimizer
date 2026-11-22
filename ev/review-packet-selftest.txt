@@ -1,0 +1,2 @@
+  ok   gather's ci_facts carries the INTRODUCED reading build refuses (M9: its wiring)
+review_packet self-test: 133 checks, 0 failed

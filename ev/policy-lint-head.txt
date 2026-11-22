@@ -1,0 +1,4 @@
+TOTAL: 0 error(s) across 58 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 279 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+10:dev/governance/roles/fix-review.md               131  140     2774  2775   key tools/audit/briefs/fix-review.md
