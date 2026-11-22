@@ -5,3 +5,4 @@
 1795383940 CKPT debug_collect: M7 killed, M8 (view drops mode) survived; running entities under M8 snapshot 131125d9d6dd
 1795384050 HB alive
 1795384584 CKPT M8 survives entities 2761/2761 + debug_collect 164/164: blocking mutation-vacuous snapshot 86f29a5143ea
+1795384653 HB alive
