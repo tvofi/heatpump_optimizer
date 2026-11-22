@@ -1,16 +1,19 @@
-# Design note: R11-OWNER-FAULT-HOLD -- suspend actuation while the pump reports a latched fault
+# Design note: R11-OWNER-FAULT-HOLD -- suspend actuation while the pump reports a latched fault (rev 2)
 
-Code read at `origin/main` 3a98735a7e. Predecessor on the same hot files:
-R11-OWNER-FROST-HOLD, approved design `design/R11-OWNER-FROST-HOLD`
-e91a4e30 (verdict 774250ff), being built, no handoff head yet; this note
-composes with that design's shape and runs after it. Evidence: owner report
-from a private diagnostics bundle; **no finder harness: owner report**.
-Generically: a pump's fault alarm latched for hours; through it the
-integration, in duty control, kept alternating Heating and DHW and writing
-set-points into the faulted pump, and nothing on the integration's side told
-the owner. Short self-clearing faults (protection trips at a duty switch)
-clear in well under a minute, and the longest self-clearing fault in the
-owner's history lasted a few minutes.
+Rev 2 answers `design-verdict/R11-OWNER-FAULT-HOLD` 20790180 (revise,
+class-open, R1-R3 and seven carries on 6244553e45). Code read at
+`origin/main` 3a98735a7e. Serial position (orchestrator ruling): FLOWCAP
+(fa8cd134), then FROST-HOLD (e91a4e30, verdict 774250ff), then this group,
+then MODE-LEGS (0e59437a), then STEP-KICK (238cf282); none has a handoff
+head yet, so this note composes with their designs and the fixer re-measures
+at its merge base. Evidence: owner report from a private diagnostics bundle;
+**no finder harness: owner report** (a counts-only bundle harness is
+planned below, never committed with data). Generically: a pump's fault
+alarm latched for hours; through it the integration, in duty control, kept
+alternating Heating and DHW and writing set-points into the faulted pump,
+and nothing on the integration's side told the owner. Short self-clearing
+faults clear in well under a minute; the longest in the owner's history
+lasted a few minutes.
 
 ## What exists today (checked first)
 
@@ -18,239 +21,282 @@ owner's history lasted a few minutes.
 the fault slot (`CONF_HEAT_PUMP_FAULT_ENTITY`) is read in
 `pump_signals.read` (learners freeze, `FREEZE_FAULT`, and diagnostics
 `fault`) and by `pump_arbiter._switch_context` (a duty-switch episode is
-voided). **No repair, no notifier event and no write guard reads it**: the
-issue keys in `strings.json` hold none, `notifier.py` has no fault detector,
-and no writer consults it. Nothing below re-does the freeze or the void.
+voided). **No repair, no notifier event and no write guard reads it.**
+Nothing below re-does the freeze or the void.
 
 ## Behaviour
 
-**Latch** (in memory, per coordinator): set when the fault slot reads on,
-fresh and legible (`InputReader.read_bool`, `ok`), continuously for
-`FAULT_HOLD_AFTER_MIN` = 10 minutes; cleared by the first fresh legible
-**off**. Onset is the state's `last_changed` at the first on-reading (a
-code change inside one fault keeps the onset). An unusable reading
-(stale, unavailable, not boolean, no slot) never starts a hold, and never
-ends an active one: the slot's 60-minute horizon would otherwise release a
-latched fault on a push-only source. Under Optimizer Off the latch and the
-repair clear (Off writes nothing already). A restart starts unset; HA
-stamps `last_changed` at restart, so a fault on across it re-holds 10
-minutes later; a reload keeps the stamp and re-holds at once.
+**Reading** (R2). This consult reads the slot with `read_bool(...,
+max_age_minutes=UNBOUNDED)` (`inputs.UNBOUNDED`): a legible value counts
+at any age, so a fault that a push-only source reported once and never
+again still reads on. The 60-minute horizon keeps governing the learner
+freeze in `pump_signals`, unchanged. **Unusable** = unavailable, unknown,
+not boolean, or no slot.
+
+**Latch** (in memory, per config entry):
+- `since` is set at the first legible **on** to that state's
+  `last_changed` (bounded to now) and is kept through a code change and
+  through unusable readings; only a legible **off** resets it.
+- The hold is on while `since` is set and `now - since >=
+  FAULT_HOLD_AFTER_MIN` (10 min, a constant in `fault_hold.py`).
+- A legible off ends the hold. An unusable reading never starts a hold
+  (no `since` is set from it) and never ends one.
+- Optimizer Off answers False and clears the repair; the first consult
+  after On re-seeds `since` from the entity's `last_changed`, so a fault
+  older than 10 minutes holds again at once. A reload does the same (the
+  entry object survives a reload; a re-seed from `last_changed` covers a new
+  one). An HA restart stamps `last_changed`, so it holds 10 minutes after.
+- A pass with `entry_released` answers False and raises nothing.
 
 **While holding:**
 
 | writer | today | under the hold |
 |---|---|---|
-| power switch (`coordinator._write_supply`, step tick, cycle) | plan's ON/OFF | OFF becomes "leave" (switch stays on); ON passes |
+| power switch (`_write_supply`: cycle and step tick) | plan's ON/OFF | OFF becomes "leave", marked held so the step tick retries it (switch stays on); ON passes |
 | early cut-off (`early_cutoff.on_room_event`) | `turn_off` | no cut |
-| arbiter slots in control: mode, DHW and space set-points, silent switch, night schedule, `hold` re-sends, retries | per pass | nothing written; `space_before` dropped each pass, as `_pump_off` does, so a reset during the fault is never adopted as an edit |
-| `_lead_mode` (mode ahead of a switch-on) | mode write | none |
+| arbiter in control: mode, DHW and space set-points, silent switch, night schedule, `hold` re-sends, retries | per pass | nothing written; `space_before` and `held.retry` dropped each pass, as `_pump_off` drops `space_before` |
+| `_lead_mode` | mode write | none |
+| unload row (`pump_arbiter.release`) | baseline row | skipped; `off_restore`'s restore of the person's space set-point is kept (one write, the person's own value) |
 | compressor frequency (`_command_frequency`) | rate-limited | none |
-| heat-curve displace (`async_publish_current_action`, MQTT and entity arms) | per cycle | none |
+| every heat-curve displace (R1): cycle, `peak_guard` engage and release, all through `async_publish_ecl110_command` → `heat_curve.publish` | MQTT and entity arms | none |
 
-The solver keeps planning; only actuation is suspended, so the first pass
-after the clear writes the current step's row (a reset value still there is
-rewritten as any difference is, by `hold`).
+The solver keeps planning; only actuation is suspended. After the clear the
+next pass writes the step's row, and the step tick lands a held OFF.
 
-**Repair** `pump_fault_hold` through `issues.set_issue` (warning, not
-fixable, not persistent), raised on the latch's rising edge and cleared on
-its falling edge, at Off, and at unload. Title "The heat pump reports a
-fault; the plan is suspended"; description names `{entity}` and `{since}`
-(local time), says the optimizer stops changing the pump's mode and
-set-points and does not switch it off until the fault clears, that the
-notice clears itself, and to read the code on the pump's own display or app.
+**Repair** `pump_fault_hold` via `issues.set_issue` (warning, not fixable,
+not persistent): raised on the hold's rising edge, cleared on its falling
+edge, at Off and at unload. The rising edge also clears `pump_write_ignored`.
+Title "The heat pump reports a fault; the plan is suspended"; description
+names `{entity}` and `{since}`, says the optimizer stops changing the pump's
+mode and set-points and does not switch it off until the fault clears, that
+the notice clears itself, to read the code on the pump's own display or
+app, and to turn Optimizer active off before switching the pump by hand.
 
 **Ledger:** a step in which any pass held is `device-fault`, tested before
-every other verdict (before frost's `frost-hold`). A step with a fault
-shorter than the hold keeps today's verdict, so a short trip never hides a
-real `idle-instead`.
+every other verdict (before frost's `frost-hold`). A short fault keeps
+today's verdict. The step in which a long fault began closes before the
+hold and keeps its verdict; `docs/configuration.md` says so (no
+retroactive rescoring: a row is closed when its step ends).
 
-**Opt-out:** `fault_hold` boolean, default on; off is a branch where every
-consult answers `False` and no repair is raised.
+**Opt-out:** `fault_hold` boolean, default on; off answers False everywhere
+and raises nothing.
 
 **Installs:**
 
 | install | the hold |
 |---|---|
 | Tuya fork: binary "Fault Alarm" (bitmap != 0), or the raw bitmap sensor | `parse_bool` reads non-zero as on; holds after 10 min |
-| GCHV/Rotenso Modbus package: an alarm register or a template over it | same rule; a bitmap that also carries non-blocking warnings holds too: cost stated, opt-out |
-| generic, flag-domain fault entity (binary_sensor, switch, input_boolean) | holds |
-| generic, status text sensor | strict parse; an unparseable word is no evidence, never holds |
-| no fault entity | nothing changes: no hold, no repair |
+| GCHV/Rotenso Modbus: an alarm register or a template over it | same rule; a bitmap that also carries non-blocking warnings holds too: cost stated, opt-out |
+| generic flag-domain fault entity | holds |
+| generic status text sensor | an unparseable word is unusable: never starts a hold |
+| no fault entity | nothing changes |
 | duty off / observe | switch (no OFF), cut-off, frequency, curve held; observe ledger scores `device-fault` |
 | no power switch | switch rows do nothing; the rest as above |
 
 ## Interaction with the frost hold (e91a4e30)
 
-- **Switch: on wins.** Chain in `_write_supply`: `hold_supply` → `frost_hold.gate`
-  → `fault_hold.gate`. The fault gate turns only `False` into `None`, so a
-  frost switch-on passes and a frost "leave" stays "leave". Neither hold
-  ever moves the switch toward off.
-- **Rows: fault wins.** With both latched, control writes nothing: the
-  frost hold row (Heating at the floor) is itself a mode and set-point write
-  into a faulted pump. `_arbitrate` returns before `_command`;
-  `_lead_mode` writes no mode.
-- **Cut-off:** the frost design's single `arm` predicate becomes
-  `fault_hold.cutoff_hook(coord, frost_hold.cutoff_hook(coord))`, answering
-  `holding or inner()`; no second `arm` parameter.
-- Ledger `device-fault` before `frost-hold`; freezes unchanged
-  (`FREEZE_FAULT` already covers the interval); repairs independent.
+- **Switch: on wins.** `hold_supply` → `frost_hold.gate` → `fault_hold.gate`;
+  the fault gate turns only `False` into `None`, so a frost switch-on passes.
+- **Rows: fault wins.** With both latched, control writes nothing (the frost
+  row is itself a mode and set-point write into a faulted pump).
+- **Cut-off:** frost's single `arm` predicate is wrapped,
+  `fault_hold.cutoff_hook(entry, frost_hold.cutoff_hook(coord))`, answering
+  `holding or inner()`.
+- Ledger `device-fault` before `frost-hold`; freezes unchanged; repairs independent.
 
-Decisions pending owner override: ON passes under the hold (one write,
-never churn, and keeps "on wins" symmetric); X = 10 min as a constant.
+**Pending owner override** (the design review recommends keeping both): ON
+passes under the hold; X = 10 minutes as a constant.
 
 ## Owning seam and shape
 
 Owner: `custom_components/heatpump_optimizer/fault_hold.py` (new), a leaf
-beside `custom_components/heatpump_optimizer/supply_hold.py`: it imports
-`const`, `entry_config`, `inputs` and `issues`, never `pump_arbiter`, so
-`pump_arbiter` may import it with no cycle. It is the one writer of the
-latch and the repair; `pump_arbiter`, `coordinator` and `early_cutoff`
-only consult it.
+importing `const`, `entry_config`, `inputs` and `issues`, never
+`pump_arbiter`, so `pump_arbiter` and `heat_curve` may import it with no
+cycle. The one writer of the latch and the repair; everything else consults.
 
-- `FaultState`: `since: datetime | None`, `holding: bool`; per-coordinator
-  in a `WeakKeyDictionary` (no coordinator attribute).
-- `holding(coord, inp, now) -> bool` -- `inp` duck-typed (`hass`, `config`,
-  `mode`); reads the slot, moves the latch, writes the repair on an edge.
-  Synchronous, no `await`: atomic on the event loop.
-- `gate(coord, inp, value) -> bool | None` -- `False` → `None` while holding.
-- `cutoff_hook(coord, inner) -> Callable[[], bool]`; `release(coord)`
-  clears the repair; `diagnostics_view(coord)` → `holding`, `since`, `after_min`.
+- State per config entry in a `WeakKeyDictionary`: `since`, `holding`.
+- `holding(entry, hass, config, *, off, released=False, now=None) -> bool`
+  -- reads, moves the latch, writes the repairs on an edge. Synchronous.
+- `held(entry) -> bool` -- the latch as last moved, no read.
+- `gate(entry, value) -> bool | None` -- `False` → `None` while held.
+- `cutoff_hook(entry, inner)`, `release(hass, entry)`, `diagnostics_view(entry)`.
 
-Consults: `pump_arbiter.apply` once per pass, before the duty-off return,
-so every install consults each cycle and observe/control each minute;
-`_arbitrate(..., faulted)` marks the row then returns before
-`_adopt`/`hold`/`_command`/`_write_night_schedule`; `_lead_mode`;
-`pump_arbiter.release` calls `fault_hold.release`; `_observe` sets
-`row["fault"]`; `_verdict` reads it first. Coordinator: the gate wraps the
-existing `value =` statement; `_command_frequency` and
-`async_publish_current_action` add the consult to their existing
-Off guard. `diagnostics.py` gains one `("fault_hold", ...)` row.
+Consults: `pump_arbiter.apply` once per pass, before the duty-off return
+(every install each cycle; observe/control each minute), passing
+`inp.entry_released`; `_arbitrate(..., faulted)` marks the row, drops
+`space_before`/`retry`, returns before `_adopt`/`hold`/`_command`/night;
+`_lead_mode` and `release` read `held(entry)`. `heat_curve.publish` -- the
+one sink of `async_publish_ecl110_command`, so the cycle, the peak-guard
+engage and its release are all covered -- calls `holding(..., off=mode_off)`
+first and returns. `_command_frequency` reads `held(self.entry)` on its
+existing guard (it runs after `_apply_action`, so the latch is this
+cycle's). `diagnostics.py` gains one row.
 
 ```
-cycle/step tick ─ _write_supply ─ hold_supply ─ frost.gate ─ fault.gate ─ switch_supply
-arbiter tick ─ apply ─ fault.holding ─┬ held: _observe(fault) ; return
+cycle/tick ─ _write_supply ─ hold_supply ─ frost.gate ─ fault.gate ─ switch_supply
+arbiter tick ─ apply ─ fault.holding ─┬ held: _observe(fault); drop retry; return
                                       └ free: _adopt, hold, _command, night
-room event ─ on_room_event ─ hook(): fault.holding or frost.take_off ─ cut | keep
+any displace ─ async_publish_ecl110_command ─ heat_curve.publish ─ fault.holding ─ arms | none
+room event ─ on_room_event ─ hook(): fault.held or frost.take_off ─ cut | keep
 ```
 
 ## Alternatives
 
-1. Latch in `pump_signals` -- lost: read once per cycle (the optimization interval, 30 min by default), so
-   neither the 1-minute arbiter tick nor the repair's clear sees it in time.
-2. State on `ArbiterState` with `fault_hold` importing `pump_arbiter` (the
-   frost pattern) -- lost: `pump_arbiter.apply` must consult the hold,
-   and that import direction makes a cycle (`import_cycle_modules`).
-3. Hold only after the compressor stopped (measured draw below
-   `_ran_kw`) -- lost: a meter that includes the backup heater reads a
-   latched pump as running, which releases the hold while the heater runs.
-4. `_apply_action` returning early, as the stale-plan guard does -- lost:
-   skips the frost gate's switch-on, and misses the arbiter and step ticks.
-5. X as an option -- lost: no finding asks to tune it; a row, four string
-   files and bound tests for a constant.
-6. Treat a missing fault entity as a fault from "commanded, no draw" -- lost:
-   an idle pump on its own thermostat reads the same; no finding names it.
+1. Latch in `pump_signals` -- lost: read once per cycle (30 min by default),
+   too late for the 1-minute ticks and the clear.
+2. State on `ArbiterState`, `fault_hold` importing `pump_arbiter` -- lost:
+   `pump_arbiter.apply` and `heat_curve` consult it; that is a cycle.
+3. Hold only after the compressor stopped -- lost: a meter that includes
+   the backup heater reads a latched pump as running and releases it.
+4. Consult in the coordinator's `async_publish_ecl110_command` -- lost to
+   `heat_curve.publish`, its one sink: same coverage, no coordinator-class line.
+5. The slot's 60-minute horizon for this consult -- lost (R2): a latch lost
+   at Off or a reload never returns while a push-only fault persists.
+6. X as an option -- lost: no finding asks to tune it; a `config_flow.py`
+   row at zero headroom.
 
 ## Sibling sites
 
-`grep -n "services.async_call\|switch_supply(\|write_setpoint(\|write_setpoint_c(" custom_components/heatpump_optimizer/*.py`:
-switch (`pump_arbiter.switch_supply` via `_write_supply` and
-`early_cutoff`), arbiter `_write` (covered); frequency
-(`coordinator._command_frequency`), `heat_curve.publish` (covered);
-`heat_curve.write_displace` (`_send`) is reached only through `publish`.
-Out of scope: `_async_set_pump` (external circulators: frost protection of
-the emitter loop, not the pump), `_valve_write_problem` (mixing valve),
-`DisinfectionSwitch` (one write per cycle, not churn; an unreachable cycle
-raises its own `dhw_legionella_*` repair), `repairs.py` (a person's fix
-flow), the weather fetch (a read).
+`grep -n "services.async_call\|switch_supply(\|write_setpoint(\|write_setpoint_c(\|async_publish_ecl110_command(" custom_components/heatpump_optimizer/*.py`:
+switch (`_write_supply`, `early_cutoff`), arbiter `_write`, frequency, and
+`async_publish_ecl110_command`'s three callers (cycle, peak-guard engage,
+release via `async_publish_current_action`) are covered; `write_displace`
+and `write_persistent` are reached only through `publish`. Out of scope:
+`_async_set_pump` (external circulators), `_valve_write_problem` (mixing
+valve), `DisinfectionSwitch` (one write per cycle; its own repairs),
+`repairs.py` (a person's fix), the weather fetch (a read).
 
 ## Evidence plan
 
-Tests in `tests/features.py` beside the `supply_hold.hold_supply` cases,
-ledger cases in `tests/block_duty.py` beside the `not-startable` cases;
-failing first. Null control in each: the same fixture with the fault slot
-reading off (or `fault_hold` off) gives today's writes.
+Tests in `tests/features.py` beside the `supply_hold.hold_supply` cases;
+ledger cases in `tests/block_duty.py`, re-pointed to `duty_ledger`. Failing
+first; null control in each: the same fixture with the fault reading a
+fresh off (or `fault_hold` off) gives today's writes.
 
-1. Control, fault on 11 min: no mode, set-point, silent or night write;
-   on 9 min: today's writes (the boundary).
-2. Step-boundary duty change (Heating→DHW) under the hold: no mode write.
-3. Drifted set-point under the hold: not re-sent, no retry; after the clear,
-   rewritten; a reset during the fault never adopted as an edit.
-4. Switch: plan OFF under the hold leaves it; ON passes; with frost
-   latched too, frost's ON passes and its row is not written.
-5. Early cut-off under the hold: no `turn_off`; frost-only: as frost's tests.
-6. Frequency and curve displace: no write under the hold.
-7. Stale / unavailable / not-boolean: never starts a hold; an active hold
-   holds; a fresh off clears it. Code change inside a fault keeps the onset.
-8. Repair raised on the rising edge, cleared on a fresh off, at Off, at
-   unload; a 9-min fault raises none.
-9. Ledger: a held step is `device-fault` (planned dhw, space, both); a
-   held step with frost latched is `device-fault`; an unheld step with a
-   short fault keeps `idle-instead`.
-10. Duty off and observe: switch, frequency, curve held; nothing else
-    changes; observe scores `device-fault`.
-11. Numeric bitmap source (non-zero) and a binary source both hold.
-12. Opt-out off: every consult `False`, no repair, a 60-minute fault writes as today.
-13. Config flow: option, default, three translations; `const.py` check.
-14. Synthetic replay harness (no install data): 24 h of control with a
-    multi-hour latched fault and several sub-minute and few-minute faults;
-    count mode and set-point writes and switch OFFs while latched past
-    10 min: must be 0; short faults change no count; null control (opt-out)
-    reproduces today's counts.
+1. Control, fault on 11 min: no mode, set-point, silent or night write; 9 min: today's.
+2. Step-boundary Heating→DHW under the hold: no mode write.
+3. Drift under the hold: no re-send, no retry, `pump_write_ignored` cleared
+   on the edge; after the clear, rewritten; a reset never adopted.
+4. Switch: plan OFF left and marked held; after the clear the tick writes
+   it; ON passes; with frost latched, frost's ON passes and no row.
+5. Early cut-off: no `turn_off` under the hold.
+6. Frequency, the cycle displace and the peak-guard engage: no write.
+7. R2: a fault reading on for 70 min on an on-change source: Off→On holds
+   at once; a reload holds at once. Unavailable/unknown/not-boolean never
+   start a hold and keep an active one, and keep `since`.
+8. Repair: rising edge, falling edge, Off, unload; `entry_released` raises
+   none; a 9-min fault raises none.
+9. Ledger: held steps `device-fault` (dhw, space, both, frost latched);
+   an unheld short-fault step keeps `idle-instead`; the onset step keeps its verdict.
+10. Duty off and observe: switch, frequency, curve held; observe scores `device-fault`.
+11. Numeric bitmap and binary sources both hold.
+12. Unload under the hold: no baseline row; the space restore runs.
+13. Opt-out: no hold, no repair over a 60-minute fault.
+14. Config flow: option, default, three translations; `const.py` check.
+15. Synthetic replay (no install data): 24 h control, one multi-hour latch,
+    several sub-minute and few-minute faults; mode and set-point writes and
+    OFFs while latched past 10 min: 0; short faults change no count; null
+    control (opt-out) reproduces today's counts.
 
-Mutation targets: the 10-minute comparison, the fresh-off clear, the
-unusable-reading branch (start and keep), the `False`-only gate, the
-`apply` consult and `_arbitrate`'s return, `_lead_mode`'s skip, the
-`space_before` drop, `_verdict`'s fault-first branch, the repair edges,
-the opt-out branch, the frequency and curve guards. Goldens: the fixer's
-gate run decides; a moved fixture is claimed, never re-recorded.
+Mutation targets: the 10-minute comparison, the unbounded read, the
+legible-off reset, the unusable branch (start and keep), the re-seed at On,
+the `released` guard, the `False`-only gate and its held mark, `apply`'s
+consult and `_arbitrate`'s return, `_lead_mode` and `release` skips, the
+`retry`/`space_before` drops, `publish`'s return, the frequency guard,
+`_verdict`'s fault-first branch, the repair edges, the opt-out. Goldens: a
+moved fixture is claimed, never re-recorded.
 
-## Hot files, ratchet, docs
+## Hot files and structure payment
 
-Hot: `pump_arbiter.py`, `coordinator.py`, `early_cutoff.py`,
-`diagnostics.py`, `config_flow.py`, `const.py`, `entry_config.py`,
-`strings.json`, `translations/en.json`, `translations/sv.json`,
-`translations/de.json`, `tests/features.py`, `tests/block_duty.py`; every one
-but `diagnostics.py`, `entry_config.py` and `tests/block_duty.py` is
-R11-OWNER-FROST-HOLD's too, so this group runs after it, serially.
-`fault_hold.py` (new) is classified into a measured closure (`tests/closures.json`).
+Hot: `pump_arbiter.py`, `duty_ledger.py` (new), `coordinator.py`,
+`supply_hold.py`, `early_cutoff.py`, `heat_curve.py`, `diagnostics.py`,
+`config_flow.py`, `const.py`, `entry_config.py`, `strings.json`,
+`translations/en.json`, `translations/sv.json`, `translations/de.json`,
+`tests/features.py`, `tests/block_duty.py`, `tests/closures.json`. Both new
+modules and the harness are classified (closure or INERT).
 
-Ratchet, re-measured at the merge base (`tests/structure.py`): the
-coordinator class aims at net zero lines -- every consult joins an existing
-statement (the gate on `value =`, the two Off guards, the `arm` hook) and
-the import joins the existing `from . import` line. `pump_arbiter.py` (past
-`MODULE_LOC_LIMIT`) gains about eight lines (the consult, the `faulted`
-parameter, the row flag, the verdict branch, `_lead_mode`'s skip, the
-release call); paid in-file. A candidate payment the fixer weighs with
-`tools/audit/archscore/` before and after: move the step ledger
-(`_observe`, `_dhw_start_below_c`, `_not_startable`, `_missed`,
-`_verdict`) into its own module, a concern the arbiter only feeds. If no
-payment improves the code, the raise follows CLAUDE.md rule 2 with a
-`## Raise justification`.
+`module_excess_loc`, `class_excess_loc` and `max_class_loc` sit at zero
+headroom; each over-limit file names its own payment, **claimed by this
+group alone** and distinct from FLOWCAP's (its new `flow_limit.py`, fallback
+`_flow_command`/`_full_draw_c`), FROST-HOLD's (`_write_supply`'s debug
+branch to `frost_hold.log_skip`), MODE-LEGS' (`_valid_months_spec` to
+`grid_fee.py`; `_share` plumbing, fallback `_switch_context`) and
+STEP-KICK's (`FLOW_INLET_KEYS`, fallback `_or_hold`/`_gate_floor_c`).
 
-Docs: `docs/configuration.md` -- the Fault alarm row says what the hold
-does, the ledger list gains `device-fault`, the option row;
-`docs/architecture.md` -- the module tree line; strings and translations
-for the option and the repair.
+- **`pump_arbiter.py`** (+ about 10: consult, `faulted`, drops, `_lead_mode`
+  and `release` skips). Payment: the step ledger moves to
+  `duty_ledger.py` (new) -- `_observe`'s row logic, `_not_startable`,
+  `_missed`, `_verdict` and the ledger paragraph of the docstring.
+  **No cycle:** `duty_ledger` imports only `plan_step`; `pump_arbiter`
+  computes and passes the values the ledger read from it (`ran` from
+  `_ran_kw`, `dhw_mode` from `_slot_state`, `start_below` from
+  `_dhw_start_below_c`, which keeps `_dhw_target`), and `held` is passed
+  as the row owner. Expected net well below zero.
+- **`config_flow.py`** (+ about 3: the `_F` row beside the fault-entity row
+  and its `const` import names). Payment: `_meter_source_selector`,
+  `_freq_mode_selector` and `_solar_source_selector` each re-spell
+  `_select`; their four `_F` rows call `_select(...)` with the same
+  options and translation keys, the three functions are deleted, and each
+  docstring's reason survives as a one-line comment at its row. Net about −30.
+- **`coordinator.py`** (target 0): the fault gate joins the existing
+  `value =` statement; `_command_frequency`'s guard gains `held(...)`; the
+  displace consult is in `heat_curve.py`; the import joins the existing
+  `from . import` line. **Fallback** if the class or module is above zero:
+  `_write_supply` (after frost's move) leaves the class as
+  `supply_hold.write_gated(coord, on)`; the cycle calls it and
+  `SupplyWiring` takes `functools.partial(supply_hold.write_gated, self)`.
+- **`const.py`** (1954 lines, under `MODULE_LOC_LIMIT`): only
+  `CONF_FAULT_HOLD` and its default; the 10-minute constant lives in
+  `fault_hold.py`, so the four groups' const lines do not cross the limit.
+  Confirm at the merge base.
+- Measure with `python3 tests/structure.py` at the merge base and head, and
+  `tools/audit/archscore/` before and after each move. If a payment reads
+  worse or nets above zero, the raise goes under mandate 6893738184 (scope
+  `all`) with a `## Raise justification`, settled before the push.
 
-Release note: "With a Fault alarm entity configured, the optimizer stops
-changing the heat pump's mode and set-points, and no longer switches it
-off, once the alarm has been on for 10 minutes, and raises a repair until
-it clears. A fault entity that also reports non-blocking warnings holds
-too: turn *Fault hold* off to keep the old behaviour."
+Docs: `docs/configuration.md` (Fault alarm row, `device-fault` and the
+onset step in the ledger line, the option row); `docs/architecture.md`
+(two module lines). Release note: "With a Fault alarm entity configured,
+the optimizer stops changing the heat pump's mode, set-points, compressor
+frequency and heat-curve offset, and no longer switches it off, once the
+alarm has been on for 10 minutes, and raises a repair until it clears. A
+fault entity that also reports non-blocking warnings holds too: turn
+*Fault hold* off to keep the old behaviour."
 
 ## Notes for the fixer
 
-- Carry: R11-OWNER-FAULT-HOLD (skip-log) -- the frost design moves
-  `_write_supply`'s "Not switching off" debug branch into
-  `frost_hold.log_skip`; a `None` from the fault gate must log the fault
-  reason, never the cooling text, which today prints for any `None` with
-  `supply_held` false.
+- Carry: R11-OWNER-FAULT-HOLD (skip-log) -- the gate's held mark sets
+  `held.supply_held`, so `frost_hold.log_skip` never prints the cooling
+  text for a fault `None`; it names the fault.
 - Carry: R11-OWNER-FAULT-HOLD (multi-entry) -- `pump_fault_hold` is one
-  domain-wide id like `pump_write_ignored`; two entries with different fault
-  entities share it. Clear only when no entry holds, or key it per entry
-  with a translation key; state which in the body.
-- Carry: R11-OWNER-FAULT-HOLD (hand-reset) -- a person who switches the pump
-  off to reset a latched fault sees the next ON pass within a minute, as
-  today; the repair text says to turn Optimizer active off first.
-- Planning around a faulted pump (zero capacity in the solve) -- dismissed:
-  no finding names a planner change; actuation alone is suspended.
+  domain-wide id like `pump_write_ignored`; clear it only when no entry
+  holds, or key it per entry; state which in the body.
+- Carry: R11-OWNER-FAULT-HOLD (hand-reset) -- a person switching the pump
+  off by hand sees the next ON within a minute, as today; the repair text
+  says to turn Optimizer active off first.
+- Carry: R11-OWNER-FAULT-HOLD (entry-released) -- `holding` answers False
+  and raises nothing when `inp.entry_released` is set (the consult sits
+  before `apply`'s `entry_released` return).
+- Carry: R11-OWNER-FAULT-HOLD (supply-after-clear) -- `note_supply` records
+  the plan's OFF the gate turned into `None`; the held mark makes
+  `supply_tick` retry it each minute, so it lands after the clear.
+- Carry: R11-OWNER-FAULT-HOLD (ignored-repair) -- the rising edge clears
+  `pump_write_ignored`, and `_arbitrate` drops `held.retry` while faulted.
+- Carry: R11-OWNER-FAULT-HOLD (unload-row) -- `release` skips the baseline
+  row under the hold; `off_restore`'s space restore still runs.
+- Carry: R11-OWNER-FAULT-HOLD (onset-step) -- the onset step keeps its
+  verdict, stated in the docs ledger line.
+- Carry: R11-OWNER-FAULT-HOLD (cc-headroom) -- `functions_cc_over_15` is at
+  zero headroom and frost and STEP-KICK branch the same functions; fold
+  `faulted` into `_arbitrate`'s existing return condition and measure at the
+  merge base.
+- Carry: R11-OWNER-FAULT-HOLD (bundle-latch-count) --
+  `dev/audit/harnesses/r11_owner_fault_latch.py` (new) `<bundle.json>`, beside
+  STEP-KICK's, replays the bundle's fault-alarm timeline through the latch
+  rule and prints counts only (latches, short faults held); expected one
+  latch and none among the short faults. The bundle is never committed.
+- Carry: R11-OWNER-FAULT-HOLD (seam-actuation) -- if R11-SEAM-actuation-writes
+  or -release lands first and moves the frequency or displace tail, the
+  consult moves with it, into that tail's gate.
+- Planning around a faulted pump -- dismissed: no finding names a planner
+  change; actuation alone is suspended.
