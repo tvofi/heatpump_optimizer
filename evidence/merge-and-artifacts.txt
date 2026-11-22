@@ -1,17 +1,18 @@
-merge-tree origin/main(e4c929bd1c96e8a23636d1f1f086c38de1852853) dd2f26e749d54d7295dc2873a601487ce59367a4:
-6051a6038198a5627c5d4b52e4144c3cfd239d81
+origin/main 35c3e31cc954ccd0ff9b29cd861c6adb5ef986c3
+merge-tree --write-tree origin/main dd2f26e749d54d7295dc2873a601487ce59367a4:
+338732fae0e56870561933f9307cff3464cf22fd
 rc=0
 
-artifacts of run 44957362163 at 4ebd430fbff9a7b19582ca530a817f34abbafa16:
-selftest-absorbed 14730141227 zip sha256 7bba6a4e1859d2485fc5cfec3f93715913164d563c6644653232492370376801 (API digest 7bba6a4e18...)
-selftest-closures 14729559307 zip sha256 bcdfb3fe46554dd415a030834fb0fc7912e0572361d516cce510d3c3d43977c3 (API digest bcdfb3fe46...)
+artifacts of run 44957362163 at 4ebd430fbf:
+7bba6a4e1859d2485fc5cfec3f93715913164d563c6644653232492370376801  /root/art/abs.zip
+bcdfb3fe46554dd415a030834fb0fc7912e0572361d516cce510d3c3d43977c3  /root/art/meas.zip
+API digests: selftest-absorbed 14730141227 sha256:7bba6a4e18..., selftest-closures 14729559307 sha256:bcdfb3fe46...
 cmp artifact vs head table: BYTE-IDENTICAL
-8db94f8a3843ef7cdae5e58395c0b29188884b2a658064f90869f344c894c764  /root/art2/abs/selftest_closures.json
+8db94f8a3843ef7cdae5e58395c0b29188884b2a658064f90869f344c894c764  /root/art/abs/selftest_closures.json
 8db94f8a3843ef7cdae5e58395c0b29188884b2a658064f90869f344c894c764  /root/head_table.json
 
-main table at origin/main == at base a8efe1d1c2: yes
-new dirs on main after 4ebd430fbf (e4c929bd, #3814), none in any step's dirs:
-dev/audit/rounds/round11/D3/s1/state/results/c3c6-redrive
-dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-top6
-dev/audit/rounds/round11/D3/s1/state/results/posctl-D3-top6-local
-dev/audit/rounds/round11/D3/s1/state/superseded/gates-aborted
+main table at origin/main == at merge base: yes
+
+main push runs whose drift step refused (step 'Refuse a self-test read set the committed table misses'):
+run 44964363447 (e4c929bd1c) job 137032369357: selftest_scope check: 127 gated step(s), 11 refusal(s)
+run 44970308211 (f269ecccb5) job 137049045377: selftest_scope check: 127 gated step(s), 11 refusal(s)
