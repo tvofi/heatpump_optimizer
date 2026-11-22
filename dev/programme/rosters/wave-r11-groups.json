@@ -5241,10 +5241,16 @@
     "custom_components/heatpump_optimizer/debugger.py",
     "custom_components/heatpump_optimizer/accuracy.py",
     "custom_components/heatpump_optimizer/off_restore.py",
-    "custom_components/heatpump_optimizer/coordinator.py"
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/dhw_draws.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/legionella.py"
    ],
    "brief": "store.DOMAINS is the one schema: writers and loaders agree with it, non-finite leaves are quarantined, and a restored value is tested before it is applied. 5 findings (0 merged in), size M; class tags N-silent-zero, P1, P2. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "Late class sweep P1 (finder box SW7, landed on main by 5680abbb85 on 2026-11-21, after the register fold and the P3 plan; report `dev/audit/rounds/round11/sweep/P1/REPORT.json`): six store loaders admit a stored boolean as a number, so a persisted true loads as 1.0: the DHW draw statistics loader in dhw_draws.py (a 1.0 kWh draw), the billed-peak loader in tariff.py (a 1.0 kW billed peak), the baseline entry reader in off_restore.py, the coordinator's energy-totals and ledger loaders in coordinator.py (1.0 kWh, operation score 1.0) and the legionella guard's loader in legionella.py (attempt peak 1.0 degC). Probe: `PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_probes.py`; enumerator `dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py` (controls: plant, null, perturb). Class P1 on this group's seam, the persisted store; the P1 sweep reads none of the six left at this group's stamp. dhw_draws.py, tariff.py and legionella.py are added to this group's files with this carry. Verification: these are judged class-sweep seams marked beyond_finding, not register findings, so no verifier vote stands behind them; the fixer's failing test is the first independent measurement.",
+    "Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on handoff/audit-r11-sweep-SW8 at 872510cd3e as dev/audit/rounds/round11/sweep/P2/D14-sweep-P2/probes_p2.py): which DHW windows apply today is decided twice. Three readers take the weekday list on a weekend day: boost.py's window test (Saturday 07:00 with weekdays 06:00-08:30 and weekend 08:00-09:30 and no plan: open, where the weekend window is closed), the coordinator's pump driver for the circulation pump's windows in coordinator.py (runs on the weekday list), and the DHW profile learner's draw label in dhw_learning.py (a Saturday 07:00 draw labelled with the weekday window). This group owns boost.py and dhw_learning.py and carries class P2; each reader takes the day's windows from the one rule that resolves weekday against weekend, and the P2 sweep reads none of the three left at this group's stamp. Probe: run the SW8 harness above from a checkout of 872510cd3e with PYTHONPATH=tests/hastub. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them."
+   ],
    "source": "audit",
    "resume": {
     "stage": "not-started",
@@ -5252,7 +5258,7 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (none)",
-    "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json | set-files files ['custom_components/heatpump_optimizer/store.py', 'custom_components/heatpump_optimizer/snapshots.py', 'custom_components/heatpump_optimizer/boost.py', 'custom_components/heatpump_optimizer/comfort_learning.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/accuracy.py', 'custom_components/heatpump_optimizer/off_restore.py', 'custom_components/heatpump_optimizer/coordinator.py'] -> ['custom_components/heatpump_optimizer/store.py', 'custom_components/heatpump_optimizer/snapshots.py', 'custom_components/heatpump_optimizer/boost.py', 'custom_components/heatpump_optimizer/comfort_learning.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/accuracy.py', 'custom_components/heatpump_optimizer/off_restore.py', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/dhw_draws.py', 'custom_components/heatpump_optimizer/tariff.py', 'custom_components/heatpump_optimizer/legionella.py'] (cite origin/main@e3cb5c019b464a770cc7c6fe2fbc858ed29debf7)"
    }
   },
   {
@@ -5657,7 +5663,8 @@
    "brief": "What is written and when: every actuator reads the step covering now from the kernel owner, values sit on the entity's grid and range, a write to an unavailable entity is not recorded, the lead mode is checked against the entity. After release: both use the arbiter's held record. 9 findings (0 merged in), size L; class tags N-mode-coupled-write, N-stale-step-actuation, N-step-grid, P11, P2, P3. Plan: reads the covering step from plan_step (ADR-001) and the held record as ADR-004 leaves it. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
    "carry": [
     "- `tests/features.py`: design invariant 2, for the group that reads the held record after a release. After a restore lands the owner's record of the entity is empty (`ValveTarget.commanded_c`, `FrequencyWatchdog.commanded`, `circulation.commanded(entry)`, the arbiter's non-space slots), so the first write after On is sent, not deduplicated. Control: the section's \"design invariant 2\" checks, whose nulls (no Off between two cycles) send no second write; M12, M20, M24 and M25 are the perturbations. Re-measure with the section at your own merge base. Carry: dismissed: owed to R11-SEAM-actuation-writes (the group that reads the held record after a release; the orchestrator writes it onto that group's brief)",
-    "- `custom_components/heatpump_optimizer/pump_arbiter.py`: the GCHV night-schedule registers (`_write_night_schedule`) arm `ROW` but are not written back, because the row holds no value for them and nothing captures their reading before the first write. D16-s3-01's property names them; no harness at 0a7ea717c6d9 measures them. Carry: dismissed: owed to R11-SEAM-actuation-writes (the arbiter's write path owns the night registers; the orchestrator writes it onto that group's brief)"
+    "- `custom_components/heatpump_optimizer/pump_arbiter.py`: the GCHV night-schedule registers (`_write_night_schedule`) arm `ROW` but are not written back, because the row holds no value for them and nothing captures their reading before the first write. D16-s3-01's property names them; no harness at 0a7ea717c6d9 measures them. Carry: dismissed: owed to R11-SEAM-actuation-writes (the arbiter's write path owns the night registers; the orchestrator writes it onto that group's brief)",
+    "Late class sweeps on this group's seam, landed on main after the register fold and the P3 plan (SW2 by 1fd7ed1c81 on 2026-11-19; SW7 and SW9 by 5680abbb85 on 2026-11-21). (1) Class P3, the full-draw set-point in pump_arbiter.py: the floor-level write is the set-point the flow command's ceiling calls full draw for lifts of 5.5 to 15 K, 210 of 1170 probes contradicting; probe `PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/sweep/P3/D14/sweep-P3/probe_full_draw.py` (exit 1; null and fixed arms 0). (2) Class P11, the coordinator's valve-target command in coordinator.py loses a command that only a double written from the code's own reading passes; probe `PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/sweep/P11/D14/sweep-P11/p11_probes.py` (valve arm 1, double-fake 0). (3) Class N-stale-step-actuation, the coordinator's peak-guard transition publishes the cut action's displacement on engage and release with no step lookup (published 4 where the step's own value is 6); probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/sweep/N-stale-step-actuation/harness/probe_peak_guard.py` (rc 1; the at-step and recut arms rc 0). Each class's sweep reads none of these left at this group's stamp. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them. This group's fixer is dispatched: by finding-propagation.md this carry reaches it through its brief relay."
    ],
    "source": "audit",
    "resume": {
@@ -5748,7 +5755,8 @@
    ],
    "brief": "The cycle owns when a solve runs: a write during an in-flight refresh arms a trailing run, every solve request shares one in-flight guard and budget, the worker's failure arms are bounded, and the action and the button reach one refresh path. 8 findings (0 merged in), size L; class tags N-dropped-refresh, N-solve-recompute, N-unbudgeted-background, N-uncleared-issue, P10, P2. Plan: no ADR fixes the shape of the one in-flight guard and budget; designer.md is dispatched before the fixer. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
    "carry": [
-    "Left behind (carry census 2026-11-21): PR 3674's fix review routed this to R11-INTAKE-R10-RESIDUE, which is deferred and never received it; this group owns custom_components/heatpump_optimizer/whatif.py. Follow-up, review item f9a20486: the steady pair's hour scatter is measured only for the asks the item named. A hot-water window, quiet-hours or wood-slot change sent alone also takes the pair branch (`schedule_days` in whatif.py returns None, since no comfort target moves), and its figure is equally one day's, priced from the hour asked; nothing measures it for the same scatter, and the card sentence names only the weight and the floor. Control: the asks arm with those overrides added to the pair asks; precondition: the card still sends them alone. Not owed by the open pull request if its design excludes it: record the disposition at its merge. Carry: R11-SEAM-cycle-solve (items f9a20486)"
+    "Left behind (carry census 2026-11-21): PR 3674's fix review routed this to R11-INTAKE-R10-RESIDUE, which is deferred and never received it; this group owns custom_components/heatpump_optimizer/whatif.py. Follow-up, review item f9a20486: the steady pair's hour scatter is measured only for the asks the item named. A hot-water window, quiet-hours or wood-slot change sent alone also takes the pair branch (`schedule_days` in whatif.py returns None, since no comfort target moves), and its figure is equally one day's, priced from the hour asked; nothing measures it for the same scatter, and the card sentence names only the weight and the floor. Control: the asks arm with those overrides added to the pair asks; precondition: the card still sends them alone. Not owed by the open pull request if its design excludes it: record the disposition at its merge. Carry: R11-SEAM-cycle-solve (items f9a20486)",
+    "Late class sweep N-solve-recompute (finder box SW2, landed on main by 1fd7ed1c81 on 2026-11-19, after the register fold and the P3 plan; report `dev/audit/rounds/round11/sweep/N-solve-recompute/REPORT.json`): beyond the force-optimization button, the timed duty switches in switch.py (Boost DHW, Boost Space, Block DHW, Block Space) reach the publish-then-refresh helper in entity.py, which runs the solve and then requests a refresh that solves again. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/sweep/N-solve-recompute/harness/probe.py boost_dhw` (and block_space); enumerator `dev/audit/rounds/round11/sweep/N-solve-recompute/harness/enumerate.py`. The N-solve-recompute sweep is this group's fitness function and reads this seam left at its stamp. Verification: a judged class-sweep seam marked beyond_finding, not a register finding. Pull request 3738 is open on this group: by finding-propagation.md this carry goes to that pull request's fixer."
    ],
    "source": "audit",
    "resume": {
@@ -7688,6 +7696,154 @@
     "last_step": null,
     "next_step": "designer",
     "note": "owner priority, above every cap; design first; overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-product-text, R11-SEAM-docs, R11-ARCH-cycle-surface): owner item 2026-11-22: owner priority, above every cap"
+   }
+  },
+  {
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "fixes": [],
+   "findings": [],
+   "merged": {},
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "source": "audit",
+   "carry": [],
+   "group": "R11-LATE-P1-OPTIONS",
+   "severity": "medium",
+   "size": "S",
+   "issues": [
+    3757
+   ],
+   "classes": [
+    "P1"
+   ],
+   "seam": "stored options read by their consumers",
+   "hot_files": [
+    "config_flow.py",
+    "topology.py",
+    "quiet_windows.py"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/quiet_windows.py",
+    "tests/features.py"
+   ],
+   "brief": "Late class sweep P1 (finder box SW7, landed on main by 5680abbb85 on 2026-11-21, after the register fold and the P3 plan; report `dev/audit/rounds/round11/sweep/P1/REPORT.json`): a stored option of the wrong type raises in four readers instead of falling back to its default: the options flow's effective-value reader in config_flow.py, the setup description and the slot extras in topology.py, and the measured quiet-window ceiling in quiet_windows.py. Probe: `PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_probes.py` (config-effective and other-option arms; null 0, perturb 0); enumerator `dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py`. No live group owns this seam: R11-SEAM-inputs-guards (pull request 3734, merged) owned P1 at the input boundary and R11-SEAM-config (pull request 3742, merged) the options' placement. Each reader tests the stored value's type and domain before use and takes its default otherwise; a failing test per reader first; the P1 sweep reads none of the four left at this group's stamp. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them, so the fixer's failing test is the first independent measurement. Folded by the round-11 late-arrival fold under mandate 6893738184.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT): late P1 sweep seams, round-11 late-arrival fold; no live group owns the stored-options readers"
+   }
+  },
+  {
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "fixes": [],
+   "findings": [],
+   "merged": {},
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "source": "audit",
+   "carry": [],
+   "group": "R11-LATE-P2-ZONE-GATE",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    3744
+   ],
+   "classes": [
+    "P2"
+   ],
+   "seam": "two-zone presence",
+   "hot_files": [
+    "coordinator.py"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/features.py"
+   ],
+   "brief": "Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on handoff/audit-r11-sweep-SW8 at 872510cd3e as dev/audit/rounds/round11/sweep/P2/D14-sweep-P2/probes_p2.py): whether an install is two-zone is decided twice in coordinator.py. The thermal-parameter update accepts the upper-floor mass, lower-floor mass and inter-zone transfer on a single-zone install, where they move the plan by nothing before or after a restart (the whole-house mass on the same install moves it), and the result payload publishes a zone temperature in every schedule row with two-zone modelling off. Each reader takes the answer from the one two-zone presence rule: the update refuses or reports the zone parameters on a single-zone install, and the schedule rows carry zone temperatures only when two-zone modelling is on; a failing test per reader first; the P2 sweep reads none of the four left at this group's stamp. No live group owns this seam: R11-SEAM-plant-model (pull request 3731) is merged, and R11-SEAM-two-zone-slab is the slab law's design-first group, not the presence rule. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them, so the fixer's failing test is the first independent measurement. Folded by the round-11 late-arrival fold under mandate 6893738184.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-ARCH-cycle-surface, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT, R11-LATE-P1-OPTIONS): late P2 sweep seams, round-11 late-arrival fold; the two-zone presence rule has no live owner"
+   }
+  },
+  {
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "fixes": [],
+   "findings": [],
+   "merged": {},
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "source": "audit",
+   "carry": [],
+   "group": "R11-LATE-P2-REPLAY-FINITE",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    3744
+   ],
+   "classes": [
+    "P2"
+   ],
+   "seam": "replay document numbers",
+   "hot_files": [
+    "replay_doc.py"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/replay_doc.py",
+    "tests/features.py"
+   ],
+   "brief": "Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on handoff/audit-r11-sweep-SW8 at 872510cd3e as dev/audit/rounds/round11/sweep/P2/D14-sweep-P2/probes_p2.py): the replay document's number filter in replay_doc.py keeps NaN, inf and minus inf, where the package's finite test refuses them. R11-SEAM-kernel-step (pull request 3728, merged) gave the finite test one owner; this reader is a sibling it did not reach. The filter takes the kernel's finite test; a failing test first; the P2 sweep reads it clean at this group's stamp. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them, so the fixer's failing test is the first independent measurement. Folded by the round-11 late-arrival fold under mandate 6893738184.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT, R11-LATE-P1-OPTIONS, R11-LATE-P2-ZONE-GATE): late P2 sweep seam, round-11 late-arrival fold; the finite-test owner is merged"
    }
   }
  ]
