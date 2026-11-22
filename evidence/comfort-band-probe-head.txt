@@ -1,5 +1,0 @@
-'abc' parsed 7 number_repairs {} RAISES ValueError could not convert string to float: 'abc'
-None parsed 7 number_repairs {} RAISES TypeError float() argument must be a string or a real number, not 'NoneType'
-[7] parsed 7 number_repairs {} RAISES TypeError float() argument must be a string or a real number, not 'list'
-{'v': 7} parsed 7 number_repairs {} RAISES TypeError float() argument must be a string or a real number, not 'dict'
-'7' parsed 7 number_repairs {} violations []

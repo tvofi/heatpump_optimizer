@@ -1,0 +1,11 @@
+CTRL {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+numeric keys 6
+FAIL key=dhw_setpoint op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '<' not supported between instances of 'str' and 'float'", 'c2': "UpdateFailed: Error
+FAIL key=dhw_setpoint op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '<' not supported between instances of 'NoneType' and 'float'", 'c2': "UpdateFailed: 
+FAIL key=dhw_setpoint op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '<' not supported between instances of 'list' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=dhw_setpoint op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '<' not supported between instances of 'dict' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=heat_pump_max_power op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updat
+FAIL key=heat_pump_max_power op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'NoneType' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=heat_pump_max_power op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updat
+FAIL key=heat_pump_max_power op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'dict' and 'float'", 'c2': "UpdateFailed: Error up
+RESULT census_fail=8 of 24

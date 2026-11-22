@@ -1,0 +1,106 @@
+CTRL {'migrate': 'ok', 'build': 'ok', 'c1': 'ok', 'c2': 'ok'}
+numeric keys 106
+FAIL key=buffer_cooling_rate op=str_word {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+FAIL key=buffer_cooling_rate op=list {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+FAIL key=buffer_cooling_rate op=dict {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'dict'", 'c1': None, 'c2': None}
+FAIL key=buffer_max_temperature op=str_word {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+FAIL key=buffer_max_temperature op=none {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'NoneType'", 'c1': None, 'c2': None}
+FAIL key=buffer_max_temperature op=list {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+FAIL key=buffer_max_temperature op=dict {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'dict'", 'c1': None, 'c2': None}
+FAIL key=buffer_tank_volume op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updat
+FAIL key=buffer_tank_volume op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'NoneType' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=buffer_tank_volume op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updat
+FAIL key=buffer_tank_volume op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'dict' and 'float'", 'c2': "UpdateFailed: Error up
+FAIL key=day_end_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=day_end_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=day_end_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=day_end_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=day_end_hour_weekend op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=day_end_hour_weekend op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=day_end_hour_weekend op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=day_end_hour_weekend op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=day_start_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=day_start_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=day_start_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=day_start_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=day_start_hour_weekend op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=day_start_hour_weekend op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=day_start_hour_weekend op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=day_start_hour_weekend op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=dhw_cooling_rate op=str_word {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+FAIL key=dhw_cooling_rate op=none {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'NoneType'", 'c1': None, 'c2': None}
+FAIL key=dhw_cooling_rate op=list {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+FAIL key=dhw_cooling_rate op=dict {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'dict'", 'c1': None, 'c2': None}
+FAIL key=dhw_daily_consumption op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for /: 'str' and 'float'", 'c2': "UpdateFailed: Error upd
+FAIL key=dhw_daily_consumption op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for /: 'NoneType' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=dhw_daily_consumption op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for /: 'list' and 'float'", 'c2': "UpdateFailed: Error up
+FAIL key=dhw_daily_consumption op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for /: 'dict' and 'float'", 'c2': "UpdateFailed: Error up
+FAIL key=dhw_inlet_seasonal_amplitude op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=dhw_inlet_seasonal_amplitude op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=dhw_inlet_seasonal_amplitude op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=dhw_inlet_seasonal_amplitude op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=dhw_inlet_temp op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=dhw_inlet_temp op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=dhw_inlet_temp op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=dhw_inlet_temp op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=dhw_legionella_interval_days op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=dhw_legionella_interval_days op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=dhw_legionella_interval_days op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=dhw_legionella_interval_days op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=dhw_legionella_temperature op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'str' and 'float'", 'c2': "UpdateFailed: Error
+FAIL key=dhw_legionella_temperature op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=dhw_legionella_temperature op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'list' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=dhw_legionella_temperature op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'dict' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=dhw_min_temperature op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': 'UpdateFailed: Error updating data: can only concatenate str (not "float") to str', 'c2': 'UpdateFailed: Error updating d
+FAIL key=dhw_min_temperature op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for +: 'NoneType' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=dhw_min_temperature op=list {'migrate': 'ok', 'build': 'ok', 'c1': 'UpdateFailed: Error updating data: can only concatenate list (not "float") to list', 'c2': 'UpdateFailed: Error updating
+FAIL key=dhw_min_temperature op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for +: 'dict' and 'float'", 'c2': "UpdateFailed: Error up
+FAIL key=dhw_setpoint op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '<' not supported between instances of 'str' and 'float'", 'c2': "UpdateFailed: Error
+FAIL key=dhw_setpoint op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '<' not supported between instances of 'NoneType' and 'float'", 'c2': "UpdateFailed: 
+FAIL key=dhw_setpoint op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '<' not supported between instances of 'list' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=dhw_setpoint op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '<' not supported between instances of 'dict' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=greywater_recovery_effectiveness op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: ufunc 'clip' did not contain a loop with signature matching types (dtype('<U3'), dtyp
+FAIL key=greywater_recovery_effectiveness op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>=' not supported between instances of 'NoneType' and 'float'", 'c2': "UpdateFailed:
+FAIL key=greywater_recovery_effectiveness op=list {'migrate': 'ok', 'build': 'ok', 'c1': 'UpdateFailed: Error updating data: only 0-dimensional arrays can be converted to Python scalars', 'c2': 'UpdateFailed: E
+FAIL key=greywater_recovery_effectiveness op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>=' not supported between instances of 'dict' and 'float'", 'c2': "UpdateFailed: Err
+FAIL key=heat_pump_cop_nominal op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'float' and 'str'", 'c2': "UpdateFailed: Error
+FAIL key=heat_pump_cop_nominal op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'float' and 'NoneType'", 'c2': "UpdateFailed: 
+FAIL key=heat_pump_cop_nominal op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'float' and 'list'", 'c2': "UpdateFailed: Erro
+FAIL key=heat_pump_cop_nominal op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'float' and 'dict'", 'c2': "UpdateFailed: Erro
+FAIL key=heat_pump_max_power op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updat
+FAIL key=heat_pump_max_power op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'NoneType' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=heat_pump_max_power op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updat
+FAIL key=heat_pump_max_power op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'dict' and 'float'", 'c2': "UpdateFailed: Error up
+FAIL key=heat_pump_min_power op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for -: 'float' and 'str'", 'c2': "UpdateFailed: Error upd
+FAIL key=heat_pump_min_power op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for -: 'float' and 'NoneType'", 'c2': "UpdateFailed: Erro
+FAIL key=heat_pump_min_power op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for -: 'float' and 'list'", 'c2': "UpdateFailed: Error up
+FAIL key=heat_pump_min_power op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for -: 'float' and 'dict'", 'c2': "UpdateFailed: Error up
+FAIL key=holiday_day_end_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=holiday_day_end_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=holiday_day_end_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=holiday_day_end_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=holiday_day_start_hour op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: could not convert string to float: 'abc'", 'c2': "UpdateFailed: Error updating data: 
+FAIL key=holiday_day_start_hour op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'NoneType'", 'c2': "UpdateFai
+FAIL key=holiday_day_start_hour op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'list'", 'c2': "UpdateFailed:
+FAIL key=holiday_day_start_hour op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: float() argument must be a string or a real number, not 'dict'", 'c2': "UpdateFailed:
+FAIL key=house_heat_loss_scale op=str_word {'migrate': 'ok', 'build': "ValueError: could not convert string to float: 'abc'", 'c1': None, 'c2': None}
+FAIL key=house_heat_loss_scale op=none {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'NoneType'", 'c1': None, 'c2': None}
+FAIL key=house_heat_loss_scale op=list {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'list'", 'c1': None, 'c2': None}
+FAIL key=house_heat_loss_scale op=dict {'migrate': 'ok', 'build': "TypeError: float() argument must be a string or a real number, not 'dict'", 'c1': None, 'c2': None}
+FAIL key=lower_floor_heat_loss op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updat
+FAIL key=lower_floor_heat_loss op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'NoneType' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=lower_floor_heat_loss op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: can't multiply sequence by non-int of type 'float'", 'c2': "UpdateFailed: Error updat
+FAIL key=lower_floor_heat_loss op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for *: 'dict' and 'float'", 'c2': "UpdateFailed: Error up
+FAIL key=slab_heat_transfer op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'float' and 'str'", 'c2': "UpdateFailed: Error
+FAIL key=slab_heat_transfer op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'float' and 'NoneType'", 'c2': "UpdateFailed: 
+FAIL key=slab_heat_transfer op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'float' and 'list'", 'c2': "UpdateFailed: Erro
+FAIL key=slab_heat_transfer op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: '>' not supported between instances of 'float' and 'dict'", 'c2': "UpdateFailed: Erro
+FAIL key=upper_floor_area_ratio op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for -: 'float' and 'str'", 'c2': "UpdateFailed: Error upd
+FAIL key=upper_floor_area_ratio op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for -: 'float' and 'NoneType'", 'c2': "UpdateFailed: Erro
+FAIL key=upper_floor_area_ratio op=list {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for -: 'float' and 'list'", 'c2': "UpdateFailed: Error up
+FAIL key=upper_floor_area_ratio op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for -: 'float' and 'dict'", 'c2': "UpdateFailed: Error up
+FAIL key=upper_floor_heat_loss op=str_word {'migrate': 'ok', 'build': 'ok', 'c1': 'UpdateFailed: Error updating data: can only concatenate str (not "float") to str', 'c2': 'UpdateFailed: Error updating d
+FAIL key=upper_floor_heat_loss op=none {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for +: 'NoneType' and 'float'", 'c2': "UpdateFailed: Erro
+FAIL key=upper_floor_heat_loss op=list {'migrate': 'ok', 'build': 'ok', 'c1': 'UpdateFailed: Error updating data: can only concatenate list (not "float") to list', 'c2': 'UpdateFailed: Error updating
+FAIL key=upper_floor_heat_loss op=dict {'migrate': 'ok', 'build': 'ok', 'c1': "UpdateFailed: Error updating data: unsupported operand type(s) for +: 'dict' and 'float'", 'c2': "UpdateFailed: Error up
+RESULT census_fail=103 of 424

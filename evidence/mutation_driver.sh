@@ -1,30 +1,30 @@
-# reviewer's mutation driver: python-literal replace, run, restore
-cd $HOME/wt; P=custom_components/heatpump_optimizer
-m() { name=$1 file=$2 old=$3 new=$4; shift 4
-  python3 - "$file" "$old" "$new" <<'PY' || { echo "$name NOAPPLY"; return; }
+# reviewer's mutation driver (built by the reviewer): python-literal replace, run the
+# "Config entry migration" section of tests/entities.py (header lines 1-148 + section
+# 15627-15951 + R.close, extracted at the head into tests/_rv_mig_block.py), restore.
+cd $HOME/wt; P=custom_components/heatpump_optimizer/entry_config.py
+T="env PYTHONPATH=tests/hastub python3 tests/_rv_mig_block.py"
+m() { name=$1 old=$2 new=$3
+  python3 - "$P" "$old" "$new" <<'PY' || { echo "$name NOAPPLY"; return; }
 import sys; f,o,n=sys.argv[1:]; s=open(f).read(); assert s.count(o)==1, s.count(o); open(f,'w').write(s.replace(o,n))
 PY
-  out=$("$@" 2>&1); rc=$?; git checkout -q -- $file
-  echo "$name rc=$rc $(echo "$out" | grep -E '^ *FAIL|Error|PASSED|FAILED' | head -2 | tr '\n' ' ' | cut -c1-300) porcelain=[$(git status --porcelain | tr '\n' ' ')]"
+  out=$($T 2>&1); rc=$?; git checkout -q -- $P
+  echo "$name rc=$rc $(echo "$out" | grep -E '^ *FAIL|Error|PASSED|FAILED' | head -3 | tr '\n' ' ' | cut -c1-400) porcelain=[$(git status --porcelain -uno | tr '\n' ' ')]"
 }
-OM="env PYTHONPATH=tests/hastub python3 tests/open_meteo.py"
-WA="env PYTHONPATH=tests/hastub python3 tests/wood_advisor.py"
-echo "CLEAN open_meteo: $($OM 2>&1 | tail -1)"; echo "CLEAN wood_advisor: $($WA 2>&1 | tail -1)"
-m M1-kept-all $P/open_meteo.py "if t >= floor]" "if True]" $OM
-m M2-lt1 $P/open_meteo.py "if len(kept) < 2:" "if len(kept) < 1:" $OM
-m M3-floor-noresolution $P/open_meteo.py "utc_instant(datetime.min) + resolution" "utc_instant(datetime.min)" $OM
-m M4-lead-finite $P/entry_config.py "_key(const.DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _lead_minutes)" "_key(const.DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, finite_float)" $WA
-m M5-lead-noceil $P/entry_config.py "not 0.0 <= minutes <= _MAX_PLAN_MINUTES" "not 0.0 <= minutes" $WA
-m M6-lead-strictfloor $P/entry_config.py "not 0.0 <= minutes <= _MAX_PLAN_MINUTES" "not 0.0 < minutes <= _MAX_PLAN_MINUTES" $WA
-FB="python3 tools/audit/seat/features_block.py"
-FB() { env PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude "exec(open('/root/rv/pre.py').read())" 'R.section("Non-numeric inputs (v5.3.0)")' 'R.section("Heat pump operating mode (v5.3.0)")'; }
-echo "CLEAN features-block: $(FB 2>&1 | tail -1)"
-m M7-parse_bool-revert $P/inputs.py "    number = finite_float(token)
-    return None if number is None else number != 0.0" "    try:
-        return float(token) != 0.0
-    except (TypeError, ValueError):
-        return None" FB
-m M8-begin-guard-off $P/inputs.py "        if not isinstance(entity_id, str):
-            entity_id = None" "        if False:
-            entity_id = None" FB
-m M9-plausible-onesided $P/inputs.py "window[0] <= value_c <= window[1]" "window[0] <= value_c" FB
+echo "CLEAN rc: $($T >/dev/null 2>&1; echo $?) $($T 2>&1 | tail -1)"
+m M1-whole-not-defaulted "_lead_minutes, _whole,
+)" "_lead_minutes,
+)"
+m M2-old-finite_float 'f.name: None if value is None else f.metadata["parse"](value, f.default)' 'f.name: finite_float(value)'
+m M3-none-stored-as-default 'f.name: None if value is None else f.metadata["parse"](value, f.default)' 'f.name: f.metadata["parse"](value, f.default)'
+m M4-float-default-parse 'f.name: None if value is None else f.metadata["parse"](value, f.default)' 'f.name: None if value is None else finite_float(value, f.default)'
+m M5-drop-heated_area "    heated_area_m2: float = _key(const.DEFAULT_HEATED_AREA, finite_float)
+" ""
+m M6-drop-wood_price "    wood_price_sek_m3: float | None = _key(None, finite_float)
+" ""
+m M7-repaired-keeps-None "        if key not in repairs or repairs[key] is not None
+" "        if True
+"
+m M8-drop-day_start_hour_weekend "    day_start_hour_weekend: int | None = _key(None, _whole)
+" "    day_start_hour_weekend: int | None = _key(None, _as_stored)
+"
+m M9-bool-not-repaired "and (isinstance(value := stored[f.name], bool) or not isinstance(value, (int, float)))" "and not isinstance(value := stored[f.name], (int, float))"
