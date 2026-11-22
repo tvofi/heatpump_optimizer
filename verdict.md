@@ -1,51 +1,24 @@
-Design review: revise aefc8bc416d8aabf30c970464ab04254b759278a class-open
+Design review: approve e91a4e30d7eb5d10b030db06a154457d315fe097
 
-Reviewed design/R11-OWNER-FROST-HOLD design.md at aefc8bc416, against origin/main 3a98735a7e (the note's base). Sibling read: design/R11-OWNER-FLOWCAP at 5b697934d8.
-Rulings applied: tvofi 2026-11-22 (in the brief): "Threshold: +2 degrees C. Stale sensor: keep holding. Hold setpoint: the pumps own floor." The coordinator relayed a later ruling the same day, verbatim: "A stale reading should start a hold. I assume this fix will cover all installs with an on/off switch?" R1 and R2 apply it. It was relayed, not read by this seat at source.
+Delta review of design/R11-OWNER-FROST-HOLD, aefc8bc416..e91a4e30d7, checked against the revise points R1-R9 of design-verdict a330ce0ae8. Code was read at origin/main 3a98735a7e. Rulings applied: tvofi 2026-11-22, the three in the brief, plus "A stale reading should start a hold. I assume this fix will cover all installs with an on/off switch?", which the coordinator relayed.
 
-## Revise points
+## Prior points
+- R1 resolved. `frost_hold.reading` takes the outdoor value from the `InputHealth` verdict and never from `state.outdoor_temperature`. `None` sets the latch, and only a reading at or above threshold + 1 K clears it. Test 4 covers the back-filled 5.0.
+- R2 resolved. The install table covers every case. With duty mode off or observe, the switch stays on and nothing else is written, which matches pump_arbiter.py:1930-1960, where nothing outside control writes. The cost is stated in the note and in the release note.
+- R3 resolved. An explicit `frost_hold` boolean, with off as a tested branch (test 6). The threshold selector is now -15..10.
+- R4 resolved. There is no new duty string. Served becomes "space" and bypasses `_without_block`. `_mode_for(inp, "space")` gives Heating on Tuya, so `_lead_mode` leads with Heating, and test 11 pins that with a mutant. The block interplay is decided: the hold wins.
+- R5 resolved. `_hold_floor_c` is the entity minimum, raised to `_setpoint_limits_c` where that sensor reads. The gate value is used only where the entity states no minimum, and `_gate_c` is not used.
+- R6 resolved. A quiet off window is converted like any idle step, with a docs line and test 13. This is an orchestrator decision pending owner override, routed in the note.
+- R7 resolved. The latch is in memory only, the restart case is stated, and it is updated with no `await` between read and write.
+- R8 resolved. About three coordinator-class lines, paid by moving the eight-line "Not switching off" debug branch into `frost_hold`. `_tail_freeze` is a module function. archscore is run before and after.
+- R9 resolved. Tests 1-19 each carry the opt-out null control, and the mutation sites follow the new shape.
 
-R1 (ruling): stale or missing must START a hold. design.md "Unusable outdoor reading" bullet and evidence test 4 ("an inactive latch starts none") break the relayed ruling. Fix: an unusable reading sets the latch. Only a usable reading at or above threshold + 1 K clears it. The note must also name where the reading comes from, because `state.outdoor_temperature` cannot be used for this. When the sensor is not ok, coordinator.py:6623-6632 fills it from `forecast_outdoor_now`, and failing that it keeps the prior or the 5.0 default. A stale sensor would then read 5.0 and clear the latch (5 >= 3). Fix: take the `InputReader` verdict for `CONF_OUTDOOR_TEMP_ENTITY` and pass `None` when it is not ok.
-
-R2 (class-open, coverage): the hold does not reach the default install. design.md says "Control only". `DEFAULT_PUMP_DUTY_MODE = "off"` (const.py:1071), and the switch row (config_flow.py:1432/1720) does not depend on the duty mode. So every install that has a power switch and the default duty mode keeps today's OFF. The owner expects a hold on every install with an on/off switch. The note must list each case and what the hold does there:
-  - switch + duty mode off (default) or observe: not covered today. Wanted: the gate keeps the switch on and writes nothing else. The pump's own thermostat or curve runs it. The arbiter already writes nothing outside control (pump_arbiter.py:1943-1960). Observe's ledger scores the row `frost-hold`.
-  - switch + control + Tuya fork (mode select offers Heating / DHW only): covered, Heating + floor. R4 has to be fixed for this to hold.
-  - switch + control + GCHV/Rotenso (Off / Cool+DHW / Heat+DHW): covered, Heat+DHW with DHW at `DHW_GATE_C` and space at the floor.
-  - switch + control + a generic set-point entity (number or climate; flow, return or indoor unit), with or without a mode select: the note does not say. State it: floor written; with no mode select, no mode written.
-  - switch + control with no space set-point and/or no mode entity: `desired` writes nothing for a missing slot, so this is switch-on only. State it.
-  - switch domain: the flow offers `switch` only, and `on_off_service` routes input_boolean/climate too (pump_arbiter.py:2026-2034). The gate sits above the routing, so the domain does not matter. State it.
-  - cooling or both channels blocked: `supply_write` already returns `None`, so no OFF happens today. Unchanged, as stated.
-  - no power switch: there is nothing to hold. Out of scope; state it.
-The note gives this reason for control-only: "a pump left on without the floor would heat on its own curve through every idle step". That is now the owner's stated trade-off. The note must state what it costs: compressor runs on idle steps below the threshold for non-control installs, and the learner freeze those runs cause. The release note must state both as well.
-
-R3 (class-open): the opt-out stops working under R1. "No 'off' value ... -25 °C never holds" is false once a stale reading starts a hold: at -25 °C a stale sensor still holds, all year. The proposed release note's "set the option to -25 °C to keep the old behaviour" is then wrong. Fix: give the hold an explicit off (a boolean, or the selector minimum documented as off and tested as a branch). A stale-started hold in a warm season should also be visible in diagnostics (and as a repair, if the designer judges it worth one). Missing-sensor case, decision: owner. The outdoor entity is `vol.Optional` (config_flow.py:1431), so under R1 read literally, an install with no outdoor sensor holds every OFF all year. Recommendation: with no sensor configured, use `forecast_outdoor_now` as the reading, and hold only when neither a sensor nor a forecast exists.
-
-R4 (architecture-unsound): the new duty string `FROST_DUTY` runs into code that does not know it. The note sends it through the duty pipeline and leaves "check `_without_block` ... accept the new duty value unchanged" as a carry. Two consumers get it wrong:
-  - `_without_block` (pump_arbiter.py:1459-1480) maps any duty that is not idle and not None to "idle" whenever either block is active. Under a DHW block, `_served` therefore returns "idle" and the hold row is never written.
-  - `_mode_for` (pump_arbiter.py:1395-1411) finds no single-duty entry for it and returns MODE_HEAT_DHW where offered. `_lead_mode` (pump_arbiter.py:1981-2000) calls `_mode_for` directly. A Tuya switch-on into a hold therefore leads with Heat+DHW, which arms the tank thermostat, and the next pass flips to Heating. That contradicts the note's own "Tuya fork: Heating".
-  Fix: resolve the hold once. For example, `_served` returns "space" plus a frost flag that only `desired` reads, for the floor and no-feedback substitution. Otherwise the note must name every duty-string consumer and its result (`_without_block`, `_mode_for`, `_lead_mode`, `_share`, `_leased`, `_observe`, `_note_pass`/`pass_origin`, `duty_switch.note_pass`, `_feedback_on`, `_space_target`, `_disinfecting`) as design rather than carry. Block interplay, decision: owner. Under a space block, does the hold write Heating at the floor? Recommendation: yes, because frost protection is not space heating. State it either way.
-
-R5 (ruling): the hold set-point is not the pump's own floor. `_gate_c` (pump_arbiter.py:805-816) is max(entity minimum, `FLOW_GATE_C` = 25, pump_arbiter.py:232). A pump whose entity minimum is below 25 gets 25, against "the pumps own floor". Fix: use the entity's own minimum (`setpoint_range_c`), raised to the controller's lower-limit sensor (`_setpoint_limits_c`, pump_arbiter.py:1109) where one is configured. Use `FLOW_GATE_C` only where the entity states no minimum, which is what that constant's own comment says it is for. If the designer keeps 25, route it to the owner as decision: owner. Flow-cap interplay: no conflict. The cap moves the grid's high end and is at least 30 °C, which is above any floor, and its "limit at or below the gate is ignored" rule reads the gate, not the hold.
-
-R6 (class-open, OFF sites): quiet off windows are not named. `quiet_windows.ACTION_OFF` steps (quiet_windows.py:91,147) are idle steps, and the gate would turn their OFF into a hold. Today that is the person's configured "pump off" window. Decision: owner, on whether the hold overrides a quiet-off window. Recommendation: the hold wins, documented in docs/configuration.md beside the windows. Add a test for whichever is ruled.
-
-R7 (shape): persistence is unowned. The latch changes in `coordinator._write_supply`, outside `held.lock`. `_persist` runs only from arbiter paths, and `_load` runs only from `apply` under a non-off duty mode (pump_arbiter.py:1930-1936) and from `_lead_mode`. Under R2's duty-off installs the persisted latch is never loaded. Fix: R1 already makes a restart during an outage start a hold, so persistence now only covers the [threshold, threshold + 1) band after a restart. Either drop the persisted latch (fewer lines; a restart inside the band starts inactive, stated) or name the persist trigger and a load path that does not depend on the duty mode.
-
-R8 (cost): the ratchet is underpriced. Lines added to coordinator.py's class also count in `class_excess_loc` and `max_class_loc` (the coordinator class is the max-class budget), not only in `module_excess_loc`. The note must say how both are paid. For example, have `frost_hold` build the `CutoffInputs.frost_off` binding and the freeze chain, so the coordinator adds one call per site.
-
-R9 (evidence): the evidence plan has to follow R1-R7. Test 4 inverts (unusable starts a hold). Test 7's "observe duty mode: OFF written" inverts. Add one test per install case in R2 (duty off, observe, control with no set-point or mode entity). Add tests for the block case, the quiet-off window, the opt-out under a stale sensor (R3), and the no-sensor case. Add a Tuya lead-mode test with a mutant that maps the hold to Heat+DHW. The null control at the opt-out has to be the explicit off from R3, not -25 °C, because -25 no longer gives today's OFF while a sensor is stale.
-
-Release note: rewrite it for R1-R3. The hold is on by default for every install with a power switch. A stale or missing outdoor reading holds. Without duty control the pump runs on its own curve while held. The opt-out is the explicit off.
-
-## Checked and not raised
-- Owning seam: `frost_hold.py` as the one writer beside `supply_hold.py`, the arbiter only reading it, no cycle. Sound. Gate placement after `hold_supply`, so MIN_RUN/MIN_PAUSE never carry a hold. Sound.
-- Sibling switch writers: `coordinator._write_supply`, `early_cutoff.on_room_event` (early_cutoff.py:326) and `write_supply` are the full set. `_async_set_pump` (coordinator.py:4530) writes circulation and VVC pumps, not the heat pump.
-- Optimizer Off writes no switch (coordinator.py:7756). Unload and `off_restore` are unchanged. Boost clears the hold.
-- Learner freeze only on a measured run under a hold; `_verdict` `frost-hold`. Sound.
-- No install-specific data in the note.
+## New in the delta, checked
+- The no-sensor forecast fallback and the fail-closed freeze for an unmetered hold are consistent with the existing `learner_unmetered` chain at coordinator.py:3461. Both are orchestrator decisions pending owner override and are marked as such.
+- Flow-cap sibling (design/R11-OWNER-FLOWCAP 5b697934d8): no shared write. The cap moves the space grid's high end, which is at least 30 °C, and the hold floor reads its low end.
 
 ## Notes for the fixer
-- Carry: R11-OWNER-FROST-HOLD (item circulation-rail). `pump_schedule.space_pump_should_run` already runs the space circulation pump below 0 °C, and on an unknown outdoor reading (pump_schedule.py:78-81). Between 0 °C and the hold threshold, a held pump can have its external circulation pump off. State whether that rail reads the new option, or why not.
-- Carry: R11-OWNER-FROST-HOLD (item clear-on-off). Clear `frost_holding` when the mode changes into Off, not only on the next True, so diagnostics do not show a stale hold.
+- Carry: R11-OWNER-FROST-HOLD (item unmetered-freeze-text). On an install with no meter, every held interval freezes the learners, not only intervals with a run. The release note's "learning pauses for those runs" should say that unmetered installs pause for the whole hold.
+- Carry: R11-OWNER-FROST-HOLD (item manual-off-rewritten). Below the threshold, the gate switches a power switch that reads off back on, including one a person turned off while the optimizer is active. A plan ON step does the same today. Say so in the docs/configuration.md bullet next to "A pump switched off is left alone", so that bullet is not read as covering the power switch.
 
 Seat token count: not reported by the harness.
