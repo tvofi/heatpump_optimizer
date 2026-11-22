@@ -273,6 +273,7 @@ def _healthy_payloads() -> dict[str, dict]:
     _off.armed.update({"heat_curve": None, "stand_in": 21.5})
     run(off_restore._save(_off))
     run(_save_room_history(coord))
+    run(_save_fault_log(coord))
     run(_save_notifier(coord))
     run(_save_debug(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
@@ -483,6 +484,27 @@ async def _save_room_history(coord):
     await room_record._persist(rec)
 
 
+_FAULT_LOG_CONFIG = {const.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fault_description"]}
+
+
+async def _load_fault_log(coord):
+    """The fault record's one loader: setup, which loads before it reads or subscribes."""
+    from heatpump_optimizer import fault_log
+    await fault_log.async_setup(coord.hass, coord.entry, _FAULT_LOG_CONFIG)
+
+
+async def _save_fault_log(coord):
+    """Seed every field: two closed rows (one late, one with no code), the tally and an open row."""
+    from heatpump_optimizer import fault_log
+    await _load_fault_log(coord)
+    rec = fault_log._RECORDS[coord.entry]
+    t0 = int(_dt.datetime(2026, 1, 1, 12, 0, 0, tzinfo=_dt.timezone.utc).timestamp())
+    for t, text in ((t0, "E5"), (t0 + 40, None), (t0 + 60, ""), (t0 + 90, "P3, E5")):
+        fault_log.note(rec.log, t, text, late=t == t0 + 40)
+    rec.log.source = "text"
+    await fault_log._save(rec)
+
+
 # The reach arm's wiring: which real loader consumes which store. This is the
 # instrument's configuration, not the seam set — the seam set is Arm 1's AST
 # walk, and the equality check below holds this map to it.
@@ -505,6 +527,7 @@ LOADERS = {
     "debug": _load_debug,
     "off_restore": lambda c: __import__("heatpump_optimizer.off_restore", fromlist=["x"])._armed_record(c.hass, c.entry),
     "room_history": lambda c: (lambda m: m._load(m._record_for(c)))(__import__("heatpump_optimizer.room_record", fromlist=["x"])),
+    "fault_log": _load_fault_log,
 }
 
 R.check(
@@ -1229,6 +1252,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     held.armed.update({"heat_curve": None, "stand_in": 21.5})
     run(off._save(held))
     run(_save_room_history(coord))
+    run(_save_fault_log(coord))
     run(_save_notifier(coord))
     run(_save_debug(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
@@ -1903,6 +1927,7 @@ def _a6_savers():
         "debug": _save_debug,
         "off_restore": lambda c: mod("off_restore")._save(mod("off_restore")._RECORDS[c.entry]),
         "room_history": lambda c: mod("room_record")._persist(mod("room_record")._record_for(c)),
+        "fault_log": lambda c: mod("fault_log")._save(mod("fault_log")._RECORDS[c.entry]),
     }
 
 

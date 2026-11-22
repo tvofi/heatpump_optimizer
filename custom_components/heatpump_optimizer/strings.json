@@ -230,7 +230,7 @@
           "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything.",
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
-          "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself."
+          "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. The optimizer pauses its learning while it is on. Without a Fault text entity, each fault's start and end are kept for Download diagnostics, with a numeric reading's code in hex."
         },
         "sections": {
           "indoor": {
@@ -275,7 +275,7 @@
               "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
               "floor_return_temp_entity": "Optional. A sensor in the floor loop itself: the water coming back from the floor loops, after any buffer tank or mixing valve. It gauges how much heat the slab is holding. Do not use the heat pump's own return sensor: on a plant with a buffer tank it reads the heat pump's circuit, far warmer than the floor, and the plan would believe the slab is already full and plan no heating. A reading more than 12 K above the room is ignored and raises a repair notice. Leave empty if there is no sensor in the floor loop.",
               "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
-              "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
+              "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. The optimizer pauses its learning while it is on. Without a Fault text entity, each fault's start and end are kept for Download diagnostics, with a numeric reading's code in hex.",
               "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything.",
               "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
               "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
@@ -351,7 +351,9 @@
           "dhw_temp_entity": "Hot water tank temperature sensor",
           "heat_pump_supply_temp_entity": "Supply (flow) water temperature",
           "heat_pump_return_temp_entity": "Return water temperature",
-          "heat_pump_capacity_limited_entity": "Capacity limited (night mode)"
+          "heat_pump_capacity_limited_entity": "Capacity limited (night mode)",
+          "heat_pump_fault_entity": "Fault alarm",
+          "heat_pump_fault_text_entities": "Fault text"
         },
         "data_description": {
           "prefill_device": "The pump's own device. Its entities are mapped to settings by that integration's published definitions, or by their names where nothing is published - not from a reading of your unit - so check the suggestions before keeping them. Leave it empty to continue setup without the pre-fill.",
@@ -370,7 +372,9 @@
           "dhw_temp_entity": "The heat pump's hot water tank temperature sensor, suggested only while this slot is empty.",
           "heat_pump_supply_temp_entity": "The heat pump's leaving water temperature (T1) sensor, suggested only while this slot is empty.",
           "heat_pump_return_temp_entity": "The heat pump's entering water temperature (Tw-in) sensor, suggested only while this slot is empty.",
-          "heat_pump_capacity_limited_entity": "The heat pump's night mode (frequency reduction) active sensor, suggested only while this slot is empty."
+          "heat_pump_capacity_limited_entity": "The heat pump's night mode (frequency reduction) active sensor, suggested only while this slot is empty.",
+          "heat_pump_fault_entity": "The pump's fault alarm (the Tuya integration's Fault Alarm, the GCHV package's HP Alarm), suggested only while this slot is empty. Keeping it pauses the optimizer's learning while the pump reports a fault, and discards a duty-switch measurement with a fault in it. The GCHV alarm registers also report non-blocking warnings, which read as a fault here too.",
+          "heat_pump_fault_text_entities": "The pump's fault description sensor (the Tuya integration's Fault Description), suggested only while this slot is empty. Each fault's codes, start and end are then kept for Download diagnostics."
         }
       }
     },
@@ -1283,6 +1287,7 @@
           "heat_pump_defrost_entity": "Defrosting",
           "heat_pump_online_entity": "Pump online",
           "heat_pump_fault_entity": "Fault alarm",
+          "heat_pump_fault_text_entities": "Fault text",
           "heat_pump_backup_heater_entity": "Space backup heater",
           "heat_pump_dhw_booster_entity": "Hot water tank booster",
           "heat_pump_capacity_limited_entity": "Capacity limited (night mode)",
@@ -1297,7 +1302,8 @@
           "dhw_hysteresis_entity": "Optional. A sensor or number holding the pump's own hot water start hysteresis as a temperature difference in K (°C reads the same, °F is scaled; 0 to 20 K): the pump starts a charge only once the tank is below the hot water target minus this. The plan then places no charge on a tank warmer than that (a charge planned for the current step is kept, as it may already be running; a disinfection charge is judged against the disinfection temperature), and the duty ledger marks an idle hot water step on such a tank not-startable instead of idle-instead. A hot water minimum above that start temperature cannot be held by the pump and raises a warning. Left empty, unreadable or 0, every planned charge is taken to start.",
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
-          "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
+          "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. The optimizer pauses its learning while it is on. Without a Fault text entity, each fault's start and end are kept for Download diagnostics, with a numeric reading's code in hex.",
+          "heat_pump_fault_text_entities": "Optional. Up to 4 entities whose state is the pump's fault description: OK, or a comma list of codes such as \"E5, P3\" - the Tuya integration's Fault Description, or the GCHV Modbus package's four HP Alarm bitmap sensors. Each fault's codes, start and end are kept for the last 200 faults and appear in Download diagnostics. Any text other than OK, normal or an idle word is recorded as a code, whatever the entity is, so pick a fault description rather than a status sensor.",
           "heat_pump_backup_heater_entity": "Optional. On while the pump's own electric backup heater is running in the space heating circuit. Resistive kilowatts on the meter are not the compressor being inefficient, so while this is on the optimizer stops reading the meter as an efficiency measurement. The heat still counts: it is real heat into the house, and the house learners keep running. Useful mainly if your pump publishes no power meter, where there is otherwise no way to notice the element at all.",
           "heat_pump_dhw_booster_entity": "Optional. On while the electric heater in the hot water tank is running. Treated the same way as the backup heater above, and each time it switches on it is also recorded as a hot water rescue - if those keep recurring, and you have turned on the immersion feedback option, the plan starts heating the tank a little earlier instead of paying resistive prices for the difference.",
           "heat_pump_capacity_limited_entity": "Optional. On while the pump is running at a reduced compressor speed, which most units call night mode or silent mode. What the pump draws and delivers then is not what it would do unconstrained, so the optimizer stops learning efficiency and capacity from those intervals. It keeps using the measured power for cost and heat accounting, because a speed-capped compressor still draws exactly what the meter says.",
@@ -1558,6 +1564,8 @@
           "heat_pump_return_temp_entity": "Return water temperature",
           "compressor_freq_sensor": "Actual frequency sensor (recommended for control)",
           "heat_pump_capacity_limited_entity": "Capacity limited (night mode)",
+          "heat_pump_fault_entity": "Fault alarm",
+          "heat_pump_fault_text_entities": "Fault text",
           "after_save": "After saving",
           "prefill_offer": "Offer this pre-fill at setup"
         },
@@ -1580,6 +1588,8 @@
           "heat_pump_return_temp_entity": "The package's entering water temperature (Tw-in) sensor, suggested only while this slot is empty.",
           "compressor_freq_sensor": "The package's actual compressor frequency sensor, suggested only while this slot is empty.",
           "heat_pump_capacity_limited_entity": "The package's night mode (frequency reduction) active sensor, suggested only while this slot is empty.",
+          "heat_pump_fault_entity": "The pump's fault alarm (the Tuya integration's Fault Alarm, the GCHV package's HP Alarm), suggested only while this slot is empty. Keeping it pauses the optimizer's learning while the pump reports a fault, and discards a duty-switch measurement with a fault in it. The GCHV alarm registers also report non-blocking warnings, which read as a fault here too.",
+          "heat_pump_fault_text_entities": "The pump's fault description sensor (the Tuya integration's Fault Description), suggested only while this slot is empty. Each fault's codes, start and end are then kept for Download diagnostics.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
           "prefill_offer": "When on, setting up a new entry offers this page if a heat-pump device added to this install can fill any of these settings. Off by default: the setup wizard is unchanged while it is off, and this switch is stored, so it survives a restart."
         }
@@ -1631,7 +1641,8 @@
       "heat_curve_unreadable": "That entity holds no reading now, so the value it would be returned to on off is unknown. Choose an entity that reports a value, or save again once it does.",
       "heat_curve_out_of_range": "That entity reads a value outside its own declared range, so it cannot be displaced safely. Check the entity in its integration first.",
       "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them.",
-      "too_many_rooms": "At most 32 room thermometers can be listed."
+      "too_many_rooms": "At most 32 room thermometers can be listed.",
+      "too_many_fault_text_entities": "At most 4 fault text entities can be listed."
     },
     "abort": {
       "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",

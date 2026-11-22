@@ -349,6 +349,9 @@ async def async_setup_entry(
         hass, entry, coordinator
     )
 
+    # The pump's fault record (R11-OWNER-FAULT-TEXT): its own listener and store.
+    await (await _async_lazy(hass, "fault_log")).async_setup(hass, entry, config)
+
     # Serve and register the Lovelace dashboard card (idempotent; runs once).
     await (await _async_lazy(hass, "frontend")).async_register_frontend(
         hass, coordinator.integration_version
@@ -441,6 +444,7 @@ async def async_unload_entry(
             hass, entry, coordinator.effective_config, "unload"
         )
         await (await _async_lazy(hass, "room_record")).async_flush(coordinator)
+        await (await _async_lazy(hass, "fault_log")).async_close(entry)
         await coordinator.async_shutdown()
 
     return unload_ok

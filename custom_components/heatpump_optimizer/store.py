@@ -541,6 +541,17 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         **{f"house/{f}": Domain("text", whole="a bad cell nulls the house columns")
            for f in ("outdoor", "return", "power", "space")},
     },
+    # fault_log.py: closed rows [start_s, end_s, code, late], the open row
+    # [start_s, code] and the per-code tally [count, total_s, last_end_s];
+    # ``fault_log.loaded`` starts afresh on any field outside this.
+    "fault_log": {
+        "since_s": _COUNT, "dropped": _COUNT,
+        "source": Domain("choice", null=True, choices=("text", "bitmap", "flag")),
+        "episodes/#/0": _COUNT, "episodes/#/1": _COUNT, "episodes/#/2": Domain("text", null=True),
+        "episodes/#/3": _FLAG,
+        "open": _ABSENT, "open/0": _COUNT, "open/1": Domain("text", null=True),
+        "codes/~": _TEXT, **{f"codes/*/{i}": _COUNT for i in range(3)},
+    },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},
         **{f"{k}_slots/#/{e}": _AT for k in ("space", "dhw") for e in ("start", "end")},
