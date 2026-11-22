@@ -5809,6 +5809,22 @@
       "doc": [
         "dev/audit/rca/R11-N-unbounded-retention.md"
       ]
+    },
+    "R11-RCA-3729-OPEN-AXIS": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3729 blocked six times class-open, one new member per round, on a reach claim whose dependency-entry-point axis no rule enumerates; 8 open-set PRs / 31 blocks / 23 repeat rounds over 2026-10-06..2026-11-21",
+      "trigger": "class: repeated class-open blocks on one PR (6 on #3729; 3+ on 11 PRs)",
+      "date": "2026-11-21",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) fixer.md step 8, fix-review.md step 6 and the re-cut rule were obeyed; their unit checks that a rule exists, not that every quantified set is a rule's output or a stated residue category, and the re-cut escalation named claims only",
+      "countermeasure": "narrow: fixer.md step 8 requires a rule or a residue category per quantified set; fix-review.md step 6 blocks the axis once (class-open: axis <set> unenumerated); a second block on one axis goes to the orchestrator, refused mechanically by bus.sh dispatch's axis_repeat. Cost 0.28-0.56 h/day against an estimated 1.75 h/day; shadow measure over round 12",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-RCA-3729-OPEN-AXIS.md",
+      "doc": [
+        "dev/audit/rca/R11-RCA-3729-OPEN-AXIS.md"
+      ]
     }
   },
   "N-registry-leak": {
