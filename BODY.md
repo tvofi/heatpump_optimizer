@@ -23,7 +23,7 @@ Departures from the approved design, each measured:
 
 ## Head
 
-`facaa581e4bd8c3cac4d70fc27dc7f54ada6e828` (the fixer's `4411000a37` plus one commit that deletes the nine mutation-ledger pins whose lines this change replaced) measured against `origin/main` at `3a98735a7e` (merge base), 2026-11-22. Against `origin/main` `8ef450936a` at 2026-11-22T16:00Z, `git merge-tree --write-tree origin/main HEAD` merges cleanly; the `tests/closures.json` ledger merge driver resolves that file.
+`0d1cae21a695abbc4c951143b854d2a2a45e16b6` (the fixer's `4411000a37`, then `facaa581e4` which deletes the nine mutation-ledger pins whose lines this change replaced, then `0d1cae21a6` which counts flow_limit.py in the deployment-shape lane's note) measured against `origin/main` at `3a98735a7e` (merge base), 2026-11-22. Against `origin/main` `8ef450936a` at 2026-11-22T16:00Z, `git merge-tree --write-tree origin/main HEAD` merges cleanly; the `tests/closures.json` ledger merge driver resolves that file.
 
 Overlap with #3812 (R11-SEAM-actuation-release, open at `3af986dd`): that pull request also moves `_silent_rows`/`_inside_silent` from `pump_arbiter.py` into `quiet_windows.py`, the move this pull request names as its structure payment below. Whichever merges second meets the other's move. If this one's structure check then fails on the main it lands on, it pays with another real move, never a budget raise.
 
@@ -100,11 +100,6 @@ Option mutants, in `flow_limit.py` / `pump_arbiter.py`. Each was run on the R11-
   - `tests/entities.py`: not finished on this host after two hours under `nice`; left to CI.
   - The rest of `scope.run` is left to CI, because the host is heavily loaded.
 
-<!-- figure-block: scope-line mb=3a98735a7ecc59e7ecc095a0429cdf6251d956ec head=facaa581e4bd8c3cac4d70fc27dc7f54ada6e828 -->
-~~~text
-MODE: SCOPED -- 30 script(s) run, 3 scoped out.
-~~~
-<!-- /figure-block -->
 
 ## Unpinned sites
 
@@ -137,11 +132,11 @@ MODE: SCOPED -- 30 script(s) run, 3 scoped out.
 
 ## Red checks
 
-- `mutation` at facaa581e4bd: red by construction on the 26 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `mutation` at 0d1cae21a695: red by construction on the 26 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
 
 ## Forward-carry
 
-- The entity-range clamp in `inputs.write_setpoint` is owned here, and R11-SEAM-actuation-writes (design `28bedac8`, section "Grid and range") consumes it instead of adding its own. That note's amendment is the orchestrator's, by its own ruling. Carry: R11-SEAM-actuation-writes.
+- The entity-range clamp in `inputs.write_setpoint` is owned here, and R11-SEAM-actuation-writes (design `28bedac8`, section "Grid and range") consumes it instead of adding its own. That note's amendment is the orchestrator's, by its own ruling. Carry: #3744 (owned by R11-SEAM-actuation-writes)
 - A root cause is owed under `defect-root-cause.md`, because the defect reached a released version (v10.1.2). The named cause is an integration-advertised maximum above the device's accepted one, written by a boost that drives the entity to its maximum. Carry: dismissed: the orchestrator dispatches the root-cause seat, and a fixer may not run it (`root-cause.md`).
 - The two `_inside_silent` killed-by pins were deleted with their anchor. Carry: dismissed: CI mutation-autofix re-pins killed mutants (`ci-autofix.md`).
 
