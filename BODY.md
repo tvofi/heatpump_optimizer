@@ -22,7 +22,7 @@ none
 
 ## Forward-carry
 
-The listing's size drivers, `tests/mutation_ledger/` and `dev/audit/`, are a D9 or D13 question for the round's plan, lands in `dev/governance/dimensions/D9.md`. Carry: dev/governance/dimensions/D9.md
+The listing's size drivers, `tests/mutation_ledger/` and `dev/audit/`, are a D9 or D13 question for the round's plan, lands in the roster group `R11-CLOSEOUT-CLEANUP` as a carry (roster commit `a12d6d0950`). Carry: R11-CLOSEOUT-CLEANUP
 
 ## Friction
 
