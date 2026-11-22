@@ -96678,7 +96678,7 @@ _sce_dt.freeze(None)
 # ---------------------------------------------------------------------------
 # R11-OUTSIDE-HONEST-DHW-RUNS (pull request 3529, Bankaifan): hot-water
 # charges ship as runs. On a solve that plans runs the planner commits its
-# plan (dhw_planner.commit_charges): the store program's plan or the lifted
+# plan (dhw_charges.commit_charges): the store program's plan or the lifted
 # plan, each only if charge_refusal passes it on the planner's own walk; the
 # uncommitted plan is the one unconditional fallback. The finding, the store
 # program and the tail are the contributor's.
@@ -96686,6 +96686,7 @@ _sce_dt.freeze(None)
 R.section("R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed on the planner's own store")
 import golden as _hdr_golden  # noqa: E402
 import heatpump_optimizer.dhw_planner as _hdr_dp  # noqa: E402
+import heatpump_optimizer.dhw_charges as _hdr_dc  # noqa: E402
 import heatpump_optimizer.optimizer as _hdr_om  # noqa: E402
 from heatpump_optimizer import runs as _hdr_runs  # noqa: E402
 from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW as _HDR_RUNS_AT  # noqa: E402
@@ -96699,7 +96700,7 @@ def _hdr_rig(*, start=0.5, clamped=False, running=False, prices=None, draws=None
     params = ThermalParameters(min_electrical_power=p_min, max_electrical_power=6.0)
     planner = DhwPlanner(
         ThermalModel(params), SimpleNamespace(pv_export_price=0.0),
-        charge_runs=_hdr_dp.ChargeRuns(start, running, clamped))
+        charge_runs=_hdr_dc.ChargeRuns(start, running, clamped))
     prices = np.full(n, 1.0) if prices is None else np.asarray(prices, dtype=float)
     ctx = _dhw_ctx(prices=prices, outdoor=np.full(n, 5.0), n=n, dt=dt, c_dhw=params.dhw_store.capacity_kwh_per_c,
                    p_dhw_max=p_run, params=params, min_run_power=0.6, max_lead_steps=n)
@@ -96711,7 +96712,7 @@ def _hdr_rig(*, start=0.5, clamped=False, running=False, prices=None, draws=None
 
 def _hdr_commit(rig, plan, requirement, *, ceiling=55.0, start_below=None, space=None, forced_off=None):
     n = rig.ctx.n_steps
-    return _hdr_dp.commit_charges(
+    return _hdr_dc.commit_charges(
         rig.planner, np.asarray(plan, dtype=float), (rig.ctx, *rig.tank),
         (np.broadcast_to(np.asarray(requirement, dtype=float), (n,)), np.full(n, ceiling)),
         forced_off, start_below, space)
@@ -96727,18 +96728,18 @@ def _hdr_under(plan, floor):
 
 def _hdr_programs(fn, replace=None):
     """``fn()`` with the store program's plans recorded, or replaced."""
-    seen, real = [], _hdr_dp._StoreProgram.plan
+    seen, real = [], _hdr_dc._StoreProgram.plan
 
     def plan(self, may_start):
         out = real(self, may_start) if replace is None else replace(self, may_start)
         seen.append(None if out is None else np.array(out))
         return out
 
-    _hdr_dp._StoreProgram.plan = plan
+    _hdr_dc._StoreProgram.plan = plan
     try:
         return fn(), seen
     finally:
-        _hdr_dp._StoreProgram.plan = real
+        _hdr_dc._StoreProgram.plan = real
 
 
 # 1. The failing case, on the two goldens that price a start on an install
@@ -96806,12 +96807,12 @@ R.check(
     "ruling b: the store program is handed where the pump would start; a charge its own walk refuses "
     "clears that step and the program runs again, and what ships is the program's last plan, committed, "
     "in more than one round and fewer than STARTABLE_ROUNDS",
-    1 < len(_hdr_a_seen) < _hdr_dp.STARTABLE_ROUNDS
+    1 < len(_hdr_a_seen) < _hdr_dc.STARTABLE_ROUNDS
     and np.array_equal(_hdr_a_out, _hdr_a_seen[-1])
     and not np.array_equal(_hdr_a_seen[0], _hdr_a_seen[-1])
     and _hdr_under(_hdr_a_out, 1.0) == 0 and bool(np.any(_hdr_a_out > 0.0))
-    and _hdr_dp.charge_refusal(_hdr_a_out, _hdr_a_below, _hdr_a.temps, np.full(_HDR_N, -np.inf)) is None
-    and _hdr_dp.charge_refusal(_hdr_a_seen[0], _hdr_a_below, _hdr_a.temps, np.full(_HDR_N, -np.inf))[0] == "start",
+    and _hdr_dc.charge_refusal(_hdr_a_out, _hdr_a_below, _hdr_a.temps, np.full(_HDR_N, -np.inf)) is None
+    and _hdr_dc.charge_refusal(_hdr_a_seen[0], _hdr_a_below, _hdr_a.temps, np.full(_HDR_N, -np.inf))[0] == "start",
     f"rounds {len(_hdr_a_seen)}, shipped on {np.flatnonzero(_hdr_a_out > 0).tolist()}",
 )
 # With no start condition known every charge is taken to start (verdict
@@ -96820,7 +96821,7 @@ _hdr_a_free, _hdr_a_free_seen = _hdr_programs(lambda: _hdr_commit(_hdr_a, _hdr_t
 R.check(
     "with no start condition known the program runs once and its plan ships (null of the rounds above)",
     len(_hdr_a_free_seen) == 1 and np.array_equal(_hdr_a_free, _hdr_a_free_seen[0])
-    and _hdr_dp.charge_refusal(_hdr_a_seen[0], None, _hdr_a.temps, np.full(_HDR_N, -np.inf)) is None,
+    and _hdr_dc.charge_refusal(_hdr_a_seen[0], None, _hdr_a.temps, np.full(_HDR_N, -np.inf)) is None,
     f"{len(_hdr_a_free_seen)}",
 )
 
@@ -96832,9 +96833,9 @@ _hdr_b_walk = np.array([49.0, 49.0, 52.0, 51.5, 51.2, 51.0, 54.0, 53.5, 53.0])
 R.check(
     "the acceptance refuses a plan whose second charge opens at its start temperature on the supplied "
     "walk, at that step; one degree lower it passes",
-    _hdr_dp.charge_refusal(_hdr_b_plan, np.full(8, 51.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf)) == ("start", 5)
-    and _hdr_dp.charge_refusal(_hdr_b_plan, np.full(8, 52.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf)) is None,
-    f"{_hdr_dp.charge_refusal(_hdr_b_plan, np.full(8, 51.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf))}",
+    _hdr_dc.charge_refusal(_hdr_b_plan, np.full(8, 51.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf)) == ("start", 5)
+    and _hdr_dc.charge_refusal(_hdr_b_plan, np.full(8, 52.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf)) is None,
+    f"{_hdr_dc.charge_refusal(_hdr_b_plan, np.full(8, 51.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf))}",
 )
 
 # 2c. The lifted plan passes through the acceptance too (design verdict
@@ -96862,7 +96863,7 @@ R.check(
     "later one unstartable the uncommitted plan ships, the same object; with a floor the lift does not "
     "carry that far the lifted plan ships",
     _hdr_c_out is _hdr_c_plan
-    and _hdr_dp.charge_refusal(_hdr_c_lift, _hdr_c_below, _hdr_c_rig.temps, np.full(_HDR_N, -np.inf)) == ("start", 16)
+    and _hdr_dc.charge_refusal(_hdr_c_lift, _hdr_c_below, _hdr_c_rig.temps, np.full(_HDR_N, -np.inf)) == ("start", 16)
     and np.array_equal(_hdr_c_null, np.where(_hdr_c_plan > 0.0, 0.7, 0.0)),
     f"{np.round(_hdr_c_null[_hdr_c_null > 0], 2)}",
 )
@@ -96884,9 +96885,9 @@ R.check(
     "uncommitted plan held, and the uncommitted plan ships; against no floor the same plan passes",
     _hdr_d_out is _hdr_d_plan
     and _hdr_d_lift[5] == 0.0 and _hdr_d_lift[4] == 1.0
-    and _hdr_dp.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, _hdr_d_held) == ("floor", 5)
-    and _hdr_dp.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, np.full(_HDR_N, -np.inf)) is None,
-    f"{_hdr_dp.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, _hdr_d_held)}, "
+    and _hdr_dc.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, _hdr_d_held) == ("floor", 5)
+    and _hdr_dc.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, np.full(_HDR_N, -np.inf)) is None,
+    f"{_hdr_dc.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, _hdr_d_held)}, "
     f"worst gap {float(np.max(_hdr_d_held - _hdr_d_rig.temps(_hdr_d_lift)[1:])):.3f} K",
 )
 
@@ -96979,18 +96980,18 @@ _hdr_l_prices = np.where(np.arange(_HDR_N) < 16, 3.0, 1.0)  # dear early: no fil
 
 
 def _hdr_levels(floor_level):
-    real = _hdr_dp._StoreProgram.__init__
+    real = _hdr_dc._StoreProgram.__init__
 
     def init(self, *a, **k):
         real(self, *a, **k)
         if not floor_level:
             self.levels = self.levels[-1:]
 
-    _hdr_dp._StoreProgram.__init__ = init
+    _hdr_dc._StoreProgram.__init__ = init
     try:
         return _hdr_commit(_hdr_rig(prices=_hdr_l_prices), _hdr_l_plan, _hdr_l_req)
     finally:
-        _hdr_dp._StoreProgram.__init__ = real
+        _hdr_dc._StoreProgram.__init__ = real
 
 
 _hdr_l_two, _hdr_l_one = _hdr_levels(True), _hdr_levels(False)
@@ -97082,7 +97083,7 @@ _hdr_5_n = 96
 _hdr_5_plan = np.zeros(_hdr_5_n)
 _hdr_5_plan[[20, 40, 60, 80]] = 1.8
 _hdr_5_rig = _hdr_rig(n=_hdr_5_n, dt=1.0 / 12.0, draws=np.full(_hdr_5_n, 0.4))
-_hdr_5_out = _hdr_dp.commit_charges(
+_hdr_5_out = _hdr_dc.commit_charges(
     _hdr_5_rig.planner, _hdr_5_plan, (_hdr_5_rig.ctx, *_hdr_5_rig.tank),
     (np.minimum(48.5, _hdr_5_rig.temps(_hdr_5_plan)[1:]), np.full(_hdr_5_n, 55.0)), None, None, None)
 _hdr_5_on = _hdr_5_out > 0.0
@@ -97113,13 +97114,13 @@ R.check(
 R.check(
     "charges_run: a step under the floor is a charge that runs only as the last step of a charge whose "
     "step before ran at the floor or above, and only where a run may end inside a step",
-    _hdr_dp.charges_run(np.array([0.0, 1.0, 0.7, 0.0]), 1.0, True)
-    and not _hdr_dp.charges_run(np.array([0.0, 1.0, 0.7, 0.0]), 1.0, False)
-    and not _hdr_dp.charges_run(np.array([0.0, 1.0, 0.7, 1.0]), 1.0, True)
-    and not _hdr_dp.charges_run(np.array([0.0, 0.7, 0.0, 0.0]), 1.0, True)
-    and not _hdr_dp.charges_run(np.array([0.0, 0.8, 0.7, 0.0]), 1.0, True)
-    and _hdr_dp.charges_run(np.array([1.0, 0.7]), 1.0, True)
-    and _hdr_dp.charges_run(np.array([0.0, 1.0, 3.0, 0.0]), 1.0, False),
+    _hdr_dc.charges_run(np.array([0.0, 1.0, 0.7, 0.0]), 1.0, True)
+    and not _hdr_dc.charges_run(np.array([0.0, 1.0, 0.7, 0.0]), 1.0, False)
+    and not _hdr_dc.charges_run(np.array([0.0, 1.0, 0.7, 1.0]), 1.0, True)
+    and not _hdr_dc.charges_run(np.array([0.0, 0.7, 0.0, 0.0]), 1.0, True)
+    and not _hdr_dc.charges_run(np.array([0.0, 0.8, 0.7, 0.0]), 1.0, True)
+    and _hdr_dc.charges_run(np.array([1.0, 0.7]), 1.0, True)
+    and _hdr_dc.charges_run(np.array([0.0, 1.0, 3.0, 0.0]), 1.0, False),
     "",
 )
 
@@ -97195,7 +97196,7 @@ R.check(
 # charge whole or leaves it whole.
 _hdr_s_plan = np.array([0.0, 1.0, 1.0, 0.7, 0.0, 1.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0])
 _hdr_s_mask = np.array([True, True, True, False, False, True, True, True, False, False, False, False])
-_hdr_s_kept = _hdr_dp.whole_charges(_hdr_dp.ChargeRuns(0.5, False, False), _hdr_s_plan, _hdr_s_mask)
+_hdr_s_kept = _hdr_dc.whole_charges(_hdr_dc.ChargeRuns(0.5, False, False), _hdr_s_plan, _hdr_s_mask)
 _hdr_s_left = np.where(_hdr_s_kept, 0.0, _hdr_s_plan)
 R.check(
     "a suppression takes a committed charge whole or leaves it whole: the charge it would cut before its "
@@ -97203,10 +97204,10 @@ R.check(
     "charge stay suppressed; on a solve that plans no runs the mask is returned as it is, which leaves "
     "the tail alone (the control)",
     np.array_equal(_hdr_s_left, [0.0, 1.0, 1.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0])
-    and _hdr_dp.charges_run(_hdr_s_left, 1.0, True)
+    and _hdr_dc.charges_run(_hdr_s_left, 1.0, True)
     and bool(_hdr_s_kept[0] and _hdr_s_kept[7])
-    and _hdr_dp.whole_charges(None, _hdr_s_plan, _hdr_s_mask) is _hdr_s_mask
-    and not _hdr_dp.charges_run(np.where(_hdr_s_mask, 0.0, _hdr_s_plan), 1.0, True),
+    and _hdr_dc.whole_charges(None, _hdr_s_plan, _hdr_s_mask) is _hdr_s_mask
+    and not _hdr_dc.charges_run(np.where(_hdr_s_mask, 0.0, _hdr_s_plan), 1.0, True),
     f"{_hdr_s_left}",
 )
 
@@ -97217,17 +97218,17 @@ R.check(
 R.check(
     "the store program's grid is 0.25 K, its COP table 1 K and its margin 0.02 K, and the commit's and "
     "the combi exchange's tolerances are the planners' 0.05 K (design choices, pinned by value)",
-    (_hdr_dp._STORE_GRID_K, _hdr_dp._COP_KNOT_K, _hdr_dp._STORE_MARGIN_K) == (0.25, 1.0, 0.02)
-    and _hdr_dp._SHORT_K == _hdr_om._COMBI_COMMIT_SLACK_K == 0.05,
-    f"{_hdr_dp._STORE_GRID_K} {_hdr_dp._COP_KNOT_K} {_hdr_dp._STORE_MARGIN_K} {_hdr_om._COMBI_COMMIT_SLACK_K}",
+    (_hdr_dc._STORE_GRID_K, _hdr_dc._COP_KNOT_K, _hdr_dc._STORE_MARGIN_K) == (0.25, 1.0, 0.02)
+    and _hdr_dc._SHORT_K == _hdr_om._COMBI_COMMIT_SLACK_K == 0.05,
+    f"{_hdr_dc._STORE_GRID_K} {_hdr_dc._COP_KNOT_K} {_hdr_dc._STORE_MARGIN_K} {_hdr_om._COMBI_COMMIT_SLACK_K}",
 )
 _hdr_e_held = np.full(8, 50.05)
-_hdr_e_edge = _hdr_e_held - _hdr_dp._SHORT_K
+_hdr_e_edge = _hdr_e_held - _hdr_dc._SHORT_K
 R.check(
     "the acceptance's floor clause passes a walk exactly the tolerance under the floor and refuses the "
     "next float down",
-    _hdr_dp.charge_refusal(_hdr_b_plan, None, lambda _p: np.r_[50.0, _hdr_e_edge], _hdr_e_held) is None
-    and _hdr_dp.charge_refusal(
+    _hdr_dc.charge_refusal(_hdr_b_plan, None, lambda _p: np.r_[50.0, _hdr_e_edge], _hdr_e_held) is None
+    and _hdr_dc.charge_refusal(
         _hdr_b_plan, None, lambda _p: np.r_[50.0, np.nextafter(_hdr_e_edge, 0.0)], _hdr_e_held) == ("floor", 0),
     "",
 )
@@ -97237,7 +97238,7 @@ _hdr_q_space = np.r_[np.zeros(4), np.full(4, 2.0), np.full(4, 0.5), np.zeros(_HD
 
 def _hdr_start_price(running, space=_hdr_q_space):
     rig = _hdr_rig(start=2.0, running=running)
-    return _hdr_dp._StoreProgram(
+    return _hdr_dc._StoreProgram(
         rig.planner, rig.ctx, _hdr_p_plan, rig.tank, (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, space,
     ).start_price
 
@@ -97257,17 +97258,17 @@ _hdr_h_plan[[26, 27]] = 0.6
 _hdr_h_rig = _hdr_rig(t0=56.0, draws=np.full(_HDR_N, 0.5))
 _hdr_h_out, _hdr_h_seen = _hdr_programs(lambda: _hdr_commit(
     _hdr_h_rig, _hdr_h_plan, np.minimum(49.0, _hdr_h_rig.temps(_hdr_h_plan)[1:])))
-_hdr_h_prog = _hdr_dp._StoreProgram(
+_hdr_h_prog = _hdr_dc._StoreProgram(
     _hdr_h_rig.planner, _hdr_h_rig.ctx, _hdr_h_plan, _hdr_h_rig.tank,
     (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
-_hdr_h_mark = np.array([(55.0 - _hdr_dp._STORE_MARGIN_K - _hdr_h_rig.ctx.tank_decay[1]
+_hdr_h_mark = np.array([(55.0 - _hdr_dc._STORE_MARGIN_K - _hdr_h_rig.ctx.tank_decay[1]
                          + 0.5 * 0.25 / _hdr_h_rig.ctx.c_dhw) / _hdr_h_rig.ctx.tank_decay[0]])
 R.check(
     "a store that begins over its ceiling pauses there and the program still finds its plan (the ceiling "
     "binds charging arrivals only); a tank that coasts onto its mark has no room and is not filled, one "
     "a kelvin under is",
     _hdr_h_seen[0] is not None and np.array_equal(_hdr_h_out, _hdr_h_seen[-1]) and _hdr_under(_hdr_h_out, 1.0) == 0
-    and abs(float(_hdr_h_rig.ctx.coast(_hdr_h_rig.tank[1], 0, _hdr_h_mark)[0]) - (55.0 - _hdr_dp._STORE_MARGIN_K)) < 1e-9
+    and abs(float(_hdr_h_rig.ctx.coast(_hdr_h_rig.tank[1], 0, _hdr_h_mark)[0]) - (55.0 - _hdr_dc._STORE_MARGIN_K)) < 1e-9
     and not bool(_hdr_h_prog._to_ceiling(0, _hdr_h_mark + 1e-6)[1][0])
     and bool(_hdr_h_prog._to_ceiling(0, _hdr_h_mark - 1.0)[1][0]),
     f"{np.flatnonzero(_hdr_h_out > 0).tolist()}",
@@ -97309,7 +97310,7 @@ R.check(
     "(the compressor runs, so that is no start and waits for no pause), and its charges hold the floors",
     not np.array_equal(_hdr_m_out, _hdr_m_plan) and "101" not in _hdr_m_on and _hdr_m_on[0] == "1"
     and _hdr_under(_hdr_m_out, 1.0) == 0
-    and _hdr_dp.charge_refusal(
+    and _hdr_dc.charge_refusal(
         _hdr_m_out, None, _hdr_m_rig.temps, np.minimum(47.0, _hdr_m_rig.temps(_hdr_m_plan)[1:])) is None,
     _hdr_m_on,
 )
@@ -97323,7 +97324,7 @@ _hdr_y_blocked = np.r_[False, np.ones(_HDR_N - 1, dtype=bool)]
 
 def _hdr_entry(running, may_start):
     rig = _hdr_rig(running=running, t0=46.0, draws=_hdr_y_draws)
-    return _hdr_dp._StoreProgram(
+    return _hdr_dc._StoreProgram(
         rig.planner, rig.ctx, np.zeros(_HDR_N), rig.tank, (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None,
         np.zeros(_HDR_N),
     ).plan(may_start.copy())
@@ -97343,7 +97344,7 @@ R.check(
 # The program says so where no mask keeps the store in bounds. A program
 # plan refused for anything but a start is not asked for again. A plan
 # the rating leaves with a step under the floor inside a charge is refused.
-_hdr_n_prog = _hdr_dp._StoreProgram(
+_hdr_n_prog = _hdr_dc._StoreProgram(
     _hdr_h_rig.planner, _hdr_h_rig.ctx, _hdr_h_plan, (50.0, np.zeros(_HDR_N)),
     (np.full(_HDR_N, 70.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
 _hdr_n_low = np.zeros(_HDR_N)
@@ -97359,7 +97360,7 @@ R.check(
     "under the floor inside a charge does not ship though it is the cheapest and holds every floor, and "
     "neither it nor one refused for a floor is asked for a second time",
     _hdr_n_prog.plan(np.ones(_HDR_N, dtype=bool)) is None
-    and _hdr_dp.charge_refusal(_hdr_n_low, None, _hdr_rig().temps, np.minimum(_hdr_l_req, _hdr_rig().temps(_hdr_l_plan)[1:])) is None
+    and _hdr_dc.charge_refusal(_hdr_n_low, None, _hdr_rig().temps, np.minimum(_hdr_l_req, _hdr_rig().temps(_hdr_l_plan)[1:])) is None
     and float(np.sum(_hdr_n_low)) < float(np.sum(_hdr_n_out)) and not np.array_equal(_hdr_n_out, _hdr_n_low)
     and len(_hdr_n_seen) == 1 and len(_hdr_n_cold_seen) == 1 and bool(np.any(_hdr_n_cold > 0.0)),
     f"{len(_hdr_n_seen)} {len(_hdr_n_cold_seen)} {np.round(_hdr_n_out[_hdr_n_out > 0], 2)}",
@@ -97386,7 +97387,7 @@ def _hdr_suppressed():
         seen.append((charge_runs, bool(np.all(out <= mask))))
         return out
 
-    _hdr_dp.whole_charges, _hdr_om._charge_runs = spy, lambda _o, running: _hdr_dp.ChargeRuns(0.5, running, False)
+    _hdr_dp.whole_charges, _hdr_om._charge_runs = spy, lambda _o, running: _hdr_dc.ChargeRuns(0.5, running, False)
     try:
         _hdr_golden.capture("external_heat_active", _hdr_golden.SCENARIOS["external_heat_active"])
     finally:
@@ -97821,9 +97822,9 @@ R.check(
 def _hdr_w_edge(t0=50.0):
     rig = _hdr_rig(t0=t0, draws=np.full(_HDR_N, 0.5))
     at = float(rig.ctx.coast(rig.tank[1], 0, np.array([t0]))[0])
-    edge = bound = at + _hdr_dp._SHORT_K - _hdr_dp._STORE_MARGIN_K
+    edge = bound = at + _hdr_dc._SHORT_K - _hdr_dc._STORE_MARGIN_K
     for _ in range(64):
-        bound = edge - _hdr_dp._SHORT_K + _hdr_dp._STORE_MARGIN_K
+        bound = edge - _hdr_dc._SHORT_K + _hdr_dc._STORE_MARGIN_K
         if bound == at:
             break
         edge = np.nextafter(edge, np.inf if bound < at else -np.inf)
@@ -97831,7 +97832,7 @@ def _hdr_w_edge(t0=50.0):
     def plan(first):
         floors = np.full(_HDR_N, 45.0)
         floors[0] = first
-        return _hdr_dp._StoreProgram(
+        return _hdr_dc._StoreProgram(
             rig.planner, rig.ctx, _hdr_l_plan, rig.tank, (floors, np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N),
         ).plan(np.ones(_HDR_N, dtype=bool))
 
@@ -97858,14 +97859,14 @@ _hdr_y_coast = float(_hdr_y_rig.ctx.coast(_hdr_y_rig.tank[1], 0, np.array([50.0]
 def _hdr_y_plan(top):
     flux = np.zeros(_HDR_N)
     flux[0] = (top - _hdr_y_coast) * _hdr_y_rig.ctx.c_dhw / _hdr_y_rig.ctx.dt
-    prog = _hdr_dp._StoreProgram(
+    prog = _hdr_dc._StoreProgram(
         _hdr_y_rig.planner, dataclasses.replace(_hdr_y_rig.ctx, tank_exo_kw=flux), _hdr_l_plan, _hdr_y_rig.tank,
         (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
     return float(prog.knots[-1]), prog.plan(np.ones(_HDR_N, dtype=bool))
 
 
 _hdr_y_knot, _hdr_y_on = _hdr_y_plan(56.0)
-_hdr_y_past = _hdr_y_plan(56.0 + _hdr_dp._STORE_GRID_K)[1]
+_hdr_y_past = _hdr_y_plan(56.0 + _hdr_dc._STORE_GRID_K)[1]
 R.check(
     "the store program's grid ends at its top knot: a store a combi flux carries one cell past it has no "
     "plan, and the same store carried onto the top knot plans",
@@ -97888,7 +97889,7 @@ R.check(
     "no start, and the plan that ships is the one that ships with a zero space plan, not the early charge "
     "(which the acceptance passes)",
     np.array_equal(_hdr_z_under, _hdr_z_none) and not np.array_equal(_hdr_z_none, _hdr_z_early)
-    and _hdr_dp.charge_refusal(
+    and _hdr_dc.charge_refusal(
         _hdr_z_early, None, _hdr_z_rig.temps, np.minimum(_hdr_l_req, _hdr_z_rig.temps(_hdr_l_plan)[1:])) is None,
     f"{np.flatnonzero(_hdr_z_none).tolist()} {np.flatnonzero(_hdr_z_under).tolist()}",
 )
@@ -97972,14 +97973,14 @@ def _hdr_u_plans():
     def program(first):
         ceilings = np.full(_HDR_N, 60.0)
         ceilings[0] = first
-        return _hdr_dp._StoreProgram(
+        return _hdr_dc._StoreProgram(
             rig.planner, rig.ctx, _hdr_l_plan, rig.tank, (floors, ceilings), None, np.zeros(_HDR_N))
 
     lands = float(rig.ctx.coast(rig.tank[1], 0, np.array([50.0]))[0]) + float(
         program(60.0)._rise(0, np.array([50.0]), rig.floor)[0])
-    edge = lands + _hdr_dp._STORE_MARGIN_K - 1e-9
+    edge = lands + _hdr_dc._STORE_MARGIN_K - 1e-9
     for _ in range(64):
-        bound = edge - _hdr_dp._STORE_MARGIN_K + 1e-9
+        bound = edge - _hdr_dc._STORE_MARGIN_K + 1e-9
         if bound == lands:
             break
         edge = np.nextafter(edge, np.inf if bound < lands else -np.inf)
@@ -98031,7 +98032,7 @@ def _hdr_x_commit(ctx, plan):
 
     DhwPlanner._ctx_temps = walk
     try:
-        out, seen = _hdr_programs(lambda: _hdr_dp.commit_charges(
+        out, seen = _hdr_programs(lambda: _hdr_dc.commit_charges(
             _hdr_x_rig.planner, plan, (ctx, *_hdr_x_rig.tank), (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)),
             None, None, None))
     finally:
