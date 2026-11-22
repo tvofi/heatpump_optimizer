@@ -2287,6 +2287,9 @@
       "block_space": {
         "name": "Sperre Raumheizung"
       },
+      "external_heat_ignore_block": {
+        "name": "Sperre bei Fremdwärme übersteuern"
+      },
       "optimizer_active": {
         "name": "Optimierer aktiv"
       }

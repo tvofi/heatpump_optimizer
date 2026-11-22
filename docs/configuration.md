@@ -305,7 +305,7 @@ Saving this page moves to the review screen.
 
 Every route ends here: a read-only picture of what you described, the zones,
 the tanks and every sensor slot with what is assigned to it. Confirming it is
-what creates the entry. All 82 entities appear at once and the first plan is
+what creates the entry. All 83 entities appear at once and the first plan is
 solved within one optimization interval.
 
 ### Reauthenticate Tibber

@@ -307,6 +307,12 @@
       "block_space": {
         "default": "mdi:radiator-off"
       },
+      "external_heat_ignore_block": {
+        "default": "mdi:fire-off",
+        "state": {
+          "on": "mdi:fire"
+        }
+      },
       "optimizer_active": {
         "default": "mdi:robot"
       }

@@ -154,6 +154,9 @@ class BoostState:
     #: the tail on it, and it is persisted with the tail. ``None`` once a start nobody
     #: saw is in it. Cleared only by ``_clear_spent``.
     space_boosted: timedelta | None = timedelta(0)
+    #: #3862: the user's "Override external heat block" switch. Persisted, no
+    #: timeout; ``external_heat.ExternalHeatDetector.blocking`` applies it.
+    ignore_extheat_block: bool = False
 
     def settle(self, end: datetime, since: datetime | None) -> None:
         """Start the tail a space boost live from ``since`` until ``end`` owes.
@@ -341,6 +344,11 @@ def held_for(coord: Any) -> BoostState:
         held = BoostState()
         _STATES[coord] = held
     return held
+
+
+def extheat_block_ignored(coord: Any) -> bool:
+    """The held switch; before the restore gate opens, the default False."""
+    return held_for(coord).ignore_extheat_block
 
 
 def space_boost_active(coord: Any, now: datetime | None = None) -> bool:
@@ -565,6 +573,9 @@ def _store_payload(held: BoostState) -> dict[str, Any]:
         }
     if held.space_since is not None and CHANNEL_SPACE in held.until:
         payload[CHANNEL_SPACE]["since"] = held.space_since.isoformat()
+    # Only when on, so the store of an install that never touches it is unchanged.
+    if held.ignore_extheat_block:
+        payload["ignore_extheat_block"] = True
     return payload
 
 
@@ -602,6 +613,7 @@ async def restore(coord: Any) -> None:
                 and dt_util.as_utc(parsed_block) > dt_util.as_utc(now)
             ):
                 held.blocked[channel] = parsed_block
+    held.ignore_extheat_block = bool(raw.get("ignore_extheat_block"))
     _restore_settle(held, raw, now)
 
 
@@ -691,6 +703,16 @@ async def set_block(
         held_for(coord).blocked.pop(channel, None)
     else:
         held_for(coord).set(channel, active, now, block=True)
+    await persist(coord)
+    if refresh:
+        await coord.async_request_refresh()
+
+
+async def set_extheat_block_ignored(
+    coord: Any, on: bool, *, refresh: bool = True
+) -> None:
+    await session_restored(coord)
+    held_for(coord).ignore_extheat_block = on
     await persist(coord)
     if refresh:
         await coord.async_request_refresh()

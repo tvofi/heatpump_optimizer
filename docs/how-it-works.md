@@ -883,6 +883,16 @@ while coasting still meets your requirement — and the learners freeze. If the
 fire gets the tank all the way to the anti-legionella temperature, the cycle
 timer resets on its own and no electric cycle is scheduled at all.
 
+Two controls act on this, and they do different things. The **stove or flue
+entity** says whether a fire burns: "on" starts detection at once, "off" ends
+it. The **Override External Heat Block** switch leaves the fire detected — the
+External Heat Source sensor stays on, with `block_ignored: true` — but stops
+the plan reacting to it: hot water is no longer suppressed and the space plan
+is no longer given the fire's free heat. That holds for a fire the stove entity
+reports too. The learners stay frozen while the fire burns. The switch stays on
+until you turn it off, survives a restart, and does nothing while detection is
+disabled.
+
 **With three more sensors the fire stops being all-or-nothing.** If your furnace
 heats its own buffer tank and an automatic valve mixes the two, point the
 integration at the temperature after that valve and at the wood tank's top and

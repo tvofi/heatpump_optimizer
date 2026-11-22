@@ -74503,6 +74503,304 @@ R.check(
 )
 
 
+# --- #3862: the owner's switch that overrides the external-heat block -------
+# The switch lifts the plan's reaction to a detected fire (the DHW suppression
+# and the free-heat credit); detection, the stove entity and the learning
+# freeze keep reading the raw detector. Every check has its switch-off twin.
+R.section("External-heat block override switch (#3862)")
+from heatpump_optimizer import external_heat as _x62_eh  # noqa: E402
+from heatpump_optimizer import diagnostics as _x62_diag  # noqa: E402
+
+
+def _x62_set(coord, on):
+    """The switch as ``boost`` holds it, without a store round trip."""
+    boost_mod.held_for(coord).ignore_extheat_block = on
+
+
+def _x62_det(*, enabled=True, active=False, fading=False):
+    det = _x62_eh.ExternalHeatDetector(_x62_eh.ExternalHeatConfig(
+        enabled=enabled, decay_minutes=360.0, wood_tank_volume_l=500.0,
+    ))
+    det.state.active = active
+    det.state.fading = fading
+    return det
+
+
+# 1. The block rule on the detector.
+_x62_fire, _x62_fade, _x62_quiet = (
+    _x62_det(active=True), _x62_det(fading=True), _x62_det()
+)
+R.check(
+    "an active or fading fire blocks with the switch off, and not with it on (#3862)",
+    all(d.blocking(False) is True and d.blocking(True) is False
+        for d in (_x62_fire, _x62_fade)),
+    str([(d.blocking(False), d.blocking(True)) for d in (_x62_fire, _x62_fade)]),
+)
+R.check(
+    "null: a quiet detector blocks neither way (#3862)",
+    _x62_quiet.blocking(False) is False and _x62_quiet.blocking(True) is False,
+)
+
+# 2. Detection disabled: the switch is inert and says so.
+_x62_off = _x62_det(enabled=False)
+R.check(
+    "with detection disabled the switch is not effective and publishes block_ignored false (#3862)",
+    _x62_off.ignore_effective(True) is False
+    and _x62_off.view(True)["external_heat"]["block_ignored"] is False
+    and _x62_off.state.as_dict(False)["block_ignored"] is False
+    and "block_ignored" not in _x62_off.state.as_dict(None),
+    str(_x62_off.view(True)),
+)
+R.check(
+    "null: with detection enabled the switch is effective, and off publishes no key (#3862)",
+    _x62_quiet.ignore_effective(True) is True
+    and _x62_quiet.view(True)["external_heat"]["block_ignored"] is True
+    and "block_ignored" not in _x62_quiet.view(False)["external_heat"],
+    str(_x62_quiet.view(True)),
+)
+
+# 3n. The cached lever still reaches the solve with the switch off (the
+# r9egb1 burn arm), and the switch, once effective, lifts it.
+_x62_n = _r9egb1_coord(learned=True)
+_x62_n._external_heat = _x62_det()
+_, _x62_n_off = _r9egb1_run(_x62_n)
+_x62_set(_x62_n, True)
+_, _x62_n_on = _r9egb1_run(_x62_n)
+R.check(
+    "the cached burn reaches the solve with the switch off, and the switch lifts it (#3862)",
+    _x62_n_off["state"].external_heat_active is True
+    and _x62_n_on["state"].external_heat_active is False,
+    f"off {_x62_n_off['state'].external_heat_active} on {_x62_n_on['state'].external_heat_active}",
+)
+_x62_nd = _r9egb1_coord(learned=True)
+_x62_set(_x62_nd, True)
+_, _x62_nd_on = _r9egb1_run(_x62_nd)
+R.check(
+    "null: with detection disabled the switch on leaves the cached burn in the solve (#3862)",
+    _x62_nd._external_heat.config.enabled is False
+    and _x62_nd_on["state"].external_heat_active is True,
+    str(_x62_nd_on["state"].external_heat_active),
+)
+
+
+# 3. The DHW block: the fire plan with the switch on is the no-fire plan.
+def _x62_dhw_plan(*, fire, on):
+    coord = _r9egb1_coord(dhw=True)
+    coord._external_heat = _x62_det(active=fire)
+    coord._external_heat_active = fire
+    _x62_set(coord, on)
+    _, handed = _r9egb1_run(coord)
+    return handed["state"].external_heat_active, list(
+        coord._optimization_result.dhw_power_schedule
+    )
+
+
+_x62_nofire = _x62_dhw_plan(fire=False, on=False)
+_x62_fire_off = _x62_dhw_plan(fire=True, on=False)
+_x62_fire_on = _x62_dhw_plan(fire=True, on=True)
+R.check(
+    "null: with the switch off a fire suppresses discretionary hot water (#3862)",
+    _x62_fire_off[0] is True and _x62_fire_off[1] != _x62_nofire[1]
+    and sum(_x62_fire_off[1]) < sum(_x62_nofire[1]),
+    f"fire {sum(_x62_fire_off[1]):.3f} kW-steps, no fire {sum(_x62_nofire[1]):.3f}",
+)
+R.check(
+    "with the switch on the fire's hot-water plan equals the no-fire plan slot for slot (#3862)",
+    _x62_fire_on[0] is False and _x62_fire_on[1] == _x62_nofire[1],
+    f"switch on {sum(_x62_fire_on[1]):.3f} kW-steps, no fire {sum(_x62_nofire[1]):.3f}",
+)
+
+# 3b. An entity-reported fire (the stove entity says yes): the switch wins,
+# and detection still says the fire burns, from the entity.
+_x62_ent = _r9egb1_coord()
+_x62_ent._external_heat = _x62_det()
+_x62_ent._external_heat.update(_x62_eh.ExternalHeatObservation(now=NOW, override=True))
+_x62_ent._external_heat_active = _x62_ent._external_heat.suppressing
+_x62_ent_off_view = _x62_ent._external_heat_view()
+_, _x62_ent_off = _r9egb1_run(_x62_ent)
+_x62_set(_x62_ent, True)
+_x62_ent_on_view = _x62_ent._external_heat_view()
+_, _x62_ent_on = _r9egb1_run(_x62_ent)
+R.check(
+    "null: an entity-reported fire blocks with the switch off (#3862)",
+    _x62_ent_off["state"].external_heat_active is True
+    and _x62_ent_off_view["external_heat_suppressing"] is True
+    and "block_ignored" not in _x62_ent_off_view["external_heat"],
+    str(_x62_ent_off_view),
+)
+R.check(
+    "the switch lifts an entity-reported fire's block, and the fire stays detected from the entity (#3862)",
+    _x62_ent_on["state"].external_heat_active is False
+    and _x62_ent_on_view["external_heat_suppressing"] is False
+    and _x62_ent_on_view["external_heat_active"] is True
+    and _x62_ent_on_view["external_heat"]["source"] == "entity"
+    and _x62_ent_on_view["external_heat"]["block_ignored"] is True,
+    str(_x62_ent_on_view),
+)
+
+# 4. The free-heat credit to the space plan. 4b: the wood-fuel view, which
+# settles the fire's own heat, is residue the switch does not reach.
+_x62_wf = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=dict(_wf_cfg)))
+_x62_wf._optimization_result = _wf_result
+_x62_wf._external_heat = _x62_det(active=True)
+_x62_wf._external_heat.state.free_heat_kw = 6.0
+_x62_wf._external_heat.state.wood_energy_kwh = 100.0
+_x62_wf_off = _x62_wf._external_heat_forecast(96)
+
+
+def _x62_wood_view(coord):
+    real = _dt_wf.now
+    try:
+        _dt_wf.now = lambda: NOW
+        return coord._build_data_dict()["wood_fuel"]
+    finally:
+        _dt_wf.now = real
+
+
+_x62_wf_view_off = _x62_wood_view(_x62_wf)
+_x62_set(_x62_wf, True)
+_x62_wf_on = _x62_wf._external_heat_forecast(96)
+_x62_wf_view_on = _x62_wood_view(_x62_wf)
+R.check(
+    "null: with the switch off a fire credits the space plan with free heat (#3862)",
+    _x62_wf_off is not None and float(_x62_wf_off[0]) == 6.0,
+    repr(None if _x62_wf_off is None else _x62_wf_off[:3]),
+)
+R.check(
+    "with the switch on the space plan gets no free-heat credit (#3862)",
+    _x62_wf_on is None,
+    repr(_x62_wf_on),
+)
+R.check(
+    "the published wood-fuel view is the same with the switch on as off (#3862)",
+    _x62_wf_view_on == _x62_wf_view_off
+    and bool(_x62_wf_view_off.get("ready")),
+    f"{_x62_wf_view_on!r} vs {_x62_wf_view_off!r}",
+)
+
+# 5. Learning hygiene reads the raw detection: the switch does not unfreeze.
+_x62_lf = _r9egb1_coord()
+_x62_lf._external_heat = _x62_det(active=True)
+_x62_lf._external_heat_active = True
+_x62_set(_x62_lf, True)
+_x62_lf_null = _r9egb1_coord()
+_x62_set(_x62_lf_null, True)
+R.check(
+    "with the switch on during a fire the learners stay frozen (#3862)",
+    _x62_lf._learning_frozen() == "external_heat_source"
+    and _x62_lf._dhw_learner._external_heat_active() is True,
+    f"{_x62_lf._learning_frozen()!r}",
+)
+R.check(
+    "null: with no fire the switch freezes nothing (#3862)",
+    _x62_lf_null._learning_frozen() != "external_heat_source"
+    and _x62_lf_null._dhw_learner._external_heat_active() is False,
+    f"{_x62_lf_null._learning_frozen()!r}",
+)
+
+# 7. Persistence in the boost store: absent when off, so an install that
+# never touches the switch stores what it did; restored before the gate opens.
+_x62_held = boost_mod.BoostState()
+_x62_pay_off = boost_mod._store_payload(_x62_held)
+_x62_held.ignore_extheat_block = True
+_x62_pay_on = boost_mod._store_payload(_x62_held)
+R.check(
+    "the boost store carries the switch only while it is on (#3862)",
+    _x62_pay_on == {**_x62_pay_off, "ignore_extheat_block": True}
+    and _x62_pay_off == boost_mod._store_payload(boost_mod.BoostState())
+    and "ignore_extheat_block" not in _x62_pay_off,
+    f"{_x62_pay_off!r} / {_x62_pay_on!r}",
+)
+
+
+class _X62Store:
+    def __init__(self, raw):
+        self.raw, self.saved = raw, []
+
+    async def async_load(self):
+        return self.raw
+
+    async def async_save(self, data):
+        self.saved.append(data)
+
+
+def _x62_restored(raw):
+    coord = object.__new__(type("X62Coord", (), {}))
+    store = _X62Store(raw)
+    _real_store = boost_mod._store
+    boost_mod._store = lambda _c: store
+    try:
+        _asyncio.run(boost_mod.restore(coord))
+    finally:
+        boost_mod._store = _real_store
+    return boost_mod.extheat_block_ignored(coord)
+
+
+R.check(
+    "a stored true restores the switch on; stored false or absent restores it off (#3862)",
+    _x62_restored({"ignore_extheat_block": True}) is True
+    and _x62_restored({"ignore_extheat_block": False}) is False
+    and _x62_restored({}) is False,
+)
+
+
+async def _x62_gate_order():
+    """``set_extheat_block_ignored`` waits for the restore gate, so a restore
+    that lands later cannot overwrite the press."""
+    coord = object.__new__(type("X62GateCoord", (), {}))
+    store = _X62Store({"ignore_extheat_block": True})
+    release = _asyncio.Event()
+
+    async def _slow_restore():
+        await release.wait()
+        await boost_mod.restore(coord)
+
+    _real_store = boost_mod._store
+    boost_mod._store = lambda _c: store
+    try:
+        boost_mod.spawn_restore_session(
+            coord, lambda c: (c.close(), _asyncio.ensure_future(_slow_restore()))[1],
+            lambda _d: None, {}, lambda _e: None,
+        )
+        press = _asyncio.ensure_future(
+            boost_mod.set_extheat_block_ignored(coord, False, refresh=False)
+        )
+        await _asyncio.sleep(0)
+        waited = not press.done() and not store.saved
+        release.set()
+        await press
+        return waited, boost_mod.extheat_block_ignored(coord), store.saved
+    finally:
+        boost_mod._store = _real_store
+
+
+_x62_waited, _x62_after, _x62_saved = _asyncio.run(_x62_gate_order())
+R.check(
+    "turning the switch off waits for the restore, then wins over the stored on (#3862)",
+    _x62_waited and _x62_after is False and _x62_saved
+    and "ignore_extheat_block" not in _x62_saved[-1],
+    f"waited={_x62_waited} after={_x62_after} saved={_x62_saved!r}",
+)
+
+# 8. Diagnostics: the held switch and its effect, through the public payload.
+_x62_dg = _r9egb1_coord()
+_x62_dg_rows = dict(_x62_diag._VIEWS)
+_x62_dg_fresh = _x62_dg_rows["external_heat_block_ignore"](_x62_dg)
+_x62_set(_x62_dg, True)
+_x62_dg.data = {**(_x62_dg.data or {}), **_x62_dg._external_heat_view()}
+_x62_dg_on = _x62_dg_rows["external_heat_block_ignore"](_x62_dg)
+R.check(
+    "null: diagnostics of an untouched coordinator report the switch off and not effective (#3862)",
+    _x62_dg_fresh == {"switch_on": False, "block_ignored": False},
+    repr(_x62_dg_fresh),
+)
+R.check(
+    "diagnostics report the switch on and, with detection disabled, not effective (#3862)",
+    _x62_dg_on == {"switch_on": True, "block_ignored": False},
+    repr(_x62_dg_on),
+)
+
+
 # --- #1955 planner power on an unmetered install ---------------------------
 # The production symbols. A re-implemented formula would pin nothing.
 from heatpump_optimizer.const import (  # noqa: E402

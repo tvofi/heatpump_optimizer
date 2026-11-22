@@ -522,7 +522,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 82 entities appear and the first plan is solved within one
+- **Immediately.** All 83 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -719,6 +719,7 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | Boost Space Heating | switch | Maximum space heat for two hours |
 | Block DHW | switch | Holds hot water heating at zero for two hours |
 | Block Space Heating | switch | Holds space heating at zero for two hours |
+| Override External Heat Block | switch | Lets the plan heat while external heat is detected |
 | Heat Pump Optimizer | climate | A virtual thermostat for your comfort target |
 
 **Optimizer Active** turns the optimizer on and off. Turning it on only acts from
@@ -744,6 +745,12 @@ due or a disinfection hold, the tank at its minimum inside a demand window,
 the room at the economy floor, the house below its plan while it is cold
 outside, a measurement experiment, or a stale plan. A block does not switch
 the heat pump's supply off.
+
+**Override External Heat Block** keeps the plan from holding back while
+external heat (a wood fire) is detected: the fire stays detected and shown, but
+hot water and space heating are planned as if there were none. It stays on
+until you turn it off, survives a restart, and does nothing while external heat
+detection is off. See [How it works](docs/how-it-works.md#wood-furnaces-and-other-external-heat).
 
 The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
 and presets (auto, comfort, economy, boost). Its target temperature is *your*

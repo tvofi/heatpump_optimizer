@@ -273,7 +273,7 @@ class ExternalHeatBinarySensor(_OptimizerBinarySensorBase):
             "suppressing_electric_dhw": bool(
                 self._data().get("external_heat_suppressing")
             ),
-        }
+        } | ({"block_ignored": info["block_ignored"]} if "block_ignored" in info else {})
 
 
 class AwayModeBinarySensor(_OptimizerBinarySensorBase):

@@ -1951,4 +1951,7 @@ ENTITY_FAMILY_OVERRIDES: Final[dict[str, str]] = {
     "space_heating_cost": "lifetime",
     "space_heating_energy": "lifetime",
     "total_energy": "lifetime",
+    # The owner named this switch "Override external heat block" (#3862), so
+    # it sorts by its lead word, outside the External family.
+    "external_heat_ignore_block": "override",
 }
