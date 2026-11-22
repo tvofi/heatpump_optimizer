@@ -1,0 +1,9 @@
+RESULT inputs_tried=14 count
+RESULT moved_in_range=0 count
+RESULT neg_n_baseline=ok-empty
+RESULT neg_n_mutant=raises ValueError
+RESULT reach_calls=2 count
+RESULT reach_min_n_steps=96 count
+RESULT thread_factor=1.005 ratio
+RESULT load1=3.02
+RESULT swapins=0 count

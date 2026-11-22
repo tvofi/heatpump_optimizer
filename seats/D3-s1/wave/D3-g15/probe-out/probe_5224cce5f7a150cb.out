@@ -1,0 +1,8 @@
+RESULT inputs_tried=432 count
+RESULT moved=0 count
+RESULT branch_hard_reachable=124 count
+RESULT branch_hard_overdue_reachable=156 count
+RESULT branch_hard_unreachable=8 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.18
+RESULT swapins=0 count

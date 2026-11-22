@@ -1,0 +1,11 @@
+RESULT reference_runup_steps=5 count  (floor 20 C: steps 35..39)
+RESULT ties_moved=5/5 count
+RESULT tie_step=38 floor=np.float64(43.51385386005922) C
+RESULT tie_runup_steps_baseline=2 count
+RESULT tie_runup_steps_mutant=5 count
+RESULT tie_req_sum_baseline=855.7613 C  tie_req_sum_mutant=869.8499 C
+RESULT tie_req_sum_delta_c=14.0886 C
+RESULT null_moved=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.46
+RESULT swapins=0 count

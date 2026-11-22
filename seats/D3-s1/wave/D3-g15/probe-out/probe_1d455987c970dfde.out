@@ -1,0 +1,10 @@
+RESULT everyday=55.0 C
+RESULT configs_tried=30 count (cooling C/h / outdoor C / DHW run kW : ties)
+RESULT tie_inputs_tried=1414 count
+RESULT tie_hits=374 count
+RESULT moved_near_tie=0 count
+RESULT moved_under_tie=0 count
+RESULT moved_random=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.02
+RESULT swapins=0 count

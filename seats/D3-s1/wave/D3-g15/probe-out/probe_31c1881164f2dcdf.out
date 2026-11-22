@@ -1,0 +1,10 @@
+RESULT threshold=59.999999 C
+RESULT tie_inputs_tried=3606 count
+RESULT tie_hits=6 count
+RESULT moved_under_tie=6 count
+RESULT moved_off_tie=0 count
+RESULT tie_input=dhw_temp 56.98949861028148 C, outdoor -10.0 C, run 2.0 kW
+RESULT tie_step_baseline=0  tie_step_mutant=1
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.18
+RESULT swapins=0 count

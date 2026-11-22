@@ -1,0 +1,10 @@
+RESULT inputs_tried=24 count
+RESULT moved_in_range=0 count
+RESULT decay_at_dt9h_rate3=0.0
+RESULT decay0_baseline=returned, run-up min -2.44e+08
+RESULT decay0_mutant=raises ZeroDivisionError
+RESULT reach_min_decay_tank_dt1h=0.8800
+RESULT reach_min_decay_combi_dt1h=0.8077
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.33
+RESULT swapins=0 count

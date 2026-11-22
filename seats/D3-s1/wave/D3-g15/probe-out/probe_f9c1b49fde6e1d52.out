@@ -1,0 +1,6 @@
+RESULT inputs_tried=147 count
+RESULT moved=0 count
+RESULT coast_steps_written_baseline=3375 count  mutant=3375 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.59
+RESULT swapins=0 count

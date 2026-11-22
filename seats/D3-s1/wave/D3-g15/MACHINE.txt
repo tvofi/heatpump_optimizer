@@ -1,0 +1,13 @@
+date_utc: 2026-11-22T21:39:41Z
+nproc: 4
+cpu_model: Intel(R) Xeon(R) Processor @ 2.10GHz
+load1: 0.68
+free -m:
+               total        used        free      shared  buff/cache   available
+Mem:           16087        1067       13517          12        1801       15020
+Swap:              0           0           0
+df -h $HOME:
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  18% /
+python3: /opt/hpo/venv-ci/bin/python3 Python 3.14.7
+node: v22.23.5

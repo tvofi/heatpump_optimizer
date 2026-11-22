@@ -1,0 +1,11 @@
+RESULT boost_top=60.0 C
+RESULT runup_max_baseline=0.0000 C
+RESULT runup_max_mutant=139.1276 C
+RESULT runup_steps_above_boost_mutant=20 count
+RESULT req_at_boost_steps_baseline=0 count
+RESULT req_at_boost_steps_mutant=20 count
+RESULT ceiling_at_boost_steps_baseline=1 count  mutant=21 count
+RESULT null_moved=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.46
+RESULT swapins=0 count

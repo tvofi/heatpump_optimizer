@@ -1,0 +1,1 @@
+dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_5224cce5f7a150cb.py -- pins: count of inputs on which DhwPlanner._dhw_legionella_due's (due, hour, step, ready_temps) differ between baseline and mutant, over a grid covering every branch of the hard-deadline placement, and how many grid points take the branch the mutated line sits in (hard deadline, tank reachable).

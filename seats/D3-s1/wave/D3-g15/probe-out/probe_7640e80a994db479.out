@@ -1,0 +1,11 @@
+RESULT deadline_step=96 n_steps=96
+RESULT edge_due_baseline=False step=None
+RESULT edge_due_mutant=True step=1
+RESULT null_moved=0 count
+RESULT edge_solve_due_baseline=False dhw_kwh=4.6915
+RESULT edge_solve_due_mutant=True dhw_kwh=4.8211
+RESULT edge_solve_dhw_kwh_delta=0.1295 kWh
+RESULT null_solve_moved=0 count  (hours_since 143.75)
+RESULT thread_factor=1.001 ratio
+RESULT load1=3.33
+RESULT swapins=0 count

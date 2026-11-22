@@ -1,0 +1,1 @@
+dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py -- pins: whether the anti-legionella cycle is planned (DhwPlanner._dhw_legionella_due's `due`, and the production optimize()'s published predictive_info["dhw_legionella_due"] plus its hot-water kWh) when the hard deadline falls EXACTLY on the horizon's end (deadline_step == n_steps), baseline vs mutant.

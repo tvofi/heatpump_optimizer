@@ -1,0 +1,1 @@
+dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_1d455987c970dfde.py -- pins: whether DhwPlanner._dhw_legionella_ceilings' outputs differ between baseline and mutant when the walk's first `need` lands EXACTLY on the everyday charge limit (the `need > everyday` boundary): count of searched inputs that are exact ties, and of inputs whose two arms differ.
