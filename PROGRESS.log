@@ -9,3 +9,4 @@
 1795366779 CKPT building group mutant dispatcher (feature-block preludes) snapshot a69e1b8dd2b5
 1795366864 CKPT diff mutant run started (40 mutants, in place, group dispatcher); entities.py running snapshot 34ba247d7145
 1795367479 HB alive
+1795367610 CKPT P2 cyclic_range_wrap red fixed in dhw_planner; entities rerun next snapshot 45e73629b689
