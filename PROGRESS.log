@@ -8,3 +8,4 @@
 1795385278 HB alive
 1795385294 CKPT D3-s1 56 file(s)
 1795385297 HB NOTE 1-2 obeyed: probes + tools checkpointed under the seat dir wave/D3-g04/probes/<key>/ (not copied into the gate tree until the last gate: tests/harness_headers.py rglobs *.py under dev/audit/rounds and would read them mid-gate)
+1795385305 CKPT D3-s1 57 file(s)
