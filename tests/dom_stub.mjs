@@ -13,9 +13,9 @@
 // tests/card_browser.mjs; this stub is for structure, wiring and
 // behaviour that a real browser cannot check cheaply.
 // `makeDomStub(domRef)` takes a holder object the host fills with its
-// own `document` once that exists: the classes are needed to BUILD the
+// own `document` once that exists. The classes are needed to BUILD the
 // document (its head and body are Nodes), and focus/blur need the
-// document afterwards -- a ref breaks the circle.
+// document afterwards. A ref breaks the circle.
 export function makeDomStub(domRef) {
   const VOID_TAGS = new Set(["br","hr","img","input","meta","link","source","path","rect","line","circle","use"]);
 
@@ -133,9 +133,9 @@ export function makeDomStub(domRef) {
     // Focus is tracked, not simulated: the card restores focus after
     // render-destroying keyboard actions, and the assertion is simply "who
     // received the last .focus() call". Real shadow roots track their own
-    // `activeElement` independently of the top-level document (the layout
+    // `activeElement` independently of the top-level document. The layout
     // editor's refresh() reads `this.host.shadowRoot.activeElement`, not
-    // `document.activeElement`, to find what it is about to blow away), so
+    // `document.activeElement`, to find what it is about to blow away. So
     // this walks up to the nearest one and sets that too.
     focus(){
       domRef.document.activeElement = this;
