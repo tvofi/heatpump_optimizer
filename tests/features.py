@@ -99194,4 +99194,50 @@ R.check(
     f"before={_rh_ul_before} after={_rh_ul_doc}",
 )
 
+R.section("R11-OWNER-CARD-EXTERNAL-HEAT: the binary sensors the card reads by id suffix")
+# The card derives a binary sensor's id from the plan sensor's device prefix
+# plus a suffix constant (`planBinaryTwin`): the status pill reads
+# EXTERNAL_HEAT_SUFFIX, the health page INPUT_PROBLEM_SUFFIX. Home Assistant
+# makes that id's tail from the entity's English name, so each constant must
+# be the slug of the en.json name of the translation key its sensor class
+# passes. The pill's behaviour is pinned in tests/card.mjs; this pins the
+# contract the card cannot see. Null control: a suffix one letter off fails
+# the same comparison.
+import ast as _oc_ast  # noqa: E402
+import json as _oc_json  # noqa: E402
+import re as _oc_re  # noqa: E402
+from pathlib import Path as _oc_Path  # noqa: E402
+
+_oc_card = _oc_Path("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js").read_text(encoding="utf-8")
+_oc_en = _oc_json.loads(_oc_Path("custom_components/heatpump_optimizer/translations/en.json").read_text(encoding="utf-8"))
+_oc_keys = {}
+for _oc_cls in _oc_ast.parse(_oc_Path("custom_components/heatpump_optimizer/binary_sensor.py").read_text(encoding="utf-8")).body:
+    if not isinstance(_oc_cls, _oc_ast.ClassDef):
+        continue
+    for _oc_call in _oc_ast.walk(_oc_cls):
+        if (isinstance(_oc_call, _oc_ast.Call) and isinstance(_oc_call.func, _oc_ast.Attribute)
+                and _oc_call.func.attr == "__init__" and len(_oc_call.args) == 4
+                and isinstance(_oc_call.args[3], _oc_ast.Constant)):
+            _oc_keys[_oc_cls.name] = _oc_call.args[3].value
+
+
+def _oc_slug(cls: str) -> str | None:
+    key = _oc_keys.get(cls)
+    name = ((_oc_en.get("entity", {}).get("binary_sensor", {}).get(key) or {}).get("name")) if key else None
+    return "_" + _oc_re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") if name else None
+
+
+_oc_pairs = [("EXTERNAL_HEAT_SUFFIX", "ExternalHeatBinarySensor"), ("INPUT_PROBLEM_SUFFIX", "InputHealthBinarySensor")]
+_oc_rows = []
+for _oc_const, _oc_cls_name in _oc_pairs:
+    _oc_m = _oc_re.search(rf'const {_oc_const} = "([a-z_]+)";', _oc_card)
+    _oc_rows.append((_oc_const, _oc_m and _oc_m.group(1), _oc_slug(_oc_cls_name)))
+R.check(
+    "each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name "
+    "(_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match",
+    all(card and card == want for _, card, want in _oc_rows)
+    and all(want and card[:-1] != want for _, card, want in _oc_rows),
+    str(_oc_rows),
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

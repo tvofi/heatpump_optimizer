@@ -916,7 +916,13 @@ const STRINGS = {
     "tiles.cost_title":
       "What the current plan's electricity costs over its horizon.",
     "tiles.indoor": "Indoor",
-    "status.heating": "Heating now",
+    "status.heating_space": "Heating space",
+    "status.heating_dhw": "Heating DHW",
+    "status.heating_both": "Heating space+DHW",
+    "status.external_heat": "External heat detected",
+    "status.external_heat_title":
+      "Something other than the heat pump is warming the tanks. Planned " +
+      "heating is held back while they stay warm enough.",
     "status.idle": "Idle",
     "status.stale": "Plan stale",
     "status.stale_title":
@@ -1762,7 +1768,13 @@ const STRINGS = {
     "tiles.cost_title":
       "Vad den aktuella planens el kostar under sin horisont.",
     "tiles.indoor": "Inomhus",
-    "status.heating": "Värmer nu",
+    "status.heating_space": "Värmer huset",
+    "status.heating_dhw": "Värmer varmvatten",
+    "status.heating_both": "Värmer hus+varmvatten",
+    "status.external_heat": "Extern värme upptäckt",
+    "status.external_heat_title":
+      "Något annat än värmepumpen värmer tankarna. Planerad uppvärmning " +
+      "hålls tillbaka så länge de håller sig tillräckligt varma.",
     "status.idle": "Vilar",
     "status.stale": "Planen är gammal",
     "status.stale_title":
@@ -2432,7 +2444,11 @@ const STRINGS = {
     "tiles.cost": "Plankosten",
     "tiles.cost_title": "Was der Strom des aktuellen Plans über seinen Horizont kostet.",
     "tiles.indoor": "Innen",
-    "status.heating": "Heizt gerade",
+    "status.heating_space": "Heizt Räume",
+    "status.heating_dhw": "Heizt Warmwasser",
+    "status.heating_both": "Heizt Räume+Warmwasser",
+    "status.external_heat": "Fremdwärme erkannt",
+    "status.external_heat_title": "Etwas anderes als die Wärmepumpe heizt die Speicher. Geplantes Heizen wird zurückgehalten, solange sie warm genug bleiben.",
     "status.idle": "Leerlauf",
     "status.stale": "Plan veraltet",
     "status.stale_title": "Seit mehr als {minutes} min kein neuer Plan. Im Automatik- und Sparmodus läuft die Wärmepumpe auf ihrer eigenen Kurve, bis eine Berechnung gelingt.",
@@ -9748,13 +9764,39 @@ function planAge(plan, now) {
   };
 }
 
+// The binary sensors the header and the health page read off the plan's device.
+const INPUT_PROBLEM_SUFFIX = "_input_problem";
+const EXTERNAL_HEAT_SUFFIX = "_external_heat_source";
+
+/** A binary sensor on the plan sensors' device: its state object, or null.
+ *
+ * Its id is the resolved plan sensor's with the plan suffix swapped for
+ * `suffix`, so the read stays scoped to this card's config entry, as
+ * `statEntity` scopes the headline sensors; a scan by suffix alone could
+ * read another entry's sensor. */
+function planBinaryTwin(plan, suffix) {
+  for (const kind of ["space", "dhw"]) {
+    const planId = plan.resolveEntity(kind);
+    if (!planId) continue;
+    for (const sfx of PLAN_ID_DERIVE[kind]) {
+      if (!planId.endsWith(sfx)) continue;
+      const st = plan.stateOf(`binary_sensor.${planId.slice(planId.indexOf(".") + 1, -sfx.length)}${suffix}`);
+      if (st) return st;
+    }
+  }
+  return null;
+}
+
 /** The header's status pill: `{ key, tone, text, title }`, or null.
  *
  * Precedence is the order an owner asks in: a plan they pinned by hand, no
  * plan at all (the integration then actuates nothing and the pump runs on its
- * own curve), a plan that has stopped being renewed, and only then whether a
- * plan step is heating right now. No plan sensor at all is no pill: nothing
- * is known, and the card's diagnostics already say why. */
+ * own curve), a plan that has stopped being renewed, external heat holding
+ * planned heating back, and only then which plan, if any, is heating right
+ * now. External heat with its block ignored by the owner's switch
+ * (`block_ignored`) holds nothing back, so the pill shows what the plan
+ * earns. No plan sensor at all is no pill: nothing is known, and the card's
+ * diagnostics already say why. */
 function statusPill(plan, now) {
   const manual = plan.manualOverride();
   if (manual) {
@@ -9763,9 +9805,10 @@ function statusPill(plan, now) {
     return { key: "manual", tone: "accent", title: "",
       text: known ? L("status.manual", { time: fmtExpiry(until) }) : L("status.manual_open") };
   }
-  const plans = ["space", "dhw"]
-    .map((kind) => plan.stateOf(plan.resolveEntity(kind)))
-    .filter((st) => st && st.state !== "unavailable" && st.state !== "unknown");
+  const usable = (st) => st && st.state !== "unavailable" && st.state !== "unknown" ? st : null;
+  const space = usable(plan.stateOf(plan.resolveEntity("space")));
+  const dhw = usable(plan.stateOf(plan.resolveEntity("dhw")));
+  const plans = [space, dhw].filter(Boolean);
   if (!plans.length) return null;
   if (plans.every((st) => st.state === "no plan")) {
     return { key: "fallback", tone: "crit", text: L("status.fallback"),
@@ -9776,10 +9819,18 @@ function statusPill(plan, now) {
     return { key: "stale", tone: "warn", text: L("status.stale"),
       title: L("status.stale_title", { minutes: Math.round(age.limit) }) };
   }
-  const heating = plans.some((st) => !!(st.attributes && st.attributes.active_now));
-  return heating
-    ? { key: "heating", tone: "ok", text: L("status.heating"), title: "" }
-    : { key: "idle", tone: "idle", text: L("status.idle"), title: "" };
+  const ext = planBinaryTwin(plan, EXTERNAL_HEAT_SUFFIX);
+  if (ext && ext.state === "on" && !(ext.attributes && ext.attributes.block_ignored === true)) {
+    return { key: "external_heat", tone: "accent", text: L("status.external_heat"),
+      title: L("status.external_heat_title") };
+  }
+  const active = (st) => !!(st && st.attributes && st.attributes.active_now);
+  const heatSpace = active(space);
+  const heatDhw = active(dhw);
+  if (!heatSpace && !heatDhw) return { key: "idle", tone: "idle", text: L("status.idle"), title: "" };
+  const text = heatSpace && heatDhw ? L("status.heating_both")
+    : heatSpace ? L("status.heating_space") : L("status.heating_dhw");
+  return { key: "heating", tone: "ok", text, title: "" };
 }
 
 /** The pill's markup, or nothing. */
@@ -10475,23 +10526,9 @@ const HEALTH_STATUS_SUFFIX = "_optimization_status";
 // per-learner rows. On by default, and Diagnostic like the other learners.
 const HEALTH_MODEL_SUFFIX = "_learning_model_status";
 
-/** The Input Problem binary sensor's state: the binary twin of the plan id. */
-function inputProblemState(plan) {
-  for (const kind of ["space", "dhw"]) {
-    const planId = plan.resolveEntity(kind);
-    if (!planId) continue;
-    for (const sfx of PLAN_ID_DERIVE[kind]) {
-      if (!planId.endsWith(sfx)) continue;
-      const st = plan.stateOf(`binary_sensor.${planId.slice(planId.indexOf(".") + 1, -sfx.length)}_input_problem`);
-      if (st) return st;
-    }
-  }
-  return null;
-}
-
 function healthSignature(plan, minute) {
   const sig = stateSignature;
-  return [sig(inputProblemState(plan)), sig(plan.statEntity(HEALTH_STATUS_SUFFIX)),
+  return [sig(planBinaryTwin(plan, INPUT_PROBLEM_SUFFIX)), sig(plan.statEntity(HEALTH_STATUS_SUFFIX)),
     sig(plan.statEntity("_last_optimization")), sig(plan.statEntity("_next_optimization")),
     ...HEALTH_WAITING.map(([, sfx]) => sig(plan.statEntity(sfx))),
     sig(plan.statEntity(HEALTH_MODEL_SUFFIX)),
@@ -10507,7 +10544,7 @@ function fmtMinutes(m) {
 
 /** The header pill over every page of the dialog, or "" with no sensor. */
 function healthPillHtml(plan) {
-  const st = inputProblemState(plan);
+  const st = planBinaryTwin(plan, INPUT_PROBLEM_SUFFIX);
   if (!st || st.state === "unavailable" || st.state === "unknown") return "";
   // Every problem kind counts (unavailable, out of range, stale, ...), one
   // per Health-page row, so the words name no single kind: "stale" here
@@ -10535,7 +10572,7 @@ function healthInputLabel(key) {
  * checklist and the model block. */
 function inputAssigned(plan, key) {
   const topo = plan.attrRaw("setup_topology", null);
-  const ages = (inputProblemState(plan) || { attributes: {} }).attributes.input_ages_minutes || {};
+  const ages = (planBinaryTwin(plan, INPUT_PROBLEM_SUFFIX) || { attributes: {} }).attributes.input_ages_minutes || {};
   return !!((topo && topo.slots) || []).find((s) => s.key === key && s.entity) || key in ages;
 }
 
@@ -10545,7 +10582,7 @@ function healthRow(attrs, title, detail, pill) {
 }
 
 function healthInputsHtml(plan) {
-  const st = inputProblemState(plan);
+  const st = planBinaryTwin(plan, INPUT_PROBLEM_SUFFIX);
   if (!st || st.state === "unavailable" || st.state === "unknown") return "";
   const a = st.attributes || {};
   const problems = Array.isArray(a.problems) ? a.problems : [];
