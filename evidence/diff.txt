@@ -1,0 +1,75 @@
+commit c0c6a9b7c231a95c00ca67062aed0b1da6f20233
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Sun Nov 22 11:53:11 2026 +0000
+
+    build(deps): bump playwright in /tests/pwlane in the pwlane group
+    
+    Bumps the pwlane group in /tests/pwlane with 1 update: [playwright](https://github.com/microsoft/playwright).
+    
+    
+    Updates `playwright` from 1.65.0 to 1.65.1
+    - [Release notes](https://github.com/microsoft/playwright/releases)
+    - [Commits](https://github.com/microsoft/playwright/compare/v1.65.0...v1.65.1)
+    
+    ---
+    updated-dependencies:
+    - dependency-name: playwright
+      dependency-version: 1.65.1
+      dependency-type: direct:production
+      update-type: version-update:semver-patch
+      dependency-group: pwlane
+    ...
+    
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+diff --git a/tests/pwlane/package-lock.json b/tests/pwlane/package-lock.json
+index 4515fdfc7c..5df00477bf 100644
+--- a/tests/pwlane/package-lock.json
++++ b/tests/pwlane/package-lock.json
+@@ -6,16 +6,16 @@
+     "": {
+       "name": "hpo-browser-lane",
+       "dependencies": {
+-        "playwright": "1.65.0"
++        "playwright": "1.65.1"
+       }
+     },
+     "node_modules/playwright": {
+-      "version": "1.65.0",
+-      "resolved": "https://registry.npmjs.org/playwright/-/playwright-1.65.0.tgz",
+-      "integrity": "sha512-F3AMWcR44qMBt4kq+6Kb6mX7bjGXshktKFOPULd7reED6ZJWevjbNRqysP7q+AATE9kdPEZBibex1BYsvpVoeA==",
++      "version": "1.65.1",
++      "resolved": "https://registry.npmjs.org/playwright/-/playwright-1.65.1.tgz",
++      "integrity": "sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==",
+       "license": "Apache-2.0",
+       "dependencies": {
+-        "playwright-core": "1.65.0"
++        "playwright-core": "1.65.1"
+       },
+       "bin": {
+         "playwright": "cli.js"
+@@ -25,9 +25,9 @@
+       }
+     },
+     "node_modules/playwright-core": {
+-      "version": "1.65.0",
+-      "resolved": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.65.0.tgz",
+-      "integrity": "sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==",
++      "version": "1.65.1",
++      "resolved": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.65.1.tgz",
++      "integrity": "sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw==",
+       "license": "Apache-2.0",
+       "bin": {
+         "playwright-core": "cli.js"
+diff --git a/tests/pwlane/package.json b/tests/pwlane/package.json
+index 7f72a46194..02eb3981b6 100644
+--- a/tests/pwlane/package.json
++++ b/tests/pwlane/package.json
+@@ -3,6 +3,6 @@
+   "private": true,
+   "description": "The browser CI job's playwright, installed by `npm ci` from package-lock.json so every tarball is integrity-checked (#1548). Not a test; tests/card_browser.mjs is.",
+   "dependencies": {
+-    "playwright": "1.65.0"
++    "playwright": "1.65.1"
+   }
+ }

@@ -1,0 +1,27 @@
+commit c0c6a9b7c231a95c00ca67062aed0b1da6f20233
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Sun Nov 22 11:53:11 2026 +0000
+
+    build(deps): bump playwright in /tests/pwlane in the pwlane group
+    
+    Bumps the pwlane group in /tests/pwlane with 1 update: [playwright](https://github.com/microsoft/playwright).
+    
+    
+    Updates `playwright` from 1.65.0 to 1.65.1
+    - [Release notes](https://github.com/microsoft/playwright/releases)
+    - [Commits](https://github.com/microsoft/playwright/compare/v1.65.0...v1.65.1)
+    
+    ---
+    updated-dependencies:
+    - dependency-name: playwright
+      dependency-version: 1.65.1
+      dependency-type: direct:production
+      update-type: version-update:semver-patch
+      dependency-group: pwlane
+    ...
+    
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+ tests/pwlane/package-lock.json | 16 ++++++++--------
+ tests/pwlane/package.json      |  2 +-
+ 2 files changed, 9 insertions(+), 9 deletions(-)
