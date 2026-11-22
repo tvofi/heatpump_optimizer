@@ -1,0 +1,36 @@
+# round-2 probes at head a8bfbc4f2c8b8e46444494cdeab26e2740fcf456
+quoted phrase occurrences: 0; timeout_s at: 138 ; def verify at: 169 
+## r1: {"groups": [{"group": "P", "brief": "See tools/pr/figure_block.py:5 \"this cited phrase is gone from the file\" which bounds timeout_s.", "resume": {"stage": "fix"}}]}
+  ERROR   [P] path:line: tools/pr/figure_block.py:5: the quoted anchor [this cited phrase is gone from the file] is not found near tools/pr/figure_block.py:5, or anywhere else in the file
+TOTAL: 1 error(s) across 1 file(s)
+REPIN: 1 file(s) read, 0 refused
+after --repin: bytes equal
+## r2: {"groups": [{"group": "P", "brief": "See tools/pr/figure_block.py:5 for no_such_symbol_anywhere_xyz which bounds timeout_s.", "resume": {"stage": "fix"}}]}
+  WARNING [P] path:line: tools/pr/figure_block.py:5: 'timeout_s' moved from tools/pr/figure_block.py:5 to line 138, its one place in the file; re-pin with `brief_lint.mjs --repin`
+  ERROR   [P] symbol: 'no_such_symbol_anywhere_xyz': not found in the tracked tree (no tag cited either)
+TOTAL: 1 error(s) across 1 file(s)
+REPIN ../probe/r2.json: 1 pin(s) rewritten
+REPIN: 1 file(s) read, 0 refused
+after --repin: {"groups": [{"group": "P", "brief": "See tools/pr/figure_block.py:138 for no_such_symbol_anywhere_xyz which bounds timeout_s.", "resume": {"stage": "fix"}}]}
+## r3: {"groups": [{"group": "P", "brief": "See tools/pr/figure_block.py:5 \"def verify\" for it.", "resume": {"stage": "fix"}}]}
+  WARNING [P] path:line: tools/pr/figure_block.py:5: 'def verify' moved from tools/pr/figure_block.py:5 to line 169, its one place in the file; re-pin with `brief_lint.mjs --repin`
+TOTAL: 0 error(s) across 1 file(s)
+REPIN ../probe/r3.json: 1 pin(s) rewritten
+REPIN: 1 file(s) read, 0 refused
+after --repin: {"groups": [{"group": "P", "brief": "See tools/pr/figure_block.py:169 \"def verify\" for it.", "resume": {"stage": "fix"}}]}
+## r4: {"groups": [{"group": "P", "brief": "See tools/pr/figure_block.py:5 \"def verify\" and \"no such phrase here zz\" for it.", "resume": {"stage": "fix"}}]}
+  ERROR   [P] path:line: tools/pr/figure_block.py:5: the quoted anchor [no such phrase here zz] is not found near tools/pr/figure_block.py:5, or anywhere else in the file
+TOTAL: 1 error(s) across 1 file(s)
+REPIN: 1 file(s) read, 0 refused
+after --repin: bytes equal
+## r5 (unquoted; the specific symbol lives in another file): {"groups": [{"group": "P", "brief": "See tools/pr/figure_block.py:5 for merge_claim_decision which bounds timeout_s.", "resume": {"stage": "fix"}}]}
+merge_claim_decision in figure_block.py: 0; in tree: dev/audit/config/bugclasses.json dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md 
+  WARNING [P] path:line: tools/pr/figure_block.py:5: 'timeout_s' moved from tools/pr/figure_block.py:5 to line 138, its one place in the file; re-pin with `brief_lint.mjs --repin`
+TOTAL: 0 error(s) across 1 file(s)
+REPIN ../probe/r5.json: 1 pin(s) rewritten
+REPIN: 1 file(s) read, 0 refused
+after --repin: {"groups": [{"group": "P", "brief": "See tools/pr/figure_block.py:138 for merge_claim_decision which bounds timeout_s.", "resume": {"stage": "fix"}}]}
+TOTAL: 0 error(s) across 1 file(s)
+## r5 under the merge base's linter (63c6d1cff9)
+  ERROR   [P] path:line: tools/pr/figure_block.py:5: 'timeout_s' not found near tools/pr/figure_block.py:5; found at line 138 instead
+TOTAL: 1 error(s) across 1 file(s)

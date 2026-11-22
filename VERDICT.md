@@ -1,38 +1,28 @@
-Fix review: blocked e2255027ecc58d2a3eb3e945045899bec4a52f59 class-open: brief_lint.mjs checkPathLine reads a pin whose quoted anchor is gone as moved when an incidental identifier in its clause sits once in the file, and --repin rewrites it to that line
+Fix review: merge a8bfbc4f2c8b8e46444494cdeab26e2740fcf456
 
-bus-nonce: d637753107b17ee336c87834911c0537
+bus-nonce: 80707db6b65a8b0fe83662036b6f5b6e
 
-Round 1 (first review of this PR; no --reviewed-head).
+Round 2. The first round blocked e2255027ec (class-open, the gone quoted anchor). This head is e2255027ec plus 3f6aa7c595 and a8bfbc4f2c, which touch only `tools/policy/brief_lint.mjs` and `dev/audit/harnesses/r11_shared_files_p2_mutants.sh`. Under step 12 this round reviews that delta, checks that each prior finding is resolved, and reads the live required checks.
 
-## Block
+## Findings
 
-The body states the rule as "An anchor at several places, or gone, stays an error and is never rewritten", and the same PR adds that sentence to `dev/governance/rules/brief-citations.md` item 2. `checkPathLine` at this head does not hold it. It sorts every candidate by length (the quoted phrases, keywords and snake_case symbols `anchorCandidatesFor` pulls from the 220-character clause window) and returns on the first one found anywhere. So when the quoted phrase, the anchor the brief actually cites, is gone from the file, a shorter incidental symbol from the same clause that sits once in the file decides: the pin becomes a warning, and `--repin` moves it to that symbol's line. After the re-pin the brief lints with no error and no warning, while the phrase it quotes is cited at a line where it is not.
-
-Reproduced at this head (`ev/repin_gone_anchor_probe.txt`). The roster brief is `See tools/pr/figure_block.py:5 "this cited phrase is gone from the file" which bounds timeout_s.`, and the quoted phrase has 0 occurrences in the file:
-- head `node tools/policy/brief_lint.mjs <roster>`: `WARNING [P] path:line: tools/pr/figure_block.py:5: 'timeout_s' moved from tools/pr/figure_block.py:5 to line 138, its one place in the file`, `TOTAL: 0 error(s)`.
-- base (63c6d1cff9) linter on the same file: `ERROR ... 'timeout_s' not found near tools/pr/figure_block.py:5; found at line 138 instead`, `TOTAL: 1 error(s)`. The change turns this error into a pass.
-- head `--repin`: `1 pin(s) rewritten`, brief now `tools/pr/figure_block.py:138 "this cited phrase is gone from the file"`; re-lint: `TOTAL: 0 error(s)` with no finding at all.
-
-`assertRepin`'s arm `an anchor that is gone is an error` covers only a context where no candidate is found anywhere. It never builds a gone quoted phrase next to a symbol found once, so the predicate's unguarded domain is exactly the case the rule names. What the re-cut needs: when the clause carries a quoted phrase, the phrase alone decides moved, ambiguous or gone, and a symbol must not stand in for a missing phrase. Add an `assertRepin` arm for this shape, plus its mutant in `r11_shared_files_p2_mutants.sh`. In the same code, class 2b's re-pin computes its range end as `Math.max(to, to + (end - start))` without the `Math.min(lines.length, ...)` clamp that class 2 uses (`movedTo.end`), so an anchored range can be re-pinned past the end of the file. Use `movedTo.end` in both.
+- Residual: for a clause with no quoted phrase, `checkPathLine` still lets a shorter symbol stand in when the clause's most specific symbol is gone from the cited file. Probe r5 (`ev/probe.txt`) is the brief `See tools/pr/figure_block.py:5 for merge_claim_decision which bounds timeout_s.`. `merge_claim_decision` occurs 0 times in figure_block.py but exists elsewhere in the tree, so the symbol class passes. At this head the pin is `WARNING ... 'timeout_s' moved ... to line 138`, `TOTAL: 0 error(s)`, and `--repin` rewrites it to `:138`. The merge base's linter gives `ERROR ... 'timeout_s' not found near ...; found at line 138 instead`. This is not a block. The body narrows the claim: "A clause with no quoted phrase keeps the most-specific-candidate rule". The code comment states that rule as "the most specific candidate found anywhere decides", and the arm `with no quoted phrase, a symbol at one other place is a moved pin` pins it, so a named rule reads this set. The prior block's remedy also asked for the quoted-phrase rule only, and ADDENDUM rule 10 sends a second block on this axis to the orchestrator rather than into another round. The owner reviews the policy sentence it bears on: `dev/governance/rules/brief-citations.md` item 2, "an anchor at several places, or gone, is an error". For an unquoted clause, "the anchor" means the most specific candidate that is found. Carry: dismissed: the body states the unquoted rule that reads this case, and the brief-citations.md item 2 sentence it bears on is in the owner's approving review of this pull request
 
 ## Evidence
 
-- Mutation proof, re-run in a detached worktree at this head:
-  - `bash dev/audit/harnesses/r11_shared_files_p2_mutants.sh`: `RESULT killed=16`, `RESULT survived_or_stale=0`, rc=0 (`ev/p2_mutants.txt`).
-  - `python3 dev/audit/harnesses/claim_merge_mutants.py`: `RESULT killed=21`, `RESULT survived=0`, `RESULT stale=0`, rc=0 (`ev/claim_merge_mutants.txt`).
-- Finder's instrument, `dev/audit/harnesses/claim_merge_census.py`, with the driver at origin/main (= merge base 63c6d1cff9) and at this head (`ev/census_base_driver.txt`, `ev/census_head_driver.txt`):
-  - Base: `RESULT resolved=6 refused=6`. Head: `resolved=9 refused=3`.
-  - Exactly `st:d7d4c511b`, `st:fb5658f13` and `st:f919d224` move from refused to resolved. `st:2d010b091` stays refused under both drivers, and the seven older rows are identical. This matches the body's Figures.
-- Cheap checks at head (`ev/cheap_checks.txt`):
-  - `figure_block self-test: 21 checks, 0 failed`.
-  - brief_lint: `REPIN ok`, the W1-G14 fixture pin a WARNING at line 23115-23135. The body says 23114; the one line is from the main merge in 458beb455f.
-  - `policy_lint`: `TOTAL: 0 error(s) across 58 policy file(s)`, `FIXTURE ok`. `RULES-SYNC ok`.
-  - Agreement: `pair stored-figure-block: 2 readers, 39 items, 0 divergent`, `AGREEMENT ok`.
-  - `STRUCTURE RATCHET PASSED`. `doc_claims ALL 441 checks PASSED`. `closure.py select`: `MODE: SCOPED -- 7 script(s) run, 26 scoped out`.
-- `git merge-tree --write-tree origin/main e2255027ec`: rc=0, no conflict (`ev/mergetree.txt`). The PR base 63c6d1cff9 is current origin/main.
-- `VERSION`, the manifest version and `RELEASE_NOTES.md`: untouched in the three-dot diff.
-- `dev/governance/roles/` is unchanged on main since the merge base.
-- `tests/env_drift.py` `_stamp_emptied_side`: read against the body's stated rule. It is keyed on which side moved the stamp, a removed stamp (`None`) keeps the refusal, and its five mutants S1-S5 are killed. No defect found.
-- CI on this head: `merge_train.py classify e2255027ecc58d2a3eb3e945045899bec4a52f59 --pr 3837` printed WAIT (rc=3) from 20:21 to 20:29Z, then at 20:30:32Z rc=2: `REFUSE selftests: the head's governance / instrument-self-tests job 136973463090 concluded cancelled, which reads no step: re-run it`. The CI state is unreadable at this head (`ev/classify.log`). The block above stands on code and does not turn on it.
-- The PR head re-read before return: `refs/heads/fix/r11-pre-shared-files-p2` = e2255027ecc58d2a3eb3e945045899bec4a52f59, unmoved.
-- I wrote the probe roster, not the finder. It is a scratch JSON fed to the in-tree linter, and its full text is in the evidence file.
+- Prior block resolved. The round-1 probe roster, re-run at this head (`ev/probe.txt`, r1), gives `ERROR [P] path:line: tools/pr/figure_block.py:5: the quoted anchor [this cited phrase is gone from the file] is not found near tools/pr/figure_block.py:5, or anywhere else in the file` and `TOTAL: 1 error(s)`. After `--repin` the bytes are equal. Round 1 got a WARNING and a rewrite to `:138`.
+- Further attacks on the quoted rule (`ev/probe.txt`):
+  - r3: a quoted phrase at exactly one other place (`"def verify"`, line 169) still warns and is re-pinned to `:169`. This is the null.
+  - r4: a moved quoted phrase next to a gone quoted phrase is an error, and the file is not rewritten.
+  - r2: an unquoted clause whose specific symbol is absent from the tree is re-pinned, but the brief stays red through the symbol class (`ERROR [P] symbol: 'no_such_symbol_anywhere_xyz'`).
+  - Reading the code: `quotedPhrases(context).filter((p) => candidates.includes(p))` keeps every quoted phrase, because `anchorCandidatesFor` adds all of them and `excludeStems` filters symbols only. So no quoted phrase falls through to the symbol loop. A quoted phrase from a neighbouring citation inside the 220-character window can only add an error, never a pass.
+- Class 2b clamp, the prior finding's second half: `lintBrief` now writes `r.movedTo.end`, which is `Math.min(lineCount, ...)`. `lineCount` drops the trailing-newline element, and the past-end check uses it too. `assertRepin`'s arm `an anchored range re-pinned at the end of the file ends inside it` covers it, and two mutants are killed (below).
+- Mutation proof, re-run in a detached worktree at this head: `bash dev/audit/harnesses/r11_shared_files_p2_mutants.sh` (`ev/p2_mutants.txt`). `RESULT killed=23`, `RESULT survived_or_stale=0`, rc=0. That is all 23 rows: the nine figure_block, policy_lint and agreement rows, and all fourteen brief_lint rows, including the seven this delta adds (`bl-gone-quote-yields-to-symbol`, `bl-unquoted-moved-is-error`, `bl-repeated-quote-is-moved`, `bl-lost-quote-not-refused`, `bl-quotes-apart-not-refused`, `bl-anchored-range-unclamped`, `bl-count-includes-phantom-line`), each killed by `REPIN VACUOUS`. Before this the body's run at this head had stopped after nine rows, so this is the first full run of the harness at this head.
+- `node tools/policy/brief_lint.mjs`, the default run at this head (`ev/brief_lint_default.txt`): `TOTAL: 0 error(s) across 40 file(s)`, `REPIN ok`, `FIXTURE ok` (both), and 6 `path:line` lines. The W1-G14 pin is a WARNING moved to `23115-23135`, matching the body's figure. rc=0, 1m42s.
+- CI: `python3 tools/audit/seat/merge_train.py classify a8bfbc4f2c8b8e46444494cdeab26e2740fcf456 --pr 3837` at 12:02:59Z and again at 12:38Z, just before return, gave rc=0 `GREEN a8bfbc4f2c8b8e46444494cdeab26e2740fcf456 pending: none red: none` (`ev/classify.log`). No owed red, so no `## Red checks` answer is owed.
+- `git merge-tree --write-tree origin/main a8bfbc4f2c` against origin/main 3a98735a7e: rc=0, and `LEDGER-MERGE: resolved tests/closures.json` (`ev/mergetree.txt`). No conflict.
+- `VERSION`, `custom_components/heatpump_optimizer/manifest.json` and `RELEASE_NOTES.md` are untouched in the three-dot diff from the merge base 63c6d1cff9.
+- `dev/governance/roles/` changed on main since the merge base (`fix-review.md`, `fixer.md`, a rewording plus step 6's axis sentence). This review followed main's text, from the role pack rendered at this checkout.
+- Carried from round 1 unchanged, because the delta does not reach them: the claim-driver census (base `resolved=6 refused=6`, head `resolved=9 refused=3`), `claim_merge_mutants.py` `killed=21`, figure_block, policy_lint, agreement, structure and doc_claims. The census and the claim mutants were not re-taken here. The first nine harness rows (figure_block, policy_lint, agreement) were re-taken in the run above.
+- The body's `## Head` names a8bfbc4f2c8b8e46444494cdeab26e2740fcf456. Before return, `refs/heads/fix/r11-pre-shared-files-p2` reads the same.
+- The probe rosters are the reviewer's scratch JSON, fed to the in-tree linter. Their full text is in `ev/probe.txt`.
