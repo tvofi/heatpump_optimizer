@@ -82,7 +82,7 @@ def hold_supply(held: ArbiterState, inputs: Any, boosts: Any, value: bool | None
         return value
     wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if value else age < MIN_RUN
     if wait:
-        held.supply_held, held.held_until = True, now + _freeze_span(inp.config)
+        held.supply_held, held.held_until = True, now + freeze_span(inp.config)
     return None if wait else value
 
 
@@ -93,7 +93,7 @@ def freeze_reason(held: ArbiterState, now: datetime | None = None) -> str | None
     return FREEZE_HELD if held_now else None
 
 
-def _freeze_span(config: Any) -> timedelta:
+def freeze_span(config: Any) -> timedelta:
     """Two plan intervals, as ``early_cutoff.CutoffState.interval_cut`` counts
     the open cycle and the one just closed: freezing one too many is the
     fail-closed side. Fixed when the write is held, where the config is in hand.

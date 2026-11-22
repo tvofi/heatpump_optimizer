@@ -133,6 +133,8 @@ class CutoffInputs:
     inputs: Callable[[], ArbiterInputs]
     boosts: BoostState
     opt_config: Any
+    #: Whether a frost hold keeps the pump on instead (``frost_hold.take_off``).
+    frost_off: Callable[[], bool] = lambda: False
 
 
 #: Weak-keyed, so a value must not reach its key: ``wiring.inputs`` is the
@@ -153,6 +155,8 @@ async def arm(
     opt_config: Any,
     on_unload: Callable[[Callable[[], None]], Any],
     now: datetime | None = None,
+    *,
+    frost_off: Callable[[], bool] = lambda: False,
 ) -> None:
     """Start a plan cycle: the cycle's own write resumes the pump.
 
@@ -165,7 +169,7 @@ async def arm(
         # Once per record, listener or not: the wiring below reaches the
         # coordinator and has to be dropped with the entry.
         on_unload(lambda: detach(held))
-    held.wiring = CutoffInputs(inputs, boosts, opt_config)
+    held.wiring = CutoffInputs(inputs, boosts, opt_config, frost_off)
     inp = inputs()
     cfg = EntryConfig.from_mapping(inp.config)
     # In UTC: local wall-clock arithmetic is an hour off across a DST change.
@@ -310,6 +314,8 @@ def on_room_event(held: CutoffState, wiring: CutoffInputs, event: Any) -> None:
     reason = _cycle_guard(inp, held, now)
     if reason is None and _second_zone_cold(inp, limit):
         reason = "zone_cold"
+    if reason is None and wiring.frost_off():
+        reason = "frost_hold"  # held on below the frost threshold, not cut
     if reason is not None:
         held.last_held = reason
         return

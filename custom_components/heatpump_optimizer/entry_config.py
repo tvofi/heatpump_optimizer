@@ -137,6 +137,7 @@ class EntryConfig(Mapping[str, Any]):
     dhw_quantile_targets_enabled: bool = _key(const.DEFAULT_DHW_QUANTILE_TARGETS_ENABLED, _flag)
     ecl110_mqtt_retain: bool = _key(const.DEFAULT_ECL110_RETAIN, _flag)
     external_heat_detection_enabled: bool = _key(const.DEFAULT_EXTERNAL_HEAT_ENABLED, _flag)
+    frost_hold: bool = _key(const.DEFAULT_FROST_HOLD, _flag)
     fuse_guard_enabled: bool = _key(const.DEFAULT_FUSE_GUARD_ENABLED, _flag)
     immersion_feedback_enabled: bool = _key(const.DEFAULT_IMMERSION_FEEDBACK_ENABLED, _flag)
     internal_gains_learning_enabled: bool = _key(const.DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED, _flag)
@@ -180,6 +181,7 @@ class EntryConfig(Mapping[str, Any]):
         const.DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY, finite_float)
     heat_curve_persistent_min_dwell_minutes: float = _key(
         const.DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES, finite_float)
+    frost_hold_below_c: float = _key(const.DEFAULT_FROST_HOLD_BELOW_C, finite_float)
     external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, finite_float)
     external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, finite_float)
     main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, finite_float)
