@@ -1,0 +1,15 @@
+tests/requirements-ci.txt numpy 2.5.4 -> 2.5.5: pinned 66 hashes, pypi 66, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-coverage.txt coverage 7.17.2 -> 7.17.3: pinned 119 hashes, pypi 119, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt boto3 1.44.1 -> 1.44.6: pinned 2 hashes, pypi 2, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt botocore 1.44.1 -> 1.44.6: pinned 2 hashes, pypi 2, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt grpcio 1.85.1 -> 1.85.3: pinned 61 hashes, pypi 61, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt habluetooth 7.1.2 -> 7.1.3: pinned 60 hashes, pypi 60, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt homeassistant 2026.11.1 -> 2026.11.2: pinned 2 hashes, pypi 2, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt httpcore2 2.16.0 -> 2.16.2: pinned 2 hashes, pypi 2, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt httpx2 2.16.0 -> 2.16.2: pinned 2 hashes, pypi 2, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt numpy 2.5.4 -> 2.5.5: pinned 66 hashes, pypi 66, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt python-slugify 9.1.3 -> 9.2.0: pinned 2 hashes, pypi 2, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt regex 2026.11.9 -> 2026.11.19: pinned 114 hashes, pypi 114, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt sqlalchemy 2.1.8 -> 2.1.9: pinned 72 hashes, pypi 72, not-on-pypi 0, pypi-not-pinned 0
+tests/requirements-typing.txt uv 0.13.7 -> 0.13.9: pinned 19 hashes, pypi 19, not-on-pypi 0, pypi-not-pinned 0
+RESULT hashes: changed pins 14 bad 0
