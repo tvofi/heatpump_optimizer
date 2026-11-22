@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_b8d5ec03.py (+ _sysid_lib.py): pins identify()'s SysIdResult differs (repr) when the dt filter leaves fewer than 5 rows from >= 6 usable samples; counted per input as 1 when the baseline and mutant SysIdResult reprs differ

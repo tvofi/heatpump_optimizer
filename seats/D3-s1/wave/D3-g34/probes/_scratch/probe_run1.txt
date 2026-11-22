@@ -1,0 +1,207 @@
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_07227ec9.py
+CASE negative_ua: differs=1 baseline=[refused:fit gave implausible signs] mutant=[refused:fitted parameters outside plausible bounds]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+CASE plant_noisy: differs=0 baseline=[completed ua=0.1913967891997666 C=4.863601267584928 conf=0.8596784536099924] mutant=[completed ua=0.1913967891997666 C=4.863601267584928 conf=0.8596784536099924]
+RESULT first_case=negative_ua
+RESULT outcome_baseline=[refused:fit gave implausible signs]
+RESULT outcome_mutant=[refused:fitted parameters outside plausible bounds]
+RESULT cases_differing=1 count (of 1)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_10665a84.py
+CASE power_prop_delta: differs=1 baseline=[refused:step gave insufficient excitation] mutant=[completed ua=0.49999999999999967 C=9.999999999999996 conf=0.75]
+CASE power_zero: differs=1 baseline=[refused:step gave insufficient excitation] mutant=[refused:fit gave implausible signs]
+CASE power_const_rank2: differs=0 baseline=[completed ua=2.0 C=4.000000000000002 conf=0.75] mutant=[completed ua=2.0 C=4.000000000000002 conf=0.75]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=power_prop_delta
+RESULT outcome_baseline=[refused:step gave insufficient excitation]
+RESULT outcome_mutant=[completed ua=0.49999999999999967 C=9.999999999999996 conf=0.75]
+RESULT cases_differing=2 count (of 2)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_20f72103.py
+CASE dup0_step: differs=1 baseline=[completed ua=0.19574719588552128 C=5.126629633823094 conf=0.9928502727789756] mutant=[completed ua=0.19575055138538477 C=5.126622761903924 conf=0.9928505855787655]
+CASE dup0_relax: differs=1 baseline=[completed ua=0.1940300422263852 C=4.9202622589667575 conf=0.9919654111675706] mutant=[completed ua=0.19309428845882284 C=4.922057608270699 conf=0.9917465313336098]
+CASE tie3600us_step: differs=1 baseline=[completed ua=0.19574717836315605 C=5.126629119820056 conf=0.9928503284067113] mutant=[completed ua=0.1957505338951885 C=5.1266222478985455 conf=0.9928506412102832]
+CASE gap3601us_step: differs=0 baseline=[completed ua=0.19575053389033026 C=5.1266222477557655 conf=0.9928506412257365] mutant=[completed ua=0.19575053389033026 C=5.1266222477557655 conf=0.9928506412257365]
+CASE dup0_across_phases: differs=0 baseline=[completed ua=0.1946164063512258 C=5.045775608680084 conf=0.98923044691315] mutant=[completed ua=0.1946164063512258 C=5.045775608680084 conf=0.98923044691315]
+RESULT first_case=dup0_step
+RESULT outcome_baseline=[completed ua=0.19574719588552128 C=5.126629633823094 conf=0.9928502727789756]
+RESULT outcome_mutant=[completed ua=0.19575055138538477 C=5.126622761903924 conf=0.9928505855787655]
+RESULT cases_differing=3 count (of 3)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_3918ca4f.py
+CASE rows5_exact: differs=0 baseline=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634] mutant=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]
+CASE rows5_noisy: differs=0 baseline=[completed ua=0.1958803989260938 C=5.5681638394925175 conf=0.20621895204641322] mutant=[completed ua=0.1958803989260938 C=5.5681638394925175 conf=0.20621895204641322]
+CASE rows6: differs=0 baseline=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634] mutant=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]
+CASE gap_4rows_guarded: differs=0 baseline=[refused:not enough usable intervals] mutant=[refused:not enough usable intervals]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=rows5_exact
+RESULT outcome_baseline=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]
+RESULT outcome_mutant=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]
+RESULT cases_differing=0 count (of 5)
+RESULT null_differing=0 count (of 0)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_3e78e62a.py
+CASE negative_ua: differs=0 baseline=[refused:fit gave implausible signs] mutant=[refused:fit gave implausible signs]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=negative_ua
+RESULT outcome_baseline=[refused:fit gave implausible signs]
+RESULT outcome_mutant=[refused:fit gave implausible signs]
+RESULT cases_differing=0 count (of 1602)
+RESULT null_differing=0 count (of 1)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_44bb0ce0.py
+CASE sigma_tie: differs=1 baseline=[refused:fit gave implausible signs] mutant=[refused:sensor noise dominates the excursion]
+CASE sigma_tie_broken: differs=0 baseline=[refused:fit gave implausible signs] mutant=[refused:fit gave implausible signs]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=sigma_tie
+RESULT outcome_baseline=[refused:fit gave implausible signs]
+RESULT outcome_mutant=[refused:sensor noise dominates the excursion]
+RESULT cases_differing=1 count (of 1)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_4eeb3661.py
+CASE 3triples_noise0.02: differs=1 baseline=[completed ua=0.1931445891215017 C=4.5987039940244845 conf=0.3039170461625474] mutant=[completed ua=0.1931817916300817 C=4.598419055037595 conf=0.30391700686422346]
+CASE 3triples_clean: differs=1 baseline=[completed ua=0.1999999738701641 C=5.025041665893819 conf=0.2832302991395752] mutant=[completed ua=0.19999999999846468 C=5.025041666597227 conf=0.28323030349318973]
+CASE 4triples_noise0.02: differs=0 baseline=[completed ua=0.19356116728570344 C=5.122430663961687 conf=0.48701414962296063] mutant=[completed ua=0.19356116728570344 C=5.122430663961687 conf=0.48701414962296063]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=3triples_noise0.02
+RESULT outcome_baseline=[completed ua=0.1931445891215017 C=4.5987039940244845 conf=0.3039170461625474]
+RESULT outcome_mutant=[completed ua=0.1931817916300817 C=4.598419055037595 conf=0.30391700686422346]
+RESULT cases_differing=2 count (of 2)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_50daaa57.py
+CASE tie3600us_step: differs=1 baseline=[completed ua=0.19574717836315605 C=5.126629119820056 conf=0.9928503284067113] mutant=[completed ua=0.1957505338951885 C=5.1266222478985455 conf=0.9928506412102832]
+CASE tie3600us_step2: differs=1 baseline=[completed ua=0.19723225982935974 C=5.125921300784164 conf=0.9734516712227912] mutant=[completed ua=0.19723445771326803 C=5.125917225960346 conf=0.9734526572487074]
+CASE tie3600us_relax: differs=1 baseline=[completed ua=0.19403008976944297 C=4.920260245677576 conf=0.9919652144681798] mutant=[completed ua=0.19309437082847924 C=4.9220555899444 conf=0.9917463415436903]
+CASE dup0_step: differs=0 baseline=[completed ua=0.19574719588552128 C=5.126629633823094 conf=0.9928502727789756] mutant=[completed ua=0.19574719588552128 C=5.126629633823094 conf=0.9928502727789756]
+CASE gap3601us_step: differs=0 baseline=[completed ua=0.19575053389033026 C=5.1266222477557655 conf=0.9928506412257365] mutant=[completed ua=0.19575053389033026 C=5.1266222477557655 conf=0.9928506412257365]
+RESULT first_case=tie3600us_step
+RESULT outcome_baseline=[completed ua=0.19574717836315605 C=5.126629119820056 conf=0.9928503284067113]
+RESULT outcome_mutant=[completed ua=0.1957505338951885 C=5.1266222478985455 conf=0.9928506412102832]
+RESULT cases_differing=3 count (of 3)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_6b6a8493.py
+CASE no_triples_completes: differs=0 baseline=[refused:sensor drift collapsed into heat-loss] mutant=[refused:sensor drift collapsed into heat-loss]
+CASE no_triples_refused: differs=0 baseline=[completed ua=2.0 C=4.000000000000002 conf=0.75] mutant=[completed ua=2.0 C=4.000000000000002 conf=0.75]
+CASE two_triples: differs=0 baseline=[completed ua=0.2000000000000456 C=5.025041666597272 conf=0.2478265155567694] mutant=[completed ua=0.2000000000000456 C=5.025041666597272 conf=0.2478265155567694]
+CASE no_triples_flat_delta: differs=0 baseline=[refused:fit gave implausible signs] mutant=[refused:fit gave implausible signs]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=no_triples_completes
+RESULT outcome_baseline=[refused:sensor drift collapsed into heat-loss]
+RESULT outcome_mutant=[refused:sensor drift collapsed into heat-loss]
+RESULT cases_differing=0 count (of 5)
+RESULT null_differing=0 count (of 0)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_756f3beb.py
+CASE tm0.05_noisy: differs=1 baseline=[refused:fitted gains outside plausible bounds] mutant=[completed ua=0.18996319528283903 C=4.863743086867868 conf=0.8596648707648191]
+CASE tm0.0: differs=1 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[raise ZeroDivisionError: division by zero]
+CASE tm10_noisy: differs=0 baseline=[completed ua=0.1913967891997666 C=4.863601267584928 conf=0.8596784536099924] mutant=[completed ua=0.1913967891997666 C=4.863601267584928 conf=0.8596784536099924]
+CASE tm0.1_noisy: differs=0 baseline=[refused:fitted gains outside plausible bounds] mutant=[refused:fitted gains outside plausible bounds]
+RESULT first_case=tm0.05_noisy
+RESULT outcome_baseline=[refused:fitted gains outside plausible bounds]
+RESULT outcome_mutant=[completed ua=0.18996319528283903 C=4.863743086867868 conf=0.8596648707648191]
+RESULT cases_differing=2 count (of 2)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_84372c0e.py
+CASE seed53_noise0.1: differs=1 baseline=[completed ua=0.0711885946897037 C=5.2908388164657465 conf=0.7509833795353332] mutant=[completed ua=0.07119096309555645 C=5.290664908635567 conf=0.7509833763113594]
+CASE plant_clean: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+CASE plant_noisy: differs=0 baseline=[completed ua=0.1913967891997666 C=4.863601267584928 conf=0.8596784536099924] mutant=[completed ua=0.1913967891997666 C=4.863601267584928 conf=0.8596784536099924]
+RESULT first_case=seed53_noise0.1
+RESULT outcome_baseline=[completed ua=0.0711885946897037 C=5.2908388164657465 conf=0.7509833795353332]
+RESULT outcome_mutant=[completed ua=0.07119096309555645 C=5.290664908635567 conf=0.7509833763113594]
+RESULT cases_differing=1 count (of 1)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_87c3101b.py
+CASE negative_ua: differs=0 baseline=[refused:fit gave implausible signs] mutant=[refused:fit gave implausible signs]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=negative_ua
+RESULT outcome_baseline=[refused:fit gave implausible signs]
+RESULT outcome_mutant=[refused:fit gave implausible signs]
+RESULT cases_differing=0 count (of 1602)
+RESULT null_differing=0 count (of 1)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_a9bc37e9.py
+CASE rows5_exact: differs=0 baseline=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634] mutant=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]
+CASE rows5_noisy: differs=0 baseline=[completed ua=0.1958803989260938 C=5.5681638394925175 conf=0.20621895204641322] mutant=[completed ua=0.1958803989260938 C=5.5681638394925175 conf=0.20621895204641322]
+CASE rows6: differs=0 baseline=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634] mutant=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]
+CASE gap_4rows_guarded: differs=0 baseline=[refused:not enough usable intervals] mutant=[refused:not enough usable intervals]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=rows5_exact
+RESULT outcome_baseline=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]
+RESULT outcome_mutant=[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]
+RESULT cases_differing=0 count (of 5)
+RESULT null_differing=0 count (of 0)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_b8d5ec03.py
+CASE gap_4rows: differs=1 baseline=[refused:not enough usable intervals] mutant=[refused:fitted gains outside plausible bounds]
+CASE gap_0rows: differs=1 baseline=[refused:not enough usable intervals] mutant=[raise IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed]
+CASE plant_20rows: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+CASE plant_noisy: differs=0 baseline=[completed ua=0.1913967891997666 C=4.863601267584928 conf=0.8596784536099924] mutant=[completed ua=0.1913967891997666 C=4.863601267584928 conf=0.8596784536099924]
+RESULT first_case=gap_4rows
+RESULT outcome_baseline=[refused:not enough usable intervals]
+RESULT outcome_mutant=[refused:fitted gains outside plausible bounds]
+RESULT cases_differing=2 count (of 2)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_b97b45a6.py
+CASE no_triples_completes: differs=0 baseline=[refused:sensor drift collapsed into heat-loss] mutant=[refused:sensor drift collapsed into heat-loss]
+CASE no_triples_refused: differs=0 baseline=[completed ua=2.0 C=4.000000000000002 conf=0.75] mutant=[completed ua=2.0 C=4.000000000000002 conf=0.75]
+CASE two_triples: differs=0 baseline=[completed ua=0.2000000000000456 C=5.025041666597272 conf=0.2478265155567694] mutant=[completed ua=0.2000000000000456 C=5.025041666597272 conf=0.2478265155567694]
+CASE no_triples_flat_delta: differs=0 baseline=[refused:fit gave implausible signs] mutant=[refused:fit gave implausible signs]
+CASE sigma_tie: differs=0 baseline=[refused:fit gave implausible signs] mutant=[refused:fit gave implausible signs]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=no_triples_completes
+RESULT outcome_baseline=[refused:sensor drift collapsed into heat-loss]
+RESULT outcome_mutant=[refused:sensor drift collapsed into heat-loss]
+RESULT cases_differing=0 count (of 6)
+RESULT null_differing=0 count (of 0)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count
+=== dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_d7421c10.py
+CASE power_const_rank2: differs=1 baseline=[completed ua=2.0 C=4.000000000000002 conf=0.75] mutant=[refused:step gave insufficient excitation]
+CASE power_prop_delta_rank1: differs=0 baseline=[refused:step gave insufficient excitation] mutant=[refused:step gave insufficient excitation]
+CASE plant: differs=0 baseline=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518] mutant=[completed ua=0.1999999984516758 C=5.0250416669860485 conf=0.9999999979882518]
+RESULT first_case=power_const_rank2
+RESULT outcome_baseline=[completed ua=2.0 C=4.000000000000002 conf=0.75]
+RESULT outcome_mutant=[refused:step gave insufficient excitation]
+RESULT cases_differing=1 count (of 1)
+RESULT null_differing=0 count (of 2)
+RESULT thread_factor=1.000 ratio
+RESULT load1=0.70
+RESULT swapins=0 count

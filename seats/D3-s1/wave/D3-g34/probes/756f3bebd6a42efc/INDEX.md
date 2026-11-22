@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_756f3beb.py (+ _sysid_lib.py): pins identify()'s SysIdResult differs (repr) when SysIdConfig.thermal_mass_prior < 0.1; counted per input as 1 when the baseline and mutant SysIdResult reprs differ

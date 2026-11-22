@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_44bb0ce0.py (+ _sysid_lib.py): pins identify()'s SysIdResult differs (repr) when sigma2 equals x1_spread2/9 exactly in float64; counted per input as 1 when the baseline and mutant SysIdResult reprs differ
