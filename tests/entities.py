@@ -4654,15 +4654,15 @@ R.check(
     f"planted={_p2_planted} unfenced={_p2_unfenced} renamed={_p2_renamed}",
 )
 
-# D17-s3-51's consumers census (R11-SEAM-entity-service): dhw_window_in_force's
-# rule matches the flat set's attribute loads, function by function, so a
+# D17-s3-51's consumers census (R11-SEAM-entity-service). dhw_window_in_force's
+# rule matches the flat set's attribute loads, function by function. So a
 # value that leaves a dispositioned site -- a return (`_effective_dhw_windows`),
 # a local, a same-module parameter -- reached an instant test unread: the
 # planner's next window read the flat union on a weekend. This follows every
-# flat value from those loads to the call that consumes it: a resolver
-# (`_FW_RESOLVERS`, the windows_for_day chain) ends the walk, a same-module
-# function is entered at the parameter it binds, a function returning the
-# value becomes a source, and every other consumer is keyed
+# flat value from those loads to the call that consumes it. A resolver
+# (`_FW_RESOLVERS`, the windows_for_day chain) ends the walk; a same-module
+# function is entered at the parameter it binds; a function returning the
+# value becomes a source. Every other consumer is keyed
 # "file::site -> callee" against a disposition. Design choice: the key is the
 # callee, not the line, so a second read through a dispositioned callee in the
 # same site rides its disposition.

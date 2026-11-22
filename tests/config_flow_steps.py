@@ -4835,8 +4835,8 @@ async def widening_refusals():
         f"{None if high_w is None else dict(high_w.config)} any "
         f"{None if any_w is None else dict(any_w.config)}",
     )
-    # The grid's two edges: a step of 0 is no grid (the bound is the value, never
-    # a division by it), and a stored value within float noise of a grid point
+    # The grid's two edges. A step of 0 is no grid: the bound is the value, never
+    # a division by it. A stored value within float noise of a grid point
     # (14.4999999998, a round-trip's residue) widens to that point, not one step past.
     try:
         zero_w = config_flow._widen_to_fit(selector.NumberSelector(selector.NumberSelectorConfig(

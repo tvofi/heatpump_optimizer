@@ -5996,8 +5996,8 @@ R.check(
 # (inside the weekday window) where the weekend window opens in 1.0 h.
 # The census drives every weekday at hours before, inside, between and
 # after the windows, plus a holiday and a per-day override, and compares
-# each cell with the owner's answer; it asserts its own precondition, that
-# the grid holds cells where the flat set disagrees with the day's.
+# each cell with the owner's answer. It asserts its own precondition: the
+# grid holds cells where the flat set disagrees with the day's.
 import dataclasses as _nw_dc
 import datetime as _nw_dt
 from heatpump_optimizer.dhw_schedule import (
