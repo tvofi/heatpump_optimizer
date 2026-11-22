@@ -1,0 +1,10 @@
+ok   P1-P3: the grader's owner-only block ran and holds no FAIL
+FAIL P5b: every file the sibling command returns is an arm here or named as no writer, and every arm is still returned -- owes an arm: []; no longer returned: ['tools/audit/seat/remerge_main.sh']
+ok   P5b: tools/pr/app_push.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_push.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/pr/app_comment.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_comment.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/pr/app_approve.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_approve.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/audit/seat/body_patch.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/audit/seat/body_patch.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)

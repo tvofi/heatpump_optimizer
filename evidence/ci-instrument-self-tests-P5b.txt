@@ -1,0 +1,8 @@
+2026-11-22T18:53:01.3455046Z FAIL P5b: every file the sibling command returns is an arm here or named as no writer, and every arm is still returned -- owes an arm: []; no longer returned: ['tools/audit/seat/remerge_main.sh']
+2026-11-22T18:53:01.3497023Z ok   SCOPES null: the planned shape (five seats over four steps and five sources, an empty file universe, owner_only) passes check_scopes
+2026-11-22T18:53:01.3498581Z ok   SCOPES: a planted overlap on the source axis is refused by the cell it names
+2026-11-22T18:53:01.3499349Z ok   SCOPES: a planted orphan on the source axis is refused by the cell it names
+2026-11-22T18:53:01.3503574Z ok   SET: the four readers of scopes.json's owner_only return one set over one table (true alone declares)
+2026-11-22T18:53:01.3504644Z RESULT arms=49 failed=1
+2026-11-22T18:53:01.3505463Z OWNER-ONLY CHANNEL BROKEN: P5b: every file the sibling command returns is an arm here or named as no writer, and every arm is still returned
+2026-11-22T18:53:01.3573684Z ##[error]Process completed with exit code 1.
