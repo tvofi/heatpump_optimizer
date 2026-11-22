@@ -3242,7 +3242,7 @@
    "resume": {
     "stage": "not-started",
     "commit": null,
-    "branch": "fix/r11-prepr-step-timing",
+    "branch": "handoff/r11-prepr-step-timing",
     "last_step": null,
     "next_step": "dispatch fixer after R10-PREPR-DARWIN-SELFTEST-LANE merges; re-measure first",
     "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut)"
