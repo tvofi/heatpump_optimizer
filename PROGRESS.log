@@ -4,3 +4,4 @@
 1795364000 CKPT body drafted; entities running snapshot 2c5a962c5e60
 1795364155 CKPT prepr rc 0 (scoped); waiting on entities.py snapshot b87ec2e0808d
 1795364592 CKPT pushed handoff/ci-cards-a 1740817c53 and handoff-body cd1c07dcda snapshot 2b2d13a084ef
+1795364595 DONE #3847 M7 killed: handoff/ci-cards-a 1740817c53, body cd1c07dcda; scoped prepr rc0; entities 2740 passed
