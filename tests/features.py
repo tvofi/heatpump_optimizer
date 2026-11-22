@@ -99183,7 +99183,8 @@ R.check(
     "ok, Ok and OK all read healthy",
     _fl_one.episodes == [[10, 50, "E5", False]] and _fl_one.open is None and _fl_null.episodes == []
     and _fl_null.open is None and all(_fl.code_text([w]) is None for w in ("ok", "Ok", "OK", " OK "))
-    and _fl.note(_fl.Log(0), 5, None) is False and _fl.note(_fl.Log(0), 5, "E5") is True,
+    and _fl.note(_fl.Log(0), 5, None) is False and _fl.note(_fl.Log(0), 5, "E5") is True
+    and _fl.note(_fl.Log(0, open=[1, "E5"]), 5, "E5") is False,
     f"{_fl_one.episodes} {_fl_null.episodes}",
 )
 _fl_two = _fl_feed([(0, ["E5"]), (10, ["E5, P3"])])

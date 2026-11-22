@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_log.py:flag_text CMP_BOUND 4ea770b7",
+  "old": "    if source == \"bitmap\" and number is not None and 0 < number <= REGISTER_MAX:",
+  "reason": "Equivalent (CMP_BOUND, `0 < number` -> `0 <= number`): the line is reached only on a reading parse_bool took as a fault, and parse_bool reads a number as a fault exactly when it is non-zero, so number is never 0 here and the two bounds pick the same branch on every input. Measured by the R11-OWNER-FAULT-TEXT fixer's mutant_run.py drive of the diff's fault_log.py mutants over the fault-record block of tests/features.py: SURVIVED rc=0; the same block kills the bound's other side (`1 < number`, by the reading 1 giving 0x0001) and the register cap (`0 < number` alone, by 2**32 giving no code).",
+  "verdict": "equivalent"
+}

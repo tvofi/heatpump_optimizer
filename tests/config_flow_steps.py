@@ -3590,7 +3590,8 @@ async def residual_statement_branches():
         "user_sensors",
         "happy",
         "the intact grouping table hides nothing: only the three sections, holding every flat field",
-        set(intact) == {"indoor", "solar", "plant"} and in_sections == intact_flat and len(intact_flat) == 14,
+        set(intact) == {"indoor", "solar", "plant"} and in_sections == intact_flat and len(intact_flat) == 14
+        and all(value.options == {"collapsed": False} for value in intact.values()),
         f"keys={sorted(intact)} missing={sorted(intact_flat - in_sections)}",
     )
 

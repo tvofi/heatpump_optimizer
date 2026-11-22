@@ -41,8 +41,6 @@ from .entry_config import EntryConfig
 from .inputs import AMBIGUOUS_ACTIVITY_TOKENS, BOOL_FALSE, is_flag_domain, parse_bool
 from .store import QuarantiningStore, admitted, load_mapping
 
-__all__ = ["async_close", "async_setup", "diagnostics_view"]
-
 _LOGGER = logging.getLogger(__name__)
 
 FAULT_LOG_STORE_VERSION = 1
@@ -217,7 +215,8 @@ class _Record:
     #: True until the first reading after load decides the restored open row.
     fresh: bool = True
     closed: bool = False
-    unsub: Callable[[], None] | None = None
+    #: What close releases: the state listener.
+    releases: list[Callable[[], None]] = field(default_factory=list)
     timer: Callable[[], None] | None = None
     saved_at: float | None = None
 
@@ -310,7 +309,7 @@ async def async_setup(hass: HomeAssistant, entry: Any, config: EntryConfig) -> N
         if not rec.closed:
             _apply(rec, [(event.data.get("entity_id"), event.data.get("new_state"))])
 
-    rec.unsub = async_track_state_change_event(hass, entities, _changed)
+    rec.releases.append(async_track_state_change_event(hass, entities, _changed))
 
     async def _stop(_event: Any) -> None:
         await async_close(entry)
@@ -324,7 +323,7 @@ async def async_close(entry: Any) -> None:
     if rec is None or rec.closed:
         return
     rec.closed = True
-    for release in (rec.unsub, rec.timer):
+    for release in (*rec.releases, rec.timer):
         if release is not None:
             release()
     await _save(rec)
