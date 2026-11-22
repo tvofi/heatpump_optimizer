@@ -44,7 +44,8 @@ early refresh inside :data:`MIN_OFF` of a cut keeps the pump off
 alone. Hot water, a both step, idle, a boost on either channel, a
 disinfection hold, a running defrost and a tank below its minimum are all
 exempt, because the power switch stops the tank as well as the house. A
-non-plan mode (comfort, boost, off) and a stale plan are exempt too, as are
+non-plan mode (comfort, boost, off), a stale plan and a pump mode reading
+cooling (the user's season, which no writer touches) are exempt too, as are
 an install with no switch and a two-zone house whose lower floor is below
 its target. It writes only the power switch, through ``pump_arbiter.switch_supply``,
 the switch's one writer. The ECL110 displacement, the arbiter's slots and
@@ -80,7 +81,7 @@ from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
 from .plan_step import plan_step_index
-from .pump_arbiter import ArbiterInputs, step_duty, supply_switch, switch_supply
+from .pump_arbiter import ArbiterInputs, reads_cooling, step_duty, supply_switch, switch_supply
 from .runs import MIN_PAUSE, MIN_RUN
 from .supply_hold import switch_age, tank_reason
 
@@ -219,6 +220,8 @@ def release(held: CutoffState) -> None:
 
 def _exempt(inp: ArbiterInputs, boosts: BoostState, now: datetime) -> str | None:
     """Why this step is not one the cut-off may touch, or ``None``."""
+    if reads_cooling(inp):  # the switch is the user's in cooling (``supply_write``)
+        return "cooling"
     if inp.mode not in (MODE_AUTO, MODE_ECONOMY):
         return "mode"
     if inp.plan_stale or not inp.action or not inp.action.get("heat_pump_on"):

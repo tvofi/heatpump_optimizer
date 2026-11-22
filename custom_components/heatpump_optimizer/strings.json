@@ -1921,6 +1921,10 @@
       "title": "The space-heating set-point entity is not reporting",
       "description": "The entity you chose as the space-heating set-point ({entity}) is missing or unreadable, so nothing can be said about the pump's current target. The space-heating set-point is never recommended; this notice only reports that the entity cannot be read. Check that it still exists and is available, or clear the slot. This notice clears as soon as the entity reports a temperature."
     },
+    "pump_mode_cooling": {
+      "title": "The heat pump's mode reads cooling while the plan asks for heat",
+      "description": "The heat pump's operating mode reads “{mode}”, and the plan or a boost asks the pump for heat. Cooling is left to you: while the mode reads cooling, the optimizer does not switch the pump on or off and does not change its mode or set-points, so the pump makes no heat for the house. If it should heat, set a heating mode on the pump or in its app; a power cut, a reconnect or a fault reset can leave the pump in cooling. This notice clears as soon as the mode no longer reads cooling."
+    },
     "pump_write_ignored": {
       "title": "The heat pump does not hold a setting the optimizer wrote",
       "description": "The optimizer wrote a value to the heat pump and wrote it again, and the pump still reads something else: {detail}. While Optimizer active is on, the optimizer is the pump's only writer: it sends the value again every five minutes, and this notice clears as soon as the pump holds it. To change the pump by hand, turn Optimizer active off first. If nobody changed it, check that the pump's entity accepts the value (its range, the cloud connection, the local key, write permissions)."

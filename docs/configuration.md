@@ -921,6 +921,15 @@ writes, at every 15-minute plan step:
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or
   when *Control* is left. An unavailable mode entity is no reading at all.
+- **A pump in cooling is left alone.** While the mode reads *Cooling* or
+  *Cooling + DHW*, nothing is written: not the mode, not the set-points, not
+  the silent switch, and not the heat pump power switch, which is switched
+  neither on nor off, by the plan, a boost or the early cut-off. Cooling is
+  your season, so the optimizer never writes a heating mode back over it.
+  When the plan or a boost asks for heat while the mode reads cooling, a
+  warning repair notice is raised once, and it clears when the mode leaves
+  cooling. The power switch is left alone with *Pump duty control* on Observe
+  too.
 - **A pump switched off is left alone.** While the heat pump power switch
   reads off, nothing is compared or written: switched off, a pump can report
   set-points of its own (a Tuya pump reads 25 °C). Once it is on, a reset that

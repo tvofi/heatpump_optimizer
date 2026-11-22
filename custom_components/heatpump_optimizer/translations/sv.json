@@ -1921,6 +1921,10 @@
       "title": "Börvärdesenheten för rumsuppvärmning rapporterar inte",
       "description": "Enheten du valt som börvärde för rumsuppvärmning ({entity}) saknas eller går inte att läsa, så inget kan sägas om pumpens aktuella mål. Ett rumsuppvärmningsbörvärde rekommenderas aldrig; det här meddelandet säger bara att enheten inte går att läsa. Kontrollera att den fortfarande finns och är tillgänglig, eller töm fältet. Meddelandet försvinner så snart enheten rapporterar en temperatur."
     },
+    "pump_mode_cooling": {
+      "title": "Värmepumpens läge visar kyla medan planen begär värme",
+      "description": "Värmepumpens driftläge visar ”{mode}”, och planen eller en boost begär värme av pumpen. Kyla lämnas åt dig: så länge läget visar kyla slår optimeraren varken på eller av pumpen och ändrar varken dess läge eller börvärden, så pumpen värmer inte huset. Om den ska värma, välj ett värmeläge på pumpen eller i dess app; ett strömavbrott, en återanslutning eller en felåterställning kan lämna pumpen i kylläge. Meddelandet försvinner så snart läget inte längre visar kyla."
+    },
     "pump_write_ignored": {
       "title": "Värmepumpen behåller inte en inställning som optimeraren skrev",
       "description": "Optimeraren skrev ett värde till värmepumpen och skrev det igen, men pumpen visar fortfarande något annat: {detail}. Så länge Optimerare aktiv är på är optimeraren den enda som skriver till pumpen: den skickar värdet igen var femte minut, och meddelandet försvinner så snart pumpen behåller det. Stäng av Optimerare aktiv först om du vill ändra pumpen för hand. Om ingen ändrade det, kontrollera att pumpens entitet tar emot värdet (dess intervall, molnanslutningen, den lokala nyckeln, skrivbehörigheten)."
