@@ -143,7 +143,7 @@ def _note_run(held: ArbiterState, inp: ArbiterInputs, now: datetime | None) -> N
 
 def freeze_reason(coord: Any, now: datetime | None = None) -> str | None:
     """:data:`FREEZE_FROST` while a learner's interval may hold a held run, else ``None``."""
-    return _freeze(state_for(coord), coord.arbiter_inputs, now)
+    return _freeze(state_for(coord), lambda: coord.arbiter_inputs(), now)
 
 
 def _freeze(held: ArbiterState, inputs: Callable[[], ArbiterInputs], now: datetime | None) -> str | None:

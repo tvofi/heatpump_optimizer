@@ -4913,6 +4913,9 @@ _EC_DISPOSITIONS = {
         ("async_update_thermal_params", "CONF_DHW_COOLING_RATE"),
         ("_thermal_param_changes", "CONF_DHW_WINDOWS"))
 }
+_EC_DISPOSITIONS[("frost_hold.py", "reading", "CONF_OUTDOOR_TEMP_ENTITY")] = (
+    "the cycle's InputHealth readings, keyed by the slot's name; the slot itself is "
+    "read through EntryConfig")
 #: Modules whose readers still take the merged mapping, and why.
 _EC_RESIDUAL = {
     "away.py": "config_from_mapping builds AwayConfig, the away subsystem's own parsed "
@@ -4957,7 +4960,7 @@ _EC_NOT_ENTRY = {
 _EC_MIGRATED = {
     "coordinator.py", "__init__.py", "binary_sensor.py", "optimizer.py", "climate.py",
     "disinfection.py", "legionella.py", "pump_arbiter.py", "pump_signals.py", "sensor.py",
-    "setpoint_check.py", "silent_mode.py", "early_cutoff.py",
+    "setpoint_check.py", "silent_mode.py", "early_cutoff.py", "frost_hold.py",
 }
 
 
