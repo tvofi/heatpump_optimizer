@@ -9775,14 +9775,11 @@ const EXTERNAL_HEAT_SUFFIX = "_external_heat_source";
  * `statEntity` scopes the headline sensors; a scan by suffix alone could
  * read another entry's sensor. */
 function planBinaryTwin(plan, suffix) {
-  for (const kind of ["space", "dhw"]) {
-    const planId = plan.resolveEntity(kind);
-    if (!planId) continue;
-    for (const sfx of PLAN_ID_DERIVE[kind]) {
-      if (!planId.endsWith(sfx)) continue;
-      const st = plan.stateOf(`binary_sensor.${planId.slice(planId.indexOf(".") + 1, -sfx.length)}${suffix}`);
-      if (st) return st;
-    }
+  for (const [kind, planSuffixes] of Object.entries(PLAN_ID_DERIVE)) {
+    const planId = plan.resolveEntity(kind) || "";
+    const sfx = planSuffixes.find((s) => planId.endsWith(s));
+    const st = sfx && plan.stateOf(`binary_sensor.${planId.slice(planId.indexOf(".") + 1, -sfx.length)}${suffix}`);
+    if (st) return st;
   }
   return null;
 }
