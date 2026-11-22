@@ -111,7 +111,10 @@ def main():
     md.append(f"Null control (`fullgate.py null`, comment-only marker on tariff.py): gate_rc={null.get('gate_rc')}, "
               f"failed scripts {null.get('failed_scripts')}, fail lines {null.get('fail_lines')}, summary {null.get('summary')}, "
               f"wall {null.get('wall_s')} s, load1 {null.get('load1_start')}..{null.get('load1_end')} (provisional). "
-              "A mutant is KILLED only by a script red beyond the null, or failing more checks than in the null.\n")
+              "A mutant is KILLED only by a script red beyond the null, or failing more checks than in the null. "
+              f"Every red check of the null is an environment artefact, no production file involved (`{b.REL_W}/gates/null-note.txt`): "
+              "closure.py selftest's two merge-tool pins, entities.py's scoped-gate pin, harness_headers.py's round-4 "
+              "D6/claims.py re-run on the finder-wall-stripped tree; the same three scripts box D3-rem's null recorded red.\n")
     md.append("Procedure: `gate_wave.sh run` drove `fullgate.py run --src complete --key <key>` (GATE_SCOPE=full "
               "GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh) one key at a time, alone on the box, 4 h cap. "
               "Every wall, CPU and load number is provisional (nproc 4, Intel Xeon @ 2.10GHz; the judge re-takes it); "
