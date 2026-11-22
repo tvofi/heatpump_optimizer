@@ -1,0 +1,30 @@
+diff --git a/tests/features.py b/tests/features.py
+index 7af60a58b4..2da9bd3345 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -99648,6 +99648,25 @@ R.check(
+ )
+ 
+ 
++# REVIEWER PROBE (not part of the PR): a stale tank read at the first cycle.
++def _uc_stale(rise):
++    c = _t2_coord()
++    c._current_action = {"power": 3.0, "dhw_power": 0.0}
++    hass = FakeHass({})
++    reader = _fmReader(hass, {_LF_DHW: "sensor.tank"}, now=lambda: NOW)
++    for i, (temp, age) in enumerate(((50.0, 100000), (50.0 + rise, 1))):
++        at = NOW + _lf_td(minutes=30 * i)
++        hass.states._states["sensor.tank"] = FakeState(str(temp), last_updated=minutes_ago(age, NOW), unit="\u00b0C")
++        _lf_cm._observe_heat_energy(c, reader, at)
++    return _uc_he.meter_of(c).tank_c, c._interval_space_power()
++
++
++_uc_st = _uc_stale(_UC_RISE)
++print("PROBE stale-first-read", _uc_st)
++R.check("REVIEWER PROBE: a stale first tank read is no evidence: tank_c opens None and the interval keeps its space power",
++        _uc_st[0][0] is None and _uc_st[1] is not None, f"{_uc_st}")
++
++
+ 
+ def _ch_trace(heated_k):
+     """The production DHW learner over a 10-minute trace: a 4 K fall reaching sample 2, then
