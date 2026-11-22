@@ -1,32 +1,38 @@
-Fix review: merge 35bb34b2a3790539cd5555606a6c935d9abe4c17
+Fix review: merge dd2f26e749d54d7295dc2873a601487ce59367a4
 
-bus-nonce: 53e5d81b105582c3f32e0a41fd58b483
+bus-nonce: 28b90c3e2bc79cb0cee4538a26406e87
 pending-ci: governance / instrument-self-tests
 
-## CI
-CI is unreadable at this head: `merge_train.py classify` exited 2. The head's `governance / instrument-self-tests` job 136929429316 was cancelled by its 30-minute pull-request timeout. It was in step 125 of 139 (the ci_predict self-test), and steps 1-124 had passed. The diff changes `tools/ci/selftest_closures.json`, a gate file, so `selftest_scope select` puts the PR in MODE: FULL with all 127 gated steps, which governance.yml's own comment puts at the margin of 30 minutes. The job needs a re-run. This verdict is pending that context going green at this head: the relay must not post it over a red, or while the context stays cancelled. No owed red concluded failure. ev/ci-state.txt.
 ## Scope
-Round 1, full review (first round, no prior reviewed head). Head 35bb34b2a3790539cd5555606a6c935d9abe4c17, merge base a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b, which is origin/main at review time. Role contract current: base equals origin/main, so the `dev/governance/roles/` three-dot diff is empty. The diff is data only: `tools/ci/selftest_closures.json` (+738/-3) and the delivery row `dev/programme/delivery/3832.md` (+1). No `custom_components/` line changes.
+Round 2 at this head, the delta 35bb34b2a3..dd2f26e749. The earlier verdict at 35bb34b2a3 does not carry: `review_carry.py` prints FRESH-REVIEW because the new commit is a `ci:` commit outside the merge-driver files. The delta changes `tools/ci/selftest_closures.json` only (+64/-0). The whole three-dot diff is data only: the table (+802/-3) and the delivery row (+1). No `custom_components/` line changes. The `dev/governance/roles/` three-dot diff against origin/main is empty, so the role contract is current.
 
 ## Evidence
-- RESULT byte-identity: the head's `tools/ci/selftest_closures.json` is byte-identical (`cmp`, sha256 0974553324366f6d...) to CI's `selftest-absorbed` artifact 14716467433 of main run 44922703115 at a8efe1d1c2. The zip digest matches the API's recorded digest. ev/merge-and-artifacts.txt.
-- RESULT failing and passing test, reviewer's own replay (ev/drift_rev.py, built by this reviewer, not the finder's): it calls `selftest_scope.drift` with the run's `selftest-closures` artifact 14715768946 as the measurement. Main's table gives 7 refusals (rc 1), the seven steps the body names (policy-lint-mutants, dependency-graph-census, prepr, roster-library, regret-oracle, self-tests-outside-seat, temp-or-machine-path). The head's table gives 0 (rc 0). ev/drift-replay.txt.
-- RESULT mutation (data-only diff, so mutants are planted on the table): three perturbations differ from the fixer's own and each fails with exactly one refusal. They are regret-oracle without `room_record.py`, prepr without `dev/audit/rounds/round11/D0/s3/race_out`, and temp-or-machine-path without the `killed_by/room_record.py/.gitattributes` probe. No survivor.
-- Class: the enumeration is `drift` itself over the whole measured run, across all 127 gated steps. It returns 0 at the head, so no gated step this run measured is left uncovered.
-- Figures re-derived at the head (ev/figures.txt):
+- RESULT byte-identity: the head's `tools/ci/selftest_closures.json` is byte-identical (`cmp`, sha256 8db94f8a3843...) to CI's `selftest-absorbed` artifact 14730141227 of main run 44957362163 at 4ebd430fbf. Both zip digests match the API digests. ev/merge-and-artifacts.txt.
+- RESULT failing and passing test, from this reviewer's own replay (ev/drift_rev.py, built by this reviewer, not the finder's). It calls `selftest_scope.drift` with that run's `selftest-closures` artifact 14729559307 as the measurement. Main's table gives 11 refusals (rc 1): the 7 the reviewed head covered, plus verdict-bus, review-packet, roster-sync-reconciler and ci-predictor, each missing `dev/programme/rosters/wave-r11-groups.json`, as the body says. The head's table gives 0 refusals (rc 0). ev/drift-replay.txt.
+- RESULT mutation (data-only diff, so the mutants are table perturbations): verdict-bus without wave-r11-groups.json, ci-predictor without wave-r11-groups.json, and regret-oracle without room_record.py. Each one fails with exactly that one refusal. No survivor.
+- Class: the enumeration is `drift` itself, run over all 127 gated steps of the measured run. It returns 0 at the head.
+- Figures re-derived at this head (ev/figures.txt):
   - `selftest_scope.py static` prints 127 gated step(s), 0 problem(s).
-  - numstat is 738/3 on the table. The 3 deleted lines are roster-library probes `dev/governance/dimensions/{D12,D3,D99}.md`, now covered by its new dirs entry; the replay confirms no refusal.
-  - Duplicate list items: 0. run_sha changed: none. No step added or removed. No other top-level key changed.
-  - "738 reads" equals the CI log's own `selftest_scope absorb: 738 read(s) added to 7 step(s)` for job 136902224642.
-  - Not re-run: the body's local absorb on python 3.14.7. Byte identity with CI's artifact makes it moot.
-- VERSION, manifest version, RELEASE_NOTES heading and both claim files are untouched by the three-dot diff.
-- Merge: `git merge-tree --write-tree origin/main <head>` exits 0 (tree 8f503338f9).
-- Head SHA in the body matches the reviewed head. Forward-carry: none named. The drift step is a committed CI check (`tools/ci/selftest_scope.py drift`). The fixer's `drift_harness.py` is seat scratch, disclosed as the builder's, and so is this reviewer's ev/drift_rev.py.
-- Not provable on the PR: the drift step is push-only, so this PR's own CI cannot show it green. The replay above is the evidence that the first main push after merge clears all 7 refusals.
+  - numstat is 802/3 on the table and 64/0 on the delta.
+  - Items of the 35bb34b2 table missing at the head: 0. The head table is a superset, as claimed.
+  - Duplicate items: 0. No step was added or removed. run_sha changes: none.
+  - The +64 falls in 7 steps: the 4 new ones (1 read each) and 60 more reads in prepr, dependency-graph-census and policy-lint-mutants. The body names only the 4 new steps; the artifact identity covers the rest.
+- VERSION, manifest version, the RELEASE_NOTES heading and both claim files are untouched.
+- Merge: `git merge-tree --write-tree origin/main(e4c929bd1c) <head>` exits 0 (tree 6051a60381). The main table, `selftest_scope.py` and governance.yml are unchanged between the base and origin/main.
+- Head SHA in the body matches the reviewed head.
+- Owed-reds and CI: ev/classify.log, with the result in the CI section below.
+
+## CI
+CI cannot be read at this head. `merge_train.py classify` exited 2 after 22 WAITs, 60 s apart: `REFUSE selftests: the head's governance / instrument-self-tests job 137029108564 concluded cancelled, which reads no step: re-run it`.
+- The job ran from 23:56:57Z to 00:27:12Z and hit its 30-minute pull-request cap in step 125, the ci_predict self-test. No step before it was red. This is the same step and cap as the reviewed head's job 136929429316 (second Finding).
+- The verdict is pending that context going green at this head after a re-run. The relay must not post it over a red, or while the context stays cancelled.
+- At the last read, `tests / fast (3.14)` and `tests / arch-instrument` were in progress, and `tests / coverage-ratchet` and `tests / graders-head-copy` were queued. The one `gate` failure (job 137029528697, 23:57Z) is the early gate that classify reads as `gate red: none`.
+- No owed red concluded failure. Evidence: ev/ci-state.txt and ev/classify.log.
 
 ## Findings
-- Follow-up: a pull request that changes only `tools/ci/selftest_closures.json` forces MODE: FULL, all 127 self-test steps, under `instrument-self-tests`' 30-minute pull-request timeout (governance.yml:310). This head's run was cancelled at 30m16s in step 125. Every absorb hotfix, and the automatic absorb job still to be built, lands on the same margin, so a timeout cancellation can hold a main-red repair indefinitely. Possible remedies: a longer pull-request timeout for a table-only diff, or a narrower selection for that diff. Carry: R11-PRE-SHARED-FILES
-- Follow-up: the root cause of this hotfix family is not settled here. The body counts this as at least the fourth instance (#3487, #3718, 912b87c035, this PR). The job that runs `absorb` on a red drift step and opens the PR is unbuilt, pending the owner's ruling on design decisions D1/D2, as bugclasses.json's countermeasure text records. Main reddens again on the next merge that adds a read. Carry: R11-PRE-SHARED-FILES
+- Follow-up: the table is already stale against current main. #3814 (e4c929bd1c, merged after run 44957362163) adds 4 directories that no step's `dirs` covers: `dev/audit/rounds/round11/D3/s1/state/results/{c3c6-redrive,posctl-D3-top6,posctl-D3-top6-local}` and `.../state/superseded/gates-aborted`. The dirs-walking steps (prepr, dependency-graph-census and the policy-lint-mutants probes) will most likely refuse again on main's first push after this merge. The body's "It goes green on the first main push after merge" is therefore not expected to hold. The steps named are inferred from the 11-refusal replay, not measured: that main run (CI 44964363447) was still queued at review. This is the hotfix family's open root cause: absorb is committed by hand and lags every merge that adds a read. Carry: dismissed: the automatic absorb job that settles it is unbuilt pending the owner's D1/D2 ruling (bugclasses.json countermeasure text, body item 132fe653), so no group can take it now
+- Follow-up: a pull request that changes only `tools/ci/selftest_closures.json` still forces MODE: FULL, all 127 self-test steps, under the 30-minute pull-request cap. This is the timeout margin the reviewed head hit. Carry: dismissed: already recorded in the instrument round-end triage (body item d45f668f), with no roster group to take it
 
 ## Notes
-- Note: harness: the finder's harness is the committed CI drift step (`selftest_scope.drift`). The fixer's `drift_harness.py` and this reviewer's `ev/drift_rev.py` are each disclosed as their builder's. The reviewer's replay reproduces main's 7 refusals and the head's 0.
+- Note: stale-body: the Red checks section says the drift step "goes green on the first main push after merge". It is expected to stay red because of #3814's 4 new directories (first Finding). The "7 steps, 738 reads" title is disclosed in the body as describing the reviewed head.
+- Note: harness: the finder's harness is the committed CI drift step (`selftest_scope.drift`). The fixer's `drift_harness.py` and this reviewer's `ev/drift_rev.py` are each disclosed as their builder's.

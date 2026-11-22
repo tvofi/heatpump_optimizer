@@ -1,25 +1,29 @@
-== main_table
-  UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round11/D0/.gitattributes', 'dev/audit/rounds/round11/D0/s1/.gitattributes', 'dev/audit/rounds/round11/D0/s1/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s1/out/.gitattributes', 'dev/audit/rounds/round11/D0/s2/.gitattributes', 'dev/audit/rounds/round11/D0/s2/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s2/logs/.gitattributes', 'dev/audit/rounds/round11/D0/s2/results/.gitattributes'] (+231 more)
-  UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+237 more)
+== table=main
+  UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/rounds/round11/D0/.gitattributes', 'dev/audit/rounds/round11/D0/s1/.gitattributes', 'dev/audit/rounds/round11/D0/s1/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s1/out/.gitattributes', 'dev/audit/rounds/round11/D0/s2/.gitattributes', 'dev/audit/rounds/round11/D0/s2/findings/.gitattributes', 'dev/audit/rounds/round11/D0/s2/logs/.gitattributes', 'dev/audit/rounds/round11/D0/s2/results/.gitattributes'] (+251 more)
+  UNDER-SCOPED step dependency-graph-census: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+257 more)
+  UNDER-SCOPED step verdict-bus: files misses ['dev/programme/rosters/wave-r11-groups.json']
   UNDER-SCOPED step temp-or-machine-path: probes misses ['tests/mutation_ledger/killed_by/room_history.py/.gitattributes', 'tests/mutation_ledger/killed_by/room_record.py/.gitattributes', 'tests/mutation_ledger/survivor_triage/room_history.py/.gitattributes']
   UNDER-SCOPED step regret-oracle: files misses ['custom_components/heatpump_optimizer/room_history.py', 'custom_components/heatpump_optimizer/room_record.py']
   UNDER-SCOPED step self-tests-outside-seat: dirs misses ['tests/mutation_ledger/killed_by/room_history.py', 'tests/mutation_ledger/killed_by/room_record.py', 'tests/mutation_ledger/survivor_triage/room_history.py']
+  UNDER-SCOPED step review-packet: files misses ['dev/programme/rosters/wave-r11-groups.json']
   UNDER-SCOPED step roster-library: dirs misses ['dev/governance/dimensions']
-  UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+237 more)
-mode=none refusals=7
+  UNDER-SCOPED step roster-sync-reconciler: files misses ['dev/programme/rosters/wave-r11-groups.json']
+  UNDER-SCOPED step ci-predictor: files misses ['dev/programme/rosters/wave-r11-groups.json']
+  UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round11/D0', 'dev/audit/rounds/round11/D0/s1', 'dev/audit/rounds/round11/D0/s1/findings', 'dev/audit/rounds/round11/D0/s1/out', 'dev/audit/rounds/round11/D0/s2', 'dev/audit/rounds/round11/D0/s2/findings', 'dev/audit/rounds/round11/D0/s2/logs', 'dev/audit/rounds/round11/D0/s2/results'] (+257 more)
+mode=none refusals=11
 rc=1
-== head_table
+== table=head
 mode=none refusals=0
 rc=0
-== head_table drop-file
+== head drop-verdict-bus
+  UNDER-SCOPED step verdict-bus: files misses ['dev/programme/rosters/wave-r11-groups.json']
+mode=drop-verdict-bus refusals=1
+rc=1
+== head drop-ci-predictor
+  UNDER-SCOPED step ci-predictor: files misses ['dev/programme/rosters/wave-r11-groups.json']
+mode=drop-ci-predictor refusals=1
+rc=1
+== head drop-regret-oracle
   UNDER-SCOPED step regret-oracle: files misses ['custom_components/heatpump_optimizer/room_record.py']
-mode=drop-file refusals=1
-rc=1
-== head_table drop-dir
-  UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round11/D0/s3/race_out']
-mode=drop-dir refusals=1
-rc=1
-== head_table drop-probe
-  UNDER-SCOPED step temp-or-machine-path: probes misses ['tests/mutation_ledger/killed_by/room_record.py/.gitattributes']
-mode=drop-probe refusals=1
+mode=drop-regret-oracle refusals=1
 rc=1

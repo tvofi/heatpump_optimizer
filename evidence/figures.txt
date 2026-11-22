@@ -1,15 +1,12 @@
-head=35bb34b2a3790539cd5555606a6c935d9abe4c17 base=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b
+== static
 selftest_scope static: 127 gated step(s), 0 problem(s)
-static_rc=0
+== numstat three-dot
 1	0	dev/programme/delivery/3832.md
-738	3	tools/ci/selftest_closures.json
--- deleted lines:
--    "dev/governance/dimensions/D12.md",
--    "dev/governance/dimensions/D3.md",
--    "dev/governance/dimensions/D99.md",
-duplicate list items: 0
-run_sha changed: []
-steps added/removed: set()
-other top keys differ: []
--- VERSION/manifest/notes/claims touched:
+802	3	tools/ci/selftest_closures.json
+== numstat delta 35bb34b2..head
+64	0	tools/ci/selftest_closures.json
+== VERSION/manifest/notes/claims touched:
 (none above = untouched)
+duplicates 0 items of 35bb34b2 table absent at head 0 added 64 in steps ['ci-predictor', 'dependency-graph-census', 'policy-lint-mutants', 'prepr', 'review-packet', 'roster-sync-reconciler', 'verdict-bus']
+step sets equal True top keys equal True
+run_sha changes []
