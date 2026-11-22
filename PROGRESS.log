@@ -7,3 +7,4 @@
 1795356158 DONE blocked head-moved 4c875cad -> c8287e36, pushed probe/rev-3844-697e209e (bba32a8d)
 1795360482 HB alive
 1795360566 CKPT verified 19 rows, merge-tree clean, classify GREEN snapshot 855a61363f89
+1795360612 DONE verdict merge 6a76c607 pushed to probe/rev-3844-0da85d48 (23b5e6b)
