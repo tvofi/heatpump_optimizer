@@ -1,0 +1,11 @@
+
+=== features block ===
+  ok   R10-SAV-COMFORT: the month row settles the plan's stored-heat change at the row's metered kWh price
+  ok   R10-SAV-COMFORT: the comfort shortfall is published beside the saving, not netted out of it
+  ok   R10-SAV-COMFORT: a store charged cheap at COP 4 and drawn dear at COP 2 settles at one COP and one price, so its timing saving stays
+  ok   R10-SAV-COMFORT null control: an interval without either reading settles nothing
+  ok   R11-SEAM-tests (carry 0, M9): a calibrated month scales the stored-heat line as it scales the thermostat
+  ok   R11-SEAM-tests (carry 0, M10): a calibrated month scales the comfort line as it scales the thermostat
+
+ALL 6 FEATURES BLOCK PASSED
+rc=0

@@ -1,0 +1,9 @@
+
+=== Stress and economics ===
+SELF-CHECK clean: failed channels=none ok
+SELF-CHECK solves2x: failed channels=['solves'] ok
+SELF-CHECK payload2x: failed channels=['payload_b'] ok
+SELF-CHECK retain: failed channels=['retained_b_per_cycle'] ok
+SELF-CHECK noyield: failed channels=['yields'] ok
+SELF-CHECK PASSED
+rc=0
