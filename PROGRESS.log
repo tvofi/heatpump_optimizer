@@ -16,3 +16,4 @@
 1795387452 HB alive
 1795387466 CKPT D3-s1 70 file(s)
 1795387595 CKPT D3-s1 72 file(s)
+1795387598 HB null gate done: gate_rc 1 failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']
