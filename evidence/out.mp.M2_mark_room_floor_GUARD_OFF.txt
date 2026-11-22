@@ -1,0 +1,95 @@
+
+=== Manual plan override ===
+
+-- Slot parsing and validation
+  ok   omitted channel stays None (fully automatic)
+  ok   explicit empty list stays [] (off for the whole period)
+  ok   slots are sorted by start time
+  ok   rejects end == start
+  ok   rejects end < start
+  ok   rejects overlapping slots
+  ok   rejects unparseable datetime
+  ok   rejects a non-object slot
+  ok   rejects expires_at in the past
+  ok   ManualPlanError is a ValueError
+
+-- Channel pin semantics
+  ok   omitted channel yields no pins
+  ok   supplied channel yields a pin array
+  ok   pins on inside the slot
+  ok   pins off outside the slot but before expiry
+  ok   free at and beyond expiry
+  ok   pinned_step_count counts the on steps
+  ok   empty list forces off up to expiry
+  ok   empty list still frees steps past expiry
+  ok   a slot starting mid-step pins the step it lands in ON
+  ok   and the partially covered trailing step stays ON too
+
+-- Serialisation round-trip
+  ok   space channel empty-list survives the round-trip
+  ok   dhw channel slots survive the round-trip
+  ok   expiry survives the round-trip
+  ok   from_dict rejects a missing expiry
+
+-- Pins change the solved schedule
+  ok   forcing space on adds a run the optimizer skipped
+  ok   a manual-on step is labelled manual_plan
+  ok   the override is flagged active
+  ok   forcing hot water on adds a DHW run
+  ok   a manual DHW step is labelled manual_plan
+  ok   the summer plan has several runs, so the last one is a real choice
+  ok   forcing hot water off removes a run when safe
+  ok   a safe forced-off step is not released
+
+-- A quiet Off window outranks a force-on pin (#1910)
+  ok   an Off mask shorter than the horizon is padded off-free to its length
+  ok   an Off mask is OR'd into the steps pins already forced off
+  ok   a force-on hot-water pin inside an Off window plans nothing in its steps
+
+-- An Off window plans the anti-legionella cycle outside itself (#1910)
+  ok   with no Off window the overdue cycle is at step 1 and the tank reaches 60 C
+Traceback (most recent call last):
+  File "/home/user/rev3838/tests/manual_plan.py", line 1715, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/user/rev3838/tests/manual_plan.py", line 1688, in main
+    return _run()
+  File "/home/user/rev3838/tests/manual_plan.py", line 1700, in _run
+    test_legionella_outside_off_window(R)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/home/user/rev3838/tests/manual_plan.py", line 531, in test_legionella_outside_off_window
+    covered = _solve(winter, off_steps=cover)
+  File "/home/user/rev3838/tests/manual_plan.py", line 174, in _solve
+    return opt_obj.optimize(inputs=solve_inputs(
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+        initial_state=state, prices=p, outdoor_temps=outdoor, wind_speeds=wind,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        precipitation=rain, solar_radiation=solar, start_time=START, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ))
+    ^^
+  File "/home/user/rev3838/custom_components/heatpump_optimizer/optimizer.py", line 4622, in optimize
+    result = _solve(self._warm_start_starts(n_steps))
+  File "/home/user/rev3838/custom_components/heatpump_optimizer/optimizer.py", line 4616, in _solve
+    return self._optimize_with_dhw(horizon, planner)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/user/rev3838/custom_components/heatpump_optimizer/optimizer.py", line 5996, in _optimize_with_dhw
+    result = self._build_result(
+        h,
+    ...<55 lines>...
+        },
+    )
+  File "/home/user/rev3838/custom_components/heatpump_optimizer/optimizer.py", line 4028, in _build_result
+    mark_room_floor(classify_space_steps(
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+        space_power,
+        ^^^^^^^^^^^^
+    ...<7 lines>...
+        caps=h.power_caps_extra,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ), room, h.temp_min_bounds, h.room_lifts),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/rev3838/custom_components/heatpump_optimizer/rooms.py", line 375, in mark_room_floor
+    and room_temps[min(i + 1, last)] > temp_min_bounds[i] - room_lifts[i] + 0.15 else reason
+                                                            ~~~~~~~~~~^^^
+TypeError: 'NoneType' object is not subscriptable

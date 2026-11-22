@@ -1,0 +1,44 @@
+
+=== features block ===
+
+-- #3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor
+  ok   room A three kelvin under its target lifts the floor: from the house's 0.1 K margin over the floor at step 0, rising 0.25 K an hour, to the 0.5 K day band, and to the 1.0 K cap under the night band from 22:00
+  ok   with the house at or above the lifted floor the lift is flat at the band: 0.5 K at every day step, the night band at a night step
+  ok   a 0.3 K confidence margin leaves the lift 0.2 K, so both margins end at the comfort target and never past it; the ramp's anchor is the house's margin over the floor with that margin on it (19.9 over 19.8: 0.1 K at step 0)
+  ok   a confidence margin wider than the day band takes the whole band: no lift at a day step (never a negative one), the rest of the night band at a night step
+  ok   no lift, and the base array object itself (None stays None), for a room at its target, a room switched off or cooling, a stale room, a sensor with no target, an empty list, the flag off, Economy, an open window, away, a manual space pin, the two-zone model, a holiday and an unknown house temperature; null control, room D in heat mode lifts and is named
+  ok   the gate names the first signal that fires and is None when none does
+  ok   a list under its quorum lifts nothing however short its one readable room, and a list of sensors has no target to lift by; null control, one readable room of two is a quorum
+  ok   a room no shorter of its target than the house is of its own lifts nothing; one 0.5 K shorter lifts 0.5 K; one five kelvin shorter lifts the 1.0 K cap
+  ok   a room less short of its target than the house is of its own holds a lift of zero, never a negative one; null control, a room 0.5 K shorter than the house holds 0.5 K
+  ok   a negative confidence margin is read as zero, as the solver reads it: the lifted margins equal those with no confidence margin at all, the night band's 1.0 K included
+  ok   a house under its floor starts the ramp at zero, never below: step 0 takes no lift and step 1 one step of the rate
+  ok   the ramp starts at the house's margin over step 0's own margin, not a later step's: 19.9 over a floor a 0.3 K margin raised at step 0 alone starts 0.1 K up
+  ok   the band is read at each step's hour and minute, target and floor both, as the solver's bounds are: a day ending 21:30 gives the 0.5 K day band through 21:15 and the night's 19.25 target over its 19.0 floor, 0.25 K, from 21:30
+  ok   a first solve holds what the rooms ask, 0.875 K, not a lift it never had; a room asking the deadband exactly, 0.2 K, moves the lift from zero; and a lift record with no lift starts its ramp nowhere
+  ok   a held 0.5 K lift stays, array and all, while the rooms ask 0.125 K more, moves to 0.75 K when they ask 0.25 K more, drops to zero at once under a gate, and from zero ignores a 0.125 K ask
+  ok   a holiday date later in the horizon takes no lift at its own steps and leaves today's; null control, the same horizon with no holiday lifts every step
+  ok   a what-if's margins equal the baseline's after the readings change, and its clip is its own configuration's (a 19.75 target leaves a 0.25 K band over the same 0.1 K anchor); an owner never solved hands back the base; null control, a scheduled solve on the new readings lifts nothing
+  ok   the rooms block names the lift's size to a hundredth, its room (none while nothing is lifted) and the gate that zeroed it; None before a solve; and no rooms block at all with no list
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   the scheduled solve is given the lift: held at the 1.0 K cap for room A, starting from the house's own margin over the 19.0 floor and never above 1.0
+  ok   with the flag off, or never stored, a room list changes nothing: the margins stay None and the plan is the no-list plan step for step; null control, the lifted plan differs
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+  ok   the coordinator's signals each gate the lift, margins None: Economy, a tripped window detector with the relax option off and on, away, away recovering, a manual space pin, the two-zone model
+  ok   those two away solves were away, the second one recovering, and the Economy one was not
+  ok   the coordinator publishes the lift its solve was given in the payload's rooms block
+  ok   R11-OUTSIDE-ROOMS-3B: the scheduled build hands the solve its room lifts, 1.0 K at the cap and never above the margins; null control, the flag off or never stored hands None
+  ok   R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a 19.5 day target clips them to its 0.5 K band; null control, the flag off hands None
+  ok   the what-if's build takes the lift the baseline was solved with, the same after the rooms recover, and clips it to its own configuration: a what-if at a 19.5 day target has a 0.5 K band; null control, a coordinator with the flag off gives its what-if None
+
+ALL 26 FEATURES BLOCK PASSED

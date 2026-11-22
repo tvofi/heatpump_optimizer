@@ -1,0 +1,10 @@
+unmutated P2 rc=0 ALL 26 FEATURES BLOCK PASSED
+unmutated 3B rc=0 ALL 8 FEATURES BLOCK PASSED
+unmutated manual_plan rc=0 ALL 132 manual plan checks PASSED
+M1_raised_floor_CLAMP_DROP P2 rc=0 ALL 26 FEATURES BLOCK PASSED
+M1_raised_floor_CLAMP_DROP 3B rc=1 1 of 8 FEATURES BLOCK FAILED
+/tmp/claude-0/-home-user-heatpump-optimizer/1c232ac9-10e5-5e41-97d8-cff6ce828f4a/scratchpad/ev/out.3B.M1_raised_floor_CLAMP_DROP:  FAIL R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor witho
+M2_mark_room_floor_GUARD_OFF manual_plan rc=1 TypeError: 'NoneType' object is not subscriptable
+M2_mark_room_floor_GUARD_OFF P2 rc=0 ALL 26 FEATURES BLOCK PASSED
+M2_mark_room_floor_GUARD_OFF 3B rc=1 TypeError: 'NoneType' object is not subscriptable
+DONE

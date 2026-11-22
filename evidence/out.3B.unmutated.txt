@@ -1,0 +1,14 @@
+
+=== features block ===
+
+-- #3616 R11-OUTSIDE-ROOMS-3B: the room lift on the solve's record, the why-now row and the narrative
+  ok   R11-OUTSIDE-ROOMS-3B: a heating step within 0.15 K of the lifted floor but above the floor less the lift is room_floor (19.95 and 20.0 against 20.15 and 19.65); one within 0.15 K of both stays comfort_floor (19.6), one above both keeps today's label; null control, no lift labels steps 0-2 comfort_floor
+  ok   R11-OUTSIDE-ROOMS-3B: the last step is judged on the trajectory's last temperature and a step exactly at the floor less the lift plus 0.15 K is not the lift's; null control, step 1 (19.95) is room_floor
+  ok   R11-OUTSIDE-ROOMS-3B: the narrative groups room_floor apart and its kWh plus comfort_floor's equals the unsplit run's comfort_floor (1.5 kWh = 0.5 + 1.0), one sentence per language naming the room lift; null control, the unsplit run has no room_floor group
+  ok   R11-OUTSIDE-ROOMS-3B: with a lift the drivers carry a room_lift row after comfort_floor, its push the lift over the half band (0.5 / 1.5 on steps 1-3), and comfort plus room_lift equals today's comfort push where nothing clips; null control, step 0 (no lift) has a zero room_lift push and today's comfort push
+  ok   R11-OUTSIDE-ROOMS-3B: a 3 K lift under a 0.5 K half band reads a room_lift push of 1 (clipped), the comfort push against the unlifted floor 1 (clipped); null control, the lift is 6 half bands unclipped
+  ok   R11-OUTSIDE-ROOMS-3B null control: room_lifts None gives the five pre-3B codes and the room_lift row is absent; a zero lift array gives the same five weights byte-equal and a 0.0 room_lift; floor_limits with a zero or absent held lift, or a 0.5 K lift the band clips to zero at every step, hands back the base and no room lifts
+  ok   R11-OUTSIDE-ROOMS-3B: floor_limits' margins are the P2 solve's array and its room lifts the margins less the base, and a what-if's room lifts equal the baseline's after the readings change; null control, the lift is 0.2 K (the 0.5 K day band less the 0.3 K base) once the ramp from 0 has caught up
+  ok   R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor without the lift (0.5 on the open band), 0 where the mold floor (22.0) or the ceiling clip (19 + 4.1 and 19 + 3.6 both past 22.5) covers the lift, and None without the input; the held floor is clipped to the ceiling less 0.5 (22.5) and raised to the mold floor, and with no adjustment at all is the configured band unclipped (22.8 under 23.0); null control, the held floor is the same array with and without room_lifts, and a zero margin clips the 22.8 floor to 22.5
+
+ALL 8 FEATURES BLOCK PASSED

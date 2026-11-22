@@ -36,3 +36,4 @@ def _rl_solve(readings=_RL_ROOMS, house=19.6, base=None, cfg=_rl_cfg, owner=None
         cfg, house, start))
     return _rm.floor_limits(held, base, cfg, start, n)["min_temp_margins"], owner
 _rl_base = np.full(_RL_N, 0.3)
+from heatpump_optimizer import rooms as _rh_rooms  # noqa: E402

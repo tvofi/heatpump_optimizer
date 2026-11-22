@@ -1,0 +1,19 @@
+
+=== features block ===
+
+-- #3616 R11-OUTSIDE-ROOMS-3B: the room lift on the solve's record, the why-now row and the narrative
+Traceback (most recent call last):
+  File "/home/user/rev3838/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/home/user/rev3838/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/home/user/rev3838/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 22, in <module>
+  File "tests/features.py[block]", line 17, in _r3_classify
+  File "/home/user/rev3838/custom_components/heatpump_optimizer/rooms.py", line 375, in mark_room_floor
+    and room_temps[min(i + 1, last)] > temp_min_bounds[i] - room_lifts[i] + 0.15 else reason
+                                                            ~~~~~~~~~~^^^
+TypeError: 'NoneType' object is not subscriptable
