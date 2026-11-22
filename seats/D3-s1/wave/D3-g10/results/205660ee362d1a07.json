@@ -1,0 +1,117 @@
+{
+ "key": "205660ee362d1a07",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:7861 GUARD_OFF",
+ "patch": "if ctx._thermal_params.two_tank_modelled: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._thermal_view",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._thermal_view@7861-7861",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2879.5,
+  "load1_start": 0.87,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 4821.5,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/gates/205660ee362d1a07.json",
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 205660ee362d1a07",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_205660ee362d1a07.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_205660ee362d1a07.py",
+  "baseline": "2 keys (wood 55.0)",
+  "mutant": "0 keys (wood None)",
+  "inputs_tried": [
+   "two_tank True, wood 55.0",
+   "two_tank False (null)"
+  ],
+  "result_lines": [
+   "RESULT two_tank_baseline=2 keys wood=55.0",
+   "RESULT two_tank_mutant=0 keys wood=None",
+   "RESULT null_moved=0 count (two_tank_modelled False)",
+   "RESULT probe_cpu_s=0.01 s provisional",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.05",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": {
+  "scripts_executing_line": [
+   "tests/config_flow_steps.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/finite_boundary.py",
+   "tests/manual_plan.py"
+  ],
+  "source": "dev/audit/rounds/round11/D3/s1/state/reach.tsv (traced baseline, exec= column)",
+  "assertion_lacking": "tests/features.py drives two-tank topologies (_w2t_* ~15885-15930, the two-tank capture ~6402) and features.py:72533 reads coord._thermal_view() keys, but no check reads two_tank_modelled / wood_tank_temperature from the thermal view of a two_tank_modelled install; entities.py configures no two-tank topology"
+ },
+ "carried_m4": "see m4_source; re-answered here with the executed probe",
+ "finding": {
+  "title": "No check reads the thermal view's two-tank keys; dropping the two-tank block from the payload is unseen",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "claim": "Mutant 205660ee362d1a07 at coordinator.py:7861 (if ctx._thermal_params.two_tank_modelled: -> if False:) is red only as the null is (RED-AS-NULL) the full GATE_SCOPE=full GOLDEN_MODE=drift gate, yet the probe's number moves: baseline 2 keys (wood 55.0), mutant 0 keys (wood None).",
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py drives two-tank topologies (_w2t_* ~15885-15930, the two-tank capture ~6402) and features.py:72533 reads coord._thermal_view() keys, but no check reads two_tank_modelled / wood_tank_temperature from the thermal view of a two_tank_modelled install; entities.py configures no two-tank topology. Executing scripts (traced baseline): tests/config_flow_steps.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/manual_plan.py.",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "two-tank keys in the thermal view (two_tank_modelled, wood_tank_temperature) on a two-tank install, wood 55.0 C",
+  "phenomenon_property": "A two_tank_modelled install's thermal view publishes two_tank_modelled and wood_tank_temperature",
+  "seam_rule": "for f in dev/audit/rounds/round11/D3/s1/wave/*/results/*.json; do python3 -c \"import json,sys;d=json.load(open(sys.argv[1]));print(d['key'],d['site']) if d['class']=='candidate' else None\" $f; done",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._thermal_view",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_205660ee362d1a07.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_205660ee362d1a07.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_205660ee362d1a07.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_205660ee362d1a07.py",
+   "value": 0,
+   "unit": "keys",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g10: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the probe ran in a separate baseline worktree while this box's gates ran; gate walls provisional"
+  },
+  "perturbation": {
+   "change": "mutant 205660ee362d1a07 applied in memory by the probe; full gate: fullgate.py run --src complete --key 205660ee362d1a07",
+   "expected_direction": "down",
+   "observed_value": 0
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_205660ee362d1a07.py",
+   "value": "0 count (two_tank_modelled False)",
+   "note": "two_tank_modelled False: neither arm publishes the keys (null_moved=0)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_205660ee362d1a07.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 205660ee362d1a07"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/features.py at the input above that pins the baseline value (2 keys (wood 55.0))",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}
