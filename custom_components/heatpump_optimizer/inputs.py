@@ -571,10 +571,17 @@ def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, fl
     state = hass.states.get(entity_id) if entity_id else None
     if not entity_id or state is None:
         return None, None
+    unit = setpoint_unit(hass, entity_id, state)
+    low, high = _own_range(entity_id, state)
+    return temperature_c(low, unit), temperature_c(high, unit)
+
+
+def _own_range(entity_id: str, state: Any) -> tuple[float | None, float | None]:
+    """The (min, max) ``state`` states, in the entity's own unit; ``None`` for an
+    end it does not state as a number."""
     attrs = getattr(state, "attributes", None) or {}
     low_key, high_key = _RANGE_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_RANGE_KEYS)
-    unit = setpoint_unit(hass, entity_id, state)
-    return temperature_c(attrs.get(low_key), unit), temperature_c(attrs.get(high_key), unit)
+    return finite_float(attrs.get(low_key)), finite_float(attrs.get(high_key))
 
 
 #: The step a set-point entity that states none accepts, in its own unit:
@@ -718,14 +725,24 @@ async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     The one service call every set-point write goes through, so the value
     sent is on the entity's step (``setpoint_step``, whole degrees where it
     states none) -- a whole one as an integer, which a pump that takes no
-    decimals accepts. ``False``, and nothing called, for a domain with no
-    set-point service.
+    decimals accepts -- and inside the range the entity states when written
+    (:func:`_own_range`), its maximum rounded down onto the step and its
+    minimum up, whichever caller asked: a caller's own bound
+    (``SetpointGrid.bounded``) is the meaning of its value, this one is what
+    the entity accepts. Crossed ends send the maximum. ``False``, and nothing
+    called, for a domain with no set-point service.
     """
     domain = entity_id.split(".", 1)[0]
     service = SETPOINT_SERVICES.get(domain)
     if service is None:
         return False
-    sent = _on_step(float(value), setpoint_step(hass, entity_id), "nearest")
+    step = setpoint_step(hass, entity_id)
+    sent = _on_step(float(value), step, "nearest")
+    low, high = _own_range(entity_id, hass.states.get(entity_id))
+    if low is not None:
+        sent = max(sent, _on_step(low, step, "up"))
+    if high is not None:
+        sent = min(sent, _on_step(high, step, "down"))
     await hass.services.async_call(
         domain, service[0],
         {"entity_id": entity_id, service[1]: int(sent) if sent.is_integer() else sent},
