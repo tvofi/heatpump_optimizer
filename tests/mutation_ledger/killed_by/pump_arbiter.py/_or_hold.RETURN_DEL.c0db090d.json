@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_or_hold RETURN_DEL c0db090d",
-  "killed_by": "tests/features.py",
-  "old": "    return _as_target(config, FLOW_HOLD_C) if floor_c is None else floor_c",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling. RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4979 to rc=1 with an uncaught TypeError (failing_count reads the traceback as one): the floor becomes None and `_flow_target`'s `min(floor_c, heat_c)` raises in the first pump-duty pass (`_pa_run`)."
-}
