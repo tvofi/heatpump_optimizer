@@ -3719,7 +3719,7 @@
    ],
    "resume": {
     "stage": "carries-open",
-    "branch": "fix/r11-carry-drawmap",
+    "branch": "handoff/r11-carry-drawmap",
     "commit": "35402f78175090abecbac8859c50d4d816ccd95b",
     "last_step": null,
     "next_step": "dispatch the fixer; re-measure every carry first",
