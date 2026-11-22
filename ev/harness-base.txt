@@ -1,0 +1,18 @@
+== base-tree f93aa6456ba4858463cadb6255e54db266475069
+INTRODUCED Refuse a corpus or record-mode check that survives its own deletion
+INTRODUCED Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+INTRODUCED Show the pre-PR self-check refusing its own fixtures
+INTRODUCED Show the record-row generator refusing its own fixtures
+INTRODUCED Show the review packet refusing its own fixtures
+INTRODUCED Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+introduced: 6 at f93aa6456ba4858463cadb6255e54db266475069 against e4c929bd1c96e8a23636d1f1f086c38de1852853: head job 137093237320 failure base job 137032369357 failure
+rc=0
+== base-tree 45a7397ecf0d2a5a4ee8e599758a9046eddfa183
+INTRODUCED Refuse a corpus or record-mode check that survives its own deletion
+INTRODUCED Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+INTRODUCED Show the pre-PR self-check refusing its own fixtures
+INTRODUCED Show the record-row generator refusing its own fixtures
+INTRODUCED Show the review packet refusing its own fixtures
+INTRODUCED Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+introduced: 6 at 45a7397ecf0d2a5a4ee8e599758a9046eddfa183 against e4c929bd1c96e8a23636d1f1f086c38de1852853: head job 137112547907 failure base job 137032369357 failure
+rc=0
