@@ -118,9 +118,10 @@ def main():
               "counts are final.\n")
     md.append("Probes ran from a separate baseline worktree (never the gate's tree), with the mutant applied in memory "
               "(the method recompiled from its own source with the one line replaced, attached with mock.patch.object). "
-              "They were staged outside the gate's tree until the last gate finished, because tests/harness_headers.py "
-              "rglobs every script under dev/audit/rounds (tracked or not) and the null and every key must see the same "
-              "tree; they sit at their reported paths now.\n")
+              "tests/harness_headers.py rglobs every script under dev/audit/rounds (tracked or not) and requires each inlined "
+              "repo_root to equal tools/audit/repo_root.py's; _lg_common.py carries the canonical copy, and inline_scan with "
+              "the probes present returns 0 with no depth seams. The probes entered the gate's tree during the null "
+              "control (orchestrator NOTE 2, save every probe in the wave dir); every key gate ran with them present.\n")
     md.append("## Tally\n")
     md.append(f"- gated: {len(recs)} of {len(keys)}; " + ", ".join(f"{k} {v}" for k, v in sorted(tally.items())))
     md.append(f"- KILLED by script: {killed_by if killed_by else 'none'}")
