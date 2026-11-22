@@ -98558,8 +98558,8 @@ _RH_T0 = _rh_dt(2026, 1, 5, tzinfo=_rh_tz.utc)
 _RH_M0 = int(_RH_T0.timestamp()) // 60
 
 
-def _rh_house(space_kw=2.0, kw=2.0, outdoor=-2.0):
-    return _rh.House(outdoor, 30.0, kw, space_kw, 0.0)
+def _rh_house(kw=2.0, outdoor=-2.0):
+    return _rh.House(outdoor, 30.0, kw, True)
 
 
 def _rh_feed(minutes, readings_at, history=None):
@@ -98705,7 +98705,7 @@ def _rh_simulate(days, interval, schedule, rooms=("climate.a", "climate.b"), see
         readings = [_RhReading(r, temps[r], 21.0, calls[r], "heat") for r in rooms]
         readings += [_RhReading(r, temps[r]) for r in sensor]
         fraction = sum(calls.values()) / len(calls)
-        house = _rh.House(outdoor, 30.0, 1.0 + 3.0 * fraction + rng.normal(0, 0.1), 2.0 * any(calls.values()), 0.0)
+        house = _rh.House(outdoor, 30.0, 1.0 + 3.0 * fraction + rng.normal(0, 0.1), any(calls.values()))
         period, _ = _rh.note(history, period, _RH_M0 + k * interval, readings, house)
         for r in temps:
             temps[r] += interval / 60 * (0.05 * (outdoor - temps[r]) + gain * calls.get(r, False)) + rng.normal(0, 0.02)
@@ -98785,14 +98785,14 @@ R.check(
     f"{_rh.identifiability_report(_rh_iqr)['house']}",
 )
 # The boundaries each threshold and range is read at (the mutation proof's survivors).
-_rh_cyc = [_rh.House(-2.0, 30.0, 2.0, 2.0, 0.0), _rh.House(-2.0, None, 2.0, 0.5, 0.0), _rh.House(-2.0, None, 2.0, 0.0, 0.0)]
+_rh_cyc = [_rh.House(-2.0, 30.0, 2.0, True), _rh.House(-2.0, None, 2.0, True), _rh.House(-2.0, None, 2.0, False)]
 _rh_bp = None
 _rh_bh = _rh.History()
 for _rh_k, _rh_hs in enumerate(_rh_cyc + [_rh_cyc[0]]):
     _rh_bp, _ = _rh.note(_rh_bh, _rh_bp, _RH_M0 + 10 * _rh_k, [_RhReading("sensor.a", 20.0 + _rh_k)], _rh_hs)
 R.check(
     "a sensor room keeps the period's first reading; a missing floor return keeps the last one read; "
-    "any space power counts the cycle as space heating and none does not",
+    "a cycle that heated the house alone counts as space heating and any other does not",
     _rh_bh.rooms["sensor.a"]["t"] == [2000] and _rh_bh.house["return"] == [3000] and _rh_bh.house["space"] == [6667],
     f"{_rh_bh.rooms} {_rh_bh.house}",
 )
@@ -98887,7 +98887,7 @@ R.check(
     f"{_rr.record_of(_rh_load_owner).history.times[:3]}",
 )
 _rh_bh2 = _rh.History()
-_rh_bp2 = _rh.note(_rh_bh2, _rh.note(_rh_bh2, None, _RH_M0, [_RhReading("sensor.a", 20.0)], _rh.House(None, None, None, 0.0, 0.0))[0],
+_rh_bp2 = _rh.note(_rh_bh2, _rh.note(_rh_bh2, None, _RH_M0, [_RhReading("sensor.a", 20.0)], _rh.House(None, None, None, False))[0],
                    _RH_M0 + 30, [_RhReading("sensor.a", 20.0)], _rh_house())
 R.check(
     "a period with no house value measured stores nulls: no outdoor, no floor return, no power, no space heating",
@@ -99011,10 +99011,10 @@ R.check(
 _rh_mix = _rh.History()
 _rh_mix_p = None
 for _rh_k, (_rh_rd, _rh_hs) in enumerate([
-    (_RhReading("climate.a", 20.0, 21.0, True, "heat"), _rh.House(-3.0, 28.0, 1.0, 2.5, 0.0)),
-    (_RhReading("climate.a", 21.0, 21.5, True, "heat", "stale"), _rh.House(-3.0, 28.0, 2.0, 2.5, 1.5)),
-    (_RhReading("climate.a", 22.0, 22.0, None, "heat"), _rh.House(-3.0, 28.0, 3.0, 2.5, 0.0)),
-    (_RhReading("climate.a", 23.0, 22.0, False, "heat"), _rh.House(-3.0, 28.0, 3.0, 2.5, 0.0)),
+    (_RhReading("climate.a", 20.0, 21.0, True, "heat"), _rh.House(-3.0, 28.0, 1.0, True)),
+    (_RhReading("climate.a", 21.0, 21.5, True, "heat", "stale"), _rh.House(-3.0, 28.0, 2.0, False)),
+    (_RhReading("climate.a", 22.0, 22.0, None, "heat"), _rh.House(-3.0, 28.0, 3.0, True)),
+    (_RhReading("climate.a", 23.0, 22.0, False, "heat"), _rh.House(-3.0, 28.0, 3.0, True)),
 ]):
     _rh_mix_p, _ = _rh.note(_rh_mix, _rh_mix_p, _RH_M0 + 7 * _rh_k, [_rh_rd], _rh_hs)
 _rh_mix_p, _ = _rh.note(_rh_mix, _rh_mix_p, _RH_M0 + 30, [], _rh_house())
@@ -99126,17 +99126,19 @@ _rh_cc_rec = _rr.record_of(_rh_cc)
 R.check(
     "a production coordinator's cycle hands the room history this cycle's outdoor reading (not the context "
     "the cycle started with: the first cycle reads -3.0, not the 5.0 default), the floor return (28.0), "
-    "metered power and the plan's space and hot-water kW, and the closed row holds them: outdoor the "
-    "period's last -500, return 2800, power the period's mean 200 (not the last 300), space heating two "
-    "cycles of three (the hot-water one not); null control, each value distinct from the one it could be "
-    "swapped for",
+    "metered power and whether the interval it settles heated the house alone (the previous cycle's plan: "
+    "none before the first), and the closed row holds them: outdoor the period's last -500, return 2800, "
+    "power the period's mean 200 (not the last 300), space heating one cycle of three (the one settling the "
+    "space-only plan, not the one planning it); null control, each value distinct from the one it could be "
+    "swapped for, and each cycle's own plan reads the other way on the second and third cycles",
     len(_rh_cc_seen) == len(_RH_CYCLES)
-    and [(h.outdoor_c, h.floor_return_c, h.measured_kw, h.space_kw, h.dhw_kw) for h in _rh_cc_seen]
-    == [(-3.0 - m / 10, 28.0, kw, s, d) for m, kw, s, d in _RH_CYCLES]
+    and [(h.outdoor_c, h.floor_return_c, h.measured_kw, h.space_alone) for h in _rh_cc_seen]
+    == [(-3.0 - m / 10, 28.0, kw, k > 0 and _RH_CYCLES[k - 1][2] > 0.0 >= _RH_CYCLES[k - 1][3])
+        for k, (m, kw, _s, _d) in enumerate(_RH_CYCLES)]
     and _rh_cc_rec is not None and _rh_cc_rec.history.times == [_RH_M0]
-    and _rh_cc_rec.history.house == {"outdoor": [-500], "return": [2800], "power": [200], "space": [6667]}
+    and _rh_cc_rec.history.house == {"outdoor": [-500], "return": [2800], "power": [200], "space": [3333]}
     and _rh_cc_rec.history.rooms["climate.a"]["call"] == [10000],
-    f"seen={[(h.outdoor_c, h.floor_return_c, h.measured_kw, h.space_kw, h.dhw_kw) for h in _rh_cc_seen]} "
+    f"seen={[(h.outdoor_c, h.floor_return_c, h.measured_kw, h.space_alone) for h in _rh_cc_seen]} "
     f"house={None if _rh_cc_rec is None else _rh_cc_rec.history.house}",
 )
 
@@ -99658,6 +99660,98 @@ R.check(
     "its controls (review of 3d8679b765)",
     _uc_stale == ((None, 50.0 + _UC_RISE), 3.0),
     f"{_uc_stale}",
+)
+
+
+# The room history's space share (#3616 phase 3a) reads the class (review of
+# fab2d371ed): its house line fits measured power over the cycles that heated
+# the house alone. The meter answers which, on the settled interval's split.
+def _uc_alone(rise, split=(2.0, 0.0), duty=None):
+    m = _uc_he.HeatEnergyMeter()
+    m.tank_c = (50.0, 50.0 + rise)
+    if duty is not None:
+        t0 = datetime(2026, 1, 12, 2, 0, tzinfo=UTC)
+        m.dwell.observe(t0, duty, t0)
+        m.cycle = (t0, t0 + _lf_td(minutes=30))
+    return m.served_space_alone(split)
+
+
+_uc_al = {k: _uc_alone(*a) for k, a in {
+    "charge": (_UC_RISE,), "no_rise": (0.0,), "planned_share": (0.0, (2.0, 0.5)), "idle": (0.0, (0.0, 0.0)),
+    "no_split": (0.0, None), "observed_space": (_UC_RISE, (2.0, 0.0), _uc_he.SPACE),
+    "observed_dhw": (0.0, (2.0, 0.0), _uc_he.DHW)}.items()}
+R.check(
+    "a cycle heated the house alone only by its attribution: an unplanned charge did not, nor a "
+    "planned hot-water share, an idle plan, no split, or an observed hot-water dwell the plan "
+    "called space; null controls: no rise, and an observed space dwell whatever the tank did",
+    _uc_al == {"charge": False, "no_rise": True, "planned_share": False, "idle": False, "no_split": False,
+               "observed_space": True, "observed_dhw": False},
+    f"{_uc_al}",
+)
+
+
+def _uc_room_cycle(rise, settled, upcoming=(2.0, 0.0)):
+    """One real cycle; the room history's space-alone tally of the House it is handed."""
+    c = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+    houses, real = [], _lf_cm._observe_heat_energy
+
+    async def prices():
+        c._prices = [{"total": 1.0, "starts_at": "2026-03-28T00:00:00Z"}] * 24
+
+    async def plan():
+        boost_mod.adopt_plan(c, {"mode": "plan", "power": upcoming[0], "dhw_power": upcoming[1]})
+
+    async def note(coord, now, readings, house):
+        houses.append(house)
+
+    def observe(coord, reader, at):
+        real(coord, reader, at)
+        _uc_he.meter_of(coord).tank_c = (50.0, 50.0 + rise)
+
+    c._fetch_tibber_prices, c.async_run_optimization = prices, plan
+    c._pending_prediction = {"when": _lf_dt.now() - _lf_td(minutes=30), "split": settled}
+    with _uc_mock.patch.object(_lf_cm.room_record, "async_note_cycle", note), \
+            _uc_mock.patch.object(_lf_cm, "_observe_heat_energy", observe):
+        _lf_aio.run(c._async_update_data())
+    period = _rh.Period(0)
+    for house in houses:
+        _rh._accumulate(period, [], house)
+    return len(houses), period.space
+
+
+_uc_rc = {k: _uc_room_cycle(*a) for k, a in {
+    "charge": (_UC_RISE, (2.0, 0.0)), "no_rise": (0.0, (2.0, 0.0)),
+    "settled_dhw": (0.0, (0.0, 2.0)), "upcoming_dhw": (0.0, (2.0, 0.0), (0.0, 2.0))}.items()}
+R.check(
+    "the room history counts a cycle as space heating on the settled interval's own split through "
+    "the meter: an unplanned charge is not, a settled hot-water interval is not though the next plan "
+    "asks space; null controls: no rise counts, and a settled space interval counts though the next "
+    "plan asks hot water (review of fab2d371ed, class E3)",
+    _uc_rc == {"charge": (1, 0), "no_rise": (1, 1), "settled_dhw": (1, 0), "upcoming_dhw": (1, 1)},
+    f"{_uc_rc}",
+)
+
+
+# The house and lower-floor learners' own per-cycle asks carry the cycle's
+# evidence (review of fab2d371ed, mutants O and P): both arms close no interval,
+# so only that evidence records why the learners paused, the cause the card shows.
+def _uc_card(rise):
+    c = _two_zone_learner(lower_entity="sensor.lower")
+    c._current_action = {"power": 3.0, "dhw_power": 0.0}
+    interval = _uc_tank(c, rise)._close_fabric_interval()
+    _lf_aio.run(c._async_learn_lower_floor_loss(interval))
+    _lf_aio.run(c._async_learn_house_heat_loss(interval))
+    return interval, dict(c._learner_freezes)
+
+
+_uc_cards = (_uc_card(_UC_RISE), _uc_card(0.0))
+R.check(
+    "an unplanned charge pauses the house and lower-floor learners as frozen on it, the reason "
+    "each records; the same cycle with no rise records nothing (null control), and neither arm "
+    "closes an interval",
+    _uc_cards[0] == (None, {"lower": "unplanned_charge", "house": "unplanned_charge"})
+    and _uc_cards[1] == (None, {}),
+    f"{_uc_cards}",
 )
 
 
