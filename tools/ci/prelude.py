@@ -736,8 +736,9 @@ def self_test() -> int:
     d_out, d_why = outputs(dctx, None, g(live), selftests=lambda c: asked.append(c["base_sha"]) or "none",
                            dispatch_diff=doc_only)
     check("CI-2: a verified PR dispatch of a doc-only diff skips every leg, idles machinery, scopes self-tests",
-          (json.loads(d_out["legs"]), d_out["machinery"], d_out["selftests"], asked, d_why),
-          ({leg: "skip" for leg in _codeql_scope().LEGS}, "false", "none", ["B"], ""))
+          (json.loads(d_out["legs"]), d_out["machinery"], d_out["machinery_rowblind"], d_out["selftests"],
+           asked, d_why),
+          ({leg: "skip" for leg in _codeql_scope().LEGS}, "false", "false", "none", ["B"], ""))
     import tempfile
     sys.path.insert(0, str(HERE.parents[1] / "tests"))
     try:
@@ -769,7 +770,8 @@ def self_test() -> int:
                                                    {**env, "GITHUB_REF": "refs/heads/batch/t-1"}), g(live), doc_only)):
         o = outputs(c, None, gg, selftests=lambda c: "none", dispatch_diff=diff)[0]
         check(f"CI-2: {name} analyzes every leg and runs every lane (null control)",
-              (set(json.loads(o["legs"]).values()), o["machinery"], o["selftests"]), ({"analyze"}, "true", "all"))
+              (set(json.loads(o["legs"]).values()), o["machinery"], o["machinery_rowblind"], o["selftests"]),
+              ({"analyze"}, "true", "true", "all"))
 
     # A train proof (r10-proof-codeql): the evidence is each entry head's own
     # pull_request runs; a dispatch at that head carries none.
