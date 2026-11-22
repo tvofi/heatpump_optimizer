@@ -54,3 +54,4 @@
 1795356997 INBOX acked through 2
 1795357720 CKPT moved startable/charge block to dhw_charges.py; module_excess_loc 22091->21732; pins re-keyed; block_duty green; features block running snapshot bd8099226245
 1795358411 CKPT code at 8d63765ef5 (move + record); body drafted; entities running snapshot 34df6cdd124f
+1795359161 DONE handed off: code handoff/r11-outside-honest-dhw-runs 8d63765ef5, body handoff-body 305413f9b4; module_excess_loc 22091->21732 recorded; archscore NULL
