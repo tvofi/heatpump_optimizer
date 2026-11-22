@@ -32,6 +32,7 @@ from .dhw_draws import window_label as draw_window_label
 from .dhw_schedule import (
     FULL_DAY,
     Window,
+    cyclic_span,
     format_windows,
     hour_in_windows,
     hours_until_next_window,
@@ -63,7 +64,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def _dhw_windows_at(
     params: ThermalParameters,
-    step_weekdays: np.ndarray | None,
+    step_weekdays: np.ndarray | list[int] | None,
     index: int,
     windows: list[Window],
     holiday_flags: np.ndarray | None,
@@ -99,7 +100,7 @@ def _dhw_next_window_hours(
     if len(wraps):
         tomorrow = _dhw_windows_at(params, weekdays, int(wraps[0]) + 2, windows, holiday_flags)
     else:
-        nxt = None if weekdays is None else (weekdays[1:2] + 1) % 7
+        nxt = None if weekdays is None else [cyclic_span(int(d), int(d) + 1, 7)[-1] for d in weekdays[1:2]]
         tomorrow = _dhw_windows_at(params, nxt, 0, windows, None)
     return hours_until_next_window(float(hours_mod[0]), today, tomorrow)
 
@@ -1338,9 +1339,7 @@ class DhwPlanner:
             suppress_steps = int(np.sum(mask & (schedule > 1e-6)))
             schedule = np.where(mask, 0.0, schedule)
 
-        next_window = _dhw_next_window_hours(
-            hours_mod, step_weekdays, windows, params, holiday_flags
-        )
+        next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)
 
         # A manual plan overrides *timing* last, after the economics and the
         # external-heat suppression, because it expresses the user's explicit
