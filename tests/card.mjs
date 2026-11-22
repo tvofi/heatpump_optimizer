@@ -14248,9 +14248,9 @@ check("without an indoor reading the corner now label is absent",
 // (HISTORY_SPAN_MS), so its rows plateau and its covered chunks stay at the
 // 48 h span's 4-5. The control is a twin source whose prune is a no-op,
 // driven with the same calls. Everything the window can still show reads the
-// same from both, so the bound drops nothing a user sees -- the mode band and
-// the held samples at the window's left edge included (each series keeps its
-// last row before the cut).
+// same from both, so the bound drops nothing a user sees. That includes the
+// mode band and the held samples at the window's left edge: each series keeps
+// its last row before the cut.
 {
   const HistorySource = fn("HistorySource");
   const SPAN = fn("HISTORY_SPAN_MS");

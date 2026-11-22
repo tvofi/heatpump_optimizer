@@ -2374,7 +2374,7 @@ def _imports_of(name):
     return sibs, ext
 
 
-_loaded = ("const", "open_meteo")
+_loaded = ("const", "drift", "open_meteo")
 _loader_sibs = set().union(*(_imports_of(m)[0] for m in _loaded))
 _loader_ext = set().union(*(_imports_of(m)[1] for m in _loaded))
 R.check(

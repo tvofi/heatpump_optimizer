@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:pass_origin GUARD_OFF 50cd56b2",
+  "killed_by": "tests/features.py",
+  "old": "    if run is None or not run.running:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
