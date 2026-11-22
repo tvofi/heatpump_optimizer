@@ -1,0 +1,11 @@
+box D3-g13 full-gate null control (fullgate.py null, comment-only marker), 2026-11-22 21:39-22:28Z, nproc 4 Intel Xeon @ 2.30GHz,
+load1 0.5..0.92, wall 2955.8 s, child CPU 4833.3 s (provisional). gate_rc=1, 3 scripts red, all artefact checks; usable, not re-taken:
+- closure.py selftest, 2 of 118: "a refused merge surfaces merge()'s reason" / "and a merge that succeeds carries no merge reason"
+  [status='skip-not-under-scoped']: branch/merge-tool pins on a detached worktree; no production file involved.
+- entities.py, 1 of 2723: "and is accepted when it does [the scoped path records only what the diff can reach]" (gate-scoping
+  pin, a branch-environment artefact). The many other FAIL lines in its section are its own negative controls (counted ok).
+- harness_headers.py, 4 of 115: the inlined-walk check flags this box's own untracked probes (repo_root walk), and
+  dev/audit/rounds/round4/D6/claims.py's RESULT/header and committed-output checks (claims_true 122 vs 123: a harness of the
+  finder-wall-stripped tree). No production file involved.
+Identical in scripts and counts to box D3-rem's null (state/gates-prior/null-D3-rem-note.txt). fullgate.py reads KILLED only
+on a script failing more checks than this null.
