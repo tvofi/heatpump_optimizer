@@ -1,0 +1,32 @@
+2c2
+< index 33e5d42864..d87fb4b47f 100644
+---
+> index 14166080a8..544d02fbae 100644
+5c5
+< @@ -20,31 +20,6 @@ const CARD_VERSION = "10.1.1";
+---
+> @@ -20,31 +20,6 @@ const CARD_VERSION = "10.1.2";
+1610c1610
+< index ae4bc82a9b..4b91f503a1 100644
+---
+> index ae4bc82a9b..e0178e4b22 100644
+1967,1969c1967,1969
+< +// same from both, so the bound drops nothing a user sees -- the mode band and
+< +// the held samples at the window's left edge included (each series keeps its
+< +// last row before the cut).
+---
+> +// same from both, so the bound drops nothing a user sees. That includes the
+> +// mode band and the held samples at the window's left edge: each series keeps
+> +// its last row before the cut.
+2211c2211
+< index 976534e41c..920f744eee 100644
+---
+> index 284a3e0f71..8aeb81e907 100644
+2214c2214
+< @@ -4689,6 +4689,7 @@
+---
+> @@ -4691,6 +4691,7 @@
+2223c2223
+< index ef54bdc5af..4686c5d155 100644
+---
+> index 2eef3fa3f2..5be8824050 100644
