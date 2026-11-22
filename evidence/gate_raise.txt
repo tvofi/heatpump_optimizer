@@ -1,0 +1,5 @@
+# merge base a8efe1d1c2a8, head HEAD: 10 budget file(s): .claude/workflows/policy_budgets.json, dev/governance/config/machinery_budgets.json, dev/governance/config/machinery_target_budgets.json, tests/ci_budgets.json, tests/coverage_budgets.json, tests/cycle_budgets.json, tests/mutation_budgets.json, tests/stress_budgets.json, tests/structure_budgets.json, tests/typing_budgets.json
+RAISE tests/ci_budgets.json: script_runs_per_push: 54 -> 56 (a cap went up)
+RESULT budget_raises=1 count
+REFUSED: no decisive review by tvofi (id 70032254) on this pull request
+rc=0
