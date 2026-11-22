@@ -1,0 +1,28 @@
+
+=== features block ===
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+  ok   cooling hands-off: a space boost with the mode reading Cooling writes no switch-on
+Pump duty: the pump's mode reads Cooling and hot water while asked for heat; leaving it alone
+  ok   cooling hands-off: a space boost with the mode reading Cooling + DHW writes no switch-on
+  ok   cooling hands-off: null control: the same boost with the mode reading Heating switches the pump on
+  ok   cooling hands-off: null control: the same boost with the mode reading Heating + DHW switches the pump on
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+  ok   cooling hands-off: a plan ON with the mode reading Cooling writes nothing
+  ok   cooling hands-off: a plan OFF with the pump running in Cooling writes nothing
+  ok   cooling hands-off: null control: a plan OFF with the pump running in Heating switches it off
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+  ok   cooling hands-off: the cycle's last good Cooling holds a boost's switch-on through a dropout
+  ok   cooling hands-off: null control: the cycle's last good Heating lets it through
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+Pump duty: the pump's mode reads Cooling and hot water while asked for heat; leaving it alone
+  ok   cooling repair: raised once for two boosted writes in one Cooling episode
+  ok   cooling repair: a cycle that asks for no heat keeps it while the mode reads Cooling
+  ok   cooling repair: cleared when the mode leaves cooling
+  ok   cooling repair: raised again in the next episode (Cooling + DHW)
+  ok   cooling repair: null control: a boost in Heating raises no cooling repair
+  ok   cooling repair: a plan OFF in Cooling asks for no heat and raises no cooling repair
+  ok   early cut-off: a space step with the mode reading Cooling -> cooling
+  ok   early cut-off: a space step with the mode reading Cooling + DHW -> cooling
+  ok   early cut-off: a space step with the mode reading Heating -> None
+
+ALL 18 FEATURES BLOCK PASSED

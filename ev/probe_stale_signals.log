@@ -1,0 +1,4 @@
+PROBE live=Heating signals_cooling=True -> switch calls []
+PROBE live=Heating signals_cooling=False -> switch calls [('switch', 'turn_on')]
+PROBE live=Cooling signals_cooling=False -> switch calls []
+ALL 18 FEATURES BLOCK PASSED

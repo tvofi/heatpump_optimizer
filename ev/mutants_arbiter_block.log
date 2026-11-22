@@ -1,0 +1,3 @@
+MUTANT desired cooling guard dropped: rc=1 1 of 26 FEATURES BLOCK FAILED | first: FAIL a pump in a cooling mode is left alone: cooling is the user's season  [[('number', 'set_value', 48), ('number', 'set_value', 25)]]
+MUTANT _mode_for cooling term dropped: rc=0 ALL 26 FEATURES BLOCK PASSED | first: 
+restored: production files equal HEAD
