@@ -13,3 +13,4 @@
 1795386788 HB null gate done: gate_rc 1 failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']
 1795386792 HB gate started: f3126cd40dc76143
 1795386796 HB alive
+1795386901 HB null take 1 red incl. one self-inflicted harness_headers parse failure (box template in tree); fixed, re-taking the null once
