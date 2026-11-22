@@ -1,0 +1,20 @@
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/config_flow.py:1754:    _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/config_flow.py:1757:    _F("entities_pump", CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES, _STORED, _entity_of(['sensor', 'text', 'input_text'], multiple=True)),
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/config_flow.py:2659:    too_many = len(submit.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES) or ()) > FAULT_TEXT_ENTITIES_MAX
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/config_flow.py:2660:    return {CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: "too_many_fault_text_entities"} if too_many else {}
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/const.py:152:CONF_HEAT_PUMP_FAULT_ENTITY: Final = "heat_pump_fault_entity"
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/const.py:158:CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: Final = "heat_pump_fault_text_entities"
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/const.py:1834:INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_FAULT_ENTITY] = 60.0
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/device_prefill.py:135:    ("binary_sensor", "fault"): (CONF_HEAT_PUMP_FAULT_ENTITY, 1.0),
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/device_prefill.py:136:    ("sensor", "fault_description"): (CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES, 1.0),
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/entry_config.py:140:    heat_pump_fault_entity: str | None = _entity_slot()
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/entry_config.py:163:    heat_pump_fault_text_entities: tuple[str, ...] = _key((), _entities)
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/fault_log.py:199:    members = list(config.heat_pump_fault_text_entities)
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/fault_log.py:202:    flag = config.heat_pump_fault_entity
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/modbus_prefill.py:106:    CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.{p}_alarm",
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/modbus_prefill.py:276:    listed = snap.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES)
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/modbus_prefill.py:277:    if listed is not None and not current.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES):
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/modbus_prefill.py:278:        suggestions |= {CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: [listed[0]]}
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/pump_arbiter.py:1748:        fault=_lit(inp, CONF_HEAT_PUMP_FAULT_ENTITY),
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/pump_signals.py:514:    fault_reading = reader.read_bool(CONF_HEAT_PUMP_FAULT_ENTITY)
+9f133225f72bc9581a411bdc40d544dd447f78ee:custom_components/heatpump_optimizer/topology.py:140:    (CONF_HEAT_PUMP_FAULT_ENTITY, "heat_pump", "Fault alarm", _FLAG, None),

@@ -1,0 +1,31 @@
+
+=== features block ===
+
+-- The pump's fault record (R11-OWNER-FAULT-TEXT)
+  ok   OK, E5, OK 40 s apart is one row of 40 s with E5; null control, OK then OK makes no row; ok, Ok and OK all read healthy
+  ok   E5 then E5, P3 closes the E5 row and opens the next at the same instant
+  ok   the 160-character budget is inclusive: two items joining to exactly 160 characters are both kept, one character more drops the second; a single item of exactly 160 is kept whole, without an ellipsis
+  ok   two faulted GCHV members keep their items in slot order and the (P6) and (H6) names whole; 30 items keep a whole-item prefix with +N counting the rest, within 168 characters; a single 300-character item keeps its last 160 characters behind an ellipsis
+  ok   the flag slot: on and off on a binary sensor read as a flag fault and healthy; 2080 and 2080.0 give 0x0820; heating on a sensor fault slot is no reading (strict); null control, the same state on a binary_sensor reads through the flag path
+  ok   the text slot: heating and idle record nothing; defrosting and Unit in heat mode are recorded as codes
+  ok   250 episodes keep the newest 200 and count 50 dropped; 40 texts tally 32 plus other, and the tallied seconds equal the sum over all 250 episodes
+  ok   the store round-trips the record and declares every field; a row of the wrong shape is dropped alone; a field outside its declaration starts the record afresh at the load's time
+  ok   120 flaps in 120 s write at most 3 saves, the last state saved by the deferred timer; null control, with the limiter's window at zero every one of the 120 opens and closes is a save
+  ok   unavailable mid-episode does not close the row; open, the stop event, then a reload whose first read is the same code: the row continues with its original start
+  ok   open, then unload, then an event fired after close: no row and no save, the listener is gone and a second close saves nothing
+  ok   a stored P3 whose first read after a restart is OK closes at that read, marked late; the next row, watched from start to end, is not
+  ok   a restart whose first member reads OK and second still carries the code continues the row: the slot is read whole, never its first member alone
+  ok   no fault source: no record, no listener, no stop hook, no store, and the section is null
+  ok   the flag slot's section: source flag, the 30 s row with a null code, newest last; a code text equal to the entry's name comes out redacted, row and tally key alike, while E-codes are kept
+  ok   a sensor fault slot reading a register: 2080 opens a 0x0820 row, heating mid-episode is no reading and leaves it open, 0 closes it after 20 s; the section names the source bitmap
+  ok   one second before the save window ends a change waits one second, never saves at once; a save that raises is logged, not raised; setting the entry up again with no fault slot drops the old record
+  ok   pre-fill: a signed Tuya device suggests a one-member text list and its fault binary sensor; a GCHV prefix suggests binary_sensor.<p>_alarm and no text slot; null controls, slots already set are not suggested, and a device whose records lack the signature resolves neither
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+/root/wt/tests/harness.py:598: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   through async_setup_entry: the download's coordinator.fault_log shows the open E5 read at setup, and async_unload_entry saves it; null control, an entry with no fault slot has a null section and no store
+  ok   a synthetic day of one 4-hour P3 and twelve 40-second E5s gives 13 rows and an E5 tally of 12; null control, sampling the same day once per 30-minute cycle, today's path, sees at most 2
+
+ALL 20 FEATURES BLOCK PASSED

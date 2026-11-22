@@ -1,0 +1,5 @@
+WAIT 9f133225f72bc9581a411bdc40d544dd447f78ee pending: gate red: none
+exit=3
+21:10:33 rc=3 WAIT 9f133225f72bc9581a411bdc40d544dd447f78ee pending: gate red: none
+21:11:45 rc=3 WAIT 9f133225f72bc9581a411bdc40d544dd447f78ee pending: gate red: none
+21:12:56 rc=3 WAIT 9f133225f72bc9581a411bdc40d544dd447f78ee pending: gate red: none
