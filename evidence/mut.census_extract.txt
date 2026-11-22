@@ -1,0 +1,2 @@
+M1 census-extract: CENSUS sources= ['_effective_dhw_windows', 'dhw_demand_windows'] stray= ['dhw_planner.py::DhwPlanner._build_dhw_requirements -> hours_until_next_window']
+M3 census-extract: CENSUS sources= ['_effective_dhw_windows', 'dhw_demand_windows'] stray= ['dhw_planner.py::_dhw_next_window_hours -> hours_until_next_window']

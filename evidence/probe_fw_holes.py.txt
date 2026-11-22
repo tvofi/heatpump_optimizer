@@ -1,0 +1,44 @@
+"""Reviewer probe (rev-3841 round 2): flat hot-water-window values the D17-s3-51
+consumers census drops without keying: stored to a non-Name target, unpacked
+past the first element, annotated/augmented assigns, iterated by for/comprehension.
+Reuses the census's own _p2_index/_FW_* from tests/entities.py (extracted by AST)."""
+import ast, sys, pathlib
+root = pathlib.Path(sys.argv[1])
+ent = (root / "tests/entities.py").read_text()
+mod = ast.parse(ent)
+want = {"_p2_index", "_fw_consumers", "_FW_ATTRS", "_FW_WRAPS", "_FW_RESOLVERS", "_FW_DISPOSITIONS"}
+body = [n for n in mod.body if (isinstance(n, ast.FunctionDef) and n.name in want)
+        or (isinstance(n, ast.Assign) and any(getattr(t, "id", None) in want for t in n.targets))]
+ns = {"ast": ast}
+exec(compile(ast.Module(body=body, type_ignores=[]), "entities_extract", "exec"), ns)
+pkg = root / "custom_components/heatpump_optimizer"
+srcs_text = {p.name: p.read_text() for p in sorted(pkg.glob("*.py"))}
+out, srcs = ns["_fw_consumers"](srcs_text)
+stray = sorted(k for k in out if k not in ns["_FW_DISPOSITIONS"])
+print("CENSUS sources=", sorted(srcs), "stray=", stray)
+ATTRS, WRAPS, RES = ns["_FW_ATTRS"], ns["_FW_WRAPS"], ns["_FW_RESOLVERS"]
+def callee(c):
+    return c.func.attr if isinstance(c.func, ast.Attribute) else getattr(c.func, "id", "?")
+def isflat(n):
+    while isinstance(n, ast.Call) and callee(n) in WRAPS and n.args:
+        n = n.args[0]
+    return (isinstance(n, ast.Attribute) and n.attr in ATTRS and isinstance(n.ctx, ast.Load)
+            or isinstance(n, ast.Call) and callee(n) in srcs)
+holes = []
+for name, text in srcs_text.items():
+    for n in ast.walk(ast.parse(text)):
+        if isinstance(n, ast.Assign) and isflat(n.value):
+            for t in n.targets:
+                if isinstance(t, ast.Tuple):
+                    if len(t.elts) > 1: holes.append((name, n.lineno, "tuple-unpack (census follows elts[0] only)", ast.unparse(n)[:110]))
+                elif not isinstance(t, ast.Name):
+                    holes.append((name, n.lineno, "stored to non-Name target (census: silent continue)", ast.unparse(n)[:110]))
+        if isinstance(n, (ast.AnnAssign, ast.AugAssign)) and n.value is not None and isflat(n.value):
+            holes.append((name, n.lineno, type(n).__name__ + " (census: not followed)", ast.unparse(n)[:110]))
+        if isinstance(n, (ast.For, ast.AsyncFor, ast.comprehension)) and isflat(n.iter):
+            holes.append((name, getattr(n, "lineno", getattr(n.iter, "lineno", 0)), "iterated", ast.unparse(n.iter)[:110]))
+        if isinstance(n, ast.Call) and callee(n) == "getattr" and len(n.args) >= 2 and isinstance(n.args[1], ast.Constant) and n.args[1].value in ATTRS:
+            holes.append((name, n.lineno, "getattr string load (census: not an Attribute)", ast.unparse(n)[:110]))
+for h in holes:
+    print("HOLE", *h)
+print(f"RESULT fw_holes={len(holes)} count")

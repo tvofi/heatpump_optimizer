@@ -1,39 +1,45 @@
-Fix review: blocked 8b127c6d85443c13558417f981237f2596fdcfc1 class-open: axis the hot-water windows in force at an instant unenumerated (e.g. dhw_planner.DhwPlanner next_window_in_hours)
+Fix review: merge b0ee904f74393f05b4a2195bdef1c305f9b1dcc5
 
 bus-nonce: b62336c7fe8ec4f2e5bcee1fb7f85aaf
 
-Round 1 (no earlier verdict on this PR or probe ref).
+Note: body-head: `## Head` still has a stale second line naming 49b07894306e as a merge of 7f2e1ee90c; the first line names this head correctly.
+Note: ci-pending: no owed red at this head when read at 20:16Z. The only failure, `gate` (job 137337285687), reads "run(s) [45062271575, 45063111041] at this head are still being judged; their gate decides". `tests / fast`, `tests / mutation`, `closures` and the rest are queued or running. This verdict does not depend on them, but `bus.sh post` should wait until they are green.
 
-## Block
+Round 2, a delta review (owner ruling 2026-11-09): `git diff 8b127c6d85 b0ee904f74`. The round-1 verdict blocked at 8b127c6d85 (verdict/3841 c4be3d7b). No new nonce was dispatched for this round, so it carries round 1's nonce. `review_carry.py 8b127c6d85 b0ee904f74` prints FRESH-REVIEW. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract copy is current.
 
-The claim (D17-s3-51 / P2 `dhw_window_in_force`): `dhw_schedule.windows_in_force` owns the hot-water windows in force at an instant, and the published next-window hours read the day's windows. The P2 rule only matches `Attribute` loads of `.dhw_windows`/`.dhw_demand_windows`. So a reader that gets the flat set through a dispositioned site's return value is outside both the rule and every residue category the body states.
+## The prior block is resolved
 
-That set has an unenumerated member. `dhw_planner.py:1107` takes `windows, learned_windows = self._effective_dhw_windows()`, the flat every-day set. The P2 entry dispositions it as "the fallback set the planner's per-step windows_for_day chain (_dhw_windows_at) resolves". `dhw_planner.py:966-990` does resolve it per step for `in_window`. But `dhw_planner.py:1351` passes the unresolved flat set to `hours_until_next_window(float(hours_mod[0]), windows)`. That value becomes `DhwPlan.next_window_in_hours`, published as `predictive_info["dhw_next_window_in_hours"]` (`optimizer.py:6037`) and exposed by `PredictiveInsightSensor` (`sensor.py:1436`). It also sits beside a `dhw_in_demand_window` that comes from the day-aware `in_window[0]`.
+Round 1 blocked with class-open: axis the hot-water windows in force at an instant unenumerated (e.g. dhw_planner.DhwPlanner next_window_in_hours).
 
-Measured with the reviewer's probe (`ev/probe_planner_next_window.py.txt`), which runs the planner's `_build_dhw_requirements` on "weekdays 06:00-08:30, weekend 08:00-09:30":
-- At the head: Saturday 07:00 gives planner `next_window_in_hours` = 0.0. The day's answer is 1.0: `windows_in_force` = [(8.0, 9.5)], against the flat [(6.0, 9.5)], and the coordinator's `_dhw_next_window_in_hours` now gives 1.0. Saturday 05:00 gives 1.0, which is the flat start; the day's answer is 3.0.
-- Controls: Monday 07:00 gives 0.0 and the flat spec at Saturday 07:00 gives 0.0, both correct. The same planner numbers at the merge base `f269ecccb5` (`ev/probe_planner_next_window.base.txt`) show the seam existed before the change and the head leaves it unchanged.
+- Repaired. `dhw_planner._dhw_next_window_hours` takes today's windows from `_dhw_windows_at(.., 1, ..)`, the entry `in_window[0]` tests. It takes tomorrow's windows from the first step past midnight, or, when the horizon has no wrap, from the next weekday through `cyclic_span`. `_build_dhw_requirements` publishes that value. I re-ran the round-1 probe at the head (`ev/probe_planner_next_window.head.txt`) on "weekdays 06:00-08:30, weekend 08:00-09:30":
+  - Saturday 07:00: 1.0 (was 0.0).
+  - Saturday 05:00: 3.0 (was 1.0).
+  - Monday 07:00: 0.0. Flat-spec control: 0.0.
+  - New cross-midnight cells: Friday 23:00 is 9.0, Sunday 23:00 is 7.0, Saturday 10:00 is 22.0. Each matches `windows_in_force`'s answer.
+- The axis is now enumerated. It has a rule and a census. The new `tests/entities.py` consumers census (`_fw_consumers`, `_P2_CENSUSES["dhw_window_flat_consumers"]`) follows every flat load through locals, returns (which become sources) and same-module parameters to the consuming call. Each consumer is either a resolver or dispositioned. The census also checks itself: it must find both sources. Its three null plants each fail it.
+- I tried to open it further. My own probe (`ev/probe_fw_holes.py.txt`) runs the census's own code, extracted from `tests/entities.py`, on the head package and looks for flat values the walk drops without keying them: non-Name assign targets, tuple unpacks past element 0, AnnAssign/AugAssign, iteration, and `getattr(.., "dhw_*windows")`. It found 1 site: `windows, learned_windows = self._effective_dhw_windows()`. Element 1 there is a bool, so no window set is dropped. The census reports `stray=[]`.
+- I also swept every instant reader by hand: `grep hour_in_windows( | hours_until_next_window(` over the package. Every hot-water reader goes through `windows_in_force` or the planner's per-step `_dhw_windows_at`: boost, the coordinator flag and next-window hours, the draw learner, `pump_schedule`, and the planner's `in_window`, `prev_in_window` and next window. The remaining callers (`grid_fee`, `tariff`, `quiet_windows`, `silent_mode`) read other window sets.
 
-The repair is the fixer's: resolve the planner's next window per day (as `in_window` does), or narrow the claim and the disposition to say this reader is excluded. Either way, add a P2 or census check that reads the consumers of `_effective_dhw_windows()`. The finder harness `dhw_window_weekday.py` reads only the coordinator path, which is why `cells_wrong` 18 -> 0 does not see this.
+## Mutation proof (the reviewer's own, at the head)
 
-## Findings
+Each mutant ran in its own detached worktree, through `features_block.py --through '_flata = _weekly_solve(...)'` (`ev/mut.M*.txt`). Each run fails only the named check: "the planner's published next window reads the day's windows ... in every census cell".
+- M1: the call restored to the pre-fix `hours_until_next_window(.., windows)`. The check fails: 25 of 58 cells wrong. The census extract keys `_build_dhw_requirements -> hours_until_next_window` as stray.
+- M2: `tomorrow = today`. The check fails: 10 of 58 cells wrong.
+- M3: `today = windows` (the flat set). The check fails: 19 of 58 cells wrong. The census extract keys `_dhw_next_window_hours -> hours_until_next_window` as stray.
+- I did not re-drive the body's `cyclic_span(.., + 2)` mutant or its survivor kills. CI's `mutation` lane is running at this head.
 
-none
+## The delta's other production change
+
+`PayloadFlagMixin` now reads a key path. Five sensors (`MeasuredPowerSensor`, `CompressorStartsSensor`, `MonthlyPeakSensor`, `PVSurplusSensor`, `MixedHotWaterSensor`) drop their own `available` and declare `_available_flag = (<key>,)`.
+- Each sensor's `available` owner chain is the same as before, with the mixin in the slot the sensor's own override held (`ev/probe_flag_mro.*`). For example, `MixedHotWaterSensor` reads PayloadFlagMixin -> DHWEntityMixin -> _MeasuredTemperatureMixin -> CoordinatorEntity, where it used to read MixedHotWaterSensor -> the same three. The one-key gate `(data or {}).get(key)` is the old `data.get(key)`.
+- Every PayloadFlagMixin subclass in the package declares the flag (grep). The flag now has no default, which turns a missing declaration into an AttributeError, and `tests/entities.py` exercises that.
+- This puts no reviewed functionality at a non-obvious risk, so the review does not widen.
 
 ## Evidence
 
-- Merge: `git merge-tree --write-tree origin/main 8b127c6d85` exits 0 (`ev/merge-tree.txt`). VERSION, the manifest and RELEASE_NOTES.md are untouched, and `tests/golden/` has no diff at the three-dot range, so neither claim file is touched.
-- Role files: `git diff <mb>...origin/main -- dev/governance/roles/` changes wording in fix-review.md and fixer.md and adds the axis rule. The ADDENDUM already carries the axis rule, and I applied main's text.
-- Mutation proof: 13 targeted mutants over the D17-s3-51, D14-s1-01, D15-s3-01 and D10-s1-02 sites, all killed on the body's named checks (`ev/mutants.txt`). I did not re-run the `tests/entities.py` mutants myself because the script runs past 30 min. I cite CI's `mutation-autofix` pins at this head instead (e.g. `entity.py:PayloadFlagMixin.available BOOLOP 2b124388`, killed by tests/harness_headers.py).
-- Finder harnesses at the merge base f269ecccb5 and at this head (`ev/harness/`; the btn_actions.py copy is from the dbdc1d95fef3 export, as the body says). Its sha1 1b1387bb38dd matches the body, and the in-tree copies match their sha1s:
-  - `silent_refusals` 2 -> 0, null `controls_raised` 2 -> 2
-  - `delta_bare` 3 -> 0, null `impossible_pairs` 0 -> 0
-  - `avail_none_cycles` 0 -> 0 (flat at both ends, as the body says)
-  - `fam_runs_excess_entity_id_sensor` 2 -> 0, the other platforms 0 -> 0, `fam_runs_excess_name_<en|sv|de>` 0 at the head
-  - `state_class_impossible` 0 -> 0
-  - `seams_services` 12 -> 0, `seams_widen` 28 -> 0, null `seams_options` 0 -> 0
-  - `cells_wrong` 18 -> 0, null `null_cells_wrong` 0 -> 0
-  - My base is the current merge base, not the body's a8efe1d1. These numbers match the body's.
-- Not re-derived here: the D15-s3-01 synthetic-bundle figures, `Architecture score: dS +3.6150`, and the structure re-records. They are left to CI's arch-score and structure runs.
-- The body's `## Head` names c6cb6d936f, not this head. `tools/audit/seat/review_carry.py c6cb6d936f 8b127c6d85` prints `CARRY` (`ev/review_carry.txt`): the two later commits are `ci: re-record closures` and `ci: pin killed mutants`. This is paperwork for the re-cut, not a block.
-- CI at this head: I re-ran `merge_train.py classify 8b127c6d85 --pr 3841` until 07:14:54 UTC and every run printed `WAIT ... pending: gate red: none` (`ev/classify.log`). I stopped waiting once the review reached a block, which does not depend on CI.
+- Finder harness `dev/audit/rounds/round11/D17/leads/dhw_window_weekday.py` (sha1 3747d12b7fca, matching the body) at the head: `cells_wrong` 0, `null_cells_wrong` 0 (`ev/finder.dhw_window_weekday.head.txt`). Round 1 measured it at the merge base as 18.
+- Structure: `tests/structure.py` at the head prints STRUCTURE RATCHET PASSED, rc 0. In `git diff <mb>...HEAD -- '*_budgets.json'` every row moves down: `class_excess_loc` 17317 -> 17280, `dead_top_level_symbols` 1 -> 0, `duplication_copies` 5 -> 3, `max_class_loc` 7868 -> 7857, `module_excess_loc` 21779 -> 21778, `unloaded_package_imports` 14 -> 5, archscore `dead_members` 1 -> 0, `public_unused` 1 -> 0. No row is raised. The two-dot `8b127c6d..HEAD` shows `const_modules_over_50` 3 -> 4, but that is main's own row, brought in by the merge.
+- Merge: `git merge-tree --write-tree origin/main(e3cb5c019b) b0ee904f74` exits 0 (`ev/merge-tree.txt`). VERSION, the manifest, RELEASE_NOTES.md and `tests/golden/` have no three-dot diff, so neither claim file is touched.
+- Body: the `## Head` first line names b0ee904f74, a merge of the code head 7f2e1ee90c, whose tree is identical to b0ee904f74's. `## Red checks` names the ancestry reds and answers each one. At this head nothing is red apart from the pending `gate` (Note above).
+- `carry_audit.py check` on the body's Forward-carry, Friction and Carry routing sections: 2 routed, 0 unrouted, rc 0 (`ev/carry_audit.txt`).
+- Not re-derived here: the body's 3072-payload mixin census, `Architecture score: dS +3.8460` (CI `arch-score` is green at this head), and the D15/D10/D8/D14 harness figures, which this delta does not touch and which round 1 measured.

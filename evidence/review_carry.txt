@@ -1,8 +1,0 @@
-review_carry: c6cb6d936 -> 8b127c6d8  main=origin/main
-  branch-only commits: 4
-  why: 2 of 4 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
-  bc4d492b5  Merge origin/main into fix/r11-seam-entity-service (tests/structure_budgets.json resolved key by key to the lower side, re-measured by tests/structure.py)
-  a139b341f  Merge commit 'bc4d492b515efa4aaad2e1798fc3a0a23d423581' into fix/r11-seam-entity-service
-  7b76b17f4  ci: re-record closures
-  8b127c6d8  ci: pin killed mutants
-review_carry: CARRY

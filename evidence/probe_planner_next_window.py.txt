@@ -29,3 +29,9 @@ import datetime as _pd
 _pt = _pd.datetime(2026, 1, 17, 7, 0, tzinfo=_pd.timezone.utc)
 print("PROBE windows_in_force sat =", _pw(_pp, None, _pt), "flat =", list(_pp.dhw_demand_windows), "day answer =", _ph(7.0, _pw(_pp, None, _pt), _pw(_pp, None, _pt, days=1)))
 
+# round 2 additions: across midnight inside the horizon, and a horizon ending before midnight
+print("PROBE fri 23:00 (next is sat 08:00 = 9.0) =", _probe_next(_PS, _WDT(2026, 1, 16), 23.0)[0])
+print("PROBE sun 23:00 (next is mon 06:00 = 7.0) =", _probe_next(_PS, _WDT(2026, 1, 18), 23.0)[0])
+print("PROBE sat 05:00 (day answer 3.0) =", _probe_next(_PS, _WDT(2026, 1, 17), 5.0)[0])
+print("PROBE sat 10:00 (next is sun 08:00 = 22.0) =", _probe_next(_PS, _WDT(2026, 1, 17), 10.0)[0])
+# PROBE-END

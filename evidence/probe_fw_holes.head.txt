@@ -1,0 +1,3 @@
+CENSUS sources= ['_effective_dhw_windows', 'dhw_demand_windows'] stray= []
+HOLE dhw_planner.py 1098 tuple-unpack (census follows elts[0] only) windows, learned_windows = self._effective_dhw_windows()
+RESULT fw_holes=1 count
