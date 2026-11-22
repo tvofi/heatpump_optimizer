@@ -1,0 +1,4 @@
+M0 unmutated require-rows rc=0 | DELIVERY STATUS OK — 21 rowed, 0 pending, 0 overdue (overdue at 12 commits)
+M1 delete 3851 row require-rows rc=1 | DELIVERY STATUS OK — 20 rowed, 1 pending, 0 overdue (overdue at 12 commits)
+M2 3728 row back to open require-rows rc=1 | DELIVERY STATUS OVERDUE — 20 rowed, 0 pending, 1 overdue (overdue at 12 commits)
+M3 3728 wrong sha require-rows rc=0 | DELIVERY STATUS OK — 21 rowed, 0 pending, 0 overdue (overdue at 12 commits)
