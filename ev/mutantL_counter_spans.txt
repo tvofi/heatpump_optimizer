@@ -1,0 +1,34 @@
+# /tmp/wm3 = head c6c11df0b85b569718a0a41a49544b9ddec3467e with mutant L applied:
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 10edffb5a8..fef0cb0b50 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1118,7 +1118,7 @@ def _observe_heat_energy(coord: Any, reader: Any, at: datetime) -> None:
+     heat, tank = reader.read(CONF_HEAT_ENERGY_ENTITY), reader.read(CONF_DHW_TEMP_ENTITY)
+     meter.observe_cycle(
+         at, coord._pump_signals, heat, coord._measured_energy, ctx._config.optimization_interval,
+-        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params, tank.value if tank.ok else None,
++        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params, None,
+     )
+ 
+ 
+# PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D12/s3/counter_spans.py --sees-dhw --no-mode
+RESULT arm=sees_dhw+no_mode+dhw_timer
+RESULT cycles_ok=16 count (of 16)
+RESULT plans_published=16 count
+RESULT spans_closed=7 count
+RESULT spans_with_dhw=0 count
+RESULT spans_observed=0 count
+RESULT spans_plan_dhw_share=1 count
+RESULT bad_spans=0 count
+RESULT spans_true_dhw=3 count
+RESULT inflated_space_spans=2 count
+RESULT inflated_spans_folded=2 count
+RESULT space_spans_folded=4 count
+RESULT cop_records=5 count
+RESULT dhw_cop_records=0 count
+RESULT dhw_cop_records_unseen=0 count
+RESULT wall_s=15.4 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=2.29
+RESULT swapins=0
