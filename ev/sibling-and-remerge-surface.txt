@@ -1,0 +1,16 @@
+# sibling command at head
+tools/audit/seat/body_patch.sh
+tools/audit/seat/bus.sh
+tools/audit/seat/remerge_main_selftest.py
+tools/pr/app_approve.sh
+tools/pr/app_comment.sh
+tools/pr/app_mint.sh
+tools/pr/app_push.sh
+tools/release/stamp.py
+# remerge_main.sh key/mint/push references
+4:# It pushes with `app_push.sh --recarry`, which prefixes the body's `## Head`
+16:# It is refused, before anything is fetched, minted, merged or pushed: no identity of ours merges
+28:PL=$B.push.log; pr_exit_trap 'declare -F mint_cleanup >/dev/null && mint_cleanup; test -n "${KEEP:-}" || rm -f "$PL"'
+53:# Every REFUSE line, not the last 120 characters. app_push's die is the last
+56:if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+64:# A refused push (app_push on a detached or untipped worktree) is a failed remerge, not RESULT's success (carry 15).
