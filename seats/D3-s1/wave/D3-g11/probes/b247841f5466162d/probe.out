@@ -1,0 +1,14 @@
+RESULT tie_96_steps_baseline=50.0 mutant=50.0
+RESULT tie_1_step_baseline=50.0 mutant=50.0
+RESULT tie_2_steps_baseline=50.0 mutant=50.0
+RESULT tie_plus_1us_baseline=50.0 mutant=50.0
+RESULT tie_minus_1us_baseline=50.0 mutant=50.0
+RESULT before_600s_baseline=50.0 mutant=50.0
+RESULT before_901s_baseline=None mutant=None
+RESULT mid_baseline=62.0 mutant=62.0
+RESULT past_end_baseline=None mutant=None
+RESULT moved_valid=0 count
+RESULT dup_head_baseline=51.0 mutant=50.0  (malformed plan, not a production state)
+RESULT thread_factor=1.001
+RESULT load1=0.35
+RESULT swapins=0 count

@@ -1,0 +1,6 @@
+RESULT age_at_limit_baseline=12.0
+RESULT age_at_limit_mutant=None
+RESULT null_moved=0 count
+RESULT thread_factor=1.004
+RESULT load1=0.29
+RESULT swapins=0 count

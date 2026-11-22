@@ -1,0 +1,8 @@
+RESULT zero_value_baseline=0
+RESULT zero_value_mutant=1
+RESULT neg_zero_value_baseline=0
+RESULT neg_zero_value_mutant=1
+RESULT null_moved=0 count
+RESULT thread_factor=0.999
+RESULT load1=0.35
+RESULT swapins=0 count
