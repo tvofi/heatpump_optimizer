@@ -7394,7 +7394,9 @@
    "size": "M",
    "wave": 1,
    "issues": [],
-   "fixes": [],
+   "fixes": [
+    3858
+   ],
    "after": [],
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py"
