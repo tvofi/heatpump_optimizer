@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF 5c818d6f",
+  "killed_by": "tests/features.py",
+  "old": "    if _flow_unit(inp.config) and not frost:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9. Re-keyed by R11-OWNER-FROST-HOLD: the frost hold's floor skips the power-feedback loop, so `if _flow_unit(inp.config):` became `if _flow_unit(inp.config) and not frost:`."
+}
