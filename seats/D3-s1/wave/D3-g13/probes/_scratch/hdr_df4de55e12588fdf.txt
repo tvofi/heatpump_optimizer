@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+# Metric: the power (kW) _apply_dhw_min_run returns for a slot planned at exactly 1e-6 kW (the weak-slot floor), tank with room and tank full, plus the 144-fixture production-shaped sweep.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py
+# EXPECTED RESULT slot_kw_at_1e-6_baseline=1e-06   (left as a 1 W trickle, not a weak slot)
+# EXPECTED RESULT slot_kw_at_1e-6_mutant=0.6       (raised to min_run_power; 0.0 when the tank is full)
+# EXPECTED RESULT boundary_inputs_moved=2 of 6     (only the exact 1e-6; its float neighbours agree)
+# EXPECTED RESULT production_shaped_moved=0 of 144
+# Count key: the plan array DhwPlanner._apply_dhw_min_run returns (np.array_equal, baseline vs mutant), fed straight
+#   back into DhwPlanner.optimize's schedule (dhw_planner.py:1257); production-shaped = 0 <= plan <= p_dhw_max and
+#   min_run_power <= p_dhw_max, the two invariants its only caller guarantees (dhw_planner.py:1141 and the clipped
+#   returns of _plan_dhw_cheapest_first).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_min_run
+#   (line 2055 `        weak = np.where((plan > 1e-6) & (plan < min_run_power))[0]`), driven on features.py's _mr_fixture shape (weak slots spread over the horizon, a draw block)
+#   over 12 seeds x 4 tank states x 3 horizon sizes = 144 fixtures.
+# Perturbation: mutant df4de55e12588fdf, `plan > 1e-6` -> `plan >= 1e-6`, applied in memory (method recompiled from its own source, called unbound for
+#   the mutant arm). Direction: a slot of exactly 1e-6 kW is repaired (raised or zeroed) instead of left in the plan.
+# Null control: the float neighbours of 1e-6 (nextafter either side): the same answer both arms.

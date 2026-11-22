@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py: mutant 24d9995ccee4252e; pins: rows of DefrostDerate.summary() carrying a measured-duty block ("duty"/"events"/"duty_samples") on a learner

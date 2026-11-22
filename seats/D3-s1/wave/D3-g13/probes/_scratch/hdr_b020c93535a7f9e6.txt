@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+# Metric: count of inputs (10 window sequences + a fresh window peeked with 5 stamp shapes) on which
+#   DefrostWindow.peek returns a different DefrostObservation baseline vs mutant.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_b020c93535a7f9e6.py
+# EXPECTED RESULT inputs_moved=0 of 15 ()  (with _opened None, _elapsed(now, None) hits None.tzinfo -> AttributeError
+#   -> None, and the next line returns the same empty DefrostObservation())
+# Count key: the (duty, events, observed, seconds) peek() returns.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.defrost:DefrostWindow.peek (line 795 `        if self._opened is None:`).
+# Perturbation: mutant b020c93535a7f9e6, guard -> `if False:`, in memory (peek recompiled, called unbound).
+#   Direction if not equivalent: a fresh window would answer something other than the empty observation.
+# Null control: the sequences with _opened set, which the guard never touches.

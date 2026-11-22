@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+# Metric: count of _apply_dhw_min_run inputs whose returned plan differs baseline vs mutant: 144 production-shaped fixtures (min_run <= p_max) and 144 direct fixtures with min_run_power 1.2 > p_dhw_max 1.0.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_49dc3d36092b3943.py
+# EXPECTED RESULT production_shaped_moved=0 of 144   (min(min_run, p_max) == min_run whenever min_run <= p_max)
+# EXPECTED RESULT direct_min_run_above_pmax_moved=56 of 144  (the raise is simulated at 1.2 kW the pump cannot run)
+# EXPECTED RESULT reach_caller_min_run_le_pmax=1 count  (dhw_planner.py:1141 min_run_power = min(p_dhw_run, ...))
+# Count key: the plan array DhwPlanner._apply_dhw_min_run returns (np.array_equal, baseline vs mutant), fed straight
+#   back into DhwPlanner.optimize's schedule (dhw_planner.py:1257); production-shaped = 0 <= plan <= p_dhw_max and
+#   min_run_power <= p_dhw_max, the two invariants its only caller guarantees (dhw_planner.py:1141 and the clipped
+#   returns of _plan_dhw_cheapest_first).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_min_run
+#   (line 2065 `        run_power = min(min_run_power, p_dhw_max)`), driven on features.py's _mr_fixture shape (weak slots spread over the horizon, a draw block)
+#   over 12 seeds x 4 tank states x 3 horizon sizes = 144 fixtures.
+# Perturbation: mutant 49dc3d36092b3943, the min() with p_dhw_max dropped (CLAMP_DROP), applied in memory (method recompiled from its own source, called unbound for
+#   the mutant arm). Direction: weak slots are tested at min_run_power above the cap; moves only when min_run_power > p_dhw_max, which the only caller forbids.
+# Null control: the production-shaped sweep, which must not move.

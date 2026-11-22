@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_111763243ac44278.py: mutant 111763243ac44278; pins: count of the 144 production-shaped fixtures (48 of which take the joint shortcut on the baseline) whose _apply_dhw_min_run plan differs baseline vs mutant; and simulate_dhw_step calls (cost) on 12 shortcut fixtures.

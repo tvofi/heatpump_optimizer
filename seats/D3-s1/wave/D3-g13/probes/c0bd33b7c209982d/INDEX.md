@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_c0bd33b7c209982d.py: mutant c0bd33b7c209982d; pins: max |DefrostDerate factor (mutant) - factor (baseline)| over every probe temperature/humidity pair (each centre,

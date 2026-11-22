@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+# Metric: count of no-weak plans whose _apply_dhw_min_run result differs baseline vs mutant: production-shaped sweep vs direct inputs outside [0, p_dhw_max].
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_72240d3f22ceb752.py
+# EXPECTED RESULT production_shaped_moved=0 of 144
+# EXPECTED RESULT direct_no_weak_moved=2 of 4 (above_pmax,negative)  (3.5 -> 3.0 vs 3.5; -0.5 -> 0.0 vs -0.5)
+# EXPECTED RESULT reach_cheapest_first_returns=['plan', 'np.clip(plan, 0.0, p_dhw_max)']  (plan is already clipped at
+#   dhw_planner.py:2191 before that early return)
+# Count key: the plan array DhwPlanner._apply_dhw_min_run returns (np.array_equal, baseline vs mutant), fed straight
+#   back into DhwPlanner.optimize's schedule (dhw_planner.py:1257); production-shaped = 0 <= plan <= p_dhw_max and
+#   min_run_power <= p_dhw_max, the two invariants its only caller guarantees (dhw_planner.py:1141 and the clipped
+#   returns of _plan_dhw_cheapest_first).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_min_run
+#   (line 2057 `            unchanged: np.ndarray = np.clip(plan, 0.0, p_dhw_max)`), driven on features.py's _mr_fixture shape (weak slots spread over the horizon, a draw block)
+#   over 12 seeds x 4 tank states x 3 horizon sizes = 144 fixtures.
+# Perturbation: mutant 72240d3f22ceb752, the no-weak clip dropped (CLAMP_DROP), applied in memory (method recompiled from its own source, called unbound for
+#   the mutant arm). Direction: an out-of-range no-weak plan is returned unclipped; production never feeds one.
+# Null control: the in-range and nan no-weak plans, unchanged both arms.

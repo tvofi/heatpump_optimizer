@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+# Metric: max |DefrostDerate factor (mutant) - factor (baseline)| over every probe temperature/humidity pair (each centre,
+#   +-1e-9 around it, its negation, +-100, 0, +-inf, nan) on six fully learned learners, plus the (i, u) tuple
+#   _interp_position returns on the same values.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_677019b333cfa304.py
+# EXPECTED RESULT at_interior_centre baseline=(2, 0.0) mutant=(1, 1.0)  (same point, the cell to its left at u=1)
+# EXPECTED RESULT interp_tuple_moves>0 count  (every interior centre and the last one)
+# EXPECTED RESULT factor_max_abs_delta=0.0
+# Count key: the float DefrostDerate._factor_uncached returns (what factor() memoizes and every plan's COP multiplies by).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.defrost:_interp_position (line 184 `        if value < centers[i + 1]:`).
+# Perturbation: mutant 677019b333cfa304, `<` -> `<=`, in memory (function recompiled from its own source and patched
+#   onto the module). Direction if not equivalent: the factor at an interior centre would change; it cannot: (1-u)=0.0 and u=1.0 weight the same neighbour exactly.
+# Null control: values off the centres, which the comparison cannot touch.

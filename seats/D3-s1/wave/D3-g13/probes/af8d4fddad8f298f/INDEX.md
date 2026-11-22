@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_af8d4fddad8f298f.py: mutant af8d4fddad8f298f; pins: count of the 144 production-shaped fixtures whose _apply_dhw_min_run plan differs baseline vs mutant, plus the bound: the same count with the shortcut disabled outright.

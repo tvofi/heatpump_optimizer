@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_c61a89f42607c92b.py: mutant c61a89f42607c92b; pins: the (temperature, humidity) bucket one measured defrost duty folds into through DefrostDerate.observe_duty

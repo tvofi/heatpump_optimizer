@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_8297234e122897ff.py: mutant 8297234e122897ff; pins: DefrostWindow.peek(now).duty (and events, any_defrost) on an interval whose defrost flag is still ON at the

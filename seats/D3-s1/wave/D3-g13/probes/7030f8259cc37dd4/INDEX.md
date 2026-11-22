@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_7030f8259cc37dd4.py: mutant 7030f8259cc37dd4; pins: count of DefrostWindow observe/close sequences (10) plus direct _accrue calls (delta 0.0, -0.0, -5, 1e-9, 7)

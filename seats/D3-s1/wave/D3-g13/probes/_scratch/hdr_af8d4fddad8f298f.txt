@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+# Metric: count of the 144 production-shaped fixtures whose _apply_dhw_min_run plan differs baseline vs mutant, plus the bound: the same count with the shortcut disabled outright.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_af8d4fddad8f298f.py
+# EXPECTED RESULT production_shaped_moved=0 of 144
+# EXPECTED RESULT baseline_paths joint_shortcut=48 per_slot=96 count
+# EXPECTED RESULT shortcut_always_off_moved=0 of 144  (a tie only reroutes to the per-slot pass, which gives the same plan)
+# Count key: the plan array DhwPlanner._apply_dhw_min_run returns (np.array_equal, baseline vs mutant), fed straight
+#   back into DhwPlanner.optimize's schedule (dhw_planner.py:1257); production-shaped = 0 <= plan <= p_dhw_max and
+#   min_run_power <= p_dhw_max, the two invariants its only caller guarantees (dhw_planner.py:1141 and the clipped
+#   returns of _plan_dhw_cheapest_first).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_min_run
+#   (line 2075 `        if bool(np.all(joint_temps <= joint_limit + 1e-9)):`), driven on features.py's _mr_fixture shape (weak slots spread over the horizon, a draw block)
+#   over 12 seeds x 4 tank states x 3 horizon sizes = 144 fixtures.
+# Perturbation: mutant af8d4fddad8f298f, `<=` -> `<` on the joint test, applied in memory (method recompiled from its own source, called unbound for
+#   the mutant arm). Direction: at an exact tie joint_temps == joint_limit + 1e-9 the shortcut is skipped; the per-slot pass returns the same plan.
+# Null control: the per-slot fixtures, where neither arm takes the shortcut.

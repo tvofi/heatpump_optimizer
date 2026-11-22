@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+# Metric: count of _apply_dhw_min_run inputs whose returned plan differs baseline vs mutant: 144 production-shaped fixtures, a slot exactly at min_run_power, and (direct only) 144 fixtures with min_run_power > p_dhw_max.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_597d6753c0939797.py
+# EXPECTED RESULT production_shaped_moved=0 of 144
+# EXPECTED RESULT tie_at_min_run_moved=0 of 2   (a slot at exactly min_run is 'raised' to the value it already has)
+# EXPECTED RESULT direct_min_run_above_pmax_moved=64 of 144  (only when run_power=min(min_run,p_max) < the slot)
+# EXPECTED RESULT reach_caller_min_run_le_pmax=1 count  (dhw_planner.py:1141 min_run_power = min(p_dhw_run, ...))
+# Count key: the plan array DhwPlanner._apply_dhw_min_run returns (np.array_equal, baseline vs mutant), fed straight
+#   back into DhwPlanner.optimize's schedule (dhw_planner.py:1257); production-shaped = 0 <= plan <= p_dhw_max and
+#   min_run_power <= p_dhw_max, the two invariants its only caller guarantees (dhw_planner.py:1141 and the clipped
+#   returns of _plan_dhw_cheapest_first).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_min_run
+#   (line 2055 `        weak = np.where((plan > 1e-6) & (plan < min_run_power))[0]`), driven on features.py's _mr_fixture shape (weak slots spread over the horizon, a draw block)
+#   over 12 seeds x 4 tank states x 3 horizon sizes = 144 fixtures.
+# Perturbation: mutant 597d6753c0939797, `plan < min_run_power` -> `plan <= min_run_power`, applied in memory (method recompiled from its own source, called unbound for
+#   the mutant arm). Direction: a slot at exactly min_run_power joins the weak set; it moves the plan only when min_run_power > p_dhw_max, which the caller forbids.
+# Null control: the production-shaped sweep (no slot on the boundary) must not move.

@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+# Metric: count of duty inputs (15: negatives, +-0.0, the clamp edges, above-cap, +-inf, nan) on which
+#   derate_from_duty returns a different float baseline vs mutant.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_168e4035dbc9bb84.py
+# EXPECTED RESULT inputs_moved=0 of 15 ()  (a negative duty gives 1 + |duty|*1.5 > 1, which min(DERATE_MAX=1.0, .)
+#   caps back to exactly 1.0; nan goes through max(DERATE_MIN, nan)=0.55 in both arms)
+# EXPECTED RESULT posctl_derate_max_1_05 baseline=1.0 mutant=1.05  (the harness separates once the cap is above 1)
+# Count key: the float derate_from_duty returns (DefrostDerate._decide's measured estimator).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.defrost:derate_from_duty
+#   (line 204 `    duty = min(max(float(duty), 0.0), DEFROST_DUTY_MAX)`).
+# Perturbation: mutant 168e4035dbc9bb84, the 0.0 floor dropped, in memory (function recompiled from its own source).
+#   Direction if not equivalent: derate above 1.0 for a negative duty; capped by DERATE_MAX = 1.0.
+# Null control: non-negative duties, where the floor is inactive.
