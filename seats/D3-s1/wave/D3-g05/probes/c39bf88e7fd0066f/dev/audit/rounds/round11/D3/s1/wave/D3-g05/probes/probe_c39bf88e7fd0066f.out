@@ -1,0 +1,8 @@
+RESULT override_on_no_wood_probes suppressing=True free_heat_kw=0.0 symbol_baseline=None symbol_mutant=zeros[96] solve_input_baseline=None solve_input_mutant=None
+RESULT override_on_cold_wood_tank suppressing=True free_heat_kw=0.0 symbol_baseline=None symbol_mutant=zeros[96] solve_input_baseline=None solve_input_mutant=None
+RESULT reach=line_5259_executed_by_this_probe count
+RESULT moved_at_symbol=2 count
+RESULT moved_at_solve_input=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.24
+RESULT swapins=0 count

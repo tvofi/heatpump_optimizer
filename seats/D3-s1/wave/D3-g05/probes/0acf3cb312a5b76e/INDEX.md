@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.py: pins the (state, attributes) pair _entity_state returns per entity id; moved_inputs = ids whose pair differs between arms. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.py; output beside it as .out)

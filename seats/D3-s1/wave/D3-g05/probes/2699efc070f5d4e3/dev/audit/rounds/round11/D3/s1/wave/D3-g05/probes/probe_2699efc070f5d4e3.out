@@ -1,0 +1,12 @@
+RESULT not_configured baseline=None mutant=None
+RESULT unavailable baseline=None mutant=None
+RESULT unknown baseline=None mutant=None
+RESULT implausible_minus127C baseline=None mutant=True
+RESULT implausible_1500C baseline=None mutant=True
+RESULT word_on baseline=True mutant=True
+RESULT fresh_20C baseline=False mutant=False
+RESULT missing_entity baseline=None mutant=None
+RESULT moved_inputs=2 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.10
+RESULT swapins=0 count

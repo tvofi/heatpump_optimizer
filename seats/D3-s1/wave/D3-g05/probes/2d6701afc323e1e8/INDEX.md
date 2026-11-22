@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2d6701afc323e1e8.py: pins DHW lead predictions filed by _file_dhw_lead_predictions at the production step dt_h = max(time_step_minutes, 1)/60, over trajectory lengths 0..200. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2d6701afc323e1e8.py; output beside it as .out)

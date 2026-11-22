@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.py: pins DHW lead predictions filed by _file_dhw_lead_predictions at the production dt_h, over trajectory lengths 0..200, and the length a real solve delivers. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.py; output beside it as .out)

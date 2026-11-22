@@ -1,0 +1,8 @@
+RESULT other_entity_only_no_held baseline(calls,rows,outages,warn)=(1, 0, 1, ['No forecast data returned for weather.home']) mutant=(1, 48, 1, ["Error fetching weather forecast: 'weather.home'"])
+RESULT response_none_no_held baseline(calls,rows,outages,warn)=(1, 0, 1, ['No forecast data returned for weather.home']) mutant=(1, 48, 1, ["Error fetching weather forecast: argument of type 'NoneType' is not a container or iterable"])
+RESULT response_empty_dict_no_held baseline(calls,rows,outages,warn)=(1, 0, 1, ['No forecast data returned for weather.home']) mutant=(1, 0, 1, ['No forecast data returned for weather.home'])
+RESULT null_forecast_held baseline=(1, 1, 1, ['No forecast data returned for weather.home']) mutant=(1, 1, 1, ["Error fetching weather forecast: 'weather.home'"])
+RESULT moved_held_rows=2 count
+RESULT thread_factor=0.999 ratio
+RESULT load1=1.22
+RESULT swapins=0 count

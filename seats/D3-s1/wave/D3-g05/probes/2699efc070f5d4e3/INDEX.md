@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py: pins _external_heat_override's value per external-heat entity state; moved_inputs = states whose override differs. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py; output beside it as .out)

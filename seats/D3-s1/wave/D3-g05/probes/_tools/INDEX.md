@@ -1,0 +1,1 @@
+- box tooling: probe assembler (common.py + parts/ + headers.json), per-key record builder (spec.py, build_results.py, watch_results.sh), report builder (build_report.py); reach.txt = traced closure scripts per line

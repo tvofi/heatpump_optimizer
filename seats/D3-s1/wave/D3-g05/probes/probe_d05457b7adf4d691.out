@@ -1,0 +1,8 @@
+RESULT unset_empty baseline(calls,rows,outages,warn)=(0, 0, 1, ['No weather entity configured']) mutant=(1, 0, 1, ['No forecast data returned for None'])
+RESULT unset_none baseline(calls,rows,outages,warn)=(0, 0, 1, ['No weather entity configured']) mutant=(1, 0, 1, ['No forecast data returned for None'])
+RESULT unset_with_service baseline(calls,rows,outages,warn)=(0, 0, 1, ['No weather entity configured']) mutant=(1, 0, 1, ['No forecast data returned for None'])
+RESULT null_configured baseline=(1, 0, 1, ['Empty forecast returned for weather.home']) mutant=(1, 0, 1, ['Empty forecast returned for weather.home'])
+RESULT moved_cases=3 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.24
+RESULT swapins=0 count

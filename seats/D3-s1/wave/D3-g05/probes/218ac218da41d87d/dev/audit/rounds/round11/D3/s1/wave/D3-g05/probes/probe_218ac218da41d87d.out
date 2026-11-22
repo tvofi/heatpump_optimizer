@@ -1,0 +1,8 @@
+RESULT flue_29.9C baseline=False mutant=False
+RESULT flue_30.0C baseline=False mutant=True
+RESULT flue_30.1C baseline=True mutant=True
+RESULT flue_400C baseline=True mutant=True
+RESULT moved_inputs=1 count  (null: 29.9, 30.1 and 400 must not move)
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.10
+RESULT swapins=0 count
