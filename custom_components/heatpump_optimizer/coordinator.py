@@ -6270,9 +6270,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             caps = env_caps if caps is None else np.minimum(caps, env_caps)
         quiet = quiet_windows.compose_with_silent(caps, ctx._config, ctx.hass.states.get, solve_now, n, config.dt_hours, params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
         return SolveRecord(config, params, SolveInputs(
-            state=state,
+            state=pump_signals.with_dhw_under_way(state, self._pump_signals, running := duty_switch.running_now(duty_switch.record_for(self), self._current_action), self._current_action),
             start_time=solve_now,
-            compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),
+            compressor_running=running,
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,

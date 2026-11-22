@@ -243,15 +243,16 @@ def dhw_start_temps(
 
 
 def startable_steps(
-    plan: np.ndarray, temps: np.ndarray, start_below: np.ndarray | None
+    plan: np.ndarray, temps: np.ndarray, start_below: np.ndarray | None, charge_running: bool = True
 ) -> np.ndarray:
     """The steps where charging is something the pump does.
 
     A step that opens on a tank below its start temperature (``temps[i]``,
     the simulated level at its start), and the step after one of a charge
     under way, which runs on to its target. A charge is under way from the
-    step it opens below its start temperature, or from the first step, where
-    it is kept as one that may be (:func:`drop_unstartable`); a charge the
+    step it opens below its start temperature, or from the first step when
+    ``charge_running`` says one runs now (``ThermalState.dhw_charge_under_way``,
+    :func:`drop_unstartable`); a charge the
     pump would not start carries nothing on, so the repair buys neither
     inside it nor behind it. Every step where no start condition is known
     (``start_below`` ``None``).
@@ -260,7 +261,7 @@ def startable_steps(
     if start_below is None:
         return np.ones(on.size, dtype=bool)
     ok: np.ndarray = np.asarray(temps, dtype=float)[: on.size] < start_below[: on.size]
-    under_way = bool(on[:1].any())
+    under_way = bool(on[:1].any()) and (charge_running or bool(ok[:1].any()))
     for i in range(1, on.size):
         ok[i] |= under_way
         under_way = bool(on[i] and ok[i])
@@ -268,18 +269,23 @@ def startable_steps(
 
 
 def drop_unstartable(
-    plan: np.ndarray, start_below: np.ndarray, temps_of: Callable[[np.ndarray], np.ndarray]
+    plan: np.ndarray,
+    start_below: np.ndarray,
+    temps_of: Callable[[np.ndarray], np.ndarray],
+    charge_running: bool = True,
 ) -> np.ndarray:
     """``plan`` without the charges the pump would never start.
 
     Each run is judged in time order on the trajectory ``temps_of`` simulates
     for the runs kept before it: one that begins on a tank at or above its
     step's start temperature is removed whole. A run at the first step is
-    kept, as it may be a charge already under way (Bankaifan, #3440).
+    kept only while ``charge_running``: a charge already running continues
+    to its target (Bankaifan, #3440), and a re-plan that puts a new charge on
+    the first step while the pump heats or stands judges it like any other.
     """
     plan = np.array(plan, dtype=float)
     on = plan > 0.0
-    for i in np.flatnonzero(on[1:] & ~on[:-1]) + 1:
+    for i in np.flatnonzero(on & ~np.append(charge_running, on[:-1])[: on.size]):
         end = i + int(np.argmin(np.append(on[i:], False)))
         if temps_of(plan)[i] >= start_below[i]:
             plan[i:end] = 0.0
@@ -291,6 +297,7 @@ def place_startable(
     start_below: np.ndarray | None,
     temps_of: Callable[[np.ndarray], np.ndarray],
     repair: Callable[..., np.ndarray],
+    charge_running: bool = True,
 ) -> np.ndarray:
     """The floor repair of ``plan`` under the pump's start condition.
 
@@ -301,16 +308,17 @@ def place_startable(
     warms the tank under every later charge, so the two repeat until the
     plan stands, at most :data:`STARTABLE_ROUNDS` times. The plan that leaves
     holds no charge the pump would not start, and is short of the floor only
-    where no startable step can hold it.
+    where no startable step can hold it. ``charge_running`` is
+    :func:`drop_unstartable`'s; ``repair`` is handed it already bound.
     """
     if start_below is None:
         return repair(plan=plan)
     for _ in range(STARTABLE_ROUNDS):
-        fixed = repair(plan=drop_unstartable(plan, start_below, temps_of), start_below=start_below)
+        fixed = repair(plan=drop_unstartable(plan, start_below, temps_of, charge_running), start_below=start_below)
         if np.array_equal(fixed, plan):
             break
         plan = fixed
-    return drop_unstartable(plan, start_below, temps_of)
+    return drop_unstartable(plan, start_below, temps_of, charge_running)
 
 
 class _DhwLegionellaPlan(NamedTuple):
@@ -1297,7 +1305,7 @@ class DhwPlanner:
         # before each breach until the simulated trajectory honours the
         # requirement, then re-apply the rating, which always wins.
         start_below = dhw_start_temps(params, initial_state, n_steps, legionella_step)
-        tank = (ctx, initial_state.dhw_temperature, draw_rates)
+        tank, running = (ctx, initial_state.dhw_temperature, draw_rates), initial_state.dhw_charge_under_way
         schedule = place_startable(schedule, start_below, partial(self._ctx_temps, *tank), partial(
             self._repair_dhw_floor,
             ctx,
@@ -1305,8 +1313,8 @@ class DhwPlanner:
             draw_rates=draw_rates,
             requirement=requirement,
             max_temp=max_temp,
-            forced_off=forced_off,
-        ))
+            forced_off=forced_off, charge_running=running,
+        ), running)
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
         # so a plan leaves this stage already bounded by the per-step
@@ -1731,7 +1739,7 @@ class DhwPlanner:
         requirement: np.ndarray,
         max_temp: np.ndarray,
         forced_off: np.ndarray | None = None,
-        start_below: np.ndarray | None = None,
+        start_below: np.ndarray | None = None, charge_running: bool = True,
     ) -> np.ndarray:
         """Top up the plan until the SIMULATED trajectory meets the floor.
 
@@ -1803,7 +1811,7 @@ class DhwPlanner:
             usable = headroom > 1e-6
             if forced_off is not None:
                 usable &= ~np.asarray(forced_off[lo : b + 1], dtype=bool)
-            usable &= startable_steps(plan, temps, start_below)[lo : b + 1]
+            usable &= startable_steps(plan, temps, start_below, charge_running)[lo : b + 1]
             # Degrees of room under the ceiling for heat added at each
             # candidate. The heat is stored from the candidate to the breach,
             # decaying as it leaks away, so the bound is the tightest of
