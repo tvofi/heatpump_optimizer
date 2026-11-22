@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_a7dd3153718e531b.py: Metric: Whether _confidence_margins(4) returns None (the byte-inert 'no margin') or an array, when the damping 1 - trust() lies in (0, 1e-9] and a lead bucket's sigma exceeds 1 C. Count = inputs who

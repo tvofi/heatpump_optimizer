@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_faf822994582adfc.py: Metric: The DHW advisor's recommended_setpoint and per-candidate meets_heaviest_window when the configured tank minimum (dhw_min_temperature) sits above the lowest candidates and every demand window

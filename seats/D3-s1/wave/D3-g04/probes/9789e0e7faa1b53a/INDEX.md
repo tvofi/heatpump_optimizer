@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_9789e0e7faa1b53a.py: Metric: Count of ledger inputs on which _contract_comparison() differs between `kwh > 0` and `kwh >= 0` in its cheapest-contract guard. The arms differ only at kwh == 0, where costs holds hourly_spo

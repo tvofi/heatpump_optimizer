@@ -1,0 +1,1 @@
+- _tools/: the probe generator (gen.py + spec.py + prelude.py) and the per-key record builder (record.py, meta.py); run from $HOME/pgen on the box

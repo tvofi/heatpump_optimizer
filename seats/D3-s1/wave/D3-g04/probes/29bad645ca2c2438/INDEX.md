@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_29bad645ca2c2438.py: Metric: The DHW advisor's recommended_setpoint at a cost tie: a recent kWh price at which candidate 50's unrounded cost_per_day equals candidate 48's ROUNDED stored cost (0.05), every window with a 

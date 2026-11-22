@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_b6b6e82fb4a33703.py: Metric: Count of damping values 1 - trust() reachable through AccuracyTracker.trust() (any temperature MAE) that equal 1e-9 exactly -- the only input where `<=` and `<` differ -- plus the None/array

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_10ba5036744c9a99.py: Metric: Max |difference| of _confidence_margins(n) between arms over the step lengths production can hand it (OptimizationConfig.time_step_minutes, never assigned outside its 15.0 default), and over

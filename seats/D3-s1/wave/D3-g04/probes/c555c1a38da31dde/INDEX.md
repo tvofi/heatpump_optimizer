@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_c555c1a38da31dde.py: Metric: _dhw_mixed_water()'s litres_40c at an inlet of exactly 39.0 C (40 - inlet == 1.0, the boundary of `< 1.0`), and the highest inlet production can resolve.

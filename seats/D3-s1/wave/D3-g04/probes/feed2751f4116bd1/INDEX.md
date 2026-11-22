@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_feed2751f4116bd1.py: Metric: The DHW advisor's recommended_setpoint when a candidate's usable energy equals the heaviest window exactly: a zero-kWh learned heaviest window and a tank minimum equal to a candidate setpoin

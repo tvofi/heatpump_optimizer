@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_8b4f4adbf55981bc.py: Metric: Count of reachable _weather_forecast values on which _current_humidity() differs between arms. The attribute is a list from __init__ (coordinator.py:3725) and is only ever assigned a non-emp
