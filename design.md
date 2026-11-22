@@ -1,12 +1,12 @@
-# R11-OWNER-STEP-KICK: the space set-point's step-start kick to the ceiling (design note, rev 2)
+# R11-OWNER-STEP-KICK: the space set-point's step-start kick to the ceiling (design note, rev 3)
 
-Rev 2 answers `Design review: revise 6deece87f2c53f27bb3dd60938e7adc705ad8f94 harness`: verdict 824b0d4a on `design-verdict/R11-OWNER-STEP-KICK`, points R1–R6 and the six carries.
+Rev 2 answered `Design review: revise 6deece87f2c53f27bb3dd60938e7adc705ad8f94 harness` (verdict 824b0d4a: R1–R6 and six carries). Rev 3 answers `Design review: revise 238cf282f37e4baf1a99c8cf474201700dffc702 consistency` (verdict a4aeeaf7: C1, plus the carries t9-label, payment-fallback and fault-gap), under the orchestrator's ruling for option (a).
 
 Base: `origin/main` 3a98735a7ecc59e7ecc095a0429cdf6251d956ec. There is no predecessor handoff. Sibling notes, read at their tips:
 - `design/R11-OWNER-FLOWCAP` fa8cd134
 - `design/R11-OWNER-FROST-HOLD` e91a4e30
 - `design/R11-OWNER-FAULT-HOLD` 6244553e
-- `design/R11-OWNER-MODE-LEGS` 79719c38
+- `design/R11-OWNER-MODE-LEGS` 0e59437a (approved, verdict a45b5af9)
 
 Evidence: the owner's live report, read against a private diagnostics bundle that stays local. **No finder harness: owner report.** Every number below is either invented or a code constant.
 
@@ -48,9 +48,9 @@ The return-target case is different. A target below a just-heated return stops t
 **The swap record (R6).** I checked which existing records could detect the swap; neither can:
 - `ArbiterState.last_duty` is the **step** duty. `_observe` sets it before `_served` runs, so a both step's DHW→Heating leg change never shows in it.
 - `duty_switch.note_mode_write` hears only landed mode writes. The GCHV gate transport swaps duties without one.
-- MODE-LEGS at 79719c38 adds no served-duty history. Its latch is `duty_switch._Record.order`, and it edits `_served` and `_share`.
+- MODE-LEGS at 0e59437a adds `duty_switch._Record.leg = (mode, since, previous)`, set in `note_mode_write` whenever the mode key changes. That is a different signal: the **landed mode**, not the **served duty**. On a GCHV gate transport the mode stays Heat + DHW (FROST-HOLD e91a4e30's install table), so `rec.leg` never moves at a swap there.
 
-So this group adds its own record: `ArbiterState.served: tuple[str | None, datetime] | None`. `_arbitrate` writes it right after `served = _served(...)`, on passes that reach `_command`.
+**One owner (orchestrator ruling, option (a)):** `ArbiterState.served: tuple[str | None, datetime] | None` is the only swap record. `_arbitrate` writes it right after `served = _served(...)`, on passes that reach `_command`. **STEP-KICK does not read `rec.leg`**, so on a mode transport there are not two records of one swap that could disagree. `rec.leg` stays MODE-LEGS' own, for its entry check. The orchestrator corrects MODE-LEGS' STEP-KICK overlap line and its `leg-history-owner` carry in that group's fixer brief.
 
 **A swap** is a pass that serves `space` or `both` when `held.served` holds `dhw` from **less than `SWAP_SETTLE` ago**. Because the previous serve must be that recent, a gap such as FAULT-HOLD's suspension, a switch-off or a restart (the field is not persisted) never fires a swap late. A swap sets `held.swap_at`, and `held.served` is then overwritten.
 
@@ -109,7 +109,7 @@ On these passes the pump's own two thermostats swap internally. Its next space w
 
 This group does not cover them, because no configured slot reports the pump's diverter state. The Tuya fork and the GCHV package expose none, and using a hot inlet alone as the trigger would also fire on a genuinely hot buffer (T3). Boosts are excluded anyway (I5). The harness counts this class, `both-internal`, so a later group can size it.
 
-**FROST-HOLD entry (carry frost-entry).** Entering a frost hold right after a dhw-served pass serves `space`, so it sets `swap_at`. The hold row bypasses `_map_inputs`, so no write changes. T9 pins this.
+**FROST-HOLD entry (carry frost-entry).** Entering a frost hold right after a dhw-served pass serves `space`, so it sets `swap_at`. The hold row bypasses `_map_inputs`, so no write changes. T11 pins this.
 
 ## 4. Harness
 
@@ -163,8 +163,8 @@ The harness is `dev/audit/harnesses/r11_owner_step_kick.py <bundle.json>`. It pr
 | T6 (null) | return unit, indoor unit, an experiment step (I6) | unchanged |
 | T7 | band top, boost | the ceiling (I5) |
 | T8 | gate transport, served swap with no mode write | the rule triggers |
-| T9 | a dhw serve older than the settle (a fault gap) | no swap |
-| T9 | frost-hold entry after dhw | no write changes |
+| T9 | both sides of the window (carry fault-gap): a dhw serve 4 min 59 s before a space serve (for example a FAULT-HOLD that clears inside the settle span) is a swap; one 5 min 0 s before (a longer fault gap) is not | swap, then no swap |
+| T11 | frost-hold entry after dhw | `swap_at` set, no write changes |
 | T10 | `both` served throughout | unchanged (the residual, pinned) |
 
 **Mutation targets:** the settle comparison, the `min`, the served-duty predicate, the recency guard, the max-age guard, the I4 and I6 exclusions.
@@ -173,7 +173,7 @@ The harness is `dev/audit/harnesses/r11_owner_step_kick.py <bundle.json>`. It pr
 - `module_excess_loc` has no headroom, and `pump_arbiter.py` is over `MODULE_LOC_LIMIT`.
 - The move of `FLOW_INLET_KEYS` and `RETURN_SKIPPED_RUNG` with their comment, plus any `CONF_*` imports left unused, has to cover everything this group adds to `pump_arbiter.py`. That is the fields, the swap note, the space-inlet record, the `Settle` build, and the `settle=` keyword lines.
 - The fixer measures the net with `python3 tests/structure.py` at its merge base, and it must be zero or below. They also run `tools/audit/archscore/` before and after.
-- If the net comes out above zero, the next move is `_or_hold` and `_gate_floor_c`, the floor's own helpers, into `flow_anchor.py`, judged by archscore.
+- If the net comes out above zero, prefer a move that only the floor anchor reads, judged by archscore before and after. Do **not** move `_gate_floor_c`: FLOWCAP (its flow-limit gate rule), FROST-HOLD (the hold's floor) and every `_flow_target` caller read it, and by then those groups have landed on it. Moving it would reach into three groups' code for a one-group payment (carry payment-fallback). `_or_hold` alone, which only `_map_inputs` reads, is the candidate.
 - The new module and the harness must be classified, in a closure or on `tests/closure.py`'s INERT list. Never run a full `derive_closures.sh` off Linux.
 
 ## 6. Hot files, order, overlap
@@ -183,9 +183,9 @@ Hot files: `pump_arbiter.py`, `tests/features.py`, `flow_anchor.py`, `tests/clos
 **Order (orchestrator ruling):** FLOWCAP lands first, then FROST-HOLD, then FAULT-HOLD, then MODE-LEGS, then STEP-KICK. This group rebases onto all of them.
 
 - **FLOWCAP** owns the top (`heat_c`, `flow_limit.py`), and this group owns the floor anchor. They compose. Its fallback payment moves `_flow_command`/`_full_draw_c`, not the inlet keys.
-- **FROST-HOLD** adds `ArbiterState` fields and a frost read in `_arbitrate`. Its entry sets `swap_at` with no effect on the write (T9).
-- **FAULT-HOLD** returns from `_arbitrate` before `_command` while faulted, so no `served` note is made then. The recency guard keeps the first pass after the clear from counting as a swap (T9).
-- **MODE-LEGS** changes `_served`/`_share` and the swap count. The `served` note sits on the same `_arbitrate` lines. The harness's "before" baseline is taken on MODE-LEGS' merged code, because fewer swaps means fewer kicks.
+- **FROST-HOLD** adds `ArbiterState` fields and a frost read in `_arbitrate`. Its entry sets `swap_at` with no effect on the write (T11).
+- **FAULT-HOLD** returns from `_arbitrate` before `_command` while faulted, so no `served` note is made then. A fault that clears inside the settle span still counts as a swap on the first free pass. That is physically right, because the return can still be hot. A longer one does not count (T9 pins both sides).
+- **MODE-LEGS** (0e59437a) changes `_served`/`_share` and the swap count, and it adds `rec.leg`, which this group does not read (§3). The `served` note sits on the same `_arbitrate` lines. The harness's "before" baseline is taken on MODE-LEGS' merged code, because fewer swaps means fewer kicks.
 
 ## Notes for the fixer
 
