@@ -87477,6 +87477,58 @@ for _cg_mode, _cg_want in (("Cooling", "cooling"), ("Cooling + DHW", "cooling"),
             _cg_got == _cg_want, f"{_cg_got}")
 
 
+# The live select, where it reads a known mode, outranks the cycle's reading:
+# a select reading Heating over a stale Cooling reading lets a boost through.
+async def _cg_stale(live, cooling):
+    hass, coord = _cg_coord(live)
+    cap = importlib.import_module(_cg_pa.__package__ + ".pump_mode").MODES["cool" if cooling else "heat"]
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "mode": cap})
+    _on, calls = await _cg_cycle(coord)
+    return [c[1] for c in calls], [i[1] for i in getattr(hass, "issues", [])]
+
+
+for _cg_name, _cg_args, _cg_want in (
+    ("a select reading Heating over a stale Cooling reading switches a boost on", ("Heating", True), ["turn_on"]),
+    ("null control: select Heating, reading Heating switches it on", ("Heating", False), ["turn_on"]),
+    ("null control: select Cooling over a stale Heating reading writes nothing", ("Cooling", False), []),
+):
+    _cg_calls, _cg_iss = _asyncio.run(_cg_stale(*_cg_args))
+    R.check(f"cooling hands-off: {_cg_name}",
+            _cg_calls == _cg_want and (_CG_ID in _cg_iss) is (not _cg_want), f"{_cg_calls} {_cg_iss}")
+
+
+# The refusal's release: a plan ON the cycle could not write in Cooling lands
+# at the step tick once the select leaves cooling, not at the next cycle.
+async def _cg_release(leave):
+    hass, coord = _cg_coord("Cooling", power=1.5)
+    held = _cg_pa.state_for(coord)
+    held.supply_unsub = lambda: None  # the tick is driven by hand below
+    on, _calls = await _cg_cycle(coord, boosted=False)
+    _cg_pa.note_supply(held, _cg_pa.SupplyWiring(coord.arbiter_inputs, _cg_boost.held_for(coord), coord._write_supply), on, _CG_T0)
+    if leave:
+        hass.states.set("select.hp_mode", FakeState("Heating", last_updated=_CG_T0 + timedelta(minutes=1)))
+    seen = []
+    for minute in (2, 15):
+        _cg_dt.freeze(_CG_T0 + timedelta(minutes=minute))
+        try:
+            await _cg_pa.supply_tick(held, _cg_pa.SupplyWiring(coord.arbiter_inputs, _cg_boost.held_for(coord), coord._write_supply))
+        finally:
+            _cg_dt.freeze(None)
+        seen.append([c[1] for c in hass.services.calls if c[0] == "switch"])
+    return seen, [i[1] for i in getattr(hass, "issues", [])]
+
+
+for _cg_name, _cg_leave, _cg_want in (
+    ("the select set to Heating: the refused ON lands at the next tick and the notice clears", True, ([["turn_on"], ["turn_on"]], [])),
+    ("null control: the select still Cooling: no tick writes the switch", False, ([[], []], [_CG_ID])),
+):
+    try:
+        _cg_got = _asyncio.run(_cg_release(_cg_leave))
+    except Exception as _cg_err:  # noqa: BLE001 -- the check reports what raised
+        _cg_got = repr(_cg_err)
+    R.check(f"cooling release: {_cg_name}", _cg_got == _cg_want, f"{_cg_got}")
+
+
 
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
 from heatpump_optimizer import duty_legs as _ds_legs  # noqa: E402
