@@ -1,0 +1,8 @@
+08c19e58ae total 21779 {'config_flow.py': 2200, 'coordinator.py': 9376, 'dhw_planner.py': 307, 'optimizer.py': 4778, 'pump_arbiter.py': 360, 'sensor.py': 1206, 'sysid.py': 483, 'thermal_model.py': 3069}
+4ebd430fbf total 21779 {'config_flow.py': 2200, 'coordinator.py': 9376, 'dhw_planner.py': 307, 'optimizer.py': 4778, 'pump_arbiter.py': 360, 'sensor.py': 1206, 'sysid.py': 483, 'thermal_model.py': 3069}
+35402f7817 total 21718 {'config_flow.py': 2200, 'coordinator.py': 9393, 'dhw_planner.py': 307, 'optimizer.py': 4778, 'pump_arbiter.py': 283, 'sensor.py': 1205, 'sysid.py': 483, 'thermal_model.py': 3069}
+35402f7817 total 21816 {'config_flow.py': 2200, 'coordinator.py': 9399, 'dhw_planner.py': 307, 'optimizer.py': 4778, 'pump_arbiter.py': 375, 'sensor.py': 1205, 'sysid.py': 483, 'thermal_model.py': 3069}
+origin/mai total 21779 {'config_flow.py': 2200, 'coordinator.py': 9376, 'dhw_planner.py': 307, 'optimizer.py': 4778, 'pump_arbiter.py': 360, 'sensor.py': 1206, 'sysid.py': 483, 'thermal_model.py': 3069}
+f269ecccb5 total 21779 {'config_flow.py': 2200, 'coordinator.py': 9376, 'dhw_planner.py': 307, 'optimizer.py': 4778, 'pump_arbiter.py': 360, 'sensor.py': 1206, 'sysid.py': 483, 'thermal_model.py': 3069}
+a8efe1d1c2 total 21718 {'config_flow.py': 2200, 'coordinator.py': 9393, 'dhw_planner.py': 307, 'optimizer.py': 4778, 'pump_arbiter.py': 283, 'sensor.py': 1205, 'sysid.py': 483, 'thermal_model.py': 3069}
+6fdc15354f total 21816 {'config_flow.py': 2200, 'coordinator.py': 9399, 'dhw_planner.py': 307, 'optimizer.py': 4778, 'pump_arbiter.py': 375, 'sensor.py': 1205, 'sysid.py': 483, 'thermal_model.py': 3069}
