@@ -25,3 +25,4 @@
 1795305543 CKPT re-fire at same head 76e2224896: setup OK, merge-tree vs main 4ebd430f clean; waiting on CI snapshot eedc1fe82b46
 1795306165 HB ci wait 10
 1795306842 HB ci wait 20
+1795307518 HB ci wait 30
