@@ -1,0 +1,59 @@
+{
+ "key": "0e752f692873e876",
+ "site": "dhw_planner.py:740 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 740,
+ "patch": "runup_temps = np.zeros(max(n_steps, 0)) -> runup_temps = np.zeros((n_steps))",
+ "function": "DhwPlanner._dhw_legionella_ceilings",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3440.6,
+  "load1_start": 0.78,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5686.0,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/0e752f692873e876.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0e752f692873e876"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_0e752f692873e876.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_0e752f692873e876.py",
+  "baseline_value": "moved_in_range=0 count",
+  "mutant_value": "neg_n_mutant=raises ValueError",
+  "results": {
+   "inputs_tried": "14 count",
+   "moved_in_range": "0 count",
+   "neg_n_baseline": "ok-empty",
+   "neg_n_mutant": "raises ValueError",
+   "reach_calls": "2 count",
+   "reach_min_n_steps": "96 count",
+   "thread_factor": "1.005 ratio",
+   "load1": "3.02",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "n_steps -1/0/1/2/96/192 x cycle step None/0/middle/last; a production optimize() spy",
+  "reading": "identical on every n_steps >= 0 (14 inputs); separates only at n_steps=-1 (baseline empty arrays, mutant ValueError), and optimize() hands the planner min(len(prices), len(outdoor), config.n_steps) >= 0 (reach_min_n_steps=96): unreachable through production",
+  "thread_factor": 1.005,
+  "load1": 3.02
+ },
+ "should_fail": "none through production; only a direct call with a negative n_steps separates (tests/features.py drives _dhw_legionella_ceilings directly at line 12099 but never with n_steps < 0)"
+}
