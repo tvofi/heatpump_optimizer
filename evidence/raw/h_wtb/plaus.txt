@@ -1,0 +1,6 @@
+RESULT keys=15 count
+RESULT above_max_accepted=0 count
+RESULT below_min_accepted=0 count
+RESULT thread_factor=1.005
+RESULT load1=0.69
+RESULT swapins=0

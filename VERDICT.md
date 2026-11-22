@@ -1,49 +1,39 @@
-Fix review: blocked 98cb43e750457b41ae6feb9a0c56cf1d6728e201 mutation-vacuous: open_meteo.py _parse_block len(kept) < 2 loosened to < 1 survives every _parse_block caller and is not equivalent
+Fix review: blocked 89f4b0324b442b4875d7c8790fc90baf62d5a2e2 class-open: axis numeric options that an earlier release stored as non-numbers unenumerated (e.g. day_start_hour)
 
-bus-nonce: 9067c8bbf58c0d6c4f2d781b8a9243f8
+bus-nonce: 7f12accf7f8af5227bf5f8c2e90dfac0
+
+Round 4 of this PR, the re-cut. Rounds 1 to 3 blocked at 40328a85 (`class-open: wood_fuel.lighting_window`, one site) and at 98cb43e7 (`mutation-vacuous`). This is the first block on this axis, so the open-axis rule's escalation (addendum item 10) does not apply yet. Review scope: full; the packet was rendered with no `--reviewed-head`.
 
 ## Block
 
-- Round 3 of this PR (round 2 blocked at 40328a85, `class-open: wood_fuel.lighting_window`). Review scope: full. The packet rendered with no `--reviewed-head`.
-- Survivor: `custom_components/heatpump_optimizer/open_meteo.py:256`, the line this PR adds, `if len(kept) < 2:` mutated to `if len(kept) < 1:`. Under the mutant these all stay green: `tests/open_meteo.py` (`ALL OPEN-METEO CHECKS PASSED`), `tests/solar_alignment.py` (`ALL SOLAR ALIGNMENT CHECKS PASSED`), and features.py's block `P1/P2/N-min-gap ... feed parsers`, which is the only other `_parse_block` caller (`ALL 7 FEATURES BLOCK PASSED`). See `ev/m12_closure_runs.txt`. I did not run the other 20 scripts in open_meteo.py's measured closure. None of them calls `_parse_block` (scout locate over `tests/` and `tools/`).
-- The body says round 1's reviewer dismissed this mutant (round 1's M14) "as equivalent under `mean_over`'s coverage rule". It is not equivalent: `ev/m12_probe.txt` (driver `ev/m12_probe.py`, run on a `git archive` of the head):
-  - Block `{"time": ["0001-01-01T00:00", "2026-08-21T00:00"], "shortwave_radiation": [1.0, 100.0]}`.
-  - At the head, the block parses to an empty series. `mean_over` reads `None` for 23:00-00:00, 23:30-00:00 and 22:00-01:00.
-  - Under the mutant, it parses to a one-sample series `(2026-08-21 00:00, 100.0)` with `resolution 739848 days, 0:00:00`. Its span `(t - resolution, t]` reaches back to year 1. `mean_over` then reads `100.0` for all three windows.
-  - The guard is what refuses a lone survivor whose resolution was inferred from a gap to the dropped stamp. That case always has a span back to year 1: with two stamps and one dropped, the single gap is at least the survivor's distance from year 1.
-- The finder's harness does not separate the mutant. `parsers_fuzz.py --arm openmeteo` reads `openmeteo_year1_solve_failures=0` at the head and also under the mutant (`ev/finder_openmeteo_mb_head_m12.txt`). This survivor is therefore a test gap, not a regression of D1-s3-03's metric.
-- Remedy, owed by the fixer: a `tests/open_meteo.py` check that the two-stamp block above parses to no samples (or that `mean_over` reads `None` over a window it would otherwise claim), with its null control. The rest of the review holds, and a re-review is the delta.
+- class-open, axis `numeric options that an earlier release stored as non-numbers`, the body's own set. Its rule is `entry_config._DEFAULTED_NUMBERS` (`finite_float`, `_nonzero_number`, `_interval_minutes`, `_lead_minutes`). The body's only residue is `_refused_number` ("`_refused_number` keys are left alone"). The seven `EntryConfig` fields parsed by `_whole` are numeric options, and neither the rule nor a stated residue category covers them: `day_start_hour`, `day_end_hour`, `day_start_hour_weekend`, `day_end_hour_weekend`, `holiday_day_start_hour`, `holiday_day_end_hour`, `ecl110_mqtt_qos`.
+  - The finding's own failure reproduces on six of them at the head. The driver is the finder's `config_fuzz.run` scenario at version 5, with each key added to `HEALTHY` and then set to `"abc"`, `None`, `[v]` or `{"v": v}` (ev/whole-keys-census-all-head.txt). The result is `RESULT census_fail=24 of 32`: migrate `ok`, build `ok`, and both cycles `UpdateFailed: Error updating data: could not convert string to float: 'abc'` (or the `float() argument must be ...` variant). The merge base fails the same way, `census_fail=12 of 16` for the hour keys probed there (ev/whole-keys-census-head-base.txt).
+  - Null controls: the unmutated entry with the extra keys gives `CTRL` ok at both ends. `ecl110_mqtt_qos` and `silent_mode_power_fraction` survive all four ops.
+  - Mechanism (ev/comfort-band-probe-head.txt): `coordinator._update_current_state` calls `_audit_comfort_band`, which calls `comfort_band.violations({}, ctx._config)`. `comfort_band.effective` returns `float(current.get(key, default))` on the raw stored value, so `int(eff(CONF_DAY_START_HOUR, ...))` raises. At the head, `EntryConfig.from_mapping({"day_start_hour": "abc"}).day_start_hour` is `7` (the parse defaults it), while `number_repairs({"day_start_hour": "abc"})` is `{}`, so the migration leaves the text stored. Numeric text (`"7"`) passes.
+  - This is the reader the body itself names for D1-s2-05 ("`comfort_band.effective` read it raw"). The pinned test's selector `_mig_defaulted` requires `type(_twelve) is float`, which excludes every `_whole` field by construction. The finder's `config_fuzz.HEALTHY` holds 18 keys and none of the seven, so its `permanent_cycle_fail ... all 0` at the head cannot reach this part of the set.
+  - To close it: extend the rule to the `_whole` keys (`int` of numeric text, drop the rest), or state a residue category that holds them with its reason. Pin it with the same shape as the existing check, plus a null control.
 
 ## Findings
 
-- Residual: features.py's P8 block (`R.section("P8 — a price or temperature entity's unit is read at the seam (#1513)")`) does not run alone under `tools/audit/seat/features_block.py`, even with the `_r9f41_const` prelude: `NameError: name '_Coord' is not defined` after the D7-s3-01 check. The D7-s3-01 check reads `ok` at the head and `FAIL` under its mutant before the NameError, so the proof stands, but the block cannot be run whole. Carry: dismissed: a seat-instrument convenience, `--emit-prelude` derives the missing prelude; nothing in this PR's code or tests depends on it.
-- Note: paperwork: the body's `## Unpinned sites` row for `entry_config.py:52` still names `_MAX_INTERVAL_MINUTES`, which the repair renamed `_MAX_PLAN_MINUTES`. Carry: dismissed: a stale name in the body, settled by the fixer's next body edit on this PR.
+none
 
 ## Evidence
 
-- Head reviewed: 98cb43e750457b41ae6feb9a0c56cf1d6728e201 (`ev/HEAD.txt`). Merge base: ae0ed64af898d8923ac35afe6e9c031ac1e6b111.
-- `git merge-tree --write-tree origin/main 98cb43e7...` rc=0, no conflict (`ev/merge-tree.txt`).
-- `VERSION`, `manifest.json`, `RELEASE_NOTES.md`, `tests/golden/`, `tests/*budgets.json`: three-dot diff empty (`ev/untouched.txt`).
-- Mutation proof, one at a time, worktree at the head, with `git status --porcelain` empty after each (`ev/mutants_*.log`, driver `ev/mutant_driver.py`). Killed:
-  - M1, `parse_bool` back to `float(token) != 0.0`: `FAIL parse_bool reads no non-finite number as a flag (D1-s3-01)`.
-  - M2, `_begin`'s `isinstance(entity_id, str)` guard deleted: the block dies with `TypeError: cannot use 'dict' as a dict key`.
-  - M3, `kept` = every index: `FAIL a stamp with no representable span is dropped, and the block still averages`.
-  - M4, `repairs = {}`: `FAIL an old entry's non-numbers under numeric options are repaired, with one warning naming them`.
-  - M6, `_attach_windows` reading the raw option with `max(0.0, finite_float(...))`: `FAIL a stored lead outside [0, a day] is the default 60 min`.
-  - M7, `_interval_minutes`'s range guard dropped: `FAIL an optimization interval outside (0, a day] parses as the default`.
-  - M8, `temperature_from_c` multiplying by the factor: `FAIL temperature_from_c inverts every unit row the reader converts (D7-s3-01)`.
-  - M9, `plausible_c` one-sided: `FAIL every plausible window refuses a reading one degree past either end (D1-s2-51)`.
-  - M11, `repaired_numbers` keeping keys mapped to None: `FAIL an old entry's non-numbers ... repaired`.
-  - M13, the lead floor made strict: `FAIL a lead inside [0, a day] is its own`.
-  - M5, `_lead_minutes` dropped from `_DEFAULTED_NUMBERS`: `FAIL every option whose parse defaults text it cannot read is repaired by the migration [unrepaired: ['wood_lighting_lead_minutes']]`.
-  - M10, `number_repairs`'s bool branch dropped: `FAIL an old entry's non-numbers ... repaired` (`cop_scale: True` left stored).
-  - M14, the `mixing_valve_target` declaration deleted: the same check (`mixing_valve_target: 'abc'` left stored).
-- Survivor: M12 (above).
-- The finder's harnesses, from the plan export 819aa2e3 (`parsers_fuzz.py` sha1 74da66cd7b0beac627cb2a636e6c0364c1ddc019), merge base then head (`ev/finder_*.txt`). Each matches the body:
-  - `pump_nonfinite_flag_true`: 10 then 0. `pump_nonfinite_freeze_fault`: 5 then 0. `pump_null_control_zero_flag_true`: 0 then 0.
-  - `openmeteo_year1_solve_failures`: 3 then 0. `openmeteo_healthy_solve_failures`: 0 then 0.
-  - `config_fuzz.py --versions 2`: `build_fail` 11 then 0, `permanent_cycle_fail` 14 then 0. `--versions 5`: 5 then 0 and 17 then 0. I re-ran v2 and v5 only; v1, v3, v4 and v6 were not re-run.
-- Body figure "47 fields" re-derived: the selection by parse behaviour returns 47 fields, with parses exactly `_interval_minutes`, `_lead_minutes`, `_nonzero_number` and `finite_float`. It equals the `_DEFAULTED_NUMBERS`-declared set (difference empty).
-- Class step: every production reader of `optimization_interval` and `wood_lighting_lead_minutes` reads the parsed `EntryConfig` field (`coordinator.py`, `supply_hold.py:101`, `__init__.py:179`, `early_cutoff.py:172`, `heat_curve.py:348`, `wood_fuel.py:560`). `sysid.py:1359` reads the constant default. No raw reader is left. I found no seam beyond the body's dispositions.
-- Step 16: no new path skips an actuator write.
-- CI, live classify on this head, polled every ~60 s since 22:49 UTC: still WAIT at the verdict, last line `WAIT 98cb43e750457b41ae6feb9a0c56cf1d6728e201 pending: gate red: none` (`ev/classify_poll.log`). The block above is on tests, not CI. The digest's `tests / mutation` red is in the `owed-reds` set and is answered in the body's `## Red checks`; I checked that it was answered, not the answer.
+- Head measured: 89f4b0324b442b4875d7c8790fc90baf62d5a2e2, the PR head and the head the body names (ev/HEAD.txt). Merge base: f269ecccb5f1dfd21eca03a3d5dcc43b3a145603. `dev/governance/roles/` matches between the merge base and origin/main except for main's newer `fix-review.md`/`fixer.md`. I followed main's copy (the role pack rendered at origin/main f88ec8f8).
+- Merge: `git merge-tree --write-tree origin/main <head>` rc=0, no conflict (ev/merge-tree.txt).
+- `VERSION`, `manifest.json`, `RELEASE_NOTES.md`, `tests/golden/` and `*budgets.json`: the three-dot diff is empty, and no claim file is touched.
+- Finder's harnesses from the plan export 819aa2e3 (parsers_fuzz sha1 74da66cd, config_fuzz sha1 c0ecf63a, both matching the body), merge base f269ecc then head (ev/finder-harness-base-head.txt, raw output in ev/raw/). The body measured its base at e893cd3d. Every figure re-derives here:
+  - `pump_nonfinite_flag_true` 10 then 0; `pump_nonfinite_freeze_fault` 5 then 0; `pump_null_control_zero_flag_true` 0 at both ends.
+  - `openmeteo_year1_solve_failures` 3 then 0; `openmeteo_healthy_solve_failures` 0 at both ends.
+  - `unit_mismatches` 0 and 0; `temperature_roundtrip_disagreements` 0 and 0 of 35 probes; `above_max_accepted` 0 and 0 of `keys=15`.
+  - config_fuzz v1..v6: `build_fail` 8, 11, 10, 9, 5, 11 then all 0; `permanent_cycle_fail` 17, 14, 16, 12, 17, 12 then all 0; `migrate_fail` 0 and `CTRL` ok at both ends.
+- Reviewer's mutants at the head, each restored with porcelain empty (driver ev/mutation_driver.sh, output ev/mutants-head.txt). All killed:
+  - `kept` = every index; `len(kept) < 1`; the floor without `+ resolution` (tests/open_meteo.py);
+  - lead parsed by `finite_float`; lead ceiling dropped; lead floor strict (tests/wood_advisor.py);
+  - `parse_bool` reverted; `_begin` guard off; `plausible_c` one-sided (features.py block "Non-numeric inputs (v5.3.0)", clean `ALL 44 FEATURES BLOCK PASSED`).
+  - The `tests/entities.py` kills (`if repairs:`, `_interval_minutes` bounds) were not re-run and are cited from the ledger records in the diff.
+- The interval/lead reader census at the head: every reader of `optimization_interval` and `wood_lighting_lead_minutes` goes through the `EntryConfig` field. `sysid.py:1359` reads the constant.
+- Step 16: the diff adds no path that skips an actuator write.
+- Instruments built by this reviewer, not the finder: ev/census_driver.py (it imports the finder's `config_fuzz` and adds keys to `HEALTHY`) and ev/mutation_driver.sh.
+- CI: `merge_train.py classify` exits 3 with `WAIT 89f4b0324b442b4875d7c8790fc90baf62d5a2e2 pending: gate red: none` (ev/ci-classify-poll.log). The block above is on code, not on CI. The packet's digest `gate failure` is the aggregate; classify reads no red.
+- Closing self-audit: `carry_audit.py check` rc=0, `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)`. The `--body` input was the live body's `## Forward-carry` and `## Friction` sections, copied by hand because this seat has no `gh`.
