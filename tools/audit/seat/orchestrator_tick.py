@@ -4961,29 +4961,36 @@ def self_test() -> int:
         total, failed = total + a, failed + f
 
         # ---- main-red on the self-test drift step: held by selftest-absorb (P-R11-SELFTEST-ABSORB) ----
-        def absorb_tick(compare_rc):
+        def absorb_tick(compare_rc, ahead="1"):
             g = Stub()
             g.on("commits/main", out=H1)
             g.on_ruleset_list()
             g.on("rulesets/42", out="tests\n")
             g.on(f"commits/{H1}/check-runs", out="\n".join(json.dumps(run_obj(n, conclusion="failure", cid=c)) for n, c in (
-                ("governance / instrument-self-tests", 136902224642), ("instrument-self-tests", 5002))))
+                ("governance / instrument-self-tests", 136902224642), ("instrument-self-tests", 5002),
+                ("governance / other-self-tests", 5003))))
             g.on("actions/jobs/136902224642/logs", out="")
             g.on("actions/jobs/136902224642", out=SELFTEST_DRIFT + "\n")
             g.on("actions/jobs/5002/logs", out="FAILED: a mutant survived\n")
             g.on("actions/jobs/5002", out="Show the beat's job rows refusing their own fixtures\n" + SELFTEST_DRIFT + "\n")
+            # Another lane whose one failed step bears the drift step's name:
+            # the hold is the instrument-self-tests lane's alone.
+            g.on("actions/jobs/5003/logs", out="FAILED: other\n")
+            g.on("actions/jobs/5003", out=SELFTEST_DRIFT + "\n")
             g.on("check-runs/", out=json.dumps({"title": None, "summary": None, "text": None}))
             g.on("compare/main...handoff/selftest-absorb", rc=compare_rc,
-                 out="" if compare_rc else "1 25238b470a" + "c" * 30)
+                 out="" if compare_rc else ahead + " 25238b470a" + "c" * 30)
             g.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
             g.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
             tk = Tick("o/r", str(version), gh=g, git=Stub(), proc=lambda p: [], now=NOW)
             tk.main()
             got = [x["text"] for x in tk.sections["MAIN"] if x["text"].startswith("main-red ")]
             return (next((b for b in got if b.startswith("main-red governance / instrument-self-tests")), ""),
-                    next((b for b in got if b.startswith("main-red instrument-self-tests")), ""), g)
-        held, both, g = absorb_tick(0)
-        unheld, _, _ = absorb_tick(1)
+                    next((b for b in got if b.startswith("main-red instrument-self-tests")), ""), g,
+                    next((b for b in got if b.startswith("main-red governance / other-self-tests")), ""))
+        held, both, g, other = absorb_tick(0)
+        unheld, _, _, _ = absorb_tick(1)
+        level, _, _, _ = absorb_tick(0, ahead="0")
         wf = (Path(__file__).resolve().parents[3] / ".github/workflows/governance.yml").read_text()
         a, f = check("main-red held by selftest-absorb", [
             ("run 44922703115's job 136902224642, the drift step its one failed step, reads held by selftest-absorb "
@@ -4994,6 +5001,11 @@ def self_test() -> int:
              "dispatch a fixer seat" in both and "held by" not in both),
             ("no standing ref ahead of main: still held, saying so",
              "held by selftest-absorb (no handoff/selftest-absorb ahead of main)" in unheld),
+            ("the standing ref level with main (ahead_by 0) names no sha: held, saying none is ahead",
+             "held by selftest-absorb (no handoff/selftest-absorb ahead of main)" in level
+             and "25238b470acc" not in level),
+            ("another lane whose one failed step bears the drift step's name is the fixer brief, never held",
+             "dispatch a fixer seat" in other and "held by" not in other and "job 5003" in other),
             ("the held lane reads neither its check-run output nor its log",
              not any("check-runs/136902224642" in " ".join(c) or "136902224642/logs" in " ".join(c) for c in g.calls)),
             ("the drift step's name and job id are governance.yml's",
