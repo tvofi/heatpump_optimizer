@@ -1,0 +1,9 @@
+INPUTS one week Mon 2026-01-05..Sun 01-11 hourly; Saturday 2026-01-10 03:00
+RESULT weekday_days baseline=5 mutant=6
+RESULT weekend_days baseline=2 mutant=1
+RESULT saturday_profile_index baseline=1 mutant=0
+RESULT saturday_0300_predict_level1 baseline=0.737143 mutant=0.564779
+RESULT null_days_differ=0 count (Mon-Fri, Sun)
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

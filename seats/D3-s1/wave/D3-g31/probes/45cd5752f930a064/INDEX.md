@@ -1,0 +1,1 @@
+- probes/probe_45cd5752f930a064.py (output probes/probe_45cd5752f930a064.out): pins prod_differ=0 of 840; direct var -1e-3 -> 0.0 vs mutant prod_differ=0 of 840; direct var -1e-3 -> nan; provisional class if the gate survives: equivalent-candidate

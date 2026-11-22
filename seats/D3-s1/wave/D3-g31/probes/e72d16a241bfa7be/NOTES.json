@@ -1,0 +1,8 @@
+{
+ "cls": "equivalent-candidate",
+ "base": "prod_differ=0 of 840; direct var 0, level inf -> 0.0",
+ "mut": "prod_differ=0 of 840; direct var 0, level inf -> nan",
+ "inputs": "from_dict-loaded models, residual_var in {0,-0.0,1e-12,0.04,-0.01,-5} x days {0,1,5,9} x level {0,-0,0.5,2,-0.3,1e-300,1e300} at 5 instants; direct-constructed var -1e-3, var 0 with level inf/nan, var -0.0 with level inf",
+ "should_fail": "none through production; a direct sigma call at var 0 with a non-finite level asserting 0.0 would",
+ "note": "from_dict floors residual_var at 0 (and the learner's EWMA of squares is >= 0), and extend_price_series passes a finite level (finite known prices over a shape mean > 1e-6), so var < 0 and a non-finite level never reach sigma; at var == 0 with a finite level the mutant's level*sqrt(0)*conf is 0.0 (or -0.0, equal). Equivalent through production."
+}

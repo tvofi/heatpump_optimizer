@@ -1,0 +1,12 @@
+INPUTS production: 192 calls, n_steps in (0,1,4,96,192) x offset (0,37) x known lengths (0,1,n-1,n,n+3,n/2, negative prices included) x models (None, fresh, young, trusted)
+RESULT prod_differ=0 count (of 192)
+RESULT direct_short_starts_known3_n5_len1 prices baseline=[0.4, 0.5, 0.6, 0.5, 0.5] mutant=IndexError differ=1
+RESULT direct_short_starts_known1_n4_len2 prices baseline=[0.4, 0.4, 0.4, 0.4] mutant=[0.4, 0.4, 0.4, 0.4] differ=0
+RESULT direct_short_starts_known2_n6_len2 prices baseline=[0.4, 0.6, 0.5, 0.5, 0.5, 0.5] mutant=[0.4, 0.6, 0.5, 0.5, 0.5, 0.5] differ=0
+RESULT direct_empty_starts_known2_n2 prices baseline=[0.4, 0.6] mutant=[0.4, 0.6] differ=0
+RESULT direct_long_known_n3_len1 prices baseline=[0.4, 0.5, 0.6] mutant=[0.4, 0.5, 0.6] differ=0
+RESULT direct_short_starts_known4_n4_len2 prices baseline=[0.4, 0.5, 0.6, 0.7] mutant=[0.4, 0.5, 0.6, 0.7] differ=0
+RESULT direct_differ=1 count (of 6)
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

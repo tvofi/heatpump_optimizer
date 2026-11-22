@@ -1,0 +1,1 @@
+- probes/probe_886591ca08e1d27e.py (output probes/probe_886591ca08e1d27e.out): pins prod_differ=0 of 192; direct shape mean exactly 1e-6 -> tail 0.0 vs mutant prod identical; direct -> tail 0.45; provisional class if the gate survives: equivalent-candidate

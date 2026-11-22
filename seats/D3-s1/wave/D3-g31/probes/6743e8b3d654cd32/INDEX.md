@@ -1,0 +1,1 @@
+- probes/probe_6743e8b3d654cd32.py (output probes/probe_6743e8b3d654cd32.out): pins ingress: (1,0) learned for a quarter day with one nan quarter; direct: (1,0) vs mutant ingress: (1,0); direct: (0,0) (the nan quarter makes its hour mean nan and observe_day rejects the day); provisional class if the gate survives: equivalent-candidate

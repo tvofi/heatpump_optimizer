@@ -1,0 +1,1 @@
+- probes/probe_a38612ad3ad9cd34.py (output probes/probe_a38612ad3ad9cd34.out): pins all-zero persisted weekday shape restored as all 1.0 (one warning); guessed 17:00 price at level 1.0 = 1.0 vs mutant restored as all 0.0 (no warning); guessed 17:00 price = 0.0; provisional class if the gate survives: candidate

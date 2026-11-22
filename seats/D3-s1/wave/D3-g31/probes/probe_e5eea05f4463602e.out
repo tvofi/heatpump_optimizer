@@ -1,0 +1,11 @@
+RESULT pull_prices_401_html_body verdict baseline=reauth mutant=raised:ContentTypeError
+RESULT pull_prices_403_html_body verdict baseline=reauth mutant=raised:ContentTypeError
+RESULT pull_prices_502_html_body verdict baseline=fail mutant=raised:ContentTypeError
+RESULT pull_prices_500_json_errors verdict baseline=fail mutant=fail
+RESULT pull_prices_401_json_errors verdict baseline=reauth mutant=reauth
+RESULT pull_prices_200_no_homes(null) verdict baseline=fail mutant=fail
+RESULT cases_moved=3 count (of 6)
+RESULT contenttypeerror_is_clienterror=1
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

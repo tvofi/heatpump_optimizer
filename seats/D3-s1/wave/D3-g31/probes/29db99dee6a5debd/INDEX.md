@@ -1,0 +1,1 @@
+- probes/probe_29db99dee6a5debd.py (output probes/probe_29db99dee6a5debd.out): pins prod_differ=0 of 192; direct short step_start_times (len 1 < known 3 < n 5) -> prices vs mutant prod identical; direct -> IndexError; provisional class if the gate survives: equivalent-candidate

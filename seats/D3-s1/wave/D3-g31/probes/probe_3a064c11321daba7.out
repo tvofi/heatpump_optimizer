@@ -1,0 +1,10 @@
+INPUTS 28 observed days (Mon 2026-01-05..), seeded rng 11; null: a fresh model
+RESULT residual_var_max=0.289469
+RESULT weekday_sigma_max_baseline=0.538
+RESULT weekday_sigma_max_mutant=0.0
+RESULT weekday_sigma_bins_differ=24 count (of 24)
+RESULT other_field_moved=0 count
+RESULT null_bins_differ=0 count (fresh model, var 0)
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

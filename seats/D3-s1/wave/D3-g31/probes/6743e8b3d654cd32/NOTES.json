@@ -1,0 +1,8 @@
+{
+ "cls": "equivalent-candidate",
+ "base": "ingress: (1,0) learned for a quarter day with one nan quarter; direct: (1,0)",
+ "mut": "ingress: (1,0); direct: (0,0) (the nan quarter makes its hour mean nan and observe_day rejects the day)",
+ "inputs": "quarter-resolution day with a nan / inf / -inf quarter, an hourly day with a nan hour, an all-finite quarter day; each fed raw and through prices_from_tibber_payload; apply_price_adjustments on a nan total",
+ "should_fail": "none through production: both ingress paths (prices_from_tibber_payload via _raw_value/finite_float, apply_price_adjustments) drop non-finite totals before self._prices, the only list PriceShapeLearner.fold reads; a direct fold of raw rows separates",
+ "note": "Defence in depth behind the ingress filters (#2236): 0 of 5 cases move through ingress (nonfinite rows after Tibber and entity ingress: 0 and 0); 3 of 5 move on raw rows (days learned 1 -> 0). Equivalent through production."
+}

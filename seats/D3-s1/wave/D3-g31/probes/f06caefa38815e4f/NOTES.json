@@ -1,0 +1,28 @@
+{
+ "cls": "candidate",
+ "base": "profile [0.5]*23+[bound] restored unchanged, 0 warnings; guessed 17:00 price at level 1.0 = 0.5",
+ "mut": "clipped and renormalised (max |delta| 2.53448), 1 warning; guessed 17:00 price = 0.827586",
+ "inputs": "persisted weekday shapes: all zero, one zero bin, a negative bin, exactly at the guard's bound, nextafter above/below it, flat ones, the learner's cone edge [0.2]*23+[3.0]",
+ "should_fail": "tests/features.py and tests/finite_boundary.py (restore PriceShapeModel via from_dict on the traced baseline) lack a restore of a profile whose max/min ratio sits exactly at the guard's bound asserting it is returned unchanged and unwarned",
+ "finding": {
+  "title": "No check restores a price profile exactly at _in_domain's ratio bound; <= -> < there is unseen",
+  "claim": "With price_model.py:141 `high <= bound` -> `high < bound`, PriceShapeModel.from_dict clips and renormalises a persisted profile whose max sits exactly at low*(hi/lo)*(1+1e-9) (max |delta| 2.53448, warnings 0 -> 1) and the full gate stays green",
+  "severity": "low",
+  "metric_definition": "max |restored shape delta| and warning count for a persisted shape [0.5]*23+[0.5*(3.0/0.2)*(1+1e-9)]",
+  "perturbation": {
+   "change": "price_model.py:141 `high <= low * (hi / lo) * (1.0 + 1e-9)` -> `high < ...`",
+   "expected_direction": "up",
+   "observed_value": 2.53448
+  },
+  "null_control": {
+   "command": "the same probe's nextafter-below, flat and cone-edge cases",
+   "value": "max_abs_shape_delta=0",
+   "note": "one ulp below the bound both arms keep the profile"
+  },
+  "phenomenon_property": "A persisted profile inside the learner's cone, its bound included, is adopted unchanged",
+  "files": [
+   "custom_components/heatpump_optimizer/price_model.py"
+  ],
+  "proposed_fix_scope": "tests/features.py: from_dict at the exact bound asserting no clip and no warning"
+ }
+}
