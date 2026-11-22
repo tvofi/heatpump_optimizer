@@ -1,0 +1,19 @@
+M1 scoped never pull_request: rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: a verified PR dispatch of a doc-only diff skips every leg, idles machinery, scopes self-tests: got ({'actions': 'analyze', 'javascript-typescript': 'analyze', 'python': 'analyze'}, 'true', 
+M2 if got and got[1] -> if got: rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: an empty diff analyzes every leg and runs every lane (null control): got ({'analyze'}, 'true', 'none'), want ({'analyze'}, 'true', 'all')
+M3 and not why dropped: rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: an unverified dispatch analyzes every leg and runs every lane (null control): got ({'skip'}, 'false', 'none'), want ({'analyze'}, 'true', 'all')
+M4 batch exclusion dropped: rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: a batch/ proof naming a PR analyzes every leg and runs every lane (null control): got ({'skip'}, 'false', 'none'), want ({'analyze'}, 'true', 'all')
+M5 base_sha not replaced: rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: a verified PR dispatch of a doc-only diff skips every leg, idles machinery, scopes self-tests: got ({'actions': 'skip', 'javascript-typescript': 'skip', 'python': 'skip'}, 'false', 'none', 
+M6 machinery reads ev not scoped: rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: a verified PR dispatch of a doc-only diff skips every leg, idles machinery, scopes self-tests: got ({'actions': 'skip', 'javascript-typescript': 'skip', 'python': 'skip'}, 'true', 'none', [
+M7 rowblind reads ev: rc=0 SURVIVED ['prelude self-test: 89 checks, 0 failed']
+M8 legs read ev: rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: a verified PR dispatch of a doc-only diff skips every leg, idles machinery, scopes self-tests: got ({'actions': 'analyze', 'javascript-typescript': 'analyze', 'python': 'analyze'}, 'false',
+M9 dispatch_diff returns None never: rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: dispatch_diff reads origin/<base> and the three-dot list from the checkout: got (None, None), want (('16bd7c207edcb25e175f1c86e60a53f84d71d6b4', ['README.md']), None)
+M10 dispatch_diff catches nothing (base gone path): rc=1 KILLED ['prelude self-test: 89 checks, 1 failed']
+    FAIL CI-2: dispatch_diff reads origin/<base> and the three-dot list from the checkout: got (('16bd7c207edcb25e175f1c86e60a53f84d71d6b4', ['README.md']), ('16bd7c207edcb25e175f1c86e60a53f84d71d6b4', ['

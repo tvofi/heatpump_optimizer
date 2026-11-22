@@ -1,0 +1,3 @@
+entities.py at 46e7faa93fdf with M7 (ev/M7.diff) planted; FAIL lines in the log are planted fixtures' own sub-lines inside passing checks
+ALL 2740 ENTITY CHECKS PASSED
+wall: real 11m49.971s
