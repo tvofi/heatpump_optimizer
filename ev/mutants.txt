@@ -1,0 +1,5 @@
+Targeted mutants on the row files, at the head worktree, run against python3 tests/delivery_status.py (not a required context):
+m1 3728.md merge sha 4ebd430 -> 1234567: DELIVERY STATUS OK, 6 rowed, rc=0 (the ledger does not validate a row's sha)
+m2 3728.md "**merged `4ebd430`**" -> "**open**": DELIVERY STATUS OK, 5 rowed, 2 pending (#3728 now pending), rc=0 (the count moves)
+m3 delete 3844.md (self-row): DELIVERY STATUS OK, 6 rowed, 1 pending, rc=0
+The sha's truth is enforced by record_row.py automerge_refusals (rows byte-equal to row_line over REST facts), which needs an API token this seat lacks (HTTP 404 unauthenticated); the shas were re-derived from git instead (row-shas.txt).

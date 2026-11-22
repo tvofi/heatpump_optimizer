@@ -1,0 +1,4 @@
+DELIVERY STATUS OK — 6 rowed, 1 pending, 0 overdue (overdue at 12 commits)
+  pending  #3839 505ed38 0 commit(s) since — rca-open-axis: axis block and repeat-axis escalation (R1
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
