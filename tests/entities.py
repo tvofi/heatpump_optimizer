@@ -21102,9 +21102,18 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
+    # CI-5 (owner 2026-11-21): a push's first attempt joins the one CI-main group, so a pending
+    # push run is replaced by the newest and none in progress is cancelled; every other run and
+    # every re-run keeps its run-id group (N1). Rendered per event and attempt, not matched as text.
     cc = doc.get("concurrency") or {}
-    if cc.get("group") != "CI-${{ github.run_id }}" or cc.get("cancel-in-progress") is not False:
-        out.append(f"concurrency {cc} (want group CI-<run id>, cancelling nothing)")
+    if cc.get("cancel-in-progress") is not False:
+        out.append(f"concurrency {cc} cancels in progress")
+    for (ev, a), payload in _CI_EVENTS.items():
+        for attempt in ("1", "2"):
+            want = "CI-main" if ev == "push" and attempt == "1" else "CI-99"
+            got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
+            if got != want:
+                out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
     jobs = doc.get("jobs") or {}
     callers = {j for j, b in jobs.items() if "uses" in (b or {})}
     if callers != set(_cig.UNITS) | {_cip.KP}:
@@ -21211,7 +21220,13 @@ _CI_PLANTS = {
     "run-name without sha=": _CI_TEXT.replace(" sha={3}'", "'", 1),
     "no merge_group": _CI_TEXT.replace("  merge_group:\n    types: [checks_requested]\n", "", 1),
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
-    "a group per PR": _CI_TEXT.replace("CI-${{ github.run_id }}", "CI-${{ github.event.pull_request.number }}", 1),
+    "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
+                                       "format('CI-{0}', github.event.pull_request.number)", 1),
+    "push re-runs in the main group": _CI_TEXT.replace(" && github.run_attempt == '1' && 'CI-main'", " && 'CI-main'", 1),
+    "every push in its own group": _CI_TEXT.replace(" && 'CI-main' ||", " && format('CI-{0}', github.run_id) ||", 1),
+    "the main group cancelling in progress": _CI_TEXT.replace(
+        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
+        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21257,7 +21272,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group, every unit called "
+    "run-name equal to prelude.title, one run per group but a push's first attempt (CI-main, CI-5), "
+    "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
     not _CI_DEFECTS and not _CI_PLANT_MISSED
@@ -22594,10 +22610,17 @@ for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
 # them as skips, which is #1514. Since that split only `pr-contract.yml` lists
 # `edited`, so the other three come from the held run once it is approved.
 #
-# Parsed from the push step's non-comment lines only: a commented-out
-# dispatch, or one moved into the `always()` report step (which also runs when
-# nothing was pushed), must not count.
+# Parsed from the non-comment lines of each step: a commented-out dispatch, or
+# one moved into the `always()` report step (which also runs when nothing was
+# pushed), must not count. CI-1 (owner 2026-11-21): the one dispatching step is
+# _AF_DISPATCH, after the approve step. It runs only for a token push whose
+# approve step approved no `CI` run at the pushed SHA (approved_head). The
+# approve step sets approved_head only on such an approval.
 _AF_DISPATCHED = {"ci.yml"}
+_AF_DISPATCH = "Dispatch the umbrella when no held run was approved"
+_AF_APPROVED = ('              approved=$((approved + 1))\n'
+                '              if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then\n'
+                '                echo "approved_head=true" >> "$GITHUB_OUTPUT"\n')
 
 
 def _af_dispatches(step: str) -> set[str]:
@@ -22606,21 +22629,45 @@ def _af_dispatches(step: str) -> set[str]:
     return set(re.findall(r"gh workflow run (\S+)", live))
 
 
+def _af_defects(job_text: str) -> "list[str]":
+    steps = job_text.split("\n      - ")
+    disp = [i for i, st in enumerate(steps) if _af_dispatches(st)]
+    appr = [i for i, st in enumerate(steps) if st.startswith("name: Approve the runs")]
+    out = []
+    if len(disp) != 1 or not steps[disp[0]].startswith(f"name: {_AF_DISPATCH}\n") \
+            or _af_dispatches(steps[disp[0]]) != _AF_DISPATCHED:
+        return [f"dispatching steps {[steps[i].splitlines()[0] for i in disp]}, not one `{_AF_DISPATCH}` of ci.yml"]
+    if len(appr) != 1 or appr[0] > disp[0]:
+        out.append("the dispatch does not follow the one approve step")
+    elif "id: approve\n" not in steps[appr[0]] or _AF_APPROVED not in steps[appr[0]]:
+        out.append("the approve step sets no approved_head on a CI run's approval at the pushed SHA")
+    cond = re.search(r"^        if: (.*)$", steps[disp[0]], re.M)
+    cond = cond.group(1) if cond else "true"
+    for tp, ah, want in (("true", "", True), ("true", "true", False), ("", "", False), ("", "true", False)):
+        lit = cond.replace("steps.push.outputs.token_push", repr(tp)) \
+                  .replace("steps.approve.outputs.approved_head", repr(ah))
+        if _ghx(lit, {}) is not want:
+            out.append(f"the dispatch's if: under token_push={tp!r} approved_head={ah!r} is not {want}")
+    return out
+
+
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
-    _steps = _workflow_job(_TESTS_YML, _job).split("\n      - ")
-    _push = [s for s in _steps if re.match(r"name: Push\b", s)]
-    _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
-                               if s not in _push))
+    _jt = _workflow_job(_TESTS_YML, _job)
+    _afd = _af_defects(_jt)
+    _af_null = {
+        "dispatch from the push step": _jt.replace("          echo \"token_push=true\" >> \"$GITHUB_OUTPUT\"\n",
+                                                   "          echo \"token_push=true\" >> \"$GITHUB_OUTPUT\"\n"
+                                                   "          gh workflow run ci.yml --ref \"$HEAD_REF\"\n", 1),
+        "dispatch beside an approval": _jt.replace(" && steps.approve.outputs.approved_head != 'true'", "", 1),
+        "approved_head on any approval": _jt.replace('if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then',
+                                                     "if true; then", 1),
+    }
+    _af_missed = sorted(k for k, t in _af_null.items() if t == _jt or not _af_defects(t))
     R.check(
-        f"{_job} dispatches the one umbrella, ci.yml (-f pr -f base), whose callees own every required context",
-        len(_push) == 1 and _af_dispatches(_push[0]) == _AF_DISPATCHED,
-        f"push steps={len(_push)} dispatched="
-        f"{sorted(_af_dispatches(_push[0])) if _push else []}",
-    )
-    R.check(
-        f"{_job} dispatches from the push step only",
-        not _elsewhere,
-        f"elsewhere={sorted(_elsewhere)}; only a pushed SHA needs a retrigger",
+        f"{_job} dispatches the one umbrella, ci.yml (-f pr -f base), from its own step after the approve "
+        "step, only where no held CI run at the pushed SHA was approved (CI-1)",
+        not _afd and not _af_missed,
+        f"defects={_afd}; plants not refused (null controls)={_af_missed}",
     )
 _CODEQL_YML = (pathlib.Path(__file__).resolve().parents[1] / ".github"
                / "workflows" / "codeql.yml").read_text()
@@ -32271,10 +32318,11 @@ def _cc_value(expr, event: "dict[str, object]"):
         e = re.sub(r"\b(?:github|needs|inputs|env|vars)(?:\.[\w-]+)+",
                    lambda n: repr(event.get(n.group(0))), e)
         e = e.replace("&&", " and ").replace("||", " or ")
-        if not re.fullmatch(r"(?:\s|\(|\)|==|!=|and|or|not|True|False|None"
-                            r"|'[^']*'|-?\d+)*", e):
+        if not re.fullmatch(r"(?:\s|\(|\)|,|==|!=|and|or|not|True|False|None"
+                            r"|'[^']*'|-?\d+|format)*", e):
             raise ValueError(e)
-        return str(eval(e, {"__builtins__": {}}, {}))  # literals and operators only
+        fmt = {"format": lambda f, *a: re.sub(r"\{(\d+)\}", lambda k: str(a[int(k.group(1))]), f)}
+        return str(eval(e, {"__builtins__": {}}, fmt))  # literals, operators and format()
     try:
         return re.sub(r"\$\{\{(.*?)\}\}", _one, str(expr))
     except ValueError:
@@ -32288,7 +32336,7 @@ _CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
 def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
     """One modelled Actions event. `sha` is None when the model carries none."""
     event = {"github.event_name": ev, "github.workflow": doc.get("name"),
-             "github.run_id": run_id, "github.event.sender.login": who,
+             "github.run_id": run_id, "github.run_attempt": "1", "github.event.sender.login": who,
              "github.event.pull_request.number":
                  7 if ev.startswith("pull_request") else None}
     if sha is not None:
@@ -32301,6 +32349,11 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 _CC_TWIN_ROUTE = {
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
+# The (file, event) pairs whose first attempts share one group that cancels
+# nothing in progress, so GitHub replaces a pending run with the newest: CI-5's
+# push-to-main coalescing (owner 2026-11-21). A re-run keeps its run-id group
+# (the umbrella check above renders that per attempt).
+_CC_COALESCED = {("ci.yml", "push")}
 
 
 def _cc_lists_edited(doc: dict) -> bool:
@@ -32331,13 +32384,14 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
             share = (ev == "pull_request" and who != "github-actions[bot]"
                      and route != "per-run")
             cancel_want = share and not twin
+            together = share or (name, ev) in _CC_COALESCED
             older, newer = at(1), at(2)
             cancel = _cc_value(cc.get("cancel-in-progress"), older)
             a, b = (_cc_value(cc.get("group"), older),
                     _cc_value(cc.get("group"), newer))
             if cancel != str(cancel_want):
                 out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
-            if None in (a, b) or (a == b) != share:
+            if None in (a, b) or (a == b) != together:
                 out.append(f"{name}: two {ev} runs by {who} get groups {a!r} and {b!r}")
             if share:
                 sa, sb = older.get("github.sha"), newer.get("github.sha")
@@ -33194,10 +33248,42 @@ def _mm_defects(text: str) -> "list[str]":
         out.append(f"dispatches {disp}, want exactly ['ci.yml']")
     if not re.search(r'gh workflow run ci\.yml --ref "\$branch" -f pr="\$pr" -f base="\$base"', runs):
         out.append("the ci.yml dispatch does not pass -f pr and -f base")
-    reads = re.findall(r"while read -r ([^;]+); do", runs)
+    reads = [r for r in re.findall(r"while read -r ([^;]+); do", runs) if r.split()[0] == "branch"]
     if len(reads) != 2 or any(len(r.split()) != 4 for r in reads):
         out.append(f"pushed.txt readers {reads} do not read four fields")
+    # CI-1: approve first, dispatch after (even past a failed approve), skipping a pushed head whose
+    # CI run was approved; the approve step records only a CI run's approval.
+    steps = [st for j in jobs.values() for st in j.get("steps") or []]
+    names = [str(st.get("name", "")) for st in steps]
+    ap = next((i for i, n in enumerate(names) if n.startswith("Approve the runs")), None)
+    dp = next((i for i, n in enumerate(names) if n.startswith("Dispatch the checks")), None)
+    if ap is None or dp is None or dp < ap:
+        out.append(f"the dispatch step ({dp}) does not follow the approve step ({ap})")
+    elif str(steps[dp].get("if", "")).replace(" ", "") != "${{!cancelled()}}":
+        out.append(f"the dispatch step's if: {steps[dp].get('if')!r}, not !cancelled()")
+    elif not re.search(r'approved=\$\(\(approved \+ 1\)\)\n\s*\[ "\$name" != CI \] \|\| '
+                       r'echo "\$branch \$sha" >> "\$RUNNER_TEMP/approved\.txt"\n', str(steps[ap].get("run", ""))):
+        out.append("the approve step does not record `branch sha` in approved.txt on a CI run's approval")
     return out
+
+
+def _mm_dispatched(text: str, approved: "str | None", used_pat: str = "false") -> "list[str]":
+    """The `--ref` of every `gh workflow run` merge-main's dispatch step makes, its own `run:`
+    executed under bash -e with gh stubbed, over two pushed heads and `approved` (None: no file)."""
+    doc = _yaml.safe_load(text) or {}
+    step = next(st for j in (doc.get("jobs") or {}).values() for st in j.get("steps") or []
+                if str(st.get("name", "")).startswith("Dispatch the checks"))
+    with tempfile.TemporaryDirectory() as d:
+        Path(d, "gh").write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$GH_LOG"\n')
+        Path(d, "gh").chmod(0o755)
+        Path(d, "pushed.txt").write_text("fix/a aaa 1 main\nfix/b bbb 2 main\n")
+        if approved is not None:
+            Path(d, "approved.txt").write_text(approved)
+        _subprocess.run([*_GHA_RUN, str(step["run"])], capture_output=True, text=True, timeout=30,
+                        env=_stub_path_env(d, RUNNER_TEMP=d, GH_LOG=f"{d}/gh.log", GITHUB_STEP_SUMMARY=f"{d}/s",
+                                           USED_PAT=used_pat, DRY_RUN="false"))
+        log = Path(d, "gh.log").read_text() if Path(d, "gh.log").exists() else ""
+    return [ln.split("--ref ")[1].split()[0] for ln in log.splitlines()]
 
 
 _MM_TEXT = _MM_PATH.read_text()
@@ -33208,7 +33294,26 @@ R.check(
     _MM_DEFECTS == [],
     f"defects: {_MM_DEFECTS}",
 )
+R.check(
+    "CI-1: merge-main dispatches only the pushed heads whose CI run it did not approve, every one "
+    "when approved.txt is absent, none after a PAT push",
+    (_mm_dispatched(_MM_TEXT, "fix/a aaa\n"), _mm_dispatched(_MM_TEXT, None), _mm_dispatched(_MM_TEXT, ""),
+     _mm_dispatched(_MM_TEXT, "fix/a zzz\n"), _mm_dispatched(_MM_TEXT, None, "true"))
+    == (["fix/b"], ["fix/a", "fix/b"], ["fix/a", "fix/b"], ["fix/a", "fix/b"], []),
+    "an approved head dispatched again is CI-1's duplicate full run; an unapproved one left out runs nothing",
+)
+R.check(
+    "and a dispatch step that ignores approved.txt dispatches the approved head (null control)",
+    _mm_dispatched(_MM_TEXT.replace('grep -qxF "$branch $sha" "$RUNNER_TEMP/approved.txt"', "false", 1),
+                   "fix/a aaa\n") == ["fix/a", "fix/b"],
+    "the harness cannot tell the skip from its absence",
+)
 _MM_NULL = {
+    "dispatch before approve": _MM_TEXT.replace("      - name: Dispatch the checks", "      - name: Late dispatch", 1)
+    .replace("      - name: Approve the runs the pushes", "      - name: Dispatch the checks first\n        run: 'true'\n"
+             "      - name: Approve the runs the pushes", 1),
+    "dispatch skipped after a failed approve": _MM_TEXT.replace("        if: ${{ !cancelled() }}\n", "", 1),
+    "approval recorded for any workflow": _MM_TEXT.replace('[ "$name" != CI ] || echo', 'echo', 1),
     "ref guard": _MM_TEXT.replace("    if: github.ref == 'refs/heads/main'\n", ""),
     "four dispatches": _MM_TEXT.replace(
         'gh workflow run ci.yml --ref "$branch"',
@@ -40369,12 +40474,67 @@ def _mut_plan_ok(job: dict, step: dict, pins: str) -> bool:
                 "`mutation-pin-plan`", ""))
 
 
+# CI-7 (owner 2026-11-21): the matrix runs at most this many shards at once, of
+# MAX_SHARDS, so one pins burst holds a tenth of the 40-slot runner cap, not 30%.
+_PINS_MAX_PARALLEL = 4
+# CI-17 (owner 2026-11-21): every job that pip-installs the hash-locked
+# requirements caches pip through its setup-python step, keyed on those lock
+# files, so a lock change is a new key; --require-hashes still verifies every
+# wheel a cache hit supplies. Read per job and per composite action, with each
+# `-r` file the job installs matched against the key's glob.
+_PIPCACHE_DEP = "tests/requirements-*.txt"
+
+
+def _pipcache_defects(docs: dict) -> "list[str]":
+    out = []
+    for label, steps in docs.items():
+        runs = " ".join(str(st.get("run", "")) for st in steps)
+        if not re.search(r"\bpip3? install\b", runs):
+            continue
+        for req in re.findall(r"(?:^|\s)-r\s+(\S+\.txt)(?=\s|$)", runs):
+            if not fnmatch.fnmatch(req, _PIPCACHE_DEP):
+                out.append(f"{label}: installs {req}, outside the cache key {_PIPCACHE_DEP}")
+        for st in steps:
+            if str(st.get("uses", "")).startswith("actions/setup-python@"):
+                w = st.get("with") or {}
+                if (w.get("cache"), w.get("cache-dependency-path")) != ("pip", _PIPCACHE_DEP):
+                    out.append(f"{label}: setup-python caches {w.get('cache')!r} on {w.get('cache-dependency-path')!r}")
+    return out
+
+
+def _pipcache_docs(texts: dict) -> dict:
+    docs = {}
+    for name, text in texts.items():
+        d = _yaml.safe_load(text) or {}
+        if "runs" in d:
+            docs[name] = d["runs"].get("steps") or []
+        for jn, j in (d.get("jobs") or {}).items():
+            docs[f"{name}:{jn}"] = (j or {}).get("steps") or []
+    return docs
+
+
+import fnmatch  # noqa: E402
+
+_PIPCACHE_TEXTS = {str(f.relative_to(_closure.ROOT)): f.read_text()
+                   for f in sorted((_closure.ROOT / ".github").glob("**/*.yml"))
+                   if f.parent.name == "workflows" or f.name == "action.yml"}
+_PIPCACHE_GOT = _pipcache_defects(_pipcache_docs(_PIPCACHE_TEXTS))
+_PIPCACHE_PLANT = _pipcache_defects(_pipcache_docs({**_PIPCACHE_TEXTS, ".github/workflows/tests.yml": (
+    _PIPCACHE_TEXTS[".github/workflows/tests.yml"].replace(
+        "          cache: pip\n          cache-dependency-path: tests/requirements-*.txt\n", "", 1))}))
+R.check(
+    "CI-17: every job pip-installing the hash-locked requirements caches pip on their lock files, "
+    "and a job stripped of its cache lines is refused (null control)",
+    _PIPCACHE_GOT == [] and len(_PIPCACHE_PLANT) == 1,
+    f"defects={_PIPCACHE_GOT}; plant={_PIPCACHE_PLANT}",
+)
 R.check(
     "the pin shard count scales with the diff's new sites, five a shard, "
-    "capped at twelve, and sizes the matrix the shards run",
+    "capped at twelve, and sizes the matrix the shards run, four at a time (CI-7)",
     _MUT_SC == [1, 1, 2, 2, 12, 12] and _MUT_SC0 == 1
     and _mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins)
-    and f"max-parallel: {_mut.MAX_SHARDS}" in _ma_pins,
+    and re.findall(r"\n      max-parallel: (\d+)\n", _ma_pins) == [str(_PINS_MAX_PARALLEL)]
+    and _PINS_MAX_PARALLEL < _mut.MAX_SHARDS,
     f"counts={_MUT_SC} none={_MUT_SC0} plan wiring="
     f"{_mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins)}",
 )
