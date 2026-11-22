@@ -7592,6 +7592,50 @@
     "next_step": "fixer",
     "note": "owner high priority 2026-11-22, above the cap; a local fixer seat is building it; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT): outside #3849, owner high priority 2026-11-22"
    }
+  },
+  {
+   "group": "R11-HOTFIX-REPLAN-ROSTER-REF",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "after": [],
+   "files": [
+    "tools/plan/replan.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "carry": [],
+   "brief": "Hotfix, S (owner-raised 2026-11-22, instruments are round-generic). Defect: tools/plan/replan.py load_roster() (line ~163) hardcodes ref = \"origin/handoff/audit-r10-roster\" when no --roster-ref is given, and the module docstring (line 10) and the --roster-ref help text (line ~3388) say the same. The beat's plan-beat runs replan with no --roster-ref, so the round-11 plan page is read from a stale copy of wave-r11-groups.json on the round-10 roster branch; three roster groups (R11-OUTSIDE-3849, R11-OWNER-FLOWCAP, R11-OWNER-COOLING-GUARD) are missing from the page. Fix: the default roster ref is roster_lib.default_roster_ref (as tools/audit/seat/state_docs.py and every other reader use it), printing its note the way those readers do; fix the docstring and help text. Proof: add a replan --self-test case in which a round-N roster branch exists (N newer than 10) and the default resolves to it, not to audit-r10-roster; a null control (round-10-only remotes still resolve to the round-10 branch via the same call); and a mutant restoring the literal that the case kills. Also grep tools/ for any other hardcoded audit-r10- roster or plan ref outside self-test fixtures and fix those in the same PR (re-run it). Do not touch VERSION. Set found_by=owner, owned_by=D11 on the group if the lane allows. OWNER RULING 2026-11-22 (generic, any round): (1) No round number may be hardcoded anywhere in the code path, in a default or in a docstring: not r10, not r11. The roster ref is resolved only by roster_lib.default_roster_ref, or by round_ref from the newest wave-r<N>-groups.json. (2) Grep all of tools/ and tests/ for literal audit-r1[0-9], round1[0-9] and wave-r1[0-9] outside self-test fixtures and dated records; fix every live default found, in replan.py, plan_page.py, state_docs.py, beat_jobs.py, gantt/sweep tools and anything else, and list each one in the PR body. (3) Self-test: build a scratch repo with rounds N and N+1 roster branches, check the default picks N+1, with a null control; add a mutant restoring a literal round ref; add a negative grep check, in an existing lint or self-test, that refuses a new hardcoded round literal in a tools/ default.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/fix-replan-roster-ref"
+   },
+   "source": "user",
+   "hotfix": true,
+   "hotfix_by": {
+    "rule": "owner-called",
+    "evidence": "owner-raised 2026-11-22: replan.py hardcodes audit-r10-roster, round-11 plan page misses three groups"
+   },
+   "found_by": "owner",
+   "owned_by": "D11",
+   "issues": [],
+   "fixes": []
   }
  ]
 }
