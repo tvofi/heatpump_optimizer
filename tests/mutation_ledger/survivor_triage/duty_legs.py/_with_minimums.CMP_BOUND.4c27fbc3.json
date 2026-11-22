@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:_with_minimums CMP_BOUND 4c27fbc3",
+  "old": "    if not (heat_min > 0 or dhw_min > 0):",
+  "reason": "Equivalent (CMP_BOUND, `>` to `>=`, which enters the loop at 0 as well). With both minimums 0 the loop below it finds no short hot-water run (``dhw_run < 0`` is never true) and no sandwich (``space_run < 0`` is never true) on its first pass, breaks, and returns the four arrays it was handed, the same objects; the guard only skips that pass's run computation, a cost on the objective's batch path. Measured by the R11-OWNER-MODE-LEGS fixer's mutant drive over the duty-switch block of tests/features.py (86 checks, among them T7's 400 seeded plans at both minimums 0 and the options-at-0 duty-switch checks): `if not (...)` -> `if False:` SURVIVED with 0 failing checks, against 18 other drafted mutants of the same diff killed by a failing check.",
+  "verdict": "equivalent"
+}

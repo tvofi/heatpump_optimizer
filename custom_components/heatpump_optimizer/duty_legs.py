@@ -212,11 +212,11 @@ def leg_ends(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Per step: the first leg, the last leg, and whether the step has two.
 
-    The arbiter's rule elementwise: ``step_duty`` reads each circuit alone
-    against the plan's ``floor``; a both step's hot-water share is its
-    hot-water power over its total (tvofi, 2026-09-27), a share under
-    :data:`SPLIT_MIN_MINUTES` on either side collapsing the step onto the
-    other duty; ``rule`` orders the legs, merges them onto the first where
+    The arbiter's rule elementwise. ``step_duty`` reads each circuit alone
+    against the plan's ``floor``. A both step's hot-water share is its
+    hot-water power over its total (tvofi, 2026-09-27); a share under
+    :data:`SPLIT_MIN_MINUTES` on either side collapses the step onto the
+    other duty. ``rule`` orders the legs, merges them onto the first where
     the next step serves the second, and applies the minimum legs.
     ``space_kw`` may be a ``[B, n]`` batch against one ``[n]`` hot-water plan.
     """
@@ -355,7 +355,8 @@ def availability(
     charged &= lost > 0
     if not (charged.any() or (moved > 0).any()):
         return None
-    return np.clip(1.0 - moved - np.where(charged, lost, 0.0), 0.0, 1.0)
+    avail: np.ndarray = np.clip(1.0 - moved - np.where(charged, lost, 0.0), 0.0, 1.0)
+    return avail
 
 
 def space_headroom(

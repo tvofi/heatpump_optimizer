@@ -545,23 +545,25 @@ def leg_rule(rec: _Record, cfg: Any) -> duty_legs.LegRule:
                           dhw_min=duty_legs.leg_minimum(cfg.mode_leg_dhw_min_minutes), before=rec.solve_before)
 
 
-def _plan_legs(result: Any, rule: duty_legs.LegRule) -> tuple[duty_legs.Legs, ...]:
+def _plan_legs(result: Any, rule: duty_legs.LegRule, step_min: float) -> tuple[duty_legs.Legs, ...]:
     """Every step's legs of the plan, the hot-water plan padded with zeros to the space one's length."""
     space = list(result.power_schedule or [])
     dhw = (list(getattr(result, "dhw_power_schedule", None) or []) + [0.0] * len(space))[:len(space)]
-    return duty_legs.plan_legs(space, dhw, getattr(result, "duty_floor_kw", None), rule)
+    return duty_legs.plan_legs(space, dhw, getattr(result, "duty_floor_kw", None), rule, step_min)
 
 
-def served_leg(rec: _Record, result: Any, i: int, duty: str | None, now: datetime, cfg: Any) -> str | None:
+def served_leg(rec: _Record, result: Any, i: int, duty: str | None, now: datetime, cfg: Any,
+               step_min: float) -> str | None:
     """The duty plan step ``i`` of ``result`` serves at ``now``, ``duty`` being the step's.
 
     A both step serves its first leg for that leg's minutes, then its last,
     the legs being ``duty_legs.plan_legs`` under :func:`leg_rule`, decided
-    once per step (a record not loaded latches nothing). Then the minimum
-    legs (:func:`_kept_leg`) may keep the leg the pump is in.
+    once per step of ``step_min`` minutes (a record not loaded latches
+    nothing). Then the minimum legs (:func:`_kept_leg`) may keep the leg the
+    pump is in.
     """
     start, rule = result.timestamps[i], leg_rule(rec, cfg)
-    legs = _plan_legs(result, rule)
+    legs = _plan_legs(result, rule, step_min)
     if duty == "both" and rec.loaded and (rec.order is None or rec.order[0] != start):
         rec.order = (start, legs[i])
     if rec.order is not None and rec.order[0] == start:
@@ -575,14 +577,17 @@ def _kept_leg(rec: _Record, wanted: str | None, now: datetime, rule: duty_legs.L
               legs: tuple[duty_legs.Legs, ...], start: datetime) -> str | None:
     """``wanted``, or the single duty the pump is in while the minimum legs keep it.
 
-    Kept while a hot-water leg is younger than ``rule.dhw_min``, or a heating
-    leg entered from hot water younger than ``rule.heat_min``; and not left for
-    a duty the plan (``legs``, from the step starting at ``start``) keeps for
-    less than that duty's minimum. A minimum of 0 keeps nothing. Only a
-    single duty is kept or entered: idle, both and the baseline pass through,
-    and a leg whose age is unknowable (a stamp ahead of now) holds nothing.
+    A hot-water leg is kept while younger than ``rule.dhw_min``, and a heating
+    leg entered from hot water while younger than ``rule.heat_min``. Nor is
+    the leg left for a duty the plan (``legs``, from the step starting at
+    ``start``) keeps for less than that duty's minimum. A minimum of 0 keeps
+    nothing. Only a single duty is kept or entered: idle, both and the
+    baseline pass through, and a leg whose age is unknowable (a stamp ahead
+    of now) holds nothing.
     """
-    mode, since, previous = rec.leg or (None, now, None)
+    if rec.leg is None:
+        return wanted
+    mode, since, previous = rec.leg
     current = pump_mode.SINGLE_DUTY.get(mode)
     if wanted not in ("space", "dhw") or current is None or current == wanted:
         return wanted

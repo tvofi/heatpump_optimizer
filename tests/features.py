@@ -64532,6 +64532,8 @@ class _PaCoord:
             "dhw_setpoint_entity": "number.dhw_set",
             "space_setpoint_entity": "number.water_set",
             "space_setpoint_unit": "flow" if flow else "indoor",
+            # The minimum mode legs off (R11-OWNER-MODE-LEGS): these checks pin the split alone.
+            "mode_leg_heat_min_minutes": 0, "mode_leg_dhw_min_minutes": 0,
         })
         self._mode = _PA_AUTO
         self.stale = False
@@ -88826,10 +88828,11 @@ R.check(
 
 
 # --- R11-OWNER-MODE-LEGS (#3859): minimum heating and hot-water mode legs ------
-# Design: design/R11-OWNER-MODE-LEGS 0e59437a. The plan rule (``duty_legs``'s
-# R1/R2 to a fixed point, idle continuing the mode) and the execution check
-# (``duty_switch.served_leg``: no leaving a young leg, no entering a leg the plan
-# keeps for less than its minimum), each driven through the production symbols.
+# Design: design/R11-OWNER-MODE-LEGS 0e59437a. Two rules, each driven through
+# the production symbols. The plan rule is ``duty_legs``'s R1/R2 to a fixed
+# point, idle continuing the mode. The execution check is
+# ``duty_switch.served_leg``: no leaving a young leg, and no entering a leg the
+# plan keeps for less than its minimum.
 # Every number is invented. The duty-switch checks above run with both options at
 # 0, the null control that reproduces today's writes.
 _ML_ON = {"mode_leg_heat_min_minutes": 10, "mode_leg_dhw_min_minutes": 10}
@@ -90566,7 +90569,8 @@ _rp2_plan = _PaNS(
     timestamps=[_PA_T0], power_schedule=[3.0], dhw_power_schedule=[2.0],
     optimal_setpoints=[21.0],
 )
-_rp2_inp = _PaNS(mode=_PA_AUTO, disinfecting=False, plan=_rp2_plan)
+_rp2_inp = _PaNS(mode=_PA_AUTO, disinfecting=False, plan=_rp2_plan,
+                 config={"mode_leg_heat_min_minutes": 0, "mode_leg_dhw_min_minutes": 0})
 
 
 def _rp2_share(minutes_in):

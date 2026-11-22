@@ -2018,7 +2018,7 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
             or any(held.active(c, now) or held.block_active(c, now) for c in (boost.CHANNEL_SPACE, boost.CHANNEL_DHW))):
         return duty
     return duty_switch.served_leg(
-        duty_switch.record_for(coord), inp.plan, i, duty, now, EntryConfig.from_mapping(inp.config))
+        duty_switch.record_for(coord), inp.plan, i, duty, now, EntryConfig.from_mapping(inp.config), PLAN_STEP_MINUTES)
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
