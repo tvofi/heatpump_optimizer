@@ -1,0 +1,1 @@
+- _scratch/: explore*.py (the optimize() input searches that found the distinguishing manual-plan scenarios), gen.py (writes the 16 probes from one spec table), expected.json (the EXPECTED lines).

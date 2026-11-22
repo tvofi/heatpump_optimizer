@@ -1,0 +1,7 @@
+RESULT direct_half_pin_release_baseline=([],[])
+RESULT direct_half_pin_release_mutant=([0],[])
+RESULT null_on_pin_delta=0
+RESULT optimize_half_pin_differing_plans=5 of 55
+RESULT thread_factor=1.000
+RESULT load1=1.98
+RESULT swapins=0

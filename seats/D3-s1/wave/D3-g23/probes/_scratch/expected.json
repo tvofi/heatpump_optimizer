@@ -1,0 +1,106 @@
+{
+ "ce686724ef107650": [
+  "RESULT direct_on_pin_at_floor_release_baseline=([],[])",
+  "RESULT direct_on_pin_at_floor_release_mutant=([0],[])",
+  "RESULT null_free_step_delta=0",
+  "RESULT optimize_on_block_differing_plans=3 of 36"
+ ],
+ "f2894b5754c254fe": [
+  "RESULT direct_short_req_baseline=([],[])",
+  "RESULT direct_short_req_mutant=IndexError",
+  "RESULT null_full_req_delta=0",
+  "RESULT reach_short_requirement_calls=0 of 11 (over 7 manual-plan solves)"
+ ],
+ "fe3e41de6bdc640a": [
+  "RESULT released_space_baseline=[0,1]",
+  "RESULT released_space_mutant=[]",
+  "RESULT space_kwh_first_hour_baseline=4.8809 mutant=3.0000",
+  "RESULT null_off_only_delta=0"
+ ],
+ "65e0ffa75d60d319": [
+  "RESULT two_tank_modelled=1",
+  "RESULT wood_cap_baseline=95.0",
+  "RESULT wood_cap_mutant=None",
+  "RESULT null_single_tank_delta=0",
+  "RESULT stored_kwh_wood99_baseline=361.7500 kWh",
+  "RESULT stored_kwh_wood99_mutant=364.0700 kWh",
+  "RESULT optimize_two_tank_wood99_24h_differing_fields=0 []",
+  "RESULT optimize_two_tank_wood99_2h_differing_fields=0 []",
+  "RESULT optimize_two_tank_wood99_1h_differing_fields=0 []"
+ ],
+ "7516dd3d9e66d3ef": [
+  "RESULT charge_ceiling=35.000 C",
+  "RESULT buffer_cap_initial60_baseline=60.000 C",
+  "RESULT buffer_cap_initial60_mutant=35.000 C",
+  "RESULT null_initial30_delta=0.000000 C",
+  "RESULT optimize_tank60_differing_fields=20 ['buffer_temp_trajectory','compressor_starts','deferred_energy_cost','displace_schedule','heat_pump_on_schedule','lower_setpoints','lower_temp_trajectory','objective_value']"
+ ],
+ "c6679b9b114e5732": [
+  "RESULT direct_short_pins_baseline=([],[])",
+  "RESULT direct_short_pins_mutant=IndexError",
+  "RESULT direct_empty_pins_baseline=([],[]) direct_empty_pins_mutant=IndexError",
+  "RESULT null_full_pins_delta=0",
+  "RESULT optimize_short_pins_differing_plans=0 of 3",
+  "RESULT reach_short_space_pins_calls=0 of 11 (over 7 manual-plan solves)"
+ ],
+ "5ce83ed87c36b9a5": [
+  "RESULT direct_half_pin_release_baseline=([0],[])",
+  "RESULT direct_half_pin_release_mutant=([],[])",
+  "RESULT null_on_pin_delta=0",
+  "RESULT optimize_half_pin_differing_plans=5 of 15"
+ ],
+ "bc3a42f14c903439": [
+  "RESULT direct_tie_release_baseline=([],[])",
+  "RESULT direct_tie_release_mutant=([],[0])",
+  "RESULT null_off_tie_delta=0"
+ ],
+ "f25414a9d4e32d19": [
+  "RESULT direct_long_guess_baseline=[1.0,2.0,5.0]",
+  "RESULT direct_long_guess_mutant=IndexError",
+  "RESULT null_equal_length_delta=0",
+  "RESULT reach_length_mismatch_calls=0 of 14 (over 7 solves)"
+ ],
+ "8fd14c249b86abf7": [
+  "RESULT direct_off_step_at_floor_plus_0.1_release_baseline=([0],[])",
+  "RESULT direct_off_step_at_floor_plus_0.1_release_mutant=([],[])",
+  "RESULT null_deep_breach_delta=0",
+  "RESULT optimize_off_block_differing_plans=11 of 55"
+ ],
+ "0120a5a672990611": [
+  "RESULT direct_tie_release_baseline=([0],[])",
+  "RESULT direct_tie_release_mutant=([],[])",
+  "RESULT null_off_tie_delta=0"
+ ],
+ "7303435ec1ab7701": [
+  "RESULT direct_short_pins_baseline=([0],[])",
+  "RESULT direct_short_pins_mutant=IndexError",
+  "RESULT null_full_pins_delta=0",
+  "RESULT optimize_short_pins_differing_plans=0 of 3",
+  "RESULT reach_short_pins_calls=0 of 11 (over 7 manual-plan solves)"
+ ],
+ "8ef1027c9e221b64": [
+  "RESULT direct_half_pin_release_baseline=([],[])",
+  "RESULT direct_half_pin_release_mutant=([0],[])",
+  "RESULT null_on_pin_delta=0",
+  "RESULT optimize_half_pin_differing_plans=5 of 55"
+ ],
+ "0ecb763c4bcb0828": [
+  "RESULT direct_tie_release_baseline=([],[])",
+  "RESULT direct_tie_release_mutant=([0],[])",
+  "RESULT null_off_tie_delta=0"
+ ],
+ "856aa341a89a6ab0": [
+  "RESULT released_space_baseline=[0]",
+  "RESULT released_space_mutant=[]",
+  "RESULT space_kwh_first_hour_baseline=4.8809 mutant=4.5000",
+  "RESULT null_block_delta=0",
+  "RESULT direct_breach_after_step0_off_baseline=([0],[]) mutant=([],[])"
+ ],
+ "70791cdb98f8ddd7": [
+  "RESULT charge_ceiling=35.000 C",
+  "RESULT buffer_cap_initial60_baseline=60.000 C",
+  "RESULT buffer_cap_initial60_mutant=35.000 C",
+  "RESULT null_initial30_delta=0.000000 C",
+  "RESULT optimize_tank60_differing_fields=20 ['buffer_temp_trajectory','compressor_starts','deferred_energy_cost','displace_schedule','heat_pump_on_schedule','lower_setpoints','lower_temp_trajectory','objective_value']"
+ ]
+}

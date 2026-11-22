@@ -1,0 +1,12 @@
+RESULT two_tank_modelled=1
+RESULT wood_cap_baseline=95.0
+RESULT wood_cap_mutant=None
+RESULT null_single_tank_delta=0
+RESULT stored_kwh_wood99_baseline=361.7500 kWh
+RESULT stored_kwh_wood99_mutant=364.0700 kWh
+RESULT optimize_two_tank_wood99_24h_differing_fields=0 []
+RESULT optimize_two_tank_wood99_2h_differing_fields=0 []
+RESULT optimize_two_tank_wood99_1h_differing_fields=0 []
+RESULT thread_factor=1.000
+RESULT load1=4.94
+RESULT swapins=0

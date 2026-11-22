@@ -1,0 +1,8 @@
+RESULT charge_ceiling=35.000 C
+RESULT buffer_cap_initial60_baseline=60.000 C
+RESULT buffer_cap_initial60_mutant=35.000 C
+RESULT null_initial30_delta=0.000000 C
+RESULT optimize_tank60_differing_fields=20 ['buffer_temp_trajectory','compressor_starts','deferred_energy_cost','displace_schedule','heat_pump_on_schedule','lower_setpoints','lower_temp_trajectory','objective_value']
+RESULT thread_factor=1.000
+RESULT load1=4.93
+RESULT swapins=0

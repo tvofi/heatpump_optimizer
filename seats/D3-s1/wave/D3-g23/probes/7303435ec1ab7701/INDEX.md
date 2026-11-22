@@ -1,0 +1,1 @@
+- probe_7303435ec1ab7701.py (+ _g23_common.py): pins what _safety_release_steps returns when a breach lies past the end of a short pin array; and optimize()'s plan signature for short pin arrays. Output of the recorded run: probe_output.txt.

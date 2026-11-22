@@ -1,0 +1,1 @@
+- probe_c6679b9b114e5732.py (+ _g23_common.py): pins what _safety_release_steps returns (release lists or the exception name) when space_pins is shorter than the solved schedule; and whether optimize() output differs (count of differing plan signatures) for short pin arrays. Output of the recorded run: probe_output.txt.

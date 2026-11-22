@@ -1,0 +1,1 @@
+- probe_8ef1027c9e221b64.py (+ _g23_common.py): pins space release list _safety_release_steps returns when a step carries a pin of exactly 0.5 at floor+0.1; and optimize()'s plan signature with 0.5 pins. Output of the recorded run: probe_output.txt.

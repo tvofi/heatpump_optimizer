@@ -1,0 +1,1 @@
+- probe_0120a5a672990611.py (+ _g23_common.py): pins space release list _safety_release_steps returns when a forced-off step ends at exactly floor + 0.15 (the tie). Output of the recorded run: probe_output.txt.

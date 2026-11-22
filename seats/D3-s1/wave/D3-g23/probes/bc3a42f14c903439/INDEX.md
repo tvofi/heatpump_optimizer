@@ -1,0 +1,1 @@
+- probe_bc3a42f14c903439.py (+ _g23_common.py): pins DHW release list _safety_release_steps returns when the tank ends a forced-off step at exactly requirement - 0.5 (the tie). Output of the recorded run: probe_output.txt.

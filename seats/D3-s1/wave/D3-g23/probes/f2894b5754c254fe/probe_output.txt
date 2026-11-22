@@ -1,0 +1,7 @@
+RESULT direct_short_req_baseline=([],[])
+RESULT direct_short_req_mutant=IndexError
+RESULT null_full_req_delta=0
+RESULT reach_short_requirement_calls=0 of 11 (over 7 manual-plan solves)
+RESULT thread_factor=1.001
+RESULT load1=4.92
+RESULT swapins=0

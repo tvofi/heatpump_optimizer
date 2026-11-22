@@ -1,0 +1,7 @@
+RESULT direct_on_pin_at_floor_release_baseline=([],[])
+RESULT direct_on_pin_at_floor_release_mutant=([0],[])
+RESULT null_free_step_delta=0
+RESULT optimize_on_block_differing_plans=3 of 36
+RESULT thread_factor=1.000
+RESULT load1=4.21
+RESULT swapins=0

@@ -1,0 +1,1 @@
+- probe_70791cdb98f8ddd7.py (+ _g23_common.py): pins the buffer settlement cap (C) _settlement_caps returns for a 750 L valve tank on a -20 C day (charge ceiling 35 C) when the solve starts with the tank at 60 C (above the charge ceiling); and how many OptimizationResult fields optimize() changes. Output of the recorded run: probe_output.txt.

@@ -1,0 +1,1 @@
+- probe_856aa341a89a6ab0.py (+ _g23_common.py): pins steps optimize() releases (result.manual_released_space) for a winter_extreme house starting at 16.9 C with only step 0 forced off. Output of the recorded run: probe_output.txt.

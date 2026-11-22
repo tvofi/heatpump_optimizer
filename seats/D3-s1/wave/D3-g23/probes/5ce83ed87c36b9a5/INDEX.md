@@ -1,0 +1,1 @@
+- probe_5ce83ed87c36b9a5.py (+ _g23_common.py): pins space release list _safety_release_steps returns when a free-step breach is preceded by a 0.5 pin and then a forced-off step; and optimize()'s plan signature with 0.5 pins. Output of the recorded run: probe_output.txt.
