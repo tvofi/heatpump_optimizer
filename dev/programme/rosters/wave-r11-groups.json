@@ -7493,7 +7493,9 @@
    "size": "S",
    "wave": 1,
    "issues": [],
-   "fixes": [],
+   "fixes": [
+    3862
+   ],
    "after": [],
    "files": [
     "custom_components/heatpump_optimizer/switch.py",
