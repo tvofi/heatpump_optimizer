@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_4813f0fd25bc8bb4.py: Metric: number of p_max / p_run_cap inputs (of 11) on which _build_dhw_requirements' schedule differs between baseline and mutant. (needs _g14lib.py beside it; _mk.py regenerates the probes)

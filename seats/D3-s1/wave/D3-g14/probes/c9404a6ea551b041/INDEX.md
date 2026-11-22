@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_c9404a6ea551b041.py: Metric: number of empty-plan inputs on which DhwPlanner._clamp_dhw_to_capacity's return (or raised type) differs between baseline and mutant. (needs _g14lib.py beside it; _mk.py regenerates the probes)

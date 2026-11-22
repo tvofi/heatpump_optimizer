@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_7f026b4dd7d44269.py: Metric: max |schedule| difference (kW) and kWh of _build_dhw_requirements on a cheap-night day, per tank cooling rate (the hold hours that set max_lead_steps). (needs _g14lib.py beside it; _mk.py regenerates the probes)

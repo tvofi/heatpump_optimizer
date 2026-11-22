@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_a1576c7241b67401.py: Metric: DhwPlan.external_heat_suppressed_steps and schedule[0] (kW) of _build_dhw_requirements with external heat active, at the initial tank temperature where the coasting temperature after step 0  (needs _g14lib.py beside it; _mk.py regenerates the probes)

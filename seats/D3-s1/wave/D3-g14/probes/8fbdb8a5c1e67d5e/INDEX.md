@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_8fbdb8a5c1e67d5e.py: Metric: number of (dt, tank, n) inputs on which _build_dhw_requirements' schedule, suppressed count or raised exception differs between baseline and mutant, external heat active. (needs _g14lib.py beside it; _mk.py regenerates the probes)

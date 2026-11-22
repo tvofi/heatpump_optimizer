@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_1c0e818b4bb24fcd.py: Metric: max |plan| difference (kW) between baseline and mutant _apply_dhw_min_run on a plan with entries outside [0, p_dhw_max] that takes the per-slot path (joint raise does not fit; the line-2106  (needs _g14lib.py beside it; _mk.py regenerates the probes)
