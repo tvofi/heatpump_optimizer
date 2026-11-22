@@ -1,8 +1,4 @@
 RESULT flow_error_triples=56
 RESULT unrecovered_flow_error_triples=56
-UNRECOVERED config/building_extras/min_power_above_max
-UNRECOVERED config/device_prefill/dhw_min_too_close
-UNRECOVERED config/device_prefill/prefill_device_unreadable
-UNRECOVERED config/device_prefill/silent_mode_fraction_uncapped
-UNRECOVERED config/device_prefill/silent_mode_window_too_short
-UNRECOVERED config/dhw/dhw_min_too_close
+rc=1
+mutant: tests/config_flow_steps.py:553 and :560 done = True -> False

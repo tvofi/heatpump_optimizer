@@ -1,10 +1,7 @@
+
+ALL 684 checks PASSED
+rc=0
 RESULT flow_error_triples=56
 RESULT unrecovered_flow_error_triples=0
-RESULT flow_checks_covered=580/580 checks
-RESULT step_user happy=7/7 error_branches=11/11
-RESULT step_user_sensors happy=2/2 error_branches=0/0
-RESULT step_finish_setup happy=5/5 error_branches=0/0
-RESULT step_quick_setup happy=4/4 error_branches=0/0
-RESULT step_finish_now happy=1/1 error_branches=0/0
-RESULT flow_checks_covered=580/580 checks
 ALL 684 checks PASSED
+rc=0

@@ -1,21 +1,24 @@
-Fix review: blocked db727d36e02f837e587bc049069d586a587fb913 ci-red: classify reads RED red: gate, four stale gate suites at this head still red beside the two whose only reason is the owed budget raise
+Fix review: blocked db727d36e02f837e587bc049069d586a587fb913 ci-red: classify reads RED red: gate, three gate suites still hold a pre-decision read of a run that has since completed
 
-bus-nonce: 23455ea93ac77f0c5aa226646f0f11e3
+bus-nonce: 38e370c11341660ef3382dc85f218dd7
 
 ## Summary
 
-This is round 3 at the same head, `db727d36e0`. Round 2 returned `merge` on `probe/rev-3825-3a5161b9` (`ce756cbe00`) with `pending-ci` set, because the head's CI runs were cancelled. This seat re-dispatched on new runs (run 44947168836). The head is unchanged since round 2, so this round re-ran the cheap checks at the head and read the new CI.
+This is round 4 at the same head, `db727d36e0`. Round 3 (`probe/rev-3825-23455ea9`, `bef3842c44`) blocked only on stale `gate` suites. Since then the stale suites were re-run, but two of the re-runs ran while run 44942948357 was itself re-running. So they again read "still being judged". The head and its diff are unchanged, and the role files on main changed only in wording, so this round re-ran the cheap checks at the head and read the new CI.
 
-No production file changes. The head merges cleanly with origin/main. Every mutant this seat planted fails its named check. The finder's harness reads 56/54 at the merge base and 56/0 at the head.
+No code, test or harness finding blocks. The head merges cleanly with origin/main. Mutant A1 still fails its check at this head.
 
 ## Block
 
-- `merge_train.py classify db727d36e0 --pr 3825` exited 1 at 01:36:54 UTC, and again on a manual re-run: `RED db727d36e02f837e587bc049069d586a587fb913 pending: none red: gate` (`ev/classify.log`). The verdict is blocked on that red alone (card C8). Code, tests and harness hold: no code, test or harness finding blocks.
-- Cause, read through `merge_train`'s own `gate_suites`, `job_log` and `gate_outcome` (`ev/gate_suites.txt`). Six `gate` suites sit at this head:
-  - The two newest (jobs 137044070127 and 137047381856) fail on one reason only, `budget-raise-gate / budget-raise-gate: failure`. That is the raise's owed approval (mandate 6893738184, scope all), which would read APPROVAL-OWED.
-  - Four older suites are still red for other reasons: 136975236298 and 136975307180 were cancelled at 20:30 UTC, and 136969344649 and 136999930894 printed `run(s) [...] at this head are still being judged; their gate decides`.
-  - So `gate_raise_only` is False and `approval_owed` returns None, and classify fails closed to RED.
-- Remedy, for the orchestrator: re-run the stale gate suites at this head (runs 44942948357, 44943642493 and 44952774191's `gate`) so that each reads its decided outcome. Classify should then read APPROVAL-OWED, and this review's checks carry: the head is unchanged and the review is otherwise complete.
+- `merge_train.py classify db727d36e0 --pr 3825` exits 1 at 04:55 UTC: `RED db727d36e02f837e587bc049069d586a587fb913 pending: none red: gate` (`ev/classify.log`). The review packet refused on `required-red` for the same reason.
+- Cause, read through `merge_train`'s own `gate_suites`, `job_log` and `gate_outcome` (`ev/gate_suites.txt`). There are six `gate` suites at this head, and every workflow run at the head has now completed (`ev/runs_at_head.txt`).
+  - Three suites fail on the owed raise approval alone, `budget-raise-gate / budget-raise-gate: failure`: jobs 137044070127, 137047381856 and 137086254280.
+  - Three suites are stale. Each printed `run(s) [...] at this head are still being judged; their gate decides`:
+    - job 136969344649, run 44942948064 attempt 1, which was never re-run;
+    - job 137062556803, run 44952774191, re-run at 02:34, while 44942948357 was still re-running (it completed at 04:07);
+    - job 137065210288, run 44943642493, re-run at 02:36, same cause.
+  - So `gate_raise_only` is False, `approval_owed` returns None, and classify fails closed to RED.
+- Remedy, for the orchestrator: re-run the `gate` job only, in runs 44942948064, 44952774191 and 44943642493. Do it now that no run at this head is in progress, and one run at a time, or at least after every other run has completed. Classify should then read APPROVAL-OWED. This review's checks carry, because the head is unchanged.
 
 ## Findings
 
@@ -23,27 +26,18 @@ No production file changes. The head merges cleanly with origin/main. Every muta
 
 ## Notes
 
-- Note: figure: the body's A figures are 2 short. The finder's harness reads `error_triples=56`, `unrecovered_triples=54` at merge base `a8efe1d1c2` (body: 54/52) and 56/0 at the head (body: 54/0). The A1 mutant reads `unrecovered_flow_error_triples=56` (body: 54). The extra 2 are main's silent-mode `device_prefill` triples, which `8b42bf71c5` recovers. Carry: dismissed: paperwork, the figures moved with main's merge and the head's own check reads 56
+- Note: round: this is the fourth review round at this head. All three earlier rounds turned on CI state alone: round 1 `merge`, round 2 `merge` with `pending-ci`, round 3 `ci-red` on stale suites. None turned on code, so this seat reads no re-cut as owed on the fix. If the orchestrator reads `fix-review.md`'s "from the fourth, a re-cut is owed" otherwise, the call is its own.
+- Note: figure: the body's A figures are 2 short. The head reads `flow_error_triples=56` (body: 54), and mutant A1 reads 56 unrecovered (body: 54). The extra 2 are main's silent-mode `device_prefill` triples, as round 3 recorded.
 
 ## Evidence
 
-- Round 3 of #3825. Head `db727d36e02f837e587bc049069d586a587fb913` (`ev/HEAD.txt`), merge base `a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b`. The PR body's `## Head` names this head.
-- Role contracts are current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- Packet: `Review scope: full`, refusals none. `review_carry.py 816c2a3e11 db727d36e0` prints `FRESH-REVIEW`.
+- Round 4 of #3825. Head `db727d36e02f837e587bc049069d586a587fb913` (`ev/HEAD.txt`). The PR head re-read at the end of the review is unchanged and `open` (`ev/head_reread.txt`).
+- Role contracts: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` touches `fix-review.md` and `fixer.md`. The changes are rewordings, plus the open-axis `class-open: axis` rule that the comms addendum already binds. No step this review relies on changed.
 - Merge with main: `git merge-tree --write-tree origin/main db727d36e0` exits 0, with `LEDGER-MERGE: resolved tests/closures.json` (`ev/merge-tree.txt`).
-- Step 1, mutation proof, re-run at this head:
-  - Clean: `RESULT unrecovered_flow_error_triples=0`, `ALL 684 checks PASSED` (`ev/cfs_head.txt`).
-  - A1: tracker `done = True` set to False at `tests/config_flow_steps.py:553` and `:560`. Result: `RESULT unrecovered_flow_error_triples=56` (`ev/mut_A1.txt`).
-  - A2: `recover(flow4, "rooms", ...)` at `:1728` replaced by `pass`. Result: `unrecovered_flow_error_triples=1`, `UNRECOVERED options/rooms/too_many_rooms` (`ev/mut_A2.txt`).
-  - beatd: `--self-test 2` reads `14 checks, 0 failed`, including `mutant m2_sigterm_handler_after_jobs turns (2) ... red` (`ev/beatd_st2.txt`).
-  - Not re-run here, because the head is unchanged since round 2: M9/M10, the gate-schema MIN->MAX mutant and the cycle_lane `--self-check` arms. Their round-2 evidence is at `ce756cbe00` `ev/`.
-- Step 2, the finder's harness: `cfg_recovery.py`, sha1 `677301f5b8d3e957c24e9f36d23b8a98cf80a68c`, matching the body. It reads 56/54 at the base (`ev/finder_base.txt`) and 56/0 at the head (`ev/finder_head.txt`). The round-2 `--perturb` at the base moved 54 to 50, so the harness is live.
-- Step 14:
-  - `budget_raise_gate.py --base a8efe1d1c2 --head HEAD --pr 3825` prints `RAISE tests/ci_budgets.json: script_runs_per_push: 54 -> 56` and `RESULT budget_raises=1 count` (`ev/gate_raise.txt`).
-  - `score.py --diff a8efe1d1c2` prints `Architecture score: dS +0.0000 NULL` (`ev/archscore.txt`).
-  - The +2 is one new script measured by two instruments. Payments judged as in rounds 1 and 2: this seat found no payment that improves the code.
-- Step 5: three-dot, `VERSION`, `custom_components/`, `RELEASE_NOTES.md`, `tests/golden/` and the claim files are untouched (round-2 `ev/untouched.txt`, head unchanged).
-- Steps 10-11: the packet's `carry_audit` reads `2 routed, 0 unrouted`. The body's `## Red checks` answers the earlier heads' reds. The owed-reds set is in `ev/owed_reds.txt`.
-- CI: classify was polled about every 90 s from 01:19 UTC. It read WAIT (`pending: gate`) until `sweep-self` finished at 01:36 UTC, then RED (see `## Block`).
-  - Every required unit context but `budget-raise-gate` reads success at run 44947168836, including `governance / instrument-self-tests`, `tests / fast (3.14)`, `tests / coverage-ratchet` and `tests / mutation`.
-  - `gate`'s red is owed an answer, as the owed-reds set names it. The body's `## Raise justification` and `## Red checks` answer the budget-raise red. The stale suites are cancellations and pre-decision reads, not defects.
+- Step 1, re-run at this head, under venv-ci with `PYTHONPATH=tests/hastub`:
+  - Clean: `RESULT unrecovered_flow_error_triples=0`, `ALL 684 checks PASSED`, rc 0 (`ev/cfs_head.txt`).
+  - A1: tracker `done = True` set to False at `tests/config_flow_steps.py:553` and `:560`. Result: `RESULT unrecovered_flow_error_triples=56`, rc 1 (`ev/mut_A1.txt`). Restored afterwards.
+  - Not re-run, because the head is unchanged: A2, beatd `--self-test 2`, M9/M10, the gate-schema mutant, the cycle_lane arms and the finder's harness at both ends (56/54 at the base, 56/0 at the head). Their evidence is at `bef3842c44` and `ce756cbe00` `ev/`.
+- Step 14: unchanged since round 3. `budget_raise_gate.py` reads `script_runs_per_push: 54 -> 56`, and `score.py` reads `dS +0.0000 NULL` (`bef3842c44` `ev/gate_raise.txt`, `ev/archscore.txt`).
+- Step 11: `gate` is in the owed-reds set (`ev/owed_reds.txt`). The body's `## Raise justification` and `## Red checks` answer the budget-raise red. The stale suites are pre-decision reads, not defects.
+- Seat environment: `config_flow_steps.py` needs `PYTHONPATH=tests/hastub` under venv-ci, as `cloud-setup.sh` documents. The first run here, without it, failed on import, and that run is not evidence.
