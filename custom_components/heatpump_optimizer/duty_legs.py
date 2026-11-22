@@ -26,6 +26,7 @@ from typing import Any, NamedTuple
 import numpy as np
 
 from .batchmath import AFTER as _AFTER, BEFORE as _BEFORE, row_sums
+from .const import finite_float
 from .plan_step import PLAN_STEP_MINUTES
 from .thermal_model import MIN_RUNNING_DRAW_KW
 
@@ -69,11 +70,8 @@ _NAMES = {IDLE: "idle", SPACE: "space", DHW: "dhw"}
 
 def leg_minimum(minutes: Any) -> float:
     """A minimum leg in ``[0, LEG_MIN_MAX_MINUTES]``; anything not a finite number is 0, off."""
-    try:
-        value = float(minutes)
-    except (TypeError, ValueError):
-        return 0.0
-    return min(max(value, 0.0), LEG_MIN_MAX_MINUTES) if math.isfinite(value) else 0.0
+    value = finite_float(minutes)
+    return 0.0 if value is None else min(max(value, 0.0), LEG_MIN_MAX_MINUTES)
 
 
 def leg_rule(
