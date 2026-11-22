@@ -5554,7 +5554,9 @@
     "custom_components/heatpump_optimizer/legionella.py"
    ],
    "brief": "One restore owner for every entity the optimizer writes: supply switch, frequency, valve, circulation, mode and tank set-point are handed back on Off, stale plan, unload and remove, with a retried restore and a load that completes before the first read. 6 findings (0 merged in), size L; class tags N-order-coupling, N-restore-race, N-unreleased-hold. Plan: ADR-004 is the approved design. The circulation pumps' write, record and restore move to one owner object registered with off_restore; the pinned check that Off writes nothing else is re-pinned to the 2026-11-15 ruling in the same PR. It also carries the notice arm of D7-s1-05, legionella.py's interval notice (ADR-001), as the actuation seam's first group on that file. The circ term (shared_inplace_writes 3 to 2 and its six coord_footprint statements) is banked only when the PR registers the real restoring owner with off_restore.py, the one that restores on Off, stale plan, unload and remove; a class that only holds the dict is metric-gamed and banks nothing (decided 2026-11-18, orchestrator under mandate, pending owner confirmation). The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "- `custom_components/heatpump_optimizer/pump_arbiter.py`: shared with R11-SEAM-kernel-step, which merged first (#3728, 4ebd430fbff9); R11-SEAM-actuation-release (#3812) merges second and re-runs the finder's restore harness, the first command under Figures (design note section 6). Evidence: the m6_restore re-run at #3812 head 6e37c4c3 passes (log m6_head.txt, exit=0, unrestored_off=0, null_unrestored_duty_change_disinfecting=0)."
+   ],
    "source": "audit",
    "resume": {
     "stage": "in-progress",
