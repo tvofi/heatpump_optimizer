@@ -207,8 +207,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
     entries need only their version stamped forward and their keys placed (7.2).
     A numeric option stored as a non-number is repaired on the way
     (``entry_config.number_repairs``): numeric text is stored as its number,
-    anything else is dropped for its default. Without this handler Home
-    Assistant refuses to load entries created before the current
+    None is dropped and anything else is stored as its default. Without this
+    handler Home Assistant refuses to load entries created before the current
     ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
     """
     if entry.version > CONFIG_ENTRY_VERSION:
@@ -234,8 +234,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfi
         repairs = number_repairs(effective)
         if repairs:
             _LOGGER.warning(
-                "Stored options that are not numbers: %s; text is stored as its number, "
-                "anything else is dropped and its default applies",
+                "Stored options that are not numbers: %s; numeric text is stored as its number, "
+                "None is dropped and anything else is stored as its default",
                 ", ".join(sorted(repairs)),
             )
         # 7.2 stores each key in its one place. Placing only moves keys, and
