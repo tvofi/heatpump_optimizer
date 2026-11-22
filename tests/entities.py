@@ -4913,7 +4913,7 @@ _EC_DISPOSITIONS = {
         ("async_update_thermal_params", "CONF_DHW_COOLING_RATE"),
         ("_thermal_param_changes", "CONF_DHW_WINDOWS"))
 }
-_EC_DISPOSITIONS[("frost_hold.py", "reading", "CONF_OUTDOOR_TEMP_ENTITY")] = (
+_EC_DISPOSITIONS[("frost_hold.py", "outdoor_reading", "CONF_OUTDOOR_TEMP_ENTITY")] = (
     "the cycle's InputHealth readings, keyed by the slot's name; the slot itself is "
     "read through EntryConfig")
 #: Modules whose readers still take the merged mapping, and why.

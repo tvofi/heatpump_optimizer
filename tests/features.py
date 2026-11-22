@@ -87328,6 +87328,7 @@ R.section("R11-OWNER-FROST-HOLD: an idle step below the frost threshold keeps th
 # write becomes a hold. Every check carries its null control: the same input
 # with the option off, or on the warm side of the latch, gives today's OFF.
 from heatpump_optimizer import frost_hold as _fh  # noqa: E402
+from heatpump_optimizer import diagnostics as _fh_diag  # noqa: E402
 from heatpump_optimizer import early_cutoff as _fh_ec  # noqa: E402
 from heatpump_optimizer.inputs import InputHealth as _FhHealth, InputReading as _FhReading  # noqa: E402
 
@@ -87384,12 +87385,12 @@ def _fh_health(value=None, problem=None):
 _fh_fc = lambda: -4.0  # noqa: E731
 _FH_SENSOR = {"outdoor_temp_entity": "sensor.out"}
 for _fh_name, _fh_got, _fh_want in (
-    ("a sensor reading ok is the reading", _fh.reading(_fh_health(-1.5), _fh_fc, _FH_SENSOR), -1.5),
-    ("a stale sensor is no reading, not the forecast", _fh.reading(_fh_health(-1.5, "stale"), _fh_fc, _FH_SENSOR), None),
-    ("an unavailable sensor is no reading", _fh.reading(_fh_health(None, "unavailable"), _fh_fc, _FH_SENSOR), None),
-    ("no cycle read yet is no reading", _fh.reading(None, _fh_fc, _FH_SENSOR), None),
-    ("no sensor configured: the forecast is the reading", _fh.reading(None, _fh_fc, {}), -4.0),
-    ("no sensor and no forecast is no reading", _fh.reading(None, lambda: None, {}), None),
+    ("a sensor reading ok is the reading", _fh.outdoor_reading(_fh_health(-1.5), _fh_fc, _FH_SENSOR), -1.5),
+    ("a stale sensor is no reading, not the forecast", _fh.outdoor_reading(_fh_health(-1.5, "stale"), _fh_fc, _FH_SENSOR), None),
+    ("an unavailable sensor is no reading", _fh.outdoor_reading(_fh_health(None, "unavailable"), _fh_fc, _FH_SENSOR), None),
+    ("no cycle read yet is no reading", _fh.outdoor_reading(None, _fh_fc, _FH_SENSOR), None),
+    ("no sensor configured: the forecast is the reading", _fh.outdoor_reading(None, _fh_fc, {}), -4.0),
+    ("no sensor and no forecast is no reading", _fh.outdoor_reading(None, lambda: None, {}), None),
 ):
     R.check(f"frost hold reading: {_fh_name}", _fh_got == _fh_want, f"{_fh_got!r} != {_fh_want!r}")
 
@@ -87510,7 +87511,9 @@ async def _fh_run(duties, switch, events, out, *, until=20, extra=None, sensor=T
             if latched is not None and _sa_pa.state_for(coord).frost:
                 latched.add(m)
         verdicts = [r["verdict"] for r in _sa_pa.diagnostics_view(coord)["ledger"]["steps"]]
-        diag = _fh.diagnostics_view(_sa_pa.state_for(coord), coord.arbiter_inputs())
+        diag = {**dict(_fh_diag._VIEWS)["frost_hold"](coord),
+                "tail_freeze": _sh_coord_mod._tail_freeze(coord),
+                "cutoff_holds": _fh_ec.state_for(coord).wiring.frost_off()}
     finally:
         _sa_dt.freeze(None)
         _sa_pa.async_track_time_interval = armed
@@ -87552,6 +87555,51 @@ R.check(
     and _fh_ld["latched"] is True and "frost-hold" not in _fh_nv and not _fh_nd["holding"]
     and _fh_nd["cause"] is None and _fh_nd["latched"] is False,
     f"{_fh_lv} {_fh_ld} | {_fh_nv} {_fh_nd}",
+)
+R.check(
+    "frost hold, real coordinator: the learners freeze on the unmetered hold and the cycle's "
+    "cut-off wiring asks the hold; null control: at +4 °C neither",
+    _fh_ld["tail_freeze"] == _fh.FREEZE_FROST and _fh_ld["cutoff_holds"] is True
+    and _fh_nd["tail_freeze"] != _fh.FREEZE_FROST and _fh_nd["cutoff_holds"] is False,
+    f"{_fh_ld} | {_fh_nd}",
+)
+# The cut-off's wiring defaults to no hold: an arm with no frost answer cuts as before.
+_fh_arm_held = _fh_ec.CutoffState()
+_asyncio.run(_fh_ec.arm(_fh_arm_held, lambda: _fh_inp(-3.0), _sh_none, None, lambda _f: None, _SA_T0))
+R.check(
+    "frost hold: an early cut-off armed or wired with no frost answer never holds",
+    _fh_arm_held.wiring.frost_off() is False
+    and _fh_ec.CutoffInputs(lambda: _fh_inp(-3.0), _sh_none, None).frost_off() is False,
+    f"{_fh_arm_held.wiring}",
+)
+
+
+# The supply gate says why it wrote nothing: a held OFF logs the frost hold.
+class _FhLog(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.seen = []
+
+    def emit(self, record):
+        self.seen.append(record.getMessage())
+
+
+_fh_log, _fh_lvl = _FhLog(), _fh._LOGGER.level
+_fh._LOGGER.addHandler(_fh_log)
+_fh._LOGGER.setLevel(logging.DEBUG)
+try:
+    _asyncio.run(_fh_run(*_FH_IDLE, -3.0, until=16))
+    _fh_cold_log = list(_fh_log.seen)
+    _fh_log.seen.clear()
+    _asyncio.run(_fh_run(*_FH_IDLE, 4.0, until=16))
+    _fh_warm_log = list(_fh_log.seen)
+finally:
+    _fh._LOGGER.removeHandler(_fh_log)
+    _fh._LOGGER.setLevel(_fh_lvl)
+R.check(
+    "frost hold: a held OFF is logged as the frost hold; null control: at +4 °C nothing is",
+    any(m.endswith("frost hold") for m in _fh_cold_log) and _fh_warm_log == [],
+    f"{_fh_cold_log} | {_fh_warm_log}",
 )
 
 

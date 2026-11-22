@@ -430,7 +430,7 @@ class ArbiterInputs:
     #: The running-draw window each pass record is handed to
     #: (``draw_range.note_pass``); ``None`` keeps none.
     draw: Any = None
-    #: The outdoor reading the frost hold judges, °C (``frost_hold.reading``); ``None`` is none.
+    #: The outdoor reading the frost hold judges, °C (``frost_hold.outdoor_reading``); ``None`` is none.
     outdoor_c: float | None = None
 
 

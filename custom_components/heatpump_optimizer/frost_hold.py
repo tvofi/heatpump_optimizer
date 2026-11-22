@@ -9,7 +9,7 @@ writes the hold row (``pump_arbiter.desired`` with ``frost``): the space
 set-point at the pump's own floor (``pump_arbiter._hold_floor_c``); elsewhere
 nothing else is written and the pump runs on its own thermostat and curve.
 
-**The reading** (:func:`reading`) is the outdoor sensor's ``InputHealth``
+**The reading** (:func:`outdoor_reading`) is the outdoor sensor's ``InputHealth``
 verdict, never ``state.outdoor_temperature``, which the coordinator
 back-fills from the forecast, the prior value or a default. With no sensor
 configured, the forecast's value for now is the reading.
@@ -56,7 +56,7 @@ CAUSE_COLD = "frost_hold"
 CAUSE_NO_READING = "frost_hold_no_reading"
 
 
-def reading(health: Any, forecast_c: Callable[[], float | None], config: Any) -> float | None:
+def outdoor_reading(health: Any, forecast_c: Callable[[], float | None], config: Any) -> float | None:
     """The outdoor temperature the latch judges, °C, or ``None`` for none.
 
     Where ``config`` names an outdoor sensor, its verdict in ``health``

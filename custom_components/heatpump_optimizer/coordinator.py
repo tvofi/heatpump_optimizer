@@ -4115,7 +4115,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
             is True,
-            outdoor_c=frost_hold.reading(self._input_health, lambda: forecast_outdoor_now(self._weather_forecast, dt_util.now()), ctx._config),
+            outdoor_c=frost_hold.outdoor_reading(self._input_health, lambda: forecast_outdoor_now(self._weather_forecast, dt_util.now()), ctx._config),
         )
 
     def diagnostics_state(self) -> CoordinatorDiagnostics:
