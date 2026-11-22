@@ -786,9 +786,7 @@ SLAB_LOG_ROOM_CAP_LO = float(np.log(1e-3))
 SLAB_LOG_ROOM_CAP_HI = float(np.log(1e3))
 
 
-def _fdjac(
-    residual: Callable[[np.ndarray], np.ndarray], x: np.ndarray, value: np.ndarray
-) -> np.ndarray:
+def _fdjac(residual: Callable[[np.ndarray], np.ndarray], x: np.ndarray, value: np.ndarray) -> np.ndarray:
     """Forward-difference Jacobian of ``residual`` at ``x`` (whose value is ``value``).
 
     Step ``1e-6 * max(|x_i|, 1)`` per parameter: the one spelling the solver
@@ -2424,9 +2422,9 @@ class SystemIdentification:
         # clean residual is exactly what a prior-dominated, useless fit
         # looks like, so the interval — not the residual scatter — is the
         # quantity the gate bounds.
-        width = SLAB_INTERCEPT_PRIOR_SD_KW
+        prior_g, width = self.config.gains_prior_kw, SLAB_INTERCEPT_PRIOR_SD_KW
         profile_halfwidth = _slab_ua_profile_halfwidth(
-            best_x, path_error, int(rooms.size), self.config.gains_prior_kw, width
+            best_x, path_error, int(rooms.size), prior_g, width
         )
         # ... and the interval the intercept prior itself contributes (round-7
         # D7-01, #1459): the profile term above holds prior_g FIXED, so on the
@@ -2434,7 +2432,7 @@ class SystemIdentification:
         # one prior-width moves UA by ~2.3 %, and only the pair of them is
         # what the adoption gate may read.
         prior_halfwidth = _slab_ua_prior_halfwidth(
-            best_x, path_error, self.config.gains_prior_kw, width
+            best_x, path_error, prior_g, width
         )
         # tau_fast re-derives from the fit. The split itself is never
         # adopted — see SysIdResult.slab_mode_tau_hours and the #996
@@ -2452,7 +2450,7 @@ class SystemIdentification:
             ua_profile_halfwidth=profile_halfwidth,
             ua_prior_halfwidth=prior_halfwidth,
             ua_told_halfwidth=_slab_ua_told_halfwidth(
-                best_x, told_error, self.config.gains_prior_kw, width
+                best_x, told_error, prior_g, width
             ),
             confidence=_slab_confidence(rooms, error),
             reason="ok",

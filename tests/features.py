@@ -99624,15 +99624,16 @@ R.check(
 # The wiring (review of c6c11df0b8): the tank thermometer reaches the meter only
 # through ``_observe_heat_energy``. Two real cycles read the configured tank
 # sensor, rising past the band over an unobserved, plan-space-only interval;
-# the interval's space power is refused. Null control: the tank flat.
-def _uc_wired(rise):
+# the interval's space power is refused. Null control: the tank flat. ``first_age``
+# is the first read's age in minutes: a stale read is no evidence (review of 3d8679b765).
+def _uc_wired(rise, first_age=1):
     c = _t2_coord()
     c._current_action = {"power": 3.0, "dhw_power": 0.0}
     hass = FakeHass({})
     reader = _fmReader(hass, {_LF_DHW: "sensor.tank"}, now=lambda: NOW)
-    for i, temp in enumerate((50.0, 50.0 + rise)):
+    for i, (temp, age) in enumerate(((50.0, first_age), (50.0 + rise, 1))):
         at = NOW + _lf_td(minutes=30 * i)
-        hass.states._states["sensor.tank"] = FakeState(str(temp), last_updated=minutes_ago(1, NOW), unit="°C")
+        hass.states._states["sensor.tank"] = FakeState(str(temp), last_updated=minutes_ago(age, NOW), unit="°C")
         _lf_cm._observe_heat_energy(c, reader, at)
     return _uc_he.meter_of(c).tank_c, c._interval_space_power()
 
@@ -99645,6 +99646,18 @@ R.check(
     _uc_wire[0] == ((50.0, 50.0 + _UC_RISE), None)
     and _uc_wire[1][0] == (50.0, 50.0) and _uc_wire[1][1] is not None and _uc_wire[1][1] > 0.0,
     f"{_uc_wire}",
+)
+
+
+# The stale arm: InputReader keeps a stale reading's value, so only the ``ok``
+# gate keeps it out. The fresh rise and fresh flat arms above are its controls.
+_uc_stale = _uc_wired(_UC_RISE, first_age=100000)
+R.check(
+    "a stale first tank read is no evidence: the meter's tank span opens on None and the "
+    "interval keeps its commanded space draw; the fresh rise and fresh flat arms above are "
+    "its controls (review of 3d8679b765)",
+    _uc_stale == ((None, 50.0 + _UC_RISE), 3.0),
+    f"{_uc_stale}",
 )
 
 
