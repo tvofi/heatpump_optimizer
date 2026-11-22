@@ -1756,7 +1756,7 @@ class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
 # ---------------------------------------------------------------------------
 
 
-class MeasuredPowerSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+class MeasuredPowerSensor(PayloadFlagMixin, _PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     """The heat pump's actual electrical draw.
 
     Deliberately named to contrast with "Recommended Power", which is what the
@@ -1780,10 +1780,7 @@ class MeasuredPowerSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "measured_power", "measured_power")
 
-    @property
-    def available(self) -> bool:
-        data = self._data()
-        return bool(super().available and data.get("measured_power_available"))
+    _available_flag = ("measured_power_available",)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2242,7 +2239,7 @@ def _sysid_outcome(view: Any) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 
 
-class MonthlyPeakSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+class MonthlyPeakSensor(PayloadFlagMixin, _PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     """The peak level this month's capacity tariff is currently based on."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -2259,12 +2256,7 @@ class MonthlyPeakSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "monthly_peak", "cost_monthly_peak_power")
 
-    @property
-    def available(self) -> bool:
-        return bool(
-            super().available
-            and (self._data()).get("peak_tariff_enabled")
-        )
+    _available_flag = ("peak_tariff_enabled",)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2293,7 +2285,7 @@ class MonthlyPeakSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
 # ---------------------------------------------------------------------------
 
 
-class PVSurplusSensor(HeatPumpOptimizerSensorBase):
+class PVSurplusSensor(PayloadFlagMixin, HeatPumpOptimizerSensorBase):
     """Forecast solar surplus available to the heat pump."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -2317,11 +2309,7 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "pv_surplus", "solar_surplus_forecast")
 
-    @property
-    def available(self) -> bool:
-        return bool(
-            super().available and (self._data()).get("pv_enabled")
-        )
+    _available_flag = ("pv_enabled",)
 
     @property
     def native_value(self) -> float | None:
@@ -2657,7 +2645,7 @@ class DHWSetpointAdvisorSensor(_PayloadNumberMixin, _DHWEntityMixin, HeatPumpOpt
 
 
 class MixedHotWaterSensor(
-    _PayloadNumberMixin, _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+    PayloadFlagMixin, _PayloadNumberMixin, _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
 ):
     """The tank translated into shower terms (#28).
 
@@ -2697,11 +2685,7 @@ class MixedHotWaterSensor(
             coordinator, entry, "dhw_mixed_water", "dhw_mixed_water"
         )
 
-    @property
-    def available(self) -> bool:
-        return bool(
-            super().available and (self._data()).get("dhw_mixed")
-        )
+    _available_flag = ("dhw_mixed",)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2868,7 +2852,7 @@ class OptimizationScoreSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
         return attrs
 
 
-class CompressorStartsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+class CompressorStartsSensor(PayloadFlagMixin, _PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     """Realised compressor starts, counted from the meter (#55).
 
     State: lifetime starts. TOTAL_INCREASING, so long-term statistics and
@@ -2893,10 +2877,7 @@ class CompressorStartsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
             coordinator, entry, "compressor_starts", "compressor_starts"
         )
 
-    @property
-    def available(self) -> bool:
-        data = (self._data()).get("measured_power_available")
-        return bool(super().available and data)
+    _available_flag = ("measured_power_available",)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

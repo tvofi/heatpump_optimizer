@@ -437,21 +437,24 @@ class ConfiguredInputMixin(HeatPumpOptimizerEntity):
 
 
 class PayloadFlagMixin(HeatPumpOptimizerEntity):
-    """An entity that answers only while one flag of one payload block is set.
+    """An entity that answers only while one flag of the payload is set.
 
-    The block is the coordinator's own statement that the feature has an answer
-    (``wood_fuel.ready``, ``power_headroom.available``, ``reading_ok.<input>``); a
-    missing block or flag is unavailable, never a default.
+    The flag is the coordinator's own statement that the feature has an answer:
+    a top-level key (``pv_enabled``) or one flag of one block
+    (``wood_fuel.ready``, ``power_headroom.available``, ``reading_ok.<input>``);
+    a missing block or flag is unavailable, never a default.
     """
 
-    #: (payload block, flag in it) that must be truthy for the entity to be available.
-    _available_flag: tuple[str, str] = ("", "")
+    #: Key path from the payload to the flag that must be truthy for the entity
+    #: to be available: ``(key,)`` or ``(block, flag)``.
+    _available_flag: tuple[str, ...] = ("",)
 
     @property
     def available(self) -> bool:
-        block, flag = self._available_flag
-        gate: Any = self._data().get(block) or {}
-        return bool(super().available and gate.get(flag))
+        gate: Any = self._data()
+        for key in self._available_flag:
+            gate = (gate or {}).get(key)
+        return bool(super().available and gate)
 
 
 class DHWEntityMixin(HeatPumpOptimizerEntity):
