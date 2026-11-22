@@ -1,0 +1,7 @@
+cycling_cost build 0 uncommitted plan: linear store less walk, largest 0.0008 K (margin 0.02 K)
+cycling_cost build 0 shipped plan: linear store less walk, largest 0.0011 K (margin 0.02 K)
+cycling_cost build 1 uncommitted plan: linear store less walk, largest 0.0008 K (margin 0.02 K)
+cycling_cost build 1 shipped plan: linear store less walk, largest 0.0011 K (margin 0.02 K)
+everything_on build 0 uncommitted plan: linear store less walk, largest 0.0008 K (margin 0.02 K)
+everything_on build 0 shipped plan: linear store less walk, largest 0.0010 K (margin 0.02 K)
+rc=0

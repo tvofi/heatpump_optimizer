@@ -1,0 +1,49 @@
+cycling_cost hysteresis 0.5 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted], shipped committed, charges drop_unstartable removes from it 0
+  build 1: start condition known True, rounds 1, verdicts [accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 1.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 1.5 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+  build 1: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 2.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 3.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 2, verdicts [start@25, accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+  build 1: start condition known True, rounds 2, verdicts [start@25, accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 4.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+  build 1: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 5.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+  build 1: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 6.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 2, verdicts [start@1, accepted], shipped committed, charges drop_unstartable removes from it 0
+  build 1: start condition known True, rounds 2, verdicts [start@1, accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 8.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 2, verdicts [start@1, accepted], shipped committed, charges drop_unstartable removes from it 0
+  build 1: start condition known True, rounds 2, verdicts [start@1, accepted], shipped committed, charges drop_unstartable removes from it 0
+cycling_cost hysteresis 10.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 2, verdicts [start@1, accepted], shipped committed, charges drop_unstartable removes from it 0
+  build 1: start condition known True, rounds 2, verdicts [start@1, accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 0.5 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 1.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 1.5 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 2.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 3.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 4.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted, accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 5.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 6.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 8.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted], shipped committed, charges drop_unstartable removes from it 0
+everything_on hysteresis 10.0 K: shipped steps under the floor not a charge's last 0
+  build 0: start condition known True, rounds 1, verdicts [accepted], shipped committed, charges drop_unstartable removes from it 0
+rc=0

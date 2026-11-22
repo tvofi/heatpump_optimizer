@@ -1,0 +1,6 @@
+fixtures IDENTICAL rc=0
+stores IDENTICAL rc=0
+hysteresis IDENTICAL rc=0
+kernel IDENTICAL rc=0
+tail IDENTICAL rc=0
+combi IDENTICAL rc=0
