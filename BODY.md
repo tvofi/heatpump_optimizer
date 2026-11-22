@@ -23,6 +23,10 @@ Departures from the approved design, each measured:
 
 ## Head
 
+`f36611dd23542a73d141963c1eb7860f8a219edb` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3866.md`. The authored code head is `0d1cae21a695abbc4c951143b854d2a2a45e16b6`.
+
+`c6d5d822e3067cc7df2345d7ddffc4cf593f3cd0` merges origin/main `8cc3fb3e35` into the authored code head `0d1cae21a695abbc4c951143b854d2a2a45e16b6` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `0d1cae21a695abbc4c951143b854d2a2a45e16b6` (the fixer's `4411000a37`, then `facaa581e4` which deletes the nine mutation-ledger pins whose lines this change replaced, then `0d1cae21a6` which counts flow_limit.py in the deployment-shape lane's note) measured against `origin/main` at `3a98735a7e` (merge base), 2026-11-22. Against `origin/main` `8ef450936a` at 2026-11-22T16:00Z, `git merge-tree --write-tree origin/main HEAD` merges cleanly; the `tests/closures.json` ledger merge driver resolves that file.
 
 Overlap with #3812 (R11-SEAM-actuation-release, open at `3af986dd`): that pull request also moves `_silent_rows`/`_inside_silent` from `pump_arbiter.py` into `quiet_windows.py`, the move this pull request names as its structure payment below. Whichever merges second meets the other's move. If this one's structure check then fails on the main it lands on, it pays with another real move, never a budget raise.
@@ -132,7 +136,8 @@ Option mutants, in `flow_limit.py` / `pump_arbiter.py`. Each was run on the R11-
 
 ## Red checks
 
-- `mutation` at 0d1cae21a695: red by construction on the 26 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `tests / mutation` at f36611dd2354: red by construction on the 26 site(s) under `## Unpinned sites` (flow_limit.py 8, inputs.py 6, pump_arbiter.py 10, quiet_windows.py 2, all logged ADDED UNPINNED); mutation-autofix pins killed sites after the push.
+- `gate` at f36611dd2354: red only because it reports that run 45055462774's other checks were still being judged when it ran (`FAIL run(s) [45055462774] at this head are still being judged`); it decides again when they finish, and it holds no finding of its own.
 
 ## Forward-carry
 
@@ -143,3 +148,5 @@ Option mutants, in `flow_limit.py` / `pump_arbiter.py`. Each was run on the R11-
 ## Friction
 
 none
+
+
