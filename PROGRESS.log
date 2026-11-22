@@ -10,3 +10,4 @@
 1795291508 DONE returned: Fix review: merge 827fa67e with pending-ci; probe/rev-3738-bee67cf7 at ca258422
 1795322230 HB alive
 1795322349 CKPT round 5 delta read: prod interdiff empty, features.py + 8 pins snapshot a244595eca97
+1795322542 CKPT 6 targeted mutants killed by the delta's new checks snapshot 7a33212177b2
