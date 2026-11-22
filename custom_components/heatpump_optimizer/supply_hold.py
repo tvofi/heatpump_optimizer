@@ -57,12 +57,12 @@ from typing import Any
 
 from homeassistant.util import dt as dt_util
 
-from . import issues, pump_arbiter
+from . import issues
 from .boost import CHANNEL_DHW, CHANNEL_SPACE
 from .const import MODE_AUTO, MODE_ECONOMY
 from .entry_config import EntryConfig
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
-from .pump_arbiter import ArbiterInputs, ArbiterState, step_duty, step_supply, supply_switch
+from .pump_arbiter import ArbiterInputs, ArbiterState, cooling_mode, step_duty, step_supply, supply_switch
 from .runs import MIN_PAUSE, MIN_RUN
 
 #: The ``_learning_frozen`` reason for an interval in which a write was held.
@@ -165,7 +165,7 @@ def _ends_soon(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool:
     return not (step_duty(inp.plan, now) in ("dhw", "both") and tank_reason(inp))
 
 
-def supply_write(coord: Any, on: bool, signals: Any) -> bool | None:
+def supply_write(held: ArbiterState, inp: ArbiterInputs, on: bool, signals: Any) -> bool | None:
     """The switch value to write for ``on``, or ``None`` to leave the switch.
 
     Neither direction while the mode reads cooling (:func:`note_cooling`).
@@ -175,24 +175,24 @@ def supply_write(coord: Any, on: bool, signals: Any) -> bool | None:
     summer DHW pulse would leave the supply latched while the tank is
     supposed to drift.
     """
-    if note_cooling(coord, signals, on) is None and (on or not (signals.space_blocked and signals.dhw_blocked)):
+    if note_cooling(held, inp, signals, on) is None and (on or not (signals.space_blocked and signals.dhw_blocked)):
         return on
     _LOGGER.debug("Not switching %s: mode %s is cooling or blocks both channels", "on" if on else "off", signals.mode.label)
     return None
 
 
-def note_cooling(coord: Any, signals: Any, asks_heat: bool = False) -> Any:
-    """``pump_arbiter.cooling_mode``; :data:`ISSUE_COOLING` once per episode asked for heat.
+def note_cooling(held: ArbiterState, inp: ArbiterInputs, signals: Any, asks_heat: bool = False) -> Any:
+    """``cooling_mode``; :data:`ISSUE_COOLING` once per episode asked for heat.
 
     The supply gate passes ``asks_heat``; the cycle calls it without, so the
     notice clears when the mode leaves cooling whatever the optimizer's mode.
     """
-    held, mode = pump_arbiter.state_for(coord), pump_arbiter.cooling_mode(coord.arbiter_inputs(), signals)
+    mode = cooling_mode(inp, signals)
     if mode is None and held.cooling_asked:
-        issues.clear_issue(coord.hass, ISSUE_COOLING)
+        issues.clear_issue(inp.hass, ISSUE_COOLING)
     elif mode is not None and asks_heat and not held.cooling_asked:
         _LOGGER.warning("Pump duty: the pump's mode reads %s while asked for heat; leaving it alone", mode.label)
-        issues.set_issue(coord.hass, ISSUE_COOLING, True, placeholders={"mode": mode.label})
+        issues.set_issue(inp.hass, ISSUE_COOLING, True, placeholders={"mode": mode.label})
     else:
         return mode
     held.cooling_asked = mode is not None
