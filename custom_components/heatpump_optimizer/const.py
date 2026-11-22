@@ -1070,6 +1070,10 @@ DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
 CONF_PUMP_DUTY_MODE: Final = "pump_duty_mode"
 DEFAULT_PUMP_DUTY_MODE: Final = "off"
 PUMP_DUTY_MODES: Final = ("off", "observe", "control")
+#: Suspend actuation while the fault alarm (``CONF_HEAT_PUMP_FAULT_ENTITY``)
+#: holds (fault_hold.py); on by default, off keeps the old behaviour.
+CONF_FAULT_HOLD: Final = "fault_hold"
+DEFAULT_FAULT_HOLD: Final = True
 #: The pump's own start hysteresis per duty, K, read from an entity as a
 #: temperature difference (``inputs.read_temperature_delta_k``) with no age
 #: gate: a setting changes only when someone changes it. Hot water: the pump

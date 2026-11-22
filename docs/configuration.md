@@ -664,7 +664,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Hot water start hysteresis | none | `sensor` / `number` / `input_number`, K | Optional. The pump's own hot water start hysteresis, a temperature difference; the plan places no charge on a tank at or above the hot water target less this. |
 | Defrosting | from setup | a binary sensor | On while the pump reverses to melt frost off the outdoor coil. |
 | Pump online | from setup | a binary sensor | On while the pump is actually reachable. |
-| Fault alarm | from setup | a binary sensor | On while the pump is reporting a fault. Only whether there is a fault is used. |
+| Fault alarm | from setup | a binary sensor | On while the pump is reporting a fault. Only whether there is a fault is used. With *Fault hold* on, a fault on for 10 minutes suspends actuation (see [A pump that reports a fault](#a-pump-that-reports-a-fault)). |
+| Fault hold (`fault_hold`) | On | on / off | Once the fault alarm has been on for 10 minutes, the optimizer stops changing the pump's mode, set-points, compressor frequency and heat-curve offset and never switches it off, until the alarm clears. A fault entity that also reports non-blocking warnings holds too: turn this off to keep writing through them. |
 | Space backup heater | none | a flag entity | On while the pump's own electric backup heater runs in the space heating circuit. Those kilowatts are not the compressor, so the optimizer stops reading the meter as an efficiency measurement while it is on — but the heat still counts, because it is real heat into the house. Worth filling in mainly on a pump that publishes no power meter, where there is otherwise no way to notice the element at all. |
 | Hot water tank booster | none | a flag entity | On while the electric heater in the hot water tank runs. Treated like the backup heater above, and each switch-on is also recorded as a hot water rescue: if those recur and you have turned on immersion feedback, the plan starts heating the tank a little earlier. |
 | Capacity limited (night mode) | none | a flag entity | On while the pump runs at a reduced compressor speed — night or silent mode on most units. Efficiency and capacity are not learned from those intervals, because what the machine shows then is the cap's. Cost and heat accounting still use the measured power: a speed-capped compressor draws exactly what the meter says. |
@@ -955,7 +956,7 @@ writes, at every 15-minute plan step:
 **Observe** writes nothing. In *Observe* and *Control* the optimizer keeps a
 ledger of the last 24 hours: per 15-minute step, the duty the plan wanted
 against what the pump did, and a verdict — *delivered*, *space-instead*,
-*dhw-instead*, *idle-instead*, *not-startable* (a hot-water step left idle on a tank at or above the pump's own start temperature), *unknown* or *baseline* (no plan duty). What the
+*dhw-instead*, *idle-instead*, *not-startable* (a hot-water step left idle on a tank at or above the pump's own start temperature), *device-fault* (a step in which the pump's fault alarm held actuation; the step in which a long fault began keeps its own verdict, because a row is closed when its step ends), *unknown* or *baseline* (no plan duty). What the
 pump did is read from what the integration already reads: the **power
 entity** (running or not), the operating mode (*DHW (Hot Water)*) and the
 **tank temperature** (a rise of 0.5 °C over the step counts as hot water).
@@ -966,6 +967,25 @@ tank rise. The counts and the steps are in the diagnostics download under
 whether *Control* is worth turning on: the share of *delivered* steps is how
 often the pump already does what the plan wanted. *Off* (the default) does
 neither.
+
+#### A pump that reports a fault
+
+With a **Fault alarm** entity configured and *Fault hold* on (the default),
+an alarm that has been on for 10 minutes suspends actuation until it reads
+off: no mode, set-point, silent-switch or night-schedule write, no compressor
+frequency, no heat-curve offset on either the MQTT topics or the entity, no
+early cut-off, and no switch-off (a switch-on still passes; a switch-off the
+plan wanted is written once the alarm clears). The plan keeps being made. A
+repair, *The heat pump reports a fault; the plan is suspended*, is raised for
+the duration and clears itself. Faults that clear within 10 minutes change
+nothing. The alarm is read at any age, so a fault a source reported once and
+never again still holds; *unavailable*, *unknown* and a word that is not a
+flag neither start a hold nor end one. Turning the optimizer Off ends the hold,
+and turning it On again holds at once on a fault that is still old. The
+diagnostics download shows the latch under `fault_hold`; the heat-curve
+displace the diagnostics report under the hold is the one computed, which was
+not sent. To switch the pump by hand while it is faulted, turn **Optimizer
+active** off first.
 
 ### Room thermometers
 

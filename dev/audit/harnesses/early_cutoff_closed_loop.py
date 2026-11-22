@@ -59,7 +59,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import numpy as np
-from harness import FakeHass, FakeState
+from harness import FakeEntry, FakeHass, FakeState
 from homeassistant.util import dt as dt_util
 from profiles import house, prices, solve_inputs
 
@@ -160,7 +160,7 @@ def run(label: str, plant_kind: str, cutoff: bool) -> None:
         if cutoff:
             dt_util.freeze(t0)
             asyncio.run(early_cutoff.arm(held, lambda inp=inp: inp, BoostState(), cfg,
-                                         unloads.append, t0))
+                                         unloads.append, t0, entry=FakeEntry()))
         for m in range(30):
             level = plan[m // 15]
             if plant_kind in ("OWNMIN", "HOT", "LIGHT") and level > MIN_RUNNING_DRAW_KW:

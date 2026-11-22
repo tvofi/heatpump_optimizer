@@ -416,6 +416,8 @@ from .const import (
     DEFAULT_FREQ_CONTROL_MODE,
     CONF_PUMP_DUTY_MODE,
     DEFAULT_PUMP_DUTY_MODE,
+    CONF_FAULT_HOLD,
+    DEFAULT_FAULT_HOLD,
     PUMP_DUTY_MODES,
     CONF_SPACE_HYSTERESIS_ENTITY,
     CONF_DHW_HYSTERESIS_ENTITY,
@@ -1171,47 +1173,7 @@ def _select(options: list[str], translation_key: str) -> selector.SelectSelector
     )
 
 
-def _meter_source_selector() -> selector.SelectSelector:
-    """Meter, vendor estimate, or read from the entity's id (R10-HOTFIX-COP-UNMEASURED)."""
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=[METER_SOURCE_AUTO, METER_SOURCE_METER, METER_SOURCE_ESTIMATE],
-            translation_key="meter_source",
-            mode=selector.SelectSelectorMode.DROPDOWN,
-        )
-    )
-
-
-def _freq_mode_selector() -> selector.SelectSelector:
-    """Observe or control (T7 #61).
-
-    An explicit two-option select rather than a boolean, because the
-    words matter: "control" is the moment actuation begins, and the user
-    should read that word, not flip an anonymous toggle.
-    """
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=[FREQ_MODE_OBSERVE, FREQ_MODE_CONTROL],
-            translation_key="freq_control_mode",
-            mode=selector.SelectSelectorMode.DROPDOWN,
-        )
-    )
-
-
-def _solar_source_selector() -> selector.SelectSelector:
-    """Where irradiance comes from.
-
-    Kept as an explicit choice rather than "use Open-Meteo when no sensor
-    exists": silently calling an external API on a user's behalf is not a
-    decision an integration should make for them.
-    """
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=list(SOLAR_SOURCES),
-            translation_key="solar_forecast_source",
-            mode=selector.SelectSelectorMode.DROPDOWN,
-        )
-    )
+_METER_SOURCES = [METER_SOURCE_AUTO, METER_SOURCE_METER, METER_SOURCE_ESTIMATE]
 
 
 def _solar_location_selector() -> selector.LocationSelector:
@@ -1742,12 +1704,14 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities", CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
-    _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
+    # An explicit source, never "Open-Meteo when no sensor": an external call is the user's decision.
+    _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _select(list(SOLAR_SOURCES), "solar_forecast_source"), group="solar"),
     _F("entities_metering", CONF_SOLAR_LOCATION, _Computed(lambda cur, hass: _default_location(hass, cur)), _solar_location_selector(), group="solar"),
     _F("entities_metering", CONF_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
-    _F("entities_metering", CONF_POWER_SOURCE, DEFAULT_METER_SOURCE, _meter_source_selector(), group="meters"),
+    # Meter, vendor estimate, or read from the entity's id (R10-HOTFIX-COP-UNMEASURED).
+    _F("entities_metering", CONF_POWER_SOURCE, DEFAULT_METER_SOURCE, _select(_METER_SOURCES, "meter_source"), group="meters"),
     _F("entities_metering", CONF_THERMAL_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
-    _F("entities_metering", CONF_THERMAL_POWER_SOURCE, DEFAULT_METER_SOURCE, _meter_source_selector(), group="meters"),
+    _F("entities_metering", CONF_THERMAL_POWER_SOURCE, DEFAULT_METER_SOURCE, _select(_METER_SOURCES, "meter_source"), group="meters"),
     _F("entities_metering", CONF_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
     _F("entities_metering", CONF_HEAT_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
     _F("entities_metering", CONF_HEAT_METER_SEES_DHW, DEFAULT_HEAT_METER_SEES_DHW, selector.BooleanSelector(), group="meters"),
@@ -1755,7 +1719,8 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_metering", CONF_COMPRESSOR_FREQ_ENTITY, _STORED, _entity_of('number'), group="compressor"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency'), group="compressor"),
     _F("entities_metering", CONF_FLOW_METER_ENTITY, _STORED, _entity_of('sensor'), group="compressor"),
-    _F("entities_metering", CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE, _freq_mode_selector(), group="compressor"),
+    # Two words, not a toggle: "control" is the moment actuation begins (T7 #61).
+    _F("entities_metering", CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE, _select([FREQ_MODE_OBSERVE, FREQ_MODE_CONTROL], "freq_control_mode"), group="compressor"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_MIN_HZ, DEFAULT_COMPRESSOR_FREQ_MIN_HZ, _number(1, 250, 1, 'Hz'), group="compressor"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_MAX_HZ, DEFAULT_COMPRESSOR_FREQ_MAX_HZ, _number(1, 250, 1, 'Hz'), group="compressor"),
     # -- entities_pump
@@ -1769,6 +1734,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
+    _F("entities_pump", CONF_FAULT_HOLD, DEFAULT_FAULT_HOLD, selector.BooleanSelector()),
     # The pump's own electric heat and its night mode. Options-only, with no
     # row in ``topology._SLOTS`` -- the precedent is the compressor-frequency
     # pair above, which is options-only for the same reason: they are not

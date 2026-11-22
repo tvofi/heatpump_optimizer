@@ -56,7 +56,7 @@ from weakref import WeakKeyDictionary
 
 from homeassistant.util import dt as dt_util
 
-from . import off_restore
+from . import fault_hold, off_restore
 from .const import DOMAIN, HEAT_CURVE_KIND_PERSISTENT
 from .payload import CurrentAction, Ecl110Payload
 from .inputs import NumberReading, number_reading, setpoint_step, write_setpoint
@@ -274,13 +274,18 @@ async def publish(
     legacy_payload: Ecl110Payload,
     *,
     mode_off: bool = False,
+    released: bool = False,
 ) -> None:
     """Fan one displace out: the MQTT arms first, then the entity arm.
 
     ``entry`` keys the arm's record and its latches, so the coordinator
     carries no attribute and is not handed in. Either arm is armed for the
-    off restore before it writes.
+    off restore before it writes. Nothing is sent while the pump's fault
+    alarm holds (:mod:`fault_hold`): this is every displace's one sink, so the
+    cycle, the peak guard's engage and its release are all suspended.
     """
+    if fault_hold.holding(entry, hass, config, off=mode_off, released=released):
+        return
     await off_restore.async_arm(hass, entry, config, MQTT_CONSUMER)  # no topic: no restorer, a no-op
     await publish_ecl110_topics(
         hass,

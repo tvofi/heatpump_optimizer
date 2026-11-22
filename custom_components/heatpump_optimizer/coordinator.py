@@ -258,7 +258,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
+from . import duty_switch, early_cutoff, fault_hold, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
 from . import room_record, rooms, slab_seed
@@ -7670,7 +7670,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         await heat_curve.publish(
             self.hass, self.entry, getattr(self, "_ctx", self)._config, displace_int, legacy_payload,
-            mode_off=self._mode == MODE_OFF,
+            mode_off=self._mode == MODE_OFF, released=self._entry_released,
         )
 
     async def async_publish_current_action(self, reason: str = "optimizer", heat_pump_on: bool | None = None) -> None:
@@ -7755,7 +7755,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await _best_effort_cycle_step(
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
-        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
+        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload, entry=self.entry), "Early cut-off arm skipped: %s")
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -7781,8 +7781,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _write_supply(self, on: bool) -> None:
         """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
         held = pump_arbiter.state_for(self)
-        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
-            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
+        value = fault_hold.gate(self.entry, held, self.arbiter_inputs(), supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
+            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
             await pump_arbiter.write_supply(self, switch_entity, value)
@@ -10807,7 +10807,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         map with no evidence writes NOTHING: None is never a frequency.
         """
         entity_id = getattr(self, "_ctx", self)._config.compressor_freq_entity
-        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF:
+        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or fault_hold.held(self.entry):
             return
         _reported, hz_min, hz_max, _source = self._freq_entity_reading()
         target = self._freq_map.recommend(
