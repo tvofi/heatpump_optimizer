@@ -15,7 +15,9 @@ Deployment owed by the orchestrator once this merges:
 
 ## Head
 
-`6f895244fd19cc43cb21a19a09280b7bcbf3105b`, on `origin/main` at `a8efe1d1c2` (the merge base); `git merge-tree --write-tree origin/main HEAD` exits 0. The code and every measurement below are at `c037e9bfe152`. The two commits after it answer prepr's predicted reds and change no instrument line: `R11-SELFTEST-TABLE-ADDITIONS` joins `finding.schema.json`'s `class_guess` enum, with `.claude/workflows/audit-find.js`'s generated block rewritten by `python3 tools/audit/fold_ledger.py sync` (`fold_ledger: 0 violation(s)`); and `tests/closures.json` adds `tools/audit/seat/selftest_absorb.py` to `tests/entities.py`'s closure (`ci_predict.py --apply-inert`). After both, `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` predicts no closures, fast, governance or instrument red.
+`e247f929d46fce3f39216cdff4d034ca1cda5c70`, on `origin/main` at `63c6d1cff9` (the merge base, 2026-11-22); `git merge-tree --write-tree origin/main HEAD` exits 0. It is a one-line repair on top of `1ab809af50` (the head reviewed for the delta): `dev/README.md`'s machinery-figure row for `fixer, reviewer and design seats -runs-> bus.sh` cites `fix-review.md`'s shortened `bus.sh push-verdict <pr>`, the text `880f254423` left when it fit `fix-review.md` to its token cap. Restoring the path-qualified text instead puts `fix-review.md` at 2779 against its 2775 cap (`node tools/policy/policy_lint.mjs --budgets`). At e247f929: `python3 tests/doc_claims.py` `ALL 441 checks PASSED` (at 1ab809af: `2 of 441 checks FAILED`); `node tools/policy/policy_lint.mjs` `TOTAL: 0 error(s)`; prepr passed rc=0 (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`).
+
+Earlier record, kept: `6f895244fd19cc43cb21a19a09280b7bcbf3105b`, on `origin/main` at `a8efe1d1c2` (the merge base); `git merge-tree --write-tree origin/main HEAD` exits 0. The code and every measurement below are at `c037e9bfe152`. The two commits after it answer prepr's predicted reds and change no instrument line: `R11-SELFTEST-TABLE-ADDITIONS` joins `finding.schema.json`'s `class_guess` enum, with `.claude/workflows/audit-find.js`'s generated block rewritten by `python3 tools/audit/fold_ledger.py sync` (`fold_ledger: 0 violation(s)`); and `tests/closures.json` adds `tools/audit/seat/selftest_absorb.py` to `tests/entities.py`'s closure (`ci_predict.py --apply-inert`). After both, `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` predicts no closures, fast, governance or instrument red.
 
 prepr: passed rc=0 at 6f895244fd19cc43cb21a19a09280b7bcbf3105b (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`, the seat's overlays)
 
@@ -58,7 +60,7 @@ Each production line was mutated in this checkout, the instrument's own self-tes
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, no budget moved.
 - `python3 -I tools/audit/seat/selftest_absorb.py beat --repo-dir . --run 44922703115 --at c037e9bfe15285692c5f7412732a1c13a3159968 --work <dir>`: `SELFTEST-ABSORB OWED 738 read(s), 7 step(s)`.
 
-<!-- figure-block: scope-line mb=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b head=6f895244fd19cc43cb21a19a09280b7bcbf3105b -->
+<!-- figure-block: scope-line mb=63c6d1cff9a29ec0c99bcbd5e12c229b61e7c184 head=e247f929d46fce3f39216cdff4d034ca1cda5c70 -->
 ~~~text
 MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
@@ -66,7 +68,7 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 
 ## Red checks
 
-none
+- `tests / fast (3.14)` (job 136998957300, run 44952149596, head 1ab809af): `tests/doc_claims.py` failed `every arrow is cited, every citation holds in the tree, and the figure has one entry` and `reversing any one arrow of the page's figure is a finding`, both caused by `880f254423` shortening the string the figure cites. Fixed at e247f929. Defect answer (`defect-root-cause.md`, second trigger): a cheaper detector existed and was not run. `python3 tests/doc_claims.py` takes about 3 minutes locally, against the 51 minutes the CI job ran. The scoped prepr this branch used (`PREPR_SKIP_CODE=1`) skips the code-keyed steps, so a text edit to a file that a doc_claims figure cites reached CI unchecked. The standing cost of the detector is about 3 minutes per prepr on a branch whose diff selects `tests/doc_claims.py`. Carry: dismissed: one instance; the cost test and any countermeasure belong to a root-cause seat, not this fixer (`defect-root-cause.md` step 2)
 
 ## Forward-carry
 
