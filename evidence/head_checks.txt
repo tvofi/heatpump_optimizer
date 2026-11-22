@@ -1,5 +1,10 @@
-merge-tree: b839c74641c7381270be292887eb8e39e079ea0d rc=0
-prelude self-test: 89 checks, 0 failed
-STRUCTURE RATCHET PASSED
-RESULT base=40e513eea4ca files=195 long_units_base=2301 long_units_head=2301
-comment_ratchet: OK
+head 17ecc009eda59ac715b148a70fc541b7c1b0a593
+git merge-tree --write-tree origin/main <head>:
+4bf85f9b386846f8b113efeefa2fea20da1afc35
+rc=0
+origin/main: baa9a467ac518bc3f8733d2603ea8ae406b235af
+roles diff lines: 0
+delta 46e7faa93f..17ecc009ed:
+ tools/ci/prelude.py | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+review_carry a5dea9b9c2 -> head: review_carry: FRESH-REVIEW
