@@ -685,6 +685,8 @@ MUTANTS = [
      'hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}', 'hit = {}'),
     ("ci_predict-4", "tools/pr/ci_predict.py", '                if b:\n', '                if True:\n'),
     ("ci_predict-5", "tools/pr/ci_predict.py", '        if any(n in text for n in names):\n', '        if False:\n'),
+    # R10-RCA-OPEN-PREPR-SLOW C4: the STEP REPLAY budget leaves the steps past it to CI.
+    ("ci_predict-6", "tools/pr/ci_predict.py", '        if spent >= budget:\n', '        if False:\n'),
     ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
      "        if False:\n            return 3,"),
     ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),

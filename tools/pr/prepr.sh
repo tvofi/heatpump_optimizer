@@ -624,12 +624,17 @@ PY
   return 1
 }
 
-# Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff, read
-# statically -- no test or mutant runs, and the one recording is a changed
-# file's own self-test a gate script runs (SELF-TEST READS, the fifth
-# argument), so it costs seconds where
-# step 6b's recordings cost the scoped scripts' run time and are left to CI
-# under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
+# Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff. Its
+# default arms read the diff statically; the fifth argument adds the gated
+# arms (`GATED_ARMS`), which run code: a changed file's own self-test a gate
+# script runs (SELF-TEST READS), every program of each restoring job the diff
+# keys (GRADER, its jobs side by side), each instrument-self-tests step the
+# diff keys (STEP REPLAY, bounded by HPO_STEP_REPLAY_BUDGET_S, the rest left
+# to CI) and SELFTEST SCOPE. It costs seconds only on a diff keying none of
+# them: one the gate cannot scope runs GRADER's slowest job for minutes, which
+# dev/audit/rca/open_prepr_6d.sh times at one head (R10-RCA-OPEN-PREPR-SLOW,
+# C4). Step 6b's recordings are left to CI under the owner's heavy-scripts
+# rule (2026-10-07). It predicts `closures`'s
 # UNDER-SCOPED and INERT READS, entities' unclassified file and
 # a STALE PIN the diff itself stales (a stale pin main carries only warns),
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
@@ -4822,7 +4827,8 @@ fi
 # --- 6d. the CI reds a static read of the diff predicts (`predict_line`), and
 # the reads each changed file's own self-test makes in a gate script that runs
 # it, recorded by CI's recorder (SELF-TEST READS, dev/audit/rca/R10-RCA-CLOSURE-ARGV.md):
-# seconds per such file, none on a diff that changes none.
+# seconds per such file, none on a diff that changes none; the other gated
+# arms' cost is `predict_line`'s comment's.
 UNPINNED_SITES=/tmp/prepr-unpinned.$$
 if [ -z "$REUSE" ]; then  # under PREPR_SKIP_CODE, `merged_steps` runs it on the merged tree
 PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}" "" record)

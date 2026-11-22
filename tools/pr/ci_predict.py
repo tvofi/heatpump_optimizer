@@ -41,8 +41,10 @@ scoped to what the three-dot diff adds or changes, so a red main already
 carries is never charged to a branch. Nothing here runs a test, a recording
 or a mutant: seconds, never a heavy script, but for AGREEMENT, which runs the
 lane in a throwaway clone (about 10 s) and only on a diff to a path its job
-restores, and three opt-in by `--record-self-tests` (prepr's 6d passes it):
-GRADER, minutes where keyed (measured in its record), SELFTEST SCOPE (main's
+restores, and four opt-in by `--record-self-tests` (prepr's 6d passes it):
+GRADER, minutes where keyed (its slowest restoring job bounds it, the jobs
+running side by side; `dev/audit/rca/open_prepr_6d.sh` times a head), STEP
+REPLAY (below, held to `STEP_REPLAY_BUDGET`), SELFTEST SCOPE (main's
 drift step over the gated self-tests whose own script the diff changes,
 traced in a scratch clone: `selftest_scope_preds`), and SELF-TEST READS,
 a changed file's own `--self-test`, recorded by `closure._exec_record` and
@@ -65,7 +67,10 @@ an over-approximation at worst, the direction `_fold_inert_reads` keeps.
 STEP REPLAY, opt-in with SELF-TEST READS, runs each `instrument-self-tests`
 step whose run text names a changed file as the runner does, and predicts a
 red the base's step of that name does not share (#3245: a self-test summary
-line removed while governance.yml still grepped it).
+line removed while governance.yml still grepped it). Those steps are ones CI
+runs on the pull request anyway, one after another: past `STEP_REPLAY_BUDGET`
+seconds (`HPO_STEP_REPLAY_BUDGET_S`) the rest are left to CI in one `LEFT TO
+CI` note naming them, the steps naming a changed file replayed first.
 
 `--body FILE` adds a fifth arm, the carry check `pr-contract` runs on the body
 (R10-CI-LAYOUT-P2 carry 6): `tools/audit/carry_audit.py`'s own `audit`, imported
@@ -582,14 +587,28 @@ STEP_REPLAY_TIMEOUT_ENV = "HPO_STEP_REPLAY_TIMEOUT_S"
 TIMED_OUT = -124  # never a bash rc: bash exits 0..255
 
 
-def step_replay_timeout() -> float:
-    """The replay bound in seconds: the environment's, else SELF_TEST_TIMEOUT."""
+# The arm's whole budget (R10-RCA-OPEN-PREPR-SLOW, C4). Every step it replays
+# is one `instrument-self-tests` runs on the pull request anyway, a context no
+# merge requires, so past the budget the rest is left to CI, noted by name,
+# never predicted: a diff keying most of the job's steps replayed them one by
+# one for longer than the rest of prepr together.
+STEP_REPLAY_BUDGET_ENV = "HPO_STEP_REPLAY_BUDGET_S"
+STEP_REPLAY_BUDGET = 300
+
+
+def env_seconds(name: str, default: float) -> float:
+    """A positive number of seconds from the environment's ``name``, else ``default``."""
     import os
     try:
-        v = float(os.environ.get(STEP_REPLAY_TIMEOUT_ENV, ""))
+        v = float(os.environ.get(name, ""))
     except ValueError:
-        return SELF_TEST_TIMEOUT
-    return v if v > 0 else SELF_TEST_TIMEOUT
+        return default
+    return v if v > 0 else default
+
+
+def step_replay_timeout() -> float:
+    """The replay bound in seconds: the environment's, else SELF_TEST_TIMEOUT."""
+    return env_seconds(STEP_REPLAY_TIMEOUT_ENV, SELF_TEST_TIMEOUT)
 
 
 def replay_step(tree: Path, run: str) -> int:
@@ -616,10 +635,25 @@ def step_replay_preds(root: Path, base: str, changed: set[str],
     base's is green -- so a step this container cannot run (a missing binary,
     an unset variable: red at both ends) is a note left to CI, never the branch's."""
     import tempfile
+    import time
     head = instrument_steps(root)
     readers = recorded_readers(root, changed)  # mut:readers
     hit = {n: r for n, r in head.items() if n in readers or names_changed(root, r, changed)}
-    ran = {n: replay_step(root, r) for n, r in hit.items()}
+    # Within the budget, a step whose run text names a changed file first
+    # (#3245's shape), then a recorded reader, then one keyed through a tool's text.
+    order = sorted(hit, key=lambda n: (not any(c in hit[n] for c in changed), n not in readers))
+    budget, spent, ran, left = env_seconds(STEP_REPLAY_BUDGET_ENV, STEP_REPLAY_BUDGET), 0.0, {}, []
+    for n in order:
+        if spent >= budget:
+            left.append(n)
+            continue
+        t0 = time.monotonic()
+        ran[n] = replay_step(root, hit[n])
+        spent += time.monotonic() - t0
+    if left:
+        (notes if notes is not None else []).append(
+            f"LEFT TO CI {len(left)} of {len(hit)} instrument-self-tests step(s) the diff keys, past the "
+            f"{budget:g} s replay budget ({STEP_REPLAY_BUDGET_ENV}): {', '.join(left)}")
     for n, rc in ran.items():
         if rc == TIMED_OUT:
             (notes if notes is not None else []).append(
@@ -788,6 +822,29 @@ def step_replay_self_test(root: Path) -> int:
             got = len(step_replay_preds(t, base, changed))
             print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
             bad += got != want
+        # C4's bound (R10-RCA-OPEN-PREPR-SLOW): a's step names a.sh, c's reaches it through
+        # c.sh's text; under a spent budget a is replayed first and c is left to CI, by name.
+        import os
+        (t / "tools" / "a.sh").write_text("echo nothing\n")
+        for budget, want, left in (("0.001", ["a"], True), (None, ["a", "c"], False)):
+            was = os.environ.pop(STEP_REPLAY_BUDGET_ENV, None)
+            if budget:
+                os.environ[STEP_REPLAY_BUDGET_ENV] = budget
+            try:
+                notes = []
+                got = sorted(l.split(":")[0].removeprefix("STEP REPLAY ")
+                             for _, l in step_replay_preds(t, base, {"tools/a.sh"}, notes))
+            finally:
+                os.environ.pop(STEP_REPLAY_BUDGET_ENV, None)
+                if was is not None:
+                    os.environ[STEP_REPLAY_BUDGET_ENV] = was
+            said = any(x.startswith("LEFT TO CI 1 of 2 ") and x.endswith(": c") for x in notes)
+            good = got == want and said == left
+            print(f"  {'ok  ' if good else 'FAIL'} " + (
+                "a spent replay budget replays the step naming the changed file first and leaves "
+                "the rest to CI, named" if budget else
+                "null control: under the default budget both steps are replayed and none is left"))
+            bad += not good
         wf = (t / INSTRUMENT_WF).read_text()
         (t / INSTRUMENT_WF).write_text(wf + "      - name: e\n        id: e\n        if: ${{ !cancelled() && steps.d.outcome == 'failure' }}\n"
                                        "        run: bash tools/e.sh\n      - name: f\n        id: f\n"
@@ -1585,7 +1642,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--record-self-tests", action="store_true",
                     help="also record each changed file's own self-test a gate script runs "
                          "(SELF-TEST READS: seconds per file) and run each restoring job's programs "
-                         "the diff keys (GRADER: minutes where keyed), so prepr's 6d passes it")
+                         "the diff keys (GRADER: minutes where keyed) and the instrument-self-tests steps it keys "
+                         "(STEP REPLAY, within STEP_REPLAY_BUDGET), so prepr's 6d passes it")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--rekey-body", metavar="BODY", help="re-key BODY's moved `## Unpinned sites` lines in place")
     ap.add_argument("--from", dest="frm", metavar="SHA", help="with --rekey-body: the code sha the keys were taken at")
