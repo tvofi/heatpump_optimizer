@@ -1,0 +1,16 @@
+Design review: approve d7f7303df2c3e896ddbdbb25d3359eac97d838fb
+
+Design reviewer, round 1, R11-SEAM-two-zone-slab, note read from a detached worktree at d7f7303df2; code read at its base 8cc3fb3e35 (origin/main has no change to thermal_model.py or ledger.py since).
+
+1. Seam: one owner, `_valve_flow_set` (thermal_model.py:2277); the four curve sites (thermal_model.py:2368-2378, 2533-2538, 3514-3530, 4685-4690) route through it, and nothing writes another module's state. `ledger.REFERENCE_BASIS` (ledger.py:80) follows the 3 -> 4 precedent that R11-VALVE-REFERENCE set.
+2. Shape against the finding: the law re-derived from `_two_zone_rates` (thermal_model.py:4224) at steady state, zero sun: wu(a+Uu) + wl(b+Ul) = AB - c^2, so `flow_setpoint` in the note's form puts r*Tu + (1-r)*Tl at target exactly, and equal weights at c -> inf. The free heat and zone weighting go beyond issue 3713's series term, and the note says why they must move with it: without them the room runs 21.24 C and the finder's harness fails its precondition.
+3. Sibling sites: grep repeated across custom_components. The covered and unchanged sets match the tree. The readers the note leaves out are carried below (item r1); they do not change behaviour on the install.
+4. Evidence: (a) and (b) fail at base (20.719/20.350/19.980); `r10_sav_held_install.py` is the finder's harness, and its `valve off` control row exists. The eight claimed goldens are exactly the two-zone valve-fed scenarios in tests/golden.py (lines 497-600). `valve_upper_direct_slab` is the only other valved golden, and the four two-zone goldens set no valve.
+5. Sibling designs: no open design/R11-* note names these symbols except R11-VALVE-REFERENCE (merged predecessor) and R11-SEAM-plant-model (merged as #3731, which touched no valve).
+6. Cost: four files, with churn the size of an L group.
+
+## Notes for the fixer
+
+- `flow_lift.curve_supply_temp` -> `flow_target_for_indoor` has two readers the note does not list, and both run on a two-zone throttling install. One is the flow-curve bias learner (coordinator.py:970, which returns early only on a single-zone valve). The other is `pump_arbiter._flow_target`'s fallback hold (pump_arbiter.py:964, max(curve_flow_temp, FLOW_HOLD_C 35)). On replay_install, at flow_curve_indoor_target 19.5, the curve moves 21.40/22.72/24.03/25.34 -> 21.64/23.36/25.09/26.81 at +5/-5/-15/-25 C (reviewer probe at base, the law closed-form), so the hold stays 35 and the bias relearns the shift. Name both readers in the body and pin the fallback hold unchanged on the install. Carry: R11-SEAM-two-zone-slab (item r1)
+- The lower-floor keyword defaults to 0.0, so a two-zone call that omits it silently drops the lower floor's loss. Add a mutation for each of the four call sites, including `_valve_draw_circuits` (b or valve_hold_temperature should kill it), or make the keyword required when `two_zone_enabled`. Carry: R11-SEAM-two-zone-slab (item r2)
+- The note does not price the structural ratchet. The law adds lines to thermal_model.py, and removing the two inline curve copies (thermal_model.py:2527-2538, 4681-4690) should pay for them; run `tests/structure.py` at both ends before the handoff. Carry: R11-SEAM-two-zone-slab (item r3)
