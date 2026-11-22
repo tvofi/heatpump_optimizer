@@ -66864,7 +66864,7 @@ R.check(
 
 # D1-s1-02: best_restore must never raise on a stored bias leaf of any shape.
 _si_bias = {}
-for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
+for _si_leaf in (0.3, "0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
     _si_r = _SiRing.from_dict({"snapshots": [{
         "taken_at": "2026-06-01T12:00:00+00:00", "healthy": True,
         "accuracy": {"temperature_bias": _si_leaf}, "learners": {},
@@ -66875,8 +66875,9 @@ for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
         _si_bias[repr(_si_leaf)] = type(_si_err).__name__
 R.check(
     "best_restore skips a non-numeric or out-of-band stored bias instead of "
-    "raising, and still restores an in-band numeric one (D1-s1-02)",
-    _si_bias == {"'0.3'": True, "'garbage'": False, "[0.3]": False,
+    "raising, and still restores an in-band numeric one (D1-s1-02); text that "
+    "spells a number is out of its declared domain (R11-SEAM-store)",
+    _si_bias == {"0.3": True, "'0.3'": False, "'garbage'": False, "[0.3]": False,
                  "{'v': 0.3}": False, "nan": False, "0.9": False},
     f"{_si_bias}",
 )

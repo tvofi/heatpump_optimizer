@@ -594,10 +594,17 @@ def _kinds_arm() -> None:
          dom("month"), "2026-13", False),
         ("month refuses a value of another length", dom("month"), "202601", False),
         ("month admits an ISO month", dom("month"), "2026-01", True),
+        # R11-SEAM-store: a value spelling a number is text, a map key is not.
+        ("real refuses a value that spells a number", dom("real"), "1.5", False),
+        ("int refuses a value that spells an integer", dom("int", 0, 10), "5", False),
+    ]
+    keys = [
+        ("a real key is read as the number it spells", dom("real", 0.0, 2.0), "1.5", True),
+        ("an int key outside its range is refused", dom("int", 0, 10), "11", False),
     ]
     bad = [
-        label for label, domain, value, want in rows
-        if _store.in_domain(domain, value) is not want
+        label for label, domain, value, want in rows + keys
+        if _store.in_domain(domain, value, (label, domain, value, want) in keys) is not want
     ]
     R.check("each kind's shape and parse conjuncts decide alone", not bad, f"{bad}")
 
@@ -1988,7 +1995,7 @@ def _a6_off(store: str, payload, restored: bool = False) -> list[str]:
     return [
         "/".join(map(str, p)) + ("~" if k else "")
         for p, k, d, v in _store.stored_fields(store, payload)
-        if d is None or not _store.in_domain(d, v)
+        if d is None or not _store.in_domain(d, v, k)
     ]
 
 

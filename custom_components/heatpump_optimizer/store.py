@@ -238,11 +238,13 @@ _KINDS: dict[str, Any] = {
 }
 
 
-def in_domain(domain: Domain, value: Any) -> bool:
-    """Whether ``value`` lies in ``domain`` (a key is read as the number it spells)."""
+def in_domain(domain: Domain, value: Any, key: bool = False) -> bool:
+    """Whether ``value`` lies in ``domain``. A map ``key`` is read as the number
+    it spells, since JSON keys are text; a stored value never is, as no loader
+    computes with text."""
     if value is None or value == "":
         return domain.null
-    if domain.kind in ("int", "real") and isinstance(value, str):
+    if key and domain.kind in ("int", "real") and isinstance(value, str):
         try:
             value = (int if domain.kind == "int" else float)(value)
         except ValueError:
@@ -689,9 +691,9 @@ def stored_fields(name: str, payload: Any) -> list[tuple[tuple[Any, ...], bool, 
     return out
 
 
-def _declared(domain: Domain | None, value: Any) -> bool:
+def _declared(domain: Domain | None, value: Any, key: bool) -> bool:
     """Whether a stored field is declared and inside its declaration: the one rule."""
-    return domain is not None and in_domain(domain, value)
+    return domain is not None and in_domain(domain, value, key)
 
 
 def admitted(name: str, payload: Any) -> bool:
@@ -701,7 +703,7 @@ def admitted(name: str, payload: Any) -> bool:
     For a loader whose stored record is opaque to it (a presentation dict
     it republishes whole) and that drops the record rather than repair it.
     """
-    return all(_declared(d, v) for _p, _k, d, v in stored_fields(name, payload))
+    return all(_declared(d, v, k) for _p, k, d, v in stored_fields(name, payload))
 
 
 def off_domain(key: str, payload: Any) -> list[str]:
@@ -711,8 +713,8 @@ def off_domain(key: str, payload: Any) -> list[str]:
     entry names declares nothing, so every field of its document is off.
     """
     return [
-        "/".join(map(str, path)) for path, _key, domain, value in stored_fields(store_name(key) or "", payload)
-        if not _declared(domain, value)
+        "/".join(map(str, path)) for path, is_key, domain, value in stored_fields(store_name(key) or "", payload)
+        if not _declared(domain, value, is_key)
     ]
 
 
