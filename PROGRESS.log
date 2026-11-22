@@ -17,3 +17,4 @@
 1795292913 HB alive
 1795293069 DONE verdict merge db727d36e0 pushed to probe/rev-3825-3a5161b9 (ce756cbe00), pending-ci: gate, instrument-self-tests
 1795310327 HB alive
+1795310678 CKPT round 3: mutants A1 A2, finder harness both ends, beatd re-run at head snapshot 703b9120757b
