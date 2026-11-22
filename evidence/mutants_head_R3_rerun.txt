@@ -1,4 +1,0 @@
-R3 utc_instant naive branch: rc=1 tail='1 of 9 FEATURES BLOCK FAILED'
-      FAIL D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a Tokyo host; open_meteo and manual_plan (its instant and its naive-reference coercion) read it there  [{'drift': False, 'open_meteo': True, 'manual_plan': False, 'manual_plan coerce': True, 'aware kept': True}]
-    1 of 9 FEATURES BLOCK FAILED
-restored-clean: True ''
