@@ -92148,8 +92148,8 @@ R.check(
     "the loop",
     _fb_sim(limits=(None, _fb_old), **_FB_STEP_UP)["writes"] == _fb_limit_hi["writes"],
 )
-# The limits act on the loop alone (I1, I3), but for the high limit: today's
-# target is not moved by the low one, and R11-OWNER-FLOWCAP (owner ruling,
+# The limits act on the loop alone (I1, I3), but for the high limit. Today's
+# target is not moved by the low one. R11-OWNER-FLOWCAP (owner ruling,
 # 2026-11-22) holds every heating write at or under the high one, which is the
 # most the pump accepts. So an install the loop does not act on writes the same
 # with both sensors as with neither wherever that write sits under the high
