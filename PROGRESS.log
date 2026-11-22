@@ -1,3 +1,4 @@
 1795366730 INIT r11-rev-3865
 1795366738 HB alive
 1795366869 CKPT self-test with mutants ok at head; classify GREEN snapshot 09ecb34f512f
+1795367154 DONE verdict merge f93e28bb returned on probe/rev-3865-7b5b03c5 (14b96ac92a)
