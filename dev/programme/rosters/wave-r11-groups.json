@@ -6851,7 +6851,9 @@
     "tests/structure.py"
    ],
    "brief": "Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. The buffer cooling, house heat-loss and internal-gains folds and the re-anchor leave the coordinator class for a module of the learners seam that is handed interval values; stored keys and arithmetic are unchanged and golden fixtures stay byte-identical. It pays the round's coordinator footprint, which is read end to end after every coordinator merge. Evidence: dev/audit/rounds/round11/PLAN/prototypes.py at 819aa2e354b4, arm fabric, reads the footprint 28 statements lower for two of the folds; the designer's note carries the reading of the whole cut. Scenario: growth of coordinator.py is priced and the class shrinks (S13). Its designer starts in the first wave, not behind R11-SEAM-learners, so F is measured before most coordinator merges spend R (decided 2026-11-18, orchestrator under mandate, pending owner confirmation); the fixer still waits on R11-SEAM-learners. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md at 819aa2e354b4 with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
-   "carry": [],
+   "carry": [
+    "Left behind (issue sweep 2026-11-22): issue #3795 (unbounded retention) remainder. PR #3821 delivered the card history prune. In custom_components/heatpump_optimizer/price_model.py, PriceShapeLearner's `days_seen` and `quarter_days_seen` still grow without limit in memory on main. Bound both, with the same retention horizon as the learner's persisted window, and prune on load and on update. Control: after N+horizon simulated days both containers hold at most horizon entries. Null control: a container bounded by construction is not a finding. Re-measure at your merge base. Closes the #3795 remainder. Carry: R11-ARCH-fabric-learner (item 3795-pricelearner)"
+   ],
    "source": "audit",
    "resume": {
     "stage": "not-started",
