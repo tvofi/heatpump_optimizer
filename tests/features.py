@@ -87305,6 +87305,404 @@ import json  # noqa: E402
 from pathlib import Path as _DsPath  # noqa: E402
 from harness import FakeCoordinator as _DsFakeCoord, FakeEntry as _DsFakeEntry  # noqa: E402
 
+R.section("R11-OWNER-FAULT-HOLD: a latched fault suspends actuation (#3856)")
+# The pump's fault alarm held for hours while the arbiter kept switching its
+# mode and writing set-points into it. ``fault_hold`` latches the alarm after
+# FAULT_HOLD_AFTER (10 min) and every actuator consults it. Each check's null
+# control is the same fixture with the alarm on for less than the hold, or off,
+# or the option off: today's writes.
+from heatpump_optimizer import fault_hold as _fh  # noqa: E402
+from heatpump_optimizer import duty_ledger as _fh_dl  # noqa: E402
+from heatpump_optimizer import heat_curve as _fh_hc  # noqa: E402
+from heatpump_optimizer import issues as _fh_issues  # noqa: E402
+
+_FH_FAULT = "binary_sensor.pump_fault"
+
+
+def _fh_coord(since=-11, state="on", duties="dds-", duty="control", hold=True, entity=_FH_FAULT, switch=None):
+    """A control ``_PaCoord`` whose fault alarm reads ``state`` since minute ``since`` of 06:00."""
+    c = _PaCoord(_PA_TUYA, duties=duties, duty=duty)
+    extra = {"heat_pump_fault_entity": entity, "fault_hold": hold}
+    if switch is not None:
+        extra["heat_pump_switch_entity"] = "switch.hp"
+        c.hass.states.set("switch.hp", FakeState(switch, last_updated=_PA_T0 - timedelta(hours=1)))
+    c._config = EntryConfig.from_mapping({**dict(c._config), **extra})
+    if entity and state is not None:
+        c.hass.states.set(entity, FakeState(state, last_updated=_PA_T0 + timedelta(minutes=since)))
+    return c
+
+
+def _fh_fault(c, state, at):
+    c.hass.states.set(c._config["heat_pump_fault_entity"], FakeState(state, last_updated=_PA_T0 + timedelta(minutes=at)))
+
+
+def _fh_pump_writes(c):
+    return [w for w in c.writes() if w[0] in ("select", "number", "switch")]
+
+
+def _fh_issue(c, issue_id=_fh.ISSUE):
+    return [i for i in getattr(c.hass, "issues", []) if i[1] == issue_id]
+
+
+# 1. Control, the alarm on for 11 minutes: no mode, set-point or silent write.
+_fh_held = _fh_coord(since=-11)
+_pa_run(_fh_held, 0)
+_fh_short = _fh_coord(since=-9)
+_pa_run(_fh_short, 0)
+_fh_clear = _fh_coord(state="off")
+_pa_run(_fh_clear, 0)
+R.check("a fault alarm on for 11 minutes: the control pass writes nothing into the pump",
+        _fh_pump_writes(_fh_held) == [], f"{_fh_pump_writes(_fh_held)}")
+R.check("null control: the same pass with the alarm on for 9 minutes writes the step's row",
+        bool(_fh_pump_writes(_fh_short)) and _fh_pump_writes(_fh_short) == _fh_pump_writes(_fh_clear),
+        f"{_fh_pump_writes(_fh_short)} vs {_fh_pump_writes(_fh_clear)}")
+
+# 2. A step boundary Heating -> DHW under the hold writes no mode.
+def _fh_settle(c, minutes):
+    """One pass whose writes the device holds, as ``_pa_settled``; returns them."""
+    _pa_run(c, minutes)
+    got = c.writes()
+    for _domain, _svc, data in c.hass.services.calls:
+        c.device(data["entity_id"], str(data.get("option", data.get("value"))))
+    c.hass.services.calls.clear()
+    return got
+
+
+def _fh_boundary(**kw):
+    """The mode writes of the pass at the 06:15 boundary of a hot-water then heating plan."""
+    c = _fh_coord(duties="ds--", **kw)
+    for m in (0, 14):
+        _fh_settle(c, m)
+    return [w for w in _fh_settle(c, 15) if w[0] == "select"]
+
+
+_fh_step = _fh_boundary(since=-30)
+_fh_step_null = _fh_boundary(state="off")
+R.check("a step boundary under the hold writes no mode", _fh_step == [], f"{_fh_step}")
+R.check("null control: the same boundary with no fault writes the pump's mode",
+        bool(_fh_step_null), f"{_fh_step_null}")
+
+# 3. Drift under the hold: no re-send, the retry and its warning dropped; after
+# the clear the pump is written again and the reset never adopted.
+def _fh_drift_run(fault):
+    """Writes by phase when the pump resets its hot-water set-point a minute after the write."""
+    c = _fh_coord(state="off")
+    _fh_settle(c, 0)
+    held = _pa.state_for(c)
+    held.retry["mode"] = _PA_T0
+    _fh_issues.set_issue(c.hass, _pa.ISSUE_IGNORED, True, placeholders={"detail": "x"})
+    if fault:
+        _fh_fault(c, "on", -20)
+    c.device("number.dhw_set", "53")
+    during = (_fh_settle(c, 1), dict(held.retry), _fh_issue(c, _pa.ISSUE_IGNORED), held.space_before)
+    _fh_fault(c, "off", 2)
+    after = [w for m in range(3, 9) for w in _fh_settle(c, m)]
+    return during, after, c.set_modes
+
+
+_fh_drift = _fh_drift_run(True)
+_fh_drift_null = _fh_drift_run(False)
+R.check("drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped",
+        _fh_drift[0] == ([], {}, [], None), f"{_fh_drift[0]}")
+R.check("after the clear the pump's reset set-point is written back, never adopted",
+        ("number", "set_value", 48) in _fh_drift[1] and _fh_drift[2] == [], f"{_fh_drift[1:]}")
+R.check("null control: with no fault the same reset is written back at once",
+        ("number", "set_value", 48) in _fh_drift_null[0][0], f"{_fh_drift_null[0]}")
+
+# 4. The switch gate: an OFF is left and marked held; an ON passes.
+_fh_g = _fh_coord(since=-30)
+_fh_gs = _pa.ArbiterState()
+_sa_dt.freeze(_PA_T0)
+_fh_gate = (_fh.gate(_fh_g.entry, _fh_gs, _fh_g.arbiter_inputs(), False), _fh_gs.supply_held,
+            _fh.gate(_fh_g.entry, _pa.ArbiterState(), _fh_g.arbiter_inputs(), True),
+            _fh.gate(_fh_g.entry, _pa.ArbiterState(), _fh_g.arbiter_inputs(), None))
+_fh_gn = _fh_coord(since=-9)
+_fh_gns = _pa.ArbiterState()
+_fh_gate_null = (_fh.gate(_fh_gn.entry, _fh_gns, _fh_gn.arbiter_inputs(), False), _fh_gns.supply_held)
+_sa_dt.freeze(None)
+R.check("the switch gate leaves an OFF under the hold and marks it held for the step tick; ON and None pass",
+        _fh_gate == (None, True, True, None), f"{_fh_gate}")
+R.check("null control: the same OFF with the alarm on for 9 minutes passes, unmarked",
+        _fh_gate_null == (False, False), f"{_fh_gate_null}")
+
+
+async def _fh_switch_run(fault):
+    """Switch calls by minute through the real coordinator: OFF at 06:00, the alarm clears at 06:03."""
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState("on", last_updated=_SA_T0 - timedelta(hours=1)),
+                     _FH_FAULT: FakeState("on" if fault else "off", last_updated=_SA_T0 - timedelta(minutes=30))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe",
+                                        "heat_pump_fault_entity": _FH_FAULT}, entry_id=f"fh{next(_PA_IDS)}"))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(2)],
+        power_schedule=[0.0, 0.0], dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
+    out = {}
+    try:
+        for m in range(6):
+            now = _SA_T0 + timedelta(minutes=m)
+            _sa_dt.freeze(now)
+            coord._last_optimization = now
+            if m == 3:
+                hass.states.set(_FH_FAULT, FakeState("off", last_updated=now))
+            if m == 0:
+                _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+                await coord._apply_action()
+            else:
+                for tick in list(ticks):
+                    await tick(now)
+            out[m] = [s for d, s, _d in hass.services.calls if d == "switch"]
+            hass.services.calls.clear()
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+    return out
+
+
+_fh_sw = _asyncio.run(_fh_switch_run(True))
+_fh_sw_null = _asyncio.run(_fh_switch_run(False))
+R.check("the cycle's OFF under the hold is left, and the step tick writes it once the alarm clears",
+        _fh_sw[0] == [] and _fh_sw[1] == [] and _fh_sw[3] + _fh_sw[4] == ["turn_off"], f"{_fh_sw}")
+R.check("null control: with no fault the cycle switches off at once",
+        _fh_sw_null[0] == ["turn_off"], f"{_fh_sw_null}")
+
+# 4b. A switch-on under the hold writes no mode ahead of it (``_lead_mode``).
+_fh_lead = _fh_coord(since=-30, switch="off")
+_fh_lead_null = _fh_coord(since=-30, switch="off", hold=False)
+_sa_dt.freeze(_PA_T0)
+for _fh_c in (_fh_lead, _fh_lead_null):
+    _pa_run(_fh_c, 0)
+    _fh_c.hass.services.calls.clear()
+    _asyncio.run(_pa._lead_mode(_fh_c, True))
+_sa_dt.freeze(None)
+R.check("a switch-on under the hold writes no mode ahead of it", _fh_lead.writes() == [], f"{_fh_lead.writes()}")
+R.check("null control: with the option off the same switch-on writes the step's mode first",
+        [w[0] for w in _fh_lead_null.writes()] == ["select"], f"{_fh_lead_null.writes()}")
+
+
+# 5. The early cut-off does not switch a faulted pump off.
+def _fh_cut(fault_since):
+    plan = SimpleNamespace(timestamps=[_PA_T0 + timedelta(minutes=15 * i) for i in range(8)],
+                           power_schedule=[1.5] * 8, dhw_power_schedule=[0.0] * 8,
+                           room_temp_trajectory=[21.0] * 9, duty_floor_kw=None)
+    hass = FakeHass({"switch.hp": FakeState("on", last_updated=_PA_T0 - timedelta(hours=1)),
+                     "sensor.room": FakeState("21.0"),
+                     _FH_FAULT: FakeState("on", last_updated=_PA_T0 + timedelta(minutes=fault_since))})
+    hass.async_create_task = lambda coro: _asyncio.run(coro)
+    inp = _pa.ArbiterInputs(
+        hass=hass, config={"indoor_temp_entity": "sensor.room", "heat_pump_switch_entity": "switch.hp",
+                           "optimization_interval": 30, "heat_pump_fault_entity": _FH_FAULT},
+        mode=_PA_AUTO, plan=plan, plan_stale=False, entry_released=False,
+        state=SimpleNamespace(dhw_temperature=50.0, lower_floor_temperature=21.0),
+        thermal=None, params=SimpleNamespace(dhw_enabled=False, two_zone_enabled=False),
+        action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=False)
+    held, entry = _sa_ec.CutoffState(), _pa_entry(entry_id=f"fh{next(_PA_IDS)}")
+    cfg = SimpleNamespace(get_comfort_temp=lambda hour, when=None: 21.0)
+    _sa_dt.freeze(_PA_T0)
+    _asyncio.run(_sa_ec.arm(held, lambda: inp, _sa_boost.BoostState(), cfg, lambda _f: None, _PA_T0, entry=entry))
+    _sa_dt.freeze(_PA_T0 + timedelta(minutes=12))
+    _sa_ec.on_room_event(held, held.wiring, SimpleNamespace(data={"new_state": FakeState("22.5", unit="°C")}))
+    _sa_dt.freeze(None)
+    return [c[1] for c in hass.services.calls], held.last_held
+
+
+_fh_ec = _fh_cut(-30)
+_fh_ec_null = _fh_cut(5)
+R.check("a warm room under the hold does not cut the pump", _fh_ec == ([], "fault"), f"{_fh_ec}")
+R.check("null control: the alarm on for 7 minutes, the same reading cuts", _fh_ec_null[0] == ["turn_off"], f"{_fh_ec_null}")
+
+
+# 6. Every displace (cycle, peak-guard engage and release) goes through
+# ``heat_curve.publish``: nothing is sent under the hold.
+def _fh_publish(fault_since, released=False):
+    hass = FakeHass({_FH_FAULT: FakeState("on", last_updated=_PA_T0 + timedelta(minutes=fault_since))})
+    cfg = EntryConfig.from_mapping({"heat_pump_fault_entity": _FH_FAULT,
+                                    "ecl110_displace_set_topic": "ecl/displace/set"})
+    entry = _pa_entry(entry_id=f"fh{next(_PA_IDS)}")
+    _sa_dt.freeze(_PA_T0)
+    _asyncio.run(_fh_hc.publish(hass, entry, cfg, -3, {"displace": -3}, released=released))
+    _sa_dt.freeze(None)
+    return [c[0] for c in hass.services.calls], [i[1] for i in getattr(hass, "issues", [])]
+
+
+_fh_pub = _fh_publish(-30)
+_fh_pub_null = _fh_publish(-5)
+_fh_pub_rel = _fh_publish(-30, released=True)
+R.check("a displace under the hold is not published", _fh_pub == ([], [_fh.ISSUE]), f"{_fh_pub}")
+R.check("null control: the alarm on for 5 minutes, the displace is published",
+        "mqtt" in _fh_pub_null[0] and _fh_pub_null[1] == [], f"{_fh_pub_null}")
+R.check("an unloaded entry's displace raises no fault repair", _fh_pub_rel[1] == [], f"{_fh_pub_rel}")
+
+_fh_fq = _freq_coord(mode="control")
+_fh_fq_null = _freq_coord(mode="control")
+_fh.holding(_fh_fq.entry, FakeHass({_FH_FAULT: FakeState("on", last_updated=_PA_T0)}),
+            {"heat_pump_fault_entity": _FH_FAULT}, off=False, now=_PA_T0 + timedelta(minutes=11))
+_fh_fq_read = []
+for _fh_c in (_fh_fq, _fh_fq_null):
+    _fh_c._freq_entity_reading = lambda c=_fh_c: (_fh_fq_read.append(c), (None, 0.0, 0.0, "number"))[1]
+    _asyncio.run(_fh_c._command_frequency())
+R.check("the compressor frequency is not commanded under the hold: the guard returns before the target is read",
+        _fh_fq not in _fh_fq_read, f"{len(_fh_fq_read)}")
+R.check("null control: the same control-stage coordinator with no latch goes on to read its target",
+        _fh_fq_null in _fh_fq_read, f"{len(_fh_fq_read)}")
+
+
+# 7. The latch: Off -> On and a reload hold at once on an old fault; an
+# unusable reading never starts a hold and never ends one.
+def _fh_latch(states, steps, entity=_FH_FAULT, hold=True):
+    """``holding`` at each (minute, off, state-or-None) step; the state, given, is set first."""
+    hass = FakeHass(states)
+    entry = _pa_entry(entry_id=f"fh{next(_PA_IDS)}")
+    cfg = {"heat_pump_fault_entity": entity, "fault_hold": hold}
+    out = []
+    for minute, off, state in steps:
+        if state is not None:
+            hass.states.set(entity, state)
+        out.append(_fh.holding(entry, hass, cfg, off=off, now=_PA_T0 + timedelta(minutes=minute)))
+    return out, [i[1] for i in getattr(hass, "issues", [])], entry
+
+
+_fh_on70 = FakeState("on", last_updated=_PA_T0 - timedelta(minutes=70))
+_fh_r2 = _fh_latch({_FH_FAULT: _fh_on70}, [(0, False, None), (1, True, None), (2, False, None)])
+_fh_reload = _fh_latch({_FH_FAULT: _fh_on70}, [(0, False, None)])
+R.check("a fault on for 70 minutes on an on-change source holds at the first consult, after Off -> On and after a reload",
+        _fh_r2[0] == [True, False, True] and _fh_reload[0] == [True], f"{_fh_r2[0]} {_fh_reload[0]}")
+R.check("null control: the same source reading off holds at no consult",
+        _fh_latch({_FH_FAULT: FakeState("off", last_updated=_PA_T0 - timedelta(minutes=70))},
+                  [(0, False, None), (2, False, None)])[0] == [False, False])
+_fh_unus = {
+    word: _fh_latch({}, [(0, False, FakeState("on", last_updated=_PA_T0)), (5, False, FakeState(word, last_updated=_PA_T0 + timedelta(minutes=5))),
+                         (12, False, None), (13, False, FakeState("on", last_updated=_PA_T0 + timedelta(minutes=13)))])[0]
+    for word in ("unavailable", "unknown")
+}
+R.check("unavailable and unknown keep the latch's start: the hold comes at minute 10 of the first on, not the second",
+        all(v == [False, False, True, True] for v in _fh_unus.values()), f"{_fh_unus}")
+_fh_unus_end = {
+    word: _fh_latch({_FH_FAULT: _fh_on70}, [(0, False, None), (1, False, FakeState(word, last_updated=_PA_T0 + timedelta(minutes=1)))])[0]
+    for word in ("unavailable", "unknown")
+}
+R.check("an unusable reading never ends an active hold", all(v == [True, True] for v in _fh_unus_end.values()), f"{_fh_unus_end}")
+_fh_status = _fh_latch({"sensor.pump_status": FakeState("heating", last_updated=_PA_T0 - timedelta(hours=2))},
+                       [(0, False, None)], entity="sensor.pump_status")[0]
+_fh_unav = _fh_latch({_FH_FAULT: FakeState("unavailable", last_updated=_PA_T0 - timedelta(hours=2))}, [(0, False, None)])[0]
+R.check("a status word that is not a flag, and an unavailable alarm, never start a hold",
+        _fh_status == [False] and _fh_unav == [False], f"{_fh_status} {_fh_unav}")
+R.check("a legible off ends the hold",
+        _fh_latch({_FH_FAULT: _fh_on70}, [(0, False, None), (1, False, FakeState("off", last_updated=_PA_T0 + timedelta(minutes=1)))])[0] == [True, False])
+
+# 8. The repair: raised on the rising edge, cleared on the falling edge, at Off and at unload.
+_fh_rep = {}
+for _fh_name, _fh_steps in (("rise", [(0, False, None)]),
+                            ("fall", [(0, False, None), (1, False, FakeState("off", last_updated=_PA_T0 + timedelta(minutes=1)))]),
+                            ("off", [(0, False, None), (1, True, None)])):
+    _fh_rep[_fh_name] = _fh_latch({_FH_FAULT: _fh_on70}, _fh_steps)[1]
+_fh_unl_hass = FakeHass({_FH_FAULT: _fh_on70})
+_fh_unl_entry = _pa_entry(entry_id=f"fh{next(_PA_IDS)}")
+_fh.holding(_fh_unl_entry, _fh_unl_hass, {"heat_pump_fault_entity": _FH_FAULT}, off=False, now=_PA_T0)
+_fh_rep["unload"] = (_fh.release(_fh_unl_hass, _fh_unl_entry), [i[1] for i in getattr(_fh_unl_hass, "issues", [])])
+_fh_rep["released"] = _fh_latch({_FH_FAULT: _fh_on70}, [])[1]
+_fh_relh = FakeHass({_FH_FAULT: _fh_on70})
+_fh_rep["released"] = (_fh.holding(_pa_entry(entry_id="fhrel"), _fh_relh, {"heat_pump_fault_entity": _FH_FAULT},
+                                   off=False, released=True, now=_PA_T0), getattr(_fh_relh, "issues", []))
+_fh_rep["nine"] = _fh_latch({_FH_FAULT: FakeState("on", last_updated=_PA_T0 - timedelta(minutes=9))}, [(0, False, None)])[1]
+R.check("the fault repair is raised on the hold's rising edge", _fh_rep["rise"] == [_fh.ISSUE], f"{_fh_rep}")
+R.check("and cleared on its falling edge, at Off and at unload",
+        _fh_rep["fall"] == [] and _fh_rep["off"] == [] and _fh_rep["unload"] == (True, []), f"{_fh_rep}")
+R.check("an unloaded entry and a 9-minute fault raise none",
+        _fh_rep["released"] == (False, []) and _fh_rep["nine"] == [], f"{_fh_rep}")
+_fh_two = FakeHass({_FH_FAULT: _fh_on70})
+_fh_e1, _fh_e2 = _pa_entry(entry_id="fh2a"), _pa_entry(entry_id="fh2b")
+for _fh_e in (_fh_e1, _fh_e2):
+    _fh.holding(_fh_e, _fh_two, {"heat_pump_fault_entity": _FH_FAULT}, off=False, now=_PA_T0)
+_fh.holding(_fh_e1, _fh_two, {"heat_pump_fault_entity": _FH_FAULT}, off=True, now=_PA_T0)
+_fh_two_kept = [i[1] for i in getattr(_fh_two, "issues", [])]
+_fh.holding(_fh_e2, _fh_two, {"heat_pump_fault_entity": _FH_FAULT}, off=True, now=_PA_T0)
+R.check("the one domain-wide repair stays while another entry still holds, and goes with the last",
+        _fh_two_kept == [_fh.ISSUE] and getattr(_fh_two, "issues", []) == [], f"{_fh_two_kept}")
+
+# 9. The ledger: a step in which any pass held is device-fault; a short fault
+# keeps today's verdict; the onset step keeps its own.
+def _fh_ledger(since, duty="observe", duties="dsds", state="on", onset=None):
+    """Verdicts over an hour of passes; ``onset``: the alarm turns on at that minute."""
+    c = _fh_coord(since=since, duties=duties, duty=duty, state="off" if onset is not None else state)
+    for m in range(0, 61):
+        if m == onset:
+            _fh_fault(c, "on", m)
+        _pa_run(c, m)
+    return [r["verdict"] for r in _pa.state_for(c).log]
+
+
+_fh_lg = _fh_ledger(-30)
+_fh_lg_short = _fh_ledger(-30, state="off")
+_fh_lg_onset = _fh_ledger(-30, onset=10)
+R.check("every held step of the ledger is device-fault (hot water, space)",
+        _fh_lg == ["device-fault"] * 4, f"{_fh_lg}")
+R.check("null control: the same steps with no fault keep today's verdicts",
+        "device-fault" not in _fh_lg_short and len(_fh_lg_short) == 4, f"{_fh_lg_short}")
+R.check("the step in which a fault began keeps its own verdict; the next is device-fault",
+        _fh_lg_onset[0] == _fh_lg_short[0] and _fh_lg_onset[1:] == ["device-fault"] * 3, f"{_fh_lg_onset}")
+_fh_row = {"start": _PA_T0, "planned": "both", "tank": 50.0, "measured": True, "ran": True, "dhw_mode": True}
+R.check("device-fault is decided before every other verdict, a both step included",
+        _fh_dl.verdict({**_fh_row, "faulted": True}, 50.0)["verdict"] == "device-fault"
+        and _fh_dl.verdict(_fh_row, 50.0)["verdict"] == "delivered")
+
+# 10. Duty off: the cycle's consult still moves the latch, so the switch,
+# the cut-off, the frequency and the curve are held there too.
+_fh_doff = _fh_coord(since=-30, duty="off")
+_pa_run(_fh_doff, 0)
+_fh_doff_null = _fh_coord(since=-30, duty="off", hold=False)
+_pa_run(_fh_doff_null, 0)
+R.check("with duty off a pass still latches the fault", _fh.held(_fh_doff.entry) and not _fh.held(_fh_doff_null.entry))
+
+# 11. A numeric bitmap holds like the binary alarm; zero does not.
+_fh_bits = {raw: _fh_latch({"sensor.fault_code": FakeState(raw, last_updated=_PA_T0 - timedelta(minutes=30))},
+                           [(0, False, None)], entity="sensor.fault_code")[0] for raw in ("3", "0")}
+R.check("a raw fault bitmap holds on non-zero and not on zero", _fh_bits == {"3": [True], "0": [False]}, f"{_fh_bits}")
+
+# 12. Unload under the hold writes no baseline row.
+_fh_unl = _fh_coord(state="off")
+_pa_run(_fh_unl, 0)
+_fh_fault(_fh_unl, "on", -30)
+_pa_run(_fh_unl, 1)
+_fh_unl.hass.services.calls.clear()
+_sa_dt.freeze(_PA_T0 + timedelta(minutes=2))
+_asyncio.run(_pa.release(_fh_unl))
+_fh_unl_null = _fh_coord(state="off")
+_pa_run(_fh_unl_null, 0)
+_fh_unl_null.hass.services.calls.clear()
+_asyncio.run(_pa.release(_fh_unl_null))
+_sa_dt.freeze(None)
+R.check("unload under the hold writes no baseline row", _fh_pump_writes(_fh_unl) == [], f"{_fh_unl.writes()}")
+R.check("null control: unload with no fault writes the baseline row",
+        bool(_fh_pump_writes(_fh_unl_null)), f"{_fh_unl_null.writes()}")
+
+# 13. The opt-out: no hold, no repair over a 60-minute fault.
+_fh_opt = _fh_latch({_FH_FAULT: FakeState("on", last_updated=_PA_T0 - timedelta(minutes=60))},
+                    [(0, False, None), (30, False, None)], hold=False)
+R.check("fault_hold off: a 60-minute fault holds nothing and raises nothing", _fh_opt[:2] == ([False, False], []), f"{_fh_opt[:2]}")
+_fh_optc = _fh_coord(since=-60, hold=False)
+_pa_run(_fh_optc, 0)
+R.check("fault_hold off: the control pass writes as today", bool(_fh_pump_writes(_fh_optc)))
+
+# 14. The option: offered beside the fault alarm, on by default, translated.
+from heatpump_optimizer import config_flow as _fh_cf  # noqa: E402
+_fh_rows = [f for f in _fh_cf._OPTION_FIELDS if f.key == "fault_hold"]
+R.check("the options flow offers fault_hold on the pump page, on by default, after the fault alarm",
+        len(_fh_rows) == 1 and _fh_rows[0].default is True and _fh_rows[0].step == "entities_pump"
+        and [f.key for f in _fh_cf._OPTION_FIELDS].index("fault_hold")
+        == [f.key for f in _fh_cf._OPTION_FIELDS].index("heat_pump_fault_entity") + 1,
+        f"{_fh_rows}")
+_fh_tr = {}
+for _fh_lang in ("en", "sv", "de"):
+    _fh_doc = _json.loads((_Path(_fh_cf.__file__).parent / "translations" / f"{_fh_lang}.json").read_text(encoding="utf-8"))
+    _fh_tr[_fh_lang] = (bool(_fh_doc["options"]["step"]["entities_pump"]["data"].get("fault_hold")),
+                        set(_fh_doc["issues"].get(_fh.ISSUE, {})) == {"title", "description"})
+R.check("the option and the repair are translated in every shipped language",
+        _fh_tr == {k: (True, True) for k in ("en", "sv", "de")}, f"{_fh_tr}")
+
+
 R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
 # A hot water -> heating mode write while the compressor runs stops it on some
 # pumps (Bankaifan, pull request 3420). Part A observes, estimates, persists

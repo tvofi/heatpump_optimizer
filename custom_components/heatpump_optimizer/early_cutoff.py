@@ -75,6 +75,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
+from . import fault_hold
 from .boost import CHANNEL_DHW, CHANNEL_SPACE, BoostState
 from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
@@ -133,6 +134,8 @@ class CutoffInputs:
     inputs: Callable[[], ArbiterInputs]
     boosts: BoostState
     opt_config: Any
+    #: The config entry, which keys the fault latch (:mod:`fault_hold`).
+    entry: Any = None
 
 
 #: Weak-keyed, so a value must not reach its key: ``wiring.inputs`` is the
@@ -153,6 +156,8 @@ async def arm(
     opt_config: Any,
     on_unload: Callable[[Callable[[], None]], Any],
     now: datetime | None = None,
+    *,
+    entry: Any = None,
 ) -> None:
     """Start a plan cycle: the cycle's own write resumes the pump.
 
@@ -165,7 +170,7 @@ async def arm(
         # Once per record, listener or not: the wiring below reaches the
         # coordinator and has to be dropped with the entry.
         on_unload(lambda: detach(held))
-    held.wiring = CutoffInputs(inputs, boosts, opt_config)
+    held.wiring = CutoffInputs(inputs, boosts, opt_config, entry)
     inp = inputs()
     cfg = EntryConfig.from_mapping(inp.config)
     # In UTC: local wall-clock arithmetic is an hour off across a DST change.
@@ -303,6 +308,9 @@ def on_room_event(held: CutoffState, wiring: CutoffInputs, event: Any) -> None:
         release(held)
         return
     if _exempt(inp, wiring.boosts, now) is not None:
+        return
+    if fault_hold.consult(wiring.entry, inp, now):  # a faulted pump is not switched off
+        held.last_held = "fault"
         return
     limit = threshold(inp, wiring.opt_config, now)
     if room <= limit:

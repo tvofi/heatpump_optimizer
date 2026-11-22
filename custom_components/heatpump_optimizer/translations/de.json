@@ -1283,6 +1283,7 @@
           "heat_pump_defrost_entity": "Abtauen",
           "heat_pump_online_entity": "Pumpe online",
           "heat_pump_fault_entity": "Störungsmeldung",
+          "fault_hold": "Störungspause",
           "heat_pump_backup_heater_entity": "Zuheizer für Raumheizung",
           "heat_pump_dhw_booster_entity": "Heizstab im Warmwasserspeicher",
           "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",
@@ -1298,6 +1299,7 @@
           "heat_pump_defrost_entity": "Optional. Ein, solange die Wärmepumpe den Kreislauf umkehrt, um Frost vom Außenwärmetauscher zu schmelzen. Der während einer Abtauung bezogene Strom geht in den Wärmetauscher statt ins Haus. Beachte, dass viele Wärmepumpen nur alle paar Minuten abgefragt werden, kurze Abtauvorgänge also komplett übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
           "heat_pump_online_entity": "Optional und bei einer cloudverbundenen Wärmepumpe dringend empfohlen. Ein, solange die Wärmepumpe tatsächlich erreichbar ist. Eine Cloud-Integration kann ihre letzten bekannten Werte weiter veröffentlichen, obwohl die Wärmepumpe selbst vom Netzwerk getrennt ist, sodass alle anderen Sensoren völlig aktuell aussehen; dies ist das einzige Signal, das etwas anderes sagt. Bei einer lokalen Verbindung (LAN) werden die Sensoren von selbst nicht verfügbar, und dies bringt wenig.",
           "heat_pump_fault_entity": "Optional. Ein, solange die Wärmepumpe eine Störung meldet. Verwendet wird nur, ob eine Störung vorliegt, nie der Code selbst.",
+          "fault_hold": "Standardmäßig ein. Sobald die Störungsmeldung oben 10 Minuten lang ein ist, ändert der Optimierer Betriebsart, Sollwerte, Verdichterfrequenz und Heizkurvenverschiebung der Wärmepumpe nicht mehr, schaltet sie nie aus und meldet eine Reparatur, bis die Störung vorbei ist; der Plan wird weiter erstellt. Kurze, selbst endende Störungen ändern nichts. Eine Störungsentität, die auch nicht blockierende Warnungen meldet, pausiert ebenfalls: Schalten Sie dies aus, um weiter zu schreiben.",
           "heat_pump_backup_heater_entity": "Optional. Ein, solange der eigene elektrische Zuheizer der Wärmepumpe im Raumheizkreis läuft. Resistive Kilowatt am Zähler bedeuten nicht, dass der Verdichter ineffizient ist; solange dies eingeschaltet ist, wertet der Optimierer den Zähler daher nicht als Effizienzmessung. Die Wärme zählt weiterhin: Sie ist echte Wärme im Haus, und die Hauslernmodelle laufen weiter. Vor allem nützlich, wenn deine Wärmepumpe keinen Leistungsmesser veröffentlicht, da es sonst keine Möglichkeit gibt, das Heizelement überhaupt zu bemerken.",
           "heat_pump_dhw_booster_entity": "Optional. Ein, solange der elektrische Heizstab im Warmwasserspeicher läuft. Wird wie der Zuheizer oben behandelt, und jedes Einschalten wird zusätzlich als Warmwasser-Notfall erfasst – wiederholt sich das und du hast die Option für die Heizstab-Rückmeldung eingeschaltet, beginnt der Plan, den Speicher etwas früher zu heizen, statt für die Differenz resistive Preise zu zahlen.",
           "heat_pump_capacity_limited_entity": "Optional. Ein, solange die Wärmepumpe mit reduzierter Verdichterdrehzahl läuft, was die meisten Geräte Nachtmodus oder Flüstermodus nennen. Was die Wärmepumpe dann aufnimmt und abgibt, entspricht nicht ihrem uneingeschränkten Verhalten, daher lernt der Optimierer aus diesen Intervallen weder Effizienz noch Leistung. Für Kosten und Wärmebilanz verwendet er weiterhin die gemessene Leistung, denn ein drehzahlbegrenzter Verdichter nimmt genau das auf, was der Zähler anzeigt.",
@@ -1920,6 +1922,10 @@
     "space_setpoint_unreadable": {
       "title": "Die Entität für den Sollwert der Raumheizung meldet nichts",
       "description": "Die Entität, die du als Sollwert der Raumheizung gewählt hast ({entity}), fehlt oder ist nicht lesbar, daher lässt sich nichts über das aktuelle Ziel der Pumpe sagen. Der Sollwert der Raumheizung wird nie empfohlen; dieser Hinweis meldet nur, dass die Entität nicht gelesen werden kann. Prüfe, ob sie noch existiert und verfügbar ist, oder leere das Feld. Dieser Hinweis verschwindet, sobald die Entität eine Temperatur meldet."
+    },
+    "pump_fault_hold": {
+      "title": "Die Wärmepumpe meldet eine Störung; der Plan ist ausgesetzt",
+      "description": "{entity} meldet seit {since} eine Störung. Bis sie vorbei ist, ändert der Optimierer Betriebsart und Sollwerte der Pumpe nicht und schaltet sie nicht aus; diese Meldung verschwindet dann von selbst. Lesen Sie den Störungscode am Display oder in der App der Pumpe. Um die Pumpe von Hand zu schalten, schalten Sie zuerst Optimierer aktiv aus, sonst schaltet der Optimierer sie innerhalb einer Minute wieder ein."
     },
     "pump_write_ignored": {
       "title": "Die Wärmepumpe behält eine vom Optimierer geschriebene Einstellung nicht bei",
