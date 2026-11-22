@@ -1,9 +1,0 @@
-harness dev/audit/harnesses/draw_map_rows.py sha1 057455db8d886d3b112e0c43a2b422d3de37e220
-head ece47e3a0915b518da36a949aeb527c0434b5278: PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/draw_map_rows.py --synthetic
-RESULT open_loop rows=25 distinct_c=18 gain_kw_per_k=0.300 offset_kw=0.400 planted_gain=0.3 planted_offset=0.4
-RESULT shuffled rows=25 distinct_c=18 gain_kw_per_k=0.023 offset_kw=1.254
-RESULT closed_loop rows=99 distinct_c=71 gain_kw_per_k=0.001 offset_kw=1.296
-RESULT store rows=672 draw_record_bytes_empty=83 draw_record_bytes_capped=58141 added_bytes=58058 added_bytes_per_day=2786784
-base e698fc8ac374a1d72c230b55d938d75b03b7de67 (worktree, head's harness copy):
-    draw.map.take_pass(dr.PassRecord(
-AttributeError: 'DrawRange' object has no attribute 'map'

@@ -1,26 +1,40 @@
-Fix review: merge ece47e3a0915b518da36a949aeb527c0434b5278
+Fix review: merge ef62eaecaffa0e0b81e1a2b4b5718d78fdd52e6c
 
-bus-nonce: 9dd52a4d81d84c43509c59779663d0d6
+bus-nonce: dfde3aa1b0569a3dfa22b563bb626cb2
 pending-ci: gate
 
 ## Findings
 
-- Note: stale-figure: the body's block A counts (`33 of 33`, `1 of 33`, `2 of 33`) were taken before the main merges; at this head the section from its marker to the next section (`Room history and the identifiability report`) reads `ALL 42 FEATURES BLOCK PASSED`, and to the script's close `ALL 89`. Every kill the body claims reproduces at this head (ev/mutants_blockA.txt M2, M4, M5). Carry: dismissed: a count taken at an earlier head, no later stage reads it
-- Note: stale-figure: `## Architecture score` quotes `coord_footprint 2507->2508` against base 9fe63d00; against this head's base e698fc8a `score.py --diff` reads `coord_footprint 2528->2529`, the same `dS -0.0006` and the same one statement (ev/ratchet_archscore.txt); `arch-score / arch-score` is green at this head. Carry: dismissed: the same delta at a newer base, the check that grades it is green
+none
 
 ## Evidence
 
-- Round: fourth review of this PR (round 1 blocked 007e7be48d mutation-vacuous; merge verdicts at 212e79760d and ef62eaecaf). `review_carry.py ef62eaec ece47e3a` prints FRESH-REVIEW for commit c62f5d69d, whose diff is comment and docstring text only (accuracy.py, coordinator.py, pump_arbiter.py, tests/features.py). Only one round blocked, so no re-cut is owed. The packet reads scope `full`, so the whole three-dot diff was re-reviewed at this head.
-- Head measured: ece47e3a0915b518da36a949aeb527c0434b5278, which the body's `## Head` names (step 7). Merge base e698fc8ac374a1d72c230b55d938d75b03b7de67. `git diff <mb>...origin/main -- dev/governance/roles/` is empty.
-- Merge with main: `git merge-tree --write-tree origin/main ece47e3a` at origin/main a8efe1d1c2 exits 0, tree c07baeb0d3 (ev/merge_tree.txt).
-- Mutation proof (step 1): 26 targeted mutants of the added production lines, each run on block A via `features_block.py` with a prelude from `--emit-prelude` at this head (ev/mutant_driver.py, ev/mutants.json). All 26 are killed (ev/mutants_blockA.txt). They cover the `judge_floor` experiment refusal and the heat-counter variant; the `owed_scale` `read` flag at both the method and its caller; `fold`'s `commit_runs(keep=...)` set to True and removed; the space-only commit filter; every `take_pass` stop condition, the 30-minute cap and the one-pass-a-minute rule; the settle window; `run_key`'s origin; the `_stored_map` length and finiteness guards; the `to_dict` and `from_dict` map round-trip; the coordinator's `draw=` hand-off and the action's `kind`; `pass_origin`'s experiment, boost and feedback-start branches; and `_note_pass` and its `note_pass` hand-off. Null: unmutated block reads `ALL 89 FEATURES BLOCK PASSED` (ev/blockA_head.txt).
-- Harness (step 2): there is no finder's harness (the packet's `## Finder's harness: none named`). The fix's own `dev/audit/harnesses/draw_map_rows.py --synthetic` (sha1 057455db, the fixer's instrument, in the tree and in a measured closure) at the head reproduces the body's RESULT lines: open_loop gain 0.300/offset 0.400 on planted 0.3/0.4, shuffled null gain 0.023, store added_bytes=58058. At the base it stops with `AttributeError: 'DrawRange' object has no attribute 'map'` (ev/harness_both_ends.txt). The harness also prints `added_bytes_per_day=2786784` at the 672-row cap; the body's Carry 7 routes the re-measure of rows as stored to part F.
-- Null controls (step 3): the window null, the dither null and the COP exclusion null are checks inside block A. M5, M6, M2, M4, M1 and M3 above are each killed by one of them.
-- Claims (step 4): `python3 tests/env_drift.py --all`: `NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main` and `NO STALE FIXTURE`, rc=0 (ev/env_drift.txt). The claim files are untouched.
-- Versions (step 5): `VERSION`, the manifest and `RELEASE_NOTES.md` are not in the three-dot diff.
-- Class (step 6): the body's rules `git grep -n "judge_floor(" -- custom_components` and `git grep -n "owed_scale(" -- custom_components` return the sites the body dispositions. The span close at coordinator.py:1200 passes `close.refusal` first. The experiment-mode readers (`"system_identification"` greps) at boost.py, supply_hold.py and pump_arbiter.py are pre-existing and read the action, not the learner. No undispositioned seam.
-- Ratchet (step 14): `seam_cut_total 413 <= 413`. With the mechanism removed (`_dhw_current_hour` back as a coordinator method, seam_map entry restored) it reads 415, so the 415->413 movement comes from the move. The method reads no `self`, so making it a module function is a sound simplification. `tests/closures.json` gains the new harness in a measured closure (ev/ratchet_archscore.txt).
-- Scoped gate: `closure.py select --diff $(git merge-base origin/main HEAD)` -> `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, as the body's figure block states.
-- Actuator writes (step 16): the diff adds no path that skips a write. `_note_pass` runs after `_command`, and the `_flow_target` refactor to `_map_inputs` keeps the same inputs. Its `lo=min(floor, heat)` CLAMP_DROP is pinned killed (tests/mutation_ledger/killed_by/pump_arbiter.py/_flow_target.CLAMP_DROP.6dfae9cd.json).
-- Carries (step 10): the 14 `## Forward-carry` items route to R11-CARRY-DRAWMAP. carry_audit at the head reads `14 routed, 0 unrouted, 0 bad destination(s)`.
-- CI: `merge_train.py classify ece47e3a --pr 3737` polled from 18:01Z to 18:31Z, every run `WAIT ece47e3a0915b518da36a949aeb527c0434b5278 pending: gate red: none` (ev/classify.log). No required context reads red. Head re-read at 18:31Z: `fix/r11-carry-drawmap-pr` is still ece47e3a (step 12).
+- Round: second review of this PR. This is a delta round over the reviewed head 007e7be48d0fcfe5c01c9bafb920f0c34c67d12a. `review_carry.py 007e7be4 ef62eaec` prints `FRESH-REVIEW`.
+- Head: `ef62eaecaffa0e0b81e1a2b4b5718d78fdd52e6c` is still `refs/pull/3737/head` (`git ls-remote`). The body's `## Head` section names it.
+- Delta scope: the PR's own commits in `007e7be4..ef62eaec` that are not on main are these five:
+  - adf0a38ba1 and d4e133dc1f, which change `tests/features.py`;
+  - dbc6569df2 and 247ce3b6da, which add mutation-ledger `killed_by` pins;
+  - 7b9204eb3a, which deletes the stale pin `HeatPumpOptimizerCoordinator._dhw_current_hour.RETURN_DEL.a653dd5d`. The method is now the module function `_dhw_current_hour` (`coordinator.py:908`), and that function's own pin a2025997 is present.
+  - The rest of the delta is main merges.
+- The PR's production diff is unchanged across the round. `git diff <merge-base> <head> -- custom_components` at 007e7be4 (base 9fe63d00) and at ef62eaec (base e698fc8a) differ only in hunk offsets and index lines. Nothing in `custom_components/` widens the scope.
+- The previous block (mutation-vacuous, `draw_range.fold`'s `commit_runs(keep=not (frozen or distorted))`) is resolved. adf0a38ba1 adds the check "fold commits a closed space run as a row only when the interval is neither frozen nor distorted ...", which drives `fold` with each flag alone, both flags and neither. I ran each mutant on block A at the head (ev/mutants_delta.txt):
+  - unmutated: `ALL 33 FEATURES BLOCK PASSED`
+  - `keep=True`: 1 of 33 FAIL (new check)
+  - `keep=not distorted`: 1 of 33 FAIL (new check)
+  - `keep=not frozen`: 1 of 33 FAIL (new check)
+  - `keep=False`: 2 of 33 FAIL (new check and the window null)
+  - `keep=not (frozen and distorted)` (my own extra mutant): 1 of 33 FAIL
+  - These match the body's mutation-proof figures.
+- d4e133dc1f's check, "the heating floor is capped by the ceiling before the entity's minimum decides", kills main's mislabelled-equivalent CLAMP_DROP at `pump_arbiter.py:972`. I ran it in the R10-SETPOINT-BOOST block (ev/mutants_delta.txt, ev/blockB_head.txt):
+  - unmutated: the check is `ok`, with no FAIL in the block.
+  - `lo=(m.floor_c)`: the check FAILs with `[45.0, 45.0, 45.0] 30.0 50.0`. These are the body's figures: 45 under the mutant, against 35 at the head; nulls 30 and 50.
+  - `lo=None`: killed by 2 existing checks.
+  - `lo=(m.heat_c)`: killed by 7 existing checks.
+  - main's triage `survivor_triage/pump_arbiter.py/_flow_target.CLAMP_DROP.38a077e7.json` is absent at the head, and the killed pin `_flow_target.CLAMP_DROP.6dfae9cd` is present.
+- Instrument limit: `features_block.py` run over the R10-SETPOINT-BOOST span to part A stops later with `NameError: name '_s5_effective' is not defined`. This is a gap in the emitted prelude across an 18k-line span, which `--emit-prelude` exited 1 on. It is after the CLAMP check. 169 checks ran `ok` and none FAILed before it. CI's `tests / fast` runs the whole script.
+- `tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`, `seam_cut_total 413 <= 413` (ev/structure_head.txt).
+- `git diff $(merge-base)...head` leaves `VERSION`, `RELEASE_NOTES.md`, the manifest and both claim files untouched.
+- Merge with main: `git merge-tree --write-tree origin/main ef62eaec` exits 0 (ev/merge_tree.txt).
+- carry_audit at the head (review packet): `14 finding item(s): 14 routed, 0 unrouted, 0 bad destination(s)`. All name R11-CARRY-DRAWMAP's split parts B and F, under the approved note's split-part exception. I did not re-verify this beyond the previous round's reading.
+- Red checks: owed-reds is {`tests / mutation`, `tests / typing`, `validate / validate-hacs`}. The body's `## Red checks` answers the earlier `tests / mutation` reds (at 007e7be4, adf0a38b and 212e7976). CI state at this head is given by the classify line in the next item.
+- CI: `merge_train.py classify ef62eaec --pr 3737` read `WAIT ef62eaecaffa0e0b81e1a2b4b5718d78fdd52e6c pending: gate red: none` on every run from 15:28 to 16:00 UTC (ev/classify_poll.log). The review is otherwise complete, so the verdict carries `pending-ci: gate`. Head re-read at 16:00 UTC: still ef62eaec.

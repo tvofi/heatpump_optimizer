@@ -1,8 +1,0 @@
-python3 tests/structure.py at head: ok seam_cut_total 413 <= 413; STRUCTURE RATCHET PASSED rc=0
-mechanism removed (_dhw_current_hour put back as a coordinator method, seam_map entry restored): seam_cut_total = 415; FAIL seam_cut_total 415 > 413 (+2); restored with git checkout
-python3 tools/audit/archscore/score.py --diff e698fc8ac374a1d72c230b55d938d75b03b7de67:
-Architecture score: dS -0.0006 WORSENS (inadmissible: coord_footprint 2528->2529)
-closure.py select --diff $(git merge-base origin/main HEAD): MODE: SCOPED -- 28 script(s) run, 5 scoped out.
-features_block block A (marker to next section 'Room history and the identifiability report'): ALL 42 FEATURES BLOCK PASSED
-features_block block A (marker to close, as mutants were run): ALL 89 FEATURES BLOCK PASSED
-review_carry.py ef62eaecaffa0e0b81e1a2b4b5718d78fdd52e6c ece47e3a0915b518da36a949aeb527c0434b5278: FRESH-REVIEW (c62f5d69d comment-only delta)

@@ -1,0 +1,43 @@
+preludeA rc=0
+preludeB rc=1
+== A unmutated
+ALL 33 FEATURES BLOCK PASSED
+== B unmutated
+== M-A1 keep=True
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL fold commits a closed space run as a row only when the interval is neither frozen nor distorted: frozen alone, distorted alone and both commit none and clear the closed runs (control: neither flag commits one)  [{(False, False): (1, 0), (True, False): (1, 0), (False, True): (1, 0), (True, True): (1, 0)}]
+1 of 33 FEATURES BLOCK FAILED
+== M-A2 keep=not distorted
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL fold commits a closed space run as a row only when the interval is neither frozen nor distorted: frozen alone, distorted alone and both commit none and clear the closed runs (control: neither flag commits one)  [{(False, False): (1, 0), (True, False): (1, 0), (False, True): (0, 0), (True, True): (0, 0)}]
+1 of 33 FEATURES BLOCK FAILED
+== M-A3 keep=not frozen
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL fold commits a closed space run as a row only when the interval is neither frozen nor distorted: frozen alone, distorted alone and both commit none and clear the closed runs (control: neither flag commits one)  [{(False, False): (1, 0), (True, False): (0, 0), (False, True): (1, 0), (True, True): (0, 0)}]
+1 of 33 FEATURES BLOCK FAILED
+== M-A4 keep=False
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL fold commits a closed space run as a row only when the interval is neither frozen nor distorted: frozen alone, distorted alone and both commit none and clear the closed runs (control: neither flag commits one)  [{(False, False): (0, 0), (True, False): (0, 0), (False, True): (0, 0), (True, True): (0, 0)}]
+  FAIL null: DrawRange.samples, engaged, ask_evidence, the floor, the learned floor and its count, the solve band's bottom and the stored window are identical with and without map rows, and the rows were kept  [rows 0 floor 0.8 since 24 band min 0.8 metered]
+2 of 33 FEATURES BLOCK FAILED
+== M-A5 keep=not(frozen and distorted)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL fold commits a closed space run as a row only when the interval is neither frozen nor distorted: frozen alone, distorted alone and both commit none and clear the closed runs (control: neither flag commits one)  [{(False, False): (1, 0), (True, False): (1, 0), (False, True): (1, 0), (True, True): (0, 0)}]
+1 of 33 FEATURES BLOCK FAILED
+== M-B1 CLAMP_DROP lo=(floor)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the heating floor is capped by the ceiling before the entity's minimum decides: a 30 degC ceiling under a 35 degC entity minimum, with a 40 degC tank putting the floor at 45, writes the minimum 35 at every level, not the floor (pump_arbiter._flow_target's lo=min(floor, heat), whose ceiling the entity's range drops); null: a 20 degC minimum writes the ceiling 30 and a 50 degC ceiling writes 50, with or without the cap  [[45.0, 45.0, 45.0] 30.0 50.0]
+== M-B2 lo=None
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank writes 31, not 30 (the floor 30.3 is a minimum); null: a whole 26 degC tank writes 31 unchanged  [30.0 31.0 31.0]
+  FAIL a 1.5 K lift over a 22 degC return takes the lift from the return, above the 20 degC return gate, and rounds up on a whole-degree entity to 24; a flow target's floor is still taken from its 25 degC gate, 27 -- so a heating step never writes either gate  [return 24.0 flow 26.0]
+== M-B3 lo=(heat)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL an 18 degC tank writes the gate plus the lift at the floor, not the gate  [55.0 55.0]
+  FAIL null control: a tank above the gate keeps its own lift, full power keeps the ceiling, and no inlet keeps the rated hold  [55.0 55.0 55.0]
+  FAIL a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank writes 31, not 30 (the floor 30.3 is a minimum); null: a whole 26 degC tank writes 31 unchanged  [55.0 55.0 55.0]
+  FAIL a 1.5 K lift over a 22 degC return takes the lift from the return, above the 20 degC return gate, and rounds up on a whole-degree entity to 24; a flow target's floor is still taken from its 25 degC gate, 27 -- so a heating step never writes either gate  [return 37.0 flow 37.0]
+  FAIL a return below the return gate takes the lift from that gate: 20 + 1.5, rounded up to 22 on a whole-degree entity  [37.0]
+  FAIL D6: a return target's floor never anchors on the valve outlet: alone it leaves the no-inlet floor, behind a tank the tank wins; a flow target still takes it  [48.0]
+  FAIL null control: with default options every set-point an indoor or flow unit writes, and every held FlowCommand, is main's, cell for cell  [2688 cells, moved at [1366, 1367, 1371, 1372, 1376, 1377, 1381, 1382]]
+MUTDONE
