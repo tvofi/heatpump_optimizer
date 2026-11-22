@@ -2,3 +2,4 @@
 1795360202 INBOX acked through 1
 1795360204 HB alive
 1795360808 HB alive
+1795360868 CKPT failing #3795 retention test written; 3 of 5 checks red at 8ef450936a, 2 controls green snapshot f28ce5c06455
