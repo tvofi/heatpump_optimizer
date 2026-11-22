@@ -87651,6 +87651,42 @@ R.check(
 )
 
 
+# The options (design test 18): both rows on the entities page, shown only
+# where a power switch is configured, the threshold's bounds and the
+# defaults the const module states, and a label and a description in the
+# strings file and each translation.
+import json as _fh_json  # noqa: E402
+
+from pathlib import Path as _fh_Path  # noqa: E402
+
+from heatpump_optimizer import config_flow as _fh_cf, const as _fh_const  # noqa: E402
+
+_fh_rows = {f.key: f for f in _fh_cf._OPTION_FIELDS if f.key in (_fh_const.CONF_FROST_HOLD, _fh_const.CONF_FROST_HOLD_BELOW_C)}
+_fh_bound = _fh_rows[_fh_const.CONF_FROST_HOLD_BELOW_C].widget.config if len(_fh_rows) == 2 else {}
+_fh_shown = [(r.when({"heat_pump_switch_entity": "switch.hp"}), r.when({})) for r in _fh_rows.values()]
+R.check(
+    "frost hold options: two rows on the entities page, shown with a power switch and not without one; "
+    "the threshold -15..10 °C; defaults on and +2 °C",
+    len(_fh_rows) == 2 and all(r.step == "entities" for r in _fh_rows.values())
+    and _fh_shown == [(True, False), (True, False)]
+    and (_fh_bound.get("min"), _fh_bound.get("max"), _fh_bound.get("unit_of_measurement")) == (-15, 10, "°C")
+    and _fh_rows[_fh_const.CONF_FROST_HOLD].default is _fh_const.DEFAULT_FROST_HOLD is True
+    and _fh_rows[_fh_const.CONF_FROST_HOLD_BELOW_C].default == _fh_const.DEFAULT_FROST_HOLD_BELOW_C == 2.0,
+    f"{sorted(_fh_rows)} {_fh_shown} {_fh_bound}",
+)
+_fh_root = _fh_Path(_fh_cf.__file__).parent
+_fh_missing = []
+for _fh_file in ("strings.json", "translations/en.json", "translations/sv.json", "translations/de.json"):
+    _fh_sec = _fh_json.loads((_fh_root / _fh_file).read_text())["options"]["step"]["entities"]["sections"]["indoor"]
+    _fh_missing += [f"{_fh_file}:{part}.{key}" for part in ("data", "data_description")
+                    for key in _fh_rows if not _fh_sec[part].get(key)]
+R.check(
+    "frost hold options: a label and a description in strings.json and the en, sv and de translations",
+    _fh_missing == [] and len(_fh_rows) == 2,
+    f"missing {_fh_missing}",
+)
+
+
 R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
 # A hot water -> heating mode write while the compressor runs stops it on some
 # pumps (Bankaifan, pull request 3420). Part A observes, estimates, persists

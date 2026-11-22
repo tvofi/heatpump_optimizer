@@ -493,7 +493,30 @@ compressor in those hours; **Off** means the plan schedules no space heating
 and no hot-water slots in the window, with nothing extra written. An Off
 window may not overlap a hot-water demand frame on the same day; a Silent
 window may (the tank just charges slower). Switching the optimizer off
-inside a window undoes nothing.
+inside a window undoes nothing. Below the frost hold's threshold an Off
+window's steps keep the pump's power switch on like any idle step (next
+section).
+
+### Frost hold
+
+On an idle step the plan switches the heat pump's power switch off. Off for
+hours near 0 °C, an air-source unit can run no defrost and cannot protect
+itself. So on every install with a power switch, an idle step keeps the switch
+on, or switches it back on, while the outdoor temperature is below the
+*Frost hold below* option (+2 °C by default), or while the outdoor reading is
+stale or missing; with no outdoor sensor the weather forecast's value for now
+is the reading. The hold ends once the reading is 1 K above the threshold,
+so a reading on the threshold does not switch the pump on and off. The early
+cut-off, which switches the pump off when the room is past its target, is
+held the same way. With **Pump duty control** at Control the space set-point
+is held at the pump's own minimum (the entity's minimum, or the controller's
+lower limit where that sensor is configured), in Heating on a pump that
+offers it; otherwise nothing else is written and the pump runs on its own
+thermostat and curve. That can use energy the plan does not price. The
+learners freeze for an interval in which a held pump ran, and, without a
+power sensor, for every held interval. The diagnostics name the hold, its
+cause (cold, or no reading), the threshold and the reading. Turning the
+*Frost hold* option off keeps the old behaviour.
 
 ### How the schedule is produced
 

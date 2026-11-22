@@ -67,7 +67,9 @@ def space_pump_should_run(
     Every rail is a reason to run; the OFF branch is reached only when
     none holds. The asymmetry is deliberate: the savings of an extra OFF
     hour are watts, the cost of a wrong OFF is a cold house or a burst
-    pipe.
+    pipe. The 0 °C rail protects the external emitter loop and reads no frost
+    hold option: ``frost_hold`` keeps the unit's own power switch on, a
+    separate circulation.
     """
     if plan_heat_now:
         return True, "the plan commands heat this step"
