@@ -1,0 +1,16 @@
+# Metric: the displacement (K, integer) HeatPumpOptimizerCoordinator.async_publish_ecl110_command hands
+#   heat_curve.publish (the MQTT / entity write) and stores as _ecl110_current_displace, for one call.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_3b6228b7d69c32bc.py
+# Expected: at_min_plus_bias_baseline=(-20, -20.0); at_min_plus_bias_mutant=(-24, -24.0) (exact);
+#   over_max_baseline=(20, 20.0); over_max_mutant=(25, 25.0); null_moved=0
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g10, 4 vCPU Intel Xeon @ 2.30GHz, 16 GB.
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_publish_ecl110_command
+#   (coordinator.py:7693 `np.clip(displace_value, self._ecl110_displace_min, self._ecl110_displace_max)`).
+# Perturbation: mutant 3b6228b7d69c32bc, the clip dropped (`(displace_value)`), in memory (the coroutine recompiled from
+#   its own source, attached with mock.patch.object for the mutant arm only). Direction: a command at the configured
+#   floor plus the learned curve bias leaves the range: -20 -> -24 K published.
+# Reach: the action at the floor is production's own (coordinator.py:4104 sets displace_value to _ecl110_displace_min);
+#   curve_learning_enabled adds CurveLearner.bias, bounded to [BIAS_MIN=-4.0, 0] (coordinator.py:7689-7690), before the
+#   clip. The over-max case is a direct call (upstream producers stay within the range); it shows the bound both ways.
+# Inputs: live coordinator (tests/harness FakeHass/FakeEntry), default range [-20, 20]; heat_curve.publish captured.
+# Null control: in-range commands (2.0 K; 0.0 K with bias -1.0): the clip is the identity, the arms agree.

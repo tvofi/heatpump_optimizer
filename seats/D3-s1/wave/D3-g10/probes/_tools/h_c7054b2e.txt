@@ -1,0 +1,13 @@
+# Metric: the curve learner's (bias, comfortable_days, resets) after one
+#   HeatPumpOptimizerCoordinator._track_curve_comfort call, learner primed at comfortable_days=5, resets=0.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_c7054b2e59c82141.py
+# Expected: margin_zero_bias_neg_baseline=(0.0, 0, 1); margin_zero_bias_neg_mutant=(-1.0, 5, 0)  (exact; null_moved=0)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g10, 4 vCPU Intel Xeon @ 2.30GHz, 16 GB.
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._track_curve_comfort
+#   (coordinator.py:9273 `if margin <= 0.0 and self._curve_learner.bias < 0.0:`) -> curve_learning:CurveLearner.record_miss.
+# Perturbation: mutant c7054b2e59c82141, `margin <= 0.0` -> `margin < 0.0`, in memory (the method recompiled from its own
+#   source and attached with mock.patch.object for the mutant arm only). Direction: a zone landing exactly on the floor (margin 0.0) with bias -1 K no longer
+#   resets the bias: bias 0.0 -> -1.0 kept, resets 1 -> 0 (the miss the floor touch should book is lost).
+# Inputs: a live coordinator (tests/harness FakeHass/FakeEntry, curve_learning_enabled), the zone margin fixed through
+#   coordinator.worst_zone_margin_k, freeze gates (_learning_frozen, learner_room_unread) held open.
+# Null control: margin -0.3 with bias -1 (both arms miss) and margin 0.0 with bias 0 (neither arm resets).

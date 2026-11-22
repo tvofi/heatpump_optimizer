@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_c7054b2e59c82141.py: pins curve bias reset at margin exactly 0 (0.0 -> -1.0 kept) (baseline vs mutant in memory; output probe_c7054b2e59c82141.out)

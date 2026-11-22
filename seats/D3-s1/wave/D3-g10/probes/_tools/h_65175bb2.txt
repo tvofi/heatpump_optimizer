@@ -1,0 +1,13 @@
+# Metric: INFO records "No settled interval to diagnose yet" the coordinator logger emits, the returned report and
+#   the refresh count, for one HeatPumpOptimizerCoordinator.async_diagnose_interval call whose worker returns None.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_65175bb211f70f26.py
+# Expected: none_baseline=(1, None, 1); none_mutant=(0, None, 1); null_moved=0
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g10, 4 vCPU Intel Xeon @ 2.30GHz, 16 GB.
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_diagnose_interval
+#   (coordinator.py:10678 `if report is None:`).
+# Perturbation: mutant 65175bb211f70f26, the guard -> `if False:`, in memory (the coroutine recompiled from its own
+#   source, attached with mock.patch.object for the mutant arm only). Direction: infos 1 -> 0; the return value,
+#   the stored diagnosis (real _store_diagnosis) and the refresh are unchanged.
+# Inputs: live coordinator (tests/harness FakeHass/FakeEntry); coordinator._await_process patched to return the
+#   worker's answer (None: no settled interval) without a process pool; async_request_refresh counted.
+# Null control: the worker returns a report object (store patched to a recorder in both arms): neither arm logs.

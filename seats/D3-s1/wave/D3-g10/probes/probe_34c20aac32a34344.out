@@ -1,0 +1,9 @@
+RESULT margin_neg_bias0_baseline=(bias,comfortable_days,resets)(0.0, 5, 0)
+RESULT margin_neg_bias0_mutant=(bias,comfortable_days,resets)(0.0, 0, 0)
+Comfort miss (margin -0.30 °C) with curve bias -1.0 K applied; bias reset to 0
+Comfort miss (margin -0.30 °C) with curve bias -1.0 K applied; bias reset to 0
+RESULT null_moved=0 count over 2 null inputs [(-0.3, -1.0), (0.5, 0.0)]
+RESULT probe_cpu_s=0.01 s provisional
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0

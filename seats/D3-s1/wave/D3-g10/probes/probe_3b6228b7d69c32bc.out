@@ -1,0 +1,10 @@
+RESULT range=[-20.0, 20.0] K (the configured clamp, defaults)
+RESULT at_min_plus_bias_baseline=(sent,current)(-20, -20.0)
+RESULT at_min_plus_bias_mutant=(sent,current)(-24, -24.0)
+RESULT over_max_baseline=(sent,current)(20, 20.0)
+RESULT over_max_mutant=(sent,current)(25, 25.0)
+RESULT null_moved=0 count over 2 in-range inputs [(2.0,), (0.0, -1.0)]
+RESULT probe_cpu_s=0.02 s provisional
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0

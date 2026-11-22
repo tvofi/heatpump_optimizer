@@ -1,0 +1,7 @@
+RESULT two_tank_baseline=2 keys wood=55.0
+RESULT two_tank_mutant=0 keys wood=None
+RESULT null_moved=0 count (two_tank_modelled False)
+RESULT probe_cpu_s=0.01 s provisional
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0

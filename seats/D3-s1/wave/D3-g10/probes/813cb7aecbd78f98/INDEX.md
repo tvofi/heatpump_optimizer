@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_813cb7aecbd78f98.py: pins snow damping at accum == 2.0 (True -> False) (baseline vs mutant in memory; output probe_813cb7aecbd78f98.out)

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py: pins external-heat DEBUG count (1 -> 0) (baseline vs mutant in memory; output probe_f2a191b48718e088.out)

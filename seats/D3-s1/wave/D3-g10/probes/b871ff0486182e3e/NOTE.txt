@@ -1,0 +1,1 @@
+probe written+run on baseline worktree: snow accum after 12 h gap (1.2/False -> 2.4/True); class pending gate verdict (probe moves -> candidate if SURVIVED/RED-AS-NULL)

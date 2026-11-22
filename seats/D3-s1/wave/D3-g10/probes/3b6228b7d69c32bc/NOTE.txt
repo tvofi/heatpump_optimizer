@@ -1,0 +1,1 @@
+probe written+run on baseline worktree: ECL110 published displace at min+bias (-20 -> -24); class pending gate verdict (probe moves -> candidate if SURVIVED/RED-AS-NULL)

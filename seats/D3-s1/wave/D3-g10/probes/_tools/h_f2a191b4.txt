@@ -1,0 +1,14 @@
+# Metric: DEBUG records "External heat source active" the coordinator logger emits, and the published
+#   _external_heat_active flag, after one HeatPumpOptimizerCoordinator._update_external_heat_detection call whose
+#   detector reports an active wood source.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py
+# Expected: active_baseline=(1, False); active_mutant=(0, False) (debugs, _external_heat_active, which reads the detector's own suppressing property and is untouched); null_moved=0
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g10, 4 vCPU Intel Xeon @ 2.30GHz, 16 GB.
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_external_heat_detection
+#   (coordinator.py:5234 `if state.active:`).
+# Perturbation: mutant f2a191b48718e088, the guard -> `if False:`, in memory (method recompiled from its own source,
+#   attached with mock.patch.object for the mutant arm only). Direction: debug records 1 -> 0; the flag is unchanged.
+# Inputs: live coordinator (tests/harness FakeHass/FakeEntry); the detector's update() is the real
+#   ExternalHeatDetector.update wrapped so its returned state reports active=True, source "wood", one evidence line
+#   (the detector's own rules are another symbol's, not this line's).
+# Null control: the same call with the detector reporting active=False: neither arm logs.

@@ -1,0 +1,1 @@
+probe written+run on baseline worktree: stale wood WARNING count (1 -> 3); class pending gate verdict (probe moves -> candidate if SURVIVED/RED-AS-NULL)

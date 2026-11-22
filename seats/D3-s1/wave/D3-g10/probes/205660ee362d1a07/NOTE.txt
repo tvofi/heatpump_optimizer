@@ -1,0 +1,1 @@
+probe written+run on baseline worktree: two-tank keys in _thermal_view (2 -> 0); class pending gate verdict (probe moves -> candidate if SURVIVED/RED-AS-NULL)

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_b871ff0486182e3e.py: pins snow accum after 12 h gap (1.2/False -> 2.4/True) (baseline vs mutant in memory; output probe_b871ff0486182e3e.out)

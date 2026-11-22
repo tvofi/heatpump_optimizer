@@ -1,0 +1,7 @@
+RESULT none_baseline=(infos,report,refreshes)(1, None, 1)
+RESULT none_mutant=(infos,report,refreshes)(0, None, 1)
+RESULT null_moved=0 count (worker returns a report)
+RESULT probe_cpu_s=0.01 s provisional
+RESULT thread_factor=0.999
+RESULT load1=1.05
+RESULT swapins=0
