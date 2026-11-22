@@ -1,0 +1,85 @@
+
+=== features block ===
+
+-- R11-OWNER-FAULT-HOLD: a latched fault suspends actuation (#3856)
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:49:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a fault alarm on for 11 minutes: the control pass writes nothing into the pump
+  ok   null control: the same pass with the alarm on for 9 minutes writes the step's row
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a step boundary under the hold writes no mode
+  ok   null control: the same boundary with no fault writes the pump's mode
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:40:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped
+  ok   after the clear the pump's reset set-point is written back, never adopted
+  ok   null control: with no fault the same reset is written back at once
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the switch gate leaves an OFF under the hold and marks it held for the step tick; ON and None pass
+  ok   null control: the same OFF with the alarm on for 9 minutes passes, unmarked
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the cycle's OFF under the hold is left, and the step tick writes it once the alarm clears
+  ok   the cycle arms the early cut-off with its entry, the key of the fault latch
+  ok   null control: with no fault the cycle switches off at once
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a switch-on under the hold writes no mode ahead of it
+  ok   null control: with the option off the same switch-on writes the step's mode first
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a warm room under the hold does not cut the pump
+  ok   null control: the alarm on for 7 minutes, the same reading cuts
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a displace under the hold is not published
+  ok   null control: the alarm on for 5 minutes, the displace is published
+  ok   an unloaded entry's displace raises no fault repair
+binary_sensor.pump_fault has reported a fault since 2026-01-10T06:00:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the compressor frequency is not commanded under the hold: the guard returns before the target is read
+  ok   null control: the same control-stage coordinator with no latch goes on to read its target
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a fault on for 70 minutes on an on-change source holds at the first consult, after Off -> On and after a reload
+  ok   null control: the same source reading off holds at no consult
+binary_sensor.pump_fault has reported a fault since 2026-01-10T06:00:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T06:00:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   unavailable and unknown keep the latch's start: the hold comes at minute 10 of the first on, not the second
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   an unusable reading never ends an active hold
+  ok   a status word that is not a flag, and an unavailable alarm, never start a hold
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:50:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the hold starts exactly at FAULT_HOLD_AFTER and not a second before it
+binary_sensor.pump_fault has reported a fault since 2026-01-10T06:00:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a fault stamp ahead of the consult is bounded to it: the hold starts 10 minutes after the first legible on
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a legible off ends the hold
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the fault repair is raised on the hold's rising edge
+  ok   and cleared on its falling edge, at Off and at unload
+  ok   an unloaded entry and a 9-minute fault raise none
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T04:50:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the one domain-wide repair stays while another entry still holds, and goes with the last
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T06:10:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   every held step of the ledger is device-fault (hot water, space)
+  ok   null control: the same steps with no fault keep today's verdicts
+  ok   the step in which a fault began keeps its own verdict; the next is device-fault
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a step whose fault clears inside it stays device-fault: any held pass marks the step
+  ok   device-fault is decided before every other verdict, a both step included
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the diagnostics download shows the fault latch under fault_hold
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   with duty off a pass still latches the fault
+sensor.fault_code has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a raw fault bitmap holds on non-zero and not on zero
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   unload under the hold writes no baseline row
+  ok   null control: unload with no fault writes the baseline row
+  ok   fault_hold off: a 60-minute fault holds nothing and raises nothing
+  ok   fault_hold off: the control pass writes as today
+  ok   the options flow offers fault_hold on the pump page, on by default, after the fault alarm
+  ok   the option and the repair are translated in every shipped language
+
+ALL 47 FEATURES BLOCK PASSED
