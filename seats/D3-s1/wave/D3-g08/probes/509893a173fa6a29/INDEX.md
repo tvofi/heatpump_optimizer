@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_509893a173fa6a29.py: pins COP-health Cusum.stat after 20 samples of COP 0.5 then one of 0.1, one outdoor bucket (baseline vs mutant 509893a173fa6a29 in memory); provisional class candidate

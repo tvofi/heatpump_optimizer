@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_82f764a536ab9d71.py: pins _max_pump_rise at capacity exactly 1e-6 -> None; downstream evidence 0 lines (baseline vs mutant 82f764a536ab9d71 in memory); provisional class equivalent-candidate

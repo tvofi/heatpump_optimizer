@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7729bdd71430fcf1.py: pins breach 0.0 -> verdict feasible True, comfort_shortfall_c 0.0 (baseline vs mutant 7729bdd71430fcf1 in memory); provisional class equivalent-candidate

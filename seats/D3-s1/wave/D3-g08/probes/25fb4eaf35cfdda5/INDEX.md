@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py: pins GuardState.suppressing after two 5 kW meter events, enabled tariff at window factor 0, 0.3 kW billed peak, 0.5 kW margin, no fuse (baseline vs mutant 25fb4eaf35cfdda5 in memory); provisional class candidate

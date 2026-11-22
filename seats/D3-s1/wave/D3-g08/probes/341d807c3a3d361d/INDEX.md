@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_341d807c3a3d361d.py: pins published fuse-advisor `feasible` for a what-if reporting power_cap_breach_c == 0.05 K, 25 A fuse (baseline vs mutant 341d807c3a3d361d in memory); provisional class candidate

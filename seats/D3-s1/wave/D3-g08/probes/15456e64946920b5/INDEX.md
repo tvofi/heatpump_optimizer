@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_15456e64946920b5.py: pins HeatPumpOptimizerCoordinator._max_pump_rise(tank) return (degC/h, None, or exception) at store capacity 0.0 kWh/degC (baseline vs mutant 15456e64946920b5 in memory); provisional class candidate

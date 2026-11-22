@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_da1919c641494713.py: pins removal events (new_state None, or no new_state key) leave the guard, tracker and fold stamp untouched (baseline vs mutant da1919c641494713 in memory); provisional class equivalent-candidate

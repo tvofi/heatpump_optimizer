@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_37e281ab084b40ae.py: pins same-instant events: guard args, suppression, window mean and weighted accumulators as listed (baseline vs mutant 37e281ab084b40ae in memory); provisional class equivalent-candidate

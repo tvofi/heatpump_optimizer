@@ -1,0 +1,3 @@
+Probes of box D3-g08. Each is standalone; run from the export root (or any clean checkout of the
+baseline) with PYTHONPATH=tests/hastub. The mutant is compiled in memory from the method's own source
+(anchor asserted unique) in the coordinator module namespace; the tree on disk is never edited.

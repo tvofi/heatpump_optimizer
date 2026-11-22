@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_aaa2a3d6bb2ba515.py: pins _outage_dhw_hold(now) at now == _outage_dhw_until, tank 55 degC above a 45 degC floor (baseline vs mutant aaa2a3d6bb2ba515 in memory); provisional class candidate

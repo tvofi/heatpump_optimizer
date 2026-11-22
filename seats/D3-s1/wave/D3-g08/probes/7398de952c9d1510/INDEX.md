@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py: pins sum of kWh over _narrative_view items for a fixed 4-step plan at time_step_minutes 0.5 (baseline vs mutant 7398de952c9d1510 in memory); provisional class candidate
