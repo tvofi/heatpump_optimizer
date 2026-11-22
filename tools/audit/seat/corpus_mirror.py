@@ -138,6 +138,16 @@ def unmapped(ls_remote: str) -> list[str]:
     return sorted(out)
 
 
+def names_directory(name: str) -> bool:
+    """Whether a member's name marks a directory: read from the name alone, never `ZipInfo.is_dir`.
+
+    CPython 3.11.5's `is_dir` is `filename[-1] == '/'` and raises IndexError on an empty name (3.12 guards it),
+    so the interpreter's zipfile would decide whether an archive's shape raises. An empty name is no directory
+    here, and so meets the rule "a member's path is the archive's directory".
+    """
+    return name.endswith("/")
+
+
 def archive_refusal(zf: zipfile.ZipFile, dest: Path) -> str:
     """The rule an archive breaks, or "": judged whole, before any member is written."""
     base, total, files, parents = os.path.realpath(dest), 0, set(), set()
@@ -148,11 +158,11 @@ def archive_refusal(zf: zipfile.ZipFile, dest: Path) -> str:
         target = os.path.realpath(os.path.join(base, name))
         if name.startswith(("/", "\\")) or re.match(r"[A-Za-z]:", name) or not (target == base or target.startswith(base + os.sep)):
             return "a member's path leaves the archive's directory"
-        if target == base and not info.is_dir():
+        if target == base and not names_directory(name):
             return "a member's path is the archive's directory"
         if any(len(part.encode("utf-8", "replace")) > MAX_NAME for part in name.split("/")):
             return "a member's name is past the length cap"
-        (parents if info.is_dir() else files).add(target)
+        (parents if names_directory(name) else files).add(target)
         parent = os.path.dirname(target)
         while len(parent) > len(base):  # every directory between the member and the archive's own
             parents.add(parent)
@@ -207,7 +217,7 @@ def safe_extract(data: bytes, dest: Path) -> str:
         try:
             os.makedirs(dest, mode=0o700, exist_ok=True)  # an archive of no file is whole too, and has its directory
             for info in zf.infolist():
-                if info.is_dir():
+                if names_directory(info.filename):
                     continue
                 body, bad = read_archive(lambda: member(info))
                 if bad:
@@ -1011,10 +1021,13 @@ def cases(m) -> dict[str, bool]:
                 partial = e_
         r["archives: a write this host fails is raised, never returned as the archive's rule, and what was written before it is removed"] = \
             isinstance(partial, OSError) and partial.errno == errno.EIO and not (Path(td) / "shape" / "partial").exists()
-        r["archives null: nested files, a directory entry and a repeated ancestor extract whole"] = \
-            m.safe_extract(zip_of([("./", ""), ("a", "x"), ("b/", ""), ("b/c", "y"), ("b/d/e", "z")]), Path(td) / "shape" / "ok") == "" \
-            and sorted(str(f.relative_to(Path(td) / "shape" / "ok")) for f in (Path(td) / "shape" / "ok").rglob("*") if f.is_file()) == ["a", "b/c", "b/d/e"] \
-            and m.safe_extract(zip_of([("only/", "")]), Path(td) / "shape" / "nofile") == "" and (Path(td) / "shape" / "nofile").is_dir()
+        try:  # a directory entry written as a file raises here: a FAIL line, never a traceback that names no case
+            nested = m.safe_extract(zip_of([("./", ""), ("a", "x"), ("b/", ""), ("b/c", "y"), ("b/d/e", "z")]), Path(td) / "shape" / "ok") == "" \
+                and sorted(str(f.relative_to(Path(td) / "shape" / "ok")) for f in (Path(td) / "shape" / "ok").rglob("*") if f.is_file()) == ["a", "b/c", "b/d/e"] \
+                and m.safe_extract(zip_of([("only/", "")]), Path(td) / "shape" / "nofile") == "" and (Path(td) / "shape" / "nofile").is_dir()
+        except Exception:  # noqa: BLE001 -- any raise is this case's failure
+            nested = False
+        r["archives null: nested files, a directory entry and a repeated ancestor extract whole"] = nested
         s_ = Stub(hostile={"repos/o/r/actions/runs/901/logs": zip_of([("a", "x"), ("a/b", "y")])})
         try:
             ms, rc = mirror(Path(td) / "s5shape", s_, only=("S5",))
@@ -1189,7 +1202,10 @@ MUTANTS = {
     "traversal": ("not (target == base or target.startswith(base + os.sep)):", "False:", "a traversing member"),
     "link": ("        if stat.S_ISLNK(info.external_attr >> 16):\n", "        if False:\n", "a link and a ratio bomb"),
     "ratio": ("        if info.file_size > MAX_RATIO * max(info.compress_size, 1):\n", "        if False:\n", "a ratio bomb"),
-    "directory itself": ("        if target == base and not info.is_dir():\n", "        if False:\n", "a member that is the directory itself"),
+    "directory itself": ("        if target == base and not names_directory(name):\n", "        if False:\n", "a member that is the directory itself"),
+    "dir-ness from the name": ('    return name.endswith("/")\n', "    return zipfile.ZipInfo(name).is_dir()\n", "a member with an empty name"),
+    "dir entry is a parent": ("        (parents if names_directory(name) else files)", "        (parents if False else files)", "a member that is the directory itself"),
+    "dir entry not written": ("                if names_directory(info.filename):\n                    continue\n", "                if False:\n                    continue\n", "archives null: nested files"),
     "file and directory": ("    if files & parents:\n", "    if False:\n", "a member that is the directory itself"),
     "ancestors": ("        while len(parent) > len(base):  #", "        while False:  #", "a member that is the directory itself"),
     "archive boundary": ("    except Exception as e:  # noqa: BLE001 -- the boundary is the rule", "    except (OSError, ValueError, zipfile.BadZipFile) as e:  #", "a member that cannot be read"),
