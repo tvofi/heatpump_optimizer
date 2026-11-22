@@ -21334,7 +21334,7 @@ _ci._detect_immersion()
 R.check(
     "two agreeing samples latch, with evidence and an event on record",
     _ci._immersion_active
-    and _ci._immersion_evidence
+    and _ci._immersion_log.evidence
     and len(_ci._immersion_events) == 1,
 )
 _ci._measured_power = 3.0
@@ -78964,6 +78964,7 @@ from types import SimpleNamespace as _BstNS  # noqa: E402
 from heatpump_optimizer import pump_arbiter as _bst_pa  # noqa: E402
 from heatpump_optimizer import store as _bst_store  # noqa: E402
 from heatpump_optimizer.const import CONF_BUFFER_TANK_TEMP_ENTITY as _BST_TANK  # noqa: E402
+from heatpump_optimizer.const import CONF_FLOW_HEAT_C as _BST_CEIL_KEY  # noqa: E402
 from heatpump_optimizer.thermal_model import (  # noqa: E402
     FLOW_MIN_LIFT_K as _BST_LIFT,
     modulation_floor_flow_c as _bst_floor_of,
@@ -78973,9 +78974,12 @@ _BST_ENTITY = "number.bst_flow"
 _BST_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
 
 
-def _bst_write(kw, tank, entity_min=20, duty="space"):
-    """What the arbiter writes for a ``duty`` step at ``kw`` on a tank at ``tank``."""
+def _bst_write(kw, tank, entity_min=20, duty="space", ceiling=None):
+    """What the arbiter writes for a ``duty`` step at ``kw`` on a tank at ``tank``
+    (``ceiling``: a configured heating ceiling, degC; ``None`` stores none)."""
     config = {"space_setpoint_entity": _BST_ENTITY, _BST_TANK: "sensor.bst_tank"}
+    if ceiling is not None:
+        config[_BST_CEIL_KEY] = ceiling
     attrs = {"max": 70} if entity_min is None else {"min": entity_min, "max": 70}
     states = {_BST_ENTITY: FakeState("40", attributes=attrs)}
     if tank is not None:
@@ -79033,6 +79037,21 @@ R.check(
     _bst_write(1.5, 25.3) == 31 and _bst_write(1.5, 25.9) == 31
     and _bst_write(1.5, 26.0) == 31,
     f"{_bst_write(1.5, 25.3)} {_bst_write(1.5, 25.9)} {_bst_write(1.5, 26.0)}",
+)
+R.check(
+    "the heating floor is capped by the ceiling before the entity's minimum "
+    "decides: a 30 degC ceiling under a 35 degC entity minimum, with a 40 degC "
+    "tank putting the floor at 45, writes the minimum 35 at every level, not the "
+    "floor (pump_arbiter._flow_target's lo=min(floor, heat), whose ceiling the "
+    "entity's range drops); null: a 20 degC minimum writes the ceiling 30 and a "
+    "50 degC ceiling writes 50, with or without the cap",
+    [_bst_write(kw, 40.0, entity_min=35, ceiling=30.0) for kw in (1.5, 3.5, 5.5)]
+    == [35.0, 35.0, 35.0]
+    and _bst_write(5.5, 40.0, entity_min=20, ceiling=30.0) == 30.0
+    and _bst_write(5.5, 40.0, entity_min=35, ceiling=50.0) == 50.0,
+    f"{[_bst_write(kw, 40.0, entity_min=35, ceiling=30.0) for kw in (1.5, 3.5, 5.5)]} "
+    f"{_bst_write(5.5, 40.0, entity_min=20, ceiling=30.0)} "
+    f"{_bst_write(5.5, 40.0, entity_min=35, ceiling=50.0)}",
 )
 
 # (B) The window. ``observe`` takes the sample's command where the tree has
@@ -79805,10 +79824,13 @@ R.check(
     and _fm_norm(5.0, None) is None,
 )
 # A planted flow and temperature difference: 0.25 kg/s of water cooling 5 K
-# at c_p 4.186 kJ/(kg K) hands over 0.25 * 4.186 * 5 = 5.2325 kW.
+# is 0.25 / 0.998 L/s. At the one water heat capacity, 0.00116 kWh per
+# litre per K (const.WATER_SPECIFIC_HEAT, round-11 D7-s3-04; 4.186 kJ/(kg K)
+# and 5.2325 kW before), it hands over 0.25 / 0.998 * 0.00116 * 3600 * 5 =
+# 5.230461 kW.
 R.check(
-    "a planted 0.25 kg/s over a 5 K drop is 5.2325 kW",
-    abs(_fm.thermal_output_kw(0.25, 45.0, 40.0) - 5.2325) < 1e-9,
+    "a planted 0.25 kg/s over a 5 K drop is 5.230461 kW",
+    abs(_fm.thermal_output_kw(0.25, 45.0, 40.0) - 5.230460921843687) < 1e-9,
     f"{_fm.thermal_output_kw(0.25, 45.0, 40.0)}",
 )
 R.check(
@@ -79845,7 +79867,7 @@ _fm_r, _fm_cfg = _fm_reader({}, "15.0")
 _fm_kw = _fm.read_heat_output_kw(_fm_r, _fm_cfg)
 R.check(
     "the estimate follows the sensor: 15 L/min over a 5 K drop",
-    _fm_kw is not None and abs(_fm_kw - 15.0 / 60.0 * 0.998 * 4.186 * 5.0) < 1e-6,
+    _fm_kw is not None and abs(_fm_kw - 5.22) < 1e-9,
     f"{_fm_kw}",
 )
 _fm_r2, _fm_cfg2 = _fm_reader({}, "30.0")
@@ -80184,11 +80206,12 @@ for _frs_file in ("strings.json", *SHIPPED_CATALOGUES):
 # meter, a stale reading, a negative one, an unreadable one, an unknown unit,
 # an unset key, and an interval the plan gave partly to hot water.
 #
-# 15 L/min at 0.998 kg/L over the planted 5 K drop is 5.222035 kW: the figure
+# 15 L/min (0.25 L/s) over the planted 5 K drop at 0.00116 kWh per litre per K
+# is 5.22 kW (5.222035 at the 4.186 kJ/(kg K) of before round 11): the figure
 # the R9-UX-9 block above derives from these same three states, quoted here as
 # the literal the issue's acceptance names, so this block pins the wiring and
 # not a second copy of the arithmetic.
-_FM_LEARN_KW = 5.222035
+_FM_LEARN_KW = 5.22
 _FM_FLOW_CFG = {
     _fb_const.CONF_FLOW_METER_ENTITY: "sensor.flow",
     _fb_const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "sensor.sup",
@@ -80344,7 +80367,7 @@ _LOWER_LEARNER = "_async_learn_lower_floor_loss"
 _fm_seen, _fm_coord = _fm_replay(_HOUSE_LEARNER)
 R.check(
     "a planted 15 L/min over a 5 K drop reaches the house heat-loss replay as "
-    "5.222035 kW",
+    "5.22 kW",
     _fm_coord._t2_escaped is None
     and _fm_coord._house_heat_loss_samples == 1
     and _fm_seen["kwargs"].get("measured_heat_kw") is not None
@@ -81456,18 +81479,21 @@ def _fd_logged(fn):
 
 
 # -- N-no-expiry (#2229): the covering rule has an end --------------------
+# Its owner is plan_step.covering_index (round-11 ADR-001 part 2); the
+# coordinator reads it there.
+from heatpump_optimizer.plan_step import covering_index as _fd_covering_index  # noqa: E402
 _fd_starts = [_FD_T0 + timedelta(hours=k) for k in range(4)]
 _fd_cov = {
-    "before": _fd_cm._covering_index(_fd_starts, _FD_T0 - timedelta(minutes=1), timedelta(hours=1)),
-    "first": _fd_cm._covering_index(_fd_starts, _FD_T0, timedelta(hours=1)),
-    "inner": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(minutes=90), timedelta(hours=1)),
-    "last": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(minutes=239), timedelta(hours=1)),
-    "end": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(hours=4), timedelta(hours=1)),
-    "past": _fd_cm._covering_index(_fd_starts, _FD_T0 + timedelta(hours=50), timedelta(hours=1)),
-    "lone_in": _fd_cm._covering_index([0.0], 899.0, 900.0),
-    "lone_out": _fd_cm._covering_index([0.0], 900.0, 900.0),
-    "quarter_last": _fd_cm._covering_index([0.0, 900.0], 1799.0, 3600.0),
-    "quarter_out": _fd_cm._covering_index([0.0, 900.0], 1800.0, 3600.0),
+    "before": _fd_covering_index(_fd_starts, _FD_T0 - timedelta(minutes=1), timedelta(hours=1)),
+    "first": _fd_covering_index(_fd_starts, _FD_T0, timedelta(hours=1)),
+    "inner": _fd_covering_index(_fd_starts, _FD_T0 + timedelta(minutes=90), timedelta(hours=1)),
+    "last": _fd_covering_index(_fd_starts, _FD_T0 + timedelta(minutes=239), timedelta(hours=1)),
+    "end": _fd_covering_index(_fd_starts, _FD_T0 + timedelta(hours=4), timedelta(hours=1)),
+    "past": _fd_covering_index(_fd_starts, _FD_T0 + timedelta(hours=50), timedelta(hours=1)),
+    "lone_in": _fd_covering_index([0.0], 899.0, 900.0),
+    "lone_out": _fd_covering_index([0.0], 900.0, 900.0),
+    "quarter_last": _fd_covering_index([0.0, 900.0], 1799.0, 3600.0),
+    "quarter_out": _fd_covering_index([0.0, 900.0], 1800.0, 3600.0),
 }
 R.check(
     "#2229: an entry covers [start, next start); the last one its predecessor's span, "
@@ -81476,6 +81502,159 @@ R.check(
                 "past": None, "lone_in": 0, "lone_out": None,
                 "quarter_last": 1, "quarter_out": None},
     repr(_fd_cov),
+)
+
+
+# -- round-11 ADR-001 (R11-SEAM-kernel-step): each small rule read from one owner --
+# D7-s3-03: every reader of "the plan step covering now" takes plan_step's index,
+# so past the plan's last step none of them answers. The census drives all four
+# with the same probes and asserts its own precondition: probes on both sides of
+# the plan's end, or it proves nothing about the end rule.
+from types import SimpleNamespace as _k11_ns  # noqa: E402
+
+from heatpump_optimizer import const as _k11_const  # noqa: E402
+from heatpump_optimizer import drift as _k11_drift  # noqa: E402
+from heatpump_optimizer import early_cutoff as _k11_ec  # noqa: E402
+from heatpump_optimizer import entity as _k11_entity  # noqa: E402
+from heatpump_optimizer import flow_meter as _k11_fm  # noqa: E402
+from heatpump_optimizer import manual_plan as _k11_mp  # noqa: E402
+from heatpump_optimizer import open_meteo as _k11_om  # noqa: E402
+from heatpump_optimizer import power_guard as _k11_pg  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _k11_pa  # noqa: E402
+from heatpump_optimizer.plan_step import PLAN_STEP as _k11_step  # noqa: E402
+from heatpump_optimizer.plan_step import plan_step_index as _k11_idx  # noqa: E402
+
+_k11_stamps = [_FD_T0 + k * _k11_step for k in range(8)]
+_k11_plan = _k11_ns(timestamps=_k11_stamps, optimal_setpoints=[20.0 + k for k in range(8)],
+                    room_temp_trajectory=[19.0 + 0.1 * k for k in range(9)])
+_k11_probes = {
+    "before": _FD_T0 - _k11_step, "first": _FD_T0, "mid": _FD_T0 + 3.5 * _k11_step,
+    "last": _k11_stamps[-1] + _k11_step / 2, "end_edge": _k11_stamps[-1] + _k11_step,
+    "a_day_past": _k11_stamps[-1] + timedelta(days=1),
+}
+_k11_rows = {
+    name: (_k11_idx(_k11_plan, now) is not None,
+           _fd_covering_index(_k11_stamps, now, _k11_step) is not None,
+           _k11_pa._planned_room(_k11_plan, now) is not None,
+           bool(_k11_ec._planned_room(_k11_plan, now)))
+    for name, now in _k11_probes.items()
+}
+_k11_inside = {"first", "mid", "last"}
+R.check(
+    "D7-s3-03: plan_step_index, covering_index and both _planned_room copies agree on "
+    "every probe -- inside the plan a step covers now, at and past its end none does",
+    any(now >= _k11_stamps[-1] + _k11_step for now in _k11_probes.values())
+    and _k11_rows == {name: (name in _k11_inside,) * 4 for name in _k11_probes},
+    f"{_k11_rows}",
+)
+
+# A plan is on the step grid: its last step is one PLAN_STEP wide whatever gap
+# precedes it, as the arbiter's _step_index held before the move. A series
+# lookup with no grid width takes the predecessor's gap; null control, that one
+# reads the same plan as ended a gap after its last stamp.
+_k11_short = [_FD_T0, _FD_T0 + timedelta(minutes=2)]
+_k11_short_plan = _k11_ns(timestamps=_k11_short, optimal_setpoints=[20.0, 21.0])
+_k11_short_rows = (
+    _k11_idx(_k11_short_plan, _k11_short[-1] + _k11_step / 2),
+    _k11_idx(_k11_short_plan, _k11_short[-1] + _k11_step),
+    _k11_pa._planned_room(_k11_short_plan, _k11_short[-1] + _k11_step / 2),
+    _fd_covering_index(_k11_short, _k11_short[-1] + _k11_step / 2, _k11_step),
+)
+R.check(
+    "D7-s3-03: a plan's last step is one PLAN_STEP wide after a shorter gap (covered at half a step, "
+    "not at a step), and the arbiter's planned room reads it; null control, the series lookup with no "
+    "grid width ends it one gap after its stamp",
+    _k11_short_rows == (1, None, 21.0, None),
+    f"{_k11_short_rows}",
+)
+
+# D7-s1-05 (the note arm): the peak guard, the CUSUM and the coordinator's
+# immersion log write their evidence through drift's one owner, which keeps the
+# newest EVIDENCE_KEEP lines.
+_k11_guard = _k11_pg.GuardState()
+_k11_cusum = _k11_drift.Cusum(threshold=1.0, drift=0.0)
+for _k11_n in range(_k11_drift.EVIDENCE_KEEP + 2):
+    _k11_guard.note(_FD_T0 + timedelta(minutes=_k11_n), f"n{_k11_n}")
+    _k11_cusum.note(_FD_T0 + timedelta(minutes=_k11_n), f"n{_k11_n}")
+R.check(
+    "D7-s1-05 note: GuardState, Cusum and the immersion log write evidence through "
+    "EvidenceNotes.note, the newest EVIDENCE_KEEP lines kept, the same line for the same note",
+    _k11_pg.GuardState.note is _k11_drift.EvidenceNotes.note
+    and _k11_drift.Cusum.note is _k11_drift.EvidenceNotes.note
+    and _k11_drift.EvidenceLog.note is _k11_drift.EvidenceNotes.note
+    and _k11_guard.evidence == _k11_cusum.evidence
+    and len(_k11_guard.evidence) == _k11_drift.EVIDENCE_KEEP
+    and _k11_guard.evidence[0].endswith(": n2") and _k11_guard.evidence[-1].endswith(": n7"),
+    f"{_k11_guard.evidence} / {_k11_cusum.evidence}",
+)
+
+# D7-s3-04, water: the heat that warms a litre by one kelvin, read through each
+# path that uses it -- the tank model, the flow meter, the sensor-gap advisor.
+from heatpump_optimizer import sensor as _k11_sensor  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _k11_TP  # noqa: E402
+
+_k11_tp = _k11_TP()
+_k11_terms = _k11_sensor._gap_probe_terms(
+    {_k11_const.CONF_DHW_ENABLED: True}, [1.0], [1.0], 1.0
+)
+_k11_band = float(_k11_const.DEFAULT_DHW_SETPOINT) - float(_k11_const.DEFAULT_DHW_MIN_TEMP)
+_k11_vol = EntryConfig.from_mapping({}).dhw_tank_volume
+_k11_water = {
+    "const": _k11_const.WATER_SPECIFIC_HEAT,
+    "tank model": _k11_tp.dhw_tank_thermal_mass / float(_k11_tp.dhw_tank_volume),
+    "flow meter": _k11_fm.thermal_output_kw(_k11_const.WATER_KG_PER_L, 1.0, 0.0) / 3600.0,
+    "gap advisor": _k11_terms["dhw_extra_kwh"] / (_k11_vol * _k11_band * 30.0),
+}
+R.check(
+    "D7-s3-04 water: the tank model, the flow meter and the gap advisor read one "
+    "heat capacity, const.WATER_SPECIFIC_HEAT (kWh per litre per K)",
+    max(_k11_water.values()) - min(_k11_water.values()) < 1e-12 * _k11_const.WATER_SPECIFIC_HEAT,
+    f"{_k11_water}",
+)
+
+# D7-s3-04, naive instant: one zone for a naive stamp, UTC, whatever the host's
+# zone -- open_meteo read it as the host's and landed nine hours off under Tokyo.
+import os as _k11_os  # noqa: E402
+import time as _k11_time  # noqa: E402
+
+_k11_saved_tz = _k11_os.environ.get("TZ")
+_k11_os.environ["TZ"] = "Asia/Tokyo"
+_k11_time.tzset()
+try:
+    _k11_naive = datetime(2026, 1, 10, 12, 0)
+    _k11_aware = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
+    _k11_zone = {
+        "drift": _k11_drift.utc_instant(_k11_naive) == _k11_aware,
+        "open_meteo": _k11_om.utc_instant is _k11_drift.utc_instant,
+        "manual_plan": _k11_mp._instant(_k11_naive) == _k11_aware.timestamp(),
+        "manual_plan coerce": _k11_mp._coerce_awareness(_k11_aware, _k11_naive) == _k11_naive,
+        "aware kept": _k11_drift.utc_instant(_k11_aware.astimezone()) == _k11_aware,
+    }
+finally:
+    if _k11_saved_tz is None:
+        _k11_os.environ.pop("TZ", None)
+    else:
+        _k11_os.environ["TZ"] = _k11_saved_tz
+    _k11_time.tzset()
+R.check(
+    "D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a "
+    "Tokyo host; open_meteo and manual_plan (its instant and its naive-reference coercion) read it there",
+    all(_k11_zone.values()),
+    f"{_k11_zone}",
+)
+
+# D7-s3-04, finite: a payload number is a finite one; it differs from
+# const.finite_float only in refusing text, which its docstring names.
+_k11_fin = [1, 1.5, True, None, "1.5", float("nan"), float("inf"), float("-inf"),
+            np.float64("nan"), np.float64(2.0), np.int64(3)]
+_k11_pay = [_k11_entity.payload_number(v) is not None for v in _k11_fin]
+_k11_ff = [_k11_const.finite_float(v.item() if isinstance(v, np.generic) else v) is not None
+           and not isinstance(v, str) for v in _k11_fin]
+R.check(
+    "D7-s3-04 finite: payload_number refuses NaN and infinity, and agrees with "
+    "finite_float on every probe but text",
+    _k11_pay == _k11_ff and _k11_pay.count(True) == 4,
+    f"payload {_k11_pay} / finite_float less text {_k11_ff}",
 )
 
 _fd_spot = _fd_coord()
@@ -97554,6 +97733,580 @@ R.check(
     and _rl_whatif(_rl_c_off, {}) is None,
     f"{None if _rl_wi_c is None else np.round(_rl_wi_c[:4], 3).tolist()} "
     f"target={None if _rl_wi_c_target is None else sorted(set(np.round(_rl_wi_c_target, 3).tolist()))}",
+)
+
+
+# --- R10-DRAW-MAP-EVIDENCE part A (design/R10-DRAW-MAP-EVIDENCE at 9aa450f5,
+# approved at design-verdict f10dd418). Each Control pass on a flow set-point
+# is recorded with where its write came from (``pump_arbiter.pass_origin``,
+# the one place that decides it). Steady runs of passes become map rows kept
+# beside the running-draw window and never in it, stored as one string per
+# column. An experiment's interval is no efficiency reading for the COP
+# learner (``MeasuredCop.judge_floor``). Synthetic fixtures throughout.
+R.section("R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion")
+import asyncio as _mr_aio  # noqa: E402
+from heatpump_optimizer import draw_range as _mr_dr  # noqa: E402
+from heatpump_optimizer import heat_energy as _mr_he  # noqa: E402
+from heatpump_optimizer import coordinator as _mr_cm  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _mr_pa  # noqa: E402
+from heatpump_optimizer import store as _mr_store  # noqa: E402
+from heatpump_optimizer.accuracy import (  # noqa: E402
+    COP_REFUSED_OFF_ASK as _MR_OFF,
+    COP_REFUSED_SPAN_OPEN as _MR_OPEN,
+    MeasuredCop as _MR_MC,
+)
+from dataclasses import replace as _mr_dc_replace  # noqa: E402
+from heatpump_optimizer.sysid import KIND_FIT as _MR_FIT, KIND_PROBE as _MR_PROBE  # noqa: E402
+
+_MR_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=timezone.utc)
+_MR_MIN0 = int(_MR_T0.timestamp() // 60)
+
+
+def _mr_pass(minute, written=35.0, drawn=2.0, *, level=2.0, duty="space", origin="plan",
+             inlet=30.0, defrost=False):
+    return _mr_dr.PassRecord(
+        _MR_T0 + timedelta(minutes=minute), written, 25.0, 45.0, 31.0, level, 0.5, 4.0, 45.0,
+        inlet, drawn, 4.0, duty, "heat", defrost, origin)
+
+
+def _mr_rows(passes, keep=True):
+    rows = _mr_dr.MapRows()
+    for p in passes:
+        rows.take_pass(p)
+    rows.take_pass(None)
+    rows.commit_runs(keep)
+    return list(rows.rows)
+
+
+# Segments: the first SEGMENT_SETTLE_MIN minutes dropped, at least
+# SEGMENT_STEADY_MIN steady minutes, closed at SEGMENT_MAX_MIN.
+_mr_ten = _mr_rows([_mr_pass(m, inlet=30.0 + 0.1 * m, drawn=2.0 + 0.1 * (m % 2)) for m in range(10)])
+R.check(
+    "a ten-minute run at one set-point is one row: started at its first pass, 7 "
+    "steady minutes (3 to 9), its map inputs the first pass's, inlet mean and "
+    "change and draw mean and spread over the steady minutes",
+    len(_mr_ten) == 1 and _mr_ten[0][:2] == (_MR_MIN0, 7)
+    and _mr_ten[0][2:10] == (35.0, 25.0, 45.0, 31.0, 2.0, 0.5, 4.0, 45.0)
+    and abs(_mr_ten[0][10] - 30.6) < 1e-9 and abs(_mr_ten[0][11] - 0.6) < 1e-9
+    and _mr_ten[0][12] == 4.0 and abs(_mr_ten[0][13] - (2.0 + 0.1 * 4 / 7)) < 1e-9
+    and abs(_mr_ten[0][14] - 0.1) < 1e-9 and _mr_ten[0][15:] == ("plan", "space"),
+    f"{_mr_ten}",
+)
+R.check(
+    "a run of five passes keeps two steady minutes and is a row; one of four "
+    "keeps one and is none",
+    [len(_mr_rows([_mr_pass(m) for m in range(n)])) for n in (4, 5)] == [0, 1]
+    and _mr_rows([_mr_pass(m) for m in range(5)])[0][1] == 2,
+)
+R.check(
+    "a forty-minute run closes at thirty minutes and the next pass opens a new "
+    "run: steady minutes 27 and 7",
+    [r[1] for r in _mr_rows([_mr_pass(m) for m in range(40)])] == [27, 7],
+)
+_mr_cut = {
+    "written": [_mr_pass(m, written=35.0 if m < 10 else 36.0) for m in range(20)],
+    "level": [_mr_pass(m, level=2.0 if m < 10 else 2.5) for m in range(20)],
+    "origin": [_mr_pass(m, origin="plan" if m < 10 else "feedback") for m in range(20)],
+    "duty": [_mr_pass(m, duty="space" if m < 10 else "both") for m in range(20)],
+}
+R.check(
+    "a change of written set-point, level, origin or duty closes the run (the "
+    "duty case keeps only its space-only run)",
+    {k: [r[1] for r in _mr_rows(v)] for k, v in _mr_cut.items()}
+    == {"written": [7, 7], "level": [7, 7], "origin": [7, 7], "duty": [7]},
+    f"{ {k: [r[:2] for r in _mr_rows(v)] for k, v in _mr_cut.items()} }",
+)
+_mr_stops = {
+    "defrost": [_mr_pass(m, defrost=m == 10) for m in range(20)],
+    "stop": [_mr_pass(m, drawn=0.25 if m == 10 else 2.0) for m in range(20)],
+    "unread": [_mr_pass(m, drawn=None if m == 10 else 2.0) for m in range(20)],
+}
+R.check(
+    "a defrost pass, a draw at RUNNING_FLOOR_KW and an unread draw each close the "
+    "run and join none: steady minutes 7 and 6 (minutes 0-9, 11-19)",
+    all([r[1] for r in _mr_rows(v)] == [7, 6] for v in _mr_stops.values()),
+    f"{ {k: [r[1] for r in _mr_rows(v)] for k, v in _mr_stops.items()} }",
+)
+_mr_dup = [_mr_pass(m) for m in range(10)]
+_mr_dup.insert(6, _mr_dc_replace(_mr_dup[5], at=_mr_dup[5].at + timedelta(seconds=30), drawn_kw=9.0))
+R.check(
+    "a second pass inside a minute (a listener's) weighs nothing",
+    _mr_rows(_mr_dup) == _mr_rows([_mr_pass(m) for m in range(10)]),
+)
+_mr_mixed = _mr_dr.MapRows()
+for _mr_p in _mr_cut["duty"]:
+    _mr_mixed.take_pass(_mr_p)
+_mr_mixed.take_pass(None)
+_mr_mixed_closed = len(_mr_mixed.closed)
+_mr_mixed.commit_runs(True)
+_mr_frozen = _mr_dr.MapRows()
+for _mr_p in _mr_cut["duty"]:
+    _mr_frozen.take_pass(_mr_p)
+_mr_frozen.take_pass(None)
+_mr_frozen.commit_runs(False)
+R.check(
+    "the fold commits the closed space-only runs and clears the rest; a frozen "
+    "or distorted interval commits none",
+    _mr_mixed_closed == 2 and [r[-1] for r in _mr_mixed.rows] == ["space"] and not _mr_mixed.closed
+    and not _mr_frozen.rows and not _mr_frozen.closed,
+    f"{list(_mr_mixed.rows)} / {list(_mr_frozen.rows)}",
+)
+_mr_cap = _mr_dr.MapRows()
+_mr_cap.closed.extend((_MR_MIN0 + i, 2) + (None,) * 13 + ("plan", "space") for i in range(700))
+_mr_cap.commit_runs(True)
+R.check(
+    "the rows are capped at MAP_ROWS (672), oldest dropped",
+    _mr_dr.MAP_ROWS == 672 and len(_mr_cap.rows) == 672 and _mr_cap.rows[0][0] == _MR_MIN0 + 28,
+    f"{len(_mr_cap.rows)}",
+)
+
+# Storage: one string per column, read back without a migration.
+_mr_win = _mr_dr.DrawRange()
+_mr_win.map.rows.append((_MR_MIN0, 2) + (None,) * 13 + ("hold", "space"))
+_mr_win.map.rows.extend(_mr_rows([_mr_pass(m, inlet=30.0 + 0.25 * m) for m in range(25)])
+                        + _mr_rows([_mr_pass(m, written=40.5, origin="probe") for m in range(8)]))
+_mr_doc = _mr_win.as_dict()
+_mr_back = _mr_dr.DrawRange.from_dict(_mr_doc)
+R.check(
+    "the rows are stored as one comma-separated string per column, every column, "
+    "and read back as the same rows",
+    tuple(_mr_doc["map_rows"]) == _mr_dr.MAP_COLUMNS
+    and all(isinstance(v, str) for v in _mr_doc["map_rows"].values())
+    and _mr_doc["map_rows"]["origin"] == "hold,plan,probe"
+    and list(_mr_back.map.rows) == list(_mr_win.map.rows),
+    f"{_mr_doc['map_rows']} / {list(_mr_back.map.rows)}",
+)
+_mr_plain = _mr_dr.DrawRange()
+_mr_plain.observe(2.0, 2.0, 0.5, 4.0, (35.0, 45.0))
+R.check(
+    "with no rows the record keeps no map key, so a store that never held one is "
+    "unchanged; a record stored before the rows reads empty, its window intact",
+    "map_rows" not in _mr_plain.as_dict()
+    and not _mr_dr.DrawRange.from_dict(_mr_plain.as_dict()).map.rows
+    and list(_mr_dr.DrawRange.from_dict(_mr_plain.as_dict()).samples) == [(2.0, 2.0)],
+)
+_mr_bad = {k: v for k, v in _mr_doc["map_rows"].items()}
+_mr_bad["written_c"] = "x," + _mr_bad["written_c"].split(",", 1)[1]
+_mr_nan = dict(_mr_doc["map_rows"], drawn_mean_kw="nan," + _mr_doc["map_rows"]["drawn_mean_kw"].split(",", 1)[1])
+_mr_short = dict(_mr_doc["map_rows"], gate_c="25.0")
+R.check(
+    "an unreadable or non-finite cell drops its row alone; columns of unequal "
+    "length cannot be aligned and drop every row; a column that is not a string "
+    "drops every row",
+    [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": _mr_bad}).map.rows] == ["plan", "probe"]
+    and [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": _mr_nan}).map.rows] == ["plan", "probe"]
+    and not _mr_dr.DrawRange.from_dict({"map_rows": _mr_short}).map.rows
+    and not _mr_dr.DrawRange.from_dict({"map_rows": dict(_mr_doc["map_rows"], duty=None)}).map.rows
+    and not _mr_dr.DrawRange.from_dict({"map_rows": "x"}).map.rows
+    and not _mr_dr.DrawRange.from_dict({"map_rows": dict(_mr_doc["map_rows"], duty=["space"] * 3)}).map.rows,
+)
+_mr_round = _mr_dr.MapRows()
+_mr_round.rows.append((_MR_MIN0, 2, 31.6875) + (None,) * 12 + ("plan", "space"))
+R.check(
+    "a number is stored to three decimals",
+    _mr_round.as_columns()["written_c"] == "31.688",
+    f"{_mr_round.as_columns()['written_c']}",
+)
+R.check(
+    "store.DOMAINS declares every column leaf, an empty one included (null: an "
+    "undeclared column is reported, as its key and its value)",
+    _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _mr_doc}}) == []
+    and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": {
+        **_mr_doc, "map_rows": dict(_mr_doc["map_rows"], bogus="1")}}}) == ["accuracy/draw/map_rows/bogus"] * 2,
+    f"{_mr_store.off_domain('hpo_accuracy', {'accuracy': {'draw': _mr_doc}})}",
+)
+_mr_one_row = _mr_dr.DrawRange()
+_mr_one_row.map.rows.append((_MR_MIN0, 2) + (None,) * 13 + ("hold", "space"))
+R.check(
+    "a single row with unread cells stores empty column strings, which the "
+    "domain admits",
+    _mr_one_row.as_dict()["map_rows"]["written_c"] == ""
+    and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _mr_one_row.as_dict()}}) == [],
+)
+_mr_a = [_mr_pass(m, inlet=None) for m in range(6)]
+_mr_b = [_mr_pass(m, written=40.0, inlet=inl) for m, inl in ((6, None), (7, None), (8, 31.0), (9, 31.0), (10, 31.0))]
+_mr_no_inlet = [_mr_rows(_mr_a), _mr_rows(_mr_a + [_mr_dc_replace(p, inlet_c=None) for p in _mr_b]), _mr_rows(_mr_a + _mr_b)]
+
+
+def _mr_reload(rows):
+    held = _mr_dr.DrawRange()
+    held.map.rows.extend(rows)
+    return list(_mr_dr.DrawRange.from_dict(held.as_dict()).map.rows)
+
+
+R.check(
+    "an unread cell is a stored value: a single row with unread cells, a column "
+    "unread in every row (no inlet sensor) and one row unread among read ones "
+    "each read back as the same rows",
+    _mr_reload(_mr_one_row.map.rows) == list(_mr_one_row.map.rows)
+    and [len(r) for r in _mr_no_inlet] == [1, 2, 2]
+    and [r[-1][10] is None for r in _mr_no_inlet] == [True, True, False]
+    and all(r[0][10] is None for r in _mr_no_inlet)
+    and all(_mr_reload(r) == r for r in _mr_no_inlet),
+    f"{[_mr_reload(r) for r in _mr_no_inlet]} / {_mr_reload(_mr_one_row.map.rows)}",
+)
+R.check(
+    "an unread start or steady minute is a bad cell and drops its row alone; a "
+    "record of empty columns holds no row",
+    [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": dict(
+        _mr_doc["map_rows"], start_min="," + _mr_doc["map_rows"]["start_min"].split(",", 1)[1])}).map.rows]
+    == ["plan", "probe"]
+    and [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": dict(
+        _mr_doc["map_rows"], steady_min="," + _mr_doc["map_rows"]["steady_min"].split(",", 1)[1])}).map.rows]
+    == ["plan", "probe"]
+    and not _mr_dr.DrawRange.from_dict({"map_rows": dict.fromkeys(_mr_dr.MAP_COLUMNS, "")}).map.rows,
+)
+
+
+# The window is untouched: the same intervals folded with and without map
+# rows leave every reader of the window identical.
+class _MrParams:
+    min_electrical_power, max_electrical_power, flow_lift_power_floor_kw = 0.5, 4.0, 0.4
+
+
+# The fold's own wiring of the exclusion: each flag alone, through draw_range.fold.
+def _mr_fold_flags(frozen, distorted):
+    draw = _mr_dr.DrawRange()
+    for m in range(10):
+        _mr_dr.note_pass(draw, _mr_pass(m))
+    _mr_dr.note_pass(draw, None)
+    _mr_dr.fold(draw, 2.0, (2.0, 0.0), _MrParams(), frozen=frozen, distorted=distorted,
+                defrost=False, command=_mr_pa.FlowCommand(35.0, 25.0, 45.0))
+    return len(draw.map.rows), len(draw.map.closed)
+
+
+_mr_flag_rows = {f: _mr_fold_flags(*f) for f in ((False, False), (True, False), (False, True), (True, True))}
+R.check(
+    "fold commits a closed space run as a row only when the interval is neither "
+    "frozen nor distorted: frozen alone, distorted alone and both commit none and "
+    "clear the closed runs (control: neither flag commits one)",
+    _mr_flag_rows == {(False, False): (1, 0), (True, False): (0, 0), (False, True): (0, 0), (True, True): (0, 0)},
+    f"{_mr_flag_rows}",
+)
+
+
+def _mr_fold_run(with_rows):
+    draw = _mr_dr.DrawRange()
+    for i in range(240):
+        ask = (0.5, 1.6, 2.4, 3.2)[i % 4]  # asks at the configured minimum draw 0.8: the floor moves
+        drawn = 0.8 if i % 4 == 0 else ask * 1.1
+        cmd = _mr_pa.FlowCommand(30.0 + 2 * (i % 4), 25.0, 45.0)
+        if with_rows:
+            for m in range(30):
+                _mr_dr.note_pass(draw, _mr_pass(30 * i + m, written=cmd.written_c, level=ask, drawn=drawn))
+        _mr_dr.fold(draw, drawn if i % 9 else 0.1, (ask, 0.0), _MrParams(), frozen=False,
+                    distorted=False, defrost=False, command=cmd)
+    return draw
+
+
+_mr_with, _mr_without = _mr_fold_run(True), _mr_fold_run(False)
+_MR_CAP = __import__("heatpump_optimizer.thermal_model", fromlist=["InstallCapability"]).InstallCapability(
+    frozenset({"power"}), True, False)
+_mr_band = lambda d: _mr_dr.solve_band(d, _MrParams(), _MR_CAP, 0.0, applies_floor=True)  # noqa: E731
+_mr_readers = lambda d: (list(d.samples), list(d.commands), d.engaged, list(d.idle), list(d.ceiling),  # noqa: E731
+                         _mr_dr.ask_evidence(d), _mr_dr.power_floor_kw(d, _MrParams()), d.observed(),
+                         d.floor_kw, d.floor_since, _mr_band(d),
+                         {k: v for k, v in d.as_dict().items() if k != "map_rows"})
+R.check(
+    "null: DrawRange.samples, engaged, ask_evidence, the floor, the learned floor and its "
+    "count, the solve band's bottom and the stored window are identical with and without map "
+    "rows, and the rows were kept",
+    _mr_readers(_mr_with) == _mr_readers(_mr_without) and len(_mr_with.map.rows) > 0
+    and not _mr_without.map.rows and _mr_without.floor_kw is not None
+    and _mr_band(_mr_without).min_source != "configured",
+    f"rows {len(_mr_with.map.rows)} floor {_mr_with.floor_kw} since {_mr_with.floor_since} "
+    f"band min {_mr_band(_mr_with).min_kw} {_mr_band(_mr_with).min_source}",
+)
+
+# Origin: decided once, in pump_arbiter.pass_origin.
+_mr_in = _FbCoord().arbiter_inputs()
+_mr_exp = lambda kind: _mr_dc_replace(_mr_in, action={"mode": "system_identification", "power": 2.0, **kind})  # noqa: E731
+_mr_now = _MR_T0 + timedelta(hours=1)
+_mr_run_at = lambda s, running=True: _mr_dc_setrun(  # noqa: E731
+    _mr_pa.FeedbackRun(_mr_now - timedelta(seconds=s), 30.0, _mr_now), running)
+
+
+def _mr_dc_setrun(run, running):
+    run.running = running
+    return run
+
+
+_MR_HOLD_S = _mr_pa.FEEDBACK_START_HOLD.total_seconds()
+_mr_origins = [
+    _mr_pa.pass_origin(_mr_exp({"kind": _MR_PROBE}), "space", False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_exp({"kind": _MR_FIT}), "space", True, _mr_run_at(600), _mr_now),
+    _mr_pa.pass_origin(_mr_exp({}), "idle", False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, None, False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, "dhw", True, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, "idle", False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, "space", True, _mr_run_at(600), _mr_now),
+    _mr_pa.pass_origin(_mr_in, "both", False, None, _mr_now),
+    _mr_pa.pass_origin(_mr_in, "space", False, _mr_run_at(600, False), _mr_now),
+    _mr_pa.pass_origin(_mr_in, "space", False, _mr_run_at(_MR_HOLD_S - 1), _mr_now),
+    _mr_pa.pass_origin(_mr_in, "space", False, _mr_run_at(_MR_HOLD_S), _mr_now),
+]
+R.check(
+    "pass_origin: the experiment's kind first (probe, fit, and fit with no "
+    "kind); the baseline holds; a step that does not heat writes the gate; a "
+    "boost's ceiling; the plan open-loop with no running loop; the loop's start "
+    "hold until FEEDBACK_START_HOLD, then its moved target",
+    _mr_origins == ["probe", "fit", "fit", "hold", "gate", "gate", "boost", "plan", "plan",
+                    "feedback_start", "feedback"],
+    f"{_mr_origins}",
+)
+
+
+# Through the production _arbitrate: the feedback option on gives the loop's
+# origins, off gives none (the design's origin null).
+def _mr_sim(**kw):
+    seen = []
+    note, inputs = _mr_dr.note_pass, _FbCoord.arbiter_inputs
+
+    def _note(draw, rec):
+        seen.append(rec)
+        note(draw, rec)
+
+    def _inputs(self):
+        if self.__dict__.get("draw") is None:
+            self.draw = _mr_dr.DrawRange()
+        return _mr_dc_replace(inputs(self), draw=self.draw)
+
+    _mr_dr.note_pass, _FbCoord.arbiter_inputs = _note, _inputs
+    try:
+        sim = _fb_sim(minutes=90, **kw)
+    finally:
+        _mr_dr.note_pass, _FbCoord.arbiter_inputs = note, inputs
+    return sim, seen
+
+
+_mr_on, _mr_on_seen = _mr_sim()
+_mr_off, _mr_off_seen = _mr_sim(feedback=False)
+_mr_on_o = {r.origin for r in _mr_on_seen if r is not None}
+_mr_off_o = {r.origin for r in _mr_off_seen if r is not None}
+_mr_last = _mr_pa.state_for(_mr_on["coord"]).last_pass
+R.check(
+    "with the feedback option on the passes carry the loop's start hold and "
+    "moved target; off, none does and the plan's open-loop write is the origin; "
+    "the last pass is on the arbiter state, its written set-point the held one, "
+    "and closed runs reached the coordinator's window",
+    {"feedback_start", "feedback"} <= _mr_on_o and not _mr_off_o & {"feedback_start", "feedback"}
+    and "plan" in _mr_off_o
+    and _mr_last is _mr_on_seen[-1]
+    and _mr_last.written_c == _mr_pa.state_for(_mr_on["coord"]).written["space_setpoint"][0]
+    and len(_mr_off["coord"].draw.map.closed) > 0,
+    f"on {_mr_on_o} off {_mr_off_o} closed {len(_mr_off['coord'].draw.map.closed)}",
+)
+_mr_boost_in = _mr_dc_replace(_mr_in, mode=_mr_pa.MODE_BOOST)
+_mr_indoor = _FbCoord()
+_mr_indoor._config = EntryConfig.from_mapping({**_mr_indoor._config.raw, "space_setpoint_unit": "indoor"})
+R.check(
+    "the boost fact (_boosted): the global boost mode on a water set-point is "
+    "live, outside it with no boost set it is not, and an indoor set-point is "
+    "never boosted",
+    _mr_pa._boosted(_FbCoord(), _mr_boost_in, _mr_now) is True
+    and _mr_pa._boosted(_FbCoord(), _mr_in, _mr_now) is False
+    and _mr_pa._boosted(_mr_indoor, _mr_dc_replace(_mr_indoor.arbiter_inputs(), mode=_mr_pa.MODE_BOOST), _mr_now)
+    is False,
+)
+_mr_fresh = _FbCoord()
+R.check(
+    "a fresh arbiter state holds no pass record",
+    _mr_pa.ArbiterState().last_pass is None,
+)
+R.check(
+    "no pass record where no flow set-point is held (nothing written yet)",
+    _mr_pa._pass_record(_mr_pa.state_for(_mr_fresh), _mr_fresh.arbiter_inputs(), "space", False,
+                        _MR_T0) is None,
+)
+
+# The learner exclusion [R3]: the first judgement refuses an experiment's
+# interval with the existing literal, before any ratio is walked.
+_mr_p = _cf_coord()._thermal_params
+R.check(
+    "judge_floor: an experiment interval is draw_off_ask whatever its figures, "
+    "with or without a per-cycle draw; a plan interval with no draw is judged on "
+    "nothing and passes",
+    _MR_MC.judge_floor(2.0, 2.0, _mr_p, None, True) == _MR_OFF
+    and _MR_MC.judge_floor(2.0, None, _mr_p, None, True) == _MR_OFF
+    and _MR_MC.judge_floor(2.0, 2.0, _mr_p, None, False) is None
+    and _MR_MC.judge_floor(2.0, None, _mr_p, None) is None,
+)
+_mr_floor = _mr_dr.power_floor_kw(None, _mr_p)
+R.check(
+    "judge_floor: a plan interval drawing under the duty floor still reads "
+    "duty_floor, and one drawing exactly the floor passes",
+    _MR_MC.judge_floor(2.0, 0.5 * _mr_floor, _mr_p, None) == "duty_floor"
+    and _MR_MC.judge_floor(_mr_floor, _mr_floor, _mr_p, None) is None,
+    f"floor {_mr_floor}",
+)
+_mr_live = _cf_coord()
+R.check(
+    "the coordinator hands its own running-draw window to the arbiter on every "
+    "pass (ArbiterInputs.draw)",
+    _mr_live.arbiter_inputs().draw is _mr_live._accuracy.draw,
+)
+# The sysid override names its kind on the action (moved from part B: the
+# arbiter's origin reads it and cannot reach the coordinator's _sysid).
+_mr_si = _SysIdHost(PumpSignals())
+_mr_si._sysid.phase = _SysIdModule.PHASE_STEP
+_sysid_cycle(_mr_si, np.full(48, 0.2))
+R.check(
+    "the experiment's override action carries its kind",
+    _mr_si._current_action.get("mode") == "system_identification"
+    and _mr_si._current_action.get("kind") == _mr_si._sysid.kind == _MR_FIT,
+    f"{_mr_si._current_action}",
+)
+# The hot-water window clock moved to module level unchanged: 13:30 local is
+# 13.5, inside a 13:00-14:00 window, and 30 minutes before a 14:00 one.
+_mr_hw = _cf_coord()
+_mr_clock = _mr_cm.dt_util.now
+_mr_cm.dt_util.now = lambda: datetime(2026, 1, 12, 13, 30, tzinfo=timezone.utc)
+try:
+    _mr_hw._optimization_result = __import__("types").SimpleNamespace(predictive_info={"dhw_windows": "13:00-14:00"})
+    _mr_hw_in = (_mr_cm._dhw_current_hour(), _mr_hw._dhw_in_demand_window())
+    _mr_hw._optimization_result.predictive_info = {"dhw_windows": "14:00-15:00"}
+    _mr_hw_next = (_mr_hw._dhw_in_demand_window(), _mr_hw._dhw_next_window_in_hours())
+finally:
+    _mr_cm.dt_util.now = _mr_clock
+R.check(
+    "the hot-water windows read the local hour: 13:30 is 13.5, inside "
+    "13:00-14:00, outside 14:00-15:00 and 0.5 h before it",
+    _mr_hw_in == (13.5, True) and _mr_hw_next == (False, 0.5),
+    f"{_mr_hw_in} {_mr_hw_next}",
+)
+_MR_SYSID = {"mode": "system_identification", "kind": _MR_PROBE}
+
+
+def _mr_cop(coord, cycles, freeze=()):
+    """``cycles`` of (action extra, asked kW, drawn kW) on ``coord``; the
+    learner state the exclusion must leave as a frozen cycle would."""
+    _cf_learn(coord, 2.0, 0)  # the window's follow evidence, as _cf_learn builds it
+    for i, (extra, asked, drawn) in enumerate(cycles):
+        coord._current_action = {"power": asked, "dhw_power": 0.0, **extra}
+        coord._measured_power = drawn
+        if i in freeze:
+            coord._learning_frozen = lambda *a, **k: "frozen"
+        coord._learn_measured_cop(coord._accuracy.draw)
+        coord.__dict__.pop("_learning_frozen", None)
+    m = coord._measured_cop
+    return (coord._cop_samples, repr(coord._cop_scale), m.ratio_ewma, list(m.held),
+            dict(coord._capacity_envelope), dict(coord._cop_baseline), m.cop)
+
+
+_mr_seq = [({}, 2.0, 2.0), (_MR_SYSID, 4.0, 5.2), ({}, 2.4, 2.4), ({}, 2.0, 2.1)]
+_mr_excl = _mr_cop(_cf_coord(), _mr_seq)
+_mr_froz = _mr_cop(_cf_coord(), _mr_seq, freeze={1})
+_mr_noexp = _mr_cop(_cf_coord(), [c for c in _mr_seq if not c[0]])
+R.check(
+    "null: a run with an experiment interval leaves the sample count, the COP "
+    "scale, the walking ratio, the hold, the envelope and the health baseline "
+    "byte-identical to the same run with that interval frozen, and to the run "
+    "without it; the first plan interval after it folds none of its draw",
+    _mr_excl == _mr_froz == _mr_noexp and _mr_excl[0] == 3,
+    f"{_mr_excl} / {_mr_froz} / {_mr_noexp}",
+)
+
+
+# The dither's first experiment cycle (design R11-CARRY-DRAWMAP, item 1 and
+# the verdict's dither-first-cycle note): owed_scale reads the cycle before's
+# admission, so a plan row admitted just ahead of an experiment would step the
+# scale inside it. An experiment cycle moves no scale, as a frozen one does not.
+def _mr_dither(k, arm, n=70):
+    """``n`` heat-led cycles on ``_ss_coord``; cycle ``k`` is ``arm`` ("plan",
+    "experiment" or "frozen"). Per cycle: the scale in force, the probe's level,
+    the dither's state and the verdict; and whether the row before ``k`` was admitted."""
+    coord, trace, admitted_before = _ss_coord(), [], None
+    for i, (asked, _) in enumerate(_ss_flat(n, seed=11)):
+        if i == k:
+            admitted_before = coord._measured_cop.probe.dither.admitted
+        drawn = asked * coord._cop_scale / 1.1
+        coord._current_action = {"power": asked, "dhw_power": 0.0,
+                                 **(_MR_SYSID if i == k and arm == "experiment" else {})}
+        coord._measured_power = drawn
+        coord._current_state.outdoor_temperature = 8.0
+        _cf_drm.fold(coord._accuracy.draw, drawn, coord._commanded_split(), coord._thermal_params,
+                     frozen=False, distorted=False, defrost=False)
+        if i == k and arm == "frozen":
+            coord._learning_frozen = lambda *a, **kw: "frozen"
+        coord._learn_measured_cop(coord._accuracy.draw)
+        coord.__dict__.pop("_learning_frozen", None)
+        d, p = coord._measured_cop.probe.dither, coord._measured_cop.probe
+        trace.append((repr(coord._cop_scale), p.level, p.base, d.rows, list(d.contrasts), d.reading,
+                      d.ahead, d.admitted, coord._measured_cop.scale_response))
+    return trace, admitted_before
+
+
+_mr_dk = 55  # past the probe arming (cycle 47 on this run), the row before admitted
+_mr_d_exp, _mr_d_froz, _mr_d_plan = (_mr_dither(_mr_dk, a) for a in ("experiment", "frozen", "plan"))
+R.check(
+    "the dither's first experiment cycle: a run whose cycle 55 is an experiment, entered with the "
+    "row before it admitted, takes no dither step inside it -- the scale in force is the probe's "
+    "base and the dither holds no reading -- and from the next cycle to the run's end is "
+    "byte-identical to the same run with that cycle frozen; null control, the same cycle under "
+    "the plan steps the dither off its base",
+    _mr_d_exp[1] is True and _mr_d_exp[0][_mr_dk][2] is not None
+    and float(_mr_d_exp[0][_mr_dk][0]) == _mr_d_exp[0][_mr_dk][2]
+    and _mr_d_exp[0][_mr_dk][5:7] == (None, None)
+    and _mr_d_exp[0][_mr_dk + 1:] == _mr_d_froz[0][_mr_dk + 1:]
+    and float(_mr_d_plan[0][_mr_dk][0]) != _mr_d_plan[0][_mr_dk][2],
+    f"admitted before {_mr_d_exp[1]}; cycle {_mr_dk}: experiment {_mr_d_exp[0][_mr_dk][:3]} "
+    f"plan {_mr_d_plan[0][_mr_dk][:3]}; first diverging cycle after it "
+    f"{next((i for i, (a, b) in enumerate(zip(_mr_d_exp[0], _mr_d_froz[0])) if a != b and i > _mr_dk), None)}",
+)
+_mr_one = _cf_coord()
+_mr_cop(_mr_one, [(_MR_SYSID, 2.0, 2.0)])
+_mr_plan_one = _cf_coord()
+_mr_cop(_mr_plan_one, [({}, 2.0, 2.0)])
+R.check(
+    "an experiment interval drawing exactly its ask reads draw_off_ask and "
+    "folds nothing; the same interval under the plan folds",
+    (_mr_one._cop_samples, _mr_one._measured_cop.refusal) == (0, _MR_OFF)
+    and (_mr_plan_one._cop_samples, _mr_plan_one._measured_cop.refusal) == (1, None),
+)
+# r13: on a heat-metered install the COP is heat over the draw; the refusal
+# stands there for the scale's reason (judge_floor's docstring), tested.
+_mr_met, _mr_met_plan = _cf_metered(), _cf_metered()
+for _mr_c, _mr_a in ((_mr_met, _MR_SYSID), (_mr_met_plan, {})):
+    _mr_c._current_action = {"power": 2.0, "dhw_power": 0.0, **_mr_a}
+    _mr_c._measured_power = 2.0
+    _mr_c._current_state.outdoor_temperature = 8.0
+    _mr_c._learn_measured_cop(_mr_c._accuracy.draw)
+R.check(
+    "r13: on a heat-metered install an experiment interval is refused too, and "
+    "the same interval under the plan folds its measured COP",
+    (_mr_met._cop_samples, _mr_met._measured_cop.refusal, _mr_met._measured_cop.cop) == (0, _MR_OFF, None)
+    and _mr_met_plan._cop_samples == 1 and _mr_met_plan._measured_cop.cop is not None,
+    f"{_mr_met._cop_samples} {_mr_met._measured_cop.refusal} / {_mr_met_plan._cop_samples}",
+)
+
+
+# A heat counter with no power entity: a span holding an experiment cycle
+# fails the cycle's gate, so its COP never folds (null: the same span with no
+# experiment folds, as #2854's test does).
+def _mr_span(experiment_cycle=None, cycles=3, elec_kw=2.0):
+    c = _t2_coord(**{"heat_pump_energy_entity": "sensor.e"}, **{_HE_KEY: "sensor.he"})
+    c._current_state.outdoor_temperature = 8.0
+    c._measured_power = None
+    m = _mr_he.meter_of(c)
+    refusals = []
+    for i in range(cycles):
+        c._current_action = {"power": elec_kw, **(_MR_SYSID if i == experiment_cycle else {})}
+        at = NOW + timedelta(hours=0.5 * i)
+        m.observe_counters(at, 100.0 + 3.7 * elec_kw * 0.5 * i, 50.0 + elec_kw * 0.5 * i,
+                           configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        c._last_house_sample, c._last_house_sample_time = _mr_dc_replace(c._current_state), at
+        c._learn_measured_cop()
+        refusals.append(c._measured_cop.refusal)
+        _mr_aio.run(_mr_cm._async_learn_heat_span(c, {"cop": c._measured_cop.refusal == _MR_OPEN}))
+    return c._cop_samples, refusals
+
+
+_mr_span_exp, _mr_span_plan = _mr_span(1), _mr_span()
+R.check(
+    "a heat counter span holding an experiment cycle folds no COP, that cycle "
+    "reading draw_off_ask; the same span with none folds one",
+    _mr_span_exp[0] == 0 and _mr_span_exp[1][1] == _MR_OFF and _mr_span_plan[0] == 1,
+    f"{_mr_span_exp} / {_mr_span_plan}",
 )
 
 
