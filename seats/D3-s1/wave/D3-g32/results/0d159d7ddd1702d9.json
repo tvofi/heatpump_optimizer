@@ -1,0 +1,84 @@
+{
+ "key": "0d159d7ddd1702d9",
+ "site": "custom_components/heatpump_optimizer/price_model.py:544 CMP_BOUND",
+ "patch": "if model is None or model.confidence(when) <= 0.0: -> if model is None or model.confidence(when) < 0.0:",
+ "function": "extend_price_series",
+ "cluster": "price_model.py:extend_price_series@510-544",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3196.4,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/0d159d7ddd1702d9.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0d159d7ddd1702d9",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py",
+  "baseline_value": "[3.0, 3.0, 3.0]",
+  "mutant_value": "[2.0, 2.0, 2.0]",
+  "inputs_tried": "known [1,2,3] on a fresh PriceShapeModel (confidence 0); null: model None; null: constant known window [2,2,2]",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.out"
+ },
+ "should_fail": "tests/features.py, the extend_price_series block (~3697-3717): 'without a model the old flat repeat is used' checks model=None only and the other arms use a constant known window ([1.0]*40), where mean == last price; it lacks a check that a zero-confidence (fresh) model also repeats the last known price on a non-constant window",
+ "finding": {
+  "title": "No check pins the flat repeat for a zero-confidence price model; extend_price_series' <= 0.0 guard can loosen unseen",
+  "claim": "Mutant 0d159d7ddd1702d9 at price_model.py:544 (`confidence(when) <= 0.0` -> `< 0.0`) survives the full gate, yet the probe's guessed tail moves from the last known price to the known window's mean: known [1,2,3] on a fresh model gives [3,3,3] at baseline and [2,2,2] under the mutant (delta 1.0 SEK/kWh per guessed step).",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "guessed tail extend_price_series returns for known [1,2,3] on a fresh (zero-confidence) PriceShapeModel, SEK/kWh",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py",
+   "value": "2.0",
+   "unit": "SEK/kWh per guessed step (baseline 3.0)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g32: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; probes ran while this box's gates ran (load1 ~1)"
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:extend_price_series",
+  "perturbation": {
+   "change": "the mutant edit at price_model.py:544 applied in memory by the probe; full gate: fullgate.py run --src complete --key 0d159d7ddd1702d9",
+   "expected_direction": "down",
+   "observed_value": "2.0"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py",
+   "value": "0 count",
+   "note": "the probe's null arm, where the edit cannot matter, moves 0; the gate's null control is gates/null.json"
+  },
+  "phenomenon_property": "On a price model with zero confidence the guessed tail is the flat repeat of the last published price",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this box's slice is dev/audit/rounds/round11/D3/s1/wave/D3-g32/keys.tsv)",
+  "should_fail": "tests/features.py, the extend_price_series block (~3697-3717): 'without a model the old flat repeat is used' checks model=None only and the other arms use a constant known window ([1.0]*40), where mean == last price; it lacks a check that a zero-confidence (fresh) model also repeats the last known price on a non-constant window",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0d159d7ddd1702d9"
+  ],
+  "proposed_fix_scope": "tests only: extend_price_series on a fresh PriceShapeModel with a non-constant known window, asserting the tail equals the last known price",
+  "files": [
+   "custom_components/heatpump_optimizer/price_model.py",
+   "tests/features.py"
+  ]
+ }
+}
