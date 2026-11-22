@@ -559,6 +559,9 @@ class Mirror:
         kept = self.cur["items"].setdefault("item batches", {})
         for key in [key for key in kept if key not in batches]:
             del kept[key]  # a batch of another partition (an earlier GRAPHQL_BATCH, a last batch since grown) is no unit of this one
+        for stale in (self.dir / "graphql" / "items").glob("*.json"):
+            if stale.stem not in batches:
+                stale.unlink()  # nor is its file: its items are read again under this partition's keys, and held once
 
         def batch(key):
             data, why = self.query(ITEM_QUERY % "\n".join(ITEM_FIELDS % (n, n) for n in batches[key]), o=owner, n=repo)
@@ -1487,6 +1490,11 @@ MUTANTS = {
     "secondary only": ("        if gh_read.SECONDARY in out.lower() and after.isdigit()", "        if after.isdigit()", "past the cap, or a spent primary"),
     "query read with -i": ('        query = argv[:2] + argv[3:] if argv[2:3] == ["-i"] else argv', "        query = argv", "a query read with its headers"),
     "partition": ("            del kept[key]  #", "            pass  #", "no unit of this pass"),
+    "partition files": ("                stale.unlink()  #", "                pass  #", "an item file of another GRAPHQL_BATCH is removed"),
+    "formula rounds": ("    return max(1, round(requests / 100))", "    return max(1, int(requests / 100))", "rounds the hundreds"),
+    "largest cost kept": ('seen["last"], seen["max"] = cost, max(seen["max"], cost)', 'seen["last"], seen["max"] = cost, cost',
+                          "keeps the last cost answered and the largest"),
+    "2xx only": ("code == 0 and status is not None and 200 <= status < 300", "code == 0 and status is not None", "a non-2xx status is no answer"),
     "cost cap": ("GRAPHQL_BATCH = 30\n", "GRAPHQL_BATCH = 50\n", "stays under QUERY_COST_CAP"),
     "formula per parent": ('            requests += scale[-1] if n else 0', '            requests += 1 if n else 0', "documented example costs 51"),
     "formula nesting": ("            scale.append(scale[-1] * (pending or 1))", "            scale.append(scale[-1])", "documented example costs 51"),
