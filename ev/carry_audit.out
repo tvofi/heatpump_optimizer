@@ -1,0 +1,9 @@
+NOTE body item 33a87eee: dismissed:owed to R11-SEAM-actuation-writes (the group that reads the held record after a release; the orchestrator writes it onto that group's brief)
+NOTE body item cccfd3d4: dismissed:owed to R11-SEAM-actuation-writes (the arbiter's write path owns the night registers; the orchestrator writes it onto that group's brief)
+NOTE body item f5ec22b0: dismissed:owed to R11-SEAM-kernel-step (the second of the two to merge re-runs the harness; the orchestrator writes it onto that group's brief)
+NOTE body item 090ab501: dismissed:recorded above as pending owner confirmation
+NOTE body item 1763c92f: dismissed:one harness, stated with its command
+NOTE body item 5b71d603: dismissed:reported to the relay with the audit's output
+NOTE body item 44317a41: dismissed:repaired in this diff
+NOTE review 0 item add66368: dismissed:no check pins whether an empty drop leaves the owner's record, and either behaviour leaves the entity correct
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)

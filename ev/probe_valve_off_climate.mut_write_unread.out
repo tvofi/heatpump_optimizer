@@ -1,0 +1,3 @@
+No baseline readable from climate.valve: not written, nothing to restore it to
+RESULT valve_writes_while_climate_off_no_target=0 calls over 5 cycles
+RESULT valve_writes_after_target_readable=1 calls
