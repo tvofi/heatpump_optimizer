@@ -123,11 +123,6 @@ def take_off(held: ArbiterState, inp: ArbiterInputs, now: datetime | None = None
     return True
 
 
-def cutoff_hook(coord: Any) -> Callable[[], bool]:
-    """The early cut-off's question for ``coord``, as ``early_cutoff.arm`` takes it."""
-    return lambda: take_off(state_for(coord), coord.arbiter_inputs())
-
-
 def holding(held: ArbiterState, inp: ArbiterInputs) -> bool:
     """Whether a hold is in force for this pass; never while the optimizer is Off."""
     return held.frost_holding and inp.mode != MODE_OFF
@@ -147,13 +142,16 @@ def _note_run(held: ArbiterState, inp: ArbiterInputs, now: datetime | None) -> N
 
 
 def freeze_reason(coord: Any, now: datetime | None = None) -> str | None:
-    """:data:`FREEZE_FROST` while a learner's interval may hold a held run, else ``None``.
+    """:data:`FREEZE_FROST` while a learner's interval may hold a held run, else ``None``."""
+    return _freeze(state_for(coord), coord.arbiter_inputs, now)
 
-    ``coord``'s inputs are built only while a hold is on, to note a run seen now.
-    """
-    held, now = state_for(coord), dt_util.as_utc(now or dt_util.now())
+
+def _freeze(held: ArbiterState, inputs: Callable[[], ArbiterInputs], now: datetime | None) -> str | None:
+    """:func:`freeze_reason` on the record; ``inputs`` is built only while a hold is
+    on, to note a run seen now."""
+    now = dt_util.as_utc(now or dt_util.now())
     if held.frost_holding:
-        _note_run(held, coord.arbiter_inputs(), now)
+        _note_run(held, inputs(), now)
     until = held.frost_ran_until
     return FREEZE_FROST if until is not None and now < until else None
 
@@ -170,9 +168,8 @@ def log_skip(held: ArbiterState, entity: str, mode_label: str) -> None:
     )
 
 
-def diagnostics_view(coord: Any) -> dict[str, Any]:
+def diagnostics_view(held: ArbiterState, inp: ArbiterInputs) -> dict[str, Any]:
     """The latch, the hold, its cause, the threshold and the reading."""
-    held, inp = state_for(coord), coord.arbiter_inputs()
     cfg = EntryConfig.from_mapping(inp.config)
     on = holding(held, inp)
     cause = (CAUSE_NO_READING if inp.outdoor_c is None else CAUSE_COLD) if on else None

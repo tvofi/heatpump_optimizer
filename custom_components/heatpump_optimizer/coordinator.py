@@ -7754,7 +7754,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await _best_effort_cycle_step(
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
-        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload, frost_off=frost_hold.cutoff_hook(self)), "Early cut-off arm skipped: %s")
+        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload, frost_off=lambda: frost_hold.take_off(pump_arbiter.state_for(self), self.arbiter_inputs())), "Early cut-off arm skipped: %s")
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():

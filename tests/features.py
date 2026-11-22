@@ -87495,7 +87495,7 @@ async def _fh_run(duties, switch, events, out, *, until=20, extra=None, sensor=T
             if latched is not None and _sa_pa.state_for(coord).frost:
                 latched.add(m)
         verdicts = [r["verdict"] for r in _sa_pa.diagnostics_view(coord)["ledger"]["steps"]]
-        diag = _fh.diagnostics_view(coord)
+        diag = _fh.diagnostics_view(_sa_pa.state_for(coord), coord.arbiter_inputs())
     finally:
         _sa_dt.freeze(None)
         _sa_pa.async_track_time_interval = armed

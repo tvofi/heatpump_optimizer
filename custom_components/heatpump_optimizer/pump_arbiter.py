@@ -1965,11 +1965,10 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
     # A frost hold is served as space past a block (it protects the unit) and records no heating.
-    frost = held.frost_holding
-    served = "space" if frost else _served(coord, inp, duty, now)
-    await _command(coord, inp, desired(coord, inp, served, now, frost=frost), now)
+    served = "space" if held.frost_holding else _served(coord, inp, duty, now)
+    await _command(coord, inp, desired(coord, inp, served, now, frost=held.frost_holding), now)
     boosted = _boosted(coord, inp, now)
-    _note_pass(held, inp, "idle" if frost else served, boosted, now)
+    _note_pass(held, inp, "idle" if held.frost_holding else served, boosted, now)
     await _write_night_schedule(coord, inp, now)
 
 
@@ -2002,8 +2001,7 @@ async def _lead_mode(coord: Any, on: bool) -> None:
         if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held):
             return
         duty = _step_duty(coord, held, inp, now)
-        served = "space" if held.frost_holding else _served(coord, inp, duty, now)
-        await _write(coord, inp, "mode", _mode_for(inp, served), now)
+        await _write(coord, inp, "mode", _mode_for(inp, "space" if held.frost_holding else _served(coord, inp, duty, now)), now)
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:

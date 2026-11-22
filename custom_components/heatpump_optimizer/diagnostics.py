@@ -375,7 +375,7 @@ def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
 _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     ("pump_duty", pump_arbiter.diagnostics_view),
     ("early_cutoff", lambda c: early_cutoff.diagnostics_view(early_cutoff.state_for(c))),
-    ("frost_hold", frost_hold.diagnostics_view),
+    ("frost_hold", lambda c: frost_hold.diagnostics_view(pump_arbiter.state_for(c), c.arbiter_inputs())),
     ("draw_range", lambda c: draw_range.diagnostics_view(
         c.accuracy.draw, c.thermal_params,
         probe_install(c.arbiter_inputs().config), dt_util.utcnow().timestamp())),
