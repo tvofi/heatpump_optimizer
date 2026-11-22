@@ -1,0 +1,35 @@
+custom_components/heatpump_optimizer/config_flow.py:2533 _omit_unstored_computed | 'continue'
+custom_components/heatpump_optimizer/config_flow.py:541 validate_tibber_token | "return 'cannot_connect'"
+custom_components/heatpump_optimizer/config_flow.py:795 _prefilled_values | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:10063 HeatPumpOptimizerCoordinator._record_accuracy | 'sample.cop_residual = None'
+custom_components/heatpump_optimizer/coordinator.py:10623 HeatPumpOptimizerCoordinator._capture_diagnosis_inputs | 'return None'
+custom_components/heatpump_optimizer/coordinator.py:10628 HeatPumpOptimizerCoordinator._capture_diagnosis_inputs | 'planned_wind = 0.0'
+custom_components/heatpump_optimizer/coordinator.py:1915 _shutdown_process_pool | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:1922 _shutdown_process_pool | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:1928 _shutdown_process_pool | 'worker.kill()'
+custom_components/heatpump_optimizer/coordinator.py:2093 _run_in_process | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:2110 _run_in_process | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:2699 CoordinatorDiagnostics.of | "summaries[name.lstrip('_')] = 'summary unavailable'"
+custom_components/heatpump_optimizer/coordinator.py:3061 _stored_fuse_advisor | 'return None'
+custom_components/heatpump_optimizer/coordinator.py:6488 HeatPumpOptimizerCoordinator.async_run_optimization | "_note_solve_failure(self, err)\nreturn 'solve_failed'"
+custom_components/heatpump_optimizer/coordinator.py:6960 HeatPumpOptimizerCoordinator._fetch_tibber_prices | "self._tibber_fetch_failed(f'Unexpected error fetching prices: {err}', exc_info=T"
+custom_components/heatpump_optimizer/coordinator.py:7083 HeatPumpOptimizerCoordinator._fetch_weather_forecast | "self._weather_fetch_failed(f'Error fetching weather forecast: {err}')\nstate = se"
+custom_components/heatpump_optimizer/coordinator.py:748 _valve_write_problem | "return f'could not be commanded: {err}'"
+custom_components/heatpump_optimizer/coordinator.py:9233 HeatPumpOptimizerCoordinator._track_curve_comfort | 'return'
+custom_components/heatpump_optimizer/coordinator.py:9505 HeatPumpOptimizerCoordinator._raise_cop_issue | 'monthly_kwh = 0.0'
+custom_components/heatpump_optimizer/debugger.py:357 run_self_tests | "outcome = {'error': repr(err)}"
+custom_components/heatpump_optimizer/debugger.py:676 DebugCollector._async_replay | "return (None, f'the recorder could not be read: {err!r}')"
+custom_components/heatpump_optimizer/diagnosis.py:114 attribute | 'continue'
+custom_components/heatpump_optimizer/diagnosis.py:93 attribute | 'return None'
+custom_components/heatpump_optimizer/diagnostics.py:339 _coordinator_snapshot | 'state = None'
+custom_components/heatpump_optimizer/diagnostics.py:369 _never_breaks | "return 'unavailable'"
+custom_components/heatpump_optimizer/off_restore.py:218 _restore_baseline | 'sent, err = (False, exc)'
+custom_components/heatpump_optimizer/optimizer.py:1864 _lbfgsb_restart | 'return best'
+custom_components/heatpump_optimizer/optimizer.py:1942 _multi_start_minimize | 'continue'
+custom_components/heatpump_optimizer/optimizer.py:1968 _multi_start_minimize | 'last_error = err\ncontinue'
+custom_components/heatpump_optimizer/optimizer.py:2949 _solver_status | 'pass'
+custom_components/heatpump_optimizer/process_worker.py:40 _describe | 'return type(obj).__name__'
+custom_components/heatpump_optimizer/process_worker.py:52 _dump | "status = 'err' if payload[0] == 'ok' else payload[0]\nblob = pickle.dumps((status"
+custom_components/heatpump_optimizer/process_worker.py:76 run_worker | "_dump(stdout, ('load-err', err))\nreturn"
+custom_components/heatpump_optimizer/process_worker.py:85 run_worker | "payload = ('err', err)"
+RESULT silent_broad_seams=34 handlers

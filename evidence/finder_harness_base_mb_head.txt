@@ -1,0 +1,154 @@
+=== base a8efe1d1c2a8
+--- D10/s1/svc_set_away.py
+CASE 'next friday': outcome=accepted active=True return=None
+CASE '16/11/2026 18:00': outcome=accepted active=True return=None
+CASE B 'in 3 hours': before=2026-11-22T20:36:39+00:00 after=None
+CASE 'in 3 hours': outcome=accepted active=True return=None
+CONTROL '2026-11-22T18:36:39+00:00': outcome=accepted return=2026-11-22T18:36:39+00:00
+RESULT cases=6 count
+RESULT acknowledged_unparseable=6 count
+RESULT cleared_existing_return=3 count
+RESULT control_accepted=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.82
+RESULT swapins=0
+--- D7/s2/m4_order_context.py
+RESULT reuse_pairs=5 count
+RESULT reuse_divergence=0 count
+RESULT second_call_delta=0 cost-units
+RESULT reorder_delta=0.000000 cost-units (terminal cost of Y's end, closure built after X's stash vs Y's)
+RESULT buffer_scenarios=9 count
+RESULT seed_binding_scenarios=0 count
+# C superseded=True; shares _opt_config with live ctx: True; old _thermal_params.heat_loss_coefficient=0.15 live=0.2; torn=['_opt_config.target_temp', '_opt_config.comfort_weight']
+RESULT holder_torn_fields=2 count
+RESULT thread_factor=1.000
+RESULT load1=1.91
+RESULT swapins=0
+# cpu 65.0s (provisional, not a finding)
+--- D10/s3/platinum_rules.py
+RESULT platinum_rows_missing=0 rows
+RESULT untyped_requirements=1 requirements
+RESULT untyped_requirements_under_done_row=1 requirements
+RESULT coordinator_subclasses=1 classes
+RESULT coordinator_untyped_config_entry=1 classes
+RESULT coordinator_untyped_under_done_row=1 classes
+RESULT entry_point_bare=0 params
+RESULT unshared_http_sessions=0 sites
+RESULT blocking_io_imports=0 imports
+RESULT thread_factor=1.000
+RESULT load1=1.91
+RESULT swapins=0
+--- D1/s3/persist_seams.py
+custom_components/heatpump_optimizer/coordinator.py:8483 HeatPumpOptimizerCoordinator._async_save_manual_plan level=debug reraises=False
+custom_components/heatpump_optimizer/coordinator.py:9754 HeatPumpOptimizerCoordinator._async_save_snapshots level=debug reraises=False
+custom_components/heatpump_optimizer/debugger.py:523 DebugCollector.async_save level=debug reraises=False
+custom_components/heatpump_optimizer/dhw_learning.py:371 DhwProfileLearner.async_save_profile level=debug reraises=False
+custom_components/heatpump_optimizer/dhw_learning.py:384 DhwProfileLearner.async_save_draws level=debug reraises=False
+custom_components/heatpump_optimizer/duty_switch.py:514 _persist level=debug reraises=False
+custom_components/heatpump_optimizer/legionella.py:262 LegionellaGuard.async_save level=debug reraises=False
+custom_components/heatpump_optimizer/notifier.py:289 Notifier._async_save level=debug reraises=False
+custom_components/heatpump_optimizer/off_restore.py:152 _save level=debug reraises=False
+custom_components/heatpump_optimizer/pump_arbiter.py:2195 _persist level=debug reraises=False
+custom_components/heatpump_optimizer/room_record.py:74 _persist level=debug reraises=False
+RESULT persist_handlers=18
+--- enum_m4 ctx_inplace
+2
+=== mb 608c95decc94
+--- D10/s1/svc_set_away.py
+CASE 'next friday': outcome=accepted active=True return=None
+CASE '16/11/2026 18:00': outcome=accepted active=True return=None
+CASE B 'in 3 hours': before=2026-11-22T20:38:01+00:00 after=None
+CASE 'in 3 hours': outcome=accepted active=True return=None
+CONTROL '2026-11-22T18:38:01+00:00': outcome=accepted return=2026-11-22T18:38:01+00:00
+RESULT cases=6 count
+RESULT acknowledged_unparseable=6 count
+RESULT cleared_existing_return=3 count
+RESULT control_accepted=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.93
+RESULT swapins=0
+--- D7/s2/m4_order_context.py
+RESULT reuse_pairs=5 count
+RESULT reuse_divergence=0 count
+RESULT second_call_delta=0 cost-units
+RESULT reorder_delta=0.000000 cost-units (terminal cost of Y's end, closure built after X's stash vs Y's)
+RESULT buffer_scenarios=9 count
+RESULT seed_binding_scenarios=0 count
+# C superseded=True; shares _opt_config with live ctx: True; old _thermal_params.heat_loss_coefficient=0.15 live=0.2; torn=['_opt_config.target_temp', '_opt_config.comfort_weight']
+RESULT holder_torn_fields=2 count
+RESULT thread_factor=1.000
+RESULT load1=1.94
+RESULT swapins=0
+# cpu 66.1s (provisional, not a finding)
+--- D10/s3/platinum_rules.py
+RESULT platinum_rows_missing=0 rows
+RESULT untyped_requirements=1 requirements
+RESULT untyped_requirements_under_done_row=1 requirements
+RESULT coordinator_subclasses=1 classes
+RESULT coordinator_untyped_config_entry=1 classes
+RESULT coordinator_untyped_under_done_row=1 classes
+RESULT entry_point_bare=0 params
+RESULT unshared_http_sessions=0 sites
+RESULT blocking_io_imports=0 imports
+RESULT thread_factor=1.000
+RESULT load1=1.94
+RESULT swapins=0
+--- D1/s3/persist_seams.py
+custom_components/heatpump_optimizer/coordinator.py:8470 HeatPumpOptimizerCoordinator._async_save_manual_plan level=debug reraises=False
+custom_components/heatpump_optimizer/coordinator.py:9736 HeatPumpOptimizerCoordinator._async_save_snapshots level=debug reraises=False
+custom_components/heatpump_optimizer/debugger.py:523 DebugCollector.async_save level=debug reraises=False
+custom_components/heatpump_optimizer/dhw_learning.py:371 DhwProfileLearner.async_save_profile level=debug reraises=False
+custom_components/heatpump_optimizer/dhw_learning.py:384 DhwProfileLearner.async_save_draws level=debug reraises=False
+custom_components/heatpump_optimizer/duty_switch.py:514 _persist level=debug reraises=False
+custom_components/heatpump_optimizer/legionella.py:262 LegionellaGuard.async_save level=debug reraises=False
+custom_components/heatpump_optimizer/notifier.py:289 Notifier._async_save level=debug reraises=False
+custom_components/heatpump_optimizer/off_restore.py:152 _save level=debug reraises=False
+custom_components/heatpump_optimizer/pump_arbiter.py:2272 _persist level=debug reraises=False
+custom_components/heatpump_optimizer/room_record.py:74 _persist level=debug reraises=False
+RESULT persist_handlers=18
+--- enum_m4 ctx_inplace
+2
+=== wt 868e00db0bcf
+--- D10/s1/svc_set_away.py
+CASE 'next friday': outcome=ServiceValidationError active=True return=2026-11-22T20:39:21+00:00
+CASE '16/11/2026 18:00': outcome=ServiceValidationError active=False return=None
+CASE B 'in 3 hours': before=2026-11-22T20:39:21+00:00 after=2026-11-22T20:39:21+00:00
+CASE 'in 3 hours': outcome=ServiceValidationError active=True return=2026-11-22T20:39:21+00:00
+CONTROL '2026-11-22T18:39:21+00:00': outcome=accepted return=2026-11-22T18:39:21+00:00
+RESULT cases=6 count
+RESULT acknowledged_unparseable=0 count
+RESULT cleared_existing_return=0 count
+RESULT control_accepted=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.95
+RESULT swapins=0
+--- D7/s2/m4_order_context.py
+RESULT reuse_pairs=5 count
+RESULT reuse_divergence=0 count
+RESULT second_call_delta=0 cost-units
+RESULT reorder_delta=0.000000 cost-units (terminal cost of Y's end, closure built after X's stash vs Y's)
+RESULT buffer_scenarios=9 count
+RESULT seed_binding_scenarios=0 count
+# C superseded=True; shares _opt_config with live ctx: False; old _thermal_params.heat_loss_coefficient=0.15 live=0.2; torn=[]
+RESULT holder_torn_fields=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.99
+RESULT swapins=0
+# cpu 63.7s (provisional, not a finding)
+--- D10/s3/platinum_rules.py
+RESULT platinum_rows_missing=0 rows
+RESULT untyped_requirements=1 requirements
+RESULT untyped_requirements_under_done_row=0 requirements
+RESULT coordinator_subclasses=1 classes
+RESULT coordinator_untyped_config_entry=0 classes
+RESULT coordinator_untyped_under_done_row=0 classes
+RESULT entry_point_bare=0 params
+RESULT unshared_http_sessions=0 sites
+RESULT blocking_io_imports=0 imports
+RESULT thread_factor=1.000
+RESULT load1=1.99
+RESULT swapins=0
+--- D1/s3/persist_seams.py
+RESULT persist_handlers=0
+--- enum_m4 ctx_inplace
+0

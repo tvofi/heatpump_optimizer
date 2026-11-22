@@ -1,0 +1,4 @@
+Architecture score: dS +5.7671 IMPROVES
+  hub_solve_writes 1 -> 0  +5.4429
+  coord_footprint 2525 -> 2521  +0.0023
+  private_cross_module 9 -> 7  +0.3219
