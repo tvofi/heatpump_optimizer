@@ -15,3 +15,4 @@
 1795321104 CKPT harness pairs, structure, brief_lint done; waiting full features under L2 and CI snapshot a17fe01a9e5c
 1795321257 HB alive
 1795321655 CKPT probe: L2 non-equivalent (stale first tank read becomes evidence; space power None vs 3.0); waiting full features under L2 snapshot 45786e08272b
+1795321754 DONE verdict pushed: blocked mutation-vacuous at 3d8679b765 (probe/rev-3835-a079c838 83b57bd408)
