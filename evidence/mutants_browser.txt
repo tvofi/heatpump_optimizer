@@ -1,7 +1,0 @@
-browser nosubgrid rc=1
-        tile and stat rows: 108 measured, 6 with unevenly wrapped labels, 6 misaligned
-        6 misaligned: score_open/375/de-DE: .hl-stats row [Voraussichtliche Einspar / Optimierungswert] values 14.0 px apart | score_open_typical/375/de-DE: .hl-stats row [Voraussichtliche Einspar / Optimierungswert] values 14.0 px apart | score_open_no_evidence/375/de-DE: .hl-stats row [Voraussichtliche Einspar / Optimierungswert] values 14.0 px apart | score_open_graded_pump/375/de-DE: .hl-stats row [Voraussichtliche Einspar / Optimierungswert] values 14.0 px apart; 108 row(s) measured, 6 with unevenly wrapped labels; missed 
-1 BROWSER CHECK(S) FAILED
-browser unmutated rc=0
-        tile and stat rows: 108 measured, 6 with unevenly wrapped labels, 0 misaligned
-ALL BROWSER CHECKS PASSED

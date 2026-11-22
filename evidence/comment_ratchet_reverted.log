@@ -1,0 +1,4 @@
+RESULT base=f269ecccb5f1 files=195 long_units_base=2301 long_units_head=2301
+REFUSE tests/card.mjs: long units 0 -> 1; new: "Everything the window can still show reads the same from both, so ..."
+comment_ratchet: FAIL
+rc=1
