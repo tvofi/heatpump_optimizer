@@ -1,0 +1,26 @@
+fb-open-marker-not-refused KILLED rc=1:   FAIL a body storing a rendered block is refused, the block named|  FAIL a malformed marker is refused, not skipped|  FAIL an unclosed block is refused|
+fb-stray-close-not-refused KILLED rc=1:   FAIL a close marker with no block above it is refused|  FAIL a second close marker after a closed block is refused too|
+fb-close-does-not-reset KILLED rc=1:   FAIL a second close marker after a closed block is refused too|
+fb-strip-deletes-nothing KILLED rc=1:   FAIL strip deletes each stored block and keeps every other line|
+fb-strip-writes-always KILLED rc=1:   FAIL strip deletes each stored block and keeps every other line|  FAIL null: strip writes nothing to a body with no block|
+pl-figure-return-empty KILLED rc=1: FIXTURE VACUOUS: the figure-block arm on a rendered block drew 0 error(s) (); it must draw exactly one, naming `(`scope-line`)`|
+pl-close-arm-gone KILLED rc=1: FIXTURE VACUOUS: the figure-block arm on a close marker alone drew 0 error(s) (); it must draw exactly one, naming `no block above it`|
+ag-js-reader-skips-malformed KILLED rc=1:   DIVERGENT     stored-figure-block "body 23 \"<!-- figure-block-->\\n\"": figure_block.py verify_text=[1]  policy_lint.mjs figureBlockProblems=[]|  DIVERGENT     stored-figure-block "body 24 \"<!-- figure-block\\n\"": figure_block.py verify_text=[1]  policy_lint.mjs figureBlockProblems=[]|RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=12.5|
+ag-py-reader-skips-close KILLED rc=1:   DIVERGENT     stored-figure-block "body 26 \"<!-- /figure-block -->\\n\"": figure_block.py verify_text=[]  policy_lint.mjs figureBlockProblems=[1]|  DIVERGENT     stored-figure-block "body 27 \"<!-- figure-block: scope-line \"": figure_block.py verify_text=[1]  policy_lint.mjs figureBlockProblems=[1,3]|  DIVERGENT     stored-figure-block "body 28 \" <!-- figure-block: scope-line\"": figure_block.py verify_text=[]  policy_lint.mjs figureBlockProblems=[2]|
+bl-ambiguous-is-moved KILLED rc=1: REPIN VACUOUS:|
+bl-moved-stays-error KILLED rc=1: FIXTURE VACUOUS: 931dffe acceptance pins missing:|REPIN VACUOUS:|
+bl-range-loses-length KILLED rc=1: REPIN VACUOUS:|
+bl-gone-quote-yields-to-symbol KILLED rc=1: REPIN VACUOUS:|
+bl-unquoted-moved-is-error KILLED rc=1: REPIN VACUOUS:|
+bl-repeated-quote-is-moved KILLED rc=1: REPIN VACUOUS:|
+bl-lost-quote-not-refused KILLED rc=1: REPIN VACUOUS:|
+bl-quotes-apart-not-refused KILLED rc=1: REPIN VACUOUS:|
+bl-anchored-range-unclamped KILLED rc=1: REPIN VACUOUS:|
+bl-count-includes-phantom-line KILLED rc=1: REPIN VACUOUS:|
+bl-twice-not-refused KILLED rc=1: REPIN VACUOUS:|
+bl-repin-collects-nothing KILLED rc=1: REPIN VACUOUS:|
+fb-close-does-not-reset KILLED rc=1:   FAIL a second close marker after a closed block is refused too|
+ag-js-close-does-not-reset KILLED rc=1:   DIVERGENT     stored-figure-block "body 27 \"<!-- figure-block: scope-line \"": figure_block.py verify_text=[1,3]  policy_lint.mjs figureBlockProblems=[1]|RESULT divergent=1 unregistered=0 dead=0 refused=0 seconds=11.2|
+RESULT killed=23
+RESULT survived_or_stale=0
+harness rc=0
