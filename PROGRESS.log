@@ -2,3 +2,4 @@
 1795365460 INIT R11-SEAM-entity-service
 1795365471 HB alive
 1795365479 CKPT merged origin/main into 555a9403 -> b09a9bf4f7 snapshot 105437418198
+1795365765 CKPT module_excess paid 21798->21779 (PayloadFlagMixin key path), budgets re-recorded down snapshot 9b1d83fa9538
