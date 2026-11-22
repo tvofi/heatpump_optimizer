@@ -1,4 +1,4 @@
- heatpump-optimizer-card  v10.1.1 
+ heatpump-optimizer-card  v10.1.2 
 defined elements: heatpump-optimizer-card, heatpump-optimizer-card-editor
 customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card","description":"Plots heat-pump price, power and temperature plans on one shared time axis with per-series toggles.","preview":true}]
   ok    every card language is key-for-key with en and keeps en's placeholders
@@ -186,8 +186,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    a very wide dialog does not turn the legend into a headline
   ok    the dialog's chrome never renders under the tile's 14 px base
   ok    and its ceiling is reachable inside the dialog's 1700 px cap
-  FAIL  the dialog scales its chrome's type tokens with its font: 1 at the 14 px base, font / base at the cap
-        320 px -> 1.0000, 4000 px (18 px) -> 1.0000
+  ok    the dialog scales its chrome's type tokens with its font: 1 at the 14 px base, font / base at the cap
   ok    the ad-list-prone name pattern refuses every stem spelling and no near miss
   ok    the card-name extractor reads class, id, className, classList and selector names
   ok    no class or id in the card is a name generic ad-blocker hide rules target
@@ -1212,7 +1211,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    and a card with no recorded history draws none
   ok    the live-edge chunk is fetched again once the clock has moved a plan step
   ok    the card element defines at most 26 members of its own (26)
-  ok    the card markup gate's claim file is stamped for v10.1.1
+  ok    the card markup gate's claim file is stamped for v10.1.2
   ok    a docs-only three-dot moves nothing a claim excuses
   ok    the card source moves something a claim excuses
   ok    justifiesCardClaim names the card and nothing beside it
@@ -1470,4 +1469,4 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau
   ok    history: the bound drops nothing the window can show -- every overlay point and the mode at its left edge match an unpruned source
 
-1 CARD CHECK(S) FAILED
+ALL CARD CHECKS PASSED

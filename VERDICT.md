@@ -1,28 +1,23 @@
-Fix review: merge ef157f1551c0ec3981ad4286fd81f00ab00d3796
+Fix review: merge eb1df490312d4f574bc262e87c5fdd485f586ed5
 
-bus-nonce: 3b3470d78647dd41df53ae3f9e867cf6
-pending-ci: gate
+bus-nonce: 2a2ca7a936ea9c897f1e59d47b7a7ce4
 
-Round 2 of #3821. Cloud reviewer seat, Linux, Chromium at /opt/pw-browsers, Node with `--max-old-space-size=6144`. Round 1 blocked b1ee994a6e as `mutation-vacuous` with three survivors. This round reviews the delta (fix-review.md step 12). `git diff 1bd0f355b9 ef157f1551` touches 3 files. In the card file the delta is two doc comments re-split, with no code change. The rest is `tests/card.mjs` (+29/-9) and `tests/card_browser.mjs` (+115). `review_carry.py 1bd0f355b9 ef157f1551` prints `FRESH-REVIEW`, as expected after a blocked round.
+Round 4 of #3821. This is a delta review (fix-review.md step 12) over the last `merge` verdict at 76e2224896 (probe/rev-3821-456ef1db, 3d797c3269). Cloud reviewer seat, Linux. `review_carry.py 76e2224896 eb1df49031` prints `FRESH-REVIEW` because the branch's own commit 068fd74a33 changes content (ev/review_carry.txt). This is the fourth round, so by fix-review.md a re-cut is owed only if this round does not merge.
 
 ## Findings
 
-none
+- Note: stale-figure: the body's `## Figures` still says `claims-for: 10.1.1`, equal to `VERSION`. The tree now reads 10.1.2 on both sides, so the claim is consistent; only the body's figure is stale. Paperwork, no block. Carry: dismissed: the body figure is superseded by the tree at merge, and env_drift checks the live claim line
 
 ## Evidence
 
-- Head `ef157f1551c0ec3981ad4286fd81f00ab00d3796`; `git ls-remote` reads the branch tip there at the final re-read. Merge base 86859b9594. origin/main is a8efe1d1c2. `git merge-tree --write-tree origin/main ef157f1551` exits 0 with `LEDGER-MERGE: resolved tests/closures.json`, so there is no conflict. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- Round 1's three survivors are now killed. Each was re-applied to a `git archive` copy of the head by ev/mutant_driver.sh (`tests/plan_view.py`, then `node tests/card.mjs`) and ev/mutant_driver_browser.sh (`node tests/card_browser.mjs`):
-  - unmutated: `card.mjs` reads ALL CARD CHECKS PASSED, 1467 ok lines, rc 0. `card_browser.mjs` reads ALL BROWSER CHECKS PASSED, rc 0, with `tile and stat rows: 108 measured, 6 with unevenly wrapped labels, 0 misaligned`.
-  - nochunkprune: deleting `if (chunk < cut) this.chunks.delete(chunk);` (card file line 7344) gives 1 CARD CHECK(S) FAILED, rc 1: "history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau".
-  - notypescale: deleting the `dlg.style.setProperty("--hpo-type-scale", ...)` write (line 11424) gives 1 FAILED, rc 1: "the dialog scales its chrome's type tokens with its font: 1 at the 14 px base, font / base at the cap".
-  - typescaleconst (my null control on that check): writing a constant `"1.0000"` also gives 1 FAILED with the same check, so a constant write cannot pass it.
-  - nosubgrid: replacing `display: grid; grid-template-rows: subgrid;` (line 5257) with `display: block;` makes `card_browser.mjs` fail, 1 BROWSER CHECK(S) FAILED, rc 1. It reads `6 misaligned`, each `.hl-stats row [Voraussichtliche Einspar / Optimierungswert] values 14.0 px apart` at 375 px in de-DE. The guard `uneven > 0` reads 6 at head and under the mutant, so the check is not vacuous.
-  These match the body's survivor table and `## Null control`.
-- Round 1's other mutation targets (hitmax, foldmax, prunecut, trkey, critfill, keeplast, emptyloc, fitold, hitedge, noprune, noph) were killed at b1ee994a6e. The delta changes no card code line, so those results stand. They were not re-run.
-- Claims: `node tests/card_drift.mjs 86859b95946e` reads `card_drift: 44 state(s) moved and claimed, 1 identical`. `tests/golden/card_claimed_drift.txt` reads `claims-for: 10.1.1`, the same as `VERSION`. `tests/golden/claimed_drift.txt` is untouched, and `python3 tests/env_drift.py --claims-only` exits 0.
-- The three-dot diff does not touch `VERSION`, `manifest.json` or `RELEASE_NOTES.md` (ev/version_untouched.txt is empty).
-- CI at this head: `merge_train.py classify ef157f1551 --pr 3821` was polled from 17:19 to 17:51Z and read `WAIT ... pending: gate red: none` every time (ev/classify_poll.log), so this verdict carries `pending-ci: gate`. In a later read of the live check runs (between 17:39Z and 17:45Z) showed `tests / closures` still in_progress and every other owed-reds context (ev/owed_reds.txt) concluded success or skipped. `governance / instrument-self-tests` concluded success, which clears the packet's `introduced-red: unreadable` refusal. `gate` read failure at 17:09:09Z, before its units had concluded, and classify reads it as pending. Prior rounds' owed reds are answered under the body's `## Red checks`. The new `tests / fast (3.14)` comment-ratchet prediction is answered by 3ece86974e, and `fast` reads success at this head.
-- Finder harness figures were re-derived in round 1 at b1ee994a6e (D4-s1-01, D4-s3-01/02/04, D9-s2-01, D6-s4-01). The delta moves no production code, so they carry; they were not re-run this round. Not re-derived in either round: D4-s3-03's base 78, D4-s3-05's base 14/41 and D4-s1-03's base 72.
-- Forward-carry: the body has `none`. Its one residual, 132 pipes cut by targets drawn above the twin, carries a valid `dismissed:` (packet carry_audit: 1 routed, 0 unrouted).
-- The round-2 seat comms ran under topic rev-3821.
+- Head: `git ls-remote origin refs/pull/3821/head` reads eb1df490312d4f574bc262e87c5fdd485f586ed5 (ev/head_reread.txt). The PR body's `## Head` names that SHA and its authored code head 068fd74a33.
+- Delta: 76e2224896..eb1df49031 is one merge of main (68c2ee613c, onto f269ecccb5), one authored commit (068fd74a33) and the merge of that commit. The three-dot own diff is 23 files, +947/-276, at both heads. Diffing the two own diffs (ev/own_diff_delta.txt) shows only index hashes, hunk offsets, the `CARD_VERSION` context line (10.1.1 to 10.1.2, main's stamp, not a line the branch writes), and one comment sentence in `tests/card.mjs` (the HistorySource bound block) split in two. No production (`custom_components/`) line moved, so the review is not widened. Round 1's and round 2's mutation and harness results stand.
+- The delta is earned: `python3 tests/comment_ratchet.py --base origin/main` at the head reads `long_units_base=2301 long_units_head=2300`, `comment_ratchet: OK`, rc 0 (ev/comment_ratchet_head.log). Restoring the old sentence on the head's tree reads `REFUSE tests/card.mjs: long units 0 -> 1`, `comment_ratchet: FAIL`, rc 1 (ev/comment_ratchet_reverted.log). That is the red the body's `## Red checks` answers for run 44940315955.
+- Suites at the head, in a detached worktree: `PYTHONPATH=tests/hastub python3 tests/plan_view.py` rc 0; `node tests/card.mjs` ALL CARD CHECKS PASSED, 1467 ok lines, 0 FAIL, rc 0 (ev/card_mjs_head.log), the same count as rounds 2 and 3; `tests/doc_claims.py` ALL 441 checks PASSED, rc 0 (ev/doc_claims_head.log), matching the body's figure.
+- Merge: `git merge-tree --write-tree origin/main eb1df49031` against origin/main 35c3e31cc9 exits 0, so there is no conflict (ev/merge_tree.txt).
+- Claims and versions: at the head, `tests/golden/card_claimed_drift.txt` and `tests/golden/claimed_drift.txt` both read `claims-for: 10.1.2`, equal to `VERSION` 10.1.2. The three-dot diff leaves `VERSION`, `manifest.json` and `RELEASE_NOTES.md` untouched (ev/version_untouched.txt is empty).
+- Review packet at the head: no refusals, no advisories. carry_audit reads 1 routed, 0 unrouted (the pipe-target residual's `dismissed:`). figure_lint reads 22 resolved, 6 not verified, 0 refused.
+- Role contract: rendered by `role_pack.py` from origin/main 35c3e31cc9, the current main.
+- CI: `merge_train.py classify eb1df49031 --pr 3821` was polled from 04:39Z, at least 60 s between reads. It read `WAIT ... pending: gate red: none` until 05:30:13Z, when it read `GREEN eb1df490312d4f574bc262e87c5fdd485f586ed5 pending: none red: none`, rc 0 (ev/classify_poll.log). There is no red at this head, so no `## Red checks` answer is owed (owed-reds set in ev/owed_reds.txt). The earlier owed reds at 76e2224896 (`tests / fast (3.14)`, `gate`) are answered in the body's `## Red checks`, and the comment-ratchet re-run above confirms the fast red's repair.
+- Head re-read after GREEN: still eb1df490312d4f574bc262e87c5fdd485f586ed5.
+- Self-audit: `carry_audit.py check` on this verdict exits rc 0 (ev/carry_audit_verdict.txt). The body's items were audited by the packet at the head.

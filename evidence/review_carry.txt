@@ -1,0 +1,7 @@
+review_carry: 76e222489 -> eb1df4903  main=origin/main
+  branch-only commits: 3
+  why: the branch's own commits 068fd74a3 change its content: eb1df490312d4f574bc262e87c5fdd485f586ed5 is not the reviewed head 76e2224896fb04cf3481252de9728fa8f24cecdc merged onto f269ecccb5f1dfd21eca03a3d5dcc43b3a145603
+  68c2ee613  Merge remote-tracking branch 'origin/main' into HEAD
+  068fd74a3  R11-SEAM-card: split the tests/card.mjs history-bound comment sentence the comment ratchet refuses against main at 63c6d1cff9 (doc_claims, run 44940315955)
+  eb1df4903  Merge commit '068fd74a333cf135ca516e11a50d57443e3e0b46' into fix/r11-seam-card-pr
+review_carry: FRESH-REVIEW
