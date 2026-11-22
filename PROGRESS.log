@@ -9,3 +9,4 @@
 1795284985 DONE Fix review: merge 35bb34b2 (pending-ci: governance / instrument-self-tests, cancelled at 30m timeout); verdict 81514163 on probe/rev-3832-53e5d81b
 1795305781 HB alive
 1795305858 CKPT head table byte-identical to selftest-absorbed 14730141227 of run 44957362163; replay main 11 refusals head 0, 3 perturbations each 1 snapshot c1db5e3b80ed
+1795305899 CKPT figures re-derived; merge-tree clean vs e4c929bd; starting classify wait snapshot 7378b3320004
