@@ -3,3 +3,4 @@
 1795358004 CKPT read code at 8ef45093; shape chosen snapshot 26c74480c233
 1795358102 CKPT design pushed 1f9f94b2 snapshot f43cbdf3fa44
 1795358105 DONE design R11-OWNER-EXTHEAT-OVERRIDE at 1f9f94b2810aa2928cbae0caae7aa22189b1003f; 7 owner questions
+1795361705 CKPT read verdict 2a019ea9, note 1f9f94b2, external_heat override + boost restore session snapshot 0c756b8a1174
