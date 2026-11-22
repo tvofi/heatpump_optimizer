@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/solve_gate.py:mode_superseded BOOLOP e8c41bd1",
+  "killed_by": "tests/entities.py",
+  "old": "    return gate.entry_mode in (MODE_AUTO, MODE_ECONOMY) and mode not in (MODE_AUTO, MODE_ECONOMY)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return gate.entry_mode in (MODE_AUTO, MODE_ECONOMY) or mode not in (MODE_AUTO, MODE_ECONOMY)`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=4."
+}
