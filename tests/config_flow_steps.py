@@ -5207,8 +5207,8 @@ async def self_check():
         config_flow.validate_tibber_token = real_validate
 
     # Mutation 3: the options grid page's month-mask validation is a no-op.
-    real_months = config_flow._valid_months_spec
-    config_flow._valid_months_spec = lambda spec: True
+    real_months = config_flow.grid_fee.valid_months_spec
+    config_flow.grid_fee.valid_months_spec = lambda spec: True
     try:
         await seed_base_entry()
         flow, entry, _ = fresh_options()
@@ -5228,7 +5228,7 @@ async def self_check():
             )
         )
     finally:
-        config_flow._valid_months_spec = real_months
+        config_flow.grid_fee.valid_months_spec = real_months
 
     # Mutation 4: the reconfigure guard runs on the entry's OWN identity --
     # the exemption removed. The wrapper runs the REAL guard against the

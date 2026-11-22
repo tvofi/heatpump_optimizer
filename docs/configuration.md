@@ -660,6 +660,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 |---|---|---|---|
 | Heat pump operating mode | from setup | the pump's mode entity | Read only unless **Pump duty control** is set to Control. Left empty, the optimizer assumes the pump can do everything. |
 | Pump duty control | Off | Off / Observe / Control | Whether the optimizer tells the pump which duty to serve on each plan step. See [Pump duty control](#pump-duty-control) below. |
+| Shortest heating leg between hot-water legs (`mode_leg_heat_min_minutes`) | 10 min | 0–15, 1 steps | With **Pump duty control** at Control, the pump stays in heating at least this long between two hot-water legs; a shorter heating stretch is served as hot water. 0 turns it off. See [Pump duty control](#pump-duty-control) below. |
+| Shortest hot-water leg (`mode_leg_dhw_min_minutes`) | 10 min | 0–15, 1 steps | With **Pump duty control** at Control, a hot-water leg is at least this long; a shorter one is lengthened. 0 turns it off. |
 | Heating start hysteresis | none | `sensor` / `number` / `input_number`, K | Optional. The pump's own heating start hysteresis, a temperature difference; the heating floor's lift is never below it. |
 | Hot water start hysteresis | none | `sensor` / `number` / `input_number`, K | Optional. The pump's own hot water start hysteresis, a temperature difference; the plan places no charge on a tank at or above the hot water target less this. |
 | Defrosting | from setup | a binary sensor | On while the pump reverses to melt frost off the outdoor coil. |
@@ -855,6 +857,18 @@ writes, at every 15-minute plan step:
   the whole step and the other follows in the next one. On a pump with no single-duty mode, each part is *Heating
   + DHW* with the other duty's set-point lowered to its gate. A boost or a
   disinfection cycle keeps *Heating + DHW* for the whole step.
+- **Legs have a shortest length.** A hot-water leg shorter than *Shortest
+  hot-water leg* is lengthened to it and the step's heating shrinks; a step
+  left with under 5 minutes of heating is served as hot water. A heating leg
+  shorter than *Shortest heating leg between hot-water legs* with hot water on
+  both sides is served as hot water. An idle step keeps the mode before it, so
+  a leg counts the idle steps after it. When a re-plan changes the step being
+  served, the pump leaves neither a hot-water leg nor a heating leg entered
+  from hot water before its shortest length, and enters no duty the plan keeps
+  for less than that duty's shortest leg. A boost, a block, a disinfection
+  cycle and a mode the plan does not command are never held. The plan prices
+  the heating minutes this moves to hot water as heat the house does not get.
+  Both default to 10 minutes; 0 turns either off.
 - **A switch that stops the compressor is priced.** Some pumps stop the
   compressor when the mode changes between hot water and heating. The
   optimizer counts only some of the switches it writes, among the conditions

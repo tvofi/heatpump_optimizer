@@ -23,6 +23,7 @@ from typing import Any
 from . import mixing_valve
 from . import const
 from .const import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE, finite_float
+from .plan_step import PLAN_STEP_MINUTES
 
 Parse = Callable[[Any, Any], Any]
 
@@ -72,6 +73,12 @@ def _or_default(value: Any, default: Any) -> Any:
 
 def _as_stored(value: Any, default: Any) -> Any:
     return value
+
+
+def _leg_minutes(value: Any, default: float) -> float:
+    """A minimum mode leg within one plan step, else the default (``duty_legs.leg_minimum`` clamps again)."""
+    minutes = finite_float(value)
+    return minutes if minutes is not None and 0.0 <= minutes <= PLAN_STEP_MINUTES else default
 
 
 def _one_of(allowed: Container[str]) -> Parse:
@@ -244,6 +251,8 @@ class EntryConfig(Mapping[str, Any]):
     quiet_off_windows: str = _key("", _spec)
     quiet_silent_windows: str = _key("", _spec)
     pump_duty_mode: str = _key(const.DEFAULT_PUMP_DUTY_MODE, _one_of(frozenset(const.PUMP_DUTY_MODES)))
+    mode_leg_heat_min_minutes: float = _key(const.DEFAULT_MODE_LEG_MIN_MINUTES, _leg_minutes)
+    mode_leg_dhw_min_minutes: float = _key(const.DEFAULT_MODE_LEG_MIN_MINUTES, _leg_minutes)
     silent_mode_windows: Any = _key(const.DEFAULT_SILENT_MODE_WINDOWS, _or_default)
     solar_forecast_source: str = _key(const.DEFAULT_SOLAR_FORECAST_SOURCE, _text)
     solar_location: Any = _key(None, _as_stored)

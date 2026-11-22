@@ -101,6 +101,11 @@ FULL_CAPABILITY = ModeCapability(
 )
 
 
+#: The duty each single-duty mode serves, the one reading of a landed mode
+#: as a duty (the duty-switch learner's directions, the mode legs).
+SINGLE_DUTY: dict[str, str] = {MODE_HEAT: "space", MODE_DHW: "dhw"}
+
+
 #: Every mode the reference unit exposes, keyed by its device enum value.
 #: Every entry is built with a MODE_* constant, so the `is not None` guard
 #: closing this comprehension drops nothing: `key` is `str | None` for the

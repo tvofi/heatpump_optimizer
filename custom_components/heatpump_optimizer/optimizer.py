@@ -265,28 +265,26 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
 
 
 def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
-    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
+    """The leg rule the arbiter serves a both step by, from the pairs and minimum legs this solve prices."""
     return duty_legs.leg_rule(
         duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
         duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
+        opt.config.mode_leg_heat_min_minutes, opt.config.mode_leg_dhw_min_minutes, opt.config.duty_leg_before,
     )
 
 
 def _stop_availability(
     opt: HeatPumpOptimizer, start: np.ndarray, dhw_plan: np.ndarray, p_max: float
 ) -> np.ndarray | None:
-    """The running share a priced stop leaves each step of the profile a solve starts from.
+    """The running share a priced stop and the minimum legs leave each step of the profile a solve starts from.
 
     Read on the levels that profile ships, so the charged step holds a
     heating leg the arbiter serves. ``None`` unless a stop with a measured off
-    time is priced: the caller then makes today's calls.
+    time is priced or a minimum leg moves heating minutes: the caller then
+    makes today's calls.
     """
     stops = _priced_stops(opt)
-    if stops is None:
-        return None
-    lost = duty_legs.lost_share(
-        stops, duty_legs.priced_pair(opt.config.duty_switch_off_seconds)
-    )
+    lost = 0.0 if stops is None else duty_legs.lost_share(stops, duty_legs.priced_pair(opt.config.duty_switch_off_seconds))
     space, tank = _realize_joint(
         opt.config.clamp_planned_levels,
         np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),
@@ -2780,6 +2778,11 @@ class OptimizationConfig:
     #: ``duty_legs`` owns what they mean.
     duty_switch_stop_probability: tuple[float, float] = (0.0, 0.0)
     duty_switch_off_seconds: tuple[float, float] = (0.0, 0.0)
+    #: The minimum mode legs (``duty_legs.LegRule``), minutes, 0 off, and the
+    #: leg code the pump is in as the solve starts.
+    mode_leg_heat_min_minutes: float = 0.0
+    mode_leg_dhw_min_minutes: float = 0.0
+    duty_leg_before: int = 0
 
     # --- Capacity tariff (item 8) --------------------------------------
     #: Currency per kW of new monthly peak, already divided by the number of

@@ -417,6 +417,9 @@ from .const import (
     CONF_PUMP_DUTY_MODE,
     DEFAULT_PUMP_DUTY_MODE,
     PUMP_DUTY_MODES,
+    CONF_MODE_LEG_HEAT_MIN_MINUTES,
+    CONF_MODE_LEG_DHW_MIN_MINUTES,
+    DEFAULT_MODE_LEG_MIN_MINUTES,
     CONF_SPACE_HYSTERESIS_ENTITY,
     CONF_DHW_HYSTERESIS_ENTITY,
     CONF_MOLD_GUARD_ENABLED,
@@ -472,6 +475,7 @@ from .inputs import number_reading
 from . import (
     comfort_band,
     device_prefill,
+    duty_legs,
     grid_fee,
     mixing_valve,
     modbus_prefill,
@@ -1112,20 +1116,6 @@ def _dhw_legionella_warning(
     }
 
 
-def _valid_months_spec(spec: Any) -> bool:
-    """Whether a #13 month-mask spec parses; empty means every month."""
-    text = str(spec or "").strip()
-    if not text:
-        return True
-    try:
-        for chunk in text.replace(";", ",").split(","):
-            if chunk.strip():
-                grid_fee.parse_month_range(chunk)
-    except grid_fee.GridFeeError:
-        return False
-    return True
-
-
 def _entity_of(
     domain: str | list[str], device_class: str | None = None
 ) -> selector.EntitySelector:
@@ -1761,6 +1751,8 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities_pump
     _F("entities_pump", CONF_HEAT_PUMP_MODE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY]))),
     _F("entities_pump", CONF_PUMP_DUTY_MODE, DEFAULT_PUMP_DUTY_MODE, _select(list(PUMP_DUTY_MODES), 'pump_duty_mode')),
+    *(_F("entities_pump", key, DEFAULT_MODE_LEG_MIN_MINUTES, _number(0, duty_legs.LEG_MIN_MAX_MINUTES, 1, 'min'))
+      for key in (CONF_MODE_LEG_HEAT_MIN_MINUTES, CONF_MODE_LEG_DHW_MIN_MINUTES)),
     # The pump's own start hysteresis per duty: one picker each, a number or a sensor.
     *(
         _F("entities_pump", key, _STORED, _entity_of(['sensor', 'number', 'input_number']))
@@ -4010,7 +4002,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, submit: dict[str, Any], _current: dict[str, Any]
     ) -> dict[str, str]:
         errors: dict[str, str] = {}
-        if not _valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS, "")):
+        if not grid_fee.valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS, "")):
             errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
         if not is_valid_spec(submit.get(CONF_PEAK_TARIFF_HOURS, "")):
             errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"

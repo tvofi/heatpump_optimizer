@@ -87834,7 +87834,9 @@ class _DsArb:
         })
         self._config = {
             "pump_duty_mode": "control", "heat_pump_mode_entity": "select.pump_mode",
-            "compressor_freq_sensor": "sensor.freq", **(extra or {}),
+            "compressor_freq_sensor": "sensor.freq",
+            # The minimum mode legs off (R11-OWNER-MODE-LEGS): these checks pin today's split.
+            "mode_leg_heat_min_minutes": 0, "mode_leg_dhw_min_minutes": 0, **(extra or {}),
         }
         self.plan = SimpleNamespace(
             timestamps=[_DS_T0, _DS_T0 + timedelta(minutes=15)], power_schedule=[1.0, 1.5],
@@ -88394,7 +88396,7 @@ R.check(
 
 
 # Part B (the group's ruling on rule c): the arbiter's split of a both step reads
-# the learner's latches through ``duty_switch.both_step_duty``.
+# the learner's latches through ``duty_switch.served_leg``.
 def _ds_split(learner, plan=None, minutes=range(15), between=None, c=None):
     """The duty ``_share`` serves at each minute of ``minutes``; ``between(c, minute)`` runs before each read."""
     if c is None:
@@ -88479,14 +88481,14 @@ R.check(
 _ds_censored = _ds_learner(dhw_space=(6.0, 0.0, True, []), space_dhw=_DS_ON)
 _ds_cens_rule = _ds_censored.split()
 _ds_edges = (_ds_split(_ds_mod.DutySwitchLearner(), minutes=(7.5 - 1 / 60, 7.5)), _ds_cens_rule,
-             [leg for leg, _m in _ds_legs.both_step_legs(5.01, 9.99, 15.0, _ds_cens_rule, "space")],
-             [leg for leg, _m in _ds_legs.both_step_legs(5.01, 9.99, 15.0, (_ds_cens_rule[0], _ds_cens_rule[1] + 0.02),
-                                                         "space")])
+             [leg for leg, _m in _ds_legs.plan_legs([5.01, 1.0], [9.99, 0.0], rule=_ds_cens_rule)[0]],
+             [leg for leg, _m in _ds_legs.plan_legs([5.01, 1.0], [9.99, 0.0],
+                                                    rule=(_ds_cens_rule[0], _ds_cens_rule[1] + 0.02))[0]])
 R.check(
     "on the bounds: hot water's share ends at its own instant, a second later than one second before it; and a "
     "direction whose every off time was censored adds no off time to the whole-step bound (5.01 min second share "
     "split, under a 5.02 min minimum whole)",
-    _ds_edges == ("ds", ("dhw", 0.0), ["dhw", "space"], ["dhw"]),
+    _ds_edges == ("ds", _ds_legs.LegRule("dhw", 0.0), ["dhw", "space"], ["dhw"]),
     str(_ds_edges),
 )
 # One leg rule (R10-DUTY-SWITCH-PLANNER-PRICE carry c3ad1545): the planner's
@@ -88640,9 +88642,9 @@ R.check(
     "signal it hears imports none of them nor it; the pure half of wear stays pure",
     _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
     and sorted(set(_ds_plan_uses)) == ["planner_fields", "record_for", "running_now"]
-    and _ds_uses == ["STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
+    and _ds_uses == ["STOP_WINDOW_S", "SwitchContext", "attach", "detach",
                      "note_mode_write", "note_pass", "planner_fields", "record_for", "running_now",
-                     "starts_attributes"]
+                     "served_leg", "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and not _ds_rs_own & {"duty_switch", "pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
@@ -88820,6 +88822,343 @@ R.check(
     and _DS_CONFIRM_AT % 15 == 0,  # the confirming pass is a pass, the defrost reads on the next
     f"{_ds_wrapped([(0, 50.0), (60, 0.0)], defrost_from=_DS_CONFIRM_AT + 15)} "
     f"{_ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)])}",
+)
+
+
+# --- R11-OWNER-MODE-LEGS (#3859): minimum heating and hot-water mode legs ------
+# Design: design/R11-OWNER-MODE-LEGS 0e59437a. The plan rule (``duty_legs``'s
+# R1/R2 to a fixed point, idle continuing the mode) and the execution check
+# (``duty_switch.served_leg``: no leaving a young leg, no entering a leg the plan
+# keeps for less than its minimum), each driven through the production symbols.
+# Every number is invented. The duty-switch checks above run with both options at
+# 0, the null control that reproduces today's writes.
+_ML_ON = {"mode_leg_heat_min_minutes": 10, "mode_leg_dhw_min_minutes": 10}
+
+
+def _ml_rule(heat=0.0, dhw=0.0, before=_ds_legs.IDLE):
+    return _ds_legs.LegRule("dhw", None, heat, dhw, before)
+
+
+def _ml_legs(space_kw, dhw_kw, **rule):
+    """Each step's legs as ``duty:minutes`` strings."""
+    return [" ".join(f"{d}:{m:g}" for d, m in step)
+            for step in _ds_legs.plan_legs(space_kw, dhw_kw, rule=_ml_rule(**rule))]
+
+
+def _ml_writes(plans, options=_ML_ON, until_s=1740, every=60, hook=None):
+    """Mode writes ``(second, mode)`` of passes every ``every`` s from 00:00, each plan in ``plans``
+    (second -> plan) adopted by a pass at that second, the cycle's; ``hook(c, second)`` runs first."""
+    c = _DsArb(options)
+    _ds_mod.record_for(c).loaded = True
+    writes = []
+
+    async def run():
+        for s in sorted(set(range(0, until_s + 1, every)) | set(plans)):
+            now = _DS_T0 + timedelta(seconds=s)
+            _sa_dt.freeze(now)
+            c.plan = plans.get(s, c.plan)
+            if hook is not None:
+                hook(c, s)
+            await _sa_pa.apply(c, now)
+            mode = _sa_pa.state_for(c).written.get("mode")
+            if mode and (not writes or writes[-1][1] != mode[0]):
+                writes.append((s, mode[0]))
+                c.hass.states.set("select.pump_mode", FakeState(
+                    next(o for o in _DS_OPTS if _sa_pa.pump_mode.resolve(o) == mode[0]),
+                    attributes={"options": list(_DS_OPTS)}))
+    try:
+        _asyncio.run(run())
+    finally:
+        _sa_dt.freeze(None)
+    return writes
+
+
+_ML_H, _ML_D, _ML_HD = _sa_pa.pump_mode.MODE_HEAT, _sa_pa.pump_mode.MODE_DHW, _sa_pa.pump_mode.MODE_HEAT_DHW
+_ml_space2 = _ds_plan((0, 1.0, 0.0), (900, 1.0, 0.0))
+# T1: a re-solve at 00:09:48 turns the executing space step into a both step whose
+# hot-water leg (10 min, dhw 2.0 of 3.0 kW) ends 12 s later.
+_ml_t1_both = _ds_plan((0, 1.0, 2.0), (900, 1.0, 0.0))
+_ml_t1 = {name: _ml_writes(plans, options) for name, (plans, options) in {
+    "fixed": ({0: _ml_space2, 588: _ml_t1_both}, _ML_ON),
+    "off": ({0: _ml_space2, 588: _ml_t1_both}, {}),
+    "adopted at 00:00": ({0: _ml_t1_both}, _ML_ON),
+}.items()}
+R.check(
+    "T1, a cycle pass inside a re-solved both step does not enter a hot-water leg the plan leaves 12 s later: "
+    "one Heating write; with the options at 0 the cycle writes hot water and the tick Heating 12 s on; null "
+    "control, the same plan adopted at 00:00 writes hot water at 00:00 and Heating at 00:10",
+    _ml_t1 == {"fixed": [(0, _ML_H)], "off": [(0, _ML_H), (588, _ML_D), (600, _ML_H)],
+               "adopted at 00:00": [(0, _ML_D), (600, _ML_H)]},
+    str(_ml_t1),
+)
+# T1b: a re-solve changes the executing step's single duty: 00:00 becomes a hot-water
+# step with 4 min left (00:11) or 11 min left (00:04, the null).
+_ml_t1b_dhw = _ds_plan((0, 0.0, 1.0), (900, 1.0, 0.0))
+_ml_t1b = {name: _ml_writes(plans, options) for name, (plans, options) in {
+    "fixed": ({0: _ml_space2, 660: _ml_t1b_dhw}, _ML_ON),
+    "off": ({0: _ml_space2, 660: _ml_t1b_dhw}, {}),
+    "re-solved at 00:04": ({0: _ml_space2, 240: _ml_t1b_dhw}, _ML_ON),
+    "next step idle": ({0: _ml_space2, 660: _ds_plan((0, 0.0, 1.0), (900, 0.0, 0.0))}, _ML_ON),
+}.items()}
+R.check(
+    "T1b, a re-solve's single duty is entered only if the plan keeps it for its minimum: hot water with 4 min "
+    "left is not written (with the options at 0 it is, for a 4-min leg); null controls, 11 min left is written "
+    "at once and left for Heating at the step's end, and 4 min followed by an idle step, which keeps the mode, "
+    "is written",
+    _ml_t1b == {"fixed": [(0, _ML_H)], "off": [(0, _ML_H), (660, _ML_D), (900, _ML_H)],
+                "re-solved at 00:04": [(0, _ML_H), (240, _ML_D), (900, _ML_H)],
+                "next step idle": [(0, _ML_H), (660, _ML_D)]},
+    str(_ml_t1b),
+)
+# T2: hot water written at 00:00; a re-solve a minute later makes the step space.
+_ml_dhw2 = _ds_plan((0, 0.0, 1.0), (900, 0.0, 1.0))
+
+
+def _ml_boost_space(c, s):
+    if s == 60:
+        boost_mod.held_for(c).set(boost_mod.CHANNEL_SPACE, True, _DS_T0 + timedelta(seconds=s))
+
+
+_ml_t2 = {
+    "fixed": _ml_writes({0: _ml_dhw2, 60: _ml_space2}),
+    "off": _ml_writes({0: _ml_dhw2, 60: _ml_space2}, {}),
+    "leg already 10.5 min old": _ml_writes({0: _ml_dhw2, 630: _ml_space2}),
+    "space boost": _ml_writes({0: _ml_dhw2}, hook=_ml_boost_space),
+}
+R.check(
+    "T2, a hot-water leg younger than its minimum is not left: the re-solve at 00:01 switches to Heating at "
+    "00:10, not 00:01 (options at 0: 00:01); null controls, a leg already past its minimum and a space boost "
+    "pressed at 00:01 switch at once",
+    _ml_t2 == {"fixed": [(0, _ML_D), (600, _ML_H)], "off": [(0, _ML_D), (60, _ML_H)],
+               "leg already 10.5 min old": [(0, _ML_D), (630, _ML_H)],
+               "space boost": [(0, _ML_D), (60, _ML_HD)]},
+    str(_ml_t2),
+)
+# T3, R1: (space, both with a 6-min hot-water share, space); null, after a hot-water step.
+_ml_t3 = {m: _ml_legs([1.0, 1.5, 1.0], [0.0, 1.0, 0.0], dhw=m)[1] for m in (0, 10, 12, 15)}
+_ml_t3_null = {m: _ml_legs([0.0, 1.5, 1.0], [1.0, 1.0, 0.0], dhw=m)[1] for m in (0, 10, 12, 15)}
+R.check(
+    "T3, R1: a lone 6-min hot-water leg is lengthened to M = 10 (heating 5), and served whole hot water at "
+    "M = 12 (heating 3 < SPLIT_MIN_MINUTES) and 15; null control, the same step after a hot-water step is "
+    "unchanged at every M",
+    _ml_t3 == {0: "dhw:6 space:9", 10: "dhw:10 space:5", 12: "dhw:15", 15: "dhw:15"}
+    and set(_ml_t3_null.values()) == {"dhw:6 space:9"} and _ds_legs.SPLIT_MIN_MINUTES == 5.0,
+    f"{_ml_t3} {_ml_t3_null}",
+)
+# T4, R2: (dhw, both with hot water 8 and heating 7, dhw); null, the next step space.
+_ml_t4 = (_ml_legs([0.0, 7.0, 0.0], [1.0, 8.0, 1.0], heat=10), _ml_legs([0.0, 7.0, 1.0], [1.0, 8.0, 0.0], heat=10),
+          _ml_legs([0.0, 7.0, 0.0], [1.0, 8.0, 1.0], heat=7))
+R.check(
+    "T4, R2: a 7-min heating leg between hot-water legs is served as hot water at N = 10; null controls, the "
+    "next step serving space keeps the split, and N = 7 keeps it",
+    _ml_t4 == (["dhw:15"] * 3, ["dhw:15", "dhw:8 space:7", "space:15"], ["dhw:15", "dhw:8 space:7", "dhw:15"]),
+    str(_ml_t4),
+)
+# T5: a cascade. (space, both hot water 6 heating 9, dhw) at M = 10, N = 8: R1 lengthens the
+# hot-water leg to 10, which leaves a 5-min heating leg between hot-water legs that R2 then merges.
+_ml_t5 = (_ml_legs([1.0, 1.5, 0.0], [0.0, 1.0, 1.0], heat=8, dhw=10),
+          _ml_legs([1.0, 1.5, 0.0], [0.0, 1.0, 1.0], dhw=10), _ml_legs([1.0, 1.5, 0.0], [0.0, 1.0, 1.0], heat=8))
+R.check(
+    "T5, the rule runs to a fixed point: R1's lengthening leaves a 5-min heating leg between hot-water legs, "
+    "which R2 merges; controls, R1 alone stops at that leg and R2 alone (9 >= 8) merges nothing",
+    _ml_t5 == (["space:15", "dhw:15", "dhw:15"], ["space:15", "dhw:10 space:5", "dhw:15"],
+               ["space:15", "dhw:6 space:9", "dhw:15"]),
+    str(_ml_t5),
+)
+# T6: idle continues the mode.
+_ml_t6 = (_ml_legs([0.0, 5.0, 0.0, 0.0], [1.0, 10.0, 0.0, 1.0], heat=10), _ml_legs([0.0, 5.0, 0.0], [1.0, 10.0, 1.0], heat=10))
+R.check(
+    "T6, an idle step continues the heating leg before it: (dhw, both with heating 5, idle, dhw) is not "
+    "merged; null control, without the idle step it is",
+    _ml_t6 == (["dhw:15", "dhw:10 space:5", "idle:15", "dhw:15"], ["dhw:15", "dhw:15", "dhw:15"]),
+    str(_ml_t6),
+)
+
+
+def _ml_short(legs, heat, dhw, before):
+    """Legs on the mode timeline under their minimum: hot-water runs under ``dhw``, heating runs under
+    ``heat`` between hot-water runs, idle continuing the run before it and ``before`` ahead of the plan.
+    A property of the output, not the rule's formula."""
+    runs, code = [], {"dhw": "dhw", "space": "space", "idle": None}
+    for step in legs:
+        for duty, minutes in step:
+            mode = code[duty] or (runs[-1][0] if runs else before)
+            if runs and runs[-1][0] == mode:
+                runs[-1][1] += minutes
+            else:
+                runs.append([mode, minutes])
+    if runs and before is not None and runs[0][0] == before:
+        runs[0][1] = float("inf")  # joined to the leg the pump is in, of unknown length
+    out = [r for r in runs if r[0] == "dhw" and r[1] < dhw - 1e-9]
+    return out + [r for i, r in enumerate(runs[1:-1], 1)
+                  if r[0] == "space" and r[1] < heat - 1e-9 and runs[i - 1][0] == runs[i + 1][0] == "dhw"]
+
+
+_ml_rng = np.random.default_rng(3859)
+_ml_t7 = {"fixed": 0, "off": 0, "plans": 0}
+for _ml_i in range(400):
+    _ml_n = 12
+    _ml_sp = np.where(_ml_rng.random(_ml_n) < 0.7, _ml_rng.uniform(0.5, 4.0, _ml_n), 0.0)
+    _ml_dh = np.where(_ml_rng.random(_ml_n) < 0.5, _ml_rng.uniform(0.5, 4.0, _ml_n), 0.0)
+    _ml_m, _ml_nn = (float(_ml_rng.choice([5, 10, 12, 15])) for _ in range(2))
+    _ml_b = int(_ml_rng.choice([_ds_legs.IDLE, _ds_legs.SPACE, _ds_legs.DHW]))
+    _ml_bn = {_ds_legs.IDLE: None, _ds_legs.SPACE: "space", _ds_legs.DHW: "dhw"}[_ml_b]
+    _ml_t7["plans"] += 1
+    _ml_t7["fixed"] += bool(_ml_short(_ds_legs.plan_legs(_ml_sp, _ml_dh, rule=_ml_rule(_ml_nn, _ml_m, _ml_b)),
+                                      _ml_nn, _ml_m, _ml_bn))
+    _ml_t7["off"] += bool(_ml_short(_ds_legs.plan_legs(_ml_sp, _ml_dh, rule=_ml_rule(0.0, 0.0, _ml_b)),
+                                    _ml_nn, _ml_m, _ml_bn))
+R.check(
+    "T7, 400 seeded random 12-step plans with M and N drawn from {5, 10, 12, 15}: no plan has a leg under its "
+    "minimum; null control, the same plans under the rule with both minimums at 0 have such legs, so the "
+    "generator reaches the case",
+    _ml_t7["fixed"] == 0 and _ml_t7["off"] > 0 and _ml_t7["plans"] == 400,
+    str(_ml_t7),
+)
+# T8: availability. R1 at M = 10 on a 6-min hot-water share moves 4 heating minutes;
+# R2 removes a step's heating; an untouched plan prices nothing.
+_ml_t8_r1 = _ds_legs.availability(np.array([1.0, 1.5, 1.0]), np.array([0.0, 1.0, 0.0]), 0.0, rule=_ml_rule(dhw=10))
+_ml_t8_r2 = _ds_legs.availability(np.array([0.0, 7.0, 0.0]), np.array([1.0, 8.0, 1.0]), 0.0, rule=_ml_rule(heat=10))
+_ml_t8_clamped = _ds_legs.delivered_space(np.array([0.0, 7.0, 0.0]), np.array([1.0, 8.0, 1.0]), _ml_t8_r2, 1.0)
+_ml_t8_dc = _ds_legs.space_headroom(15.0, np.array([1.0, 8.0, 1.0]), _ml_t8_r2, None)
+_ml_t8_null = [_ds_legs.availability(np.array([1.0, 1.5, 1.0]), np.array([0.0, 1.0, 0.0]), 0.0, rule=r)
+               for r in (_ml_rule(), _ml_rule(heat=10, dhw=6))]
+R.check(
+    "T8, the plan prices what is served: an R1 step's heating availability is 1 - (M - x)/15 (x = 6, M = 10), "
+    "an R2 step delivers no space heat on a clamped install and leaves no space headroom on a duty-cycle one; "
+    "null control, a rule that moves nothing gives None, today's arrays",
+    np.allclose(_ml_t8_r1, [1.0, 1.0 - 4.0 / 15.0, 1.0]) and _ml_t8_clamped[1] == 0.0 and _ml_t8_dc[1] == 0.0
+    and _ml_t8_null == [None, None],
+    f"{_ml_t8_r1} {_ml_t8_r2} {_ml_t8_clamped} {_ml_t8_dc} {_ml_t8_null}",
+)
+# T9: the arbiter serves, minute by minute, the legs the planner's leg_ends reads.
+_ml_t9_plans = {
+    "R2 sandwich": _ds_plan((0, 7.0, 8.0), (900, 0.0, 1.0)),
+    "R1 lengthened": _ds_plan((0, 1.5, 1.0), (900, 1.0, 0.0)),
+    "joined to the pump's hot-water leg": _ds_plan((0, 1.0, 1.0), (900, 1.0, 0.0)),
+}
+
+
+def _ml_t9(plan, before):
+    c = _DsArb(_ML_ON)
+    rec = _ds_mod.record_for(c)
+    rec.loaded, rec.solve_before = True, before
+    served = _ds_split(None, plan, c=c)
+    rule = _ml_rule(10, 10, before)
+    first, last, _two = _ds_legs.leg_ends(plan.power_schedule, plan.dhw_power_schedule, rule=rule)
+    legs = _ds_legs.plan_legs(plan.power_schedule, plan.dhw_power_schedule, rule=rule)[0]
+    timeline = "".join((legs[0][0] if m < legs[0][1] else legs[-1][0])[0] for m in range(15))
+    return served, timeline, (_DS_LEG[served[0]], _DS_LEG[served[-1]]) == (int(first[0]), int(last[0]))
+
+
+_ml_t9_runs = {name: _ml_t9(plan, before) for (name, plan), before in zip(
+    _ml_t9_plans.items(), (_ds_legs.DHW, _ds_legs.SPACE, _ds_legs.DHW))}
+R.check(
+    "T9, arbiter and planner read one rule: the duty served each minute of a both step equals plan_legs' "
+    "timeline and leg_ends' first and last leg, for a merged step, a lengthened one, and a 7.5-min hot-water "
+    "leg joined to the hot-water leg the pump is in, which is today's split",
+    all(served == timeline and ends for served, timeline, ends in _ml_t9_runs.values())
+    and [served for served, _t, _e in _ml_t9_runs.values()] == ["d" * 15, "d" * 10 + "s" * 5, "d" * 8 + "s" * 7],
+    str(_ml_t9_runs),
+)
+
+
+def _ml_hook(what):
+    def hook(c, s):
+        if s != 60:
+            return
+        at = _DS_T0 + timedelta(seconds=s)
+        if what == "block":
+            boost_mod.held_for(c).set(boost_mod.CHANNEL_DHW, True, at, block=True)
+        elif what == "disinfection":
+            c.disinfecting = True
+        elif what == "comfort":
+            c.mode = "comfort"
+        elif what == "boost":
+            boost_mod.held_for(c).set(boost_mod.CHANNEL_SPACE, True, at)
+    return hook
+
+
+_ml_t10 = {what: _ml_writes({0: _ml_dhw2, 60: _ml_space2}, hook=_ml_hook(what), until_s=300)
+           for what in ("none", "boost", "block", "disinfection", "comfort")}
+R.check(
+    "T10, a boost, a hot-water block, a disinfection hold and a mode the plan does not command are never held: "
+    "each writes its own mode at 00:01 over a 1-min hot-water leg; null control, without one the leg is held "
+    "past 00:05",
+    _ml_t10 == {"none": [(0, _ML_D)], "boost": [(0, _ML_D), (60, _ML_H)], "block": [(0, _ML_D), (60, _ML_H)],
+                "disinfection": [(0, _ML_D), (60, _ML_HD)], "comfort": [(0, _ML_D), (60, _ML_HD)]},
+    str(_ml_t10),
+)
+# T11: the options. Absent is 10; out of range or not a number is 10; 0 and 15 are kept.
+_ml_cfg = {repr(v): (_DsConfig.from_mapping({"mode_leg_heat_min_minutes": v}).mode_leg_heat_min_minutes,
+                     _DsConfig.from_mapping({"mode_leg_dhw_min_minutes": v}).mode_leg_dhw_min_minutes)
+           for v in (0, 15, 15.5, -1, "x", None, float("nan"))}
+from heatpump_optimizer import config_flow as _ml_cf, const as _ml_const  # noqa: E402
+from heatpump_optimizer import optimizer as _ml_om  # noqa: E402
+
+_ml_rows = {f.key: (f.step, f.default, f.widget.config["min"], f.widget.config["max"]) for f in _ml_cf._OPTION_FIELDS
+            if f.key in (_ml_const.CONF_MODE_LEG_HEAT_MIN_MINUTES, _ml_const.CONF_MODE_LEG_DHW_MIN_MINUTES)}
+_ml_texts = {name: json.loads((_ds_pkg / name).read_text())["options"]["step"]["entities_pump"]
+             for name in ("strings.json", "translations/en.json", "translations/sv.json", "translations/de.json")}
+_ml_c13 = _DsArb({"mode_leg_heat_min_minutes": 13, "mode_leg_dhw_min_minutes": 12})
+_ml_fields = _ds_mod.planner_fields(_ml_c13, _DsConfig.from_mapping(_ml_c13._config))
+_ml_solve = _ml_om._leg_rule(SimpleNamespace(config=_ml_om.OptimizationConfig(**_ml_fields)))
+_ml_arb = _ds_mod.leg_rule(_ds_mod.record_for(_ml_c13), _DsConfig.from_mapping(_ml_c13._config))
+R.check(
+    "T11, the options: absent reads 10 (DEFAULT_MODE_LEG_MIN_MINUTES); 0 and 15 are kept, and 15.5, -1, text, "
+    "None and NaN read the default; both rows sit on the entities_pump page with default 10 and bounds "
+    "0..LEG_MIN_MAX_MINUTES, labelled and described in strings.json and the three translations; N = 13 and "
+    "M = 12 reach both the solve's rule and the arbiter's",
+    _DsConfig.from_mapping({}).mode_leg_heat_min_minutes == _DsConfig.from_mapping({}).mode_leg_dhw_min_minutes
+    == _ml_const.DEFAULT_MODE_LEG_MIN_MINUTES == 10.0
+    and _ml_cfg == {"0": (0.0, 0.0), "15": (15.0, 15.0), "15.5": (10.0, 10.0), "-1": (10.0, 10.0),
+                    "'x'": (10.0, 10.0), "None": (10.0, 10.0), "nan": (10.0, 10.0)}
+    and set(_ml_rows.values()) == {("entities_pump", 10.0, 0, _ds_legs.LEG_MIN_MAX_MINUTES)} and len(_ml_rows) == 2
+    and _ds_legs.LEG_MIN_MAX_MINUTES == 15
+    and all(key in text[part] for text in _ml_texts.values() for part in ("data", "data_description")
+            for key in _ml_rows)
+    and (_ml_solve.heat_min, _ml_solve.dhw_min) == (_ml_arb.heat_min, _ml_arb.dhw_min) == (13.0, 12.0),
+    f"{_ml_cfg} {_ml_rows} {_ml_solve} {_ml_arb}",
+)
+# The left neighbour: the leg the pump is in as a solve starts is step 0's left in both rules.
+_ml_bc = _DsArb(_ML_ON)
+_ml_brec = _ds_mod.record_for(_ml_bc)
+_ml_brec.leg = (_ML_D, _DS_T0, _ML_H)
+_ml_before = (_ds_mod.planner_fields(_ml_bc, _DsConfig.from_mapping(_ml_bc._config))["duty_leg_before"],
+              _ml_brec.solve_before,
+              _ml_legs([1.5, 1.0], [1.0, 0.0], dhw=10, before=_ds_legs.DHW)[0],
+              _ml_legs([1.5, 1.0], [1.0, 0.0], dhw=10, before=_ds_legs.SPACE)[0])
+R.check(
+    "the leg the pump is in reaches the solve as step 0's left neighbour and the arbiter reads it back: a pump in "
+    "hot water joins step 0's 6-min hot-water leg to it (unchanged); null control, a pump in heating lengthens it",
+    _ml_before == (_ds_legs.DHW, _ds_legs.DHW, "dhw:6 space:9", "dhw:10 space:5"),
+    str(_ml_before),
+)
+# The leg record: heard from every landed mode write, before the store is loaded.
+_ml_rc = _ds_mod._Record(None, None)
+_ds_mod.note_mode_write(_ml_rc, _DS_T0, None, _ML_H, _ds_mod.SwitchContext())
+_ds_mod.note_mode_write(_ml_rc, _DS_T0 + timedelta(minutes=1), _ML_H, _ML_H, _ds_mod.SwitchContext())
+_ml_leg1 = _ml_rc.leg
+_ds_mod.note_mode_write(_ml_rc, _DS_T0 + timedelta(minutes=2), _ML_H, _ML_D, _ds_mod.SwitchContext())
+R.check(
+    "the leg record starts at a mode change and not at a re-send, names the mode before it, and is kept by a "
+    "record whose store is not read (a restart's empty record holds nothing)",
+    _ml_leg1 == (_ML_H, _DS_T0, None) and _ml_rc.leg == (_ML_D, _DS_T0 + timedelta(minutes=2), _ML_H)
+    and not _ml_rc.loaded,
+    f"{_ml_leg1} {_ml_rc.leg}",
+)
+# A leg whose stamp is ahead of now has an unknowable age and holds nothing.
+_ml_fut = _ds_mod._Record(None, None, leg=(_ML_D, _DS_T0 + timedelta(minutes=5), _ML_H))
+_ml_fut_duty = _ds_mod._kept_leg(_ml_fut, "space", _DS_T0, _ml_rule(10, 10),
+                                 _ds_legs.plan_legs([1.0, 1.0], [0.0, 0.0]), _DS_T0)
+_ml_now_duty = _ds_mod._kept_leg(_ds_mod._Record(None, None, leg=(_ML_D, _DS_T0, _ML_H)), "space",
+                                 _DS_T0 + timedelta(minutes=5), _ml_rule(10, 10),
+                                 _ds_legs.plan_legs([1.0, 1.0], [0.0, 0.0]), _DS_T0)
+R.check(
+    "a hot-water leg stamped ahead of the reading clock is not held (its age is unknowable, never 0); null "
+    "control, the same leg 5 min old is held",
+    _ml_fut_duty == "space" and _ml_now_duty == "dhw",
+    f"{_ml_fut_duty} {_ml_now_duty}",
 )
 
 
@@ -93059,7 +93398,9 @@ def _dsp_served(space, dhw, minute, floor):
         optimal_setpoints=[21.0], duty_floor_kw=floor,
     )
     now = _DSP_T0 + timedelta(minutes=minute)
-    inp = _DspNS(mode=_DSP_AUTO, disinfecting=False, plan=plan)
+    # The minimum mode legs off (R11-OWNER-MODE-LEGS): this grid pins the split alone.
+    inp = _DspNS(mode=_DSP_AUTO, disinfecting=False, plan=plan,
+                 config={"mode_leg_heat_min_minutes": 0, "mode_leg_dhw_min_minutes": 0})
     return _dsp_pa._share(_dsp_coord, inp, _dsp_pa.step_duty(plan, now), now)
 
 
@@ -93262,6 +93603,19 @@ R.check(
     and np.flatnonzero(_dsp_r16_both_avail < 1.0).tolist() == [2]
     and bool(np.all(_dsp_r16_both_ship[_dsp_r16_both_avail < 1.0] >= 1.5)),
     f"{_dsp_r16_both_avail}, shipped {_dsp_r16_both_ship}",
+)
+# R11-OWNER-MODE-LEGS: a solve prices the heating minutes the minimum legs move
+# to hot water even where no stop is priced; a 7.5-min heating leg between
+# hot-water legs at N = 10 is served as hot water.
+_dsp_ml_opt = _dsp_opt()
+_dsp_ml_opt.config.mode_leg_heat_min_minutes = 10.0
+_dsp_ml = (_dsp_om._stop_availability(_dsp_ml_opt, np.array([0.0, 2.0, 0.0]), np.array([1.0, 2.0, 1.0]), 5.5),
+           _dsp_om._stop_availability(_dsp_opt(), np.array([0.0, 2.0, 0.0]), np.array([1.0, 2.0, 1.0]), 5.5))
+R.check(
+    "a solve with no stop priced reads the minimum legs' availability (half of a merged both step's heating "
+    "minutes gone); null control, the same solve with the options at 0 reads None, today's arrays",
+    _dsp_ml[0] is not None and _dsp_ml[0].tolist() == [1.0, 0.5, 1.0] and _dsp_ml[1] is None,
+    str(_dsp_ml),
 )
 R.check(
     "null control: with no duty floor (a duty-cycle install) and hot water first "
@@ -93776,7 +94130,7 @@ R.check(
     "(leg_rule), so its ban is only the step before heating, a two-leg step's inside "
     "switch is heating to hot water and weighs nothing, and the step is not charged; "
     "control, the default rule bans the heating step too, weighs and charges it",
-    _DSP_SF == ("space", None)
+    _DSP_SF == _dsp_dl.LegRule("space", None)
     and _dsp_sf_ban == [False, True, False, False, False]
     and _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None).tolist()
     == [False, True, True, False, False]

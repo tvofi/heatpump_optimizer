@@ -6203,7 +6203,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             price_risk_lambda=ctx._config.price_risk_lambda,
             baseline_load_kw=self._baseline_house_load(n_steps),
             cycling_cost=self._effective_cycling_cost(),
-            **duty_switch.planner_fields(self),
+            **duty_switch.planner_fields(self, ctx._config),
             # The optimizer prices surplus consumption at this; an
             # entity-supplied compensation can change between runs.
             pv_export_price=self._pv_export_price(),

@@ -1070,6 +1070,12 @@ DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
 CONF_PUMP_DUTY_MODE: Final = "pump_duty_mode"
 DEFAULT_PUMP_DUTY_MODE: Final = "off"
 PUMP_DUTY_MODES: Final = ("off", "observe", "control")
+#: The shortest heating leg between two hot-water legs and the shortest
+#: hot-water leg the arbiter serves and the planner prices, minutes, 0 off
+#: (duty_legs.LegRule; tvofi, 2026-11-22: "as settings, default 10 min").
+CONF_MODE_LEG_HEAT_MIN_MINUTES: Final = "mode_leg_heat_min_minutes"
+CONF_MODE_LEG_DHW_MIN_MINUTES: Final = "mode_leg_dhw_min_minutes"
+DEFAULT_MODE_LEG_MIN_MINUTES: Final = 10.0
 #: The pump's own start hysteresis per duty, K, read from an entity as a
 #: temperature difference (``inputs.read_temperature_delta_k``) with no age
 #: gate: a setting changes only when someone changes it. Hot water: the pump

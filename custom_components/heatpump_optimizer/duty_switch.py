@@ -7,7 +7,7 @@ return the hot-water leg has just heated. Whether it does, and for how long
 the pump then stays off, is learned per install and per direction. It is
 recorded, persisted and published on the compressor-starts sensor. Its
 latches are read twice, through one leg rule: the arbiter's split of a both
-step (:func:`both_step_duty`, part B) and the planner (:func:`planner_fields`),
+step (:func:`served_leg`, part B) and the planner (:func:`planner_fields`),
 which prices the switch through ``duty_legs``; both feed
 ``duty_legs.leg_rule`` the same pairs (:meth:`DutySwitchLearner.split`), so
 the plan prices the legs the arbiter serves. A factory reset voids the store
@@ -445,6 +445,13 @@ class _Record:
     order: tuple[datetime, duty_legs.Legs] | None = None
     #: Whether the compressor ran as the last scheduled solve started (:func:`running_now`).
     solved_running: bool = False
+    #: The landed mode the pump is in, since when, and the mode before it: the
+    #: one record of mode legs (R11-OWNER-MODE-LEGS), heard from every landed
+    #: mode write and kept in memory only, so a restart holds nothing.
+    leg: tuple[Any, datetime, Any] | None = None
+    #: The leg code the last solve started in (:func:`planner_fields`): its
+    #: plan's step 0 has that on its left, for the arbiter as for the planner.
+    solve_before: int = duty_legs.IDLE
 
     def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
         """Hand a confirmed edge, if any, to the learner."""
@@ -479,7 +486,9 @@ def detach(coord: Any) -> None:
 
 
 def note_mode_write(rec: _Record, when: datetime, old: Any, new: Any, ctx: SwitchContext) -> None:
-    """The arbiter's mode write landed. A report before the load is dropped."""
+    """The arbiter's mode write landed: a new leg if the mode moved. A report before the load is learned from by nothing."""
+    if rec.leg is None or rec.leg[0] != new:
+        rec.leg = (new, when, old if rec.leg is None else rec.leg[0])
     if not rec.loaded:
         return
     running = running_signal.running_now(rec.signal) is True
@@ -523,21 +532,76 @@ def starts_attributes(coord: Any) -> dict[str, float]:
     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
 
 
-def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float, dhw_kw: float,
-                   step_min: float, next_duty: str | None) -> str:
-    """The duty the both step starting at ``start`` serves at ``now``: its
-    first leg for that leg's minutes, then its last, the legs being
-    ``duty_legs.both_step_legs`` under :meth:`DutySwitchLearner.split`, decided
-    once per step, of a step ``step_min`` long. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
-    as before the learner existed, and latches nothing."""
-    if rec.loaded:
-        if rec.order is None or rec.order[0] != start:
-            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, step_min, rec.learner.split(),
-                                                         next_duty=next_duty))
-        legs = rec.order[1]
-    else:
-        legs = duty_legs.both_step_legs(space_kw, dhw_kw, step_min)
-    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
+_LEG_CODE = {pump_mode.MODE_HEAT: duty_legs.SPACE, pump_mode.MODE_DHW: duty_legs.DHW}
+
+
+def leg_rule(rec: _Record, cfg: Any) -> duty_legs.LegRule:
+    """The rule a pass serves legs by: :meth:`DutySwitchLearner.split`, or
+    ``duty_legs.DEFAULT_RULE`` while the record is not loaded (as before the
+    learner existed), with the entry's minimum legs and the last solve's left
+    neighbour, so arbiter and planner read one rule."""
+    split = rec.learner.split() if rec.loaded else duty_legs.DEFAULT_RULE
+    return split._replace(heat_min=duty_legs.leg_minimum(cfg.mode_leg_heat_min_minutes),
+                          dhw_min=duty_legs.leg_minimum(cfg.mode_leg_dhw_min_minutes), before=rec.solve_before)
+
+
+def _plan_legs(result: Any, rule: duty_legs.LegRule) -> tuple[duty_legs.Legs, ...]:
+    """Every step's legs of the plan, the hot-water plan padded with zeros to the space one's length."""
+    space = list(result.power_schedule or [])
+    dhw = (list(getattr(result, "dhw_power_schedule", None) or []) + [0.0] * len(space))[:len(space)]
+    return duty_legs.plan_legs(space, dhw, getattr(result, "duty_floor_kw", None), rule)
+
+
+def served_leg(rec: _Record, result: Any, i: int, duty: str | None, now: datetime, cfg: Any) -> str | None:
+    """The duty plan step ``i`` of ``result`` serves at ``now``, ``duty`` being the step's.
+
+    A both step serves its first leg for that leg's minutes, then its last,
+    the legs being ``duty_legs.plan_legs`` under :func:`leg_rule`, decided
+    once per step (a record not loaded latches nothing). Then the minimum
+    legs (:func:`_kept_leg`) may keep the leg the pump is in.
+    """
+    start, rule = result.timestamps[i], leg_rule(rec, cfg)
+    legs = _plan_legs(result, rule)
+    if duty == "both" and rec.loaded and (rec.order is None or rec.order[0] != start):
+        rec.order = (start, legs[i])
+    if rec.order is not None and rec.order[0] == start:
+        legs = (*legs[:i], rec.order[1], *legs[i + 1:])
+    if duty == "both":
+        duty = legs[i][0][0] if now - start < timedelta(minutes=legs[i][0][1]) else legs[i][-1][0]
+    return _kept_leg(rec, duty, now, rule, legs[i:], start)
+
+
+def _kept_leg(rec: _Record, wanted: str | None, now: datetime, rule: duty_legs.LegRule,
+              legs: tuple[duty_legs.Legs, ...], start: datetime) -> str | None:
+    """``wanted``, or the single duty the pump is in while the minimum legs keep it.
+
+    Kept while a hot-water leg is younger than ``rule.dhw_min``, or a heating
+    leg entered from hot water younger than ``rule.heat_min``; and not left for
+    a duty the plan (``legs``, from the step starting at ``start``) keeps for
+    less than that duty's minimum. A minimum of 0 keeps nothing. Only a
+    single duty is kept or entered: idle, both and the baseline pass through,
+    and a leg whose age is unknowable (a stamp ahead of now) holds nothing.
+    """
+    mode, since, previous = rec.leg or (None, now, None)
+    current = pump_mode.SINGLE_DUTY.get(mode)
+    if wanted not in ("space", "dhw") or current is None or current == wanted:
+        return wanted
+    age_min = utc_elapsed_seconds(now, since) / 60.0
+    keep = rule.dhw_min if current == "dhw" else rule.heat_min if previous == pump_mode.MODE_DHW else 0.0
+    need = rule.dhw_min if wanted == "dhw" else rule.heat_min
+    if 0.0 <= age_min < keep or (need > 0 and _kept_minutes(legs, start, now, wanted) < need):
+        return current
+    return wanted
+
+
+def _kept_minutes(legs: tuple[duty_legs.Legs, ...], start: datetime, now: datetime, duty: str) -> float:
+    """Minutes from ``now`` the plan keeps ``duty``, idle continuing it; unbounded past the plan's end."""
+    at = -utc_elapsed_seconds(now, start) / 60.0
+    for leg, minutes in (leg for step in legs for leg in step):
+        if at + minutes > 0.0 and leg not in (duty, "idle"):
+            return max(at, 0.0)
+        at += minutes
+    return math.inf
 
 
 def running_now(rec: _Record, action: Any) -> bool:
@@ -559,8 +623,21 @@ def running_now(rec: _Record, action: Any) -> bool:
     return running
 
 
-def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:
-    """The ``OptimizationConfig`` fields a solve prices a duty switch by; a pump never arbitrated reads zeros."""
-    rec = _RECORDS.get(coord)
+def planner_fields(coord: Any, cfg: Any) -> dict[str, Any]:
+    """The ``OptimizationConfig`` fields a solve prices duty switches and serves legs by (:func:`_fields`)."""
+    return _fields(_RECORDS.get(coord), cfg)
+
+
+def _fields(rec: _Record | None, cfg: Any) -> dict[str, Any]:
+    """The pump's pairs and the entry's minimum legs; a pump never arbitrated reads zero pairs and starts idle.
+
+    The leg the pump is in is kept as the solve's left neighbour
+    (``solve_before``), which the arbiter's :func:`leg_rule` reads back.
+    """
     stops, off_s = (rec.learner if rec is not None else DutySwitchLearner()).planner_pairs()
-    return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s}
+    before = duty_legs.IDLE if rec is None or rec.leg is None else _LEG_CODE.get(rec.leg[0], duty_legs.IDLE)
+    if rec is not None:
+        rec.solve_before = before
+    return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s,
+            "mode_leg_heat_min_minutes": cfg.mode_leg_heat_min_minutes,
+            "mode_leg_dhw_min_minutes": cfg.mode_leg_dhw_min_minutes, "duty_leg_before": before}

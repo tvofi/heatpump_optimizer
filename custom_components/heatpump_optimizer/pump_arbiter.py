@@ -39,11 +39,12 @@ own tank thermostat must not spend them. A disinfection cycle the
 integration holds on (``DisinfectionSwitch.memo``) turns a space-only step
 into Heating + DHW, so the planned anti-legionella run can make hot water.
 *Idle* writes no mode: see :func:`desired`. A both step is split by
-:func:`_share` into the legs of ``duty_legs.both_step_legs``: by default DHW
+:func:`_share` into the legs of ``duty_legs.plan_legs``: by default DHW
 only for the step's hot-water share of its 15 minutes, then Heating, each
 through its own row above; a share under ``duty_legs.SPLIT_MIN_MINUTES`` goes
 to the other duty (tvofi, 2026-09-27); a learned stop reorders or merges the
-legs by ``duty_legs.leg_rule``, the rule the planner prices.
+legs by ``duty_legs.leg_rule``, the rule the planner prices, and so do the
+minimum mode legs, which ``duty_switch.served_leg`` also holds at execution.
 A block drops its duty out of :func:`_planned_duty` and again out of
 whatever :func:`_share` and the hot-water lease return, so a blocked
 duty is served as idle and a lease expiry cannot hand it back. The
@@ -1714,7 +1715,7 @@ def _report_write(
     if slot != "mode":
         return
     context, mode = _switch_context(boosts, held, inp, now), held.written["mode"][0]
-    target = {pump_mode.MODE_HEAT: "space", pump_mode.MODE_DHW: "dhw"}.get(mode)
+    target = pump_mode.SINGLE_DUTY.get(mode)
     if command is not None and target is not None and inp.plan is not None:
         room, tank = getattr(inp.state, "room_temperature", None), getattr(inp.state, "dhw_temperature", None)
         planned = _planned_room(inp.plan, now)
@@ -2001,7 +2002,7 @@ async def _lead_mode(coord: Any, on: bool) -> None:
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
-    """On a planned both step, the first duty for its share, then the other.
+    """The duty the plan step serves now: ``duty_switch.served_leg``, its legs and minimum legs.
 
     Hot water goes first unless ``duty_switch`` has learned that only the
     switch from hot water to heating stops the compressor; the order, and
@@ -2009,18 +2010,15 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
 
     Heating + DHW leaves the split to the pump's own two thermostats (tvofi,
     2026-09-27). The share is the step's hot-water power over its total.
-    A boost, a disinfection hold or a non-plan mode keeps Heating + DHW.
+    A boost, a block, a disinfection hold or a non-plan mode keeps ``duty``.
     """
     held = boost.held_for(coord)
-    result = inp.plan
-    i = plan_step_index(result, now)
-    if (i is None or duty != "both" or inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.disinfecting
-            or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
+    i = plan_step_index(inp.plan, now)
+    if (i is None or inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.disinfecting
+            or any(held.active(c, now) or held.block_active(c, now) for c in (boost.CHANNEL_SPACE, boost.CHANNEL_DHW))):
         return duty
-    start = result.timestamps[i]
-    return duty_switch.both_step_duty(
-        duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
-        PLAN_STEP_MINUTES, step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
+    return duty_switch.served_leg(
+        duty_switch.record_for(coord), inp.plan, i, duty, now, EntryConfig.from_mapping(inp.config))
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
