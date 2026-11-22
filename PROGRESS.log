@@ -17,3 +17,4 @@
 1795386536 HB gate started: 24d9995ccee4252e
 1795386566 CKPT D3-s1 147 file(s)
 1795386566 HB alive
+1795386569 HB null usable: gate_rc 1 on artefacts only (closure selftest 2, entities 1, harness_headers 4; same as D3-rem); gating key 1/16
