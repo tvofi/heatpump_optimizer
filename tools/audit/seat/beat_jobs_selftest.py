@@ -611,8 +611,8 @@ def cases(bj) -> dict[str, bool]:
         f.calls and f.calls[0] == tl and "collect" in tl and arg(tl, "--out") == str(c.state / "scorecard" / "tokens.tsv")
         and arg(tl, "--projects") == bj.claude_projects(c)[0])
     res["scorecard: the default project dir is the client's name for the checkout, every non-alphanumeric a `-`"] = (
-        bj.claude_projects(type("C", (), {"overlay": {}, "repo": Path("/home/u/heat_pump.x")})())
-        == [str(Path.home() / ".claude" / "projects" / "-home-u-heat-pump-x")])
+        bj.claude_projects(type("C", (), {"overlay": {}, "repo": Path("/srv/ck/heat_pump.x")})())
+        == [str(Path.home() / ".claude" / "projects" / "-srv-ck-heat-pump-x")])
     res["scorecard: the producer runs next, handed produce, the dir, the checkout and the overlay's repo"] = (
         f.calls[1:2] == [pr] and "produce" in pr and arg(pr, "--dir") == str(c.state / "scorecard")
         and arg(pr, "--repo") == str(c.repo) and arg(pr, "--gh-repo") == "o/r")
