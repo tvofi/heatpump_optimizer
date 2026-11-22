@@ -295,10 +295,10 @@ _RUNNING_KW = Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf))
 
 _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": _Z0,
+    # predicted_cost: None for an interval no price covered (#2229).
     **{f"samples/#/{k}": _N for k in (
-        "actual_power_kw", "predicted_temp", "actual_temp", "actual_cost", "outdoor_temp",
-        "humidity", "solar_radiation", "cop_residual")},
-    "samples/#/predicted_cost": _R,
+        "actual_power_kw", "predicted_temp", "actual_temp", "predicted_cost", "actual_cost",
+        "outdoor_temp", "humidity", "solar_radiation", "cop_residual")},
     # #1935: whether a boost overlay governed the interval -- the exclusion
     # tag a post-drift recommendation reads.
     "samples/#/boost_space": _FLAG,
@@ -341,6 +341,30 @@ _ACCURACY: dict[str, Domain | str] = {
     "draw/floor_since": _COUNT,
 }
 
+#: The COP health watch's memory, keyed ``_measured``: a heat measurement
+#: vouched for each sample. R10-HOTFIX-COP-UNMEASURED (85ee2bfb) moved it from
+#: the unsuffixed keys and kept its shape, so a document an earlier release
+#: wrote -- and the snapshot ring's copies of one, for the ring's eight weeks --
+#: holds the same fields under the old keys.
+_COP_WATCH: dict[str, Domain] = {
+    # The cap, as Cusum.as_dict rounds it.
+    "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
+    **{f"cop_health_cusum_measured/{f}": d for f, d in (
+        ("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
+    "cop_baseline_measured/~": _TEXT, "cop_baseline_measured/*/0": Domain("real", _POS),
+    "cop_baseline_measured/*/1": Domain("int", 1),
+}
+_UNMEASURED = "an earlier release's COP watch, no sample of it measured: the loader reads only the _measured keys"
+#: ``debugger._repair`` keeps a stored cycle row whole or drops it: one bad
+#: cell leaves a row no single cycle wrote.
+_CYCLE_ROW = "a row with a cell outside its domain is dropped whole (debugger._repair)"
+#: ``off_restore._entry_of``: a baseline is the entity beside its value.
+_ARMED = "an entity without its baseline value, or a value without its entity, reads as no baseline"
+#: The longest span two datetimes bound, in hours: a duration summed from runs
+#: between stored instants is no longer, and a timedelta holds it with room
+#: for the next run to be added (``timedelta.max`` is ~270 times as long).
+_SPAN_MAX_H = (datetime.max - datetime.min) // timedelta(hours=1)
+
 DOMAINS: dict[str, dict[str, Domain | str]] = {
     "thermal_learning": {
         "buffer_cooling_rate": Domain("real", _POS),  # tank-dependent clamp inside this
@@ -369,21 +393,21 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "measured_cop/scale_base": Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX, null=True),
         # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
         "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
-        "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
-        **{f"{k}/{f}": d for k in ("vent_cusum", "cop_health_cusum_measured") for f, d in (
-            ("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
+        **{f"vent_cusum/{f}": d for f, d in (("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
+        **_COP_WATCH,
+        **{k.replace("_measured", "", 1): d._replace(unread=_UNMEASURED) for k, d in _COP_WATCH.items()},
         # The open-window detector's fit (#2241, Cusum._departure): None
         # until seeded; a cell no fit can hold drops the whole fit, which
         # re-seeds at the next sample (Cusum.load).
         "vent_cusum/reference": _ABSENT, "vent_cusum/reference/#": Domain("real", whole=_REFIT),
         "vent_cusum/reference_cov": _ABSENT, "vent_cusum/reference_cov/#": Domain(
             "real", -REFERENCE_PRIOR_COV, REFERENCE_PRIOR_COV, whole=_REFIT),
-        "cop_baseline_measured/~": _TEXT, "cop_baseline_measured/*/0": Domain("real", _POS),
-        "cop_baseline_measured/*/1": Domain("int", 1),
         "immersion_events/#": _AT,
         "snow_accum_cm": _Z, "snow_accum_last": _AT0, "last_heavy_snow": _AT0,
         "capacity_envelope/~": Domain("int"), "capacity_envelope/*/0": Domain("real", _POS),
-        "capacity_envelope/*/1": Domain("int", 1),
+        # The capping samples: 0 for a bucket only a measured floor has
+        # raised (#1955 fold e), which never counts towards capping.
+        "capacity_envelope/*/1": _COUNT,
         "solar_aperture/n": _Z, "solar_aperture/mx": _Z, "solar_aperture/my": _R,
         "solar_aperture/cov": _R, "solar_aperture/var": _Z,
         "solar_aperture/scale": Domain("real", c.SOLAR_APERTURE_MIN, c.SOLAR_APERTURE_MAX),
@@ -499,12 +523,17 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "block_dhw/until": _AT, "block_space/until": _AT,
         # #1935: the settling tail runs past the overlay's own two hours.
         "space_settle/until": Domain("instant", ahead_h=c.BOOST_SPACE_SETTLE_TAIL_HOURS),
-        "space_settle/boosted_h": _Z0,
+        "space_settle/boosted_h": Domain("real", 0.0, _SPAN_MAX_H, null=True),
     },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
     # off_restore.py: each armed consumer and the baseline its restore writes,
     # null for a consumer with a fixed neutral (the heat-curve offset: 0).
-    "off_restore": {"armed/~": _TEXT, "armed/*": Domain("real", null=True)},
+    # An armed entry is the entity beside its baseline (async_arm); a bare
+    # number is an earlier release's entry, which _entry_of still reads.
+    "off_restore": {
+        "armed/~": _TEXT, "armed/*": Domain("real", null=True),
+        "armed/*/entity_id": _TEXT._replace(whole=_ARMED), "armed/*/value": _R._replace(whole=_ARMED),
+    },
     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
     "pump_duty": {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,
@@ -569,15 +598,17 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
     # text: its plan instants lie ahead of the clock by design.
     "debug": {
         "started_at": _AT, "final": _FLAG,
-        "rows/#/t": _AT, "rows/#/mode": _TEXT, "rows/#/action_mode": _TEXT,
-        "rows/#/heat_pump_on": _FLAG,
-        **{f"rows/#/{k}": _R for k in (
-            "action_kw", "weather_stale_h", "indoor_temp", "outdoor_temp", "dhw_temp")},
-        **{f"rows/#/{k}": _Z for k in ("solve_wall_ms", "payload_solve_time_ms")},
-        **{f"rows/#/{k}": _COUNT for k in ("solve_failures", "prices_rows")},
-        "rows/#/accuracy_sample": "accuracy/accuracy/samples/#",
-        # #2271: the release that wrote the row (#2209's forward-carry).
-        "rows/#/version": _TEXT,
+        **{f"rows/#/{k}": d._replace(whole=_CYCLE_ROW) for k, d in {
+            "t": _AT, "mode": _TEXT, "action_mode": _TEXT, "heat_pump_on": _FLAG,
+            **{k: _R for k in ("action_kw", "weather_stale_h", "indoor_temp", "outdoor_temp", "dhw_temp")},
+            **{k: _Z for k in ("solve_wall_ms", "payload_solve_time_ms")},
+            **{k: _COUNT for k in ("solve_failures", "prices_rows")},
+            # The accuracy tracker's own sample declarations.
+            **{f"accuracy_sample/{k[len('samples/#/'):]}": d
+               for k, d in _ACCURACY.items() if k.startswith("samples/#/") and isinstance(d, Domain)},
+            # #2271: the release that wrote the row (#2209's forward-carry).
+            "version": _TEXT,
+        }.items()},
         "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
         # #1940: the self-tests' results, as their JSON text (the snapshots' precedent).
         "self_tests": _TEXT,

@@ -66881,6 +66881,23 @@ R.check(
     f"{_si_bias}",
 )
 
+# D17-s3-03: the first heartbeat's snapshot is taken before any accuracy sample,
+# so its summary carries no bias: no evidence of in-band accuracy, and neither
+# the service nor the drift rollback may take it. Driven through take() with an
+# empty tracker's own summary; the same ring with an in-band bias restores
+# (null control).
+_si_unevidenced = {}
+for _si_label, _si_summary in (("empty", AccuracyTracker().summary()), ("in_band", {"temperature_bias": 0.1})):
+    _si_r = _SiRing()
+    _si_r.take(datetime(2026, 6, 1, 12, tzinfo=UTC), {"marker": _si_label}, _si_summary, True)
+    _si_unevidenced[_si_label] = (_si_r.best_restore() is not None, _si_r.undo_target() is not None)
+R.check(
+    "a snapshot whose accuracy summary carries no bias is no restore point for the service "
+    "or the drift rollback, and an in-band one is (D17-s3-03)",
+    _si_unevidenced == {"empty": (False, False), "in_band": (True, True)},
+    f"{_si_unevidenced}",
+)
+
 # D1-s3-01: the typed return time is the user's wall clock, and boost, the
 # arbiter and legionella read a naive stored stamp in the same zone: Home
 # Assistant's, whose clock reads it back. Driven under a configured zone, as
@@ -85067,6 +85084,33 @@ R.check(
     == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS
     and [_he_store.in_domain(_bt_hdom, v) for v in (0.0, 0.5, None, -0.1)] == [True, True, True, False],
     f"{_bt_store.get('space_settle')}",
+)
+# D1-s2-06: the restore reads a boosted sum against that declaration before
+# timedelta() sees it, so one longer than two datetimes can bound reads unknown
+# and the rest of the restore still runs; one inside it is restored as stored,
+# and the next overlay's run still adds to the longest one.
+_bt_range = {}
+for _bt_h in (1.5, 3e10, 1e14):
+    _bt_far = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+    try:
+        boost_mod._restore_settle(_bt_far, {
+            "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat(), "boosted_h": _bt_h},
+            "space": {"until": (NOW + timedelta(hours=1)).isoformat(),
+                      "since": (NOW - timedelta(hours=1)).isoformat()},
+        }, NOW)
+        _bt_range[_bt_h] = (_bt_far.space_boosted, _bt_far.space_since == NOW - timedelta(hours=1))
+    except Exception as _bt_err:  # noqa: BLE001 -- the escape is the measurement
+        _bt_range[_bt_h] = type(_bt_err).__name__
+_bt_top = (datetime.max - datetime.min) // timedelta(hours=1)
+_bt_longest = boost_mod.BoostState(space_boosted=timedelta(hours=_bt_top))
+R.check(
+    "a stored boosted sum longer than two datetimes bound reads unknown and the overlay's "
+    "start is still restored, one inside it is restored as stored, the declaration's ceiling "
+    "is that span, and a run added to it does not overflow (D1-s2-06)",
+    _bt_range == {1.5: (timedelta(hours=1.5), True), 3e10: (None, True), 1e14: (None, True)}
+    and [_he_store.in_domain(_bt_hdom, v) for v in (float(_bt_top), float(_bt_top + 1))] == [True, False]
+    and _bt_longest._boosted_with(datetime.max, datetime.min) >= timedelta(hours=2 * _bt_top),
+    f"{_bt_range}",
 )
 
 

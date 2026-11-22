@@ -444,27 +444,35 @@ async def _load_debug(coord):
 
 
 async def _save_debug(coord):
-    """Seed one full row -- the production row builder's, every field set -- and its snapshot."""
+    """Seed two full rows -- the production row builder's, every field set -- and a snapshot.
+
+    The second row's sample is unpriced, as the coordinator writes one for an
+    interval no price covered (#2229; D15-s1-04): the ring keeps it on reload.
+    Seeded only into a ring with no start: one the load bounded keeps what its
+    loader kept, so a dropped row reads as lost, not re-seeded.
+    """
     from types import SimpleNamespace
     from heatpump_optimizer import debugger
     from heatpump_optimizer.accuracy import AccuracySample, AccuracyTracker
     held = _debug_for(coord)
-    if not held.rows:
+    if held.started_at is None:
         at = _dt.datetime(2026, 1, 1, 12, 0, 0, tzinfo=_dt.timezone.utc)
-        tracker = AccuracyTracker()
-        tracker.record(AccuracySample(
-            when=at, predicted_power_kw=1.0, actual_power_kw=1.2, predicted_temp=21.0,
-            actual_temp=21.2, predicted_cost=0.5, actual_cost=0.6, outdoor_temp=-2.0,
-            humidity=80.0, cop_residual=0.1))
-        view = SimpleNamespace(accuracy=tracker, solve_failures=1, prices=[{}] * 96,
-                               integration_version="7.0.0")
         payload = {
             "mode": "auto", "current_action": {"mode": "heat", "power": 2.5, "heat_pump_on": True},
             "solve_time_ms": 40.0, "weather_forecast_stale_hours": 0.5,
             "indoor_temperature": 21.0, "outdoor_temperature": -3.0, "dhw_temperature": 50.0,
         }
         held.started_at = at
-        held.rows = [debugger.cycle_row(view, payload, at, 12.5)]
+        held.rows = []
+        for when, cost in ((at, 0.5), (at + _dt.timedelta(minutes=30), None)):
+            tracker = AccuracyTracker()
+            tracker.record(AccuracySample(
+                when=when, predicted_power_kw=1.0, actual_power_kw=1.2, predicted_temp=21.0,
+                actual_temp=21.2, predicted_cost=cost, actual_cost=0.6, outdoor_temp=-2.0,
+                humidity=80.0, cop_residual=0.1))
+            view = SimpleNamespace(accuracy=tracker, solve_failures=1, prices=[{}] * 96,
+                                   integration_version="7.0.0")
+            held.rows.append(debugger.cycle_row(view, payload, when, 12.5))
         held.snapshots = [{"t": at.isoformat(), "cycle": 0, "data": json.dumps(payload)}]
     await held.async_save()
 
@@ -1226,7 +1234,10 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     run(duty._persist(duty.record_for(coord)))
     off = importlib.import_module("heatpump_optimizer.off_restore")
     held = run(off._armed_record(coord.hass, coord.entry))
-    held.armed.update({"heat_curve": None, "stand_in": 21.5})
+    # As async_arm writes them: None for a fixed neutral, else the entity beside
+    # its baseline (D15-s1-04); a bare number is an earlier release's entry.
+    held.armed.update({"heat_curve": None, "stand_in": {"entity_id": "number.stand_in", "value": 21.5},
+                       "earlier": 20.5})
     run(off._save(held))
     run(_save_room_history(coord))
     run(_save_notifier(coord))
@@ -1840,6 +1851,14 @@ def _a6_enrich(coord, t0) -> None:
         cusum.stat = 0.3
         cusum.evidence = ["a reading"]
         cusum.last_fed = t0
+    # The seed's colder bucket as a measured floor at partial load: the fold
+    # seeds it with no capping sample, count 0 (#1955 fold e; D15-s1-05).
+    coord._capacity_envelope[-1] = [6.0, 0]
+    # The space tracker's sample for an interval no price covered: the
+    # coordinator records it unpriced (#2229; D15-s1-04); the DHW one stays priced.
+    import dataclasses
+    coord._accuracy.samples[-1] = dataclasses.replace(
+        coord._accuracy.samples[-1], predicted_cost=None, actual_cost=None)
     for tracker in (coord._accuracy, coord._dhw_accuracy):
         tracker.lead_sigma = {3.0: 0.4, 6.0: 0.7}
         tracker.lead_counts = {3.0: 4, 6.0: 2}
@@ -2218,6 +2237,19 @@ def _domain_arm() -> None:
         disk = _a4_seed(enrich=_a6_enrich)
         seeds = {k.replace(const.DOMAIN + "_" + ENTRY_ID + "_", ""): v for k, v in disk.items()}
         undeclared = sorted({o for s, v in seeds.items() for o in _a6_off(s, v)})
+        # A document an earlier release wrote, before R10-HOTFIX-COP-UNMEASURED
+        # renamed the COP watch's keys (85ee2bfb, shape kept), and the ring's
+        # snapshots of one: declared, never read, gone at the next save (D15-s1-04).
+        tl = seeds["thermal_learning"]
+        legacy_tl = {**tl, **{k.replace("_measured", ""): tl[k]
+                              for k in ("cop_baseline_measured", "cop_health_cusum_measured")}}
+        legacy_ring = json.loads(json.dumps(seeds["snapshots"]))
+        for snap in legacy_ring["snapshots"]:
+            snap["learners"]["thermal_learning"] = legacy_tl
+        legacy_fields = sum(1 for p, *_ in _store.stored_fields("thermal_learning", legacy_tl)
+                            if p and p[0] in ("cop_baseline", "cop_health_cusum"))
+        legacy_off = _a6_off("thermal_learning", legacy_tl) + _a6_off("snapshots", legacy_ring)
+        legacy_back = _a6_roundtrip("thermal_learning", legacy_tl, savers)
         roundtrip = sorted(s for s, v in seeds.items() if s != "snapshots"
                            and _a6_roundtrip(s, v, savers) != (v, []))
         # A restore writes back only what a snapshot carries, so its null is
@@ -2295,6 +2327,12 @@ def _domain_arm() -> None:
         "in store.DOMAINS and lies in its declaration (no allow-list)",
         len(seeds) == len(LOADERS) and not undeclared,
         f"stores={sorted(seeds)} off={undeclared[:6]}",
+    )
+    R.check(
+        "an earlier release's COP watch keys, in its document and the ring's snapshots of it, "
+        "are declared, and the loader reads none of them (D15-s1-04)",
+        legacy_fields > 0 and not legacy_off and legacy_back == (tl, []),
+        f"fields={legacy_fields} off={legacy_off[:6]} escaped={legacy_back[1]}",
     )
     R.check(
         "a planted undeclared field is refused (the coverage check's own control)",

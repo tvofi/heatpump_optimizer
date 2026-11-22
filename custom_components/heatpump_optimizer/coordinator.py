@@ -482,15 +482,15 @@ def _at_least(raw: Any, lo: float, default: float) -> float:
     return value if value is not None and value >= lo else default
 
 
-def _learned_pair(entry: Any) -> list[Any]:
+def _learned_pair(entry: Any, least: int = 1) -> list[Any]:
     """A stored ``[value, samples]`` fold, as the fold writes it (F9.3).
 
-    The value is a positive quantity (a COP, a capacity in kW) and a fold
-    writes an entry at its first sample, so a non-positive value or a count
-    below one raises ValueError: the entry is dropped, not installed.
+    The value is positive (a COP, a capacity in kW) and the count at least
+    ``least``: one, or 0 where the fold seeds a measured floor (D15-s1-05);
+    else ValueError: the entry is dropped, not installed.
     """
     value, count = float(entry[0]), _storable_sample_count(entry[1])
-    if not (np.isfinite(value) and value > 0 and count >= 1):
+    if not (np.isfinite(value) and value > 0 and count >= least):
         raise ValueError(f"stored fold {entry!r} is not one a fold wrote")
     return [value, count]
 
@@ -4628,7 +4628,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if isinstance(raw_env, dict):
             for key, entry in raw_env.items():
                 try:
-                    self._capacity_envelope[int(key)] = _learned_pair(entry)
+                    self._capacity_envelope[int(key)] = _learned_pair(entry, least=0)
                 except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
         raw_ap = stored.get("solar_aperture")

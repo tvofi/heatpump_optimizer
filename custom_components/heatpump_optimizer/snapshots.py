@@ -184,7 +184,7 @@ class SnapshotRing:
     def best_restore(self) -> dict[str, Any] | None:
         """The newest snapshot worth restoring to.
 
-        Healthy inputs at capture time AND in-band accuracy — restoring to
+        Healthy inputs at capture time AND measured in-band accuracy — restoring to
         a snapshot that was already drifting merely rewinds the clock on
         the same problem. During an active alarm, additionally only
         snapshots taken BEFORE the out-of-band streak began qualify: a
@@ -221,16 +221,16 @@ class SnapshotRing:
                         snap.get("taken_at", "?"),
                     )
                 continue
-            bias = accuracy.get("temperature_bias")
-            if bias is not None:
-                # A stored leaf: "0.3", a list, a dict all reached np.isfinite
-                # and raised, from the method that must never raise (D1-s1-02).
-                try:
-                    bias = float(bias)
-                except (TypeError, ValueError, OverflowError):
-                    continue
-                if not math.isfinite(bias) or abs(bias) > BIAS_BAND_C:
-                    continue
+            # No bias is no accuracy evidence -- the first heartbeat's snapshot
+            # precedes every sample -- so it qualifies no more than a drifting
+            # one (D17-s3-03); a list or dict leaf is unreadable, not raised
+            # on, from the method that must never raise (D1-s1-02).
+            try:
+                bias = float(accuracy.get("temperature_bias"))
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if not math.isfinite(bias) or abs(bias) > BIAS_BAND_C:
+                continue
             return snap
         return None
 
