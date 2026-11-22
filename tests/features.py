@@ -47969,6 +47969,142 @@ R.check(
     },
     repr(_vr_digests),
 )
+# R11-SEAM-two-zone-slab (#3713): a two-zone valve feeds the radiators and the
+# slab, which reaches the lower floor through `slab_heat_transfer` in series.
+# One flow feeds two unequal paths, so the curve holds what the thermostat reads,
+# the area-weighted room; the house's `internal_gains` are in it, as in the
+# single-zone branch. (a) to (d) on the owner's replay install, whose valve is
+# `manual` at 21 C; the law uses `slab_heat_transfer_floored`, which equals
+# `slab_heat_transfer` on every install above 1e-6 kW/K, this one included.
+def _tz_install(**over):
+    return ThermalParameters.from_config(_tz_replay(**over))
+
+
+from profiles import replay_install as _tz_replay  # noqa: E402
+
+
+def _tz_holds():
+    from heatpump_optimizer.optimizer import _thermostat_held_state as _tz_held
+
+    _tz_p = _tz_install()
+    _tz_model = ThermalModel(_tz_p)
+    _tz_n = 960
+    _tz_out = {}
+    for _tz_outdoor in (5.0, -5.0, -15.0):
+        _tz_start = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_tz_outdoor,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _tz_w = WeatherSeries(
+            outdoor_temps=np.full(_tz_n, _tz_outdoor), wind_speeds=np.full(_tz_n, 3.0),
+            precipitation=np.zeros(_tz_n), solar_radiation=np.zeros(_tz_n))
+        _tz_h = _tz_held(_tz_model, _tz_start, _tz_w, 21.0)
+        _tz_s = _tz_h
+        for _ in range(_tz_n):
+            _tz_s = _tz_model.simulate_step(
+                _tz_s, _tz_p.max_electrical_power, _tz_outdoor, 3.0, 0.0, 0.0, 0.25)
+        _tz_b = _tz_model.simulate_trajectory_batch(
+            _tz_h, np.full((1, _tz_n), _tz_p.max_electrical_power), _tz_w, dt_hours=0.25)
+        _tz_out[_tz_outdoor] = (
+            _tz_h.room_temperature, _tz_s.room_temperature, float(_tz_b["room"][0, -1]))
+    return _tz_p, _tz_out
+
+
+_tz_p, _tz_holds_out = _tz_holds()
+R.check(
+    "two-zone valve-fed slab: the plant at its pump, settled, holds the room at the "
+    "valve's 21 C within 0.02 K, scalar step and batch twin",
+    _tz_p.two_zone_enabled and not _tz_p.slab_fed_direct and _tz_p.mixing_valve_target == 21.0
+    and all(abs(_tz_sc - 21.0) < 0.02 and abs(_tz_bt - 21.0) < 0.02
+            for _, _tz_sc, _tz_bt in _tz_holds_out.values()),
+    ", ".join(f"{o:+.0f} C scalar {sc:.3f} batch {bt:.3f}"
+              for o, (_, sc, bt) in _tz_holds_out.items()),
+)
+R.check(
+    "two-zone valve-fed slab: a thermostat set to 21 C holds 21 C behind it",
+    all(abs(_tz_room - 21.0) < 1e-3 for _tz_room, _, _ in _tz_holds_out.values()),
+    ", ".join(f"{o:+.0f} C {r:.4f}" for o, (r, _, _) in _tz_holds_out.items()),
+)
+
+
+def _tz_unchanged():
+    from heatpump_optimizer.thermal_model import _valve_draw_circuits
+    from profiles import house as _tz_house
+
+    _tz_carnot = ThermalParameters.from_config({
+        **_tz_house(), "flow_curve_cop_enabled": True, "heat_pump_max_power": 3.0,
+        "upper_floor_heat_loss": 0.2, "lower_floor_heat_loss": 0.2})
+    _tz_carnot.flow_curve_bias = 5.0
+    _tz_cases = {
+        "direct_flow_carnot": _tz_carnot,
+        "install direct slab": _tz_install(
+            topology_layout="valve_upper_direct_slab",
+            wood_tank_top_entity=None, wood_tank_bottom_entity=None),
+    }
+    _tz_out = {}
+    for _tz_name, _tz_q in _tz_cases.items():
+        _tz_m = ThermalModel(_tz_q)
+        _tz_st = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=-5.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _tz_row = [_tz_m.flow_target_for_indoor(21.0, o) for o in (5.0, -5.0, -15.0)]
+        if _tz_q.slab_fed_direct:
+            _tz_row.append(_valve_draw_circuits(_tz_m, _tz_st, -5.0, 3.0, 0.0)[0][1])
+            _tz_s = _tz_st
+            for _ in range(96):
+                _tz_s = _tz_m.simulate_step(
+                    _tz_s, _tz_q.max_electrical_power, -5.0, 3.0, 0.0, 0.0, 0.25)
+            _tz_row += [_tz_s.upper_floor_temperature, _tz_s.lower_floor_temperature,
+                        _tz_s.slab_temperature, _tz_s.buffer_tank_temperature]
+        _tz_out[_tz_name] = tuple(_tz_row)
+    return _tz_out
+
+
+# Literals recorded at 78d3b4022154 (R11-SEAM-two-zone-slab's base): the
+# unvalved curve and the direct slab's curve and 96-step day keep their bits.
+_tz_same = _tz_unchanged()
+R.check(
+    "two-zone valve curve: an unvalved install's curve and a direct slab's curve and day keep their bits",
+    _tz_same == {
+        "direct_flow_carnot": (30.142857142857146, 35.85714285714286, 41.57142857142857),
+        "install direct slab": (
+            23.1, 24.4125, 25.725, 24.631875, 30.367533973730524, 35.368439723147205,
+            44.028566572860214, 56.0),
+    },
+    repr(_tz_same),
+)
+
+
+def _tz_curve_agrees():
+    from heatpump_optimizer.thermal_model import _valve_draw_circuits
+
+    _tz_out = {}
+    for _tz_name, _tz_over in (("install", {}), ("split 0.3/0.7", {
+            "upper_floor_area_ratio": 0.3, "radiator_power_fraction": 0.7})):
+        _tz_q = _tz_install()
+        for _tz_k, _tz_v in _tz_over.items():
+            setattr(_tz_q, _tz_k, _tz_v)
+        _tz_m = ThermalModel(_tz_q)
+        _tz_st = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=0.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        for _tz_outdoor in (5.0, -5.0, -15.0):
+            _tz_out[(_tz_name, _tz_outdoor)] = (
+                _tz_m.flow_target_for_indoor(21.0, _tz_outdoor),
+                _valve_draw_circuits(_tz_m, _tz_st, _tz_outdoor, 0.0, 0.0)[0][1])
+    return _tz_out
+
+
+# Within 1e-9 K, not bitwise: the plant passes its circuits' two conductances
+# summed, the reporter the nameplate's one, which differ by an ulp.
+_tz_agree = _tz_curve_agrees()
+R.check(
+    "two-zone valve curve: the curve the model reports is the plant's own, at zero wind and rain",
+    all(abs(_tz_rep - _tz_plant) < 1e-9 for _tz_rep, _tz_plant in _tz_agree.values()),
+    repr(_tz_agree),
+)
 # R11-VALVE-REFERENCE (carries 0, 1): a single-zone valve feeds the slab, which
 # reaches the room through `slab_heat_transfer` in series, and the house's own
 # gains offset part of its loss. The curve holds its target only with both in
