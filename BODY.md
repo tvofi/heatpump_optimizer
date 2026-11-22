@@ -12,6 +12,8 @@ Closes #3857
   - a per-code tally of at most 32 codes plus `other`.
 - It is saved on every row opened or closed, at most once per 60 s. A save asked for inside that window is deferred to its end, never dropped.
 - The stop event and `async_unload_entry` both run one idempotent `async_close`: unsubscribe, cancel the deferred save, then save.
+- A setup that raises after `fault_log.async_setup` (the frontend registration or the platform forward) reaches no `async_unload_entry`; Home Assistant runs only the entry's `async_on_unload` callbacks. One of them, `_ended`, runs the same once-only `_release` (unsubscribe, cancel the deferred save) and starts the last save as a task, kept on the record as `ending`. The next `async_setup` for the entry awaits that task before it loads, so the last save lands before the load and no second record writes the store. On the unload path `async_close` has already released, so `_ended` does nothing.
+  - Alternatives that lost: moving `fault_log.async_setup` after the last step of setup that can raise holds only while no later step is added, where the callback holds under any order; releasing without the last save drops a row closed inside the 60 s window; saving from the callback without the await lets that save land after the next setup's load (mutant M5 below reads the row closed late instead of watched).
 - A restored open row continues if the first read after a restart gives the same code. Otherwise it closes at that read, marked `late`.
 - The download shows the record under `coordinator.fault_log`. The section is null when no fault source is configured.
 - Pre-fill:
@@ -32,15 +34,29 @@ Closes #3857
 - `_user_sensors_sections`' forgotten-field fallback is unreachable once both are one table, so it is removed. Its two `killed_by` pins (GUARD_OFF cc44e904, e7efd72e) name no site and are deleted.
 - The test that drove the fallback by rebinding the table now pins the single-table property: rebound to one group, the sections and the flat fields both hold exactly its two pickers. The intact table's three sections hold all 14 flat fields, open.
 
+Carry 0: (FAULT-HOLD's flag-prefill-reach, adding the hold's 10 minutes to the pre-fill rows on FAULT-TEXT's rebase) is conditional on FAULT-HOLD merging first, and it has not: `git grep -n -i 'FAULT_HOLD\|fault hold' 2f4e32c2a3b959142e29966e001292d42ff1affd -- custom_components` (origin/main at 2026-11-22T23:05Z) prints nothing. So this head's pre-fill rows name no hold, and the hold's text is carried the other way, to R11-OWNER-FAULT-HOLD (Forward-carry), whichever lands second.
+
 ## Head
 
-`41b57b2daf18d7c4dcfa33d074c601626a5a4277`, merge base `8ef450936a1786abf4bb9610dc3336da4e77e8de`.
-- At 2026-11-22T19:49Z origin/main was at `e3cb5c019b464a770cc7c6fe2fbc858ed29debf7`.
-- `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged (fixer.md step 6). The merge driver resolves `tests/closures.json` as a set.
+`c18501831385cb135f9d893599c42504162e1c26`, merge base `e3cb5c019b464a770cc7c6fe2fbc858ed29debf7`. Round 2: the repair of the round-1 block at `9f133225f72bc9581a411bdc40d544dd447f78ee`, on top of it.
+- At 2026-11-22T21:34Z origin/main was at `e3cb5c019b464a770cc7c6fe2fbc858ed29debf7`.
+- `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged (fixer.md step 6).
 
-Prepr: the single `tools/pr/prepr.sh` run, at `41b57b2daf18d7c4dcfa33d074c601626a5a4277` with `PREPR_SKIP_CLOSURES=1` (the closures recorded above) and `MUTANT_CMD` = the fault-record block's `features_block.py` call, printed `PRE-PR: 41b57b2daf18d7c4dcfa33d074c601626a5a4277 00000000000000000000000000000010000 rc=1`. Its one refusal was step 7 `pr-body`: `check \`mutation\` is red and \`## Red checks\` does not name it`. Every code step passed, and its two WARN lines are answered under `## Mutation proof` and `## Unpinned sites`. This body names that red; `tools/pr/prepr.sh --body-check` (step 7 alone, the code untouched) then printed `PR-BODY: 0 error(s)`, rc 0. No receipt was written (rc=1), so this commit carries no `Prepr:` trailer.
+Prepr: at `c18501831385cb135f9d893599c42504162e1c26`, a full run with `PREPR_SKIP_CLOSURES=1` (this delta adds no file; closures unchanged) and `MUTANT_CMD` = the fault-record block's `features_block.py` call printed `rc=1`: every code step passed, and its two refusals were the body's, step 7 `figures` (a probe cited by a path not in the tree, now cited by `git show` at the verdict SHA) and `unpinned sites` (the round-1 lines at their old numbers, now listed at this head's). Its diff-mutant step printed the same 16 survivors as round 1, all in lines this round does not touch, each dispositioned below. With the code unchanged, `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` on this body then printed `PRE-PR: c18501831385cb135f9d893599c42504162e1c26 … rc=0`. No receipt is written under `PREPR_SKIP_CODE`, so this commit carries no `Prepr:` trailer.
 
 ## Mutation proof
+
+Round 2 (this repair). The block's failing check and the review's three survivors, driven one mutant at a time on `fault_log.py` through the fault-record block (`features_block.py`, prelude by `--emit-prelude`), restored after each; `git status` after the drive lists only the two edited files. Driver: scratch, sha1 `bcf536df5bbbfc4f35c179c3c9e4b32ad20080c9`. All 9 killed:
+- M1 `_ended` not registered; M2 `_ended` releases without saving; M5 setup does not await `old.ending`; M6 the last save not kept on `ending`: each fails `a setup that fails after the record's … releases the listener and the deferred save …`.
+- M3 `_release` not once: fails `open, then unload, then an event fired after close …` (a second close saves again).
+- M4 `async_close` skips its save: fails 5 checks, `open, the stop event, then a reload …` and `through async_setup_entry …` among them.
+- F `if part.strip()` removed from `code_text`: fails `an empty item between or after commas records nothing …`.
+- K `[-EPISODES_MAX:]` removed from `loaded`: fails `a stored document of 250 rows … loads as its newest 200 …`.
+- L `max(now_s, start_s)` as `now_s` in `note`: fails `a reading stamped before the open row's start closes it at its start …`.
+
+Failing test first: this head's `tests/features.py` on `9f133225f7`'s `fault_log.py` fails exactly the failed-setup check: `(listeners left, timers left, rows the next setup loads, listeners after it, saves on one event)` read `failed=(1, 1, [[…205, …205, 'P3', True]], 2, 1)` against the unload control's `(0, 0, [[…205, …206, 'P3', False]], 1, 1)`: the listener and the deferred save survive, the row closed inside the window is never saved, and two listeners run (`1 of 24 FEATURES BLOCK FAILED`); at this head `ALL 24 FEATURES BLOCK PASSED`. The F, K and L checks pass at both, as a check for a survivor does: their kill is the mutant above.
+
+Round 1:
 
 The mutants are applied one at a time to the head's production lines and restored after each run; `git diff --stat` is unchanged after every drive. The driver is a scratch script, sha1 `ae88b8d8ff0ac35858c025bb6da5ad45540920f4`. Each runs the fault-record block through `tools/audit/seat/features_block.py` (prelude by `--emit-prelude`), W1067-G7b-1 for the Tuya table, or `tests/config_flow_steps.py` / `tests/finite_boundary.py` where named. Every one of the 53 is killed (M46–M53 are below):
 - M1 healthy set without `AMBIGUOUS_ACTIVITY_TOKENS`: fails `the text slot: heating and idle record nothing …`.
@@ -96,6 +112,8 @@ Failing test first, at the merge base's production with this head's tests (workt
 
 ## Null control
 
+- The failed-setup check's control is the unload path, `async_close` then the same callbacks: `(0, 0, [P3 row watched to its end], 1, 1)` for both at this head.
+- The empty-item check's control: `E5, E6` reads `E5, E6`, and a lone comma reads healthy. The 250-row load's: exactly 200 rows load whole. The back-stamped reading's: a reading 30 s after the start closes a 30 s row.
 - `OK` then `OK` makes no row. A healthy reading while healthy, and the same code while open, are not changes.
 - An entry with no fault slot: no record, no listener, no stop hook, no store file, and a null section. This holds through `async_setup_entry` and through `async_setup` alike.
 - The synthetic day sampled once per 30-minute cycle, today's path, sees at most 2 rows. The event path sees 13.
@@ -105,6 +123,15 @@ Failing test first, at the merge base's production with this head's tests (workt
 - Five fault-text entities are refused; four save.
 
 ## Figures
+
+- The reviewer's probe (`git show 170e96ec5c3d003f8fa7f4e09b5424dfd0d087d1:evidence/probe_failed_setup.py`, the `verdict/3870` ref; sha1 `1728c7fdb3325abce4b9086976fe7093a0ff59b7`), inserted after the failed-setup check in a scratch copy of `tests/features.py` and run through `features_block.run` (driver sha1 `be2bbf5fb52b43876f6b6142b0c1ff0b6a456eb2`), `(listeners, saves on one event)`:
+  - on `9f133225f7`'s `fault_log.py`: failed setup `(2, 2)`, null control `(1, 1)`;
+  - at this head: failed setup `(1, 1)`, null control `(1, 1)`.
+  - An intermediate state of this repair, saving from `_ended` without the await, read `(1, 2)`: the first record's last save landed inside the second setup's event window. That is why the next setup awaits it.
+- This repair's scope: `python3 tests/closure.py select --diff 9f133225f7` prints `MODE: SCOPED -- 15 script(s) run, 18 scoped out`. Each of the 15 was run at this head with `PYTHONPATH=tests/hastub` (`golden.py` under `GOLDEN_MODE=drift GOLDEN_REF=e3cb5c019b`, `env_drift.py --all e3cb5c019b`, `typing_ruler.py` with `HPO_TYPING_PYTHON=/opt/hpo/venv-ha/bin/python`), each rc 0: `ALL 6058 FEATURE CHECKS PASSED`, `ALL 2761 ENTITY CHECKS PASSED`, `ALL 615 checks PASSED` (config_flow_steps), `ALL 441 checks PASSED` (doc_claims), `ALL 164 DEBUG COLLECT CHECKS PASSED`, `ALL 153 BLOCK DUTY CHECKS PASSED`, `ALL 132 manual plan checks PASSED`, `ALL 120 FINITE BOUNDARY CHECKS PASSED`, `ALL 115 HARNESS HEADER CHECKS PASSED`, `ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED`, `ALL 12 typing-ruler source checks PASSED`, `ALL DEPLOYMENT SHAPE CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, and golden and env_drift `NO UNCLAIMED DRIFT` with `NO STALE FIXTURE: 56 committed fixture(s)`. The other 18 scripts of the merge-base scope read neither changed file and were green at `41b57b2daf` (round 1 figures).
+- Architecture score at this head: `score.py --diff e3cb5c019b` and `score.py --diff 9f133225f7` each printed `Architecture score: dS +0.0000 NULL`. `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`; `tests/comment_ratchet.py` printed `comment_ratchet: OK`.
+
+Round 1 figures, at `41b57b2daf` (merge base `8ef450936a`):
 
 - Harness `dev/audit/harnesses/r11_owner_fault_text.py`, sha1 `91e2cf769f0ec43efd76d3b7a67dddf8f59ef03f`, prints counts only. Run on invented bundles (scratch, not committed):
   - a two-row text section prints `episodes 2`, `open 1`, `distinct_texts 2`, `late 1`, rc 0;
@@ -188,23 +215,29 @@ Failing test first, at the merge base's production with this head's tests (workt
 - custom_components/heatpump_optimizer/fault_log.py:192 BOOLOP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/fault_log.py:200 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/fault_log.py:203 RETURN_DEL: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:234 RETURN_DEL: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:240 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:236 RETURN_DEL: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/fault_log.py:242 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:245 RETURN_DEL: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:247 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:250 RETURN_DEL: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:261 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:264 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:270 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:273 CMP_BOUND: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:273 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:297 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:309 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:323 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:327 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:339 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:347 CLAMP_DROP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:244 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:247 RETURN_DEL: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:249 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:252 RETURN_DEL: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:263 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:266 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:272 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:275 CMP_BOUND: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:275 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:298 BOOLOP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:298 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:301 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:313 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:326 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:334 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:338 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:340 RETURN_DEL: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:346 BOOLOP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:346 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:357 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:365 CLAMP_DROP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/modbus_prefill.py:277 BOOLOP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/modbus_prefill.py:277 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 
