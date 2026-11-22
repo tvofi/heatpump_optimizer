@@ -1,0 +1,18 @@
+SHOULD = {
+ "d915157ffe509e58": "tests/features.py 'each solve files one promise per lead bucket within the horizon' (the _c16 block) drives only a 97-point trajectory; no check files from a trajectory exactly lead/dt_h points long and asserts that lead is skipped without a raise",
+ "dff127b334682936": "tests/features.py 'a non-positive thermal figure never enters the learned envelope' (_c14_neg, round-5 D3-06 block) feeds observed_cop -1.0 only; no check feeds a thermal figure of exactly 0 kW",
+ "6b306521ae03824d": "tests/features.py's _fold_cop_evidence checks (the _cf_/_cu_ blocks near line 75990 and 76223) and tests/boost_drift_replay.py never pass modelled_cop at 0.1 and assert COP_REFUSED_MODELLED",
+ "b546d5e705722bb5": "tests/features.py's _fold_cop_evidence checks (near lines 75990 and 76223) and tests/boost_drift_replay.py never pass modelled_cop <= 0.1 and assert COP_REFUSED_MODELLED with the scale unchanged",
+ "59337f7f63497f21": "tests/features.py #53 internal-gains block (_c53, _nf_edge) folds only dt_h 0.5; no check folds at dt_h 1e-6 and asserts no profile forms",
+ "4542deee22df985f": "tests/features.py #53 internal-gains block folds only the default zone mass; no check folds with a zero thermal mass and asserts the profile untouched",
+ "8e729260c34e2e3b": "tests/features.py #53 internal-gains block; no check folds at capacity exactly 1e-6",
+ "e347b6890486dd0d": "tests/features.py #53 internal-gains block; no check feeds a non-finite residual and asserts the profile stays finite",
+ "72fbe692d30d275e": "tests/features.py 'a warm evening hour learns extra gains, tethered under the cap' asserts <= 3*g0 at g0 0.3 only; no check runs a g0 below 0.05 where the 0.05 floor binds",
+ "2e4d4a89570a1b24": "tests/features.py 'dim steps carry no aperture information and never move the scale' (_c37) folds at 50 W/m2 only; no check folds at exactly SOLAR_APERTURE_MIN_IRRADIANCE",
+ "30fcf9ba50130ea2": "tests/features.py #36 aperture block folds only dt_h 0.5; no check at dt_h 1e-6",
+ "89a3d25e2425b8e0": "tests/features.py #36 aperture block folds only the default mass and dt_h 0.5; no check with a zero mass or zero dt_h",
+ "efa2c19c51831a68": "tests/features.py #36 aperture block; no check at capacity exactly 1e-6",
+ "205d200980d58e9e": "tests/features.py #36 aperture block; no check with a modelled solar gain of exactly 1e-6 kW",
+ "96fe4cecaa16f997": "tests/features.py #36 aperture block; no check with a zero modelled gain or a non-finite residual",
+ "1a24365a55bfb2c7": "tests/features.py 'the aperture regression converges on the true scale' (_c36) runs 180 samples and reads only the end; no check asserts the scale stays 1.0 before SOLAR_APERTURE_MIN_SAMPLES",
+}

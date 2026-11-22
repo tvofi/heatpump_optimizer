@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_96fe4cecaa16f997.py: baseline vs in-memory mutant 96fe4cecaa16f997 on the production symbol; pins: No check feeds _fold_solar_aperture a zero modelled gain or a non-finite residual; dropping the guard is unseen

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_30fcf9ba50130ea2.py: baseline vs in-memory mutant 30fcf9ba50130ea2 on the production symbol; pins: No check folds the solar aperture at dt_h exactly 1e-6 h; the dt guard boundary is unpinned

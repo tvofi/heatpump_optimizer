@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py: baseline vs in-memory mutant 59337f7f63497f21 on the production symbol; pins: No check folds internal gains at dt_h exactly 1e-6 h; the dt guard boundary is unpinned

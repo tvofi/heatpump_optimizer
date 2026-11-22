@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""Build wave/D3-g06/results/<key>.json from the gate record and an executed probe run (out-of-tree helper).
+
+usage: build_result.py <key>   (probe runs from the baseline probe tree $HOME/probe-r11, never the gate tree)
+"""
+import json, os, re, subprocess, sys
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from specs import SPECS
+from meta import META
+from should import SHOULD
+
+H = os.environ["HOME"]
+BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+W = os.environ.get("WAVE_DIR", f"{H}/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g06")
+PT = f"{H}/probe-r11"
+REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes"
+MACHINE = "box D3-g06: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+FG = "dev/audit/rounds/round11/D3/s1/fullgate.py"
+
+
+def main(key):
+    spec = next(s for s in SPECS if s["key"] == key)
+    row = next(l.split("\t") for l in open(f"{W}/keys.tsv").read().splitlines()[1:] if l.startswith(key))
+    hdr = open(f"{W}/keys.tsv").readline().rstrip("\n").split("\t")
+    kr = dict(zip(hdr, row))
+    gate = json.load(open(f"{W}/gates/{key}.json"))
+    verdict = gate.get("verdict")
+    g = {k: gate.get(k) for k in ("verdict", "killed_by", "gate_rc", "wall_s", "load1_start", "load1_end", "failed_scripts", "fail_lines", "more_fails_than_null", "summary", "command")}
+    g["record"] = f"dev/audit/rounds/round11/D3/s1/wave/D3-g06/gates/{key}.json"
+    g["gate_command"] = f"PYTHONPATH=tests/hastub python3 {FG} run --src {kr['src']} --key {key}"
+    g["provisional"] = True
+    rec = {"key": key, "site": f"{kr['file'].split('/')[-1]}:{kr['line']} {kr['kind']}", "file": kr["file"],
+           "patch": f"{spec['old']} -> {spec['new']}", "function": kr["function"], "cluster": kr["cluster"],
+           "slice": kr["slice"], "m4_source": kr["m4_source"], "gate": g}
+    if verdict == "KILLED":
+        log = open(f"{W}/gates/{key}.log", errors="replace").read() if os.path.exists(f"{W}/gates/{key}.log") else ""
+        lines = []
+        cur = None
+        for ln in log.splitlines():
+            m = re.match(r"^#{10} (.+?) #{10}$", ln)
+            if m:
+                cur = m.group(1); continue
+            if cur and any(k in cur for k in gate.get("killed_by", [])) and re.match(r"^\s*FAIL\b", ln):
+                lines.append(f"{cur}: {ln.strip()[:300]}")
+        rec.update({"class": "killed", "killed_by": gate.get("killed_by"), "failing_checks": lines[:40],
+                    "non_finding": f"the full gate fails on the mutant: killed_by={gate.get('killed_by')}, gate_rc={gate.get('gate_rc')}"})
+    elif verdict == "TIMEOUT":
+        log = f"{W}/gates/{key}.log"
+        last = None
+        if os.path.exists(log):
+            for ln in open(log, errors="replace"):
+                m = re.match(r"^#{10} (.+?) #{10}$", ln.rstrip("\n"))
+                if m:
+                    last = m.group(1)
+        rec.update({"class": "timeout", "cap_s": gate.get("cap_s"), "last_script_running": last})
+    else:
+        probe = f"{REL}/probe_{key}.py"
+        cmd = f"PYTHONPATH=tests/hastub python3 {probe}"
+        r = subprocess.run(["python3", probe], cwd=PT, capture_output=True, text=True,
+                           env=dict(os.environ, PYTHONPATH="tests/hastub"))
+        res = dict(re.findall(r"^RESULT (\S+?)=(.*)$", r.stdout, re.M))
+        moved = int(res.get("cases_moved", "0").split()[0])
+        null_moved = int(res.get("null_moved", "-1").split()[0])
+        inputs = [f"{l}: {a or 'defaults'}" for l, a in spec["cases"]] + [f"null {l}: {a or 'defaults'}" for l, a in spec["nulls"]]
+        title, sev, src, prop, direction, head = META[key]
+        rec["probe"] = {"path": probe, "command": cmd, "rc": r.returncode,
+                        "baseline_value": res.get(f"{head}_baseline"), "mutant_value": res.get(f"{head}_mutant"),
+                        "cases": {l: [res.get(f"{l}_baseline"), res.get(f"{l}_mutant")] for l, _ in spec["cases"]},
+                        "cases_moved": moved, "null_moved": null_moved,
+                        "nulls": {l: res.get(f"null_{l}") for l, _ in spec["nulls"]},
+                        "inputs_tried": inputs, "thread_factor": res.get("thread_factor"), "load1": res.get("load1"),
+                        "metric": spec["metric"], "reach": spec["reach"]}
+        rec["should_fail"] = SHOULD[key]
+        if r.returncode != 0 or null_moved != 0:
+            rec["class"] = "probe-error"
+            rec["probe"]["stderr"] = r.stderr[-1500:]
+        elif moved > 0:
+            rec["class"] = "candidate"
+            load1 = float(res.get("load1", "0") or 0)
+            rec["finding"] = {
+                "title": title, "scope": "D3-s1", "step": "D3.M3", "severity_claimed": sev, "severity": sev,
+                "stop_rule_class": src, "class_guess": "new",
+                "claim": f"Mutant {key} at {rec['site']} ({rec['patch']}) {verdict} the full GATE_SCOPE=full GOLDEN_MODE=drift gate on box D3-g06, yet its probe moves on {moved} of {len(spec['cases'])} inputs: {head} baseline {res.get(f'{head}_baseline')}, mutant {res.get(f'{head}_mutant')}.",
+                "mechanism": f"Direction: {spec['direction']}. Reach: {spec['reach']}. Check that should have failed (D3.M4): {SHOULD[key]}.",
+                "metric_definition": spec["metric"][:200],
+                "phenomenon_property": prop,
+                "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivor wave list; full-gate survivors are its keys whose gates/<key>.json verdict is SURVIVED or RED-AS-NULL)",
+                "instrumented_symbol": f"custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.{spec['fn']}",
+                "harness_paths": [FG, probe],
+                "evidence_command": cmd,
+                "evidence": {"command": cmd, "harness_path": probe, "value": str(res.get(f"{head}_mutant")),
+                             "unit": f"{spec['metric']} (input {head}; baseline {res.get(f'{head}_baseline')})",
+                             "baseline_sha": BASE, "machine": MACHINE, "cpu_or_wall": "n/a",
+                             "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's full gates ran (one gate at a time)",
+                             "tolerance": "exact", "load1": load1, "thread_factor": float(res.get("thread_factor", "1") or 1)},
+                "perturbation": {"change": f"the one-line mutant {rec['patch']} at {rec['site']}, applied in memory by the probe; full gate: {g['gate_command']}",
+                                 "expected_direction": direction, "observed_value": str(res.get(f"{head}_mutant"))},
+                "null_control": {"command": cmd, "value": f"{null_moved} count",
+                                 "note": f"null inputs {', '.join(l for l, _ in spec['nulls'])}: both arms agree; full-gate null on this box: gates/null.json"},
+                "reproduction_steps": [cmd, g["gate_command"]],
+                "proposed_fix_scope": f"tests only: a check at the input above that pins the baseline outcome ({head}: {res.get(f'{head}_baseline')})",
+                "files": [kr["file"], "tests/features.py"],
+            }
+        else:
+            rec["class"] = "equivalent-candidate"
+    os.makedirs(f"{W}/results", exist_ok=True)
+    json.dump(rec, open(f"{W}/results/{key}.json", "w"), indent=1)
+    print(key, verdict, rec["class"], rec.get("probe", {}).get("cases_moved"), rec.get("probe", {}).get("null_moved"))
+
+
+if __name__ == "__main__":
+    for k in sys.argv[1:]:
+        main(k)

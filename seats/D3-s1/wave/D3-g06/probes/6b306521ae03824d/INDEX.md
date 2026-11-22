@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_6b306521ae03824d.py: baseline vs in-memory mutant 6b306521ae03824d on the production symbol; pins: No check passes modelled_cop exactly 0.1 to _fold_cop_evidence; the refusal boundary is unpinned

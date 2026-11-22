@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py: baseline vs in-memory mutant 1a24365a55bfb2c7 on the production symbol; pins: No check holds the aperture scale at 1.0 before 30 samples; and->or adopts it from the first sample

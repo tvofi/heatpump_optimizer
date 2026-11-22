@@ -1,0 +1,61 @@
+import sys, subprocess, os, re
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from drivers import DRIVERS
+from specs import SPECS
+from should import SHOULD
+pre = open('/root/probe-gen/preamble.py').read()
+out = sys.argv[1]
+for s in SPECS:
+    k = s['key']
+    body = DRIVERS[s['drv']]
+    body += f'''
+
+OLD = {s['old']!r}
+NEW = {s['new']!r}
+BASE = C.{s['fn']}
+MUT = mutant({s['fn']!r}, OLD, NEW)
+CASES = {{{", ".join(f"{l!r}: dict({a})" for l, a in s['cases'])}}}
+NULLS = {{{", ".join(f"{l!r}: dict({a})" for l, a in s['nulls'])}}}
+
+
+def show(v):
+    return str(v).replace(" ", "")
+
+
+moved = 0
+for label, kw in CASES.items():
+    b, m = drive(BASE, **kw), drive(MUT, **kw)
+    moved += int(b != m)
+    print(f"RESULT {{label}}_baseline={{show(b)}}")
+    print(f"RESULT {{label}}_mutant={{show(m)}}")
+print(f"RESULT cases_moved={{moved}} count")
+null_moved = 0
+for label, kw in NULLS.items():
+    b, m = drive(BASE, **kw), drive(MUT, **kw)
+    null_moved += int(b != m)
+    print(f"RESULT null_{{label}}={{show(b)}}")
+print(f"RESULT null_moved={{null_moved}} count")
+footer()
+'''
+    hdr = f'''#!/usr/bin/env python3
+# Metric: {s['metric']}; baseline arm vs the mutant arm, per input; cases_moved counts the inputs whose outcome differs.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_{k}.py
+#@EXPECTED@
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g06 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:{"HeatPumpOptimizerCoordinator." + s['fn']}
+#   (coordinator.py:{s['line']} `{s['old']}`), called on a live coordinator over tests/harness.py's FakeHass.
+# Perturbation: mutant {k}, `{s['old']}` -> `{s['new']}`, in memory: the method is recompiled from its own
+#   source with the one line replaced and bound to the module's globals; the baseline arm calls the class's own method.
+#   Direction: {s['direction']}.
+# Reach: {s['reach']}.
+# Should have failed: {SHOULD[k]}.
+# Null control: inputs on which both arms must agree ({", ".join(l for l, _ in s['nulls'])}); null_moved must be 0.
+'''
+    path = os.path.join(out, f'probe_{k}.py')
+    open(path, 'w').write(hdr + pre + body)
+    r = subprocess.run([sys.executable, path], capture_output=True, text=True, env=dict(os.environ, PYTHONPATH='tests/hastub'))
+    lines = [l for l in r.stdout.splitlines() if l.startswith('RESULT') and not re.match(r'RESULT (thread_factor|load1|swapins)', l)]
+    if r.returncode: print(k, 'FAILED', r.stderr[-800:]); continue
+    exp = "\n".join(f"# EXPECTED {l}" for l in lines)
+    open(path, 'w').write((hdr + pre + body).replace('#@EXPECTED@', exp))
+    print(k, " | ".join(l[7:] for l in lines))

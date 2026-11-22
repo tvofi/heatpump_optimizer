@@ -1,0 +1,90 @@
+DRIVERS = {
+"gains": '''
+WHEN = datetime(2026, 1, 15, 19, 10, tzinfo=timezone.utc)  # a dark 19:00 interval
+
+
+def drive(fn, residual=0.1, dt_h=0.5, capacity=None, g0=None, prior19=None):
+    """hour 19 of _internal_gains_profile after one fold (None: no profile formed), or the raise."""
+    c = coord()
+    c._house_heat_loss_samples = 400  # #2223: the heat-loss level has converged, the fold's gate is open
+    st = replace(c._current_state)
+    st.solar_radiation = 0.0
+    if g0 is not None:  # the configured constant the profile is tethered to (ThermalParameters.internal_gains)
+        object.__setattr__(c._ctx, "_thermal_params", replace(c._ctx._thermal_params, internal_gains=g0))
+    if prior19 is not None:
+        c._internal_gains_profile = [float(c._ctx._thermal_params.internal_gains)] * 24
+        c._internal_gains_profile[19] = prior19
+    ps = [mock.patch.object(co, "_zone_capacity", lambda p: capacity)] if capacity is not None else []
+    for p in ps:
+        p.start()
+    try:
+        r = outcome(lambda: fn(c, WHEN, st, residual, dt_h))
+    finally:
+        for p in ps:
+            p.stop()
+    if isinstance(r, str):
+        return r
+    prof = c._internal_gains_profile
+    return None if prof is None else round(prof[19], 6)
+''',
+"aperture": '''
+def drive(fn, irr=400.0, residual=0.4, dt_h=0.5, capacity=None, x=None, samples=1, vary=False, preset=None):
+    """(n, scale, mx, my) of _solar_aperture after the folds, or the raise."""
+    c = coord()
+    st = replace(c._current_state)
+    if preset:
+        c._solar_aperture.update(preset)
+    ps = []
+    if capacity is not None:
+        ps.append(mock.patch.object(co, "_zone_capacity", lambda p: capacity))
+    if x is not None:
+        ps.append(mock.patch.object(c._thermal_model, "compute_solar_gain", lambda i: x))
+    for p in ps:
+        p.start()
+    try:
+        for i in range(samples):
+            st.solar_radiation = (200.0 + 600.0 * i / max(samples - 1, 1)) if vary else irr
+            r = outcome(lambda: fn(c, st, residual * (1 + i % 3) if vary else residual, dt_h))
+            if isinstance(r, str):
+                return r
+    finally:
+        for p in ps:
+            p.stop()
+    m = c._solar_aperture
+    return (m["n"], round(m["scale"], 6), round(m["mx"], 9), m["my"] if not math.isfinite(m["my"]) else round(m["my"], 6))
+''',
+"cop": '''
+def drive(fn, modelled=0.1, heat=None, commanded=4.0, elec=1.0):
+    """(refusal code returned, cop_scale after, cop_samples after) for one interval's evidence."""
+    c = coord()
+    r = outcome(lambda: fn(c, commanded, elec, heat, (modelled, False, None)))
+    return (r, round(c._cop_scale, 6), c._cop_samples)
+''',
+"envelope": '''
+def drive(fn, observed=0.0, heat=None, measured=4.0):
+    """_capacity_envelope after one fold at nameplate, -10 C outdoor (bucket -4), 4 kW measured draw."""
+    c = coord()
+    c._current_state.outdoor_temperature = -10.0
+    c._current_action = {"power": 5.0}  # commanded at nameplate, as tests/features.py #17 drives it
+    c._measured_power = measured
+    r = outcome(lambda: fn(c, observed, heat))
+    return r if isinstance(r, str) else dict(c._capacity_envelope)
+''',
+"leads": '''
+T0 = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+
+
+def drive(fn, n):
+    """The (lead h, value) pairs _file_lead_predictions files for an n-point room trajectory, or the raise."""
+    c = coord()  # mode auto, sysid inactive, 15 min steps: dt_h 0.25, so leads 1/3/6/12/24 h index 4/12/24/48/96
+    filed = []
+    traj = [20.0 + 0.01 * i for i in range(n)]
+    res = SimpleNamespace(sensor_trajectory=lambda two_zone: list(traj), power_schedule=[1.0] * n,
+                          dhw_power_schedule=[0.0] * n, prices=[1.0] * n)
+    with mock.patch.object(c, "_file_dhw_lead_predictions", lambda *a, **k: None), \\
+         mock.patch.object(c._accuracy, "note_promise", lambda *a, **k: None), \\
+         mock.patch.object(c._accuracy, "note_lead_prediction", lambda when, lead, v: filed.append((lead, round(v, 4)))):
+        r = outcome(lambda: fn(c, res, T0))
+    return r if isinstance(r, str) else filed
+''',
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_72fbe692d30d275e.py: baseline vs in-memory mutant 72fbe692d30d275e on the production symbol; pins: No check runs the internal-gains cap with g0 below 0.05; the 0.05 floor of the cap is unpinned

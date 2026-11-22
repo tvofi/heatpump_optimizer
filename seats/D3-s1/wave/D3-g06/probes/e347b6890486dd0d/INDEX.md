@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py: baseline vs in-memory mutant e347b6890486dd0d on the production symbol; pins: No check feeds _fold_internal_gains a non-finite residual; dropping the isfinite guard is unseen
