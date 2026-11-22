@@ -2,3 +2,4 @@
 - build_result.py: writes results/<key>.json from gates/<key>.json plus the key's probe, run in the clean baseline checkout (never the gate's tree)
 - _common.txt, rig.txt, h_*.txt, b_*.txt: the fragments each probes/probe_<k8>.py is assembled from (header + _common + [rig] + body)
 - root/recorder.sh: the background loop that records each gated key and runs gate_wave.sh ckpt; root/waitev.sh: the event wait
+- root/ckptloop.sh: runs gate_wave.sh ckpt every 10 min while anything in the wave dir changed (owner NOTE 1 (d))
