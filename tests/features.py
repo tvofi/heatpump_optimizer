@@ -79226,10 +79226,10 @@ R.check(
 R.check(
     "the range ends land on the step the entity accepts: a maximum off the step "
     "rounds down, a minimum off it rounds up; crossed ends send the maximum",
-    _bst_sent(65.0, {"max": 62, "step": 5}) == [60]
+    _bst_sent(65.0, {"max": 63, "step": 5}) == [60]
     and _bst_sent(10.0, {"min": 22, "step": 5}) == [25]
     and _bst_sent(50.0, {"min": 60, "max": 40}) == [40],
-    f"{_bst_sent(65.0, {'max': 62, 'step': 5})} {_bst_sent(10.0, {'min': 22, 'step': 5})} "
+    f"{_bst_sent(65.0, {'max': 63, 'step': 5})} {_bst_sent(10.0, {'min': 22, 'step': 5})} "
     f"{_bst_sent(50.0, {'min': 60, 'max': 40})}",
 )
 R.check(
