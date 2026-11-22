@@ -13,10 +13,11 @@ i.e. the self-test to fail.
 
 The fork cases (decision 0017, --head-repo): the head lives only at
 refs/pull/1/head of the origin, beside a branch of OURS with the fork's branch
-name; a fake tools/pr/app_mint.sh records which repository the token is minted
-for, and a fake `curl` plays GitHub's update-branch on the origin. --mutant=<name>
-deletes the line ending `# mut:<name>` (remergeforkarg, remergeforkback) and
-expects the self-test to fail.
+name. remerge_main.sh must refuse before it fetches, mints a token, merges or
+pushes, whatever the fork's state (a stale head, a head main conflicts with),
+and a fake `curl` and fake tools/pr/app_mint.sh record any call. --mutant=<name>
+deletes the line ending `# mut:<name>` (remergeforkrefuse) and expects the
+self-test to fail.
 """
 import os
 import shutil
@@ -79,36 +80,20 @@ def case(root, script, detached):
 
 FORK = "contributor/heatpump_optimizer"
 OURS = "tvofi/heatpump_optimizer"
-CURL = r"""#!/bin/bash
-echo "$*" >> "$FAKE_LOG"
-o=$FAKE_ORIGIN
-case "$*" in
-  *"-X PUT"*update-branch*)
-    [ "$FAKE_MODE" = refused ] && { echo "curl: (22) The requested URL returned error: 422" >&2; exit 22; }
-    [ "$FAKE_MODE" = still ] && exit 0
-    old=$(git -C "$o" rev-parse refs/pull/1/head); m=$(git -C "$o" rev-parse main)
-    t=$(git -C "$o" merge-tree --write-tree "$old" "$m")
-    [ "$FAKE_MODE" = extra ] && t=$(git -C "$o" rev-parse "$old^{tree}")
-    # side: the second parent is main's tree on a commit off main's first-parent line; notold: the first parent is not the old head
-    [ "$FAKE_MODE" = side ] && m=$(git -C "$o" commit-tree "$m^{tree}" -p "$m" -m "beside main")
-    if [ "$FAKE_MODE" = commit ]; then c=$(git -C "$o" commit-tree "$t" -p "$old" -m "not a merge")
-    elif [ "$FAKE_MODE" = notold ]; then c=$(git -C "$o" commit-tree "$t" -p "$old^" -p "$m" -m merge)
-    else c=$(git -C "$o" commit-tree "$t" -p "$old" -p "$m" -m merge); fi
-    git -C "$o" update-ref refs/pull/1/head "$c" ;;
-  *pulls/1) printf '{"head": {"sha": "%s"}}' "$(git -C "$o" rev-parse refs/pull/1/head)" ;;
-  *) echo "fake curl: unexpected $*" >&2; exit 1 ;;
-esac
+CURL = """#!/bin/bash
+echo "curl $*" >> "$FAKE_LOG"
+exit 1
 """
-MINT = r"""mint_cleanup() { [ -z "${PRIV:-}" ] || rm -rf "$PRIV"; }
-mint_identity() { :; }
-mint_token() { echo "minted $1" >> "$FAKE_LOG"; PRIV=$(mktemp -d); echo "Authorization: Bearer t" > "$PRIV/token.h"; }
+MINT = """mint_cleanup() { :; }
+mint_identity() { echo "minted" >> "$FAKE_LOG"; }
+mint_token() { echo "minted $1" >> "$FAKE_LOG"; }
 """
 
 
 def fork_case(root, script, mode, head_repo=FORK):
-    """remerge_main.sh --head-repo on a head that is only refs/pull/1/head; <mode> is the fake
-    GitHub's answer (ok, refused, still: accepted and nothing moved, extra: a tree that is not the merge, commit: a 1-parent head)
-    or `conflict` (the fork head edits what main edited). Returns (run, facts)."""
+    """remerge_main.sh --head-repo on a head that is only refs/pull/1/head, stale against main
+    (mode `stale`) or in conflict with it (`conflict`). Returns (run, facts): the origin's refs
+    before and after, and the log of every curl, mint and app_push the script made."""
     o, r, w = root / "o", root / "r", root / "w"
     for d in (o, r, w):
         shutil.rmtree(d, ignore_errors=True)
@@ -126,8 +111,8 @@ def fork_case(root, script, mode, head_repo=FORK):
     sh("git", "update-ref", "refs/pull/1/head", "HEAD", cwd=o)
     sh("git", "checkout", "-q", "main", cwd=o)
     commit("c", "main")
-    old = sh("git", "rev-parse", "refs/pull/1/head", cwd=o).stdout.strip()
-    ours = sh("git", "rev-parse", "fix/x", cwd=o).stdout.strip()
+    refs = lambda: sh("git", "for-each-ref", "--format=%(refname) %(objectname)", cwd=o).stdout  # noqa: E731
+    before = refs()
     throwaway_git_clone(o, r, "-q")
     for f in ("pr_args.sh", "gh_read.py"):
         (r / "tools/audit/seat").mkdir(parents=True, exist_ok=True)
@@ -146,47 +131,29 @@ def fork_case(root, script, mode, head_repo=FORK):
     log.write_text("")
     sh("git", "fetch", "-q", "origin", "+refs/pull/1/head:refs/remotes/pull/1/head", cwd=r)
     sh("git", "worktree", "add", "-q", "--detach", str(w), "refs/remotes/pull/1/head", cwd=r)
+    head_before = sh("git", "rev-parse", "HEAD", cwd=w).stdout
     body = root / "body.md"
     body.write_text("Closes #1\n")
+    # a `git` wrapper that records every fetch or push the script attempts
+    (bindir / "git").write_text('#!/bin/bash\ncase "$*" in *" fetch "*|"fetch "*|*" push "*|"push "*|*" -C "*" fetch "*) echo "git $*" >> "$FAKE_LOG";; esac\nexec '
+                                + shutil.which("git") + ' "$@"\n')
+    (bindir / "git").chmod(0o755)
     run = sh("bash", "tools/audit/seat/remerge_main.sh", "1", str(w), "fix/x", str(body), "--head-repo", head_repo,
-             cwd=r, env={"PATH": f"{bindir}:{os.environ['PATH']}", "FAKE_LOG": str(log), "FAKE_ORIGIN": str(o),
-                         "FAKE_MODE": mode, "REMERGE_POLLS": "2"})
-    return run, {"old": old, "new": sh("git", "rev-parse", "refs/pull/1/head", cwd=o).stdout.strip(),
-                 "ours_kept": sh("git", "rev-parse", "fix/x", cwd=o).stdout.strip() == ours, "log": log.read_text()}
+             cwd=r, env={"PATH": f"{bindir}:{os.environ['PATH']}", "FAKE_LOG": str(log), "FAKE_ORIGIN": str(o)})
+    return run, {"refs_same": refs() == before, "log": log.read_text(),
+                 "worktree_same": sh("git", "rev-parse", "HEAD", cwd=w).stdout == head_before}
 
 
 def fork_checks(root, script):
-    ok, f = fork_case(root, script, "ok")
-    put = "-X PUT" in f["log"] and f"repos/{OURS}/pulls/1/update-branch" in f["log"] \
-        and '{"expected_head_sha":"%s"}' % f["old"] in f["log"]
-    out = {
-        "a fork head is merged by update-branch at the expected head and reads back PUSHED at the new head":
-            ok.returncode == 0 and put and f["new"] != f["old"]
-            and f"PUSHED {f['new']} to {FORK}:fix/x" in ok.stdout and "RECARRY: fork head" in ok.stdout,
-        "... the token is minted for OUR repository, never the fork's, and app_push.sh is not run":
-            f"minted {OURS}\n" in f["log"] and f"minted {FORK}" not in f["log"] and "app_push" not in f["log"],
-        "... and our own branch of the fork's branch name is neither read as the start nor moved":
-            f["ours_kept"] and ok.returncode == 0,
-    }
-    no, f = fork_case(root, script, "refused")
-    out["a refused update-branch is REMERGE FAILED at push naming the fork, non-zero, never PUSHED"] = (
-        no.returncode != 0 and f"REMERGE FAILED 1 at push (fork {FORK}:fix/x)" in no.stdout
-        and "maintainer edits" in no.stdout and "PUSHED" not in no.stdout and f["new"] == f["old"])
-    no, f = fork_case(root, script, "still")
-    out["an update-branch GitHub accepted that moved nothing is REMERGE FAILED at push saying so, never PUSHED"] = (
-        no.returncode != 0 and f"did not move off {f['old']}" in no.stdout and "PUSHED" not in no.stdout)
-    for mode, what in (("extra", "a tree that is not git's automatic merge"), ("commit", "one parent"),
-                       ("side", "a second parent that is no first-parent commit of main (its tree is main's)"),
-                       ("notold", "a first parent that is not the old head (the tree is the automatic merge)")):
+    out = {}
+    for mode, what in (("stale", "a stale fork head (main moved past it)"), ("conflict", "a fork head main conflicts with")):
         no, f = fork_case(root, script, mode)
-        out[f"a new head with {what} fails the read-back: not PUSHED, non-zero"] = (
-            no.returncode != 0 and "is not the automatic 2-parent merge" in no.stdout and "PUSHED" not in no.stdout)
-    no, f = fork_case(root, script, "conflict")
-    out["a fork head main does not merge into is MERGE CONFLICT before any token or update-branch"] = (
-        no.returncode != 0 and "MERGE CONFLICT 1" in no.stdout and f["log"] == "")
-    no, f = fork_case(root, script, "ok", head_repo=OURS)
-    out["--head-repo naming our own repository refuses at args, nothing fetched, minted or asked"] = (
-        no.returncode != 0 and "REMERGE FAILED 1 at args" in no.stdout and f["log"] == "" and f["new"] == f["old"])
+        out[f"{what} is refused, naming the fork and saying the contributor brings the branch up to date with main"] = (
+            no.returncode != 0 and f"REMERGE FAILED 1 at fork ({FORK}:fix/x)" in no.stdout
+            and "the contributor brings the branch up to date with main" in no.stdout
+            and "PUSHED" not in no.stdout and "MERGE CONFLICT" not in no.stdout)
+        out[f"... for {what}: nothing is fetched, minted, curled, app_pushed or pushed, and no ref or worktree moved"] = (
+            f["log"] == "" and f["refs_same"] and f["worktree_same"])
     return out
 
 

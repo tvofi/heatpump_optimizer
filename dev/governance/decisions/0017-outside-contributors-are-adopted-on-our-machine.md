@@ -116,8 +116,8 @@ without waiting for them, and:
   main. A fork pull request whose head main has moved past is parked
   `[OUTSIDE]`, naming the fork, until the contributor has merged main into it;
   the train does not ask GitHub's `update-branch` and does not use a token for
-  the fork. `remerge_main.sh --head-repo`, built for part 2's merge, is
-  withdrawn by this ruling; its removal from the tooling is a separate change.
+  the fork. `remerge_main.sh --head-repo`, built for part 2's merge, now refuses
+  before it fetches or pushes, and the train parks without calling it.
 - **The first adopted verdict is the live check** of the `bus.sh adopt`,
   `confirm` and `app_approve.sh` path, which no test fork exercised. Which
   `commit_id` GitHub reports for a mandated class-O approval is read from the

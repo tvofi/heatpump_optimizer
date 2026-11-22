@@ -119,9 +119,12 @@
   (`Train.outside_contract`): on main before any approval, on a `batch/`
   rehearsal before the merge, where the contract's base rule refuses it. A
   refusal, an unread pull request or a stale copy parks the entry
-  `[OUTSIDE]`, naming the fork; its recarry worktree is detached at
-  `refs/remotes/pull/<pr>/head`; moving it with `remerge_main.sh --head-repo` is
-  withdrawn by decision 0017's ruling of 2026-11-22 (the contributor merges main).
+  `[OUTSIDE]`, naming the fork. A fork head that does not contain main is
+  never recarried: the entry parks `[OUTSIDE]` before any fetch, worktree or
+  `remerge_main.sh` call, saying the contributor brings the branch up to date
+  with main (decision 0017; tvofi, 2026-11-22: "DO NOT MERGE ANYTHING ON
+  ANOTHER USERS FORK"); the train's `[OUTSIDE]` park for it is lifted by their
+  merge, then their reviewer's verdict at the new head.
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
