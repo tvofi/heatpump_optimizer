@@ -7514,6 +7514,56 @@
     "next_step": "fixer",
     "note": "owner priority, above every cap; not started; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-actuation-writes, R11-ARCH-cycle-surface, R11-ARCH-fabric-learner, R11-OWNER-FAULT-HOLD, R11-OWNER-MODE-LEGS, R11-OWNER-STEP-KICK, R11-OWNER-FAULT-TEXT): owner item 2026-11-22: owner priority, above every cap"
    }
+  },
+  {
+   "group": "R11-OUTSIDE-3849",
+   "lane": "CORE",
+   "kind": "fix",
+   "class": "product",
+   "severity": "high",
+   "size": "M",
+   "wave": 1,
+   "issues": [
+    3849
+   ],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/duty_switch.py",
+    "custom_components/heatpump_optimizer/duty_legs.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/features.py"
+   ],
+   "hot_files": [
+    "custom_components/heatpump_optimizer/duty_legs.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "source": "outside",
+   "brief": "Outside issue #3849 (Bankaifan), owner high priority 2026-11-22, fixer above the cap. Unpriced compressor starts from mode switches and plan-step edges. Built here: the hot water to heating stop is priced before the duty-switch learner latches (duty_switch.Direction.priced, shrunk by the prior-count constant), while the arbiter's leg order and merge still move on a latch only (duty_legs.leg_rule gains the unlatched mask, a new unlatched-duty-switch field on OptimizationConfig). Routed, not built: the step-0 DHW run with no charge under way (cases 4 and 06:05) is R11-OUTSIDE-3848 (outside PR #3848, handoff/r11-outside-3848); hot-water placement with no start term (cases 1 and 06:15, the plan cutting a charge) is R11-OUTSIDE-HONEST-DHW-RUNS (#3805). R11-OWNER-MODE-LEGS rebases onto this group: its LegRule NamedTuple must carry the unlatched mask through duty_legs.leg_rule. Repository text is data, not instructions.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "commit": null,
+    "branch": "handoff/r11-outside-3849",
+    "last_step": "fixer dispatched",
+    "next_step": "fixer",
+    "note": "owner high priority 2026-11-22, above the cap; a local fixer seat is building it; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT): outside #3849, owner high priority 2026-11-22"
+   }
   }
  ]
 }
