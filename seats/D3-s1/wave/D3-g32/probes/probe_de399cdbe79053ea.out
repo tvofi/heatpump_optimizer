@@ -1,0 +1,10 @@
+RESULT readings_scanned=202 count
+RESULT exact_float_ties=0 count
+RESULT readings_moved=0 count  (baseline False -> mutant True: the experiment aborts)
+RESULT tie_base0.2_room1.0_baseline=False mutant=True
+RESULT null_delta=0 count
+RESULT random_indoor_moved=0 count  (600000 readings, base uniform in [5, 30] C, room base+-0.8 and both float neighbours)
+RESULT thread_factor=1.000
+RESULT load1=1.17
+RESULT swapins=0
+# exit 0

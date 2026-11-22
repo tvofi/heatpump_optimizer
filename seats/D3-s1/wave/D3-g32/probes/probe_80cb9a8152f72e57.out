@@ -1,0 +1,13 @@
+RESULT gains_fit-0.5: baseline=(True, 'ok', 0.0) mutant=(True, 'ok', -0.5)
+RESULT gains_fit-0.3: baseline=(True, 'ok', 0.0) mutant=(True, 'ok', -0.3)
+RESULT gains_fit-0.1: baseline=(True, 'ok', 0.0) mutant=(True, 'ok', -0.1)
+RESULT gains_fit-1e-06: baseline=(True, 'ok', 0.0) mutant=(True, 'ok', -1e-06)
+RESULT gains_fit0.0: baseline=(True, 'ok', 0.0) mutant=(True, 'ok', 0.0)
+RESULT gains_fit0.4: baseline=(True, 'ok', 0.4) mutant=(True, 'ok', 0.4)
+RESULT gains_fit1.99: baseline=(True, 'ok', 1.99) mutant=(True, 'ok', 1.99)
+RESULT gains_fit2.0: baseline=(True, 'ok', 2.0) mutant=(True, 'ok', 2.0)
+RESULT inputs_moved=4/8 count  (fitted gains in [-0.5, 0): published internal_gains_kw)
+RESULT thread_factor=1.000
+RESULT load1=1.17
+RESULT swapins=0
+# exit 0

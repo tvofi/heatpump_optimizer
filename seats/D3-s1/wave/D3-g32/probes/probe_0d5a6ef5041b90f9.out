@@ -1,0 +1,13 @@
+RESULT moved_features_heavy_(6.0, 3.0, 21.0, 2.0): baseline=4.353515625 mutant=4.3125
+RESULT moved_features_heavy_(8.0, 4.0, 21.5, 8.0): baseline=2.8828125 mutant=2.75
+RESULT moved_light_(6.0, 3.0, 21.0, 2.0): baseline=2.818359375 mutant=2.8125
+RESULT moved_light_(8.0, 4.0, 21.5, 8.0): baseline=1.822265625 mutant=1.75
+RESULT moved_leaky_(6.0, 3.0, 21.0, 2.0): baseline=5.663085938 mutant=5.625
+RESULT moved_leaky_(8.0, 4.0, 21.5, 8.0): baseline=3.578125 mutant=3.5
+RESULT inputs_moved=7/24 count
+RESULT features_cell_step_kw_baseline=4.353515625 mutant=4.3125
+RESULT features_cell_peak_c_baseline=0.6499 mutant=0.6402 bound=0.65
+RESULT thread_factor=1.000
+RESULT load1=1.17
+RESULT swapins=0
+# exit 0

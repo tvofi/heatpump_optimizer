@@ -1,0 +1,17 @@
+RESULT rows0_baseline='even a noise-free night on the declared plant places the heat-loss interval at +-16 %, wider than the +-10 % adoption bar'
+RESULT rows0_mutant='even a noise-free night on the declared plant places the heat-loss interval at +-16 %, wider than the +-10 % adoption bar'
+RESULT rows0_moved=0 count
+RESULT rows1_baseline='even a noise-free night on the declared plant places the heat-loss interval at +-12 %, wider than the +-10 % adoption bar'
+RESULT rows1_mutant=raised IndexError
+RESULT rows1_moved=1 count
+RESULT rows2_baseline='even a noise-free night on the declared plant places the heat-loss interval at +-12 %, wider than the +-10 % adoption bar'
+RESULT rows2_mutant='even a noise-free night on the declared plant places the heat-loss interval at +-12 %, wider than the +-10 % adoption bar'
+RESULT rows2_moved=0 count
+RESULT rows4_baseline='even a noise-free night on the declared plant places the heat-loss interval at +-10 %, wider than the +-10 % adoption bar'
+RESULT rows4_mutant='even a noise-free night on the declared plant places the heat-loss interval at +-10 %, wider than the +-10 % adoption bar'
+RESULT rows4_moved=0 count
+RESULT step_driven_unadoptable_calls=4 count  min_settling_rows=2
+RESULT thread_factor=1.000
+RESULT load1=1.24
+RESULT swapins=0
+# exit 0

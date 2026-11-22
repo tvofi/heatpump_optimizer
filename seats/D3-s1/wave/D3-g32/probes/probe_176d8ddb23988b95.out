@@ -1,0 +1,7 @@
+RESULT completed_state_moved=0 count  (phase, last_run, result, routing flag)
+RESULT completed_info_logs_baseline=1 mutant=0
+RESULT null_refused_state_moved=0 count  info_logs_baseline=0 mutant=0
+RESULT thread_factor=1.000
+RESULT load1=1.17
+RESULT swapins=0
+# exit 0

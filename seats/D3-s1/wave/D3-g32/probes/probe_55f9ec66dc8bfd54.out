@@ -1,0 +1,17 @@
+RESULT caller_state_absent=None
+RESULT caller_verdict_baseline_absent=('fail', 'Price entity is empty')
+RESULT caller_verdict_mutant_absent=('fail', 'Price entity is empty')
+RESULT caller_state_empty=None
+RESULT caller_verdict_baseline_empty=('fail', 'Price entity is empty')
+RESULT caller_verdict_mutant_empty=('fail', 'Price entity is empty')
+RESULT caller_state_none=None
+RESULT caller_verdict_baseline_none=('fail', 'Price entity is empty')
+RESULT caller_verdict_mutant_none=('fail', 'Price entity is empty')
+RESULT caller_inputs_moved=0 count
+RESULT direct_verdict_baseline=('fail', 'Price entity is empty')
+RESULT direct_verdict_mutant=('fail', 'Price entity published no today/tomorrow series')
+RESULT direct_moved=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.17
+RESULT swapins=0
+# exit 0

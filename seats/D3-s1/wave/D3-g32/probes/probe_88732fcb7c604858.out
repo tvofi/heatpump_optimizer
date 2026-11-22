@@ -1,0 +1,18 @@
+RESULT tau_fast_1.250h_baseline_ok=False mutant_ok=False
+RESULT tau_fast_0.500h_baseline_ok=False mutant_ok=False
+RESULT tau_fast_0.333h_baseline_ok=True mutant_ok=False
+RESULT tau_fast_0.312h_baseline_ok=True mutant_ok=False
+RESULT tau_fast_0.250h_baseline_ok=True mutant_ok=False
+RESULT tau_fast_0.200h_baseline_ok=True mutant_ok=False
+RESULT tau_fast_0.167h_baseline_ok=True mutant_ok=True
+RESULT tau_fast_0.161h_baseline_ok=True mutant_ok=True
+RESULT tau_fast_0.125h_baseline_ok=True mutant_ok=True
+RESULT tau_fast_0.083h_baseline_ok=True mutant_ok=True
+RESULT verdicts_moved=4 count  (tau_fast in (1/6, 1/3] h)
+RESULT tau_0.25h_baseline=(True, 'ok')
+RESULT tau_0.25h_mutant=(False, 'slab mode too slow for the excitation window: tau_fast=0.25 h needs 1.5 h to settle, but the shortest phase of the 5.0 h window is 1.0 h')
+RESULT null_delta=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.17
+RESULT swapins=0
+# exit 0

@@ -1,0 +1,10 @@
+nproc: 4
+cpu:  Intel(R) Xeon(R) Processor @ 2.10GHz
+               total        used        free      shared  buff/cache   available
+Mem:           16087        1114       13468          12        1802       14972
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  18% /
+load1: 0.95
+python3: /opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/bin/python3.14
+2026-11-22T21:43:37Z
