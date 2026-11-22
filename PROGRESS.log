@@ -11,3 +11,4 @@
 1795367479 HB alive
 1795367610 CKPT P2 cyclic_range_wrap red fixed in dhw_planner; entities rerun next snapshot 45e73629b689
 1795368082 HB alive
+1795368344 CKPT 5/7 survivors killed by new checks; 2 declaration mutants on entities.py; head entities.py rerun snapshot 78e301064333
