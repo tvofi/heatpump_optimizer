@@ -66,11 +66,11 @@ from .dhw_planner import DhwPlanner
 from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
+from .rooms import mark_room_floor, raised_floor
 from .payload import (
     CurrentAction,
     IDLE_REASONS,
     REASON_COMFORT_FLOOR,
-    REASON_ROOM_FLOOR,
     REASON_CHEAP_PRICE,
     REASON_PREHEAT_WEATHER,
     REASON_SCHEDULED,
@@ -711,36 +711,6 @@ def _padded_nonneg(values: Any, n_steps: int) -> np.ndarray:
     ``n_steps``, or padded with zeros when the forecast is shorter."""
     head = np.clip(np.asarray(values, dtype=float), 0.0, None)[:n_steps]
     return np.pad(head, (0, n_steps - head.size))
-
-
-def _raised_floor(
-    low: np.ndarray, high: np.ndarray, margins: np.ndarray | None,
-    floors: np.ndarray | None, n_steps: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
-    """The floor one solve holds, the comfort floor before the mold guard and
-    the padded mold floor, from the configured band ``low``..``high``.
-
-    T5 (#16 #54): the comfort floor's two adjustments, both optional and both
-    applied here, the single site the bounds are built, so every consumer
-    (objectives, safety releases, pin repair) sees the same effective floor.
-    ``margins`` is a per-step raise (the model's own expected error at that
-    lead, plus any room lift); ``floors`` an absolute per-step floor (the mold
-    guard). None for both is byte-for-byte the previous bounds.
-    """
-    comfort, mold = low, None
-    if margins is None and floors is None:
-        return low, comfort, mold
-    if margins is not None:
-        low = comfort = low + _padded_nonneg(margins, n_steps)
-    if floors is not None:
-        f = np.asarray(floors, dtype=float)[:n_steps]
-        mold = np.full(n_steps, -np.inf)
-        mold[:f.size] = f
-        low = np.maximum(low, mold)
-    # Whatever raised the floor, the band never squeezes shut: a floor at or
-    # above the ceiling makes the solve infeasible and the comfort penalty
-    # unbounded.
-    return np.minimum(low, high - 0.5), comfort, mold
 
 
 def _padded_mask(mask: Any, n_steps: int) -> np.ndarray | None:
@@ -2517,28 +2487,6 @@ def _apply_pins_to_bounds(
     return out
 
 
-def _mark_room_floor(
-    reasons: list[str], room_temps: np.ndarray, temp_min_bounds: np.ndarray,
-    room_lifts: np.ndarray | None,
-) -> list[str]:
-    """Relabel a ``comfort_floor`` step ``room_floor`` where the floor less
-    ``room_lifts`` (``_Horizon.room_lifts``) would not hold it (#3616).
-
-    The same 0.15 K test ``classify_space_steps`` puts a step at the floor
-    with, against the floor the solve held without the room lift: the step
-    keeps its rank, and only the lift's share of the floor is named apart.
-    None leaves every label as classified.
-    """
-    if room_lifts is None:
-        return reasons
-    last = len(room_temps) - 1
-    return [
-        REASON_ROOM_FLOOR if reason == REASON_COMFORT_FLOOR
-        and room_temps[min(i + 1, last)] > temp_min_bounds[i] - room_lifts[i] + 0.15 else reason
-        for i, reason in enumerate(reasons)
-    ]
-
-
 def _mark_blocked_reasons(reasons: list[str], blocked: bool) -> list[str]:
     """Relabel a mode-blocked channel's empty steps from ``idle``.
 
@@ -4077,7 +4025,7 @@ class HeatPumpOptimizer:
             dhw_heating_cost=dhw_cost,
             space_reasons=_mark_blocked_reasons(
                 _mark_manual_reasons(
-                    _mark_room_floor(classify_space_steps(
+                    mark_room_floor(classify_space_steps(
                         space_power,
                         h.prices,
                         room,
@@ -4927,13 +4875,13 @@ class HeatPumpOptimizer:
         ]
         low = np.array([lo for lo, _ in bounds])
         temp_max_bounds = np.array([high for _, high in bounds])
-        temp_min_bounds, comfort_floors, mold_floors = _raised_floor(
-            low, temp_max_bounds, min_temp_margins, min_temp_floors, n_steps)
+        margins = None if min_temp_margins is None else _padded_nonneg(min_temp_margins, n_steps)
+        temp_min_bounds, comfort_floors, mold_floors = raised_floor(
+            low, temp_max_bounds, margins, min_temp_floors, n_steps)
         lifts = None
         if room_lifts is not None:  # the same arithmetic on the margins less the lift
-            margins = _padded_nonneg(np.zeros(n_steps) if min_temp_margins is None else min_temp_margins, n_steps)
-            unlifted = _raised_floor(low, temp_max_bounds, margins - _padded_nonneg(room_lifts, n_steps),
-                                     min_temp_floors, n_steps)[0]
+            unlifted = raised_floor(low, temp_max_bounds, (0.0 if margins is None else margins)
+                                    - _padded_nonneg(room_lifts, n_steps), min_temp_floors, n_steps)[0]
             lifts = np.maximum(temp_min_bounds - unlifted, 0.0)
         return comfort_targets, temp_min_bounds, temp_max_bounds, (comfort_floors, mold_floors, lifts)
 
