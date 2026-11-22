@@ -1,0 +1,8 @@
+RESULT positive_dt_differing=0
+RESULT dt0_baseline=None dt0_mutant=ZeroDivisionError
+RESULT dtneg_baseline=None dtneg_mutant=None
+RESULT reach=ctx.dt is the configured step length in hours (positive); no input with dt > 0 separates the arms
+RESULT inputs_tried=dt 1.0, 0.25, 1e-7 (window >= horizon in both), 0.0, -1.0
+RESULT thread_factor=1.017
+RESULT load1=1.18
+RESULT swapins=0

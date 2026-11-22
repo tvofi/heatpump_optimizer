@@ -1,0 +1,12 @@
+RESULT plan_baseline=[1e-06,0,0,1.31032673,0,0]
+RESULT plan_mutant=[1.37938921,0,0,0,0,0]
+RESULT step0_delta_kw=1.379 kW
+RESULT cost_baseline=3.93098 cost_mutant=1.37939
+RESULT null_delta_kw=0 kW
+RESULT sweep_inputs=80
+RESULT differing_inputs=0
+RESULT sweep_max_delta_kw=0 kW
+RESULT inputs_tried=step-0 demand exactly p_total_max-1e-6 (tie); p_total_max-2e-6 (null); 80 random (no tie: 0 differ)
+RESULT thread_factor=1.005
+RESULT load1=1.36
+RESULT swapins=0

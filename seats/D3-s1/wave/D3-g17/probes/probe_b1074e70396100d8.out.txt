@@ -1,0 +1,13 @@
+RESULT plan_baseline=[1.75073672,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+RESULT plan_mutant=[0,0,0,0,0,0,0,0,0,0,1.47660443,0,0,0,0,0]
+RESULT cost_baseline=1.5757
+RESULT cost_mutant=0.14766
+RESULT delta_kw=1.751 kW
+RESULT null_flat_delta_kw=0 kW
+RESULT sweep_inputs=120
+RESULT differing_inputs=7
+RESULT sweep_max_delta_kw=1.88 kW
+RESULT inputs_tried=16 steps dt 1 h: spare cheap step 0, full steps 1-13 and 15, step 10 cheapest, spare step 14 at 4.0; flat prices (null); 120 random at dt 1
+RESULT thread_factor=1.007
+RESULT load1=1.31
+RESULT swapins=0

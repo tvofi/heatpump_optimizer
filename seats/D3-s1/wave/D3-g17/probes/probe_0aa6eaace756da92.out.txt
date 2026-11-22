@@ -1,0 +1,12 @@
+RESULT tie_min_run_power=1.67716250482 kW
+RESULT tie_plan_baseline=[0,0,0,0,0,0,0,0,1.6771625,0,0,0]
+RESULT tie_plan_mutant=[0,0,0,0,0,0,0,0,1.6771625,0,0,0]
+RESULT tie_delta_kw=0 kW
+RESULT sweep_inputs=160
+RESULT differing_inputs=0
+RESULT sweep_max_delta_kw=0 kW
+RESULT null_delta_kw=0 kW
+RESULT inputs_tried=tie(min_run_power==landed power);160 random (derate 0/0.2, min_run_power 0.1/0.5/1.5/3.0, initial plans with 0/0.5/3.0, integer-price ties)
+RESULT thread_factor=1.000
+RESULT load1=1.18
+RESULT swapins=0
