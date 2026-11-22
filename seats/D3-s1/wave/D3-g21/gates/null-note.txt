@@ -1,0 +1,6 @@
+box D3-g21 full-gate null control (fullgate.py null via gate_wave.sh null), 2026-11-22, nproc 4 Intel Xeon @ 2.10GHz, load1 0.78..0.94, wall 3461.9 s (provisional)
+gate_rc=1, 3 scripts red, all artefact checks (the same three as box D3-rem's null):
+- closure.py selftest 2 of 118: "a refused merge surfaces merge()'s reason" / "and a merge that succeeds carries no merge reason" [status='skip-not-under-scoped'] -- merge-tool pins, branch environment.
+- entities.py 1 of 2723: "and is accepted when it does [the scoped path records only what the diff can reach]" -- scoped-gate pin, branch environment.
+- harness_headers.py 4 of 115: claims.py header drift (claims_true 123/122, claims_false 0/1) and its uncommitted claims.json/claims.md (round4/D6, executed by the check itself), and "every inlined walk matches the canonical helper" naming this box's untracked probes (their repo_root walk); these files stay in place for every key gate so the count is stable.
+No check here reads a production cell file. fullgate.py counts KILLED only on a script not red here or on more failing checks than here. Usable: not re-taken, no BLOCKED.
