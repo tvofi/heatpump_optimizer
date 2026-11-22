@@ -836,6 +836,7 @@ from homeassistant.helpers import entity_registry as er  # noqa: E402
 from heatpump_optimizer import const as const_mod  # noqa: E402
 from heatpump_optimizer import replay_doc  # noqa: E402
 from heatpump_optimizer.const import PRICE_SOURCE_ENTITY  # noqa: E402
+from heatpump_optimizer.coordinator import CoordinatorDiagnostics  # noqa: E402
 
 _export_spec = importlib.util.spec_from_file_location(
     "hpo_export_under_test", Path("tools/replay/export.py"))
@@ -1538,7 +1539,8 @@ async def _planted_download(value_pass=True):
     (Path(folder) / ".storage" / debugger.store_keys("rp")["accuracy"]).write_text(
         json.dumps({"version": 1, "data": {"note": _leak_text("store"),
                                            "lat": float(EXACT[0])}}))
-    coord.mode = _leak_text("mode")
+    # Diagnostics reads the mode from the published view (ADR-005), so the plant goes there.
+    coord.diagnostics_state = lambda: CoordinatorDiagnostics(mode=_leak_text("mode"))
     coord.data = {"insight": {"last_diagnosis": _leak_text("diagnosis")},
                   "problem_messages": [_leak_text("input")],
                   "current_action": _leak_text("plan"),
