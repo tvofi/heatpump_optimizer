@@ -1,0 +1,57 @@
+CASE pad_known_short(n-1): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_known_exact(n): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_known_long(n+1): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_known_empty(0): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_short(n-1): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_exact(n): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_long(n+1): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_empty(0): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_int_exact: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam0_sigma_none: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam0_sigma_pos: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam0_sigma_inf: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam0_sigma_nan: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_neg_sigma_pos: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_none: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_empty: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_pos: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.25, 4.25]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.25, 4.25]) moved=0
+CASE lam_pos_sigma_pos_all_known: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_zero: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_neg: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_nan_unknown: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_nan_known: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_zero_int_prices: baseline=('ok', 'prices', '<i8', [1, 2, 3, 4]) mutant=('ok', 'prices', '<i8', [1, 2, 3, 4]) moved=0
+CASE lam_pos_sigma_zero_negzero_price: baseline=('ok', 'prices', '<f8', [-0.0, -0.0, -0.0, -0.0]) mutant=('ok', 'prices', '<f8', [-0.0, -0.0, -0.0, -0.0]) moved=0
+CASE lam_tiny_sigma_tiny: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+RESULT null_cases_moved=0 count
+RESULT null_cases_tried=25 count
+CASE pad_known_short(n-1): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_known_exact(n): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_known_long(n+1): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_known_empty(0): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_short(n-1): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_exact(n): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_long(n+1): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_empty(0): baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE pad_pv_int_exact: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam0_sigma_none: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam0_sigma_pos: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam0_sigma_inf: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam0_sigma_nan: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_neg_sigma_pos: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_none: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_empty: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_pos: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.25, 4.25]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.25, 4.25]) moved=0
+CASE lam_pos_sigma_pos_all_known: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_zero: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_neg: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_nan_unknown: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_nan_known: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+CASE lam_pos_sigma_zero_int_prices: baseline=('ok', 'prices', '<i8', [1, 2, 3, 4]) mutant=('ok', 'prices', '<i8', [1, 2, 3, 4]) moved=0
+CASE lam_pos_sigma_zero_negzero_price: baseline=('ok', 'prices', '<f8', [-0.0, -0.0, -0.0, -0.0]) mutant=('ok', 'prices', '<f8', [-0.0, -0.0, -0.0, -0.0]) moved=0
+CASE lam_tiny_sigma_tiny: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=0
+RESULT mutant_cases_moved=0 count
+RESULT mutant_cases_tried=25 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.08
+RESULT swapins=0 count

@@ -1,0 +1,15 @@
+RESULT null_return_moved=0 count
+RESULT null_downstream_moved=0 count
+RESULT null_cases_tried=127 count
+CASE window=60 dt=1e-09 start=2026-01-15 12:15:00 masked=False: offset ('ok', 45000000) -> ('ok', 750000000); downstream moved=0
+CASE window=60 dt=0.0 start=2026-01-15 12:15:00 masked=False: offset ('ok', 45000000) -> ('raise', 'ZeroDivisionError'); downstream moved=1
+CASE window=60 dt=-0.25 start=2026-01-15 12:15:00 masked=False: offset ('ok', 45000000) -> ('ok', 0); downstream moved=0
+RESULT mutant_return_moved=3 count
+RESULT mutant_downstream_moved=1 count
+RESULT mutant_cases_tried=127 count
+INFO baseline optimize(time_step_minutes=0) raises ZeroDivisionError: division by zero
+RESULT reach_optimize_dt0_raises_before=1 count
+RESULT reach_offset_calls_at_dt0=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.15
+RESULT swapins=0 count

@@ -1,0 +1,34 @@
+INFO new_cap(refused=0.5)=1.7941224489795917 tie_cap=1.7941224499795918
+CASE refused_none: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('ok', False, [3.0, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_zero: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('ok', False, [3.0, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_tie_1e-9_alone: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('ok', False, [3.0, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_tie_1e-9_plus_real: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) moved=0
+CASE refused_just_above_1e-9: baseline=('ok', True, [1.9979999995922448, 3.0, 3.0, 3.0], [1]) mutant=('ok', True, [1.9979999995922448, 3.0, 3.0, 3.0], [1]) moved=0
+CASE refused_just_below_1e-9: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) moved=0
+CASE refused_real_cap_far_above: baseline=('ok', True, [1.7941224489795917, 3.0, 3.0, 3.0], [1]) mutant=('ok', True, [1.7941224489795917, 3.0, 3.0, 3.0], [1]) moved=0
+CASE refused_real_cap_already_below: baseline=('ok', False, [0.1, 0.1, 0.1, 0.1], []) mutant=('ok', False, [0.1, 0.1, 0.1, 0.1], []) moved=0
+CASE refused_real_cap_tie(new_cap==cap-1e-9): baseline=('ok', False, [1.7941224499795918, 3.0, 3.0, 3.0], []) mutant=('ok', False, [1.7941224499795918, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_real_cap_equal_new_cap: baseline=('ok', False, [1.7941224489795917, 3.0, 3.0, 3.0], []) mutant=('ok', False, [1.7941224489795917, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_nan: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) moved=0
+CASE refused_negative: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) moved=0
+RESULT null_cases_moved=0 count
+RESULT null_cases_tried=12 count
+INFO new_cap(refused=0.5)=1.7941224489795917 tie_cap=1.7941224499795918
+CASE refused_none: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('ok', False, [3.0, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_zero: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('ok', False, [3.0, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_tie_1e-9_alone: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('ok', True, [1.9979999995922448, 3.0, 3.0, 3.0], [0]) moved=1
+CASE refused_tie_1e-9_plus_real: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [1.9979999995922448, 1.7941224489795917, 3.0, 3.0], [1]) moved=1
+CASE refused_just_above_1e-9: baseline=('ok', True, [1.9979999995922448, 3.0, 3.0, 3.0], [1]) mutant=('ok', True, [1.9979999995922448, 3.0, 3.0, 3.0], [1]) moved=0
+CASE refused_just_below_1e-9: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) moved=0
+CASE refused_real_cap_far_above: baseline=('ok', True, [1.7941224489795917, 3.0, 3.0, 3.0], [1]) mutant=('ok', True, [1.7941224489795917, 3.0, 3.0, 3.0], [1]) moved=0
+CASE refused_real_cap_already_below: baseline=('ok', False, [0.1, 0.1, 0.1, 0.1], []) mutant=('ok', False, [0.1, 0.1, 0.1, 0.1], []) moved=0
+CASE refused_real_cap_tie(new_cap==cap-1e-9): baseline=('ok', False, [1.7941224499795918, 3.0, 3.0, 3.0], []) mutant=('ok', False, [1.7941224499795918, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_real_cap_equal_new_cap: baseline=('ok', False, [1.7941224489795917, 3.0, 3.0, 3.0], []) mutant=('ok', False, [1.7941224489795917, 3.0, 3.0, 3.0], []) moved=0
+CASE refused_nan: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) moved=0
+CASE refused_negative: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) moved=0
+RESULT mutant_cases_moved=2 count
+RESULT mutant_cases_tried=12 count
+RESULT reach_refused_is_none=0 count  (type ndarray)
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.15
+RESULT swapins=0 count

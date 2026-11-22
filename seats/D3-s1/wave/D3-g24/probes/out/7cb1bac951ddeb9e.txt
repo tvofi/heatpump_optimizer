@@ -1,0 +1,9 @@
+RESULT null_cases_moved=0 count
+RESULT null_parity_breaks=0 count
+RESULT null_cases_tried=81 count
+RESULT mutant_cases_moved=0 count
+RESULT mutant_parity_breaks=0 count
+RESULT mutant_cases_tried=81 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.08
+RESULT swapins=0 count

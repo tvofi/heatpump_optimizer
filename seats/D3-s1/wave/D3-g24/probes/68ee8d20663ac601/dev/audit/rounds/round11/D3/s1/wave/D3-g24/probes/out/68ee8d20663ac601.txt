@@ -1,0 +1,7 @@
+RESULT null_cases_moved=0 count
+RESULT null_cases_tried=21 count
+RESULT mutant_cases_moved=0 count
+RESULT mutant_cases_tried=21 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.14
+RESULT swapins=0 count
