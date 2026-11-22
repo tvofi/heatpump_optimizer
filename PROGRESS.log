@@ -17,3 +17,4 @@
 1795305370 DONE returned: Fix review: merge 6e37c4c336 (pending-ci: gate) on probe/rev-3812-413d7a1b at de876bbc81
 1795317837 HB alive
 1795317930 CKPT round 4: review_carry CARRY 6e37c4c->dd399a0; delta = 4 bot pin files; merge-tree clean snapshot a20016beac99
+1795318035 CKPT round 4: mutation red at head lists 7 ADDED UNPINNED; pins shards in progress; mutant _release_row running; classify WAIT snapshot b70353f99d49
