@@ -88005,7 +88005,7 @@ def _ds_plan(*steps):
         optimal_setpoints=[21.0] * len(steps))
 
 
-def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, unit=None, **run):
+def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, unit=None, seed_inlet=True, **run):
     """The dhw->space row of one stop on an install with set-point entities and, optionally, a return
     sensor and a declared space set-point ``unit`` (the default is indoor)."""
     c = _DsArb({"space_setpoint_entity": "number.space", "dhw_setpoint_entity": "number.dhw",
@@ -88015,6 +88015,10 @@ def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, unit=None, **
     c.hass.states.set("sensor.ret", FakeState(str(return_c), unit="°C"))
     for entity in ("number.space", "number.dhw"):
         c.hass.states.set(entity, FakeState("30", unit="°C", attributes={"min": 5.0, "max": 70.0, "step": 0.5}))
+    if return_c is not None and seed_inlet:
+        # These cells pin the heated margin against today's write. A remembered space inlet as hot as the
+        # return leaves R11-OWNER-STEP-KICK's settle at today's floor (it takes the lower of the two).
+        _sa_pa.state_for(c).swap.space_inlet = (return_c, _DS_T0)
     return _ds_episode(freq, c=c, **run)[0]
 
 
@@ -93069,6 +93073,19 @@ R.check(
     _sk_inl_kept == (30.0, _PA_T0) and _sk_inl_off == (30.0, _PA_T0)
     and _sk_inl.space_inlet == (33.0, _PA_T0 + timedelta(minutes=17)),
     f"{_sk_inl_kept} {_sk_inl_off} {_sk_inl.space_inlet}",
+)
+
+
+# Design carry learner-latch: once the kick no longer writes the ceiling at a swap, a return that
+# sat under HEATED_MARGIN_K over the ceiling sits over the lower write, and duty_switch's heated
+# gate opens the episode it used to refuse.
+_sk_latch = (_ds_gate(return_c=56.9, unit="flow", seed_inlet=False)[:3], _ds_gate(return_c=56.9, unit="flow")[:3])
+R.check(
+    "learner-latch, through the arbiter: a hot-water to heating switch on a flow set-point with the return "
+    "1.9 K over the ceiling now opens and books a stop episode, the settled write being lower; control, the "
+    "same switch with a remembered space inlet as hot as the return (today's write) opens none",
+    _sk_latch == ((1, 0, 0), (0, 0, 0)),
+    str(_sk_latch),
 )
 
 
