@@ -812,3 +812,53 @@
 # R11-OWNER-GENERIC-CONTROL-TEXT carry (#3643): dearer becomes pricier in stats.dearer
 # (the what-if delta hint) and in why.sub_dearer (the hover's Because line), the short
 # form because "more expensive" wraps both at 375 px. Text nodes only.
+
+# R11-SEAM-card: every rendered state carries cardStyleBlock, which now reads
+# the type and spacing scale tokens (D4-s3-03, D4-s3-05), one colour per status
+# role (D4-s3-04), the subgrid rows (D4-s3-02) and the notes moved from inline
+# style to classes; the layout editor states also draw the pipe hit twins
+# (D4-s1-01). card_drift reports editor_schema identical.
+no_plan # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+no_plan_expanded # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+plan_inline # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+plan_inline_sv # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+plan_short_window # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+custom_title_currency # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+hidden_series # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+score_open # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+expanded_plan # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+what_if_off # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+expanded_zoomed # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+draft_dirty_menu_open # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+draft_mid_drag # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+whatif_edited # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+whatif_weekly # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+override_active # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+shared_steps # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+shared_steps_hover # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+tooltip_hover # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+coarse_pointer # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+reduced_motion # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+setup_single_buffer # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+setup_two_tank # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+setup_coil # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+advisor_page # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+savings_page # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+savings_empty # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+health_page # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+setup_not_published # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+advisor_empty # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+layout_editing_dragged # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+layout_editing_tidy # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+picker_open_filtered # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+wood_alert # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+wood_lane # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+wood_whatif # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+away_toggle # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+away_return # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+away_status # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+history_panned # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+history_deep_panned # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+history_no_power # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+history_unavailable # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
+history_pending # R11-SEAM-card: stylesheet tokens, status-role colours, note classes
