@@ -10,3 +10,4 @@
 1795363993 CKPT card change + tests committed, 6 mutants killed, archscore NULL; scoped gate next snapshot c1c9e8b18077
 1795364623 HB alive
 1795365227 HB alive
+1795365309 CKPT body drafted; scoped gate running (card, drift, features ok so far) snapshot a2d0988674a9
