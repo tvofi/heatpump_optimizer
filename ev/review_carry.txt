@@ -1,0 +1,6 @@
+review_carry: e9ad13fa5 -> c4766c327  main=origin/main
+  branch-only commits: 2
+  why: fa5de93aa3fc5851c070b38edc84e88a973d2dc6 is not the automatic merge of its parents
+  fa5de93aa  Merge origin/main 4ebd430fbf into fix/r11-seam-inputs-guards
+  c4766c327  open_meteo._parse_block: the year-1 floor reads drift.utc_instant
+review_carry: FRESH-REVIEW

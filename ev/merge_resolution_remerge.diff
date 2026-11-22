@@ -1,0 +1,31 @@
+commit fa5de93aa3fc5851c070b38edc84e88a973d2dc6
+Merge: e9ad13fa58 4ebd430fbf
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Sat Nov 21 23:55:54 2026 +0100
+
+    Merge origin/main 4ebd430fbf into fix/r11-seam-inputs-guards
+    
+    Resolution: wood_fuel.py's imports conflicted; both are kept, main's
+    drift.utc_instant (read by the local-day helper since #3728) joined to
+    the branch's drift.utc_elapsed_seconds import, and this branch's
+    entry_config.EntryConfig (read by the lighting-lead helper).
+
+diff --git a/custom_components/heatpump_optimizer/wood_fuel.py b/custom_components/heatpump_optimizer/wood_fuel.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/wood_fuel.py
+index 452de9a10d..68764569be 100644
+--- a/custom_components/heatpump_optimizer/wood_fuel.py
++++ b/custom_components/heatpump_optimizer/wood_fuel.py
+@@ -6,12 +6,8 @@ from datetime import datetime, timedelta, tzinfo
+ from itertools import zip_longest
+ from typing import Any
+ 
+-<<<<<<< e9ad13fa58 (Merge remote-tracking branch 'origin/main' into fix/r11-seam-inputs-guards)
+-from .drift import utc_elapsed_seconds
+-from .entry_config import EntryConfig
+-=======
+ from .drift import utc_elapsed_seconds, utc_instant
+->>>>>>> 4ebd430fbf (Merge pull request #3728 from tvofi/fix/r11-seam-kernel-step)
++from .entry_config import EntryConfig
+ from .const import (
+     CONF_DHW_WOOD_COIL_ENABLED,
+     CONF_EXTERNAL_HEAT_ENABLED,

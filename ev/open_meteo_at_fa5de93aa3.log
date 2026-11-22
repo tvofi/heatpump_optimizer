@@ -1,0 +1,9 @@
+== parsing ==
+Traceback (most recent call last):
+  File "/root/wt-fa5/tests/open_meteo.py", line 136, in <module>
+    _y1_series = om._parse_block(_y1, "shortwave_radiation")
+  File "/root/wt-fa5/custom_components/heatpump_optimizer/open_meteo.py", line 239, in _parse_block
+    floor = datetime.min.replace(tzinfo=timezone.utc) + resolution
+                                        ^^^^^^^^
+NameError: name 'timezone' is not defined
+rc=1

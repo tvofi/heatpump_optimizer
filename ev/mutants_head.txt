@@ -1,0 +1,6 @@
+head c4766c3270b938ad6810d78548e967f371003029, open_meteo.py:239 (_parse_block floor), check tests/open_meteo.py (head: ALL OPEN-METEO CHECKS PASSED, rc=0)
+MUTANT pre-repair (datetime.min.replace(tzinfo=timezone.utc) + resolution) rc=1  (NameError: timezone not imported)
+MUTANT floor-drop (utc_instant(datetime.min), no + resolution) rc=1
+MUTANT ge-gt (t > floor) rc=1
+MUTANT naive-floor (datetime.min + resolution) rc=1
+restored: git diff --quiet clean; re-run ALL OPEN-METEO CHECKS PASSED
