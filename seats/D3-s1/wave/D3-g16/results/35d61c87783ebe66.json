@@ -1,0 +1,104 @@
+{
+ "key": "35d61c87783ebe66",
+ "site": "dhw_planner.py:680 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 680,
+ "patch": "if known is not None: -> if False:",
+ "function": "DhwPlanner._dhw_legionella_due",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3192.9,
+  "child_cpu_s": 5299.2,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/35d61c87783ebe66.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 35d61c87783ebe66",
+ "gate_provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py",
+  "results": {
+   "cycle_placed_baseline": "0 count",
+   "cycle_placed_mutant": "1 count",
+   "mutant_step_price_known": "0",
+   "null_inputs_moved": "0 of 3 (-)",
+   "thread_factor": "1.000",
+   "load1": "0.84",
+   "swapins": "0"
+  },
+  "baseline_value": "0 count",
+  "mutant_value": "1 count",
+  "inputs_tried": "partial known mask (12 published, 12 prior) with the one sub-ceiling price estimated; null: all-known, None (fresh optimizer), cheap step published",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "reach": "production: optimizer.py passes the per-step price_known mask to DhwPlanner (optimizer.py:4373) whenever the horizon runs past the published day-ahead prices",
+ "should_fail": "tests/features.py: the elastic-legionella block (_el_solve, ~20046-20100, 'a generous ceiling runs the cycle early on a known cheap hour') runs on a flat, fully published price profile; it lacks the twin where the only price under the ceiling is prior-estimated, asserting the cycle is not placed ('Prior-guessed steps never qualify')",
+ "finding": {
+  "title": "No check holds the elastic legionella cycle off prior-estimated prices; dropping the known-price guard is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 35d61c87783ebe66 at dhw_planner.py:680 (if known is not None: -> if False:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet probe_35d61c87783ebe66.py moves: cycle_placed_baseline=0 count vs cycle_placed_mutant=1 count.",
+  "mechanism": "Reach: production: optimizer.py passes the per-step price_known mask to DhwPlanner (optimizer.py:4373) whenever the horizon runs past the published day-ahead prices. Check that should have failed (D3.M4): tests/features.py: the elastic-legionella block (_el_solve, ~20046-20100, 'a generous ceiling runs the cycle early on a known cheap hour') runs on a flat, fully published price profile; it lacks the twin where the only price under the ceiling is prior-estimated, asserting the cycle is not placed ('Prior-guessed steps never qualify').",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_due",
+  "metric_definition": "whether DhwPlanner._dhw_legionella_due places the elastic anti-legionella cycle (due flag, 0/1) on a 24 h horizon whose only price under the ceiling is a prior-estimated (unpublished) step",
+  "phenomenon_property": "Inside the elastic window, DhwPlanner._dhw_legionella_due books an early anti-legionella cycle only on a step whose price is published (price_known), never on a prior-estimated one",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list), each key's fullgate.py verdict SURVIVED or RED-AS-NULL and its probe moving",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py"
+  ],
+  "proposed_fix_scope": "tests only: a features.py check with a partially known horizon whose only sub-ceiling price is estimated, asserting due is False",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py",
+   "value": "1 count",
+   "unit": "cycle_placed_mutant",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 0.84,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant 35d61c87783ebe66 applied in memory by the probe (method re-compiled from its source); full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 35d61c87783ebe66",
+   "expected_direction": "cycles placed up (0 -> 1): every step is treated as a published price",
+   "observed_value": "1 count"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py",
+   "value": "an all-known mask, the None mask of a fresh optimizer and a horizon whose cheap step is published: the guard cannot matter, 0 moved",
+   "note": "arms where the edit cannot matter, identical outputs under baseline and mutant; the full-gate null is gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 35d61c87783ebe66"
+  ]
+ }
+}
