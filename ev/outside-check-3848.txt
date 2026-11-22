@@ -1,0 +1,8 @@
+== ref origin/main
+NOT OUTSIDE: #3848's author 'Bankaifan' (id 476059, type User) matches no entry of dev/governance/config/outside_contributors.json at origin/main
+rc=0
+== ref 107e630c704fe329de1169e48c1e5afd399f99b9
+REFUSE: git merge-base exited 128: fatal: Not a valid commit name 344c47e3b2cb8851275f0b80d261a97fa30fa5bc (an unread fact refuses)
+rc=0
+REFUSE: class R: dev/audit/harnesses/r10_dhw_start_hysteresis_mutants.py is a path an outside pull request does not change (decision 0017)
+REFUSE: class R: tests/mutation_ledger/killed_by/dhw_planner.py/place_startable.RETURN_DEL.68208daf.json is a path an outside pull request does not change (decision 0017)

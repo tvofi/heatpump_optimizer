@@ -1,0 +1,3 @@
+ok   no workflow expands a contributor-named value (head ref, title, body) inside a run: block
+ok   tests.yml's laneskip step carries the same-repository conjunct: a fork head restores no lane proof and always runs
+outside self-test: 266 checks, 0 failed
