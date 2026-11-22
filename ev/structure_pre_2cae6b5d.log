@@ -1,0 +1,8 @@
+RESULT module_excess_loc=21794 count
+  ok   class_excess_loc 17315 <= 17315
+  ok   max_class_loc 7866 <= 7866
+  _solve_failures: coordinator:_note_solve_failure
+RESULT module_excess_loc=21794 count
+########## ratchet vs structure_budgets.json (recorded_at 4ebd430fbff9) ##########
+FAIL module_excess_loc 21794 > 21779 (+15)
+with the reason in the COMMIT -- never to make a failure go away.

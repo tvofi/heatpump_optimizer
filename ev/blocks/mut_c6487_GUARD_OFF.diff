@@ -1,0 +1,7 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index b3f4eb25ed..023d02d0da 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6487 +6487 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+-            if rerun and not self._entry_released and not solve_gate.mode_superseded(solve_gate.gate_for(self), self._mode):
++            if False:

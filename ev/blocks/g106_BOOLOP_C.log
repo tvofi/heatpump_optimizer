@@ -1,0 +1,67 @@
+
+=== features block ===
+
+-- #1754 — a refresh during an in-flight solve is honoured, and releases land on the override the solve pinned
+Optimization failed: 'auto'
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/b387c8c0-741d-5184-bb19-3451f207b74e/scratchpad/wt2/custom_components/heatpump_optimizer/coordinator.py", line 6409, in async_run_optimization
+    boost.adopt_plan(self, self._fixed_mode_action())
+                           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/b387c8c0-741d-5184-bb19-3451f207b74e/scratchpad/wt2/custom_components/heatpump_optimizer/coordinator.py", line 4064, in _fixed_mode_action
+    row: dict[str, Any] = {
+                          ~
+    ...<9 lines>...
+                   "space_reason": REASON_UNTAGGED, "dhw_reason": REASON_UNTAGGED},
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    }[self._mode]
+    ~^^^^^^^^^^^^
+KeyError: 'auto'
+Optimization failed: 'auto'
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/b387c8c0-741d-5184-bb19-3451f207b74e/scratchpad/wt2/custom_components/heatpump_optimizer/coordinator.py", line 6409, in async_run_optimization
+    boost.adopt_plan(self, self._fixed_mode_action())
+                           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/b387c8c0-741d-5184-bb19-3451f207b74e/scratchpad/wt2/custom_components/heatpump_optimizer/coordinator.py", line 4064, in _fixed_mode_action
+    row: dict[str, Any] = {
+                          ~
+    ...<9 lines>...
+                   "space_reason": REASON_UNTAGGED, "dhw_reason": REASON_UNTAGGED},
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    }[self._mode]
+    ~^^^^^^^^^^^^
+KeyError: 'auto'
+  ok   a run request during an in-flight solve returns at once, recorded as its re-run, never a second solve started beside it (#1754, the solve gate)
+  FAIL a refresh requested during an in-flight solve re-solves against the new override instead of being dropped (#1754)  [solves ran against ['O1']; at the merge base the guard returned early and recorded nothing, so only O1 was ever solved and the new plan waited for the next scheduled cycle]
+  FAIL the in-flight solve's releases land on the override it pinned (O1), identical to an uninterrupted solve (#1754)  [O1-after-swap released [] (n=0), O1-no-swap released [] (n=0); at the merge base the swap left O1 empty -- its releases went to O2]
+  FAIL and the new override O2 does not inherit O1's releases (#1754)  [O2-after-swap released [] (n=0) vs O1's [] (n=0); at the merge base they were byte-identical because _record_manual_release wrote to the post-await override]
+  FAIL null control: with no mid-solve swap the solve runs once against O1 and O1 keeps its own releases (#1754 -- the guard fires on a swap, not always)  [no-swap solves=['O1'], O1 released n=0]
+Optimization failed: 'auto'
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/b387c8c0-741d-5184-bb19-3451f207b74e/scratchpad/wt2/custom_components/heatpump_optimizer/coordinator.py", line 6409, in async_run_optimization
+    boost.adopt_plan(self, self._fixed_mode_action())
+                           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/b387c8c0-741d-5184-bb19-3451f207b74e/scratchpad/wt2/custom_components/heatpump_optimizer/coordinator.py", line 4064, in _fixed_mode_action
+    row: dict[str, Any] = {
+                          ~
+    ...<9 lines>...
+                   "space_reason": REASON_UNTAGGED, "dhw_reason": REASON_UNTAGGED},
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    }[self._mode]
+    ~^^^^^^^^^^^^
+KeyError: 'auto'
+  FAIL the what-if actually reached a solve (else the sharing check is vacuous)  [payload keys: ['error', 'rate_limited']]
+  ok   T2: a what-if that capped no power carries no power_cap_breach_c -- the key is the capped ask's comfort cost, never a solve's own predictive info leaking through
+Optimization failed: 'auto'
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/b387c8c0-741d-5184-bb19-3451f207b74e/scratchpad/wt2/custom_components/heatpump_optimizer/coordinator.py", line 6409, in async_run_optimization
+    boost.adopt_plan(self, self._fixed_mode_action())
+                           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/b387c8c0-741d-5184-bb19-3451f207b74e/scratchpad/wt2/custom_components/heatpump_optimizer/coordinator.py", line 4064, in _fixed_mode_action
+    row: dict[str, Any] = {
+                          ~
+    ...<9 lines>...
+                   "space_reason": REASON_UNTAGGED, "dhw_reason": REASON_UNTAGGED},
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    }[self._mode]
+    ~^^^^^^^^^^^^
+KeyError: 'auto'

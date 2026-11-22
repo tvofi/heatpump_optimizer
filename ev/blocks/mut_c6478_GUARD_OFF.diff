@@ -1,0 +1,7 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index b3f4eb25ed..75119a5eef 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6478 +6478 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+-            if solve_gate.worker_stopping(self.hass):
++            if False:

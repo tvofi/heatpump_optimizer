@@ -1,0 +1,7 @@
+diff --git a/custom_components/heatpump_optimizer/solve_gate.py b/custom_components/heatpump_optimizer/solve_gate.py
+index 8dca0453de..8c85e81f80 100644
+--- a/custom_components/heatpump_optimizer/solve_gate.py
++++ b/custom_components/heatpump_optimizer/solve_gate.py
+@@ -106 +106 @@ def mode_superseded(gate: SolveGate, mode: str) -> bool:
+-    return gate.entry_mode in (MODE_AUTO, MODE_ECONOMY) and mode not in (MODE_AUTO, MODE_ECONOMY)
++    return gate.entry_mode in (MODE_AUTO, MODE_ECONOMY) or mode not in (MODE_AUTO, MODE_ECONOMY)

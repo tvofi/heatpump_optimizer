@@ -1,0 +1,7 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index b3f4eb25ed..eb826f7990 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2326 +2326 @@ async def _await_optimize(
+-        if solve_gate.worker_stopping(hass):
++        if False:

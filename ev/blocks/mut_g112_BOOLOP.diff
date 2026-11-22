@@ -1,0 +1,7 @@
+diff --git a/custom_components/heatpump_optimizer/solve_gate.py b/custom_components/heatpump_optimizer/solve_gate.py
+index 8dca0453de..da48aa2290 100644
+--- a/custom_components/heatpump_optimizer/solve_gate.py
++++ b/custom_components/heatpump_optimizer/solve_gate.py
+@@ -112 +112 @@ def worker_stopping(hass: Any) -> bool:
+-    return isinstance(data, dict) and bool(data.get(WORKER_STOPPING))
++    return isinstance(data, dict) or bool(data.get(WORKER_STOPPING))
