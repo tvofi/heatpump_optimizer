@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_d3cad40ffce9b765.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py): the learned solar-aperture scale (_solar_aperture["scale"]) after exactly SOLAR_APERTURE_MIN_SAMPLES (30)

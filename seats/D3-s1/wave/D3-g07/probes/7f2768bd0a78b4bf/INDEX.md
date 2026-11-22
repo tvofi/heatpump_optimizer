@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7f2768bd0a78b4bf.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py): count of (outdoor temperature, cop_scale, tank) inputs on which _max_pump_rise differs between the baseline

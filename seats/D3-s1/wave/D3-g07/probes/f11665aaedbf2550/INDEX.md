@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f11665aaedbf2550.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py, dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_guard_common.py): _guard_floor_hold() verdict (1 hold, 0 none) with hot water enabled, the tank at 40 C under its 45 C minimum, room above the floor.

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py, dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_guard_common.py): _guard_floor_hold() verdict (1 hold, 0 none) with hot water DISABLED and a dhw_temperature reading below dhw_min_temp (40 < 45 C), room above the floor.

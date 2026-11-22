@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py, dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_guard_common.py): _guard_floor_hold() verdict (1 hold, 0 none) with hot water enabled and dhw_temperature exactly at dhw_min_temp (45.0 == 45.0 C).

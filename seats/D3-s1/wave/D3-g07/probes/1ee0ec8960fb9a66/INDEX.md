@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_1ee0ec8960fb9a66.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py): _max_pump_rise("dhw") in degC/h, the fastest the heat pump alone could warm the DHW tank (default parameters:

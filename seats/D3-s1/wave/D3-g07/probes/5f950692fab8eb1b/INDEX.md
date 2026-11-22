@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_5f950692fab8eb1b.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py, dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fa_common.py): max of ForecastArrays.humidity (%) from _forecast_arrays() with an available Open-Meteo client, per input arm.

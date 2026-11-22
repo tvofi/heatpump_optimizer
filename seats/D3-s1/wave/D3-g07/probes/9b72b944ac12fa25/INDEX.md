@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_9b72b944ac12fa25.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py, dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_guard_common.py): _guard_floor_hold() verdict (1 hold, 0 none) on a two-zone install whose upper floor reads 16 C under the 17 C floor, room 21 C.
