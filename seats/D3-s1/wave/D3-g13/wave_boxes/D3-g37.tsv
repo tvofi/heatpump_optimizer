@@ -1,0 +1,17 @@
+key	src	file	line	function	cluster	slice	fullnet	kind	reach	m4_source
+ba25d4dc58c7fecc	complete	custom_components/heatpump_optimizer/sysid.py	846	_lm_solve	sysid.py:_lm_solve@835-852	u1c	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+67f17d97399379c0	complete	custom_components/heatpump_optimizer/sysid.py	848	_lm_solve	sysid.py:_lm_solve@835-852	u1b	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+99866c2ffc704413	complete	custom_components/heatpump_optimizer/sysid.py	852	_lm_solve	sysid.py:_lm_solve@835-852	u1c	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+b4f7503c6959449d	complete	custom_components/heatpump_optimizer/sysid.py	1073	_one_state_ua_halfwidth	sysid.py:_one_state_ua_halfwidth@1073-1073	u1c	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+f6016f6adb9683a8	complete	custom_components/heatpump_optimizer/sysid.py	1073	_one_state_ua_halfwidth	sysid.py:_one_state_ua_halfwidth@1073-1073	u1d	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json
+0c0a6bcb94a3ba3a	complete	custom_components/heatpump_optimizer/sysid.py	129	_predict_step_excursion	sysid.py:_predict_step_excursion@129-139	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+2b5a8949055ecd4c	complete	custom_components/heatpump_optimizer/sysid.py	129	_predict_step_excursion	sysid.py:_predict_step_excursion@129-139	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+e3ea72b8dc57884a	complete	custom_components/heatpump_optimizer/sysid.py	139	_predict_step_excursion	sysid.py:_predict_step_excursion@129-139	u1d	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json
+6db5003950426ce8	complete	custom_components/heatpump_optimizer/sysid.py	328	_predict_step_excursion_plant	sysid.py:_predict_step_excursion_plant@328-328	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+1e9d97a860146a80	complete	custom_components/heatpump_optimizer/sysid.py	890	_slab_refusal	sysid.py:_slab_refusal@890-897	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+51b2c8ce3dadae0c	complete	custom_components/heatpump_optimizer/sysid.py	890	_slab_refusal	sysid.py:_slab_refusal@890-897	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+62a1f4d0c1be5960	complete	custom_components/heatpump_optimizer/sysid.py	892	_slab_refusal	sysid.py:_slab_refusal@890-897	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+845bf7a69b48b94b	complete	custom_components/heatpump_optimizer/sysid.py	892	_slab_refusal	sysid.py:_slab_refusal@890-897	u1c	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+ab65584805229d1c	complete	custom_components/heatpump_optimizer/sysid.py	892	_slab_refusal	sysid.py:_slab_refusal@890-897	u1c	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+186b3076dcce442c	complete	custom_components/heatpump_optimizer/sysid.py	897	_slab_refusal	sysid.py:_slab_refusal@890-897	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+66e79426a66d3362	complete	custom_components/heatpump_optimizer/sysid.py	897	_slab_refusal	sysid.py:_slab_refusal@890-897	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
