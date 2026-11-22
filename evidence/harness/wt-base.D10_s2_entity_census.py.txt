@@ -1,0 +1,32 @@
+RESULT entities=82 count
+RESULT entities_binary_sensor=6 count
+RESULT entities_button=6 count
+RESULT entities_climate=1 count
+RESULT entities_datetime=1 count
+RESULT entities_sensor=62 count
+RESULT entities_switch=6 count
+RESULT devices_no_device_info=0 count
+RESULT devices_not_service=0 count
+RESULT distinct_devices=1 count
+RESULT category_none=58 count
+RESULT category_diagnostic=24 count
+RESULT category_on_controls=0 count
+DELTA_BARE ECL110DisplaceSensor
+DELTA_BARE ECL110EffectiveDisplaceSensor
+DELTA_BARE PredictionAccuracySensor
+UNIT_NO_CLASS PredictedSavingsSensor[SEK], MonthlySavingsSensor[SEK], SavingsPercentageSensor[%], PredictedCostSensor[SEK], BaselineCostSensor[SEK], CurrentPriceSensor[SEK/kWh], DHWHeatingCostSensor[SEK], ECL110DisplaceSensor[°C], ECL110EffectiveDisplaceSensor[°C], PredictionAccuracySensor[°C], PVSurplusSensor[kWh], ContractComparisonSensor[SEK/kWh], DHWHeavyDaySensor[kWh], SensorGapAdvisorSensor[SEK]
+RESULT impossible_pairs=0 count
+RESULT delta_bare=3 count
+RESULT unit_without_device_class=14 count
+RESULT with_device_class=38 count
+DISABLED SlabTempSensor, UpperFloorTempSensor, LowerFloorTempSensor, FloorReturnTempSensor, BufferTankTempSensor, DHWTemperatureSensor, ECL110DisplaceSensor, ECL110EffectiveDisplaceSensor, MeasuredPowerSensor, MonthlyPeakSensor, PVSurplusSensor, ContractComparisonSensor, PowerHeadroomSensor, MixedHotWaterSensor, DHWHeavyDaySensor, ValveTargetRecommendationSensor, CompressorStartsSensor, FrequencyAdvisorSensor, WoodBurnAdvisorSensor, WoodCheaperBinarySensor
+RESULT disabled_by_default=20 count
+RESULT translation_name_missing=0 count
+RESULT translation_state_missing=0 count
+RESULT hardcoded_name=0 count
+RESULT no_translation_key=0 count
+RESULT icon_pinned_in_code=0 count
+RESULT icon_translation_missing=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.33
+RESULT swapins=0
