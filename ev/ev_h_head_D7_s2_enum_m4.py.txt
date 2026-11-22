@@ -1,0 +1,15 @@
+solve_state:_dhw_requirement
+solve_state:_floor_l1_scale
+solve_state:_initial_buffer_temp
+solve_state:_prev_shipped_plan
+solve_state:_price_known
+solve_state:_pv_surplus
+solve_state:_space_avail
+ctx_held:coordinator.py:_async_learn_heat_span
+ctx_held:coordinator.py:_async_drive_pumps
+ctx_held:coordinator.py:_async_update_data
+ctx_held:coordinator.py:async_run_optimization
+ctx_held:coordinator.py:_async_load_accuracy
+ctx_held:coordinator.py:_resolve_away
+ctx_held:coordinator.py:_run_system_identification
+ctx_held:coordinator.py:async_simulate

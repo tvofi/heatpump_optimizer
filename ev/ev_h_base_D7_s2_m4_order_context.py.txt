@@ -1,0 +1,17 @@
+# A valve_storage {'buffer_tank_temperature': 60.0} -> {'buffer_tank_temperature': 32.0}: reused==fresh True (cost 43.244671 vs 43.244671); _prev_shipped_plan set by optimize: False
+# A valve_storage {'buffer_tank_temperature': 32.0} -> {'buffer_tank_temperature': 60.0}: reused==fresh True (cost 34.500180 vs 34.500180); _prev_shipped_plan set by optimize: False
+# A valve_storage_low_target {'buffer_tank_temperature': 65.0} -> {'buffer_tank_temperature': 30.0}: reused==fresh True (cost 60.881288 vs 60.881288); _prev_shipped_plan set by optimize: False
+# A winter_two_zone_dhw {'room_temperature': 19.0, 'dhw_temperature': 42.0} -> {'room_temperature': 21.5}: reused==fresh True (cost 69.362612 vs 69.362612); _prev_shipped_plan set by optimize: False
+# A shoulder_two_zone {'room_temperature': 19.0, 'dhw_temperature': 42.0} -> {'room_temperature': 21.5}: reused==fresh True (cost 9.164285 vs 9.164285); _prev_shipped_plan set by optimize: False
+RESULT reuse_pairs=5 count
+RESULT reuse_divergence=0 count
+RESULT second_call_delta=0 cost-units
+RESULT reorder_delta=0.000000 cost-units (terminal cost of Y's end, closure built after X's stash vs Y's)
+RESULT buffer_scenarios=9 count
+RESULT seed_binding_scenarios=0 count
+# C superseded=True; shares _opt_config with live ctx: True; old _thermal_params.heat_loss_coefficient=0.15 live=0.2; torn=['_opt_config.target_temp', '_opt_config.comfort_weight']
+RESULT holder_torn_fields=2 count
+RESULT thread_factor=1.000
+RESULT load1=1.23
+RESULT swapins=0
+# cpu 58.5s (provisional, not a finding)

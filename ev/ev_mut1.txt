@@ -1,0 +1,24 @@
+M1 rc=1 KILLED
+      FAIL D1-s3-05: a save failing on three passes logs one ERROR with its traceback, DEBUG while it holds, Resolved on the save that lands, and ERROR again when it recurs; it never raises; null control, a save that lands logs nothing above DEBUG  [landed=[False, False, False, True, False] rows=[('DEBU
+      FAIL D1-s3-05: a payload builder that raises is held as the store's failure (ERROR with its traceback), not raised into the caller, and nothing is saved  [[('DEBUG', 'Could not persist probe payload: division by zero', False)]]
+      FAIL D1-s3-05: the coordinator's ledger save failing on three cycles logs one ERROR (it was DEBUG on every cycle), and the save that lands logs Resolved and stores the ledger  [fail=[('DEBUG', 'Could not persist ledger: disk full', False), ('DEBUG', 'Could not persist ledger: disk full', False), (
+    3 of 12 FEATURES BLOCK FAILED
+   last: 3 of 12 FEATURES BLOCK FAILED
+M2 rc=1 KILLED
+      FAIL D1-s3-06: an unexpected failure persisting over two cycles, a setup-time refresh and a setup retry's new coordinator logs one ERROR with its traceback (it was ERROR on every cycle and every retry), each a translated UpdateFailed; the refresh that succeeds logs Resolved, and the recurrence is 
+    1 of 12 FEATURES BLOCK FAILED
+   last: 1 of 12 FEATURES BLOCK FAILED
+M2b rc=1 KILLED
+      FAIL D1-s3-06: an unexpected failure persisting over two cycles, a setup-time refresh and a setup retry's new coordinator logs one ERROR with its traceback (it was ERROR on every cycle and every retry), each a translated UpdateFailed; the refresh that succeeds logs Resolved, and the recurrence is 
+    1 of 12 FEATURES BLOCK FAILED
+   last: 1 of 12 FEATURES BLOCK FAILED
+M3 rc=1 KILLED
+      FAIL D1-s3-07: the L-BFGS-B restart, a learner summary and a diagnostics view that raise keep their fallbacks (the start's point, 'summary unavailable', 'unavailable') and now each leave a DEBUG record carrying the traceback; nothing above DEBUG  [restart=[] summary=[('DEBUG', '_accuracy summary u
+      FAIL D1-s3-07 census: each named handler's function holds a broad handler (precondition: the seam is where the census reads it) and none of them is silent  [{('coordinator.py', '_record_accuracy'): (1, []), ('coordinator.py', '_capture_diagnosis_inputs'): (2, []), ('coordinator.py', 'of'): (1, [])
+    2 of 12 FEATURES BLOCK FAILED
+   last: 2 of 12 FEATURES BLOCK FAILED
+M4 rc=1 KILLED
+      FAIL D10-s1-01: set_away refuses each of six return times that neither clear nor parse with the translated away_invalid_return_time, before any write; null control, the clearing values and two parseable times reach the coordinator unchanged  [refused=[] calls=[{'active': True, 'return_time': '18:0
+    1 of 12 FEATURES BLOCK FAILED
+   last: 1 of 12 FEATURES BLOCK FAILED
+MUT-DONE

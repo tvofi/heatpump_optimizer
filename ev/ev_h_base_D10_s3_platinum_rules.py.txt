@@ -1,0 +1,147 @@
+REQ numpy typed=True installed 2.5.4 ships py.typed
+REQ scipy typed=True stub dist scipy-stubs==1.18.1.1 pinned in tests/requirements-typing.txt
+REQ threadpoolctl typed=False installed 3.8.0: no py.typed, no types-threadpoolctl/threadpoolctl-stubs installed or pinned
+EP custom_components/heatpump_optimizer/__init__.py:203 async_migrate_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/__init__.py:291 async_setup_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/__init__.py:415 async_unload_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/__init__.py:449 async_remove_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/binary_sensor.py:43 async_setup_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/button.py:49 async_setup_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/climate.py:63 async_setup_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/config_flow.py:3329 async_get_options_flow(config_entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/datetime.py:17 async_setup_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/diagnostics.py:387 async_get_config_entry_diagnostics(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/sensor.py:191 async_setup_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+EP custom_components/heatpump_optimizer/switch.py:40 async_setup_entry(entry: HeatPumpOptimizerConfigEntry) typed=True
+COORD custom_components.heatpump_optimizer.coordinator.HeatPumpOptimizerCoordinator config_entry_annotation=None typed=False
+CELL custom_components/heatpump_optimizer/__init__.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/accuracy.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/away.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/batchmath.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/battery.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/binary_sensor.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/boost.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/brand/dark_icon.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/brand/dark_icon@2x.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/brand/dark_logo.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/brand/dark_logo@2x.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/brand/icon.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/brand/icon@2x.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/brand/logo.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/brand/logo@2x.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/button.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/climate.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/comfort_band.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/comfort_learning.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/config_flow.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/const.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/coordinator.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/currency.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/curve_learning.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/datetime.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/debugger.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/defrost.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/device_prefill.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/dhw_draws.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/dhw_learning.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/dhw_planner.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/dhw_schedule.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/diagnosis.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/diagnostics.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/disinfection.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/draw_range.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/drift.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/driving_grade.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/duty_legs.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/duty_switch.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/early_cutoff.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/entity.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/entry_config.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/external_heat.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/flow_lift.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/flow_meter.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/freq_control.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/frontend.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/grid_fee.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/heat_curve.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/heat_energy.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/icon.png :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/icons.json :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/inputs.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/issues.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/learner_progress.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/ledger.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/legionella.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/log_latch.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/manifest.json :: strict-typing(requirements), async-dependency(requirements)
+CELL custom_components/heatpump_optimizer/manual_plan.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/mixing_valve.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/modbus_prefill.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/name_match.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/narrative.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/notifier.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/off_restore.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/open_meteo.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/optimizer.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/payload.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/plan_slots.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/plan_step.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/power_guard.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/prefill_offer.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/presets.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/price_model.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/price_tiles.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/process_worker.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/pump_arbiter.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/pump_mode.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/pump_schedule.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/pump_signals.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/pv.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/py.typed :: strict-typing(marker present)
+CELL custom_components/heatpump_optimizer/quality_scale.yaml :: platinum rows
+CELL custom_components/heatpump_optimizer/quick_setup.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/quiet_windows.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/repairs.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/replay_doc.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/room_history.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/room_record.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/rooms.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/running_signal.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/runs.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/sensor.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/services.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/services.yaml :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/setpoint_check.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/silent_mode.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/slab_seed.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/slot_drivers.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/snapshots.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/store.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/strings.json :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/supply_hold.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/switch.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/sysid.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/tariff.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/thermal_model.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/topology.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/translations/de.json :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/translations/en.json :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/translations/sv.json :: no platinum rule reaches this file kind
+CELL custom_components/heatpump_optimizer/wear.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/whatif.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/wood_fuel.py :: py: sessions=0 blocking_imports=0 entry_bare=0
+CELL custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js :: no platinum rule reaches this file kind
+ROWS async-dependency=done inject-websession=done strict-typing=done
+RESULT cells_examined=117 files
+RESULT platinum_rows_missing=0 rows
+RESULT untyped_requirements=1 requirements
+RESULT untyped_requirements_under_done_row=1 requirements
+RESULT coordinator_subclasses=1 classes
+RESULT coordinator_untyped_config_entry=1 classes
+RESULT coordinator_untyped_under_done_row=1 classes
+RESULT entry_point_bare=0 params
+RESULT unshared_http_sessions=0 sites
+RESULT blocking_io_imports=0 imports
+RESULT thread_factor=1.000
+RESULT load1=1.29
+RESULT swapins=0

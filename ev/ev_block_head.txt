@@ -1,0 +1,20 @@
+
+=== features block ===
+  ok   D1-s3-05: a save failing on three passes logs one ERROR with its traceback, DEBUG while it holds, Resolved on the save that lands, and ERROR again when it recurs; it never raises; null control, a save that lands logs nothing above DEBUG
+  ok   D1-s3-05: a payload builder that raises is held as the store's failure (ERROR with its traceback), not raised into the caller, and nothing is saved
+  ok   D1-s3-05: the coordinator's ledger save failing on three cycles logs one ERROR (it was DEBUG on every cycle), and the save that lands logs Resolved and stores the ledger
+  ok   D1-s3-05 census: every store save in the package is held through save_held or propagates to its caller, none swallowed under a broad handler; precondition, the census finds the 18 persist handlers persist_seams.py enumerated at the merge base, each now held
+  ok   D1-s3-06: an unexpected failure persisting over two cycles, a setup-time refresh and a setup retry's new coordinator logs one ERROR with its traceback (it was ERROR on every cycle and every retry), each a translated UpdateFailed; the refresh that succeeds logs Resolved, and the recurrence is an ERROR again (null control: the transition is still reported)
+  ok   D1-s3-07: the L-BFGS-B restart, a learner summary and a diagnostics view that raise keep their fallbacks (the start's point, 'summary unavailable', 'unavailable') and now each leave a DEBUG record carrying the traceback; nothing above DEBUG
+  ok   D1-s3-07: diagnosis inputs whose state cannot be copied are None, and a weather read that raises records the plan's wind as 0.0; each leaves a DEBUG record with its traceback
+  ok   D1-s3-07 seam rule: a diagnosis whose baseline cannot be simulated is no report (None), and leaves a DEBUG record with its traceback
+  ok   D1-s3-07 census: each named handler's function holds a broad handler (precondition: the seam is where the census reads it) and none of them is silent
+  ok   D10-s1-01: set_away refuses each of six return times that neither clear nor parse with the translated away_invalid_return_time, before any write; null control, the clearing values and two parseable times reach the coordinator unchanged
+  ok   D7-s2-03: a target change and a comfort-weight change each publish a new context; a holder of the old context keeps the values it was handed (it saw both edits through the shared config)
+  ok   ADR-003 stale holder: after the cutoff is armed, a published configuration change is what the held cutoff reads at the next reading (its threshold rises by the 3.0 K the comfort target rose); null control, the threshold read before the change is the old target's
+
+ALL 12 FEATURES BLOCK PASSED
+
+real	0m8.473s
+user	0m3.767s
+sys	0m0.130s

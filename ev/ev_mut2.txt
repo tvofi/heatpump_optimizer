@@ -1,0 +1,21 @@
+M5 rc=1 KILLED
+      FAIL D7-s2-03: a target change and a comfort-weight change each publish a new context; a holder of the old context keeps the values it was handed (it saw both edits through the shared config)  [old=(22.0, 7.0) mid=(22.0, 7.0) live=(22.0, 7.0)]
+      FAIL ADR-003 stale holder: after the cutoff is armed, a published configuration change is what the held cutoff reads at the next reading (its threshold rises by the 3.0 K the comfort target rose); null control, the threshold read before the change is the old target's  [before=20.0 after=23.0 seen_
+    2 of 12 FEATURES BLOCK FAILED
+   last: 2 of 12 FEATURES BLOCK FAILED
+M6 rc=1 KILLED
+      FAIL ADR-003 stale holder: after the cutoff is armed, a published configuration change is what the held cutoff reads at the next reading (its threshold rises by the 3.0 K the comfort target rose); null control, the threshold read before the change is the old target's  [before=AttributeError("'None
+    1 of 12 FEATURES BLOCK FAILED
+   last: 1 of 12 FEATURES BLOCK FAILED
+M9 rc=1 KILLED
+   last: IndentationError: expected an indented block after 'if' statement on line 512
+M10 rc=1 KILLED
+   last: IndentationError: expected an indented block after 'if' statement on line 72
+M7 rc=1 KILLED
+      ok   the build exits 0 with no FAIL line
+      ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+      ok   a build that dies without a FAIL line is red, naming its exit
+      FAIL every DataUpdateCoordinator subclass annotates config_entry with the typed entry (D10-s3-02), over a census that found at least one  [seen ['coordinator.py:3476 HeatPumpOptimizerCoordinator'], untyped ['coordinator.py:3476 HeatPumpOptimizerCoordinator']]
+    1 of 443 checks FAILED
+   last:   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
+MUT-DONE

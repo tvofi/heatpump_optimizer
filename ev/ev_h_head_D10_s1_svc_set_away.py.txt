@@ -1,0 +1,17 @@
+CASE '18:00': outcome=ServiceValidationError active=False return=None
+CASE B 'tomorrow 18:00': before=2026-11-22T11:28:08+00:00 after=2026-11-22T11:28:08+00:00
+CASE 'tomorrow 18:00': outcome=ServiceValidationError active=True return=2026-11-22T11:28:08+00:00
+CASE '2026-13-40T25:00': outcome=ServiceValidationError active=False return=None
+CASE B 'next friday': before=2026-11-22T11:28:08+00:00 after=2026-11-22T11:28:08+00:00
+CASE 'next friday': outcome=ServiceValidationError active=True return=2026-11-22T11:28:08+00:00
+CASE '16/11/2026 18:00': outcome=ServiceValidationError active=False return=None
+CASE B 'in 3 hours': before=2026-11-22T11:28:08+00:00 after=2026-11-22T11:28:08+00:00
+CASE 'in 3 hours': outcome=ServiceValidationError active=True return=2026-11-22T11:28:08+00:00
+CONTROL '2026-11-22T09:28:08+00:00': outcome=accepted return=2026-11-22T09:28:08+00:00
+RESULT cases=6 count
+RESULT acknowledged_unparseable=0 count
+RESULT cleared_existing_return=0 count
+RESULT control_accepted=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.40
+RESULT swapins=0

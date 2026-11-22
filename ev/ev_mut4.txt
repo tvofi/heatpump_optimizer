@@ -1,0 +1,13 @@
+M9 rc=1 KILLED
+      ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+      ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+      ok   a pump command that FAILED is not remembered as done
+      FAIL a pass whose read of the record failed saves nothing over it, and the next pass reads and saves; a save that failed leaves the change owed, and the next pass lands it  [(False, []) (False, [])]
+    1 of 6041 FEATURE CHECKS FAILED
+   last: RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+M10 rc=0 SURVIVED
+      ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+      ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+      ok   a pump command that FAILED is not remembered as done
+   last: RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+MUT-DONE

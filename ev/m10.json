@@ -1,0 +1,1 @@
+[{"name": "M10_room_record_unsaved", "file": "custom_components/heatpump_optimizer/room_record.py", "old": "        rec.unsaved = 0  # a failed save stays unsaved", "new": "        pass\n    rec.unsaved = 0  # a failed save stays unsaved"}]

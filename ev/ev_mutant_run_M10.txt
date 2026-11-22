@@ -1,0 +1,2 @@
+SURVIVED NULL
+mutant_guard: signal 15, restored custom_components/heatpump_optimizer/room_record.py

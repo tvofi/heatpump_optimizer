@@ -1,0 +1,21 @@
+custom_components/heatpump_optimizer/config_flow.py:541 validate_tibber_token | "return 'cannot_connect'"
+custom_components/heatpump_optimizer/coordinator.py:1903 _shutdown_process_pool | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:1910 _shutdown_process_pool | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:1916 _shutdown_process_pool | 'worker.kill()'
+custom_components/heatpump_optimizer/coordinator.py:2081 _run_in_process | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:2098 _run_in_process | 'pass'
+custom_components/heatpump_optimizer/coordinator.py:6128 HeatPumpOptimizerCoordinator._async_update_data | '_fail_update_held(self, err)'
+custom_components/heatpump_optimizer/coordinator.py:6174 HeatPumpOptimizerCoordinator._async_first_refresh_light | '_fail_update_held(self, err)'
+custom_components/heatpump_optimizer/coordinator.py:6485 HeatPumpOptimizerCoordinator.async_run_optimization | "_note_solve_failure(self, err)\nreturn 'solve_failed'"
+custom_components/heatpump_optimizer/coordinator.py:6957 HeatPumpOptimizerCoordinator._fetch_tibber_prices | "self._tibber_fetch_failed(f'Unexpected error fetching prices: {err}', exc_info=T"
+custom_components/heatpump_optimizer/coordinator.py:7080 HeatPumpOptimizerCoordinator._fetch_weather_forecast | "self._weather_fetch_failed(f'Error fetching weather forecast: {err}')\nstate = se"
+custom_components/heatpump_optimizer/coordinator.py:730 _valve_write_problem | "return f'could not be commanded: {err}'"
+custom_components/heatpump_optimizer/debugger.py:355 run_self_tests | "outcome = {'error': repr(err)}"
+custom_components/heatpump_optimizer/debugger.py:673 DebugCollector._async_replay | "return (None, f'the recorder could not be read: {err!r}')"
+custom_components/heatpump_optimizer/off_restore.py:217 _restore_baseline | 'sent, err = (False, exc)'
+custom_components/heatpump_optimizer/optimizer.py:1970 _multi_start_minimize | 'last_error = err\ncontinue'
+custom_components/heatpump_optimizer/process_worker.py:40 _describe | 'return type(obj).__name__'
+custom_components/heatpump_optimizer/process_worker.py:52 _dump | "status = 'err' if payload[0] == 'ok' else payload[0]\nblob = pickle.dumps((status"
+custom_components/heatpump_optimizer/process_worker.py:76 run_worker | "_dump(stdout, ('load-err', err))\nreturn"
+custom_components/heatpump_optimizer/process_worker.py:85 run_worker | "payload = ('err', err)"
+RESULT silent_broad_seams=20 handlers
