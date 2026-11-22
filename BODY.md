@@ -19,7 +19,15 @@ Alternatives not taken:
 
 ## Head
 
-`7dd02c4135d851fa03afb2f9b2abed65014eaaf7` is the code head of this handoff; its merge base is `a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b`, which is `origin/main` at this run.
+`f418d51c7719209d311aab8895328249472e312b` is the code head of this handoff; its merge base is `f269ecccb5f1dfd21eca03a3d5dcc43b3a145603`, which is `origin/main` at 2026-11-22T01:31Z. It is two merges of `origin/main` into the reviewed head `7dd02c4135d851fa03afb2f9b2abed65014eaaf7` (merge base `a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b`): ec1b533f53 merges `e4c929bd1c`, with the resolutions below; f418d51c77 merges `f269ecccb5` (#3729), which touches only `tests/entities.py`, `tests/structure.py`, `tests/structure_budgets.json`, `tools/policy/field_coverage.mjs` and its delivery row, and merges with no conflict but the budget file, resolved by the ledger driver. `git diff 7dd02c4135 f418d51c77` is main's delta plus those resolutions.
+
+- Merge resolutions, each keeping both sides:
+  - `coordinator.py`, the `ArbiterInputs(...)` call in the arbiter-inputs build: this branch's `opt_config=ctx._opt_config` and main's `draw=self._accuracy.draw` are both passed.
+  - `pump_arbiter.py` imports: this branch's `from .store import QuarantiningStore, load_mapping, save_held` and main's `from .sysid import KIND_PROBE` are both kept.
+  - `pump_arbiter.py`, `ArbiterInputs` fields: this branch's `opt_config: Any = None` and main's `draw: Any = None` are both kept, each with its comment.
+  - `tests/structure_budgets.json` was resolved by the ledger merge driver (`class_excess_loc` 17313, `max_class_loc` 7860). `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` at ec1b533f53 and again at f418d51c77, where #3729's two new rows (`in_function_copies` 11, `unloaded_package_imports` 14) hold.
+- Semantic check of the merge: `pyflakes custom_components/heatpump_optimizer/*.py` at ec1b533f53 prints the same 21 lines as at `origin/main` e4c929bd1c, line numbers ignored, so the merge adds no undefined name and drops no import. Main adds no new `opt_config` read in `pump_arbiter.py` or `early_cutoff.py`, and `early_cutoff.arm` has its one call site, which uses this branch's signature. No semantic repair was needed.
+- Re-runs at ec1b533f53 (`git diff ec1b533f53 f418d51c77` changes no file under `custom_components/`) with `PYTHONPATH=tests/hastub`: `tests/features.py` prints `ALL 6041 FEATURE CHECKS PASSED`; `tests/block_duty.py` `ALL 153 BLOCK DUTY CHECKS PASSED`; `tests/guard_pins.py` `ALL 91 GUARD PIN CHECKS PASSED`; `tests/manual_plan.py` `ALL 132 manual plan checks PASSED`; `tests/finite_boundary.py` `ALL 119 FINITE BOUNDARY CHECKS PASSED`; `tests/boost_drift_replay.py` exits 0. Scoped prepr (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`) prints `PRE-PR: f418d51c7719209d311aab8895328249472e312b 000000000000000000`.
 
 - The mutation proofs, the block and the architecture score were taken at 7dd02c4135, except M8, which was taken at ac05746327. The strict-typing row and `tests/entities.py`'s tier check are identical at both commits.
 - The suite re-runs were taken at 2d4dd773a0. `git diff 2d4dd773a0 7dd02c4135` adds one test check (`diagnosis.attribute`'s baseline) and nothing else.
@@ -126,7 +134,7 @@ None of the light harnesses below reads these.
     - `features.py`: `ALL 6000 FEATURE CHECKS PASSED`.
   - The block at 7dd02c4135 prints `ALL 12 FEATURES BLOCK PASSED`, and the exception-translation section (`features_block.py` from "# D10-17 (#217, …" to "# #226: …", prelude from `--emit-prelude`) prints `ALL 33 FEATURES BLOCK PASSED`.
 - **Structure.** `python3 tests/structure.py --record`, in its own commit with the reason, moves `class_excess_loc` 17322 → 17318 and `max_class_loc` 7873 → 7865. No other row moves.
-<!-- figure-block: scope-line mb=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b head=7dd02c4135d851fa03afb2f9b2abed65014eaaf7 -->
+<!-- figure-block: scope-line mb=f269ecccb5f1dfd21eca03a3d5dcc43b3a145603 head=f418d51c7719209d311aab8895328249472e312b -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
@@ -142,19 +150,19 @@ MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 
 ## Unpinned sites
 
-`python3 tools/pr/ci_predict.py` at 7dd02c4135 names 11 sites. Each is driven by `tools/audit/seat/mutant_run.py --spec` (the NULL run `SURVIVED`) against the command named:
+`python3 tools/pr/ci_predict.py` at ec1b533f53 names 11 sites, the same 11 as at 7dd02c4135 (f418d51c77 changes no file under `custom_components/`); the merge of `origin/main` moved five of them, re-anchored here by matching each site's code text at 7dd02c4135 to the one same-kind site at ec1b533f53 (coordinator.py 6133→6120, 6180→6167, 10625→10607; store.py 740→744, 742→746). The kill evidence below was taken at 7dd02c4135. Each is driven by `tools/audit/seat/mutant_run.py --spec` (the NULL run `SURVIVED`) against the command named:
 
 - custom_components/heatpump_optimizer/away.py:621 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D10-s1-01: set_away refuses each of six return times …")
-- custom_components/heatpump_optimizer/coordinator.py:6133 RETURN_DEL: pinned by mutation-autofix (KILLED by `tests/features.py`, `mutant_run.py --spec --in-place --timeout 3000`, at 7dd02c4135: `SURVIVED NULL`, `KILLED coord6133_RETURN_DEL`. The default 600 s timeout cut the NULL run short, which read as `KILLED NULL`)
-- custom_components/heatpump_optimizer/coordinator.py:6180 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-06: …", whose recovered refresh reads the payload)
-- custom_components/heatpump_optimizer/coordinator.py:10625 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-07: diagnosis inputs whose state cannot be copied are None, …")
+- custom_components/heatpump_optimizer/coordinator.py:6120 RETURN_DEL: pinned by mutation-autofix (KILLED by `tests/features.py`, `mutant_run.py --spec --in-place --timeout 3000`, at 7dd02c4135: `SURVIVED NULL`, `KILLED coord6133_RETURN_DEL`. The default 600 s timeout cut the NULL run short, which read as `KILLED NULL`)
+- custom_components/heatpump_optimizer/coordinator.py:6167 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-06: …", whose recovered refresh reads the payload)
+- custom_components/heatpump_optimizer/coordinator.py:10607 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-07: diagnosis inputs whose state cannot be copied are None, …")
 - custom_components/heatpump_optimizer/diagnosis.py:95 RETURN_DEL: pinned by mutation-autofix (KILLED by the block's "D1-s3-07 seam rule: a diagnosis whose baseline cannot be simulated is no report (None), …")
 - custom_components/heatpump_optimizer/diagnostics.py:375 RETURN_DEL: pinned by mutation-autofix (KILLED by "D1-s3-07: the L-BFGS-B restart, a learner summary and a diagnostics view that raise …")
 - custom_components/heatpump_optimizer/optimizer.py:1866 RETURN_DEL: pinned by mutation-autofix (KILLED by the same check)
 - custom_components/heatpump_optimizer/services.py:640 BOOLOP: pinned by mutation-autofix (KILLED by "D10-s1-01: …")
 - custom_components/heatpump_optimizer/services.py:640 GUARD_OFF: pinned by mutation-autofix (KILLED by "D10-s1-01: …")
-- custom_components/heatpump_optimizer/store.py:740 RETURN_DEL: pinned by mutation-autofix (KILLED by "D1-s3-05: a save failing on three passes …", which reads each call's return)
-- custom_components/heatpump_optimizer/store.py:742 RETURN_DEL: pinned by mutation-autofix (KILLED by the same check)
+- custom_components/heatpump_optimizer/store.py:744 RETURN_DEL: pinned by mutation-autofix (KILLED by "D1-s3-05: a save failing on three passes …", which reads each call's return)
+- custom_components/heatpump_optimizer/store.py:746 RETURN_DEL: pinned by mutation-autofix (KILLED by the same check)
 
 Two survivors are triaged as equivalent in `tests/mutation_ledger/survivor_triage/`, each with its reason:
 
