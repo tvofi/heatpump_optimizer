@@ -65193,7 +65193,7 @@ _fl_boost = {
         "option 46": {"option": 46}, "sensor 52, option 46": {"sensor": 52, "option": 46},
         "sensor 52, option 58": {"sensor": 52, "option": 58},
         "sensor unavailable, option 46": {"sensor": "unavailable", "option": 46},
-        "crossed pair, option 46": {"sensor": 52, "low_sensor": 60, "option": 46},
+        "crossed pair, option 58": {"sensor": 52, "low_sensor": 60, "option": 58},
         "option 70 over a 60 maximum": {"option": 70, "attrs": {"min": 25, "max": 60}},
         "neither": {},
     }.items()
@@ -65204,7 +65204,7 @@ R.check(
     "maximum; null control: with neither it writes the entity's maximum, 70",
     _fl_boost == {
         "option 46": [46], "sensor 52, option 46": [46], "sensor 52, option 58": [52],
-        "sensor unavailable, option 46": [46], "crossed pair, option 46": [46],
+        "sensor unavailable, option 46": [46], "crossed pair, option 58": [58],
         "option 70 over a 60 maximum": [60], "neither": [70],
     },
     f"{_fl_boost=}",
