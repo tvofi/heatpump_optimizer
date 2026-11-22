@@ -1,0 +1,29 @@
+
+=== Stress and economics ===
+RESULT winter/1z/space solves=1 record=1 limit=1 ok
+RESULT winter/1z/space payload_b=86246 record=86417 limit=129626 ok
+RESULT winter/1z/space retained_b_per_cycle=2522 record=2636 limit=16384 ok
+RESULT winter/1z/space yields=585 record=429 limit=286.0 ok
+RESULT winter/1z/space loop_calls=2435 record=2436 limit=3654 ok
+RESULT winter/1z/dhw solves=2 record=2 limit=2 ok
+RESULT winter/1z/dhw payload_b=88590 record=88678 limit=133017 ok
+RESULT winter/1z/dhw retained_b_per_cycle=3092 record=2122 limit=16384 ok
+RESULT winter/1z/dhw yields=559 record=495 limit=330.0 ok
+RESULT winter/1z/dhw loop_calls=2447 record=2448 limit=3672 ok
+RESULT winter/2z/dhw solves=1 record=1 limit=1 ok
+RESULT winter/2z/dhw payload_b=89755 record=90360 limit=135540 ok
+RESULT winter/2z/dhw retained_b_per_cycle=2107 record=2985 limit=16384 ok
+RESULT winter/2z/dhw yields=590 record=380 limit=253.3 ok
+RESULT winter/2z/dhw loop_calls=2449 record=2448 limit=3672 ok
+RESULT heavy_old/shoulder solves=1 record=1 limit=1 ok
+RESULT heavy_old/shoulder payload_b=89466 record=89274 limit=133911 ok
+RESULT heavy_old/shoulder retained_b_per_cycle=2618 record=2203 limit=16384 ok
+RESULT heavy_old/shoulder yields=528 record=360 limit=240.0 ok
+RESULT heavy_old/shoulder loop_calls=2446 record=2447 limit=3670 ok
+RESULT winter/cycle solves=1 record=1 limit=1 ok
+RESULT winter/cycle payload_b=89756 record=90360 limit=135540 ok
+RESULT winter/cycle retained_b_per_cycle=2260 record=2043 limit=16384 ok
+RESULT winter/cycle yields=590 record=380 limit=253.3 ok
+RESULT winter/cycle loop_calls=2449 record=2448 limit=3672 ok
+ALL 25 checks PASSED
+rc=0
