@@ -1,0 +1,1 @@
+null usable: red only on the artefact checks D3-rem's null shows (closure selftest 2, entities 1, harness_headers 4); wall 4326 s, load1 ~1
