@@ -1,7 +1,11 @@
-# Design note: R11-OWNER-FAULT-TEXT -- record the pump's fault codes for diagnostics (rev 2)
+# Design note: R11-OWNER-FAULT-TEXT -- record the pump's fault codes for diagnostics (rev 3)
 
-Rev 2 answers `design-verdict/R11-OWNER-FAULT-TEXT` 45a37ffb (revise,
-architecture-unsound, R1-R5 and eight carries, on 86338c13). Code read at
+Rev 2 answered `design-verdict/R11-OWNER-FAULT-TEXT` 45a37ffb (revise,
+architecture-unsound, R1-R5 and eight carries, on 86338c13). Rev 3 applies the
+owner's ruling of 2026-11-22, relayed by the orchestrator, which overrides R1:
+"I think it should suggest it." (the fault-alarm entity). Only the Discovery
+paragraph, test 9, the release note, the sibling-site line and one carry
+moved from rev 2. Code read at
 `origin/main` eaaaf24e5b; no predecessor handoff head exists. Coordinates with
 `design/R11-OWNER-FAULT-HOLD` 57d5d278 (approved, not built). Evidence: the
 owner's report, verbatim: "The Tuya heat pump integration exposes the problem
@@ -31,13 +35,35 @@ is never committed; every value below is invented.
 electric-heat slots' precedent). The 4-member cap is validated in the step
 with its own error string (`EntitySelector(multiple=True)` does not enforce it).
 
-**Discovery (R1, R2).** Only the text slot is suggested; the flag slot gets no
-prefill row, so discovery never widens FAULT-HOLD, the learner freeze or the
-duty-switch void. Widening those is an owner decision outside this group.
-- Tuya: `device_prefill._TUYA_HEAT_PUMP` gains `("sensor", "fault_description")`
-  for the text slot. The signature is unchanged; the row applies only to a
-  device that signature already proves, which already has tabled roles, so
-  `prefill_offer.qualifies` reads the same for every device.
+**Discovery (owner ruling over R1; R2).** Both slots are suggested.
+- **Fault alarm (flag slot), restored from rev 1:** `device_prefill._TUYA_HEAT_PUMP`
+  gains `("binary_sensor", "fault")`, and `modbus_prefill._NAMED` gains
+  `CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.{p}_alarm"`. The GCHV
+  package's "HP Alarm" is an OR over the four alarm registers. `_NAMED` is a
+  scalar entity slot, so `infer`'s existing loop suggests it on both the
+  device path and the Modbus path, and no new shape is needed. As with every
+  prefill row, it is a suggestion applied only where the slot is empty and
+  the person accepts it.
+- **What accepting it changes:** it brings the install under three existing
+  readers of the slot:
+  - FAULT-HOLD (57d5d278): after 10 minutes of fault, actuation is held and a
+    repair is raised.
+  - The learner freeze: `pump_signals` sets `FREEZE_FAULT` while the slot reads on.
+  - The duty-switch void: `pump_arbiter._switch_context` voids an episode that
+    has a fault in it.
+- **GCHV warnings:** the GCHV alarm registers can carry non-blocking warnings
+  (for example a sensor-fail bit while the unit runs), and "HP Alarm" reads on
+  for them too. Such an install holds as if latched. The way out is the
+  `fault_hold` opt-out on the options page, which ends the hold but not the
+  freeze or the void.
+- The prefill page's description and `docs/configuration.md` state all of the
+  above beside the suggestion.
+- **Fault text:** `_TUYA_HEAT_PUMP` gains `("sensor", "fault_description")`
+  for the text slot.
+- **Signatures are unchanged.** A table row applies only to a device its
+  signature already proves, and such a device already has tabled roles, so
+  `prefill_offer.qualifies` reads the same for every device. The flag slot
+  read stays strict (see below).
 - `modbus_prefill.infer` suggests entity slots only from `_NAMED`. It gains a
   second loop over a new one-key tuple of **list slots**, suggesting
   `[snap[slot][0]]`, a one-member list. `_prefill_fits` passes a non-number
@@ -180,7 +206,8 @@ Download diagnostics ─ _VIEWS ─ diagnostics_view
 
 `grep -rn "CONF_HEAT_PUMP_FAULT_ENTITY" custom_components/heatpump_optimizer/*.py`:
 `pump_signals`, `pump_arbiter._switch_context`, `topology`, `config_flow` and
-`const` are unchanged, and no prefill row is added. Other Tuya models'
+`const` are unchanged in code. The restored prefill rows change who reaches
+them (see Discovery). Other Tuya models'
 description sensors are out of scope for prefill, because no signature proves
 them; the slot itself covers them.
 
@@ -220,8 +247,12 @@ the store; `tests/config_flow_steps.py` holds the row and the cap error;
    - A code text equal to an entry name of at least `replay_doc.LEAK_MIN_CHARS`
      characters comes out redacted, while a non-matching text is kept.
 9. Prefill:
-   - Signed Tuya records suggest a one-member text list and no flag slot.
-   - Null: without the signature there is no suggestion.
+   - Signed Tuya records suggest a one-member text list and the `fault`
+     binary sensor for the flag slot.
+   - A GCHV prefix suggests `binary_sensor.<p>_alarm` for the flag slot and
+     no text slot (the list is cut).
+   - Null: without the signature there is no suggestion. With the flag slot
+     already set, it is not suggested.
    - `qualifies` is unchanged on its threshold fixtures.
 10. Synthetic replay (no install data): 24 h with one multi-hour `P3` and
     twelve sub-minute `E5`s gives 13 rows and a tally of 12 for `E5`. Null:
@@ -274,9 +305,16 @@ yields its slot rather than hold up MODE-LEGS.
   caveat, the four GCHV sensors), and the Fault alarm row loses "never the
   code itself".
 - `docs/architecture.md`: one module line.
-- Release note: "With a Fault text entity configured (pre-filled for the Tuya
-  integration), each fault's code, start and end are kept for the last 200
-  episodes and appear in Download diagnostics."
+- Release note. It **leads with** the suggestion, ahead of everything else
+  in the entry: "The heat pump pre-fill now suggests the pump's Fault alarm
+  entity (the Tuya integration's Fault Alarm, the GCHV Modbus package's HP
+  Alarm). Accepting it means that while the pump reports a fault, the
+  optimizer stops changing the pump after 10 minutes (Fault hold), pauses its
+  learning, and discards the duty-switch measurement. The GCHV alarm
+  registers also report non-blocking warnings; if those hold your pump, turn
+  *Fault hold* off. With a Fault text entity configured (pre-filled for the
+  Tuya integration), each fault's code, start and end are kept for the last
+  200 episodes and appear in Download diagnostics."
 
 ## Notes for the fixer
 
@@ -286,7 +324,11 @@ yields its slot rather than hold up MODE-LEGS.
   `dev/audit/harnesses/r11_owner_fault_text.py` `<bundle.json>`, prints counts
   only (episodes and distinct texts) from a downloaded bundle. The owner runs
   it, and the bundle is never committed.
-- Carry: dismissed: widening FAULT-HOLD through flag-slot discovery is the
-  owner's decision (R1), routed by the orchestrator, not by this group.
+- Carry: R11-OWNER-FAULT-TEXT (flag-prefill-reach). The flag-slot suggestion
+  brings an accepting install under FAULT-HOLD, `FREEZE_FAULT` and the
+  duty-switch void (owner ruling 2026-11-22). The prefill page text, the docs
+  row and the leading release-note line say so. If FAULT-HOLD has not merged
+  when this group lands, the text names only the freeze and the void, and
+  FAULT-HOLD's own docs row adds the hold.
 - Carry: dismissed: no finding asks FAULT-HOLD's repair text to name the live
   code; it is left for a later owner call.
