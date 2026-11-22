@@ -1,0 +1,61 @@
+SITE __init__.py:194 [Home Assistant's dt_util.as_utc] span = dt_util.as_utc(dt_util.now()) - dt_util.as_utc(stamped_at)
+SITE accuracy.py:533 [a naive test guarding one of the above] if when.tzinfo is None:
+SITE accuracy.py:632 [a naive test guarding one of the above] if (start.tzinfo is None or not (np.isfinite(step) and step > 0)
+SITE away.py:509 [a naive test guarding one of the above] if return_time.tzinfo is None and now.tzinfo is not None:
+SITE away.py:510 [a naive stamp aligned to a reference's zone, for comparison] return_time = return_time.replace(tzinfo=now.tzinfo)
+SITE binary_sensor.py:222 [Home Assistant's dt_util.as_utc] if dt_util.as_utc(start) <= now < dt_util.as_utc(end):
+SITE boost.py:595 [Home Assistant's dt_util.as_utc] if parsed is not None and dt_util.as_utc(parsed) > dt_util.as_utc(now):
+SITE boost.py:602 [Home Assistant's dt_util.as_utc] and dt_util.as_utc(parsed_block) > dt_util.as_utc(now)
+SITE boost.py:613 [Home Assistant's dt_util.as_utc] if until is not None and dt_util.as_utc(until) > dt_util.as_utc(now):
+SITE coordinator.py:587 [a naive test guarding one of the above] if ts.tzinfo is None and reference.tzinfo is not None:
+SITE coordinator.py:589 [a naive test guarding one of the above] if ts.tzinfo is not None and reference.tzinfo is None:
+SITE coordinator.py:590 [a zone stripped after conversion, for a naive reference] return dt_util.as_local(ts).replace(tzinfo=None)
+SITE coordinator.py:862 [Home Assistant's dt_util.as_utc] return (dt_util.as_utc(newer) - dt_util.as_utc(older)).total_seconds()
+SITE coordinator.py:880 [a naive test guarding one of the above] if last.tzinfo is None and now.tzinfo is not None:
+SITE coordinator.py:881 [a naive stamp aligned to a reference's zone, for comparison] last = last.replace(tzinfo=now.tzinfo)
+SITE coordinator.py:8952 [Home Assistant's dt_util.as_utc] and (dt_util.as_utc(now) - dt_util.as_utc(self._fuse_advisor_at)
+SITE coordinator.py:9250 [a naive test guarding one of the above] if when.tzinfo is None and now.tzinfo is not None:
+SITE coordinator.py:9251 [a naive stamp aligned to a reference's zone, for comparison] when = when.replace(tzinfo=now.tzinfo)
+SITE defrost.py:729 [a naive test guarding one of the above] if (now.tzinfo is None) != (then.tzinfo is None):
+SITE defrost.py:735 [Home Assistant's dt_util.as_utc] dt_util.as_utc(now) - dt_util.as_utc(then)
+SITE drift.py:47 [a naive test guarding one of the above] if value.tzinfo is None:
+SITE drift.py:48 [naive-to-UTC relabel: the naive-zone fact] return value.replace(tzinfo=timezone.utc)
+SITE drift.py:49 [an aware conversion] return value.astimezone(timezone.utc)
+SITE drift.py:71 [a naive test guarding one of the above] if when.tzinfo is None:
+SITE drift.py:73 [an aware conversion] return (when.astimezone(timezone.utc) + delta).astimezone(when.tzinfo)
+SITE drift.py:92 [an aware conversion] base = start.astimezone(timezone.utc)
+SITE drift.py:93 [an aware conversion] return [(base + step * (offset + i)).astimezone(tz) for i in range(n)]
+SITE drift.py:119 [a naive stamp aligned to a reference's zone, for comparison] return when if when.tzinfo is not None else when.replace(tzinfo=naive_zone)
+SITE early_cutoff.py:172 [Home Assistant's dt_util.as_utc] held.cycle_end = dt_util.as_utc(now) + timedelta(minutes=cfg.optimization_interval)
+SITE early_cutoff.py:201 [Home Assistant's dt_util.as_utc] now = dt_util.as_utc(now or dt_util.now())
+SITE early_cutoff.py:275 [Home Assistant's dt_util.as_utc] if held.cycle_end is None or held.cycle_end - dt_util.as_utc(now) < MIN_OFF:
+SITE early_cutoff.py:317 [Home Assistant's dt_util.as_utc] held.cut_at = dt_util.as_utc(now)
+SITE inputs.py:252 [a naive test guarding one of the above] if stamp is None or stamp.tzinfo is None or now.tzinfo is None:
+SITE ledger.py:154 [an aware conversion] start, end = start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+SITE manual_plan.py:78 [a naive test guarding one of the above] if reference.tzinfo is None:
+SITE manual_plan.py:82 [a zone stripped after conversion, for a naive reference] return utc_instant(value).replace(tzinfo=None)
+SITE manual_plan.py:84 [a naive test guarding one of the above] if value.tzinfo is None:
+SITE manual_plan.py:85 [a naive stamp aligned to a reference's zone, for comparison] return value.replace(tzinfo=reference.tzinfo)
+SITE store.py:163 [a naive test guarding one of the above] naive = when.tzinfo is None
+SITE store.py:164 [a naive stamp aligned to a reference's zone, for comparison] when = when.replace(tzinfo=naive_zone or bound.tzinfo) if naive else when
+SITE store.py:168 [an aware conversion] clamped = limit.astimezone(when.tzinfo)
+SITE store.py:169 [a zone stripped after conversion, for a naive reference] clamped = clamped.replace(tzinfo=None) if naive else clamped
+SITE store.py:770 [Home Assistant's dt_util.as_utc] bound = dt_util.as_utc(dt_util.now()) + self._lead
+SITE supply_hold.py:78 [Home Assistant's dt_util.as_utc] now = dt_util.as_utc(now or dt_util.now())
+SITE supply_hold.py:92 [Home Assistant's dt_util.as_utc] held_now = until is not None and dt_util.as_utc(now or dt_util.now()) < until
+SITE supply_hold.py:138 [Home Assistant's dt_util.as_utc] since, now = dt_util.as_utc(since), dt_util.as_utc(now)
+SITE tariff.py:650 [an aware conversion] base = slot0 if tz is None else slot0.astimezone(timezone.utc)
+SITE tariff.py:652 [an aware conversion] return [s if tz is None else s.astimezone(tz) for s in starts]
+SITE wood_fuel.py:170 [a zone conversion read through drift.utc_instant first] return utc_instant(ts).astimezone(local_tz) if local_tz is not None else ts
+SITE wood_fuel.py:302 [a naive test guarding one of the above] if ts.tzinfo is None and ref.tzinfo is not None:
+SITE wood_fuel.py:303 [a naive stamp aligned to a reference's zone, for comparison] return ts.replace(tzinfo=ref.tzinfo)
+SITE wood_fuel.py:304 [a naive test guarding one of the above] if ts.tzinfo is not None and ref.tzinfo is None:
+SITE wood_fuel.py:305 [a zone stripped after conversion, for a naive reference] return ts.replace(tzinfo=None)
+RESULT Home Assistant's dt_util.as_utc=16
+RESULT a naive test guarding one of the above=16
+RESULT a naive stamp aligned to a reference's zone, for comparison=7
+RESULT a zone stripped after conversion, for a naive reference=4
+RESULT naive-to-UTC relabel: the naive-zone fact=1
+RESULT an aware conversion=8
+RESULT a zone conversion read through drift.utc_instant first=1
+RESULT total=53

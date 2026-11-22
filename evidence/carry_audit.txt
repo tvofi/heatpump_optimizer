@@ -1,0 +1,6 @@
+NOTE body item 8e61967e: dismissed:owed to R11-SEAM-actuation-release (the second to merge re-runs the restore harness; it is second while its branch is off main)
+NOTE body item 96de72e6: dismissed:ADR-001 part 2 already binds both groups to plan_step's step owner, and the barrier enforces it
+NOTE body item 96426282: dismissed:the D7-s3 finder's recorded non-finding (its report: reported and not raised, since no pair of production predicates answers differently for a state Home Assistant delivers)
+NOTE body item 0ec2300d: dismissed:reported in this seat's return to the orchestrator, which owns the instrument
+NOTE review 0 item 7c22f27e: dismissed:pre-existing at the merge base, outside the delta scope (fix-review.md step 12), on a domain production does not reach
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)

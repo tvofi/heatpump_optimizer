@@ -1,0 +1,11 @@
+RESULT M0 none (control): rc=0 fails=0
+RESULT M0b none (control): rc=0 fails=0
+RESULT M1 _in_zone without utc_instant: rc=1 fails=1
+    FAIL a naive plan stamp is UTC under a non-UTC host zone: the windows and the lighting window equal the aware build's  [host zone took True, None (None, None)]
+RESULT M2 manual_plan coerce back to host zone: rc=1 fails=1
+    FAIL D7-s3-04 naive instant: drift.utc_instant reads a naive stamp as UTC under a Tokyo host; open_meteo and manual_plan (its instant and its naive-reference coercion) read it there  [{'drift': True, 'open_meteo': True, 'manual_plan': True, 'manual_plan coerce': False, 'aware kept': True}]
+RESULT M3 null control: D7-s3-04 water check config back to {}: rc=1 fails=1
+    FAIL D7-s3-04 water: the tank model, the flow meter and the gap advisor read one heat capacity, const.WATER_SPECIFIC_HEAT (kWh per litre per K)  [{'const': 0.00116, 'tank model': 0.00116, 'flow meter': 0.00116, 'gap advisor': 0.0}]
+RESULT M4 gap advisor heat capacity literal 4.186/3600: rc=1 fails=1
+    FAIL D7-s3-04 water: the tank model, the flow meter and the gap advisor read one heat capacity, const.WATER_SPECIFIC_HEAT (kWh per litre per K)  [{'const': 0.00116, 'tank model': 0.00116, 'flow meter': 0.00116, 'gap advisor': 0.0011627777777777778}]
+RESULT M5 gap advisor DHW guard removed: rc=0 fails=0
