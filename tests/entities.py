@@ -42910,6 +42910,10 @@ _R10_LOG_ALLOWED_BY_REASON = {
         # R11 D14-s2-03: a fit that raises ends the experiment in the same
         # call (phase done, a refusal published), so it logs once per night armed.
         ("sysid.py", "_finish"): 1,
+        # R11-OWNER-COOLING-GUARD: the warning raises ``ISSUE_COOLING`` and
+        # sets ``cooling_asked`` in the same call; it logs again only after
+        # the mode has left cooling and the flag cleared.
+        ("supply_hold.py", "note_cooling"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
