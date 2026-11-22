@@ -17,3 +17,4 @@
 1795388361 HB alive
 1795388854 CKPT D3-s1 90 file(s)
 1795388911 CKPT D3-s1 107 file(s)
+1795388917 HB NOTE 1+2 obeyed: probes saved under probes/<key>/ with INDEX.md and probe.out, PROBE-NOTES.md written, ckpt every 10 min; gate 9efe002b48e1827d running
