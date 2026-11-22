@@ -7568,7 +7568,9 @@
    "issues": [
     3849
    ],
-   "fixes": [],
+   "fixes": [
+    3849
+   ],
    "after": [],
    "files": [
     "custom_components/heatpump_optimizer/duty_switch.py",
