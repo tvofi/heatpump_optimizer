@@ -74888,6 +74888,7 @@ from heatpump_optimizer.const import (  # noqa: E402
     CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY as _SP_PUMP_SUPPLY,
     CONF_VALVE_OUTLET_TEMP_ENTITY as _SP_VALVE,
 )
+from heatpump_optimizer.flow_anchor import RETURN_SKIPPED_RUNG as _SP_SKIPPED  # noqa: E402
 from heatpump_optimizer.thermal_model import (  # noqa: E402
     FLOW_MIN_LIFT_K as _SP_LIFT,
     modulation_floor_flow_c as _sp_floor_of,
@@ -79602,7 +79603,7 @@ R.check(
     and _sp_write(1.5, (_SP_TANK, _SP_VALVE), extra=_RT) == _SP_READ[_SP_TANK] + _SP_LIFT
     and _sp_write(1.5, (_SP_FLOOR, _SP_VALVE), extra=_RT) == _SP_READ[_SP_FLOOR] + _SP_LIFT
     and _sp_write(1.5, (_SP_VALVE,), extra=_RT_FLOW) == _SP_READ[_SP_VALVE] + _SP_LIFT
-    and _pa.RETURN_SKIPPED_RUNG == _SP_VALVE,
+    and _SP_SKIPPED == _SP_VALVE,
     f"{_sp_write(1.5, (_SP_VALVE,), extra=_RT)}",
 )
 
@@ -99214,6 +99215,7 @@ from heatpump_optimizer.const import (  # noqa: E402
 _SK_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
 _SK_SETTLE = _sk_pa.FEEDBACK_START_HOLD
 _SK_MAX_AGE = timedelta(minutes=_sk_pa.LEASE_MINUTES)
+_SK_RAN = 0.75  # the run threshold the record is handed, kW
 
 
 def _sk_inp(kw=3.5, ret=54.0, tank=None, unit=None, action=None):
@@ -99241,7 +99243,7 @@ def _sk_rec(prev_duty="dhw", gap_s=60.0, space=(29.0, -40.0), duty="space"):
     ``prev_duty`` pass; ``space`` is (inlet, minutes before _SK_T0) or None."""
     remembered = None if space is None else (space[0], _SK_T0 + timedelta(minutes=space[1]))
     prev = _sk_fa.Served(prev_duty, _SK_T0 - timedelta(seconds=gap_s), None, remembered)
-    return _sk_fa.note(prev, duty, _SK_T0, _SK_SETTLE, 54.0, False)
+    return _sk_fa.note(prev, duty, _SK_T0, _SK_SETTLE, 54.0, 0.0, _SK_RAN)
 
 
 def _sk_write(inp, rec=None, now=_SK_T0, duty="space", boosted=False):
@@ -99327,16 +99329,19 @@ R.check(
     and _sk_rec(gap_s=-1.0).swap_at is None and _SK_SETTLE == timedelta(minutes=5),
 )
 # The space inlet record: only a running space-only pass outside a settle span.
-_sk_run = _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, True)
+_sk_run = _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, 2.0, _SK_RAN)
 R.check(
-    "STEP-KICK record: a running space pass remembers its inlet; a stopped one, a Heating + DHW "
-    "one and one inside the settle span keep the older record",
+    "STEP-KICK record: a running space pass remembers its inlet (a draw at the run threshold runs); "
+    "a stopped or unmetered one, a Heating + DHW one and one inside the settle span keep the older record",
     _sk_run.space_inlet == (30.0, _SK_T0)
-    and _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, False).space_inlet is None
-    and _sk_fa.note(None, "both", _SK_T0, _SK_SETTLE, 30.0, True).space_inlet is None
-    and _sk_fa.note(_sk_swap, "space", _SK_T0 + timedelta(minutes=1), _SK_SETTLE, 50.0, True).space_inlet
+    and _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, _SK_RAN, _SK_RAN).space_inlet == (30.0, _SK_T0)
+    and _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, _SK_RAN - 0.01, _SK_RAN).space_inlet is None
+    and _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, None, _SK_RAN).space_inlet is None
+    and _sk_fa.note(None, "space", _SK_T0, _SK_SETTLE, 30.0, 0.0, _SK_RAN).space_inlet is None
+    and _sk_fa.note(None, "both", _SK_T0, _SK_SETTLE, 30.0, 2.0, _SK_RAN).space_inlet is None
+    and _sk_fa.note(_sk_swap, "space", _SK_T0 + timedelta(minutes=1), _SK_SETTLE, 50.0, 2.0, _SK_RAN).space_inlet
     == _sk_swap.space_inlet
-    and _sk_fa.note(_sk_swap, "space", _SK_T0 + _SK_SETTLE, _SK_SETTLE, 30.0, True).space_inlet
+    and _sk_fa.note(_sk_swap, "space", _SK_T0 + _SK_SETTLE, _SK_SETTLE, 30.0, 2.0, _SK_RAN).space_inlet
     == (30.0, _SK_T0 + _SK_SETTLE),
 )
 # I1/I2 census: every live inlet x anchor x level x window position.

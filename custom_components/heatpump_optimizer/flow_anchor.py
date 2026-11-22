@@ -4,14 +4,14 @@ A heating step's flow set-point slides from the ceiling down to a floor one
 lift above the water the pump heats (``thermal_model.modulation_floor_flow_c``),
 read from the first fresh rung of :data:`FLOW_INLET_KEYS`. Right after a
 hot-water leg the first rung, the pump-loop return, reads the tank coil's
-water, so the floor lands at or above the ceiling and the first space writes
-ask for the pump's maximum lift for the minutes the return takes to cool
-(tvofi, 2026-11-22: the step-start kick).
+water, so the floor lands at or above the ceiling. The first space writes
+then ask for the pump's maximum lift until the return cools (tvofi,
+2026-11-22: the step-start kick).
 
-This module owns the one rule that stands that off: for a settle span after a
-pass that serves space right after one that served hot water (a *swap*), the
-floor is anchored on the space loop's own water -- the inlet remembered from
-the last running space pass, else the first rung past the pump-loop return.
+This module owns the one rule that stands that off. A *swap* is a pass that
+serves space right after one that served hot water. For a settle span after
+it, the floor is anchored on the space loop's own water: the inlet remembered
+from the last running space pass, else the first rung past the pump-loop return.
 The arbiter keeps the lower of that floor and today's, so a write never rises.
 A settle span of zero is today's behaviour.
 
@@ -113,14 +113,16 @@ class Served:
 
 def note(
     prev: Served | None, duty: str | None, now: datetime, settle: timedelta,
-    inlet_c: float | None, running: bool,
+    inlet_c: float | None, power_kw: float | None, ran_kw: float,
 ) -> Served:
     """The record after a pass that serves ``duty`` at ``now``.
 
     A swap is a pass serving space (:data:`SPACE_DUTIES`) whose previous pass
-    served hot water less than ``settle`` before. A running space-only pass
-    outside a settle span remembers ``inlet_c`` as the space loop's water.
+    served hot water less than ``settle`` before. A space-only pass outside a
+    settle span, its metered ``power_kw`` at or above ``ran_kw`` (the
+    compressor running), remembers ``inlet_c`` as the space loop's water.
     """
+    running = power_kw is not None and power_kw >= ran_kw
     swap_at = prev.swap_at if prev is not None else None
     if duty in SPACE_DUTIES and prev is not None and prev.duty == "dhw" and _within(prev.at, now, settle):
         swap_at = now
@@ -140,9 +142,9 @@ def settled_inlet_c(
     inlet is unread. Inside it, the space loop's own water: ``space_c``, else
     ``side_c``; with neither, ``None``, which the arbiter's floor reads as its
     rated hold. The arbiter's floor is the lower of this anchor's and the live
-    inlet's (``pump_arbiter._map_inputs``): the floor is monotone in its inlet,
-    so the lower floor is the one ``min(live_c, anchor)`` would give, and the
-    hold the ``None`` anchor gives never raises a cool live inlet's.
+    inlet's (``pump_arbiter._map_inputs``). The floor is monotone in its inlet,
+    so that is the floor ``min(live_c, anchor)`` would give. The hold a
+    ``None`` anchor gives never raises a cool live inlet's floor.
     """
     if live_c is None or not _within(swap_at, now, settle):
         return live_c

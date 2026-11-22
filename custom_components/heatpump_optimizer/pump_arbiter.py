@@ -165,7 +165,6 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 
 from . import boost, draw_range, duty_switch, flow_anchor, issues, off_restore, pump_mode, quiet_windows
-from .flow_anchor import FLOW_INLET_KEYS, RETURN_SKIPPED_RUNG
 from .const import (
     CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
@@ -750,16 +749,16 @@ def live_power_kw(hass: Any, config: Mapping[str, Any]) -> float | None:
     return reading.value if reading.ok else None
 
 
-def _flow_inlet_c(inp: ArbiterInputs, keys: tuple[str, ...] = FLOW_INLET_KEYS) -> float | None:
+def _flow_inlet_c(inp: ArbiterInputs, keys: tuple[str, ...] = flow_anchor.FLOW_INLET_KEYS) -> float | None:
     """The first fresh reading of ``keys`` (without
-    :data:`RETURN_SKIPPED_RUNG` for a return target), °C, or ``None``.
+    :data:`.flow_anchor.RETURN_SKIPPED_RUNG` for a return target), °C, or ``None``.
 
     Read through :class:`~.inputs.InputReader`, so a stale, implausible or
     unconfigured slot is absent rather than guessed, and a slot left unset
     falls to the next rung.
     """
     reader = _reader(inp.hass, inp.config)
-    skip = RETURN_SKIPPED_RUNG if _return_unit(inp.config) else None
+    skip = flow_anchor.RETURN_SKIPPED_RUNG if _return_unit(inp.config) else None
     readings = (reader.read(key) for key in keys if key != skip)
     return next(
         (reading.value for reading in readings if reading.ok), None
@@ -968,12 +967,12 @@ def _map_inputs(
     p_min, p_max = _band_kw(inp)
     boost_c = _boost_ceiling_c(inp) if boosted else None
     heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
-    lift = start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None))
-    inlets = [_flow_inlet_c(inp)]
-    if settle is not None and _experiment_kw(inp) is None and not _return_unit(inp.config):
-        side_c = _flow_inlet_c(inp, flow_anchor.SPACE_SIDE_KEYS)
-        inlets.append(settle.anchor_c(inlets[0], side_c, now, FEEDBACK_START_HOLD, timedelta(minutes=LEASE_MINUTES)))
-    floor_c = min(_or_hold(modulation_floor_flow_c(c, _gate_c(inp), lift), inp.config) for c in inlets)
+    live = _flow_inlet_c(inp)
+    anchor = live if settle is None or _experiment_kw(inp) is not None or _return_unit(inp.config) else settle.anchor_c(
+        live, _flow_inlet_c(inp, flow_anchor.SPACE_SIDE_KEYS), now, FEEDBACK_START_HOLD, timedelta(minutes=LEASE_MINUTES))
+    floor_c = min(_or_hold(modulation_floor_flow_c(
+        c, _gate_c(inp), start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
+    ), inp.config) for c in (live, anchor))
     return MapInputs(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c, boost_c is not None)
 
 
@@ -1303,9 +1302,11 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now), settle=state_for(coord).served)
-    if _flow_unit(inp.config):
-        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
+    held = state_for(coord) if _flow_unit(inp.config) else None
+    space = _space_target(
+        inp, result, now, duty, boosted=_boosted(coord, inp, now), settle=None if held is None else held.served)
+    if held is not None:
+        space = _feedback(held, inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
         return PumpCommand(mode, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
@@ -1941,9 +1942,8 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
     served = _served(coord, inp, duty, now)
-    power = finite_float(inp.measured_power_kw)
     held.served = flow_anchor.note(
-        held.served, served, now, FEEDBACK_START_HOLD, _flow_inlet_c(inp), power is not None and power >= _ran_kw(inp))
+        held.served, served, now, FEEDBACK_START_HOLD, _flow_inlet_c(inp), finite_float(inp.measured_power_kw), _ran_kw(inp))
     await _command(coord, inp, desired(coord, inp, served, now), now)
     boosted = _boosted(coord, inp, now)
     _note_pass(held, inp, served, boosted, now)
