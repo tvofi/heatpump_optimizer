@@ -1,0 +1,1 @@
+- `dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py`: price_model.py:342 expected_daily_min's confidence boundary < -> <= survives the full gate — pins the baseline vs mutant value of the probe's metric (candidate); run: `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py`
