@@ -1,0 +1,29 @@
+BASELINE 0 failing
+KILLED falling edge keeps holding before clear (fault_hold.py): 2 failing
+    - and cleared on its falling edge, at Off and at unload  [{'rise': ['pump_fault_hold'], 'fall': ['pump_fault_hold'], 'off': ['pump_fault_hold'], 'unload
+    - the one domain-wide repair stays while another entry still holds, and goes with the last  [['pump_fault_hold']]
+KILLED latch entity/hass not recorded (fault_hold.py): 1 failing
+    - the one domain-wide repair stays while another entry still holds, and goes with the last  [[]]
+KILLED since ignores last_changed (fault_hold.py): 20 failing
+    - a fault alarm on for 11 minutes: the control pass writes nothing into the pump  [[('select', 'select_option', 'DHW (Hot Water)'), ('number', 'set_valu
+    - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([('number', 'set_value', 48)], {}, [], 53.0)]
+    - after the clear the pump's reset set-point is written back, never adopted  [([], [])]
+SURVIVED consult ignores Off (fault_hold.py): 0 failing
+SURVIVED consult ignores released (fault_hold.py): 0 failing
+KILLED gate never consults (held only) (fault_hold.py): 1 failing
+    - the switch gate leaves an OFF under the hold and marks it held for the step tick; ON and None pass  [(False, False, True, None)]
+KILLED release does not pop (fault_hold.py): 1 failing
+    - and cleared on its falling edge, at Off and at unload  [{'rise': ['pump_fault_hold'], 'fall': [], 'off': [], 'unload': (True, ['pump_fault_hold']), 'r
+SURVIVED diagnostics since dropped (fault_hold.py): 0 failing
+SURVIVED publish ignores mode_off (heat_curve.py): 0 failing
+KILLED publish ignores released (heat_curve.py): 1 failing
+    - an unloaded entry's displace raises no fault repair  [([], ['pump_fault_hold'])]
+KILLED consult after duty-off return (pump_arbiter.py): 1 failing
+    - with duty off a pass still latches the fault
+SURVIVED fault_stands not dropping space_before only when faulted (pump_arbiter.py): 0 failing
+KILLED cutoff last_held mark (early_cutoff.py): 1 failing
+    - a warm room under the hold does not cut the pump  [([], None)]
+SURVIVED ledger faulted reset per pass (duty_ledger.py): 0 failing
+RESULT mutants=14
+RESULT survived=6
+rc=0

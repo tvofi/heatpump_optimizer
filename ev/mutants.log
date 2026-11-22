@@ -1,0 +1,100 @@
+BASELINE 0 failing
+KILLED hold-after comparison (fault_hold.py): 2 failing
+    - the hold starts exactly at FAULT_HOLD_AFTER and not a second before it  [[False, False]]
+    - a fault stamp ahead of the consult is bounded to it: the hold starts 10 minutes after the first legible on  [[False, False]]
+KILLED hold-after dropped (fault_hold.py): 9 failing
+    - null control: the same pass with the alarm on for 9 minutes writes the step's row  [[] vs [('select', 'select_option', 'DHW (Hot Water)'), ('number', 
+    - null control: the same OFF with the alarm on for 9 minutes passes, unmarked  [(None, True)]
+    - null control: the alarm on for 7 minutes, the same reading cuts  [([], 'fault')]
+    - null control: the alarm on for 5 minutes, the displace is published  [([], ['pump_fault_hold'])]
+KILLED unbounded read (fault_hold.py): 21 failing
+    - a fault alarm on for 11 minutes: the control pass writes nothing into the pump  [[('select', 'select_option', 'DHW (Hot Water)'), ('number', 'set_valu
+    - a step boundary under the hold writes no mode  [[('select', 'select_option', 'Heating')]]
+    - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([('number', 'set_value', 48)], {}, [], 53.0)]
+    - after the clear the pump's reset set-point is written back, never adopted  [([], [])]
+KILLED legible-off reset (fault_hold.py): 5 failing
+    - after the clear the pump's reset set-point is written back, never adopted  [([], [])]
+    - the cycle's OFF under the hold is left, and the step tick writes it once the alarm clears  [{0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 'cutoff_entry':
+    - a legible off ends the hold
+    - and cleared on its falling edge, at Off and at unload  [{'rise': ['pump_fault_hold'], 'fall': ['pump_fault_hold'], 'off': [], 'unload': (True, []), 'r
+KILLED unusable resets (fault_hold.py): 2 failing
+    - unavailable and unknown keep the latch's start: the hold comes at minute 10 of the first on, not the second  [{'unavailable': [False, False, False, Fa
+    - an unusable reading never ends an active hold  [{'unavailable': [True, False], 'unknown': [True, False]}]
+KILLED unusable starts (fault_hold.py): 1 failing
+    - a status word that is not a flag, and an unavailable alarm, never start a hold  [[True] [True]]
+KILLED since bounded to now (fault_hold.py): 1 failing
+    - a fault stamp ahead of the consult is bounded to it: the hold starts 10 minutes after the first legible on  [[False, False]]
+KILLED released guard (fault_hold.py): 2 failing
+    - an unloaded entry's displace raises no fault repair  [([], ['pump_fault_hold'])]
+    - an unloaded entry and a 9-minute fault raise none  [{'rise': ['pump_fault_hold'], 'fall': [], 'off': [], 'unload': (True, []), 'released': (True, [('h
+KILLED opt-out (fault_hold.py): 4 failing
+    - null control: with the option off the same switch-on writes the step's mode first  [[]]
+    - with duty off a pass still latches the fault
+    - fault_hold off: a 60-minute fault holds nothing and raises nothing  [([True, True], ['pump_fault_hold'])]
+    - fault_hold off: the control pass writes as today
+KILLED off clears (fault_hold.py): 3 failing
+    - a fault on for 70 minutes on an on-change source holds at the first consult, after Off -> On and after a reload  [[True, True, True] [True]]
+    - and cleared on its falling edge, at Off and at unload  [{'rise': ['pump_fault_hold'], 'fall': [], 'off': ['pump_fault_hold'], 'unload': (True, []), 'r
+    - the one domain-wide repair stays while another entry still holds, and goes with the last  [['pump_fault_hold']]
+KILLED rising-edge repair (fault_hold.py): 3 failing
+    - a displace under the hold is not published  [([], [])]
+    - the fault repair is raised on the hold's rising edge  [{'rise': [], 'fall': [], 'off': [], 'unload': (True, []), 'released': (False, []), 'nine': []}]
+    - the one domain-wide repair stays while another entry still holds, and goes with the last  [[]]
+KILLED falling-edge clear (fault_hold.py): 2 failing
+    - and cleared on its falling edge, at Off and at unload  [{'rise': ['pump_fault_hold'], 'fall': ['pump_fault_hold'], 'off': ['pump_fault_hold'], 'unload
+    - the one domain-wide repair stays while another entry still holds, and goes with the last  [['pump_fault_hold']]
+KILLED same-hass filter (fault_hold.py): 2 failing
+    - and cleared on its falling edge, at Off and at unload  [{'rise': ['pump_fault_hold'], 'fall': ['pump_fault_hold'], 'off': ['pump_fault_hold'], 'unload
+    - the one domain-wide repair stays while another entry still holds, and goes with the last  [['pump_fault_hold']]
+KILLED gate False-only (fault_hold.py): 1 failing
+    - the switch gate leaves an OFF under the hold and marks it held for the step tick; ON and None pass  [(None, True, None, None)]
+KILLED gate held mark (fault_hold.py): 2 failing
+    - the switch gate leaves an OFF under the hold and marks it held for the step tick; ON and None pass  [(None, False, True, None)]
+    - the cycle's OFF under the hold is left, and the step tick writes it once the alarm clears  [{0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 'cutoff_entry':
+KILLED release clears (fault_hold.py): 1 failing
+    - and cleared on its falling edge, at Off and at unload  [{'rise': ['pump_fault_hold'], 'fall': [], 'off': [], 'unload': (True, ['pump_fault_hold']), 'r
+KILLED apply consult (pump_arbiter.py): 11 failing
+    - a fault alarm on for 11 minutes: the control pass writes nothing into the pump  [[('select', 'select_option', 'DHW (Hot Water)'), ('number', 'set_valu
+    - a step boundary under the hold writes no mode  [[('select', 'select_option', 'Heating')]]
+    - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([('number', 'set_value', 48)], {}, [], 53.0)]
+    - after the clear the pump's reset set-point is written back, never adopted  [([], [])]
+KILLED _arbitrate return (pump_arbiter.py): 4 failing
+    - a fault alarm on for 11 minutes: the control pass writes nothing into the pump  [[('select', 'select_option', 'DHW (Hot Water)'), ('number', 'set_valu
+    - a step boundary under the hold writes no mode  [[('select', 'select_option', 'Heating')]]
+    - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([('number', 'set_value', 48)], {}, [], 53.0)]
+    - after the clear the pump's reset set-point is written back, never adopted  [([], [])]
+KILLED retry drop (pump_arbiter.py): 1 failing
+    - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([], {'mode': datetime.datetime(2026, 1, 10, 6, 0, tzin
+KILLED ignored-issue clear (pump_arbiter.py): 1 failing
+    - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([], {}, [('heatpump_optimizer', 'pump_write_ignored', 
+KILLED space_before drop (pump_arbiter.py): 1 failing
+    - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([], {}, [], 53.0)]
+KILLED _lead_mode skip (pump_arbiter.py): 1 failing
+    - a switch-on under the hold writes no mode ahead of it  [[('select', 'select_option', 'DHW (Hot Water)')]]
+KILLED release row skip (pump_arbiter.py): 1 failing
+    - unload under the hold writes no baseline row  [[('select', 'select_option', 'Heating + DHW')]]
+KILLED ledger faulted mark (pump_arbiter.py): 2 failing
+    - CRASH TypeError: observe() missing 1 required keyword-only argument: 'faulted'
+    - CRASH TypeError: observe() missing 1 required keyword-only argument: 'faulted'
+KILLED verdict fault-first (duty_ledger.py): 5 failing
+    - every held step of the ledger is device-fault (hot water, space)  [['unknown', 'unknown', 'unknown', 'unknown']]
+    - the step in which a fault began keeps its own verdict; the next is device-fault  [['unknown', 'unknown', 'unknown', 'unknown']]
+    - a step whose fault clears inside it stays device-fault: any held pass marks the step  [['unknown', 'unknown', 'unknown', 'unknown']]
+    - device-fault is decided before every other verdict, a both step included
+KILLED observe keeps faulted (duty_ledger.py): 1 failing
+    - a step whose fault clears inside it stays device-fault: any held pass marks the step  [['device-fault', 'unknown', 'unknown', 'unknown']]
+KILLED diagnostics row (diagnostics.py): 1 failing
+    - the diagnostics download shows the fault latch under fault_hold  [None]
+KILLED publish return (heat_curve.py): 1 failing
+    - a displace under the hold is not published  [(['mqtt'], [])]
+KILLED cut-off consult (early_cutoff.py): 1 failing
+    - a warm room under the hold does not cut the pump  [(['turn_off'], None)]
+KILLED frequency guard (coordinator.py): 1 failing
+    - the compressor frequency is not commanded under the hold: the guard returns before the target is read  [2]
+KILLED switch gate wired (coordinator.py): 1 failing
+    - the cycle's OFF under the hold is left, and the step tick writes it once the alarm clears  [{0: ['turn_off'], 1: [], 2: [], 3: [], 4: [], 5: [], 'cuto
+KILLED cut-off entry wired (coordinator.py): 1 failing
+    - CRASH AttributeError: 'NoneType' object has no attribute 'entry'
+RESULT mutants=32
+RESULT survived=0
+rc=0

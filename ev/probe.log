@@ -1,0 +1,8 @@
+MUTANT none: rc=0
+  PROBE {'P1_released_pass_fault_issues': 0, 'P2_before_off': (True, 1), 'P2_after_off': (False, 0), 'P3_on_publish': ([], True), 'P3_off_publish': (['mqtt'], False, [])}
+MUTANT consult ignores released: rc=0
+  PROBE {'P1_released_pass_fault_issues': 1, 'P2_before_off': (True, 1), 'P2_after_off': (False, 0), 'P3_on_publish': ([], True), 'P3_off_publish': (['mqtt'], False, [])}
+MUTANT consult ignores Off: rc=0
+  PROBE {'P1_released_pass_fault_issues': 0, 'P2_before_off': (True, 1), 'P2_after_off': (True, 1), 'P3_on_publish': ([], True), 'P3_off_publish': (['mqtt'], False, [])}
+MUTANT publish ignores mode_off: rc=0
+  PROBE {'P1_released_pass_fault_issues': 0, 'P2_before_off': (True, 1), 'P2_after_off': (False, 0), 'P3_on_publish': ([], True), 'P3_off_publish': ([], True, ['pump_fault_hold'])}

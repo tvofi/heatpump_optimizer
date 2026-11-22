@@ -1,0 +1,6 @@
+RESULT latched_actuating=260
+RESULT short_held=0
+RESULT short_faults=6
+RESULT repairs=0
+RESULT actuating_passes=1367
+rc=0

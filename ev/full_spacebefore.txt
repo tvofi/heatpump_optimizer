@@ -1,0 +1,2 @@
+First full-suite pass ran in a git-archive copy without docs/ and .git (environment failures: recorded_at 'unknown', FileNotFoundError docs/automations.md), so it is not valid for the four survivors (re-run in worktrees: full_*.log).
+It is still valid evidence that the space_before mutant (pump_arbiter.py:1911, dropped every pass) is KILLED by tests/features.py: 4 R10-ARBITER-OFF-RESTORE checks fail before the crash.
