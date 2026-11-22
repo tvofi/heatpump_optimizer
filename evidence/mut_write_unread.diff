@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/number_restore.py b/custom_components/heatpump_optimizer/number_restore.py
+index ec19c302ed..a2ca154b13 100644
+--- a/custom_components/heatpump_optimizer/number_restore.py
++++ b/custom_components/heatpump_optimizer/number_restore.py
+@@ -31,7 +31,7 @@ def _register_number_restore(key: str, entity_of: Any, restored: Any, write: Any
+     def restorer(config: Any) -> off_restore.Restorer | None:
+         entity_id = entity_of(EntryConfig.from_mapping(config))
+         return off_restore.Restorer(
+-            str(entity_id), write, baseline_of=reading, restored=restored, write_unread=True) if entity_id else None
++            str(entity_id), write, baseline_of=reading, restored=restored, write_unread=False) if entity_id else None
+ 
+     off_restore.register_consumer(key, restorer, write, stale=True)
+ 
