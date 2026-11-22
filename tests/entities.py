@@ -15651,6 +15651,253 @@ R.check(
     and _old.data == _old_data,
     "every option is read with a default, so only the stamp moves",
 )
+# D1-s2-05: an earlier release's non-number under a numeric option raised in
+# the thermal table or the comfort band at setup or on every cycle.
+from heatpump_optimizer.entry_config import EntryConfig as _MigEC  # noqa: E402
+from dataclasses import fields as _mig_fields  # noqa: E402
+
+_mig_bad_data = {"min_temperature": [19.0], "max_temperature": "abc", "dhw_tank_volume": "200",
+                 "mixing_valve_target": "abc"}
+_mig_bad_options = {"target_temperature": None, "comfort_weight": {"v": 1.0}, "price_weight": "nan",
+                    "cop_scale": True, "silent_mode_power_fraction": "abc"}
+import logging as _mig_logging  # noqa: E402
+
+
+class _MigLog(_mig_logging.Handler):
+    def __init__(self):
+        super().__init__(_mig_logging.WARNING)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def _mig_warnings(entry):
+    """Migrate ``entry``; return (result, the integration's WARNING records)."""
+    handler, logger = _MigLog(), _mig_logging.getLogger(integration.__name__)
+    logger.addHandler(handler)
+    try:
+        return asyncio.run(integration.async_migrate_entry(_mig_hass, entry)), handler.records
+    finally:
+        logger.removeHandler(handler)
+
+
+_mig_quiet = FakeEntry(data={"min_temperature": 19.0, "dhw_tank_volume": 200.0})
+_mig_quiet_ok, _mig_quiet_logs = _mig_warnings(_mig_quiet)
+R.check(
+    "a healthy old entry migrates with no repair warning (null control)",
+    _mig_quiet_ok is True and not _mig_quiet_logs
+    and {**_mig_quiet.data, **_mig_quiet.options} == {"min_temperature": 19.0, "dhw_tank_volume": 200.0},
+    f"{[r.getMessage() for r in _mig_quiet_logs]} data={_mig_quiet.data} options={_mig_quiet.options}",
+)
+_mig_bad = FakeEntry(data=dict(_mig_bad_data), options=dict(_mig_bad_options))
+_mig_before = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+_mig_bad_ok, _mig_bad_logs = _mig_warnings(_mig_bad)
+R.check(
+    "an old entry's non-numbers under numeric options are repaired, with one warning naming them",
+    _mig_bad_ok is True
+    and len(_mig_bad_logs) == 1 and "min_temperature" in _mig_bad_logs[0].getMessage()
+    and _mig_bad.version == const.CONFIG_ENTRY_VERSION
+    # Numeric text is its number, None is dropped, anything else is its default;
+    # 7.2 then places each key: none is DATA_ONLY, so every one lands in options.
+    and _mig_bad.data == {}
+    and _mig_bad.options == {
+        "min_temperature": const.DEFAULT_MIN_TEMP, "max_temperature": const.DEFAULT_MAX_TEMP,
+        "dhw_tank_volume": 200.0, "mixing_valve_target": const.DEFAULT_MIXING_VALVE_TARGET,
+        "comfort_weight": const.DEFAULT_COMFORT_WEIGHT, "price_weight": const.DEFAULT_PRICE_WEIGHT,
+        "cop_scale": const.DEFAULT_COP_SCALE, "silent_mode_power_fraction": "abc"},
+    f"data={_mig_bad.data} options={_mig_bad.options}",
+)
+_mig_after = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+_mig_moved = [
+    f.name for f in _mig_fields(_MigEC)
+    if f.metadata and getattr(_mig_before, f.name) != getattr(_mig_after, f.name)
+]
+R.check(
+    "and the repair moves no parsed field (refused-number keys are left alone)",
+    not _mig_moved,
+    f"moved: {_mig_moved}",
+)
+
+# sweep-P1 (early_cutoff.arm): a re-solve interval outside (0, a day] is no
+# interval; the parse reads it as the default.
+_mig_iv = {v: _MigEC.from_mapping({"optimization_interval": v}).optimization_interval
+           for v in (0, -5, 0.0, 1e12, 1440.5, "nan", 10, 120, 1440)}
+R.check(
+    "an optimization interval outside (0, a day] parses as the default",
+    all(_mig_iv[v] == const.DEFAULT_OPTIMIZATION_INTERVAL for v in (0, -5, 0.0, 1e12, 1440.5, "nan")),
+    f"{_mig_iv}",
+)
+R.check(
+    "and one inside it, both ends' neighbours included, is read as stored (null control)",
+    _mig_iv[10] == 10.0 and _mig_iv[120] == 120.0 and _mig_iv[1440] == 1440.0,
+    f"{_mig_iv}",
+)
+
+# D1-s2-05, the whole class: every numeric option a release stores. The rule
+# enumerates it from where the keys come from and where they are read, not
+# from the repair's own key set. Those are the options flow's number rows (a
+# money row builds its NumberSelector per currency) and the building
+# questionnaire's number fields. They are also every key
+# ThermalParameters.from_config or comfort_band.violations reads with a
+# numeric default (recorded by a mapping that answers every read with its
+# default), and every field EntryConfig parses as a number.
+import inspect as _mig_inspect  # noqa: E402
+from homeassistant.helpers import selector as _mig_selector  # noqa: E402
+from heatpump_optimizer import comfort_band as _mig_band  # noqa: E402
+from heatpump_optimizer import entry_config as _mig_entry  # noqa: E402
+from heatpump_optimizer.entry_config import number_repairs as _mig_repairs  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _MigTP  # noqa: E402
+
+
+class _MigReads(dict):
+    """An empty mapping that records each key read with ``.get`` and its default."""
+
+    def __init__(self):
+        super().__init__()
+        self.read = {}
+
+    def get(self, key, default=None):
+        self.read.setdefault(key, default)
+        return default
+
+
+def _mig_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _mig_raw_numbers(read):
+    reads = _MigReads()
+    read(reads)
+    return {k for k, v in reads.read.items() if _mig_number(v)}
+
+
+_MIG_NUMERIC_PARSES = {
+    const.finite_float, _mig_entry._nonzero_number, _mig_entry._interval_minutes,
+    _mig_entry._lead_minutes, _mig_entry._whole, _mig_entry._refused_number,
+}
+_mig_parse = {f.name: f.metadata["parse"] for f in _mig_fields(_MigEC) if f.metadata}
+_mig_class = {
+    "flow": {
+        r.key for r in config_flow._OPTION_FIELDS
+        if isinstance(r.widget, _mig_selector.NumberSelector)
+        or (isinstance(r.widget, config_flow._ByHass)
+            and re.search(r"\b_(money|number)\(", _mig_inspect.getsource(r.widget.of)))
+    },
+    "questionnaire": {
+        m.schema for m, w in config_flow._questionnaire_fields({}).items()
+        if isinstance(w, _mig_selector.NumberSelector)
+    },
+    "thermal": _mig_raw_numbers(_MigTP.from_config),
+    "band": _mig_raw_numbers(lambda reads: _mig_band.violations({}, reads)),
+    "parsed": {k for k, p in _mig_parse.items() if p in _MIG_NUMERIC_PARSES},
+}
+_mig_members = sorted(set().union(*_mig_class.values()))
+R.check(
+    "the numeric-option census reaches every source it enumerates (precondition)",
+    all(_mig_class.values())
+    and {"day_start_hour", "buffer_tank_volume", "heated_area_m2", "wood_price_sek_m3",
+         "price_vat"} <= set(_mig_members),
+    f"{ {s: len(k) for s, k in _mig_class.items()} }",
+)
+_mig_undeclared = [k for k in _mig_members if _mig_parse.get(k) not in _MIG_NUMERIC_PARSES]
+R.check(
+    "every numeric option a release stores is declared in EntryConfig with a numeric parse",
+    not _mig_undeclared,
+    f"undeclared: {_mig_undeclared}",
+)
+# The residue: a ``_refused_number`` field reads a refused value as None, which
+# caps nothing, and dropping the key would make it the default instead.
+_mig_repaired = [k for k in _mig_members if _mig_parse.get(k) is not _mig_entry._refused_number]
+_mig_open = {}
+for _k in _mig_repaired:
+    if _k not in _mig_parse:
+        _mig_open[_k] = ["undeclared"]
+        continue
+    for _bad in ("abc", None, [12], {"v": 12}, "12"):
+        _rep = _mig_repairs({_k: _bad})
+        _before = getattr(_MigEC.from_mapping({_k: _bad}), _k)
+        _after = getattr(_MigEC.from_mapping(_mig_entry.repaired_numbers({_k: _bad}, _rep)), _k)
+        _stored = _mig_entry.repaired_numbers({_k: _bad}, _rep).get(_k)
+        if set(_rep) != {_k} or _before != _after or not (_stored is None or _mig_number(_stored)):
+            _mig_open.setdefault(_k, []).append(repr(_bad))
+R.check(
+    "the migration repairs every member's non-number: numeric text is stored as its number, "
+    "None is dropped, anything else is its default, and no parsed field moves",
+    _mig_repaired and not _mig_open,
+    f"open: {_mig_open}",
+)
+R.check(
+    "and a stored number under each is left alone (null control)",
+    not [k for k in _mig_members if _mig_repairs({k: 12.0}) or _mig_repairs({k: 12})],
+)
+_mig_whole = _mig_repairs({"day_start_hour": "9", "ecl110_mqtt_qos": " 1 ", "day_end_hour": "7.5"})
+R.check(
+    "an hour stored as text is stored as its whole number, and text no whole number reads as the default",
+    _mig_whole == {"day_start_hour": 9, "ecl110_mqtt_qos": 1, "day_end_hour": const.DEFAULT_DAY_END_HOUR}
+    and type(_mig_whole["day_start_hour"]) is int,
+    f"{_mig_whole}",
+)
+_mig_raw = FakeEntry(data={"day_start_hour": "abc", "buffer_tank_volume": None, "ecl110_mqtt_qos": "1"})
+
+
+def _mig_raw_reads(entry):
+    """The two raw readers the finding names, over ``entry``'s mapping: None, or what raised."""
+    merged = {**entry.data, **entry.options}
+    try:
+        _MigTP.from_config(merged)
+        _mig_band.violations({}, merged)
+    except (TypeError, ValueError) as err:
+        return repr(err)
+    return None
+
+
+_mig_raw_before = _mig_raw_reads(_mig_raw)
+_mig_raw_ok, _ = _mig_warnings(_mig_raw)
+R.check(
+    "an old entry's text hour and null tank volume no longer raise in the thermal table or the "
+    "comfort band once migrated",
+    _mig_raw_before is not None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
+    and {**_mig_raw.data, **_mig_raw.options}
+    == {"day_start_hour": const.DEFAULT_DAY_START_HOUR, "ecl110_mqtt_qos": 1},
+    f"before={_mig_raw_before} after={_mig_raw_reads(_mig_raw)} "
+    f"stored={ {**_mig_raw.data, **_mig_raw.options} }",
+)
+# A reader that takes a key's presence (a zone, the hot-water tank, the buffer
+# cooling prior) reads the repaired entry as it read the stored one.
+from heatpump_optimizer import thermal_model as _mig_thermal  # noqa: E402
+
+_mig_present = FakeEntry(data={"upper_floor_thermal_mass": "abc", "dhw_tank_volume": [200],
+                               "buffer_cooling_rate": {"v": 1.0}})
+
+
+def _mig_presence(entry):
+    merged = {**entry.data, **entry.options}
+    return (_mig_thermal.two_zone_from_config(merged), _mig_thermal.dhw_enabled_from_config(merged),
+            "buffer_cooling_rate" in merged)
+
+
+_mig_present_before = _mig_presence(_mig_present)
+_mig_present_ok, _ = _mig_warnings(_mig_present)
+R.check(
+    "a repaired key stays present: an old two-zone, hot-water entry keeps both, and its buffer "
+    "cooling rate stays configured",
+    _mig_present_ok is True and _mig_present_before == (True, True, True)
+    and _mig_presence(_mig_present) == _mig_present_before,
+    f"before={_mig_present_before} after={_mig_presence(_mig_present)} "
+    f"stored={ {**_mig_present.data, **_mig_present.options} }",
+)
+_mig_cleared = FakeEntry(data={"dhw_tank_volume": None})
+_mig_cleared_before = _mig_presence(_mig_cleared)
+_mig_cleared_ok, _ = _mig_warnings(_mig_cleared)
+R.check(
+    "and a stored None is no value: it is dropped, so a cleared tank volume enables no hot water",
+    _mig_cleared_ok is True and _mig_cleared_before[1] is False
+    and _mig_presence(_mig_cleared)[1] is False and not {**_mig_cleared.data, **_mig_cleared.options},
+    f"before={_mig_cleared_before} after={_mig_presence(_mig_cleared)} "
+    f"stored={ {**_mig_cleared.data, **_mig_cleared.options} }",
+)
+
 _new = FakeEntry()
 _new.version = const.CONFIG_ENTRY_VERSION + 1
 R.check(
@@ -21108,9 +21355,18 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
+    # CI-5 (owner 2026-11-21): a push's first attempt joins the one CI-main group, so a pending
+    # push run is replaced by the newest and none in progress is cancelled; every other run and
+    # every re-run keeps its run-id group (N1). Rendered per event and attempt, not matched as text.
     cc = doc.get("concurrency") or {}
-    if cc.get("group") != "CI-${{ github.run_id }}" or cc.get("cancel-in-progress") is not False:
-        out.append(f"concurrency {cc} (want group CI-<run id>, cancelling nothing)")
+    if cc.get("cancel-in-progress") is not False:
+        out.append(f"concurrency {cc} cancels in progress")
+    for (ev, a), payload in _CI_EVENTS.items():
+        for attempt in ("1", "2"):
+            want = "CI-main" if ev == "push" and attempt == "1" else "CI-99"
+            got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
+            if got != want:
+                out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
     jobs = doc.get("jobs") or {}
     callers = {j for j, b in jobs.items() if "uses" in (b or {})}
     if callers != set(_cig.UNITS) | {_cip.KP}:
@@ -21217,7 +21473,13 @@ _CI_PLANTS = {
     "run-name without sha=": _CI_TEXT.replace(" sha={3}'", "'", 1),
     "no merge_group": _CI_TEXT.replace("  merge_group:\n    types: [checks_requested]\n", "", 1),
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
-    "a group per PR": _CI_TEXT.replace("CI-${{ github.run_id }}", "CI-${{ github.event.pull_request.number }}", 1),
+    "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
+                                       "format('CI-{0}', github.event.pull_request.number)", 1),
+    "push re-runs in the main group": _CI_TEXT.replace(" && github.run_attempt == '1' && 'CI-main'", " && 'CI-main'", 1),
+    "every push in its own group": _CI_TEXT.replace(" && 'CI-main' ||", " && format('CI-{0}', github.run_id) ||", 1),
+    "the main group cancelling in progress": _CI_TEXT.replace(
+        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
+        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21263,7 +21525,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group, every unit called "
+    "run-name equal to prelude.title, one run per group but a push's first attempt (CI-main, CI-5), "
+    "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
     not _CI_DEFECTS and not _CI_PLANT_MISSED
@@ -22600,10 +22863,17 @@ for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
 # them as skips, which is #1514. Since that split only `pr-contract.yml` lists
 # `edited`, so the other three come from the held run once it is approved.
 #
-# Parsed from the push step's non-comment lines only: a commented-out
-# dispatch, or one moved into the `always()` report step (which also runs when
-# nothing was pushed), must not count.
+# Parsed from the non-comment lines of each step: a commented-out dispatch, or
+# one moved into the `always()` report step (which also runs when nothing was
+# pushed), must not count. CI-1 (owner 2026-11-21): the one dispatching step is
+# _AF_DISPATCH, after the approve step. It runs only for a token push whose
+# approve step approved no `CI` run at the pushed SHA (approved_head). The
+# approve step sets approved_head only on such an approval.
 _AF_DISPATCHED = {"ci.yml"}
+_AF_DISPATCH = "Dispatch the umbrella when no held run was approved"
+_AF_APPROVED = ('              approved=$((approved + 1))\n'
+                '              if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then\n'
+                '                echo "approved_head=true" >> "$GITHUB_OUTPUT"\n')
 
 
 def _af_dispatches(step: str) -> set[str]:
@@ -22612,21 +22882,45 @@ def _af_dispatches(step: str) -> set[str]:
     return set(re.findall(r"gh workflow run (\S+)", live))
 
 
+def _af_defects(job_text: str) -> "list[str]":
+    steps = job_text.split("\n      - ")
+    disp = [i for i, st in enumerate(steps) if _af_dispatches(st)]
+    appr = [i for i, st in enumerate(steps) if st.startswith("name: Approve the runs")]
+    out = []
+    if len(disp) != 1 or not steps[disp[0]].startswith(f"name: {_AF_DISPATCH}\n") \
+            or _af_dispatches(steps[disp[0]]) != _AF_DISPATCHED:
+        return [f"dispatching steps {[steps[i].splitlines()[0] for i in disp]}, not one `{_AF_DISPATCH}` of ci.yml"]
+    if len(appr) != 1 or appr[0] > disp[0]:
+        out.append("the dispatch does not follow the one approve step")
+    elif "id: approve\n" not in steps[appr[0]] or _AF_APPROVED not in steps[appr[0]]:
+        out.append("the approve step sets no approved_head on a CI run's approval at the pushed SHA")
+    cond = re.search(r"^        if: (.*)$", steps[disp[0]], re.M)
+    cond = cond.group(1) if cond else "true"
+    for tp, ah, want in (("true", "", True), ("true", "true", False), ("", "", False), ("", "true", False)):
+        lit = cond.replace("steps.push.outputs.token_push", repr(tp)) \
+                  .replace("steps.approve.outputs.approved_head", repr(ah))
+        if _ghx(lit, {}) is not want:
+            out.append(f"the dispatch's if: under token_push={tp!r} approved_head={ah!r} is not {want}")
+    return out
+
+
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
-    _steps = _workflow_job(_TESTS_YML, _job).split("\n      - ")
-    _push = [s for s in _steps if re.match(r"name: Push\b", s)]
-    _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
-                               if s not in _push))
+    _jt = _workflow_job(_TESTS_YML, _job)
+    _afd = _af_defects(_jt)
+    _af_null = {
+        "dispatch from the push step": _jt.replace("          echo \"token_push=true\" >> \"$GITHUB_OUTPUT\"\n",
+                                                   "          echo \"token_push=true\" >> \"$GITHUB_OUTPUT\"\n"
+                                                   "          gh workflow run ci.yml --ref \"$HEAD_REF\"\n", 1),
+        "dispatch beside an approval": _jt.replace(" && steps.approve.outputs.approved_head != 'true'", "", 1),
+        "approved_head on any approval": _jt.replace('if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then',
+                                                     "if true; then", 1),
+    }
+    _af_missed = sorted(k for k, t in _af_null.items() if t == _jt or not _af_defects(t))
     R.check(
-        f"{_job} dispatches the one umbrella, ci.yml (-f pr -f base), whose callees own every required context",
-        len(_push) == 1 and _af_dispatches(_push[0]) == _AF_DISPATCHED,
-        f"push steps={len(_push)} dispatched="
-        f"{sorted(_af_dispatches(_push[0])) if _push else []}",
-    )
-    R.check(
-        f"{_job} dispatches from the push step only",
-        not _elsewhere,
-        f"elsewhere={sorted(_elsewhere)}; only a pushed SHA needs a retrigger",
+        f"{_job} dispatches the one umbrella, ci.yml (-f pr -f base), from its own step after the approve "
+        "step, only where no held CI run at the pushed SHA was approved (CI-1)",
+        not _afd and not _af_missed,
+        f"defects={_afd}; plants not refused (null controls)={_af_missed}",
     )
 _CODEQL_YML = (pathlib.Path(__file__).resolve().parents[1] / ".github"
                / "workflows" / "codeql.yml").read_text()
@@ -32277,10 +32571,11 @@ def _cc_value(expr, event: "dict[str, object]"):
         e = re.sub(r"\b(?:github|needs|inputs|env|vars)(?:\.[\w-]+)+",
                    lambda n: repr(event.get(n.group(0))), e)
         e = e.replace("&&", " and ").replace("||", " or ")
-        if not re.fullmatch(r"(?:\s|\(|\)|==|!=|and|or|not|True|False|None"
-                            r"|'[^']*'|-?\d+)*", e):
+        if not re.fullmatch(r"(?:\s|\(|\)|,|==|!=|and|or|not|True|False|None"
+                            r"|'[^']*'|-?\d+|format)*", e):
             raise ValueError(e)
-        return str(eval(e, {"__builtins__": {}}, {}))  # literals and operators only
+        fmt = {"format": lambda f, *a: re.sub(r"\{(\d+)\}", lambda k: str(a[int(k.group(1))]), f)}
+        return str(eval(e, {"__builtins__": {}}, fmt))  # literals, operators and format()
     try:
         return re.sub(r"\$\{\{(.*?)\}\}", _one, str(expr))
     except ValueError:
@@ -32294,7 +32589,7 @@ _CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
 def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
     """One modelled Actions event. `sha` is None when the model carries none."""
     event = {"github.event_name": ev, "github.workflow": doc.get("name"),
-             "github.run_id": run_id, "github.event.sender.login": who,
+             "github.run_id": run_id, "github.run_attempt": "1", "github.event.sender.login": who,
              "github.event.pull_request.number":
                  7 if ev.startswith("pull_request") else None}
     if sha is not None:
@@ -32307,6 +32602,11 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 _CC_TWIN_ROUTE = {
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
+# The (file, event) pairs whose first attempts share one group that cancels
+# nothing in progress, so GitHub replaces a pending run with the newest: CI-5's
+# push-to-main coalescing (owner 2026-11-21). A re-run keeps its run-id group
+# (the umbrella check above renders that per attempt).
+_CC_COALESCED = {("ci.yml", "push")}
 
 
 def _cc_lists_edited(doc: dict) -> bool:
@@ -32337,13 +32637,14 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
             share = (ev == "pull_request" and who != "github-actions[bot]"
                      and route != "per-run")
             cancel_want = share and not twin
+            together = share or (name, ev) in _CC_COALESCED
             older, newer = at(1), at(2)
             cancel = _cc_value(cc.get("cancel-in-progress"), older)
             a, b = (_cc_value(cc.get("group"), older),
                     _cc_value(cc.get("group"), newer))
             if cancel != str(cancel_want):
                 out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
-            if None in (a, b) or (a == b) != share:
+            if None in (a, b) or (a == b) != together:
                 out.append(f"{name}: two {ev} runs by {who} get groups {a!r} and {b!r}")
             if share:
                 sa, sb = older.get("github.sha"), newer.get("github.sha")
@@ -33200,10 +33501,42 @@ def _mm_defects(text: str) -> "list[str]":
         out.append(f"dispatches {disp}, want exactly ['ci.yml']")
     if not re.search(r'gh workflow run ci\.yml --ref "\$branch" -f pr="\$pr" -f base="\$base"', runs):
         out.append("the ci.yml dispatch does not pass -f pr and -f base")
-    reads = re.findall(r"while read -r ([^;]+); do", runs)
+    reads = [r for r in re.findall(r"while read -r ([^;]+); do", runs) if r.split()[0] == "branch"]
     if len(reads) != 2 or any(len(r.split()) != 4 for r in reads):
         out.append(f"pushed.txt readers {reads} do not read four fields")
+    # CI-1: approve first, dispatch after (even past a failed approve), skipping a pushed head whose
+    # CI run was approved; the approve step records only a CI run's approval.
+    steps = [st for j in jobs.values() for st in j.get("steps") or []]
+    names = [str(st.get("name", "")) for st in steps]
+    ap = next((i for i, n in enumerate(names) if n.startswith("Approve the runs")), None)
+    dp = next((i for i, n in enumerate(names) if n.startswith("Dispatch the checks")), None)
+    if ap is None or dp is None or dp < ap:
+        out.append(f"the dispatch step ({dp}) does not follow the approve step ({ap})")
+    elif str(steps[dp].get("if", "")).replace(" ", "") != "${{!cancelled()}}":
+        out.append(f"the dispatch step's if: {steps[dp].get('if')!r}, not !cancelled()")
+    elif not re.search(r'approved=\$\(\(approved \+ 1\)\)\n\s*\[ "\$name" != CI \] \|\| '
+                       r'echo "\$branch \$sha" >> "\$RUNNER_TEMP/approved\.txt"\n', str(steps[ap].get("run", ""))):
+        out.append("the approve step does not record `branch sha` in approved.txt on a CI run's approval")
     return out
+
+
+def _mm_dispatched(text: str, approved: "str | None", used_pat: str = "false") -> "list[str]":
+    """The `--ref` of every `gh workflow run` merge-main's dispatch step makes, its own `run:`
+    executed under bash -e with gh stubbed, over two pushed heads and `approved` (None: no file)."""
+    doc = _yaml.safe_load(text) or {}
+    step = next(st for j in (doc.get("jobs") or {}).values() for st in j.get("steps") or []
+                if str(st.get("name", "")).startswith("Dispatch the checks"))
+    with tempfile.TemporaryDirectory() as d:
+        Path(d, "gh").write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$GH_LOG"\n')
+        Path(d, "gh").chmod(0o755)
+        Path(d, "pushed.txt").write_text("fix/a aaa 1 main\nfix/b bbb 2 main\n")
+        if approved is not None:
+            Path(d, "approved.txt").write_text(approved)
+        _subprocess.run([*_GHA_RUN, str(step["run"])], capture_output=True, text=True, timeout=30,
+                        env=_stub_path_env(d, RUNNER_TEMP=d, GH_LOG=f"{d}/gh.log", GITHUB_STEP_SUMMARY=f"{d}/s",
+                                           USED_PAT=used_pat, DRY_RUN="false"))
+        log = Path(d, "gh.log").read_text() if Path(d, "gh.log").exists() else ""
+    return [ln.split("--ref ")[1].split()[0] for ln in log.splitlines()]
 
 
 _MM_TEXT = _MM_PATH.read_text()
@@ -33214,7 +33547,26 @@ R.check(
     _MM_DEFECTS == [],
     f"defects: {_MM_DEFECTS}",
 )
+R.check(
+    "CI-1: merge-main dispatches only the pushed heads whose CI run it did not approve, every one "
+    "when approved.txt is absent, none after a PAT push",
+    (_mm_dispatched(_MM_TEXT, "fix/a aaa\n"), _mm_dispatched(_MM_TEXT, None), _mm_dispatched(_MM_TEXT, ""),
+     _mm_dispatched(_MM_TEXT, "fix/a zzz\n"), _mm_dispatched(_MM_TEXT, None, "true"))
+    == (["fix/b"], ["fix/a", "fix/b"], ["fix/a", "fix/b"], ["fix/a", "fix/b"], []),
+    "an approved head dispatched again is CI-1's duplicate full run; an unapproved one left out runs nothing",
+)
+R.check(
+    "and a dispatch step that ignores approved.txt dispatches the approved head (null control)",
+    _mm_dispatched(_MM_TEXT.replace('grep -qxF "$branch $sha" "$RUNNER_TEMP/approved.txt"', "false", 1),
+                   "fix/a aaa\n") == ["fix/a", "fix/b"],
+    "the harness cannot tell the skip from its absence",
+)
 _MM_NULL = {
+    "dispatch before approve": _MM_TEXT.replace("      - name: Dispatch the checks", "      - name: Late dispatch", 1)
+    .replace("      - name: Approve the runs the pushes", "      - name: Dispatch the checks first\n        run: 'true'\n"
+             "      - name: Approve the runs the pushes", 1),
+    "dispatch skipped after a failed approve": _MM_TEXT.replace("        if: ${{ !cancelled() }}\n", "", 1),
+    "approval recorded for any workflow": _MM_TEXT.replace('[ "$name" != CI ] || echo', 'echo', 1),
     "ref guard": _MM_TEXT.replace("    if: github.ref == 'refs/heads/main'\n", ""),
     "four dispatches": _MM_TEXT.replace(
         'gh workflow run ci.yml --ref "$branch"',
@@ -40375,12 +40727,67 @@ def _mut_plan_ok(job: dict, step: dict, pins: str) -> bool:
                 "`mutation-pin-plan`", ""))
 
 
+# CI-7 (owner 2026-11-21): the matrix runs at most this many shards at once, of
+# MAX_SHARDS, so one pins burst holds a tenth of the 40-slot runner cap, not 30%.
+_PINS_MAX_PARALLEL = 4
+# CI-17 (owner 2026-11-21): every job that pip-installs the hash-locked
+# requirements caches pip through its setup-python step, keyed on those lock
+# files, so a lock change is a new key; --require-hashes still verifies every
+# wheel a cache hit supplies. Read per job and per composite action, with each
+# `-r` file the job installs matched against the key's glob.
+_PIPCACHE_DEP = "tests/requirements-*.txt"
+
+
+def _pipcache_defects(docs: dict) -> "list[str]":
+    out = []
+    for label, steps in docs.items():
+        runs = " ".join(str(st.get("run", "")) for st in steps)
+        if not re.search(r"\bpip3? install\b", runs):
+            continue
+        for req in re.findall(r"(?:^|\s)-r\s+(\S+\.txt)(?=\s|$)", runs):
+            if not fnmatch.fnmatch(req, _PIPCACHE_DEP):
+                out.append(f"{label}: installs {req}, outside the cache key {_PIPCACHE_DEP}")
+        for st in steps:
+            if str(st.get("uses", "")).startswith("actions/setup-python@"):
+                w = st.get("with") or {}
+                if (w.get("cache"), w.get("cache-dependency-path")) != ("pip", _PIPCACHE_DEP):
+                    out.append(f"{label}: setup-python caches {w.get('cache')!r} on {w.get('cache-dependency-path')!r}")
+    return out
+
+
+def _pipcache_docs(texts: dict) -> dict:
+    docs = {}
+    for name, text in texts.items():
+        d = _yaml.safe_load(text) or {}
+        if "runs" in d:
+            docs[name] = d["runs"].get("steps") or []
+        for jn, j in (d.get("jobs") or {}).items():
+            docs[f"{name}:{jn}"] = (j or {}).get("steps") or []
+    return docs
+
+
+import fnmatch  # noqa: E402
+
+_PIPCACHE_TEXTS = {str(f.relative_to(_closure.ROOT)): f.read_text()
+                   for f in sorted((_closure.ROOT / ".github").glob("**/*.yml"))
+                   if f.parent.name == "workflows" or f.name == "action.yml"}
+_PIPCACHE_GOT = _pipcache_defects(_pipcache_docs(_PIPCACHE_TEXTS))
+_PIPCACHE_PLANT = _pipcache_defects(_pipcache_docs({**_PIPCACHE_TEXTS, ".github/workflows/tests.yml": (
+    _PIPCACHE_TEXTS[".github/workflows/tests.yml"].replace(
+        "          cache: pip\n          cache-dependency-path: tests/requirements-*.txt\n", "", 1))}))
+R.check(
+    "CI-17: every job pip-installing the hash-locked requirements caches pip on their lock files, "
+    "and a job stripped of its cache lines is refused (null control)",
+    _PIPCACHE_GOT == [] and len(_PIPCACHE_PLANT) == 1,
+    f"defects={_PIPCACHE_GOT}; plant={_PIPCACHE_PLANT}",
+)
 R.check(
     "the pin shard count scales with the diff's new sites, five a shard, "
-    "capped at twelve, and sizes the matrix the shards run",
+    "capped at twelve, and sizes the matrix the shards run, four at a time (CI-7)",
     _MUT_SC == [1, 1, 2, 2, 12, 12] and _MUT_SC0 == 1
     and _mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins)
-    and f"max-parallel: {_mut.MAX_SHARDS}" in _ma_pins,
+    and re.findall(r"\n      max-parallel: (\d+)\n", _ma_pins) == [str(_PINS_MAX_PARALLEL)]
+    and _PINS_MAX_PARALLEL < _mut.MAX_SHARDS,
     f"counts={_MUT_SC} none={_MUT_SC0} plan wiring="
     f"{_mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins)}",
 )
@@ -42919,7 +43326,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
-        ("__init__.py", "async_migrate_entry"): 1, ("accuracy.py", "from_dict"): 1,
+        ("__init__.py", "async_migrate_entry"): 2, ("accuracy.py", "from_dict"): 1,
         ("defrost.py", "from_dict"): 1, ("ledger.py", "from_dict"): 1,
         ("price_model.py", "from_dict"): 1, ("price_model.py", "_stored_rows"): 1,
         ("price_model.py", "_in_domain"): 1, ("snapshots.py", "from_dict"): 1,
