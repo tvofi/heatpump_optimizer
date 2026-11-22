@@ -4708,6 +4708,7 @@
    "dev/audit/harnesses/r11_selftest_static_edge.py",
    "dev/audit/harnesses/r11_shared_files_p2_mutants.sh",
    "dev/audit/harnesses/r11_toolchain_mutants.py",
+   "dev/audit/harnesses/r11_two_zone_slab.py",
    "dev/audit/harnesses/r11_why_hover_fit.mjs",
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
    "dev/audit/harnesses/r9_dbg2_selftest_price.py",
