@@ -5077,7 +5077,7 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-seam-inputs-guards",
     "commit": "e3cb5c019b464a770cc7c6fe2fbc858ed29debf7",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
