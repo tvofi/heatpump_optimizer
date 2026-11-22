@@ -1,0 +1,10 @@
+RESULT tie_reason_baseline='cheap_price'
+RESULT tie_reason_mutant='preheat_weather'
+RESULT moved=1 count
+RESULT null_delta=0 count
+RESULT reach_exact_1.1=0 count of 32008 (wind 0..40 m/s step 0.01, 8 precipitation levels)
+RESULT reach_within_1e-9_of_1.1=0 count
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

@@ -1,0 +1,17 @@
+RESULT real_lbfgsb_success=True f_x=1.000000 f_x0=0.000000
+RESULT status_success_better_baseline='optimal'
+RESULT status_success_better_mutant='optimal'
+RESULT objective_evals_success_better=0->2 count
+RESULT status_success_worse_than_x0_baseline='optimal'
+RESULT status_success_worse_than_x0_mutant='suboptimal (CONVERGENCE)'
+RESULT objective_evals_success_worse_than_x0=0->2 count
+RESULT status_success_objective_raises_baseline='optimal'
+RESULT status_success_objective_raises_mutant='suboptimal (CONVERGENCE)'
+RESULT status_real_lbfgsb_x0_outside_bounds_baseline='optimal'
+RESULT status_real_lbfgsb_x0_outside_bounds_mutant='suboptimal (CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL)'
+RESULT moved=3 count
+RESULT null_delta=0 count
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.06
+RESULT swapins=0 count

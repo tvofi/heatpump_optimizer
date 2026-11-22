@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_133158399eac10ae.py: Metric: the reason list optimizer.classify_dhw_steps returns, compared baseline vs mutant, at the default threshold (CHANNEL_ACTIVE_KW, the only one production passes) and at a non-default one. (output probe_133158399eac10ae.out; shared reach: reach_sweep.py)

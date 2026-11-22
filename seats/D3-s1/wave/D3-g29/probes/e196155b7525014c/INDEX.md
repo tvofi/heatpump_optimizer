@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_e196155b7525014c.py: Metric: the solver_status label optimizer._solver_status returns for a SciPy result with success=True, and the objective evaluations it spends classifying it. (output probe_e196155b7525014c.out; shared reach: reach_sweep.py)

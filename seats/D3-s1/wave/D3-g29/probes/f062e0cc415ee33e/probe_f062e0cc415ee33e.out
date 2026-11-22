@@ -1,0 +1,16 @@
+RESULT exponent720_baseline=9.85967654375977e-305 mutant=2.0322308024e-313
+RESULT exponent745_baseline=9.85967654375977e-305 mutant=5e-324
+RESULT exponent800_baseline=9.85967654375977e-305 mutant=0.0
+RESULT exponent1e+06_baseline=9.85967654375977e-305 mutant=0.0
+RESULT exponent1e+301_baseline=9.85967654375977e-305 mutant=0.0
+RESULT exponent_overflow_baseline=9.85967654375977e-305 mutant=0.0
+RESULT raises_baseline=0 raises_mutant=0 count
+RESULT moved=5 count of 5 (the float, all below 1e-304)
+RESULT max_abs_survival_delta=9.860e-305
+RESULT cost_delta_after_adding=0.0 (0.01 SEK plan cost + 30 kWh/K * survival * 40 K)
+RESULT null_delta=0 count
+RESULT reach_ambient=20.0 C reach_cop_flow_reference_default=35.0 C
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

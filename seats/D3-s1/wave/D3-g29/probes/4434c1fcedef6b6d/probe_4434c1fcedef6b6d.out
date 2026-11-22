@@ -1,0 +1,13 @@
+RESULT n0_all_empty_baseline=[] mutant=[]
+RESULT n0_four_long_baseline=[] mutant=[]
+RESULT n0_prices_empty_baseline=[] mutant=[]
+RESULT n0_prices_nan_baseline=[] mutant=[]
+RESULT n0_surplus_given_baseline=[] mutant=[]
+RESULT n0_room_empty_baseline=[] mutant=[]
+RESULT moved_in_contract=0 count of 6 inputs
+RESULT power_none_baseline=[] mutant='raises TypeError' (out of contract: the annotations say np.ndarray)
+RESULT null_delta=0 count
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

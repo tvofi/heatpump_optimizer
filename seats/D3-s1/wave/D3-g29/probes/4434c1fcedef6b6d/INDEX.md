@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_4434c1fcedef6b6d.py: Metric: the reason list classify_space_steps returns for n_steps == 0, baseline vs mutant, over in-contract array inputs. (output probe_4434c1fcedef6b6d.out; shared reach: reach_sweep.py)

@@ -1,0 +1,12 @@
+RESULT tie_reason_baseline='comfort_floor'
+RESULT tie_reason_mutant='cheap_price'
+RESULT moved=1 count
+RESULT tie_floor0.0_moved=1
+RESULT tie_floor-5.0_moved=1
+RESULT tie_floor21.85_moved=1
+RESULT tie_floor35.0_moved=1
+RESULT null_delta=0 count
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

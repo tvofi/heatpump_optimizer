@@ -1,0 +1,1 @@
+- _tools: gen.py writes the 16 probes from prelude.py; table.py holds each key's step-4 answer and class; build_result.py writes results/<key>.json; build_report.py writes REPORT.{json,md}; wave_keys.tsv is the 742-key wave list by box (from the 47 dispatch keys.tsv)

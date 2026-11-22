@@ -1,0 +1,15 @@
+RESULT reach_scenarios=50 count
+RESULT reach_solver_status_calls=60
+RESULT reach_solver_status_success=58
+RESULT reach_terminal_row_cost_calls=52
+RESULT reach_terminal_row_cost_min_cop_buffer=1.172824917980236
+RESULT reach_terminal_row_cost_min_cop_end=1.5675264455084106
+RESULT reach_terminal_row_cost_refill_none=52
+RESULT reach_terminal_row_cost_single_branch=42
+RESULT reach_terminal_row_cost_split_branch=10
+RESULT reach_classify_space_steps_active_steps=1999
+RESULT reach_classify_space_steps_calls=52
+RESULT reach_classify_dhw_steps_calls=40
+RESULT reach_classify_dhw_steps_power_eq_threshold=0
+RESULT reach_stored_heat_survival_calls=10
+exit 0

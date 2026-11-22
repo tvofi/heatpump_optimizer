@@ -1,0 +1,11 @@
+RESULT days2_shape_h8_baseline=1.478675497 mutant=1.36794702
+RESULT days2_predict_h8_baseline=1.191470199 mutant=1.147178808
+RESULT days3_shape_h8_baseline=1.491962914 mutant=1.421096689
+RESULT days3_predict_h8_baseline=1.295177748 mutant=1.252658013
+RESULT days6_shape_h8_baseline=1.32652401 mutant=1.166150625
+RESULT days6_predict_h8_baseline=1.32652401 mutant=1.166150625
+RESULT moved=3 count of 3
+RESULT null_delta=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

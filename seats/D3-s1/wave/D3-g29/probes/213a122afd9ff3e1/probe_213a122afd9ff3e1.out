@@ -1,0 +1,14 @@
+RESULT days1_confidence_baseline=0.2 mutant=0.1
+RESULT days1_predict_h8_baseline=1.117880795 mutant=1.058940397
+RESULT days1_expected_daily_min_baseline=None mutant=None
+RESULT days5_confidence_baseline=1.0 mutant=0.5
+RESULT days5_predict_h8_baseline=1.416504557 mutant=1.208252279
+RESULT days5_expected_daily_min_baseline=0.4478144593377484 mutant=None
+RESULT days7_confidence_baseline=1.0 mutant=0.7
+RESULT days7_predict_h8_baseline=1.358069606 mutant=1.250648724
+RESULT days7_expected_daily_min_baseline=0.46486963651645036 mutant=None
+RESULT moved=3 count of 3
+RESULT null_delta=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

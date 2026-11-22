@@ -1,0 +1,9 @@
+RESULT tie_reason_baseline='cheap_price'
+RESULT tie_reason_mutant='solar_surplus'
+RESULT moved=1 count
+RESULT null_delta=0 count
+RESULT idle_codes_at_tie=['idle', 'idle', 'idle', 'idle'] (idle_codes's own `> 1e-6` reads the tie as no sun)
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

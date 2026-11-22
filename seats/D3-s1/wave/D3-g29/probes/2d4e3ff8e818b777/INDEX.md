@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_2d4e3ff8e818b777.py: Metric: the reason list optimizer.classify_space_steps returns, compared baseline vs mutant, at the default threshold (CHANNEL_ACTIVE_KW, the only one production passes) and at a non-default one. (output probe_2d4e3ff8e818b777.out; shared reach: reach_sweep.py)
