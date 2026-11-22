@@ -8,7 +8,22 @@ from pathlib import Path
 
 W = Path(__file__).resolve().parent
 S1 = W.parent.parent
-ROOT = S1.parents[4]
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g34"
 BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
 FEAT = ("tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', "
