@@ -16,3 +16,13 @@ Probe outcome per key, run from a scratch baseline worktree (never the gate tree
 - 74dbcc2eae2c24f5 5679: moves by 1-2 ulp on 3/9 exact ties; samples equal. candidate (float-rounding only, low).
 - 355c3d7dd36a1b90 5782: MOVES at delta_t exactly 6 K (samples 1->0, scale 1.01->1.0). candidate (boundary).
 - 206a570d8cc784e3 5800 GUARD_OFF: 0/9 moved though 6 non-finite residuals pass the guard. equivalent-candidate (Cusum + _loss_residual_rejected subsume).
+
+## Null control (taken 21:38-22:39Z, gate_rc=1, wall 3680 s, load1 0.69..0.92, provisional)
+Red scripts: closure.py selftest (2 FAIL: closure shrink guard merge-reason pins, status skip-not-under-scoped: CI/merge recording
+artefact), entities.py (1 of 2723: "and is accepted when it does [the scoped path records only what the diff can reach]": scoped-path
+recording artefact of the detached worktree), harness_headers.py (4: round4/D6/claims.py RESULT vs header x2 and its uncommitted
+output -- stripped-tree artefacts -- plus "every inlined walk matches the canonical helper", a SyntaxError on this box's own
+probes/_scratch/buf_template.py format-string template). All four are artefact checks (tree/CI/recording state, no production
+behaviour); the earlier boxes' null (state/gates-prior/null.json) was red on the same three scripts. Read as usable, not re-taken.
+Consequence kept for every key gate: the wave dir's .py set is frozen from the null on (no .py added, removed or edited in the
+gate tree while gates run), so harness_headers' 4-line null count stays comparable; later probe edits go to probes/<key>/ as .txt.
