@@ -1,1 +1,0 @@
-[{"name":"async_simulate_RETURN_DEL_fd0988d6","file":"custom_components/heatpump_optimizer/coordinator.py","old":"            if limited:\n                held.answer = payload\n            return payload\n","new":"            if limited:\n                held.answer = payload\n            pass\n"}]
