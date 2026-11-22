@@ -1,0 +1,26 @@
+MUTANT A_binding_off: rc=1 KILLED
+    FAIL  a from-import re-spelled as a binding read moves no const row
+    FAIL  a name read by both spellings counts once
+    2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+MUTANT B_module_zero: rc=1 KILLED
+    FAIL  a module-level function past the module limit is priced by its lines
+    FAIL  the same lines in a class past the module limit cost the same
+    2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+MUTANT C_alias_ignored: rc=1 KILLED
+    FAIL  a read through an aliased binding of const counts
+    1 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+MUTANT D_const_filter_off: rc=1 KILLED
+    FAIL const_modules_over_50 6 > 4 (+2)
+    1 STRUCTURE BUDGET(S) BREACHED
+MUTANT E_lineno_not_end: rc=1 KILLED
+    FAIL  a module-level function past the module limit is priced by its lines
+    FAIL  the same lines in a class past the module limit cost the same
+    2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+MUTANT F_names_list_dup: rc=2 KILLED
+MUTANT G_attr_any_name: rc=1 KILLED
+    FAIL const_modules_over_50 6 > 4 (+2)
+    1 STRUCTURE BUDGET(S) BREACHED
+MUTANT H_limit_off_by: rc=1 KILLED
+    FAIL  a module-level function past the module limit is priced by its lines
+    1 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+restored clean

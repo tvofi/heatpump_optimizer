@@ -1,0 +1,5 @@
+NOTE review 0 item 0a502820: dismissed:paperwork; the body is refreshed by update_pr.sh at the next body push and blocks nothing (C5)
+NOTE review 0 item 0a502820: dismissed:a C5 note for the orchestrator at merge; the re-run at the same head is green and no code of this PR is implicated
+NOTE review 0 item 6db81211: dismissed:no module's row depends on it; the names are dynamic and cannot be resolved statically
+NOTE review 0 item 586165d9: dismissed:a round-11 audit instrument pinned to the pre-fix rule, not a defect of this PR
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
