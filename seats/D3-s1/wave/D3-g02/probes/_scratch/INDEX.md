@@ -1,1 +1,2 @@
 - _scratch/: generator templates (buf_template.py, house_template.py, pump_template.py) and exploration scripts the probes were generated from; not run by the report
+- write_result.py.txt / make_specs.py.txt / specs.json: the results/<key>.json writer and its per-key data (kept as .txt: the gate tree's .py set is frozen from the null on)

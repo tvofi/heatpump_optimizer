@@ -1,0 +1,109 @@
+import json, os
+FEAT_BUF = "tests/features.py W5-G7 t2 buffer-cooling block (_t2_buffer, features.py:51197-51450)"
+def buf_should(arm, missing):
+    return {"script": "tests/features.py", "check_area": FEAT_BUF,
+            "executes_line": True,
+            "assertion_it_lacks": missing,
+            "why_it_passes": arm}
+pump_should = {"script": "tests/dst_checks.py and tests/features.py",
+  "check_area": "dst_checks.py _pump_command ('the pump walks the plan by TRUE elapsed steps across the fold' / 'and that agreement is the OFF the true index commands'); features.py coordinator pump glue (features.py:20356-20410) and the T5 _async_drive_pumps block (features.py:55432-)",
+  "executes_line": True,
+  "why_it_passes": "dst_checks drives the space pump with a plan ON only in steps 4-7 and reads it 2 h in (step 8: OFF) -- step 0 is OFF too, so an index stuck at 0 commands the same OFF; the features.py glue checks drive only the VVC pump or assert transitions/caching, never which plan step the space pump follows",
+  "assertion_it_lacks": "a space-pump tick with `now` inside a plan step whose heat differs from step 0 (e.g. heat only in steps 4-7, tick at 1.25 h) asserting turn_on (and the mirror: heat only in step 0, tick at 2.5 h, asserting turn_off)"}
+def cand(title, claim, sev, metric, sym, change, direction, mech, files):
+    return {"title": title, "claim": claim, "class_guess": "new", "severity_claimed": sev, "metric_definition": metric,
+            "instrumented_symbol": sym, "perturbation": {"change": change, "expected_direction": direction},
+            "mechanism": mech, "stop_rule_class": "hygiene", "files": files,
+            "phenomenon_property": "every guard/branch of this function changes an observable output on some reachable input, and the suite asserts that output on that input",
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list) restricted to the function's cluster; each SURVIVED key is a seam",
+            "proposed_fix_scope": "tests only: add the missing assertion to the named closure script; no production change"}
+CO = "custom_components/heatpump_optimizer/coordinator.py"
+BUF = "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling"
+PMP = "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps"
+HHL = "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss"
+buf_metric = "the coordinator's _buffer_cooling_samples (and _buffer_cooling_rate) after one real _async_learn_buffer_cooling call on a quiet interval"
+S = {}
+S["cd1d099ef87f3ab9"] = {"class": "candidate", "baseline_value": "turn_on (step 5 and step 6 of a plan heating only in steps 4-7); turn_off (step 10 of a plan heating only in step 0)",
+  "mutant_value": "turn_off; turn_off; turn_on", "should_fail": pump_should,
+  "null_control": "Probe nulls: a tick inside step 0, an all-off plan and a cold-room rail command the same in both arms (moved=0).",
+  "finding": cand("No check fails when the space pump stops walking the plan: its step index can stay at step 0 (coordinator.py:4525)",
+     "With coordinator.py:4525 `if result.timestamps:` disabled, _async_drive_pumps commands the space circulation pump from the plan's first step instead of the current one -- turn_off at 1.25 h into a plan that heats in steps 4-7 (baseline turn_on) -- and the full GATE_SCOPE=full gate stays green beyond its null.",
+     "high", "the homeassistant service (turn_on/turn_off) _async_drive_pumps issues for the configured space pump at a tick 1.25 h into a quarter-grid plan heating only in steps 4-7", PMP,
+     "coordinator.py:4525 `if result.timestamps:` -> `if False:` (in memory in the probe; on disk in the gate)", "turn_on -> turn_off at step 5 and 6; turn_off -> turn_on at step 10 of a step-0-only plan",
+     "idx defaults to 0 and is only advanced inside the timestamps branch; the suite's only space-pump plan walk (dst_checks.py) reads a step that is OFF exactly like step 0", [CO, "tests/dst_checks.py", "tests/features.py"])}
+S["473508040d23cc21"] = {**S["cd1d099ef87f3ab9"], "finding": cand("No check fails when the space pump's plan-step index is pinned to 0 (coordinator.py:4528)",
+     "With coordinator.py:4528 `idx = int(max(0.0, since0 / 3600.0 / dt_hours))` replaced by `idx = int((0.0))`, _async_drive_pumps follows the plan's first step at every tick (turn_off at 1.25 h into a plan heating in steps 4-7, baseline turn_on) and the full gate stays green beyond its null.",
+     "high", "the homeassistant service _async_drive_pumps issues for the configured space pump at a tick 1.25 h into a quarter-grid plan heating only in steps 4-7", PMP,
+     "coordinator.py:4528 `idx = int(max(0.0, since0 / 3600.0 / dt_hours))` -> `idx = int((0.0))`", "turn_on -> turn_off at step 5 and 6; turn_off -> turn_on at step 10 of a step-0-only plan",
+     "same seam as 4525: the computed index is never asserted against a plan whose current step differs from step 0; the max(0, .) clamp itself is equivalent on a plan stamped in the future (idx 0 both arms)", [CO, "tests/dst_checks.py", "tests/features.py"]),
+  "null_control": "Probe nulls: a tick inside step 0, a plan stamped 0.6 h in the future (the clamp's own case), an all-off plan and a cold-room rail (moved=0)."}
+S["ad8a02e5c07428ab"] = {"class": "candidate", "baseline_value": "turn_on (two-zone, plan off now/next, room average 21.4 C, upper floor 15 C; likewise lower floor 15 C)",
+  "mutant_value": "turn_off; turn_off",
+  "should_fail": {"script": "tests/features.py", "check_area": "the space-pump rail checks ('rail: a zone near its floor forces the space pump on', features.py:~20340) and the coordinator pump glue",
+     "executes_line": True, "why_it_passes": "the zone rail is asserted on pump_schedule.space_pump_should_run called directly with zone_temps=[19.2]; no check drives _async_drive_pumps in a two-zone house, so the coordinator's assembly of the zone list is never read",
+     "assertion_it_lacks": "a two-zone coordinator with a warm room average and one floor below the comfort floor + SPACE_PUMP_FLOOR_MARGIN_C, plan off now and next, asserting turn_on"},
+  "null_control": "Probe nulls: both floors warm (OFF both arms), a single-zone house with a cold upper reading (OFF both: the branch is two-zone only), a cold room (ON both).",
+  "finding": cand("No check fails when the space pump ignores a cold floor in a two-zone house (coordinator.py:4538)",
+     "With coordinator.py:4538 `if params.two_zone_enabled:` disabled, _async_drive_pumps turns the space pump OFF while a floor sits at 15 C under a 21.4 C room average (baseline turn_on via the comfort-floor rail), and the full gate stays green beyond its null.",
+     "high", "the homeassistant service _async_drive_pumps issues for the space pump in a two-zone house, plan off now and next, room average 21.4 C, one floor at 15 C", PMP,
+     "coordinator.py:4538 `if params.two_zone_enabled:` -> `if False:`", "turn_on -> turn_off",
+     "the comfort-floor rail is pinned only at pump_schedule level; the coordinator-side zone list (room + upper + lower in two-zone mode) has no check", [CO, "tests/features.py"])}
+def bufcand(key, title, claim, metric, change, direction, mech, base, mutv, missing, why, null):
+    S[key] = {"class": "candidate", "baseline_value": base, "mutant_value": mutv,
+              "should_fail": buf_should(why, missing), "null_control": null,
+              "finding": cand(title, claim, "low", metric, BUF, change, direction, mech, [CO, "tests/features.py"])}
+bufcand("b3a8cff2e5c0a8cc", "No check pins the 0.15 h minimum buffer-cooling interval at its bound (coordinator.py:5654)",
+  "With `dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS` -> `<=`, an interval of exactly 0.15 h (540 s, 50.0 -> 49.6 C) is rejected (samples 1 -> 0, rate 0.4327 -> 0.3959 C/h unchanged) and the full gate stays green beyond its null.",
+  buf_metric + ", interval exactly 0.15 h", "coordinator.py:5654 `<` -> `<=`", "samples 1 -> 0 at dt_h == 0.15",
+  "boundary of a threshold; features.py pins 0.14 h (rejected) and 1 h (accepted), never 0.15 h", "samples=1 rate=0.4327056338738068 saves=1", "samples=0 rate=0.39587982935374616 saves=0",
+  "an interval of exactly 0.15 h asserting the sample is accepted", "its length checks use 0.14 h and 3.5 h, on which both arms agree", "Probe nulls 0.14 h, 0.16 h, 1 h: moved=0.")
+bufcand("59027d3bdf2e7a0c", "No check pins the 3 h maximum buffer-cooling interval at its bound (coordinator.py:5656)",
+  "With `dt_h > BUFFER_COOLING_MAX_SAMPLE_HOURS` -> `>=`, an interval of exactly 3.0 h (50.0 -> 48.0 C) is rejected (samples 1 -> 0) and the full gate stays green beyond its null.",
+  buf_metric + ", interval exactly 3.0 h", "coordinator.py:5656 `>` -> `>=`", "samples 1 -> 0 at dt_h == 3.0",
+  "boundary of a threshold; features.py pins 3.5 h only", "samples=1 rate=0.39946104468116317 saves=1", "samples=0 rate=0.39587982935374616 saves=0",
+  "an interval of exactly 3.0 h asserting the sample is accepted", "its long-interval check uses 3.5 h, rejected by both arms", "Probe nulls 2.9 h, 3.5 h, 1 h: moved=0.")
+bufcand("2700e28d79c64bd8", "No check pins the 4 K end-delta buffer-cooling guard at its bound (coordinator.py:5665)",
+  "With `end_delta < BUFFER_COOLING_MIN_DELTA` -> `<=`, an interval ending exactly 4.0 K above ambient (24.5 -> 24.0 C over 3 h, 0.98 C/h inside the bounds) is rejected (samples 1 -> 0) and the full gate stays green beyond its null.",
+  buf_metric + ", end delta exactly 4.0 K", "coordinator.py:5665 `<` -> `<=`", "samples 1 -> 0 at end_delta == 4.0",
+  "boundary of a threshold; features.py pins a 3.9 K end (rejected by both)", "samples=1 rate=0.4075927387094018 saves=1", "samples=0 rate=0.39587982935374616 saves=0",
+  "an interval ending exactly 4 K above ambient with an in-bounds implied rate asserting acceptance", "its end-delta check uses 24.5 -> 23.9 (3.9 K), rejected by both arms", "Probe nulls 3.9 K and 4.1 K ends, a 50 -> 48 C interval: moved=0.")
+bufcand("9d324a1dc7a6aa82", "No check pins the buffer-cooling ceiling as inclusive (coordinator.py:5674 `> high`)",
+  "With `observed > high` -> `>=`, an interval whose implied rate equals the 35 L tank's ceiling bit-for-bit (3.167038634829969 C/h) is discarded (samples 1 -> 0, rate 0.4513 -> 0.3959) and the full gate stays green beyond its null.",
+  buf_metric + ", implied rate == ceiling bit-for-bit", "coordinator.py:5674 `observed > high` -> `observed >= high`", "samples 1 -> 0 at observed == high",
+  "boundary; the tie is constructible (the probe finds it by walking the interval in microseconds)", "samples=1 rate=0.4513030054632706 saves=1 (two tie inputs)", "samples=0 rate=0.39587982935374616 saves=0",
+  "an interval implying exactly the ceiling asserting it is folded (or a documented exclusive bound asserted)", "its ceiling check uses 60 -> 25 C over 0.2 h, far above the ceiling", "Probe nulls: far above the ceiling, mid-band: moved=0.")
+bufcand("bb1abbfc58114a17", "No check pins the buffer-cooling floor as inclusive (coordinator.py:5674 `< low`)",
+  "With `observed < low` -> `<=`, an interval whose implied rate equals the 35 L tank's floor bit-for-bit (0.07917596587074922 C/h, 2 h) is discarded (samples 1 -> 0) and the full gate stays green beyond its null.",
+  buf_metric + ", implied rate == floor bit-for-bit", "coordinator.py:5674 `observed < low` -> `observed <= low`", "samples 1 -> 0 at observed == low",
+  "boundary; constructible by microsecond search", "samples=1 rate=0.3167038634829969 saves=1", "samples=0 rate=0.39587982935374616 saves=0",
+  "an interval implying exactly the floor asserting it is folded", "its floor check uses 0.9x the floor, rejected by both", "Probe nulls: 0.9x the floor, mid-band; the 3 h tie found lands past the 3 h cap and both reject it: moved=0.")
+bufcand("74dbcc2eae2c24f5", "Buffer-cooling alpha choice on an exact tie moves the rate by 1-2 ulp only; no check can see it (coordinator.py:5679)",
+  "With `observed < self._buffer_cooling_rate` -> `<=`, an observation equal to the current rate blends with ALPHA_DOWN instead of ALPHA_UP, moving the written rate by one or two ulp (1.6564106040767905 -> ...907) on 3 of 6 tie rates tried, and the full gate stays green beyond its null.",
+  "the _buffer_cooling_rate written after one interval whose implied rate equals the current rate bit-for-bit", "coordinator.py:5679 `<` -> `<=`", "rate changes by <= 2 ulp (~4.4e-16 C/h) on a tie; samples unchanged",
+  "(1-a)*r + a*r == r mathematically, so only float rounding differs: behaviour change negligible", "rate 1.6564106040767905 / 0.932824908459742 / 1.9062583357611946", "rate 1.6564106040767907 / 0.9328249084597421 / 1.9062583357611949",
+  "none worth adding: the observable difference is float rounding; a check would pin arithmetic, not behaviour", "its alpha-asymmetry check uses observations 0.2 C/h either side of the rate", "Probe nulls: 0.2 C/h below and above the rate pick the same alpha in both arms (moved=0); ties at 1.0, 2.0, 0.3 round identically.")
+S["355c3d7dd36a1b90"] = {"class": "candidate", "baseline_value": "samples=1, scale 1.01 (cooling/flat/two-zone) or 0.99 (warming) at indoor-outdoor exactly 6.0 K", "mutant_value": "samples=0, scale 1.0",
+  "should_fail": {"script": "tests/features.py", "check_area": "the house heat-loss learner checks (_two_zone_learner / _fabric_lower_samples, features.py:14086-14275, and the P3 census)", "executes_line": True,
+     "why_it_passes": "every house-loss interval the suite drives has indoor-outdoor 26 K (21 vs -5 C), far from the 6 K minimum", "assertion_it_lacks": "an interval at exactly HOUSE_LOSS_MIN_DELTA asserting it is learned (and one just under asserting it is skipped)"},
+  "null_control": "Probe nulls: 5.9 K (skipped by both) and 26 K (learned by both): moved=0.",
+  "finding": cand("No check pins the 6 K minimum indoor-outdoor delta of the house heat-loss learner at its bound (coordinator.py:5782)",
+     "With `delta_t < HOUSE_LOSS_MIN_DELTA` -> `<=`, a dark 0.5 h interval at exactly 6.0 K indoor-outdoor is skipped (samples 1 -> 0, scale 1.01 -> 1.0) and the full gate stays green beyond its null.",
+     "low", "the coordinator's _house_heat_loss_samples and _house_heat_loss_scale after one real _async_learn_house_heat_loss call at indoor-outdoor exactly 6.0 K", HHL,
+     "coordinator.py:5782 `<` -> `<=`", "samples 1 -> 0, scale 1.01 -> 1.0", "boundary of a threshold; the suite's intervals all sit at 26 K", [CO, "tests/features.py"])}
+def eq(key, reason, base, mutv, m4=None):
+    S[key] = {"class": "equivalent-candidate", "baseline_value": base, "mutant_value": mutv, "equivalent_reason": reason,
+              "should_fail": {"script": "none", "assertion_it_lacks": "none possible on a reachable input: " + reason}}
+eq("7d276b43052dbeb9", "`>` and `>=` differ only on an equal pair; equal temperatures imply observed 0.0 C/h, which the volume-derived floor (positive at every volume, 0.0001 L .. 1e6 L tried) rejects; inf/nan pairs are rejected in both arms",
+   "inputs_moved=0 of 9", "identical on all 9")
+eq("953a106a1aa39cee", "a warming interval implies a negative (or non-finite) rate, rejected by the positive floor or the isfinite guard without this line; features.py records the same at 'a tank that got warmer'",
+   "inputs_moved=0 of 9", "identical on all 9")
+eq("4b296fec48fc594f", "start_delta == 4.0 differs only there; a non-warming interval then has end_delta <= 4.0: < 4 is rejected by the end guard, == 4 implies 0 C/h, below the positive floor",
+   "inputs_moved=0 of 6", "identical on all 6")
+eq("58fe17a0726473a6", "subsumed: a non-warming interval has end_delta <= start_delta < 4, so the end guard rejects every interval this one would; nan/-inf starts are rejected identically; features.py records the same at 'starting within 4 K'",
+   "inputs_moved=0 of 8", "identical on all 8")
+eq("223ac303af04edde", "moves only on non-finite temperatures passed by a direct call (4 of 8: samples 0 -> 1 and one save, rate held by @_refuses_non_finite); the sole production caller (coordinator.py:6829-6830) passes only an ok InputReader value, and InputReader refuses nan/inf/-inf (not_numeric) and 1e308 (implausible): reach 0 of 4, so no reachable input distinguishes the arms",
+   "direct call: samples 0 (both inf, both nan, prev nan, end nan); reach_nonfinite_delivered=0 of 4", "direct call: samples 1 and 1 save on those 4; unreachable through InputReader")
+eq("206a570d8cc784e3", "the mutant lets 6 non-finite residuals past the line, but drift.Cusum.update refuses non-finite residuals and _loss_residual_rejected rejects nan/inf (abs(nan) <= bound is False), so no learner state, save or return value moves",
+   "inputs_moved=0 of 9", "identical on all 9; nonfinite_residuals_past_guard=6")
+json.dump(S, open(os.path.expanduser("~/tools/specs.json"), "w"), indent=1)
+print(len(S))

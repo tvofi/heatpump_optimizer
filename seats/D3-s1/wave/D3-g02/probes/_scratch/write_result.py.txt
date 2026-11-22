@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Write wave/D3-g02/results/<key>.json from the gate record, keys.tsv, the mutant and the probe output."""
+import json, re, sys
+from pathlib import Path
+key = sys.argv[1]
+S1 = Path.home() / "audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1"
+W = S1 / "wave/D3-g02"
+REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g02"
+spec = json.load(open(Path.home() / "tools/specs.json"))[key]
+row = dict(zip(*[l.split("\t") for l in (W / "keys.tsv").read_text().splitlines()[:1]] ,))
+hdr = (W / "keys.tsv").read_text().splitlines()[0].split("\t")
+row = next(dict(zip(hdr, l.split("\t"))) for l in (W / "keys.tsv").read_text().splitlines()[1:] if l.startswith(key))
+mut = json.load(open(S1 / f"state/results/complete/{key}.json"))["mutant"]
+g = json.load(open(W / f"gates/{key}.json"))
+gate = {k: g.get(k) for k in ("verdict", "killed_by", "gate_rc", "wall_s", "load1_start", "load1_end", "failed_scripts", "fail_lines")}
+gate["path"] = f"{REL}/gates/{key}.json"
+gate["command"] = f"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src {row['src']} --key {key}"
+gate["provisional_timing"] = "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+v = g.get("verdict")
+rec = {"key": key, "site": f"{row['file']}:{row['line']} {row['kind']}", "patch": f"{mut['old'].strip()} -> {mut['new'].strip()}",
+       "function": row["function"], "cluster": row["cluster"], "slice": row["slice"], "m4_source": row["m4_source"], "gate": gate}
+if v == "KILLED":
+    log = (W / f"gates/{key}.log").read_text(errors="replace").splitlines() if (W / f"gates/{key}.log").exists() else []
+    nl = (W / "gates/null.log").read_text(errors="replace").splitlines()
+    null_fail = set(l for l in nl if l.startswith("  FAIL"))
+    lines = [l[:400] for l in log if l.startswith("  FAIL") and l not in null_fail][:40]
+    rec.update({"class": "killed", "killed_by": g.get("killed_by"), "failing_check_lines": lines,
+                "non_finding": f"the suite fails on this mutant: killed_by {g.get('killed_by')} (gate_rc {g.get('gate_rc')})"})
+elif v == "TIMEOUT":
+    log = (W / f"gates/{key}.log").read_text(errors="replace").splitlines() if (W / f"gates/{key}.log").exists() else []
+    last = [l for l in log if l.startswith("########## ")]
+    rec.update({"class": "timeout", "cap_s": g.get("cap_s", 14400), "last_script_running": last[-1].strip("# ") if last else None})
+else:
+    out = (W / f"probes/{key}/probe_output_baseline_tree.txt").read_text()
+    res = [l for l in out.splitlines() if l.startswith("RESULT")]
+    rec["class"] = spec["class"]
+    rec["probe"] = {"path": f"{REL}/probes/probe_{key}.py",
+                    "command": f"PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 {REL}/probes/probe_{key}.py",
+                    "baseline_value": spec["baseline_value"], "mutant_value": spec["mutant_value"],
+                    "inputs_tried": [re.sub(r"_moved=.*", "", l[7:]) for l in res if "_moved=" in l and "inputs_moved" not in l],
+                    "result_lines": res,
+                    "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"}
+    rec["should_fail"] = spec["should_fail"]
+    rec["m4_carried"] = spec.get("m4")
+    if spec["class"] == "candidate":
+        f = dict(spec["finding"])
+        f.update({"step": "D3.M3", "scope": "D3-s1",
+                  "harness_paths": ["dev/audit/rounds/round11/D3/s1/fullgate.py", f"{REL}/probes/probe_{key}.py"],
+                  "evidence_command": rec["probe"]["command"] + " ; " + gate["command"],
+                  "null_control": spec["null_control"] + f" Gate null: {REL}/gates/null.json (gate_rc 1 on artefact checks only: closure.py selftest, entities.py, harness_headers.py; the mutant gate is red on no script beyond them)."})
+        rec["finding"] = f
+    else:
+        rec["equivalent_reason"] = spec["equivalent_reason"]
+(W / "results").mkdir(exist_ok=True)
+json.dump(rec, open(W / f"results/{key}.json", "w"), indent=1)
+print(f"wrote {key} {v} {rec['class']}")
