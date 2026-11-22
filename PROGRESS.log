@@ -11,3 +11,4 @@
 1795305858 CKPT head table byte-identical to selftest-absorbed 14730141227 of run 44957362163; replay main 11 refusals head 0, 3 perturbations each 1 snapshot c1db5e3b80ed
 1795305899 CKPT figures re-derived; merge-tree clean vs e4c929bd; starting classify wait snapshot 7378b3320004
 1795306384 HB alive
+1795306988 HB alive
