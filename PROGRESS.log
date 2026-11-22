@@ -16,3 +16,4 @@
 1795361383 HB alive
 1795361473 CKPT packet rendered, body read; running block at head snapshot f1ad40cbdf91
 1795361986 HB alive
+1795362219 CKPT mutants M1-M6 killed; finder harnesses reproduce; awaiting M7/M8, env_drift, CI snapshot 38a9d37dab86
