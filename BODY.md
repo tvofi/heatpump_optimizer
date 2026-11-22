@@ -14,9 +14,13 @@ Behaviour change to note: in Cooling + DHW the plan's hot-water steps no longer 
 
 ## Head
 
-Code head 4317cb43e2ac3d673304cabe898cb5c6dc79a59a (5ac350ab6c plus two commits that delete the seven mutation-ledger pins whose lines this change replaced), cut from origin/main 3a98735a7ecc59e7ecc095a0429cdf6251d956ec (merge base, and origin/main's tip at 2026-11-22T12:10Z). Against origin/main 8ef450936a at 2026-11-22T14:10Z, `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+Code head 0fb60d2b0ce09d263024b2d051834bb3064df11d: the PR head 74130e1bc9 (4317cb43e2ac, a merge of origin/main 8ef450936a, and the delivery row) plus one commit that repairs the two `tests / fast (3.14)` reds at 74130e1bc9. Merge base 8ef450936a1786abf4bb9610dc3336da4e77e8de. Against origin/main baa9a467ac at 2026-11-22T19:30Z, `git merge-tree --write-tree origin/main HEAD` reports no conflict.
 
-The full prepr did not finish on this host. The first run timed out at 50 minutes waiting for the heavy slot. The second passed every step up to `pinned graders` and was then stopped by a timeout (rc=124). The PR is opened under `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`, so CI is the authority on the code-keyed steps. The block, mutant, structure and archscore figures below were each run by hand at the head.
+The repair commit changes two test files and no production line:
+- `tests/entities.py`: the R10 N-log-flood barrier refused `mismatch {('supply_hold.py', 'note_cooling'): (1, 0)}`. The warning in `note_cooling` is latched by `held.cooling_asked`, which is set in the same call that raises `ISSUE_COOLING`. The static rule cannot read that latch, so the site is listed with count 1 under "once per event by the function's own state (... an issue raised ...)". The barrier alone, run by AST from the test file over the package (script `barrier_check.py` in the seat's scratch), printed that mismatch with the previous `tests/entities.py` and `mismatch none` with this one.
+- `tests/features.py`: the comment ratchet in `tests/doc_claims.py` refused the cooling block's first comment sentence (41 words). It is split in two; the block's first line keeps its opening words. `python3 tests/doc_claims.py` at the head: `ALL 441 checks PASSED`.
+
+The seat venvs on this host carry no `homeassistant` and the container runtime was not running, so `tests/entities.py` and `tests/mutation_table.py --pin-killed` were not run here: the barrier was run alone by AST, and the pins are left to `tests / mutation-autofix` at this head. The prepr is not run again here: the code-keyed steps are CI's (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`). Before 74130e1bc9 the full prepr did not finish on the previous seat's host: the first run timed out at 50 minutes waiting for the heavy slot, the second was stopped by a timeout (rc=124) after `pinned graders`.
 
 ## Mutation proof
 
@@ -47,6 +51,8 @@ The first pass at commit 0a8d283632 left one survivor, `asks_heat` ignored. The 
 - In the block: a boost with the mode reading Heating, and one reading Heating + DHW, each switch the pump on. A plan OFF in Heating switches it off. The cycle's last-good Heating lets a boost through. A boost in Heating raises no cooling repair. The early cut-off on a Heating space step returns `None`. All of these pass at both ends.
 - The existing supply-gate block (the `tests/features.py` lines from `from homeassistant.util import dt as _sa_dt` to this block, which hold the held-write and both-blocked skip-log checks, now on `supply_hold._LOGGER`) printed `ALL 108 FEATURES BLOCK PASSED` at the head.
 
+- Re-run at 0fb60d2b0c by this seat with `tools/audit/seat/features_block.py` (prelude from `--emit-prelude` on the same markers): at the head `ALL 18 FEATURES BLOCK PASSED`; on origin/main baa9a467ac's `custom_components/` with the head's tests `10 of 18 FEATURES BLOCK FAILED` (the four boost and plan writes, the dropout, three repair checks and both early cut-off rows); with the supply gate's cooling term mutated (`if (note_cooling(...) is None or True) and ...` in `supply_hold.supply_write`) at the head `5 of 18 FEATURES BLOCK FAILED`.
+
 ## Figures
 
 - Hand mutants: 11 of 11 killed at 0a8d283632..ac7ba8d22c (table above; the production files of ac7ba8d22c are the head's, since 5ac350ab6c changes only `tests/structure_budgets.json`).
@@ -54,11 +60,6 @@ The first pass at commit 0a8d283632 left one survivor, `asks_heat` ignored. The 
 - `python3 tools/audit/archscore/score.py --diff 3a98735a7e HEAD` at ac7ba8d22c: `Architecture score: dS +0.0000 NULL`. An earlier cut, which handed the coordinator to `supply_write`/`note_cooling`, read `coord_footprint 2525 -> 2535` (inadmissible). That is why the gate takes the arbiter record and the pass inputs as plain values.
 - Class enumeration (fixer step 8), for the writers of the heat pump power switch: `grep -rn "switch_supply\|write_supply\|on_off_service" custom_components/heatpump_optimizer/*.py`. It returns `pump_arbiter.write_supply` (called only from `coordinator._write_supply`, the gate, closed here), `pump_arbiter.switch_supply` (called by `write_supply` and by `early_cutoff.on_room_event`, exempted here) and the `on_off_service` routing. `coordinator._async_set_pump` writes the circulation pumps, not the power switch, so it is out of class. `disinfection.py` writes the disinfection switch, which is also not the power switch.
 
-<!-- figure-block: scope-line mb=3a98735a7ecc59e7ecc095a0429cdf6251d956ec head=4317cb43e2ac3d673304cabe898cb5c6dc79a59a -->
-~~~text
-MODE: SCOPED -- 23 script(s) run, 10 scoped out.
-~~~
-<!-- /figure-block -->
 
 ## Unpinned sites
 
@@ -75,7 +76,12 @@ MODE: SCOPED -- 23 script(s) run, 10 scoped out.
 
 ## Red checks
 
-- `mutation` at 4317cb43e2ac: red by construction on the 10 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+Five checks concluded red at 74130e1bc9, the only branch commit CI ran on.
+- `tests / fast (3.14)`: two scripts. `tests/entities.py` refused the log-flood barrier on `note_cooling`; `tests/doc_claims.py` refused a 41-word comment sentence in `tests/features.py`. Both repaired at 0fb60d2b0c (## Head). Cheaper detector: both scripts are in the scoped gate `prepr.sh` runs for this diff, before any push; the full prepr that would have run them did not finish on the previous seat's host, and the PR was opened under `PREPR_SKIP_CODE=1`. The detector exists; it was skipped, so no new one is owed.
+- `gate`: aggregates required checks; it was red on `tests / fast (3.14)` (`FAIL tests / fast (3.14): failure`). Same cause and detector as that line.
+- `tests / mutation`: red by construction on the 10 added sites under `## Unpinned sites`. No cheaper detector is owed: the table refuses every added guard until a driver's kill is recorded, which is the autofix's job after the push.
+- `tests / mutation-autofix`: `skip-measure-failed`. The pin shards' baseline was red in `tests/doc_claims.py` (the comment ratchet above), so no mutant verdict was taken and no pin commit came. Same cause and detector as `tests / fast (3.14)`; with the baseline repaired the job measures again at the new head.
+- `pr-contract / pr-contract`: this body's `## Red checks` did not name `tests / fast (3.14)` or `tests / mutation`. Cheaper detector: `body_patch.sh` and `bus.sh dispatch` already refuse such a body before the PR is moved, and did refuse it; the body was not repaired before the head ran CI.
 
 ## Forward-carry
 
