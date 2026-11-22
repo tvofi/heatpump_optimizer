@@ -72,7 +72,7 @@ additive there, not a second mechanism fighting the first.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Any
 
@@ -363,6 +363,23 @@ class PumpSignals:
             "freeze_reason": self.freeze_reason,
             **self.electric_heat.as_dict(),
         }
+
+
+def with_dhw_under_way(state: Any, signals: PumpSignals, running: bool, action: Any) -> Any:
+    """``state`` with ``dhw_charge_under_way`` set: whether a hot-water charge runs now.
+
+    The compressor runs (``running``, ``duty_switch.running_now``) and the
+    observed mode serves hot water: hot water only, or a combined mode
+    while the executing step (``action``) plans hot water, which is what
+    the arbiter writes for a hot-water duty on a select with no hot-water
+    only option. With no mode observed a running compressor keeps the first
+    step's charge as before, and so does an unsettled or missing running
+    signal, which ``running_now`` answers from the planned draw. A pump
+    heating, or stopped, has no charge under way.
+    """
+    mode = signals.mode
+    dhw = mode.dhw and (not mode.space_heat or float(action.get("dhw_power", 0.0)) > 0.0)
+    return replace(state, dhw_charge_under_way=running and (not signals.mode_observed or dhw))
 
 
 def read_electric_heat(

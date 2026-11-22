@@ -994,6 +994,27 @@ def hysteresis_checks() -> None:
           lambda: list(drop(np.array([0.0, 1.0, 0.0]), np.full(3, 51.0), temps_of)) == [0, 0, 0])
     check("a run at the first step is kept on a warm tank, with nothing planned at the horizon's end",
           lambda: list(drop(np.array([1.0, 0.0, 0.0]), np.full(3, 51.0), temps_of)) == [1, 0, 0])
+    check("a first-step charge on a warm tank with no charge under way is dropped, and nothing carries it on",
+          lambda: list(drop(np.array([1.0, 1.0, 0.0]), np.full(3, 51.0), temps_of, False)) == [0, 0, 0]
+          and list(startable(np.array([1.0, 0.0, 0.0]), warm, np.full(3, 51.0), False)) == [False] * 3
+          and list(planner.place_startable(np.array([1.0, 0.0]), np.full(2, 51.0), temps_of,
+                                           lambda plan, start_below: plan, False)) == [0, 0])
+    check("with no charge under way a first-step charge on a cold tank starts and carries on",
+          lambda: list(startable(np.array([1.0, 0.0, 0.0]), np.array([50.0, 53.0, 52.0]), np.full(3, 51.0), False))
+          == [True, True, False])
+
+    from heatpump_optimizer import pump_mode, pump_signals
+    from heatpump_optimizer.thermal_model import ThermalState
+
+    def under_way(running, mode, dhw_kw=0.0):
+        signals = pump_signals.PumpSignals(mode=pump_mode.capability(mode or "?"), mode_observed=mode is not None)
+        return pump_signals.with_dhw_under_way(ThermalState(), signals, running,
+                                               {"dhw_power": dhw_kw}).dhw_charge_under_way
+
+    check("a charge is under way only with the compressor running in a mode serving the step's hot water",
+          lambda: [under_way(False, "DHW", 2.0), under_way(True, "Heating"), under_way(True, "DHW"),
+                   under_way(True, "Heating + DHW", 2.0), under_way(True, "Heating + DHW"),
+                   under_way(True, None)] == [False, False, True, True, False, True])
 
     # 8. The repair loop.
     def raises(_plan):
