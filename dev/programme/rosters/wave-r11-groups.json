@@ -6086,9 +6086,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-seam-card",
-    "commit": null,
+    "commit": "608c95decc94a8240565aba68fa8f0e1dece8c3d",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "designer (designer.md) first; design review; fixer only on approve",
     "note": null,
