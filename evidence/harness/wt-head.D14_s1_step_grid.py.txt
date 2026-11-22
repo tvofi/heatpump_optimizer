@@ -1,0 +1,11 @@
+RESULT option_number_fields=94 fields
+RESULT option_box_any_guarded=49 fields
+RESULT box_pinned=0 fields
+RESULT seams_options=0 seams
+RESULT seams_widen=0 seams
+RESULT service_number_fields=47 fields
+RESULT seams_services=0 seams
+RESULT seams_total=0 seams
+RESULT thread_factor=1.000
+RESULT load1=1.33
+RESULT swapins=0
