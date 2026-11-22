@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.flow_target_for_indoor CONST_SWAP 7fa4d649",
+  "old": "                self.effective_heat_loss_coefficient(p.heat_loss_coefficient), 0.0)",
+  "reason": "Equivalent (CONST_SWAP, the single-zone lower-floor loss 0.0 to 1.0 in `flow_target_for_indoor`). On one zone `_valve_flow_set`'s single-zone branch reads `heat_loss_coefficient` and never the lower floor's loss, so the curve is the same float. The single-zone value itself is pinned by tests/features.py's 'single-zone valve: the curve the model reports is the plant's own, at zero wind and rain'.",
+  "verdict": "equivalent"
+}
