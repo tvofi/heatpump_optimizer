@@ -98278,7 +98278,7 @@ def _sg_fallback_probe(stopping):
     _sg_cm._await_process = _dead
     _sg_cm._note_worker_fallback = lambda *a: notes.append(a)
     if stopping:
-        hass.data[_sg_cm._WORKER_STOPPING] = True
+        hass.data[solve_gate.WORKER_STOPPING] = True
     try:
         out = _sg_aio.run(_sg_cm._await_optimize(hass, None, None))
     except _sg_cm.ProcessWorkerUnavailable:
@@ -98331,12 +98331,12 @@ async def _sg_stop_midsolve():
 
     real = _sg_cm._await_optimize
     _sg_cm._await_optimize = _killed
-    coord.hass.data[_sg_cm._WORKER_STOPPING] = True
+    coord.hass.data[solve_gate.WORKER_STOPPING] = True
     try:
         reason = await coord.async_run_optimization()
     finally:
         _sg_cm._await_optimize = real
-        coord.hass.data.pop(_sg_cm._WORKER_STOPPING, None)
+        coord.hass.data.pop(solve_gate.WORKER_STOPPING, None)
     return reason, coord._solve_failures, solve_gate.gate_for(coord).solving
 
 

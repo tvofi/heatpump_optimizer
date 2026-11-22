@@ -823,15 +823,6 @@ PROCESS_REPLY_TIMEOUT_S = 1800.0
 # is only bookkeeping, and neither a read the kill did not break nor a child
 # slow to die may hold a solve or Home Assistant's shutdown hostage.
 _SHUTDOWN_LOCK_TIMEOUT_S = 5.0
-#: ``hass.data`` key, set when Home Assistant stops: a solve the reap breaks is
-#: neither a worker fault nor a solve failure (D1-s1-01).
-_WORKER_STOPPING = f"{DOMAIN}_worker_stopping"
-
-
-def _worker_stopping(hass: Any) -> bool:
-    """Whether ``hass`` is stopping, as the worker reap marked it."""
-    data = getattr(hass, "data", None)
-    return isinstance(data, dict) and bool(data.get(_WORKER_STOPPING))
 # How long the reply frame may take to arrive once its first byte has. The
 # worker serialises its whole reply before writing it, so the frame then flows
 # at pipe speed (a 50 MB reply round-trips in about half a second); this only
@@ -1955,7 +1946,7 @@ def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizer
     """
 
     async def _stop(_event: Event) -> None:
-        hass.data[_WORKER_STOPPING] = True  # before the reap: the solve it breaks is not a fault
+        hass.data[solve_gate.WORKER_STOPPING] = True  # before the reap: the solve it breaks is no fault
         await hass.async_add_executor_job(_shutdown_process_pool)
 
     entry.async_on_unload(
@@ -2332,7 +2323,7 @@ async def _await_optimize(
             minutes=f"{PROCESS_REPLY_TIMEOUT_S / 60:.0f}",
         )
     except ProcessWorkerUnavailable as err:
-        if _worker_stopping(hass):
+        if solve_gate.worker_stopping(hass):
             raise  # the stop killed the worker: no notice, no in-process rerun
         _note_worker_fallback(hass, err, entry_id)
         n = _bump_worker_fallback(hass, entry_id)
@@ -2712,11 +2703,6 @@ class CoordinatorDiagnostics:
             house_heat_loss_scale=getattr(coord, "_house_heat_loss_scale", None),
             learner_summaries=summaries,
         )
-
-
-def _mode_superseded(entry_mode: str, mode: str) -> bool:
-    """Whether a fixed mode replaced the optimizer mode a run started in."""
-    return entry_mode in (MODE_AUTO, MODE_ECONOMY) and mode not in (MODE_AUTO, MODE_ECONOMY)
 
 
 def _ctx_of(coord: Any) -> CoordinatorContext:
@@ -6341,12 +6327,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         _LOGGER.info("Running heat pump optimization (predictive MPC)")
 
-        if not solve_gate.begin_solve(solve_gate.gate_for(self)):
+        if not solve_gate.begin_solve(solve_gate.gate_for(self), self._mode):
             # #1754: a re-run is recorded; the in-flight solve's finally honours it.
             _LOGGER.debug("An optimization is already in flight; recording a re-run")
             return None
 
-        entry_mode = self._mode
         # Announce the flip: the Optimize Now button disables itself off this
         # flag, and without a listener update the change is invisible until
         # the next scheduled refresh — after the solve is already over.
@@ -6419,7 +6404,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if self._entry_released:
                 _LOGGER.debug("Solve finished after shutdown; discarding it")
                 return "shutdown"
-            if _mode_superseded(entry_mode, self._mode):
+            if solve_gate.mode_superseded(solve_gate.gate_for(self), self._mode):
                 # D1-s1-02: a fixed mode set during the await outranks this plan.
                 boost.adopt_plan(self, self._fixed_mode_action())
                 return None
@@ -6490,7 +6475,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return None
 
         except Exception as err:
-            if _worker_stopping(self.hass):
+            if solve_gate.worker_stopping(self.hass):
                 return "shutdown"  # the stop killed the worker; not a solve failure
             _note_solve_failure(self, err)
             return "solve_failed"
@@ -6499,7 +6484,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self.async_update_listeners()
             # #1754: a request during the solve re-runs it ONCE; skipped once the
             # entry is released, dropped where a fixed mode superseded it (D1-s1-02).
-            if rerun and not self._entry_released and not _mode_superseded(entry_mode, self._mode):
+            if rerun and not self._entry_released and not solve_gate.mode_superseded(solve_gate.gate_for(self), self._mode):
                 await self.async_run_optimization()
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""

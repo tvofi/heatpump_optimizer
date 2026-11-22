@@ -34,7 +34,11 @@ from dataclasses import dataclass, field
 from typing import Any
 from weakref import WeakKeyDictionary
 
-from .const import MODE_AUTO, MODE_ECONOMY
+from .const import DOMAIN, MODE_AUTO, MODE_ECONOMY
+
+#: ``hass.data`` key, set when Home Assistant stops: a solve the reap breaks is
+#: neither a worker fault nor a solve failure (D1-s1-01).
+WORKER_STOPPING = f"{DOMAIN}_worker_stopping"
 
 
 @dataclass
@@ -43,6 +47,8 @@ class SolveGate:
 
     #: A main solve is in flight.
     solving: bool = False
+    #: The mode the current main solve started in.
+    entry_mode: str = ""
     #: A request landed during that solve; it re-runs once (#1754).
     rerun: bool = False
     #: A request landed during a refresh that was not solving; one refresh follows it.
@@ -82,16 +88,28 @@ def absorb_request(gate: SolveGate, refreshing: bool) -> bool:
     return False
 
 
-def begin_solve(gate: SolveGate) -> bool:
-    """Start a main solve; False, with a re-run recorded, when one is in flight.
+def begin_solve(gate: SolveGate, mode: str = "") -> bool:
+    """Start a main solve in ``mode``; False, with a re-run recorded, when one is in flight.
 
     A started solve opens a fresh background budget.
     """
     if absorb_request(gate, False):
         return False
     gate.solving = True
+    gate.entry_mode = mode
     gate.background_taken = False
     return True
+
+
+def mode_superseded(gate: SolveGate, mode: str) -> bool:
+    """Whether a fixed ``mode`` replaced the optimizer mode the main solve started in (D1-s1-02)."""
+    return gate.entry_mode in (MODE_AUTO, MODE_ECONOMY) and mode not in (MODE_AUTO, MODE_ECONOMY)
+
+
+def worker_stopping(hass: Any) -> bool:
+    """Whether ``hass`` is stopping, as the worker reap marked it (``WORKER_STOPPING``)."""
+    data = getattr(hass, "data", None)
+    return isinstance(data, dict) and bool(data.get(WORKER_STOPPING))
 
 
 def end_solve(gate: SolveGate) -> bool:
