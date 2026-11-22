@@ -1,0 +1,4 @@
+  FAIL the bot's step: drift over a run with an unrecorded read is a note, not a red: it passes with ABSORB OWED, keeps the absorbed table for the commit and in the job summary, and leaves the checkout's table as it was
+  FAIL the bot's step: drift stays red on an UNMEASURED step beside an absorbable read: the absorbed table is kept, the refusal it still makes is named
+  FAIL the bot's step: drift is the only absorber, and the absorbed table is kept on a push wherever the drift step wrote one
+selftest_scope self-test: 173 checks, 3 failed
