@@ -48,5 +48,6 @@
   "node tests/card.mjs: FAIL  user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language | gate 0.3, modelled floor undefined; wrong in: en,sv,de",
   "python3 tests/stress.py: FAIL the per-call-cost arm reaches the rule the sweep applies, with both count channels flat, and an unchanged solve does not (round-5 D9-07)  [winter/1z/space, median of 7 interleaved rounds: 39 ms of kernel CPU plain, 40 ms plain again (x1.03), 55 ms with every seam call's CPU doubled (x1.41); eva"
  ],
- "non_finding": "the full gate fails on the mutant: killed_by=['node tests/card.mjs', 'python3 tests/stress.py'], gate_rc=1"
+ "non_finding": "the full gate fails on the mutant: killed_by=['node tests/card.mjs', 'python3 tests/stress.py'], gate_rc=1",
+ "kill_note": "node tests/card.mjs is the deterministic killer (its source-text read of the modelled-COP floor finds none once the guard line is 'if False:'; mutant 6b306521ae03824d on the same line is killed by the same check). The python3 tests/stress.py line is a wall/CPU ratio check (per-call-cost arm, x1.41) and is provisional: timing, load1 0.89..0.92, not a production read of the mutated line."
 }
