@@ -1,0 +1,81 @@
+{
+ "key": "1c0e818b4bb24fcd",
+ "site": "dhw_planner.py:2106 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2106,
+ "patch": "repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max) -> repaired: np.ndarray = (plan)",
+ "function": "DhwPlanner._apply_dhw_min_run",
+ "cluster": "dhw_planner.py:DhwPlanner._apply_dhw_min_run@2055-2106",
+ "slice": "u1a",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2719.5,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/1c0e818b4bb24fcd.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1c0e818b4bb24fcd"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_1c0e818b4bb24fcd.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_1c0e818b4bb24fcd.py",
+  "baseline_value": "baseline_plan=[0,3,3,0,0,3,0.6,0] kW",
+  "mutant_value": "mutant_plan=[0,3,3,-1,0,5,0.6,-1] kW (delta 2.0 kW); random_plans_separating=220 of 400",
+  "inputs_tried": [
+   "plan [0,3,3,-1,0.1,5,0.3,-1] at 48.971 C, ceiling 55 C (per-slot path)",
+   "400 seeded random plans over {-1,0,0.1,0.3,3,5}^8, tank 30..56 C: 220 separate",
+   "same plan with entries in range (null, delta 0)",
+   "three ordinary days (realistic_delta 0.0 kW)"
+  ],
+  "production_reach": "unit only: production plans reaching the per-slot path are already inside [0, p_dhw_max]; realistic_delta_kw=0.000000"
+ },
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes dhw_planner.py:2106; also block_duty.py, manual_plan.py, entities.py, optimality.py)",
+  "assertion": "no _apply_dhw_min_run check on the per-slot path (joint raise does not fit) feeds an entry above p_dhw_max or below 0 and asserts the returned plan lies in [0, p_dhw_max]"
+ },
+ "finding": {
+  "title": "No check feeds _apply_dhw_min_run's per-slot path an out-of-range entry; dropping its final [0, p_dhw_max] clip is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant 1c0e818b4bb24fcd at dhw_planner.py:2106 (repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max) -> repaired: np.ndarray = (plan)) survives the full gate (RED-AS-NULL, gate_rc 1, no script beyond this box's null control), yet the probe's number moves: baseline baseline_plan=[0,3,3,0,0,3,0.6,0] kW, mutant mutant_plan=[0,3,3,-1,0,5,0.6,-1] kW (delta 2.0 kW); random_plans_separating=220 of 400. Reach: unit only: production plans reaching the per-slot path are already inside [0, p_dhw_max]; realistic_delta_kw=0.000000.",
+  "metric_definition": "max |plan| difference (kW) of _apply_dhw_min_run's return between the arms on one per-slot-path plan with entries outside [0, p_dhw_max]",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_min_run line 2106",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_1c0e818b4bb24fcd.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/_g14lib.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_1c0e818b4bb24fcd.py",
+  "perturbation": {
+   "change": "the one-line mutant 1c0e818b4bb24fcd (repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max) -> repaired: np.ndarray = (plan)) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1c0e818b4bb24fcd",
+   "direction": "up (0 -> 2.0 kW: entries above p_dhw_max and below 0 leave unclipped)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_1c0e818b4bb24fcd.py",
+   "value": "null arm delta 0 (see the probe's null_* RESULT lines)",
+   "gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}
