@@ -1,0 +1,10 @@
+# B-W5 baseline, no edit
+# edits: []
+# cmd: ['python3', 'tools/audit/seat/features_block.py', '--prelude', 'exec(open("~/hpo-seats/r10s6/rev-3841-local/pre/rc2.py").read())', '# D10-s1-02: a refused or failed press raises to the caller', 'async def _rc2_manual_plan']
+
+=== features block ===
+  ok   a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)
+  ok   a diagnose press whose worker is down raises the action's diagnose_interval_failed (D10-s1-02)
+  ok   a diagnose press whose diagnosis ran returns and asks for the refresh that publishes it (D10-s1-02)
+
+ALL 3 FEATURES BLOCK PASSED

@@ -1,0 +1,17 @@
+# M4 windows_in_force flat (weekday None)
+# edits: [('custom_components/heatpump_optimizer/dhw_schedule.py', '        day.weekday(),\n', '        None,\n')]
+# cmd: ['python3', 'tools/audit/seat/features_block.py', '--prelude', 'exec(open("~/hpo-seats/r10s6/rev-3841-local/pre/vvc.py").read())', '# --- #6 the pump schedule', '_SAFE = dict(']
+
+=== features block ===
+  ok   the VVC pump runs inside a demand window and rests outside
+  ok   the lead time pre-heats the loop just before a window opens
+  ok   a window shorter than the lead has no hole in its final approach
+  ok   with no schedule the loop is simply left on
+  ok   a schedule with no window today keeps the loop off (D17-s3-51)
+  FAIL the hot-water window in force is the day's at every reader: flag, boost, draw learner (D17-s3-51)  [{'mon': (True, True, ['06:00-09:30']), 'sat': (True, True, ['06:00-09:30']), 'mon_0845': (True, True, ['06:00-09:30'])} -- Saturday 07:00 lies in the flat union 06:00-09:30 and in no window that day]
+  FAIL boost and the draw learner read the clock to the minute: Monday 08:45 is past the 08:30 close (D17-s3-51)  [(True, True, ['06:00-09:30']) -- an hour read at half the minutes (8.375) lands back inside 06:00-08:30]
+  FAIL windows_in_force takes the holiday tier on a holiday date and the day's own windows otherwise  [[(10.0, 11.0)]]
+  FAIL the draw learner takes the holiday tier from the coordinator's calendar (D17-s3-51)  [{'holiday': ['06:00-09:30'], 'ordinary': ['06:00-09:30']}]
+  FAIL the VVC lead and the next-window hours read tomorrow's windows across midnight (D17-s3-51)  [vvc {'mon': True, 'tue': True} next window 0.25 h at Monday 23:55]
+
+5 of 10 FEATURES BLOCK FAILED

@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Targeted mutants for #3841 review: apply, run the pinning check, restore."""
+import os
+import pathlib
+import subprocess
+import sys
+
+S = "~/hpo-seats/r10s6/rev-3841-local"
+M = S + "/mut"
+C = "custom_components/heatpump_optimizer/"
+FB = ["python3", "tools/audit/seat/features_block.py"]
+
+
+def blk(pre, start, end):
+    return FB + ["--prelude", f'exec(open("{S}/pre/{pre}.py").read())', start, end]
+
+
+# Sub-blocks of the W5-G7 t1 and T3 sections holding the D10-s1-02 press checks
+# and the D17-s3-51 pump-schedule / window-in-force checks (the whole sections'
+# prelude derivation ran past 20 min under load ~35).
+W5 = blk("rc2", '# D10-s1-02: a refused or failed press raises to the caller', 'async def _rc2_manual_plan')
+T3 = blk("vvc", '# --- #6 the pump schedule', '_SAFE = dict(')
+WIN = blk("win", 'R.section("The window grammar round-trips', 'R.section("Per-weekday DHW window overrides')
+ENT = ["python3", "tests/entities.py"]
+MUTANTS = [
+    ("B-W5 baseline, no edit", [], W5),
+    ("B-T3 baseline, no edit", [], T3),
+    ("B-WIN baseline, no edit", [], WIN),
+    ("M1 sysid disabled guard off",
+     [(C + "button.py", "if refused == sysid.ARM_REFUSED_DISABLED:", "if False:")], W5),
+    ("M2 vvc None-vs-empty",
+     [(C + "pump_schedule.py", "    if windows is None:\n        return True", "    if not windows:\n        return True")], T3),
+    ("M3 tomorrow ignored",
+     [(C + "dhw_schedule.py", "(windows if tomorrow is None else tomorrow)", "windows")], T3),
+    ("M4 windows_in_force flat (weekday None)",
+     [(C + "dhw_schedule.py", "        day.weekday(),\n", "        None,\n")], T3),
+    ("M5 planner tomorrow index",
+     [(C + "dhw_planner.py", "int(wraps[0]) + 2", "int(wraps[0]) + 1")], WIN),
+    ("M6 boost holidays dropped",
+     [(C + "boost.py", "windows_in_force(snap.params, snap.plan, now, holidays)",
+       "windows_in_force(snap.params, snap.plan, now)")], T3),
+    ("M7 coord flag holidays dropped",
+     [(C + "coordinator.py",
+       "windows_in_force(ctx._thermal_params, self._optimization_result, now, holidays, days)",
+       "windows_in_force(ctx._thermal_params, self._optimization_result, now, (), days)")], T3),
+    ("M8 vvc holidays dropped",
+     [(C + "coordinator.py",
+       "                away_mode.holiday_dates(self.hass, ctx._config.holiday_calendar_entity, now),\n"
+       "            )\n            await self._async_set_pump(vvc_entity",
+       "                (),\n            )\n            await self._async_set_pump(vvc_entity")], T3),
+    ("M6b boost holidays dropped, block_duty",
+     [(C + "boost.py", "windows_in_force(snap.params, snap.plan, now, holidays)",
+       "windows_in_force(snap.params, snap.plan, now)")], ["python3", "tests/block_duty.py"]),
+    ("M9 debugger zero kept",
+     [(C + "debugger.py", ' or 0) > 0]', ' or 0) >= 0]')], ["python3", "tests/debug_collect.py"]),
+    ("M10 on_grid off",
+     [(C + "config_flow.py", "    if value == declared or base is None",
+       "    if True or value == declared or base is None")], ["python3", "tests/config_flow_steps.py"]),
+    ("M11 entities combined: TEMPERATURE_DELTA None + family lead off + savings base predicate",
+     [(C + "sensor.py", '_TEMPERATURE_DELTA = getattr(SensorDeviceClass, "TEMPERATURE_DELTA", None)',
+       "_TEMPERATURE_DELTA = None"),
+      (C + "entity.py",
+       'lead = f"{family}_" if family and not translation_key.startswith(f"{family}_") else ""',
+       'lead = ""'),
+      (C + "sensor.py", "        if self._open_saving() is not None:\n            return None",
+       '        if any(isinstance(r, dict) and r.get("estimated") for r in self._rows()):\n'
+       "            return None")], ENT),
+]
+
+only = set(sys.argv[1:])
+env = dict(os.environ, PYTHONPATH="tests/hastub")
+for name, edits, cmd in MUTANTS:
+    tag = name.split()[0]
+    if only and tag not in only:
+        continue
+    files: dict = {}
+    ok = True
+    for path, old, new in edits:
+        p = pathlib.Path(M, path)
+        src = files.get(path, p.read_text())
+        if src.count(old) != 1:
+            print(f"{tag} APPLY-FAIL {path}: {src.count(old)} matches for {old!r}", flush=True)
+            ok = False
+            break
+        files[path] = src.replace(old, new)
+    if not ok:
+        subprocess.run(["git", "-C", M, "checkout", "--", "custom_components"])
+        continue
+    for path, src in files.items():
+        pathlib.Path(M, path).write_text(src)
+    log = f"{S}/ev/mutant-{tag}.txt"
+    with open(log, "w") as fh:
+        fh.write(f"# {name}\n# edits: {edits!r}\n# cmd: {cmd!r}\n")
+        fh.flush()
+        r = subprocess.run(cmd, cwd=M, env=env, stdout=fh, stderr=subprocess.STDOUT, timeout=5400)
+    subprocess.run(["git", "-C", M, "checkout", "--", "custom_components"])
+    fails = [ln.rstrip() for ln in open(log, errors="replace") if ln.lstrip().startswith("FAIL")]
+    verdict = ("RED" if r.returncode else "GREEN") if not edits else ("KILLED" if r.returncode else "SURVIVED")
+    print(f"{tag} rc={r.returncode} {verdict} fails={len(fails)}: "
+          + " | ".join(f.strip()[:170] for f in fails[:4]), flush=True)
+clean = subprocess.run(["git", "-C", M, "status", "--porcelain", "--", "custom_components"],
+                       capture_output=True, text=True).stdout
+print("tree clean" if not clean.strip() else "TREE DIRTY " + clean, flush=True)

@@ -1,0 +1,17 @@
+# M3 tomorrow ignored
+# edits: [('custom_components/heatpump_optimizer/dhw_schedule.py', '(windows if tomorrow is None else tomorrow)', 'windows')]
+# cmd: ['python3', 'tools/audit/seat/features_block.py', '--prelude', 'exec(open("~/hpo-seats/r10s6/rev-3841-local/pre/vvc.py").read())', '# --- #6 the pump schedule', '_SAFE = dict(']
+
+=== features block ===
+  ok   the VVC pump runs inside a demand window and rests outside
+  ok   the lead time pre-heats the loop just before a window opens
+  ok   a window shorter than the lead has no hole in its final approach
+  ok   with no schedule the loop is simply left on
+  ok   a schedule with no window today keeps the loop off (D17-s3-51)
+  ok   the hot-water window in force is the day's at every reader: flag, boost, draw learner (D17-s3-51)
+  ok   boost and the draw learner read the clock to the minute: Monday 08:45 is past the 08:30 close (D17-s3-51)
+  ok   windows_in_force takes the holiday tier on a holiday date and the day's own windows otherwise
+  ok   the draw learner takes the holiday tier from the coordinator's calendar (D17-s3-51)
+  FAIL the VVC lead and the next-window hours read tomorrow's windows across midnight (D17-s3-51)  [vvc {'mon': False, 'tue': True} next window None h at Monday 23:55]
+
+1 of 10 FEATURES BLOCK FAILED
