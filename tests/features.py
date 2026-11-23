@@ -99443,6 +99443,30 @@ R.check(
 )
 
 
+# The predicate's own bounds (design section 3.2: an unobserved interval whose
+# plan put no hot water and some space in it, over which the tank rose by MORE
+# than the band). The band's value is a design choice, the fixer's: over a
+# probe's few-tenths wobble, under one charging cycle's rise (the D2 harness
+# tank rises 4 K a cycle and falls 0.5 K otherwise). A 1.5 K rise, a few
+# minutes of one charge, is a charge: a literal, so the value is pinned and not
+# only the comparison (a check relative to the constant moves with it).
+_UC_K = _uc_he.UNPLANNED_CHARGE_RISE_K
+_uc_split = _uc_he.Attribution(2.0, 0.0, False)
+_uc_bounds = {
+    "at_band": _uc_he.unplanned_charge(_uc_split, _UC_K),
+    "rise_1_5_k": _uc_he.unplanned_charge(_uc_split, 1.5),
+    "idle_plan": _uc_he.unplanned_charge(_uc_he.Attribution(0.0, 0.0, False), _UC_RISE),
+    "no_reading": _uc_he.unplanned_charge(_uc_split, None),
+}
+R.check(
+    "an unplanned charge is a rise past the band, not at it: a rise equal to "
+    "UNPLANNED_CHARGE_RISE_K is no charge, a 1.5 K rise is one; a plan with no space in it "
+    "(idle) is never one, whatever the tank did; no tank reading is never one (design 3.2)",
+    _uc_bounds == {"at_band": False, "rise_1_5_k": True, "idle_plan": False, "no_reading": False},
+    f"{_uc_bounds} band={_UC_K}",
+)
+
+
 # ``SystemIdentification.step`` books the plan's power x COP as delivered heat
 # while settling, and ``_step_power`` x COP while stepping. The step-phase line
 # is sysid.py:1795 at main 78d3b40221, not :1792 (review item c4e1a3b1). So an
@@ -99569,15 +99593,17 @@ def _cf_fold(drawn, floor_kw=None):
 
 _cf = {k: _cf_fold(*a) for k, a in {"at_learned_floor": (1.5, 1.5), "at_configured_floor": (1.1,),
                                      "top_4": (4.0, 1.5), "top_4_cfg": (4.0,),
-                                     "zero_floor": (0.0, 0.0)}.items()}
+                                     "zero_floor": (0.0, 0.0),
+                                     "tolerance_edge": ((1.0 + _cf_dr.AGREE_TOLERANCE) * 1.5, 1.5)}.items()}
 R.check(
     "a ceiling sample at the floor in force (learned 1.5 kW, or the configured 1.0 kW unlearned) "
     "is ceiling-frozen and reaches neither the ceiling store nor the window; a 4.0 kW ceiling "
     "sample is kept in the store (null control) (D2-s3-09, note 9b3d1e15); a floor in force of 0 kW "
-    "is no running floor, so a 0 kW draw under it is not ceiling-frozen (zero-floor null arm)",
+    "is no running floor, so a 0 kW draw under it is not ceiling-frozen (zero-floor null arm); a draw "
+    "exactly AGREE_TOLERANCE above the learned floor is still at it (the band is closed)",
     _cf["at_learned_floor"] == (True, 0, 0) and _cf["at_configured_floor"] == (True, 0, 0)
     and _cf["top_4"] == (False, 1, 0) and _cf["top_4_cfg"] == (False, 1, 0)
-    and not _cf["zero_floor"][0],
+    and not _cf["zero_floor"][0] and _cf["tolerance_edge"] == (True, 0, 0),
     f"{_cf}",
 )
 
