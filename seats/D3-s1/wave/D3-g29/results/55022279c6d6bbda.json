@@ -1,0 +1,64 @@
+{
+ "key": "55022279c6d6bbda",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:3329 CLAMP_DROP",
+ "patch": "+ buffer_deficit / max(cop_buffer, 1e-6) -> + buffer_deficit / (cop_buffer)",
+ "function": "_terminal_row_cost.row_cost",
+ "cluster": "optimizer.py:_terminal_row_cost.row_cost@3328-3338",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3443.8,
+  "load1_start": 0.86,
+  "load1_end": 0.95,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5666.9,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/55022279c6d6bbda.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 55022279c6d6bbda",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_55022279c6d6bbda.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_55022279c6d6bbda.py",
+  "baseline_value": "row_cost finite, floored at COP 1e-6 (e.g. 2000001.0 at COP 0)",
+  "mutant_value": "ZeroDivisionError at COP 0, sign flip at COP -1, x1000 at COP 1e-9; identical at and above 1e-6",
+  "inputs_tried": [
+   "cop_buffer (split branch, refill law set) = 0.0, -1.0, 1e-9, 1e-6",
+   "null: COP 1.0, 1.05, 2.5, 4.0, nan",
+   "reach: ThermalModel.compute_cop / marginal_cop('buffer') over outdoor -60..45 C x humidity x store 20..90 C x 3 parameter sets"
+  ],
+  "reach": "every COP _terminal_row_cost receives comes from ThermalModel._cop_law, floored by `return max(cop, 1.0)`: scan minimum 1.0000; golden matrix minimum cop_end 1.5675, cop_buffer 1.1728 (reach_sweep.out)",
+  "results": {
+   "row_cost_cop_buffer_0.0_baseline": "3000000.6666666665",
+   "row_cost_cop_buffer_0.0_mutant": "'raises ZeroDivisionError'",
+   "row_cost_cop_buffer_-1.0_baseline": "3000000.6666666665",
+   "row_cost_cop_buffer_-1.0_mutant": "-2.3333333333333335",
+   "row_cost_cop_buffer_1e-09_baseline": "3000000.6666666665",
+   "row_cost_cop_buffer_1e-09_mutant": "3000000000.6666665",
+   "row_cost_cop_buffer_1e-06_baseline": "3000000.6666666665",
+   "row_cost_cop_buffer_1e-06_mutant": "3000000.6666666665",
+   "moved": "3 count of 4 sub-floor COPs",
+   "null_delta": "0 count (COP 1.0, 1.05, 2.5, 4.0, nan)",
+   "reach_min_cop_over_scan": "1.0000 (outdoor -60..45 C, humidity, store 20..90 C, 3 parameter sets)",
+   "reach": "skipped (pass --reach to solve the 50 golden scenarios with spies)",
+   "thread_factor": "1.000",
+   "load1": "1.06",
+   "swapins": "0 count"
+  },
+  "reach_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/reach_sweep.py",
+  "null_delta": "0 count (COP 1.0, 1.05, 2.5, 4.0, nan)"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "none through production: the 1e-6 floor sits under _cop_law's 1.0 floor; only a direct _terminal_row_cost call with COP < 1e-6 separates the arms"
+ },
+ "note": "unreachable through production"
+}

@@ -1,0 +1,15 @@
+RESULT row_cost_cop_buffer_0.0_baseline=3000000.6666666665
+RESULT row_cost_cop_buffer_0.0_mutant='raises ZeroDivisionError'
+RESULT row_cost_cop_buffer_-1.0_baseline=3000000.6666666665
+RESULT row_cost_cop_buffer_-1.0_mutant=-2.3333333333333335
+RESULT row_cost_cop_buffer_1e-09_baseline=3000000.6666666665
+RESULT row_cost_cop_buffer_1e-09_mutant=3000000000.6666665
+RESULT row_cost_cop_buffer_1e-06_baseline=3000000.6666666665
+RESULT row_cost_cop_buffer_1e-06_mutant=3000000.6666666665
+RESULT moved=3 count of 4 sub-floor COPs
+RESULT null_delta=0 count (COP 1.0, 1.05, 2.5, 4.0, nan)
+RESULT reach_min_cop_over_scan=1.0000 (outdoor -60..45 C, humidity, store 20..90 C, 3 parameter sets)
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.06
+RESULT swapins=0 count
