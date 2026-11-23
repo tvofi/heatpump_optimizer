@@ -1,0 +1,5 @@
+rows before v10 (UTC-normalised): 0
+since v10: 311 verdicts 88 blocks [('mutation-vacuous', 30), ('class-open', 18), ('ci-red', 7)] mv 30 on PRs 21
+72h: 95 verdicts 26 blocks [('mutation-vacuous', 15), ('class-open', 6), ('ci-red', 1)] mv 15 on PRs 11
+days 7.72  mv/day 3.88
+round-trip n 25 median 272.1 min 57 max 4189

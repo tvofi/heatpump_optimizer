@@ -1,0 +1,22 @@
+## reviewer re-runs at review head 5e9f76ec51340eb43ce7f448c9dd9b0878cdfeb9 (prototype at /Users/timmalmstrom/hpo-orch/r10s6/r11/proto/mutation-vacuous)
+## self-test
+SELF-TEST PASSED
+## #3866 19eafc0f BEFORE, live PR body, rules AB
+VACUOUS-PROBE A DELETED-BUT-DRAWN: the body says a site in `_boost_ceiling_c` was deleted ('A second cap in `_boost_ceiling_c` was an equivalent mutant (M7 below), so it was removed and the ba'); the head still draws custom_components/heatpump_optimizer/pump_arbiter.py:936 GUARD_OFF
+VACUOUS-PROBE A DELETED-BUT-DRAWN: the body says a site in `_boost_ceiling_c` was deleted ('The cap was deleted from `_boost_ceiling_c`, so the mutant site no longer exists.'); the head still draws custom_components/heatpump_optimizer/pump_arbiter.py:936 GUARD_OFF
+VACUOUS-PROBE B SURVIVOR-PINNED-BY-AUTOFIX: custom_components/heatpump_optimizer/pump_arbiter.py:936 GUARD_OFF is disposed 'pinned by mutation-autofix', but the body records a mutant in `_boost_ceiling_c` surviving; autofix pins killed mutants only -- a killing check, a survivor_triage, or delete the site
+VACUOUS-PROBE: FAIL -- 7 changed production file(s); rule A 2, B 1, C 0 (5 line revert(s), 0 hand-owed)
+rc=1
+## #3866 perturbation: body minus the two deleted-site sentences
+VACUOUS-PROBE: PASS -- 7 changed production file(s); rule A 0, B 0, C 0 (5 line revert(s), 0 hand-owed)
+rc=0
+## #3866 AFTER fix-3866.diff applied in worktree (run earlier this session): PASS -- 7 changed production file(s); rule A 0, B 0, C 0 (5 line revert(s), 0 hand-owed) rc=0
+## #3873 73797a57 rule C, live PR body
+VACUOUS-PROBE C LINE-REVERT UNMEASURED: custom_components/heatpump_optimizer/boost.py:369 -- no result in the body for the line restored to its base text ('return getattr(coord, "mode", None) == MODE_BOOST'); run it (--spec-out) and record killed-by or a disposition
+VACUOUS-PROBE C LINE-REVERT UNMEASURED: custom_components/heatpump_optimizer/boost.py:440 -- no result in the body for the line restored to its base text ('held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now())'); run it (--spec-out) and record killed-by or a disposition
+VACUOUS-PROBE C LINE-REVERT UNMEASURED: custom_components/heatpump_optimizer/coordinator.py:4126 -- no result in the body for the line restored to its base text ('return CoordinatorDiagnostics.of(self)'); run it (--spec-out) and record killed-by or a disposition
+VACUOUS-PROBE C LINE-REVERT UNMEASURED: custom_components/heatpump_optimizer/coordinator.py:8353 -- no result in the body for the line restored to its base text ('ctx._config.comfort_weight,'); run it (--spec-out) and record killed-by or a disposition
+VACUOUS-PROBE C LINE-REVERT UNMEASURED: custom_components/heatpump_optimizer/coordinator.py:10434 -- no result in the body for the line restored to its base text ('if ctx._config.wear_autotune_enabled:'); run it (--spec-out) and record killed-by or a disposition
+VACUOUS-PROBE C LINE-REVERT UNMEASURED: custom_components/heatpump_optimizer/diagnostics.py:342 -- no result in the body for the line restored to its base text ('"mode": getattr(coord, "mode", None),'); run it (--spec-out) and record killed-by or a disposition
+VACUOUS-PROBE: FAIL -- 3 changed production file(s); rule A 0, B 0, C 6 (6 line revert(s), 0 hand-owed)
+rc=1

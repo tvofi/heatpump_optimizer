@@ -1,0 +1,5 @@
+SURVIVED NULL
+SURVIVED pump_arbiter.py:936:GUARD_OFF
+real 21.66
+user 4.80
+sys 2.54
