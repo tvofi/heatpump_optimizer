@@ -99350,12 +99350,16 @@ R.check(
 # carry is not attributed to the room (the residual review/3838 fc7ae551 found).
 _r3_cb_short = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.2, 0.0]), None, room_lifts=_r3_cb_lift)[3][2]
 _r3_cb_bare = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None, room_lifts=_r3_cb_lift)[3][2]
+# A lift array longer than the horizon is cut to it, as the margins are.
+_r3_cb_long = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, _r3_cb_lift, None, room_lifts=np.array([0.5, 0.5, 0.5]))[3][2]
 R.check(
     "R11-OUTSIDE-ROOMS-3B: the room lifts never exceed the margins that carry them (0.2 and 0 of a 0.5 K lift "
-    "over margins 0.2 and 0; 0 with no margins); null control, margins carrying the whole lift attribute 0.5",
+    "over margins 0.2 and 0; 0 with no margins), and a lift longer than the horizon is cut to it; null "
+    "control, margins carrying the whole lift attribute 0.5",
     np.allclose(_r3_cb_short, [0.2, 0.0]) and np.allclose(_r3_cb_bare, [0.0, 0.0])
-    and np.allclose(_r3_cb_fl[2], [0.5, 0.5]),
-    f"short={_r3_cb_short} bare={_r3_cb_bare} full={_r3_cb_fl[2]}",
+    and np.allclose(_r3_cb_long, [0.5, 0.5]) and np.allclose(_r3_cb_fl[2], [0.5, 0.5]),
+    f"short={_r3_cb_short} bare={_r3_cb_bare} long={_r3_cb_long} full={_r3_cb_fl[2]}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
