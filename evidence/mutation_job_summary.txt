@@ -1,0 +1,10 @@
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:493 CMP_BOUND*2: if not (np.isfinite(value) and value > 0 and count >= least):
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:493 GUARD_OFF: if not (np.isfinite(value) and value > 0 and count >= least):
+    ADDED UNPINNED custom_components/heatpump_optimizer/snapshots.py:229 CMP_BOUND: if bias is None or abs(bias) > BIAS_BAND_C:
+    ADDED UNPINNED custom_components/heatpump_optimizer/snapshots.py:229 GUARD_OFF: if bias is None or abs(bias) > BIAS_BAND_C:
+    ADDED UNPINNED custom_components/heatpump_optimizer/store.py:247 GUARD_OFF: if key and domain.kind in ("int", "real") and isinstance(value, str):
+    ADDED UNPINNED custom_components/heatpump_optimizer/store.py:610 BOOLOP: for k, d in _ACCURACY.items() if k.startswith("samples/#/") and isinstan
+    ADDED UNPINNED custom_components/heatpump_optimizer/store.py:696 BOOLOP: return domain is not None and in_domain(domain, value, key)
+    ADDED UNPINNED custom_components/heatpump_optimizer/store.py:696 RETURN_DEL: return domain is not None and in_domain(domain, value, key)
+    ADDED UNPINNED custom_components/heatpump_optimizer/store.py:706 RETURN_DEL: return all(_declared(d, v, k) for _p, k, d, v in stored_fields(name, pay
+MUTATION TABLE REFUSED -- 1930 unpinned site(s) against 1923 at the ratchet base 2f4e32c2a3b959142e29966e001292d42ff1affd, 10 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.

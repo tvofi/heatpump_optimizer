@@ -1,0 +1,6 @@
+
+=== features block ===
+  ok   best_restore skips a non-numeric or out-of-band stored bias instead of raising, and still restores an in-band numeric one (D1-s1-02); text that spells a number is out of its declared domain (R11-SEAM-store)
+  FAIL a snapshot whose accuracy summary carries no bias is no restore point for the service or the drift rollback, and an in-band one is, the band's edge included (D17-s3-03)  [{'empty': (True, True), 'in_band': (True, True), 'edge': (True, True), 'past': (False, False)}]
+
+1 of 2 FEATURES BLOCK FAILED

@@ -1,0 +1,9 @@
+RESULT sample_none_cost_admitted=0 unit=bool
+RESULT unit_row_kept=0/1 unit=rows
+RESULT synthetic_store_samples_unpriced=192/192 unit=samples
+RESULT synthetic_written_rows_kept=0/192 unit=rows
+RESULT synthetic_off_domain[accuracy]=192 unit=fields
+RESULT thread_factor=1.000 unit=ratio
+RESULT load1=261.44 unit=load
+RESULT swapins=1426808 unit=count
+rc=0

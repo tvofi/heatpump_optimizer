@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 390c789ef5..771851b249 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -4628,7 +4628,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if isinstance(raw_env, dict):
+             for key, entry in raw_env.items():
+                 try:
+-                    self._capacity_envelope[int(key)] = _learned_pair(entry, least=0)
++                    self._capacity_envelope[int(key)] = _learned_pair(entry)
+                 except (TypeError, ValueError, OverflowError, IndexError, KeyError):
+                     continue
+         raw_ap = stored.get("solar_aperture")
