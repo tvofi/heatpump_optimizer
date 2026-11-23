@@ -1,0 +1,12 @@
+#3866 19eafc0fb1: pump_arbiter.py:936=not-reached
+#3866 f36611dd23: pump_arbiter.py:936=not-reached
+#3838 6ef32c22f3: coordinator.py:6311=HAND-OWED  coordinator.py:11334=HAND-OWED 
+#3873 73797a573a: coordinator.py:4126=DRAWN 
+#3835 c6c11df0b8: coordinator.py:1121=DRAWN  draw_range.py:788=not-reached
+#3835 3d8679b765: coordinator.py:1121=DRAWN 
+#3845 e82a26569c: room_record.py:72=not-reached room_record.py:73=not-reached room_record.py:74=not-reached room_record.py:75=not-reached
+#3869 8ca9541390: duty_legs.py:184=not-reached duty_legs.py:146=not-reached
+#3872 d6a54399a6: fault_hold.py:115=not-reached heat_curve.py:287=not-reached fault_hold.py:150=not-reached
+#3847 46e7faa93f: prelude.py:470=DRAWN 
+#3868 273e5ece99: corpus_mirror.py:160=not-reached corpus_mirror.py:393=not-reached corpus_mirror.py:425=not-reached
+#3834 76f30b596a: selftest_scope.py:1170=not-reached orchestrator_tick.py:2092=not-reached orchestrator_tick.py:2101=not-reached selftest_absorb.py:109=not-reached selftest_absorb.py:155=not-reached selftest_absorb.py:242=not-reached

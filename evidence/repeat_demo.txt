@@ -1,0 +1,12 @@
+#3834 76f30b596a70 -> 1ab809af502c
+REPEAT-GUARD: ANSWERABLE -- the delta 76f30b596a..1ab809af50 touches tools/audit/seat/selftest_absorb.py
+rc=0
+#3834 1ab809af502c -> 6c5e3d867738
+REPEAT-GUARD: ANSWERABLE -- the delta 1ab809af50..6c5e3d8677 touches tests/closures.json, tests/debug_collect.py, tests/dst_checks.py, tests/entities.py, tests/features.py, tests/golden/card_claimed_drift.txt
+rc=0
+#3866 f36611dd2354 -> 19eafc0fb12c
+REPEAT-GUARD: ANSWERABLE -- the delta f36611dd23..19eafc0fb1 touches tests/features.py, tests/features.py
+rc=0
+#3835 c6c11df0b85b -> 3d8679b765ae
+REPEAT-GUARD: ANSWERABLE -- the delta c6c11df0b8..3d8679b765 touches tests/closures.json, tests/entities.py, tests/features.py, tests/structure.py, tests/structure_budgets.json
+rc=0
