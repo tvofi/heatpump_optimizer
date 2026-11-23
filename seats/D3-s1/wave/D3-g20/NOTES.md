@@ -1,1 +1,2 @@
 null: gate_rc=1 failed=closure.py selftest, entities.py, harness_headers.py (stripped-tree/git artefacts; the same three were red in the earlier box null at state/gates-prior/null.json). harness_headers' inline-walk FAIL line came from this box's probes/_mutant.py, fixed 22:5x UTC during gate a0722b8c (harness_headers stays red on round4/D6/claims.py).
+aa338654e7801916: KILLED by stress.py's per-call-cost timing check alone (x0.80 plain-again arm); timing-suspect, see results kill_note. From gate 7 on, probes wait until no tests/stress.py process runs.
