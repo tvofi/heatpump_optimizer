@@ -210,7 +210,6 @@ from .thermal_model import (
     dhw_start_below_c,
     dhw_step_target_c,
     start_flow_min_lift_k,
-    FLOW_MIN_LIFT_K,
     flow_setpoint_driven,
     flow_setpoint_for_level,
     modulation_floor_flow_c,
@@ -884,8 +883,8 @@ def _full_draw_c(inp: ArbiterInputs, ceiling_c: float) -> float:
     above the water, so the pump may draw its top. A return target's
     controller is assumed to run harder the further the target sits above
     the measured return, so the ceiling commands the top only while the
-    return-side inlet (:func:`_flow_inlet_c`) reads at least
-    ``thermal_model.FLOW_MIN_LIFT_K`` below it. With less headroom, or no
+    return-side inlet (:func:`_flow_inlet_c`) reads at least the floor's
+    lift (:func:`_floor_lift_k`) below it. With less headroom, or no
     such reading, no writable set-point is known to command the top, and the
     answer is one lift above the ceiling: no write reaches it, so
     ``draw_range`` folds none of those draws as ceiling evidence, as a
@@ -894,9 +893,16 @@ def _full_draw_c(inp: ArbiterInputs, ceiling_c: float) -> float:
     """
     if not _return_unit(inp.config):
         return ceiling_c
-    inlet = _flow_inlet_c(inp)
-    headroom = inlet is not None and ceiling_c - inlet >= FLOW_MIN_LIFT_K
-    return ceiling_c if headroom else ceiling_c + FLOW_MIN_LIFT_K
+    inlet, lift = _flow_inlet_c(inp), _floor_lift_k(inp)
+    headroom = inlet is not None and ceiling_c - inlet >= lift
+    return ceiling_c if headroom else ceiling_c + lift
+
+
+def _floor_lift_k(inp: ArbiterInputs) -> float:
+    """The lift the floor write takes (``thermal_model.start_flow_min_lift_k``),
+    read by the full-draw set-point too, so a floor-level write is never the
+    set-point called full draw (class P3)."""
+    return start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None))
 
 
 def _or_hold(floor_c: float | None, config: Any) -> float:
@@ -1005,7 +1011,7 @@ def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool) -> MapInputs:
     heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
     floor_c = _or_hold(modulation_floor_flow_c(
         _flow_inlet_c(inp), _gate_c(inp),
-        start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
+        _floor_lift_k(inp),
     ), inp.config)
     return MapInputs(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c, boost_c is not None)
 
