@@ -1,0 +1,60 @@
+{
+ "key": "1d455987c970dfde",
+ "site": "dhw_planner.py:790 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 790,
+ "patch": "if need > everyday: -> if need >= everyday:",
+ "function": "DhwPlanner._dhw_legionella_ceilings",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3496.5,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5787.4,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/1d455987c970dfde.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1d455987c970dfde"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_1d455987c970dfde.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_1d455987c970dfde.py",
+  "baseline_value": "moved_under_tie=0 count",
+  "mutant_value": "moved_near_tie=0 count",
+  "results": {
+   "everyday": "55.0 C",
+   "configs_tried": "30 count (cooling C/h / outdoor C / DHW run kW : ties)",
+   "tie_inputs_tried": "1414 count",
+   "tie_hits": "374 count",
+   "moved_near_tie": "0 count",
+   "moved_under_tie": "0 count",
+   "moved_random": "0 count",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.02",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "cooling 0.05/0.1/0.3/1/3 C/h x outdoor -10/0/7 C x run 2/4 kW, draw bisected to the need == 55 C crossing +-50 floats (1414 inputs, 374 ties); 60 seeded random draws and steps",
+  "reading": "374 exact ties need == everyday found over 30 in-range configurations; at every one both arms agree (min(boost_top, everyday) is the value the ceiling already holds; each m is visited once); 60 random inputs agree: equivalent",
+  "thread_factor": 1.0,
+  "load1": 3.02
+ },
+ "should_fail": "none: equivalent at the tie by construction"
+}
