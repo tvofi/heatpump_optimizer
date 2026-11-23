@@ -532,22 +532,10 @@ def step_duty(result: Any, now: datetime) -> str | None:
     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now.
 
     Each circuit's draw is read by the plan's own running rule
-    (``planned_draw_runs``), so the duty the arbiter serves is the duty the
-    plan booked. This used to take the threshold from its caller, which handed
-    it the METER's threshold -- half the pump's modulation floor -- and split
-    the two circuits on two different numbers (R9 D12-s2-01, #1644 P2): on a
-    fixed-speed pump a step the plan priced as 1.0 kW of delivered heat read as
-    no space duty at all, so the arbiter wrote the pump's hot-water mode over
-    it. A caller-supplied threshold is the shape that let them diverge, so the
-    parameter is gone rather than defaulted.
-
-    The plan's own floor travels as that rule's ``modulation_floor`` ARGUMENT
-    (D7-arch3-04). It used to travel through an attribute on the function
-    object, set here and cleared by a decorator's ``finally`` so a later
-    floorless caller did not inherit it: one module-level slot for a per-plan
-    value, read by every caller that passed none. No production reader runs off
-    the loop, so the harm was the channel and the second piece of state that
-    kept it clean, not a live race.
+    (``planned_draw_runs``), with the plan's own floor as its
+    ``modulation_floor`` argument, so the duty the arbiter serves is the duty
+    the plan booked. No caller supplies a threshold: one that did split the two
+    circuits on two numbers (R9 D12-s2-01, #1644 P2).
     """
     i = plan_step_index(result, now)
     if i is None:
@@ -688,9 +676,8 @@ def _level_kw(inp: ArbiterInputs, now: datetime, boosted: bool) -> float | None:
     mode with a ceiling to write (``boosted``, :func:`_boost_ceiling_c`), the
     band's top: a boost replaces the plan's power for the space channel with
     the maximum (``boost.overlay``), so the plan's own partial level for the
-    step is not the one served, and mapped it wrote a set-point between the
-    floor and the ceiling (tvofi, 2026-11-13: 41, then 43, during a boost;
-    R10-HOTFIX-BOOST-FLOW-CEILING). Else the plan step's.
+    step is not the one served (R10-HOTFIX-BOOST-FLOW-CEILING). Else the
+    plan step's.
     """
     if (kw := _experiment_kw(inp)) is not None:
         return kw
@@ -1784,9 +1771,8 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
     optimizer's, not the person's. The baseline captured in its place is the
     baseline row's own space target (:func:`_space_target` with no duty), the
     value the arbiter holds when the plan is not in charge, and the write is
-    sent. It used to be held until the controller read anything else, which
-    on an upgrade held every space write, a boost's included, with the pump
-    left on the optimizer's last gate (R10-HOTFIX-FLOW-SETPOINT-STUCK).
+    sent: holding it held every space write after an upgrade
+    (R10-HOTFIX-FLOW-SETPOINT-STUCK).
     """
     armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
     reading = read_setpoint(inp.hass, entity)
@@ -1945,8 +1931,7 @@ async def _lead_mode(coord: Any, on: bool) -> None:
     """On a switch-on, write the step's mode while the switch still reads off (#3420, part E).
 
     A pass writes nothing while the switch reads off (:func:`_pump_off`), so
-    the mode used to follow a switch-on by up to a tick and the pump started
-    in the last duty, to be switched while starting. Only the mode: the
+    without this the pump starts in the last duty. Only the mode: the
     set-points the pump reports while off are its own, and the pass after
     the switch-on compares and writes them as before. A failed write is
     logged by :func:`_write` and holds nothing: the switch follows at once.
@@ -1990,9 +1975,8 @@ def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
     """The ``(domain, service)`` that switches ``entity_id`` on or off (#1526).
 
     Routed by the target's own domain: Home Assistant resolves
-    ``switch.turn_on`` only against ``switch.*`` entities, so the heat-pump
-    slot's ``input_boolean`` and ``climate`` targets, which ``assign_entity``
-    accepts, were never actuated when the call was hard-coded to ``switch``.
+    ``switch.turn_on`` only against ``switch.*`` entities, and the heat-pump
+    slot also accepts ``input_boolean`` and ``climate`` targets.
     """
     return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"
 
