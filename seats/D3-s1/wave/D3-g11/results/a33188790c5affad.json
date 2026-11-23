@@ -1,0 +1,98 @@
+{
+ "key": "a33188790c5affad",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:6454 GUARD_OFF",
+ "patch": "if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator.async_run_optimization",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3306.2,
+  "load1_start": 0.86,
+  "load1_end": 1.02,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/a33188790c5affad.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a33188790c5affad",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py",
+  "rc": 0,
+  "results": [
+   "RESULT issues_left_after_recovery_3_failures_baseline=0 mutant=1  (raised 1 / 1)",
+   "RESULT null_moved=0 count  (1 failures: baseline (0, 0), mutant (0, 0))",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.02",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "0",
+  "mutant_value": "1",
+  "inputs_tried": [
+   "RESULT issues_left_after_recovery_3_failures_baseline=0 mutant=1  (raised 1 / 1)",
+   "RESULT null_moved=0 count  (1 failures: baseline (0, 0), mutant (0, 0))",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.02",
+   "RESULT swapins=0 count"
+  ]
+ },
+ "should_fail": "tests/features.py's 'three consecutive failed solves raise exactly one repair issue' (features.py ~28248) never runs a recovering solve and asserts the issue is deleted",
+ "class": "candidate",
+ "finding": {
+  "title": "No check asserts a successful solve deletes the solve_failures repair issue; removing the deletion is unseen",
+  "claim": "After 3 failed cycles and one successful cycle the baseline deletes the solve_failures repair issue (0 left); with the deletion guard forced off the persistent issue stays open after recovery (1 left).",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "metric_definition": "solve_failures repair issues left open after 3 failed cycles then one successful cycle",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_run_optimization",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py",
+   "value": "1",
+   "baseline_value": "0",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g11: Linux x86_64, nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "tolerance": "exact",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "mutant a33188790c5affad at custom_components/heatpump_optimizer/coordinator.py:6454: `if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:` -> `if False:`, applied in memory by the probe",
+   "expected_direction": "up",
+   "observed_value": "0 -> 1"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py",
+   "value": "null_moved=0 count  (1 failures: baseline (0, 0), mutant (0, 0))",
+   "note": "the probe's null arm (inputs where both arms must agree); the full-gate null is PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)"
+  },
+  "gate_null_control": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)",
+  "phenomenon_property": "a successful solve deletes the solve_failures repair issue whenever one was raised (from the issue count on)",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a33188790c5affad",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "proposed_fix_scope": "a check in the closure script named in should_fail that drives HeatPumpOptimizerCoordinator.async_run_optimization on the probe's distinguishing input and asserts the baseline value",
+  "should_have_failed": "tests/features.py's 'three consecutive failed solves raise exactly one repair issue' (features.py ~28248) never runs a recovering solve and asserts the issue is deleted"
+ }
+}
