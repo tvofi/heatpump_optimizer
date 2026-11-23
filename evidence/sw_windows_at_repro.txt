@@ -1,0 +1,4 @@
+== base
+[[(10, 11)], [(10, 11)], [(6, 7)], [(6, 7)]]
+== wt
+RAISES TypeError('_dhw_windows_at() takes 5 positional arguments but 6 were given')

@@ -1,0 +1,37 @@
+# B-WIN baseline, no edit
+# edits: []
+# cmd: ['python3', 'tools/audit/seat/features_block.py', '--prelude', 'exec(open("~/hpo-seats/r10s6/rev-3841-local/pre/win.py").read())', 'R.section("The window grammar round-trips', 'R.section("Per-weekday DHW window overrides']
+
+=== features block ===
+
+-- The window grammar round-trips: renderer out, every loader in
+  ok   the property covers the whole day-set space, not a sample
+  ok   a schedule identical on all seven days renders as the flat spec it was
+  ok   ';' and a newline separate segments for both parsers, as documented
+  ok   parse_windows accepts every string the renderer emits (762/762)
+  ok   parse_weekly_windows accepts every string the renderer emits (762/762)
+  ok   is_valid_spec accepts every string the renderer emits (762/762)
+  ok   spec_problem finds no problem in one (762/762)
+  ok   the rendered spec re-parses to the days it was rendered from (762/762)
+  ok   and rendering it again changes nothing (762/762)
+  ok   the two parsers accept exactly the same strings (2066/2066 in the corpus)
+  ok   on a single-schedule spec the every-day view IS the schedule
+  ok   a malformed spec is still refused by both parsers and the form (16/16)
+  ok   every window spec the UI text tells the user to type is accepted by the form (2/2)
+  ok   a Monday plan requires hot water in the weekday window
+  ok   a Saturday plan requires it in the weekend window instead
+  ok   the two requirement sets do not overlap at all
+  ok   the census grid holds cells where the flat every-day set and the day's windows disagree on the next window (its own precondition)
+  ok   the planner's published next window reads the day's windows, today's and the next day's, in every census cell (D17-s3-51, windows_in_force's answer)
+  ok   a flat spec solves identically regardless (deterministic)
+  ok   the shortest window the form accepts is one planning step
+  ok   a window shorter than a step binds no step start at all
+  ok   the form's verdict names the one-minute window
+  ok   a window of exactly one step is fine, and so is the default
+  ok   a wrapping window is measured through midnight
+  ok   the judgement is per segment, before normalisation can merge one away
+  ok   a weekly spec's segments are judged too, and 00:00-00:00 stays a full day
+  ok   an unreadable spec keeps its original error, and empty is no problem
+  ok   the permissive parser still loads the window the form refuses
+
+ALL 28 FEATURES BLOCK PASSED

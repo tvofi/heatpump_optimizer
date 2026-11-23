@@ -1,0 +1,3 @@
+18934:2026-11-22T21:13:04.6972932Z   FAIL a step past short holiday flags gets the ordinary DHW windows  [[(None, "TypeError('_dhw_windows_at() takes 5 positional arguments but 6 were given')"), (None, "TypeError('_dhw_windows_at() takes 5 positional arguments but 6 were given')"), (None, "TypeError('_dhw_windows_at() takes 5 positional arguments but 6 were given')"), (None, "TypeError('_dhw_windo
+20620:2026-11-22T21:13:04.7804271Z 1 of 6045 FEATURE CHECKS FAILED
+source: https://github.com/tvofi/heatpump_optimizer/actions/runs/45062271575/job/137338983550 at head b0ee904f74393f05b4a2195bdef1c305f9b1dcc5

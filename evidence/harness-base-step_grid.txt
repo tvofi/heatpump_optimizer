@@ -47,5 +47,6 @@ RESULT service_number_fields=47 fields
 RESULT seams_services=12 seams
 RESULT seams_total=40 seams
 RESULT thread_factor=1.000
-RESULT load1=1.42
+RESULT load1=36.19
 RESULT swapins=0
+rc=0

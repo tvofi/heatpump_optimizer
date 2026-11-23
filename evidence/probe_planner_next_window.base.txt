@@ -1,9 +1,0 @@
-    raise RuntimeError(
-RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
-  ok   a store loaded at a newer major version with no migration raises NotImplementedError
-  ok   a store saved at a newer major version than the code's raises UnsupportedStorageVersionError, with or without a migration
-PROBE mon 07:00 planner next_window_in_hours = 0.0
-PROBE sat 07:00 planner next_window_in_hours = 0.0
-PROBE control flat spec sat 07:00 = 0.0
-PROBE control weekly sat 05:00 (before both) = 1.0
-ImportError: cannot import name 'windows_in_force' from 'heatpump_optimizer.dhw_schedule' (/root/wt-base/custom_components/heatpump_optimizer/dhw_schedule.py)

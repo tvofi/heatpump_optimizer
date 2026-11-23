@@ -1,11 +1,12 @@
-DETAIL id all: away:3runs[away_mode,away_return,away]; dhw:2runs[dhw_cost,dhw_energy,dhw_heating_cost,dhw_heating_schedule,dhw_heavy_day_demand,dhw_mixed_water,dhw_setpoint_advisor,dhw_temperature,dhw_boost]; heat:2runs[heat_pump_optimizer,heat_pump_action]; learning:2runs[learning_finalize_debug,learning_reset_comfort_weight,learning_reset_heat_loss,learning_run_system_identification,learning_comfort_weight,learning_estimated_cop,learning_model_status,learning_observed_cop]; prediction:2runs[diagnose_last_interval,prediction_accuracy]; wood:2runs[wood_cheaper,wood_burn_advisor]
-RESULT fam_runs_excess_entity_id_sensor=0 count
+DETAIL id sensor: lifetime:3runs[cost_total_heating,space_heating_cost,space_heating_energy,total_energy]
+DETAIL id all: away:3runs[away_mode,away_return,away]; dhw:2runs[dhw_cost,dhw_energy,dhw_heating_cost,dhw_heating_schedule,dhw_heavy_day_demand,dhw_mixed_water,dhw_setpoint_advisor,dhw_temperature,dhw_boost]; heat:2runs[heat_pump_optimizer,heat_pump_action]; learning:2runs[learning_finalize_debug,learning_reset_comfort_weight,learning_reset_heat_loss,learning_run_system_identification,learning_comfort_weight,learning_estimated_cop,learning_model_status,learning_observed_cop]; lifetime:3runs[cost_total_heating,space_heating_cost,space_heating_energy,total_energy]; prediction:2runs[diagnose_last_interval,prediction_accuracy]; wood:2runs[wood_cheaper,wood_burn_advisor]
+RESULT fam_runs_excess_entity_id_sensor=2 count
 RESULT fam_runs_excess_entity_id_binary_sensor=0 count
 RESULT fam_runs_excess_entity_id_button=0 count
 RESULT fam_runs_excess_entity_id_switch=0 count
 RESULT fam_runs_excess_entity_id_climate=0 count
 RESULT fam_runs_excess_entity_id_datetime=0 count
-RESULT fam_runs_excess_entity_id_all=7 count
+RESULT fam_runs_excess_entity_id_all=9 count
 RESULT name_missing_en=0 count
 RESULT fam_runs_excess_name_en=0 count
 RESULT name_duplicate_en=0 count
@@ -30,5 +31,6 @@ RESULT enum_state_untranslated_de=0 count
 RESULT enum_state_untranslated_sv=0 count
 RESULT entities_built=82 count
 RESULT thread_factor=1.000
-RESULT load1=1.35
+RESULT load1=33.01
 RESULT swapins=0
+rc=0

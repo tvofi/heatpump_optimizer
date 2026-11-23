@@ -1,0 +1,10 @@
+# M1 sysid disabled guard off
+# edits: [('custom_components/heatpump_optimizer/button.py', 'if refused == sysid.ARM_REFUSED_DISABLED:', 'if False:')]
+# cmd: ['python3', 'tools/audit/seat/features_block.py', '--prelude', 'exec(open("~/hpo-seats/r10s6/rev-3841-local/pre/rc2.py").read())', '# D10-s1-02: a refused or failed press raises to the caller', 'async def _rc2_manual_plan']
+
+=== features block ===
+  FAIL a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)  [option off -> ('ServiceValidationError', 'system_identification_not_armed') phase 'idle'; ran just now -> ('ServiceValidationError', 'system_identification_not_armed'); option on -> (None, None) phase 'armed']
+  ok   a diagnose press whose worker is down raises the action's diagnose_interval_failed (D10-s1-02)
+  ok   a diagnose press whose diagnosis ran returns and asks for the refresh that publishes it (D10-s1-02)
+
+1 of 3 FEATURES BLOCK FAILED
