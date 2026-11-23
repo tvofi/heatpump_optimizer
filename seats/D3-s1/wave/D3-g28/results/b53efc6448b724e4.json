@@ -1,0 +1,83 @@
+{
+ "key": "b53efc6448b724e4",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:1994 CMP_BOUND",
+ "patch": "if np.isfinite(score) and score < best_score: -> if np.isfinite(score) and score <= best_score:",
+ "function": "_multi_start_minimize",
+ "cluster": "optimizer.py:_multi_start_minimize@1948-1996",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3150.9,
+  "load1_start": 0.86,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/b53efc6448b724e4.json",
+  "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b53efc6448b724e4",
+  "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+  "results": {
+   "score_tie": "1",
+   "x_baseline": "0.500000",
+   "x_mutant": "1.500000",
+   "x_max_abs_diff": "1.000000",
+   "null_tilted_x_max_abs_diff": "0.000000",
+   "golden_plan_max_abs_diff": "0 kW (winter_typical, summer_negative, flat)",
+   "thread_factor": "1.002",
+   "load1": "1.49",
+   "swapins": "0"
+  },
+  "inputs_tried": "a plateau objective (zero on [0,2]^4) with starts 0.5 and 1.5; null: the plateau tilted by 0.01*sum(x); golden winter_typical, summer_negative, flat",
+  "direction": "the tie goes to the last-scored start instead of the first (x 0.5 -> 1.5); no golden plan moves",
+  "metric": "the x the multi-start returns when two starts end at distinct points of exactly equal score (the tie the strict < keeps on the first)"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "a _multi_start_minimize case with two starts ending at distinct x of equal score, asserting the first-scored start's x ships (determinism of the shipped plan under ties)",
+  "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+ },
+ "finding": {
+  "title": "Multi-start's first-wins tie rule (optimizer.py:1994 `<`) is unpinned by the full gate",
+  "claim": "Turning `score < best_score` into `<=` in _multi_start_minimize makes an exact score tie between two distinct solved starts ship the later one (x 0.5 -> 1.5 on a plateau objective) instead of the first, and GATE_SCOPE=full GOLDEN_MODE=drift stays green; no golden plan reaches a tie.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "the x the multi-start returns when two starts end at distinct points of exactly equal score (the tie the strict < keeps on the first)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+  "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:1994 `if np.isfinite(score) and score < best_score:` -> `if np.isfinite(score) and score <= best_score:`",
+   "expected_direction": "up",
+   "observed_value": "x 0.5 -> 1.5"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+   "value": "null_tilted_x_max_abs_diff=0.000000",
+   "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ]
+ }
+}
