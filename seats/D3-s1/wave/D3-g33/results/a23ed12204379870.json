@@ -1,0 +1,82 @@
+{
+ "key": "a23ed12204379870",
+ "site": "sysid.py:1715 CMP_BOUND",
+ "patch": "if hw <= UA_ADOPTION_HALFWIDTH_BAR: -> if hw < UA_ADOPTION_HALFWIDTH_BAR:",
+ "function": "SystemIdentification._unadoptable",
+ "cluster": "sysid.py:SystemIdentification._unadoptable@1705-1715",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3600.7,
+  "load1_start": 0.92,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a23ed12204379870",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/a23ed12204379870.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py [--mutant]",
+  "metric": "refuses_tie",
+  "baseline_value": "0",
+  "mutant_value": "1",
+  "null_metric": "refuses_below",
+  "null_baseline": "0",
+  "null_mutant": "0",
+  "all_results_baseline": {
+   "refuses_tie": "0",
+   "refuses_above": "1",
+   "refuses_below": "0",
+   "refuses_real": "1",
+   "halfwidth_real_minus_bar": "[0.015294384822610571]",
+   "thread_factor": "1.000",
+   "load1": "1.14",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "refuses_tie": "1",
+   "refuses_above": "1",
+   "refuses_below": "0",
+   "refuses_real": "1",
+   "halfwidth_real_minus_bar": "[0.015294384822610571]",
+   "thread_factor": "1.000",
+   "load1": "1.14",
+   "swapins": "0"
+  },
+  "inputs_tried": "halfwidth == bar (stubbed, the tie), nextafter above/below, the real halfwidth on the dst_checks plant",
+  "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+ },
+ "reach": "a float tie of a computed halfwidth with log(1.10): the probe stubs _declared_night_halfwidth to the bar; the real one on the dst_checks plant sits 0.0153 above it",
+ "should_fail": "tests/features.py (traced, executes sysid.py:1715; tests/entities.py too): no check sets the declared night's halfwidth exactly at UA_ADOPTION_HALFWIDTH_BAR asserting _unadoptable returns None (the adoption gate's own <= at sysid.py:1263 admits the tie)",
+ "title": "No check pins _unadoptable's tie at the adoption bar (hw == UA_ADOPTION_HALFWIDTH_BAR); <= -> < is unseen",
+ "claim": "Mutant a23ed12204379870 at sysid.py:1715 CMP_BOUND (if hw <= UA_ADOPTION_HALFWIDTH_BAR: -> if hw < UA_ADOPTION_HALFWIDTH_BAR:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's refuses_tie moves 0 -> 1 while its null refuses_below stays 0 -> 0. a float tie of a computed halfwidth with log(1.10): the probe stubs _declared_night_halfwidth to the bar; the real one on the dst_checks plant sits 0.0153 above it.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification._unadoptable",
+ "metric_definition": "refuses = 1 when SystemIdentification._unadoptable returns a reason when the declared night's halfwidth equals UA_ADOPTION_HALFWIDTH_BAR exactly (log 1.10), settle interval 15 min.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py --mutant",
+ "perturbation": {
+  "change": "the one-line mutant at sysid.py:1715 (if hw <= UA_ADOPTION_HALFWIDTH_BAR: -> if hw < UA_ADOPTION_HALFWIDTH_BAR:), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a23ed12204379870",
+  "expected_direction": "up",
+  "baseline_value": "0",
+  "observed_value": "1"
+ },
+ "null_control": {
+  "probe_arm": "refuses_below: 0 -> 0 (an input where the edit cannot matter)",
+  "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+ }
+}
