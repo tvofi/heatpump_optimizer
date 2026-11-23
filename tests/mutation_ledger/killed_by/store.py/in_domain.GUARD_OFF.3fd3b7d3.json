@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:in_domain GUARD_OFF 3fd3b7d3",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    if key and domain.kind in (\"int\", \"real\") and isinstance(value, str):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=5."
+}
