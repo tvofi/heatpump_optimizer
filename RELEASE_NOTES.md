@@ -1,3 +1,35 @@
+## v10.1.3
+
+**Patch stamp: 25 merges since v10.1.2 (`git log --first-parent --merges --format=%h v10.1.2..HEAD | wc -l`): the dashboard card's hit targets, type and spacing scales, status colours, failure text and history retention are reworked; values entering the integration are tested finite and in domain, and numeric options an earlier release stored as non-numbers are repaired on the first start; one plan-step kernel and one value each for water's heat capacity, a naive timestamp's zone and a finite number; the draw map records its part A (pass record and map rows); the rest is tooling, audit records and dependency bumps.**
+
+### Action needed
+
+Nothing asks you to act: no option is added, no entity id changes and no option default changes. On the first start after the update, a numeric option an earlier release stored as a non-number is repaired in the config entry (numeric text is stored as its number, `None` is dropped, anything else is stored as its default), and the integration logs one warning naming the keys it repaired (#3734, below). Two changes you may notice without acting: a stored negative wood-lighting lead, which used to be clamped to 0, now reads as the default 60 minutes, and the flow meter's kW falls 0.04 % (#3728).
+
+### #3821 Dashboard card: hit targets, type and spacing scale, status colours, failure text, history retention (R11-SEAM-card)
+
+While the layout editor is open, each pipe has an invisible hit area at least the touch-target size wide, so a pipe is easier to select and remove; the fold header takes the touch-target height. Every font size in the card reads a `--hpo-text-*` step and every padding, margin and gap a `--hpo-space-*` step. Error, success and warning text use one colour per status role (`--hpo-crit`, `--hpo-ok`, `--hpo-warn`), and a filled error control under white text uses a new `--hpo-crit-fill` at 6.54:1. A failed service call shows the backend's translated message where Home Assistant resolves one, and otherwise the error's own text. The card's in-memory history is pruned to its window instead of growing.
+
+### #3734 Input guards (R11-SEAM-inputs-guards)
+
+Every value entering through `inputs.py` is tested finite and in domain. The boolean parser no longer reads `nan`, `inf` or `1e309` as a fault and a defrost; an Open-Meteo irradiance series keeps only samples whose span is representable, so a year-1 timestamp no longer makes every step raise; entity slots accept only text. The wood-lighting lead and the re-solve interval are parsed inside a domain (lead 0 to a day, interval above 0 up to a day; outside it reads as the default). Numeric options an earlier release stored as non-numbers, which failed setup or every cycle, are repaired at migration across 106 keys. Three further findings did not reproduce at main and get regression pins only.
+
+### #3737 Draw map, part A (R11-CARRY-DRAWMAP, part 1 of 3)
+
+The measured-COP learner records a pass record and steady-run map rows beside the running-draw window, and refuses an experiment cycle at `MeasuredCop.judge_floor`; a closed space run is committed as a map row only when its interval is neither frozen nor distorted. The store gains the map-row columns under `draw/map_rows/`, and a record without them reads empty. An experiment cycle now reads as no interval for the dither. Parts B and F follow in their own pull requests.
+
+### #3728 One plan step kernel (R11-SEAM-kernel-step)
+
+Each small rule of the shared kernel has one owner and its copies read it: the plan step covering an instant (`plan_step.covering_index`), the evidence note, water's specific heat (the flow meter's kW falls 0.04 %, to the tank model's value), a naive timestamp's zone (read as UTC; Open-Meteo's parse used the host's zone, 9 h off under a Tokyo host) and a finite number (`entity.payload_number` and `replay_doc.numeric` refuse NaN and infinity). The wood-fuel window times read a plan stamp through the same owner.
+
+### Ratchets (#3729, #3735)
+
+#3729 (R11-SEAM-ratchets) adds two structure rows (`in_function_copies`, `unloaded_package_imports`) and a barrier that refuses a logger binding or call the log-flood check does not read; the one live site it found, `sysid.py` `_finish`, now joins the once-per-event log group. #3735 (R11-SEAM-ratchet-raise) makes `const_modules_over_50` count the names a module reads and adds `module_excess_loc`.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3847 (CI cards CI-1, CI-2, CI-5 workflow part, CI-7 cap, CI-17: one run per bot-pushed head, scoped dispatches, coalesced main pushes, pins capped at 4, pip cached), #3846 (CI-4 reading, CI-5 rule text, CI-6: introduced self-test reds read by the diff's scope), #3865 (corpus mirror reads a zip member's directory-ness from its name), #3840 (one `gitRead` with a 64 MiB buffer for tree-sized git reads), #3832 (selftest closure table absorbs main's measured reads), #3839 (axis block and repeat-axis escalation), #3837 (shared-file ownership part 2: no figure block in a pull-request body, claim file after a stamp, brief line re-pin), #3850, #3843 and #3842 (root-cause records for a branch-only budget key, PR-local ratchet rows and the brief-lint buffer), #3836 (round-11 roster), #3822, #3824 and #3814 (round-11 audit finder boxes D3-u1a, D3-u1c and D3-top6), #3852, #3853 and #3851 (dependency bumps: `actions/create-github-app-token` 3.3.0 to 3.4.0, 13 test requirements, `playwright` 1.65.0 to 1.65.1), #3833 and #3844 (delivery rows, autofix).
+
 ## v10.1.2
 
 **Patch stamp: 26 merges since v10.1.1 (`git log --first-parent --merges --format=%h v10.1.1..HEAD | wc -l`): settings live in one place in each config entry (entry version 7.2); the plan's start set brackets the all-off and wood-covered optima and the risk premium stays out of published money figures; an install with a room list records a room history and reports whether each room is separable; the comment ratchet reads production modules; the rest is tooling and records.**

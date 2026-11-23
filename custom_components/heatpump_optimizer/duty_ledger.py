@@ -1,9 +1,10 @@
-"""The pump-duty step ledger: per plan step, the planned duty against what the pump did.
+"""The pump arbiter's step verdicts: what the pump did over one step, against the plan.
 
-Kept in observe and in control, from what the integration already reads --
-the measured electrical draw (running or not), the mode select (DHW only) and
-the tank temperature (a rise of :data:`TANK_RISE_C` over the step is hot
-water). Each step gets one verdict:
+``pump_arbiter`` folds each pass into the step's ledger row (:func:`observe`);
+the row is closed here. Kept in observe and in control, from what the
+integration already reads -- the measured electrical draw (running or not),
+the mode select (DHW only) and the tank temperature (a rise of
+:data:`TANK_RISE_C` over the step is hot water). Each step gets one verdict:
 
 * ``delivered``, ``space-instead``, ``dhw-instead`` or ``idle-instead``;
 * ``not-startable``: a hot-water step left idle on a tank at or above the

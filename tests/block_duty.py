@@ -20,6 +20,7 @@ sys.path.insert(0, "custom_components")
 
 from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
 from heatpump_optimizer import boost as boost_mod  # noqa: E402
+from heatpump_optimizer import duty_ledger  # noqa: E402
 from heatpump_optimizer import entity as entity_mod  # noqa: E402
 from heatpump_optimizer import pump_arbiter as arb  # noqa: E402
 from heatpump_optimizer import duty_ledger  # noqa: E402
@@ -1129,6 +1130,10 @@ def hysteresis_checks() -> None:
           lambda: verdict(planned="both") == "idle-instead")
     check("a hot water step that ran the space pump on a warm tank is space-instead",
           lambda: verdict(ran=True) == "space-instead")
+    check("with no power meter and no tank rise a planned step is unknown, a both step too",
+          lambda: verdict(measured=False) == "unknown" and verdict(measured=False, planned="both") == "unknown")
+    check("null control: with no power meter a tank rise reads as hot water delivered",
+          lambda: duty_ledger.step_verdict({**row, "measured": False}, 53.0)["verdict"] == "delivered")
 
     def unwritten(**kwargs):
         snap = _hyst_snap(4.0, **kwargs)
