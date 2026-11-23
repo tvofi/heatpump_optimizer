@@ -389,15 +389,13 @@ class Mirror:
         if limit <= 0 or reset is None:
             return
         self.gql = {"cost": cost, "remaining": remaining, "limit": limit, "reset": reset, "next": self.now() + cost * 3600 / limit}
-        seen = self.cur.setdefault("graphql_cost", {"last": 0, "max": 0})
-        seen["last"], seen["max"] = cost, max(seen["max"], cost)
+        seen = self.cur.setdefault("graphql_cost", {})
+        seen["last"], seen["max"] = cost, max(seen.get("max", cost), cost)
 
     def secondary_wait(self, out: str) -> "float | None":
         """The Retry-After (s) of a secondary-limit answer when it is at most SECONDARY_WAIT_CAP_S; else None."""
         after = gh_read.parse_included(out)[1].get("retry-after", "")
-        if gh_read.SECONDARY in out.lower() and after.isdigit() and int(after) <= SECONDARY_WAIT_CAP_S:
-            return float(after)
-        return None
+        return float(after) if gh_read.SECONDARY in out.lower() and after.isdigit() and int(after) <= SECONDARY_WAIT_CAP_S else None
 
     def get(self, path: str, etag: str = ""):
         """A conditional REST read -> (state, body, etag): fresh, unchanged, gone or error:<what>."""
@@ -1490,12 +1488,12 @@ MUTANTS = {
                        "        while failure is not None and self.secondary_wait(failure) is not None:\n            self.sleep(self.secondary_wait(failure))\n            value, failure, _, _ = gh_read.retry(attempt, lambda f: gh_read.included_wait(f, self.now), self.sleep)\n        if failure is not None:\n            if gh_read.RATE_LIMIT in failure.lower():\n                raise Paused(\"rate limit: a GraphQL",
                        "after the one retry pauses"),
     "secondary cap": ("int(after) <= SECONDARY_WAIT_CAP_S", "True", "past the cap, or a spent primary"),
-    "secondary only": ("        if gh_read.SECONDARY in out.lower() and after.isdigit()", "        if after.isdigit()", "past the cap, or a spent primary"),
+    "secondary only": ("if gh_read.SECONDARY in out.lower() and after.isdigit()", "if after.isdigit()", "past the cap, or a spent primary"),
     "query read with -i": ('        query = argv[:2] + argv[3:] if argv[2:3] == ["-i"] else argv', "        query = argv", "a query read with its headers"),
     "partition": ("            del kept[key]  #", "            pass  #", "no unit of this pass"),
     "partition files": ("                stale.unlink()  #", "                pass  #", "an item file of another GRAPHQL_BATCH is removed"),
     "formula rounds": ("    return max(1, round(requests / 100))", "    return max(1, int(requests / 100))", "rounds the hundreds"),
-    "largest cost kept": ('seen["last"], seen["max"] = cost, max(seen["max"], cost)', 'seen["last"], seen["max"] = cost, cost',
+    "largest cost kept": ('seen["last"], seen["max"] = cost, max(seen.get("max", cost), cost)', 'seen["last"], seen["max"] = cost, cost',
                           "keeps the last cost answered and the largest"),
     "2xx only": ("code == 0 and status is not None and 200 <= status < 300", "code == 0 and status is not None", "a non-2xx status is no answer"),
     "cost cap": ("GRAPHQL_BATCH = 30\n", "GRAPHQL_BATCH = 50\n", "stays under QUERY_COST_CAP"),
