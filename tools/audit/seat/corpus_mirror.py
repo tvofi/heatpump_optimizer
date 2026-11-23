@@ -390,7 +390,7 @@ class Mirror:
             return
         self.gql = {"cost": cost, "remaining": remaining, "limit": limit, "reset": reset, "next": self.now() + cost * 3600 / limit}
         seen = self.cur.setdefault("graphql_cost", {})
-        seen["last"], seen["max"] = cost, max(seen.get("max", cost), cost)
+        seen["last"], seen["max"] = cost, max(seen["max"], cost) if "max" in seen else cost
 
     def secondary_wait(self, out: str) -> "float | None":
         """The Retry-After (s) of a secondary-limit answer when it is at most SECONDARY_WAIT_CAP_S; else None."""
@@ -1338,12 +1338,18 @@ def cases(m) -> dict[str, bool]:
         ph.gql_cost, ph.gql_remaining, ph.gql_reset = 92, 3300, int(ph.clock) + 4000
         mph, rc = mirror(Path(td) / "ghour", ph, said=said)
         state1, done1 = mph.cur["state"], dict(mph.cur["items"].get("item batches", {}))
+        items_dir = Path(td) / "ghour" / "corpus" / "graphql" / "items"
+        held1 = {f_.stem: f_.read_text() for f_ in items_dir.glob("*.json")}
         ph.clock = float(ph.gql_reset)  # the reset has come: the next run finds the bucket refilled
         mph2, rc2 = mirror(Path(td) / "ghour", ph)
         r["graphql floor: a reset an hour or more away pauses at the cursor instead of sleeping, and the run after it completes"] = \
             rc == 0 and state1 == "paused" and any("paused" in x for x in said) and max(ph.sleeps) < 3600 \
             and len(done1) == 3 and ph.gql_min >= 0.6 * 5000 - 92 \
             and rc2 == 0 and mph2.cur["state"] == "complete" and set(mph2.cur["items"]["item batches"].values()) == {"ok"}
+        held2 = {f_.stem: f_.read_text() for f_ in items_dir.glob("*.json")}
+        r["partition keep: a pass resumed under the same partition keeps the file of every batch answered before the pause, so each batch holds its file"] = \
+            len(held1) == len(done1) == 3 and set(held1) == set(done1) and all(held2.get(k_) == v_ for k_, v_ in held1.items()) \
+            and sorted(held2) == sorted(mph2.cur["items"]["item batches"])
         sec60 = Stub.inc(403, [("Retry-After", "60")], '{"message": "You have exceeded a secondary rate limit."}',
                          "gh: You have exceeded a secondary rate limit. (HTTP 403)\n")
         sec600 = sec60.replace("Retry-After: 60", "Retry-After: 600")
@@ -1413,6 +1419,10 @@ def cases(m) -> dict[str, bool]:
             and observed(good) == {"cost": 92, "remaining": 5000, "limit": 5000, "reset": 3600.0, "next": 1000.0 + 92 * 3600 / 5000} \
             and observed({**good, "limit": 1})["limit"] == 1
         mw_.cur.pop("graphql_cost", None)
+        for c_ in (92, 30):
+            mw_.observe({**good, "cost": c_})
+        first_max = dict(mw_.cur["graphql_cost"])
+        mw_.cur.pop("graphql_cost", None)
         for c_ in (46, 92, 30):
             mw_.observe({**good, "cost": c_})
         mw_.save()
@@ -1421,7 +1431,7 @@ def cases(m) -> dict[str, bool]:
         with contextlib.redirect_stdout(printed):
             cost_rc = m.main(["cost", "--private-root", str(Path(td) / "unit")])
         r["graphql cost: the cursor keeps the last cost answered and the largest, and 'cost' prints both"] = \
-            mw_.cur["graphql_cost"] == {"last": 30, "max": 92} and cost_rc == 0 \
+            mw_.cur["graphql_cost"] == {"last": 30, "max": 92} == first_max and cost_rc == 0 \
             and 'GraphQL cost per query as answered {"last": 30, "max": 92}' in printed.getvalue()
 
         def waited(remaining, reset, nxt):
@@ -1492,8 +1502,10 @@ MUTANTS = {
     "query read with -i": ('        query = argv[:2] + argv[3:] if argv[2:3] == ["-i"] else argv', "        query = argv", "a query read with its headers"),
     "partition": ("            del kept[key]  #", "            pass  #", "no unit of this pass"),
     "partition files": ("                stale.unlink()  #", "                pass  #", "an item file of another GRAPHQL_BATCH is removed"),
+    "partition keeps current": ("            if stale.stem not in batches:\n", "            if True:\n", "keeps the file of every batch answered before the pause"),
+    "first cost is a max": ('max(seen["max"], cost) if "max" in seen else cost', 'max(seen["max"], cost) if "max" in seen else 0', "keeps the last cost answered and the largest"),
     "formula rounds": ("    return max(1, round(requests / 100))", "    return max(1, int(requests / 100))", "rounds the hundreds"),
-    "largest cost kept": ('seen["last"], seen["max"] = cost, max(seen.get("max", cost), cost)', 'seen["last"], seen["max"] = cost, cost',
+    "largest cost kept": ('seen["last"], seen["max"] = cost, max(seen["max"], cost) if "max" in seen else cost', 'seen["last"], seen["max"] = cost, cost',
                           "keeps the last cost answered and the largest"),
     "2xx only": ("code == 0 and status is not None and 200 <= status < 300", "code == 0 and status is not None", "a non-2xx status is no answer"),
     "cost cap": ("GRAPHQL_BATCH = 30\n", "GRAPHQL_BATCH = 50\n", "stays under QUERY_COST_CAP"),
