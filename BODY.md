@@ -55,29 +55,25 @@ dS +0.0000 NULL; no gate rise.
 
 ## Unpinned sites
 
-- custom_components/heatpump_optimizer/flow_anchor.py:66 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:68 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:97 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:99 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:104 BOOLOP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:104 CMP_BOUND*2 -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:104 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:126 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:129 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:135 BOOLOP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/flow_anchor.py:135 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/pump_arbiter.py:636 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/pump_arbiter.py:959 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/pump_arbiter.py:974 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/pump_arbiter.py:977 CLAMP_DROP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/pump_arbiter.py:1309 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/pump_arbiter.py:1955 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/pump_arbiter.py:1962 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/pump_arbiter.py:1964 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:79 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:82 CMP_BOUND*2 -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:82 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:110 BOOLOP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:111 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:125 BOOLOP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:125 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:127 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:130 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:132 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:149 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/flow_anchor.py:151 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/pump_arbiter.py:637 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/pump_arbiter.py:1280 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 
 ## Forward-carry
 
 - Leg R (replay on a bundle's own swap passes) needs a per-pass series of inlet rungs, levels and first writes that a diagnostics download does not carry (`pump_arbiter.diagnostics_view` holds the step ledger only); Leg S is the owner's post-merge soak. The orchestrator ruled (2026-11-23, mandate 6893738184) that this stays a carry on R11-OWNER-STEP-KICK, built in that group's follow-up part. Carry 0 of this dispatch. Carry: R11-OWNER-STEP-KICK
+- T11 pin owed by R11-OWNER-FROST-HOLD's carry (roster item c22c0c0e): whether a frost-hold entry after hot water sets `swap_at`, and whether the held row bypasses `_map_inputs`, is not built here, because `frost_holding` is not on `origin/main` (`git grep -c frost_holding origin/main -- custom_components` prints nothing), so there is no frost entry to pin against; this PR builds `swap_at` and the settle, and the pin is owed in this group's follow-up part once FROST-HOLD merges. Carry 1 of this dispatch. Carry: R11-OWNER-STEP-KICK
 - T11, frost-hold entry after hot water (design carry frost-entry): FROST-HOLD is not on main; its entry serves `space` and so sets `swap_at`, with its row bypassing `_map_inputs`. Destination: `dev/programme/rosters/wave-r11-groups.json`, that group's `brief`, on `handoff/audit-r11-roster`; the write is the orchestrator's, as this seat pushes only its handoff refs. Carry: R11-OWNER-FROST-HOLD
 - learner-latch, measured through the arbiter: a hot-water to heating switch on a flow set-point with the return 1.9 K over the ceiling now opens and books a stop episode (stopped 1), where main refused it under `HEATED_MARGIN_K` (0): the settled write is lower, so the heated gate opens. The existing margin cells now seed a remembered space inlet as hot as the return, which keeps today's write, and the new check pins both. On the reporting install this adds `dhw_space` episodes and can latch the direction, which reorders `both_step_duty`'s split and moves `planner_fields`' pricing; the latch state itself needs that install's store. Carry: dismissed: the effect is pinned here; the soak's bundle reads the latch.
 - The `other` class is counted, not fixed. Carry: dismissed: the orchestrator routes it to D16 (`_level_kw`/`_band_kw`), as the design states.
