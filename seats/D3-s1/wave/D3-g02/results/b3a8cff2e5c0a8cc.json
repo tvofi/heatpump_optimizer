@@ -1,0 +1,100 @@
+{
+ "key": "b3a8cff2e5c0a8cc",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5654 CMP_BOUND",
+ "patch": "if dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS: -> if dt_h <= BUFFER_COOLING_MIN_SAMPLE_HOURS:",
+ "function": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling@5654-5679",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3538.3,
+  "load1_start": 0.89,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/b3a8cff2e5c0a8cc.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b3a8cff2e5c0a8cc",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_b3a8cff2e5c0a8cc.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_b3a8cff2e5c0a8cc.py",
+  "baseline_value": "samples=1 rate=0.4327056338738068 saves=1",
+  "mutant_value": "samples=0 rate=0.39587982935374616 saves=0",
+  "inputs_tried": [
+   "dt_exact_0p15h",
+   "dt_0p14h_null",
+   "dt_0p16h_null",
+   "dt_1h_null"
+  ],
+  "result_lines": [
+   "RESULT bounds_low=0.07917596587074922 C/h high=3.167038634829969 C/h prior=0.39587982935374616 C/h (35 L default tank)",
+   "RESULT dt_exact_0p15h_baseline_samples=1 count rate=0.4327056338738068 saves=1",
+   "RESULT dt_exact_0p15h_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT dt_exact_0p15h_moved=1 count",
+   "RESULT dt_0p14h_null_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT dt_0p14h_null_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT dt_0p14h_null_moved=0 count",
+   "RESULT dt_0p16h_null_baseline_samples=1 count rate=0.4299091713046108 saves=1",
+   "RESULT dt_0p16h_null_mutant_samples=1 count rate=0.4299091713046108 saves=1",
+   "RESULT dt_0p16h_null_moved=0 count",
+   "RESULT dt_1h_null_baseline_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT dt_1h_null_mutant_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT dt_1h_null_moved=0 count",
+   "RESULT inputs_moved=1 count of 4",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.06",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "check_area": "tests/features.py W5-G7 t2 buffer-cooling block (_t2_buffer, features.py:51197-51450)",
+  "executes_line": true,
+  "assertion_it_lacks": "an interval of exactly 0.15 h asserting the sample is accepted",
+  "why_it_passes": "its length checks use 0.14 h and 3.5 h, on which both arms agree"
+ },
+ "m4_carried": null,
+ "finding": {
+  "title": "No check pins the 0.15 h minimum buffer-cooling interval at its bound (coordinator.py:5654)",
+  "claim": "With `dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS` -> `<=`, an interval of exactly 0.15 h (540 s, 50.0 -> 49.6 C) is rejected (samples 1 -> 0, rate 0.4327 -> 0.3959 C/h unchanged) and the full gate stays green beyond its null.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "metric_definition": "the coordinator's _buffer_cooling_samples (and _buffer_cooling_rate) after one real _async_learn_buffer_cooling call on a quiet interval, interval exactly 0.15 h",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+  "perturbation": {
+   "change": "coordinator.py:5654 `<` -> `<=`",
+   "expected_direction": "samples 1 -> 0 at dt_h == 0.15"
+  },
+  "mechanism": "boundary of a threshold; features.py pins 0.14 h (rejected) and 1 h (accepted), never 0.15 h",
+  "stop_rule_class": "hygiene",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "phenomenon_property": "every guard/branch of this function changes an observable output on some reachable input, and the suite asserts that output on that input",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list) restricted to the function's cluster; each SURVIVED key is a seam",
+  "proposed_fix_scope": "tests only: add the missing assertion to the named closure script; no production change",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_b3a8cff2e5c0a8cc.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_b3a8cff2e5c0a8cc.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b3a8cff2e5c0a8cc",
+  "null_control": "Probe nulls 0.14 h, 0.16 h, 1 h: moved=0. Gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/null.json (gate_rc 1 on artefact checks only: closure.py selftest, entities.py, harness_headers.py; the mutant gate is red on no script beyond them)."
+ }
+}
