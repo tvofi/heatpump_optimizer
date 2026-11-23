@@ -1,0 +1,73 @@
+{
+ "key": "8ac9888c3d5fed52",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5059 GUARD_OFF",
+ "patch": "if not bool(expensive.any()) or not bool(charging.any()): -> if False:",
+ "function": "HeatPumpOptimizer._derive_hold_schedule",
+ "cluster": "optimizer.py:HeatPumpOptimizer._derive_hold_schedule@5044-5074",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3340.2,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/8ac9888c3d5fed52.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/8ac9888c3d5fed52.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.10GHz; the judge re-takes them)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_8ac9888c3d5fed52.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_8ac9888c3d5fed52.py",
+  "metric": "count of inputs whose _derive_hold_schedule outcome differs between arms",
+  "baseline_value": "0 count",
+  "mutant_value": "0 count",
+  "baseline_name": "edge_differ",
+  "mutant_name": "fuzz_differ",
+  "inputs_tried": [
+   "no charging step",
+   "NaN price (no expensive step)",
+   "all-NaN prices",
+   "all-zero power",
+   "maximum power with cheap steps only after the peak",
+   "length 1",
+   "3000 seeded random (power, prices) pairs, 1113 of them with the removed guard firing",
+   "optimize() smart-write store reach"
+  ],
+  "results": {
+   "edge_differ": "0 count",
+   "edge_no_charging": "None|None",
+   "edge_nan_prices_no_expensive": "None|None",
+   "edge_all_nan_prices": "None|None",
+   "edge_zero_power": "None|None",
+   "edge_max_power_cheap_only_after_peak": "None|None",
+   "edge_length_one": "None|None",
+   "fuzz_differ": "0 count",
+   "fuzz_guard_true": "1113 count",
+   "reach_plan_maxabs_diff_kw": "0.0000 kW",
+   "thread_factor": "1.000",
+   "load1": "1.55",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_8ac9888c3d5fed52.txt"
+ },
+ "should_fail": "none: the guard is redundant with line 5074's",
+ "note": "Equivalent: with no charging step after_charge is all False, with no expensive step before_peak is all False, so hold is empty and line 5074 returns the same None. 0 differing outcomes of 6 edge + 3000 fuzz inputs."
+}
