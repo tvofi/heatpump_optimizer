@@ -1,0 +1,60 @@
+{
+ "key": "77d5e6c8ea98273a",
+ "site": "dhw_planner.py:783 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 783,
+ "patch": "need = (need + drawn - gain - rise) / max(decay, 1e-6) -> need = (need + drawn - gain - rise) / (decay)",
+ "function": "DhwPlanner._dhw_legionella_ceilings",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3423.4,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5727.9,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/77d5e6c8ea98273a.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 77d5e6c8ea98273a"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_77d5e6c8ea98273a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_77d5e6c8ea98273a.py",
+  "baseline_value": "decay0_baseline=returned, run-up min -2.44e+08",
+  "mutant_value": "decay0_mutant=raises ZeroDivisionError",
+  "results": {
+   "inputs_tried": "24 count",
+   "moved_in_range": "0 count",
+   "decay_at_dt9h_rate3": "0.0",
+   "decay0_baseline": "returned, run-up min -2.44e+08",
+   "decay0_mutant": "raises ZeroDivisionError",
+   "reach_min_decay_tank_dt1h": "0.8800",
+   "reach_min_decay_combi_dt1h": "0.8077",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.33",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "cooling rate 0.05/0.3/3.0 C/h x dt 0.25/1.0 h x draws 0/3 kW x cycle step middle/last; dt 9 h at 3 C/h",
+  "reading": "identical for every in-range decay (24 inputs: cooling 0.05/0.3/3.0 C/h, dt 0.25/1 h, draws 0 and 3 kW); separates only at decay 0 (UA*dt/C >= 1: dt 9 h at the 3 C/h cap; baseline returns, mutant ZeroDivisionError), while production's smallest decay at a 1 h step is 0.88 (separate tank) and 0.81 (combi store) and the step is 15 min: unreachable through production",
+  "thread_factor": 1.0,
+  "load1": 3.33
+ },
+ "should_fail": "none through production; only a direct call at a step of >= 8.3 h separates"
+}
