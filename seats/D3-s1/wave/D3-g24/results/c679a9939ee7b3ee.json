@@ -1,0 +1,69 @@
+{
+ "key": "c679a9939ee7b3ee",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP",
+ "patch": "guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = (np.clip(guess, 0.0, p_max))",
+ "function": "HeatPumpOptimizer._solve_space",
+ "cluster": "optimizer.py:HeatPumpOptimizer._solve_space@4943-4943",
+ "slice": "u1d",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3242.9,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5384.4,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/c679a9939ee7b3ee.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c679a9939ee7b3ee",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/c679a9939ee7b3ee.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py",
+  "metric": "mutant_replay_moved",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "extra": {
+   "mutant_guess_outside_bounds_mutant": "15",
+   "mutant_whole_moved": "0"
+  },
+  "moving_cases": [],
+  "inputs_tried": "as 1dcb273b03f63a4e (18 replays incl. warm starts above the cap-limited headroom, 3 whole solves)",
+  "thread_factor": "1.002",
+  "load1": "1.08"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/block_duty.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/validate.py"
+  ],
+  "assertion_lacking": "a warm start above the power_caps_extra headroom asserting the solve's result (would not fail: equivalent)"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "the guess exceeds the headroom bound on 15 replays yet the returned plan, status and score never move",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = (np.clip(guess, 0.0, p_max)) survives the full gate but is equivalent on every input tried: the guess exceeds the headroom bound on 15 replays yet the returned plan, status and score never move",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py",
+  "value": "mutant_replay_moved=0 (null 0); mutant_guess_outside_bounds_mutant=15, mutant_whole_moved=0"
+ }
+}
