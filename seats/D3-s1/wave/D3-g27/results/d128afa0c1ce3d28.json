@@ -1,0 +1,103 @@
+{
+ "key": "d128afa0c1ce3d28",
+ "site": "optimizer.py:2418 CLAMP_DROP",
+ "patch": "out[i] = (min(min_on_power, high), high) -> out[i] = ((min_on_power), high)",
+ "function": "_apply_pins_to_bounds",
+ "cluster": "optimizer.py:_apply_pins_to_bounds@2412-2418",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3185.9,
+  "load1_start": 0.5,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/d128afa0c1ce3d28.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d128afa0c1ce3d28",
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py",
+  "baseline_value": "(0.0,0.0)",
+  "mutant_value": "(0.8,0.0)",
+  "example_input": "pin=1.0,bounds=(0.0,0.0),min_on_power=0.8",
+  "results": [
+   "example_input=pin=1.0,bounds=(0.0,0.0),min_on_power=0.8",
+   "bounds_baseline=(0.0,0.0)",
+   "bounds_mutant=(0.8,0.0)",
+   "grid_inputs_tried=180 count",
+   "grid_inputs_moved=50 count",
+   "domain_inputs_tried=60 count",
+   "domain_inputs_moved=10 count",
+   "inverted_boxes_on_pins_baseline=0 count",
+   "inverted_boxes_on_pins_mutant=10 count",
+   "production_calls=4 count",
+   "production_calls_moved=1 count",
+   "production_calls_inverted_under_mutant=1 count",
+   "production_pins_not_0_1_nan=0 count",
+   "production_low_headroom_dhw_steps_pinned_on=0 count",
+   "production_mutant_solve_error=none",
+   "production_plan_max_abs_delta_kw=3.05687 kW",
+   "production_objective_max_abs_delta=18.0096",
+   "capped_step36_total_kw_baseline=0.1 kW",
+   "capped_step36_total_kw_mutant=0.1 kW",
+   "capped_step36_cap_kw=0.05 kW",
+   "null_inputs_moved=0 count",
+   "null_plan_max_abs_delta_kw=0 kW"
+  ],
+  "inputs_tried": "production domain: on-pins (1.0) over upper bounds 0.0..3.0 and on-powers 0..5 kW, the headroom _space_scope (optimizer.py:596) builds beside a DHW block or under power_caps_extra; grid_inputs_tried=180 count; domain_inputs_tried=60 count",
+  "null": [
+   "null_inputs_moved=0 count",
+   "null_plan_max_abs_delta_kw=0 kW"
+  ]
+ },
+ "step4": "moves on production inputs: 10 of 60 production-domain grid inputs give an inverted box, and the capped pinned production solve's objective moves by 18.0096 (plan max delta 3.05687 kW)",
+ "should_fail": "tests/manual_plan.py (executes optimizer.py:2418 on the traced baseline; also tests/features.py, tests/env_drift.py): no check pins a space step forced on where the step's upper bound (headroom under power_caps_extra or beside a DHW block) is below the pin's on-power, asserting lower <= upper or the plan's objective",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "finding": {
+  "title": "No check forces a step on whose headroom is below the pin's on-power; dropping the min() clamp in _apply_pins_to_bounds is unseen",
+  "claim": "Mutant d128afa0c1ce3d28 at optimizer.py:2418 (`min(min_on_power, high)` -> `min_on_power`) survives the full gate, yet an optimize() of tests/manual_plan.py's winter house with space pinned on at step 36 under a 0.05 kW total cap (power_caps_extra) builds an inverted box (0.1, 0.05) and moves the plan: objective 63.56 -> 81.57 (+18.01), 95 steps changed, largest step delta 3.06 kW; the docstring's own warning (a lower bound above the upper makes the solve diverge). Full gate: RED-AS-NULL, gate_rc=1.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "metric_definition": "the optimize() objective of the capped pinned solve and the count of inverted boxes (lower > upper) _apply_pins_to_bounds returns for on-pins",
+  "phenomenon_property": "A forced-on step's lower bound never exceeds its upper bound: _apply_pins_to_bounds clamps the on-power to the step's headroom",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this key's row) with the full gate's verdict in gates/<key>.json",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:_apply_pins_to_bounds",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py",
+   "value": 18.0096,
+   "unit": "objective delta of the capped pinned solve (63.56 baseline)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+   "tolerance": "exact (counts); solver floats to 1e-3 relative",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "the one-line mutant `out[i] = (min(min_on_power, high), high)` -> `out[i] = ((min_on_power), high)` at custom_components/heatpump_optimizer/optimizer.py:2418, in memory by the probe; on disk by fullgate.py run --key d128afa0c1ce3d28",
+   "expected_direction": "up",
+   "observed_value": 18.0096
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py",
+   "value": "null_inputs_moved=0 count; null_plan_max_abs_delta_kw=0 kW",
+   "note": "the function re-compiled with the line unchanged: no grid input, production call or plan moves; the box's full-gate null is gates/null.json"
+  },
+  "should_fail": "tests/manual_plan.py (executes optimizer.py:2418 on the traced baseline; also tests/features.py, tests/env_drift.py): no check pins a space step forced on where the step's upper bound (headroom under power_caps_extra or beside a DHW block) is below the pin's on-power, asserting lower <= upper or the plan's objective",
+  "proposed_fix_scope": "tests only: the check named in should_fail, at the input the probe's example_input names"
+ }
+}
