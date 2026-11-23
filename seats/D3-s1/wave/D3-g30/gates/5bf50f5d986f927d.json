@@ -1,0 +1,8 @@
+{
+ "key": "5bf50f5d986f927d",
+ "src": "complete",
+ "verdict": "TIMEOUT",
+ "cap_s": 14400,
+ "provisional": true,
+ "note": "gate exceeded the box cap or ended without a record; never read as KILLED"
+}
