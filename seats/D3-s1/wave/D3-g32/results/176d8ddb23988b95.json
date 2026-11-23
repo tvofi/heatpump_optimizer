@@ -1,0 +1,35 @@
+{
+ "key": "176d8ddb23988b95",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1853 GUARD_OFF",
+ "patch": "if self.result.completed: -> if False:",
+ "function": "SystemIdentification._finish",
+ "cluster": "sysid.py:SystemIdentification._finish@1853-1853",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3178.6,
+  "load1_start": 0.78,
+  "load1_end": 0.85,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/176d8ddb23988b95.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 176d8ddb23988b95",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_176d8ddb23988b95.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_176d8ddb23988b95.py",
+  "baseline_value": "state (phase, last_run, result, routing flag) after _finish; 1 INFO record",
+  "mutant_value": "the same state; 0 INFO records",
+  "inputs_tried": "identify_slab stubbed to a completed result and to a refusal ('fit failed'); state moved 0 in both; only the INFO 'System identification complete' record differs",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_176d8ddb23988b95.out"
+ },
+ "should_fail": "none behavioural: the branch only logs at INFO; a log-content check would be the only detector, and no seat has named that log line as behaviour"
+}
