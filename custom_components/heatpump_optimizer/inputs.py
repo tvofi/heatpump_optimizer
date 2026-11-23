@@ -609,6 +609,37 @@ def _on_step(value: float, step: float, rounding: str) -> float:
     return round(turns * step, 6)
 
 
+def delivers_to(state: Any) -> bool:
+    """Whether Home Assistant delivers a service call to the entity: it has a
+    state and that state is not ``unavailable``.
+
+    Home Assistant's entity services skip an entity that is not available, so
+    a write sent there changes nothing and is never recorded as made. An
+    ``unknown`` entity is still available and takes the call (D16-s1-05).
+    """
+    return state is not None and str(getattr(state, "state", "")) != "unavailable"
+
+
+def on_entity_grid(hass: Any, entity_id: str, value: float) -> float:
+    """``value``, in the entity's own unit, on its step inside its own range.
+
+    The nearest multiple of the entity's step (``setpoint_step``), its stated
+    minimum rounded up onto the step and its maximum down, so the result is
+    a value the entity accepts. No unit conversion: the caller's value and
+    the entity's attributes are both in the entity's own unit.
+    """
+    step = setpoint_step(hass, entity_id)
+    out = _on_step(float(value), step, "nearest")
+    state = hass.states.get(entity_id)
+    attrs = getattr(state, "attributes", None) or {}
+    low_key, high_key = _RANGE_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_RANGE_KEYS)
+    if (low := finite_float(attrs.get(low_key))) is not None:
+        out = max(out, _on_step(low, step, "up"))
+    if (high := finite_float(attrs.get(high_key))) is not None:
+        out = min(out, _on_step(high, step, "down"))
+    return out
+
+
 def _setpoint_unit_of(hass: Any, entity_id: str) -> Any:
     reading = setpoint_and_unit(hass, entity_id)
     return (
@@ -716,8 +747,8 @@ async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     """Write ``value``, already in the entity's own unit, to a set-point entity.
 
     The one service call every set-point write goes through, so the value
-    sent is on the entity's step (``setpoint_step``, whole degrees where it
-    states none) -- a whole one as an integer, which a pump that takes no
+    sent is on the entity's step inside its range (:func:`on_entity_grid`,
+    whole degrees where it states no step) -- a whole one as an integer, which a pump that takes no
     decimals accepts. ``False``, and nothing called, for a domain with no
     set-point service.
     """
@@ -725,7 +756,7 @@ async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     service = SETPOINT_SERVICES.get(domain)
     if service is None:
         return False
-    sent = _on_step(float(value), setpoint_step(hass, entity_id), "nearest")
+    sent = on_entity_grid(hass, entity_id, value)
     await hass.services.async_call(
         domain, service[0],
         {"entity_id": entity_id, service[1]: int(sent) if sent.is_integer() else sent},

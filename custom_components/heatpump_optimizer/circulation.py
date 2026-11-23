@@ -22,6 +22,7 @@ from homeassistant.core import HomeAssistant
 
 from . import off_restore
 from .entry_config import EntryConfig
+from .inputs import delivers_to
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ async def command(hass: HomeAssistant, entry: Any, config: Any, pump: str, on: b
     """
     entity_id = _ENTITY_OF[pump](EntryConfig.from_mapping(config))
     record = commanded(entry)
-    if not entity_id or record.get(entity_id) == on:
+    if not entity_id or record.get(entity_id) == on or not delivers_to(hass.states.get(entity_id)):
         return
     try:
         if not on and not await off_restore.async_arm(hass, entry, config, pump):

@@ -195,7 +195,7 @@ from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c,
+    InputReader, SetpointGrid, delivers_to, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c,
     write_setpoint_c,
 )
 from .log_latch import log_held
@@ -356,6 +356,9 @@ class FeedbackRun:
     #: Where the controller cut a loop write: the target never passes it.
     cut_lo_c: float | None = None
     cut_hi_c: float | None = None
+    #: When the compressor stopped under this run; a qualifying pass keeps
+    #: the run for one :data:`FEEDBACK_WINDOW` after it (:func:`_kept`).
+    stopped: datetime | None = None
 
 
 @dataclass
@@ -631,7 +634,9 @@ def _space_target(
 ) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`.
 
-    ``boosted``: a space boost or the global boost mode is live (:func:`_level_kw`).
+    ``boosted``: a space boost or the global boost mode is live
+    (:func:`_boost_live`); a water set-point maps it to a level
+    (:func:`_level_kw`), an indoor one writes the action's set-point.
     """
     entity = _entities(inp.config)["space_setpoint"]
     if _flow_unit(inp.config):
@@ -654,7 +659,11 @@ def _space_target(
         entity, low,
     ):
         return None
-    return _bounded(inp, "space_setpoint", room)
+    # Under a boost the action's own set-point, which the overlay and the
+    # Boost row raise to the band's top, outranks the plan's room value,
+    # which the boost replaced (D16-s1-03).
+    lifted = finite_float((inp.action or {}).get("setpoint")) if boosted else None
+    return _bounded(inp, "space_setpoint", room if lifted is None else lifted)
 
 
 def _step_kw(result: Any, now: datetime) -> float | None:
@@ -1033,8 +1042,9 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
     the deadband instead of re-anchored to the rising inlet, and stays
     within :func:`_feedback_bounds`. A run's first
     :data:`FEEDBACK_START_HOLD` writes ``base``, so its first write is
-    today's. Any other pass, a stopped compressor or a missing inlet resets
-    the run.
+    today's. A compressor that stops on a qualifying pass keeps the run and
+    its target for one window, its passes read as zero draw (:func:`_kept`);
+    any other pass, a stop past that window or a missing inlet resets the run.
     """
     inlet = _flow_inlet_c(inp) if on else None
     if base is None or inlet is None:
@@ -1044,18 +1054,24 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
     rec = held.feedback
     if rec is not None and utc_elapsed_seconds(now, rec.seen) > FEEDBACK_WINDOW.total_seconds():
         rec = None  # passes that skipped the loop: a cooling or switched-off pump
-    if power is None or power < _ran_kw(inp):
+    stopped = power is not None and power < _ran_kw(inp)
+    if power is None or (stopped and not _kept(rec, now)):
         if rec is not None and rec.running:
             _note_stop(held, rec, inlet, base)
         held.feedback = FeedbackRun(now, base, now)
         return base
     if rec is None:
         rec = held.feedback = FeedbackRun(now, base, now)
-    rec.samples.append((now, power))
+    if stopped and rec.running:
+        _note_stop(held, rec, inlet, base)
+        rec.stopped = now
+    elif not stopped:
+        rec.stopped = None
+    rec.samples.append((now, 0.0 if stopped else power))
     while utc_elapsed_seconds(now, rec.samples[0][0]) > FEEDBACK_WINDOW.total_seconds():
         rec.samples.popleft()
     minutes = max(0.0, utc_elapsed_seconds(now, rec.seen)) / 60.0
-    rec.running, rec.seen = True, now
+    rec.running, rec.seen = not stopped, now
     if utc_elapsed_seconds(now, rec.start) < FEEDBACK_START_HOLD.total_seconds():
         rec.w_c, rec.sent_c = base, None
         return base
@@ -1064,6 +1080,17 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
     out = _bounded(inp, "space_setpoint", rec.w_c, _gate_floor_c(inp.config), lo=lo, hi=hi)
     _note_sent(held, rec, out, base)
     return out
+
+
+def _kept(rec: FeedbackRun | None, now: datetime) -> bool:
+    """Whether a stop on a qualifying pass keeps ``rec`` and its target: a
+    running run, or one stopped at most :data:`FEEDBACK_WINDOW` ago, whose
+    stopped passes are zero samples (D16-s2-04)."""
+    if rec is None:
+        return False
+    if rec.running:
+        return True
+    return rec.stopped is not None and utc_elapsed_seconds(now, rec.stopped) <= FEEDBACK_WINDOW.total_seconds()
 
 
 def _nudged(rec: FeedbackRun, inp: ArbiterInputs, now: datetime, minutes: float) -> float:
@@ -1296,24 +1323,28 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
+    space = _space_target(inp, result, now, duty, boosted=_boost_live(coord, inp, now))
     if _flow_unit(inp.config):
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
-        return PumpCommand(mode, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
+        return PumpCommand(mode, _bounded(inp, "dhw_setpoint", _dhw_gate_c(inp), rounding="down"), space, silent)
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
         return PumpCommand(mode, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
     return PumpCommand(mode, dhw, space, silent)
 
 
-def _boosted(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
-    """A space boost or the global boost mode is live on a water set-point.
+def _boost_live(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
+    """A space boost or the global boost mode is live, on either unit.
 
-    Read for a water set-point only: an indoor one maps no level, and a
-    caller may hand no coordinator for it.
+    A caller may hand no coordinator: then only the global mode counts.
     """
-    return _flow_unit(inp.config) and (
-        inp.mode == MODE_BOOST or boost.held_for(coord).active(boost.CHANNEL_SPACE, now))
+    return inp.mode == MODE_BOOST or (
+        coord is not None and boost.held_for(coord).active(boost.CHANNEL_SPACE, now))
+
+
+def _boosted(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
+    """:func:`_boost_live` on a water set-point, the one a boost maps a level for."""
+    return _flow_unit(inp.config) and _boost_live(coord, inp, now)
 
 
 def pass_origin(inp: ArbiterInputs, duty: str | None, boost_on: bool, run: FeedbackRun | None, now: datetime) -> str:
@@ -1646,7 +1677,7 @@ async def _write(
     entity = _slot_entity(inp.config, slot)
     state = inp.hass.states.get(entity) if entity else None
     recorded = held.written.get(slot)
-    if value is None or entity is None or state is None or (
+    if value is None or entity is None or not delivers_to(state) or (
         recorded and not _differs(slot, recorded[0], value)
     ):
         return True
@@ -1860,6 +1891,21 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
     row["dhw_mode"] = row["dhw_mode"] or mode == pump_mode.MODE_DHW
 
 
+def _dhw_gate_c(inp: ArbiterInputs) -> float:
+    """The hot-water set-point a space step with no Heating option writes, °C.
+
+    :data:`DHW_GATE_C`, or lower where the tank reads colder: the tank
+    reading plus the pump's read start hysteresis (none read: zero), so a
+    cold tank is not asked to charge on a space step (D16-s1-02). With no
+    tank reading, :data:`DHW_GATE_C`.
+    """
+    tank = finite_float(getattr(inp.state, "dhw_temperature", None))
+    if tank is None:
+        return DHW_GATE_C
+    hysteresis = finite_float(getattr(inp.state, "dhw_start_hysteresis_k", None)) or 0.0
+    return min(DHW_GATE_C, tank + hysteresis)
+
+
 def _dhw_start_below_c(inp: ArbiterInputs) -> float | None:
     """The tank temperature below which the pump starts this step's charge, °C.
 
@@ -1935,6 +1981,7 @@ async def _lead_mode(coord: Any, on: bool) -> None:
     set-points the pump reports while off are its own, and the pass after
     the switch-on compares and writes them as before. A failed write is
     logged by :func:`_write` and holds nothing: the switch follows at once.
+    A mode the select reads unlike the record is written again.
     """
     now, held = dt_util.now(), state_for(coord)
     if not on or duty_mode(coord.arbiter_inputs().config) != DUTY_CONTROL:
@@ -1945,6 +1992,12 @@ async def _lead_mode(coord: Any, on: bool) -> None:
         if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held):
             return
         duty = _step_duty(coord, held, inp, now)
+        # A select moved while off no longer holds the record: the record is
+        # dropped so the lead writes the step's mode; no miss is counted. An
+        # unreadable select keeps it (D16-s2-03).
+        observed, recorded = _observed(inp, "mode"), held.written.get("mode")
+        if observed is not None and recorded is not None and _differs("mode", observed, recorded[0]):
+            del held.written["mode"]
         await _write(coord, inp, "mode", _mode_for(inp, _served(coord, inp, duty, now)), now)
 
 

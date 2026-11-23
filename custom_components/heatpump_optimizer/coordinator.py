@@ -202,7 +202,9 @@ from .inputs import (
     InputReading,
     InputReturnWatch,
     age_of,
+    delivers_to,
     normalize_price_per_kwh,
+    on_entity_grid,
     parse_bool,
     read_rooms,
     read_start_hysteresis,
@@ -7712,6 +7714,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             outdoor = ctx._current_state.outdoor_temperature
             target = self._thermal_model.flow_target_for_indoor(target, outdoor)
         valve = self._valve_target
+        if not delivers_to(self.hass.states.get(entity_id)):
+            return  # a write Home Assistant skips is never recorded (D16-s1-05)
         if not await valve.command(
             target, lambda: off_restore.async_arm(self.hass, self.entry, ctx._config, number_restore.VALVE_RESTORE),
             lambda target_c: _valve_write_problem(self.hass, entity_id, target_c),
@@ -10805,13 +10809,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entity_id = getattr(self, "_ctx", self)._config.compressor_freq_entity
         if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or _plan_let_go(self):
             return
+        if not delivers_to(self.hass.states.get(entity_id)):
+            return  # a write Home Assistant skips is never recorded (D16-s1-05)
         _reported, hz_min, hz_max, _source = self._freq_entity_reading()
         target = self._freq_map.recommend(
             self._commanded_power() or 0.0, hz_min, hz_max
         )
         if target is None:
             return
-        target = float(np.clip(target, hz_min, hz_max))
+        # On the entity's own step inside its own range, before the dedup, so
+        # the record is the value sent (D16-s1-01).
+        target = on_entity_grid(self.hass, entity_id, float(np.clip(target, hz_min, hz_max)))
         now = dt_util.now()
         if (
             self._freq_last_write is not None
@@ -10823,7 +10831,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if not await self._freq_watchdog.command(
                 target, lambda: off_restore.async_arm(self.hass, self.entry, _ctx_of(self)._config, number_restore.FREQUENCY_RESTORE),
                 lambda hz: self.hass.services.async_call(
-                    "number", "set_value", {"entity_id": entity_id, "value": round(hz, 1)}, blocking=True),
+                    "number", "set_value", {"entity_id": entity_id, "value": hz}, blocking=True),
             ):
                 return
         except Exception as err:  # noqa: BLE001 - never break the cycle
