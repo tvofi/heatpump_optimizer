@@ -3690,6 +3690,22 @@ R.check(
     _timed.suppressing,
     "the measured cut-off must be the difference, not a detector change",
 )
+# A window of zero (entry_config accepts any finite float; only the form
+# bounds it) means no fade at all: the release drops confidence at once,
+# never a division by the zero window. The 90-minute `_timed` twin is the null.
+_zero = ExternalHeatDetector(ExternalHeatConfig(
+    enabled=True, confirm_samples=2, release_samples=2, decay_minutes=0.0,
+))
+try:
+    _burn_then_release(_zero, spent_pair=False)
+    _zero_err = None
+except ZeroDivisionError as exc:
+    _zero_err = exc
+R.check(
+    "a zero decay window ends the fade at release, without dividing by it",
+    _zero_err is None and not _zero.suppressing and _zero.state.confidence == 0.0,
+    f"error {_zero_err!r}, suppressing {_zero.suppressing}",
+)
 
 
 # ===========================================================================
