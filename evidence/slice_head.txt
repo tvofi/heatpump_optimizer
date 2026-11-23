@@ -1,0 +1,3 @@
+  ok   the diagnostics view and the download report the mode a real coordinator was set to, for each of two modes
+ALL 17 ENTITY CHECKS PASSED
+rc=0
