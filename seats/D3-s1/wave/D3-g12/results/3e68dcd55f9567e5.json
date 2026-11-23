@@ -1,0 +1,112 @@
+{
+ "key": "3e68dcd55f9567e5",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:3013 CMP_BOUND",
+ "patch": "if not math.isfinite(value) or not lo <= value <= hi: -> if not math.isfinite(value) or not lo < value <= hi:",
+ "function": "_plausible_forecast_rows",
+ "cluster": "coordinator.py:_plausible_forecast_rows@3013-3013",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3808.5,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/gates/3e68dcd55f9567e5.json",
+  "provisional_timing": true,
+  "note": "red, but no script beyond the null control: read as survived"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e68dcd55f9567e5.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e68dcd55f9567e5.out",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e68dcd55f9567e5.py",
+  "baseline_value": "precipitation_lo_0_baseline=0.0",
+  "mutant_value": "precipitation_lo_0_mutant=None",
+  "inputs_tried": "every _FORECAST_FIELD_RANGE field at lo, hi and midpoint (18 inputs); 6 lo edges moved",
+  "results": {
+   "temperature_lo_-70_baseline": "-70.0",
+   "temperature_lo_-70_mutant": "None",
+   "temperature_hi_70_baseline": "70.0",
+   "temperature_hi_70_mutant": "70.0",
+   "temperature_mid_0_baseline": "0.0",
+   "temperature_mid_0_mutant": "0.0",
+   "wind_speed_lo_0_baseline": "0.0",
+   "wind_speed_lo_0_mutant": "None",
+   "wind_speed_hi_100_baseline": "100.0",
+   "wind_speed_hi_100_mutant": "100.0",
+   "wind_speed_mid_50_baseline": "50.0",
+   "wind_speed_mid_50_mutant": "50.0",
+   "precipitation_lo_0_baseline": "0.0",
+   "precipitation_lo_0_mutant": "None",
+   "precipitation_hi_1000_baseline": "1000.0",
+   "precipitation_hi_1000_mutant": "1000.0",
+   "precipitation_mid_500_baseline": "500.0",
+   "precipitation_mid_500_mutant": "500.0",
+   "humidity_lo_0_baseline": "0.0",
+   "humidity_lo_0_mutant": "None",
+   "humidity_hi_100_baseline": "100.0",
+   "humidity_hi_100_mutant": "100.0",
+   "humidity_mid_50_baseline": "50.0",
+   "humidity_mid_50_mutant": "50.0",
+   "solar_irradiance_lo_0_baseline": "0.0",
+   "solar_irradiance_lo_0_mutant": "None",
+   "solar_irradiance_hi_2000_baseline": "2000.0",
+   "solar_irradiance_hi_2000_mutant": "2000.0",
+   "solar_irradiance_mid_1000_baseline": "1000.0",
+   "solar_irradiance_mid_1000_mutant": "1000.0",
+   "native_solar_irradiance_lo_0_baseline": "0.0",
+   "native_solar_irradiance_lo_0_mutant": "None",
+   "native_solar_irradiance_hi_2000_baseline": "2000.0",
+   "native_solar_irradiance_hi_2000_mutant": "2000.0",
+   "native_solar_irradiance_mid_1000_baseline": "1000.0",
+   "native_solar_irradiance_mid_1000_mutant": "1000.0",
+   "fields_x_bounds_moved": "6 count",
+   "thread_factor": "1.000",
+   "load1": "1.12",
+   "swapins": "0"
+  }
+ },
+ "should_fail": "tests/entities.py / tests/features.py (traced baselines execute coordinator.py:3013): no check feeds a forecast row with a field on its window's lower edge (0.0 mm rain, 0.0 m/s wind, 0 W/m2 solar, 0 % RH) and asserts the value survives _plausible_forecast_rows",
+ "class": "candidate",
+ "finding": {
+  "title": "Forecast plausibility window's lower edge is unpinned: lo < value passes the full gate",
+  "claim": "With `lo <= value` -> `lo < value` at coordinator.py:3013 the full gate stays green while every forecast field sitting on its lower edge (a dry hour's 0.0 mm, a calm 0.0 m/s, night's 0 W/m2) is replaced by None: 6 of 6 fields moved.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "metric_definition": "the value _plausible_forecast_rows keeps for a forecast field sitting exactly on the LOWER edge of its _FORECAST_FIELD_RANGE window (kept value, or None when dropped as implausible).",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:_plausible_forecast_rows, line 3013",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e68dcd55f9567e5.py"
+  ],
+  "evidence_command": "(gate) cd <tree> && python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3e68dcd55f9567e5  -> RED-AS-NULL, gate_rc 1; (probe) PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e68dcd55f9567e5.py",
+  "perturbation": {
+   "change": "key 3e68dcd55f9567e5 CMP_BOUND, `not lo <= value <= hi` -> `not lo < value <= hi`, in memory. Direction: a lower-edge reading (a dry hour's 0.0 mm, a calm 0.0 m/s, night's 0 W/m2) kept -> None.",
+   "expected_direction": "to_zero",
+   "observed_value": "0.0 -> None"
+  },
+  "null_control": {
+   "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (this box)",
+   "value": "see gates/null.json",
+   "note": "gate null: comment-only marker on the same box; probe null: each field's window midpoint and upper edge, where the lower comparison is not tied."
+  },
+  "phenomenon_property": "a production line whose one-line mutant changes the value its symbol delivers must turn the full GATE_SCOPE=full GOLDEN_MODE=drift gate red",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ]
+ }
+}
