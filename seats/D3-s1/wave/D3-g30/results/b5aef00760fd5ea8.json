@@ -1,0 +1,77 @@
+{
+ "key": "b5aef00760fd5ea8",
+ "site": "custom_components/heatpump_optimizer/price_model.py:90 CONST",
+ "patch": "VAR_ALPHA = 0.15 -> VAR_ALPHA = 0.3",
+ "function": "<module>",
+ "cluster": "price_model.py:<module>@66-90",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3555.8,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/b5aef00760fd5ea8.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py",
+  "baseline": {
+   "weekday_sigma_17_two_days_day_reversed": "1.0936"
+  },
+  "mutant": {
+   "weekday_sigma_17_two_days_day_reversed": "0.9929"
+  },
+  "moved": {
+   "weekday_sigma_17_inputs_moved": "2 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "two_days_day_reversed,three_days,one_day_seed_only",
+  "all_results": {
+   "weekday_sigma_17_two_days_day_reversed_baseline": "1.0936",
+   "weekday_sigma_17_two_days_day_reversed_mutant": "0.9929",
+   "weekday_sigma_17_three_days_baseline": "1.0504",
+   "weekday_sigma_17_three_days_mutant": "0.9293",
+   "null_weekday_sigma_17_one_day_seed_only_baseline": "1.1858",
+   "null_weekday_sigma_17_one_day_seed_only_mutant": "1.1858",
+   "weekday_sigma_17_inputs_moved": "2 count",
+   "null_delta": "0 count",
+   "inputs_tried": "two_days_day_reversed,three_days,one_day_seed_only",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "Doubling the residual-variance EWMA rate moves the published price_prior weekday_sigma[17] after two different days from 1.0936 to 0.9929 through PriceShapeLearner.fold and PriceShapeModel.summary; no gated script reads residual_var or sigma after a second day.",
+ "should_fail": "tests/features.py ~18820 (_vol block, traced executing observe_day's variance EWMA) and tests/finite_boundary.py's residual_var reads: they assert finiteness/positivity of sigma, not its value; they lack residual_var after two days == (1-VAR_ALPHA)*r1^2 + VAR_ALPHA*r2^2.",
+ "finding": {
+  "title": "price_model.py:90 VAR_ALPHA 0.15 -> 0.3 survives the full gate: the published price-prior sigma's learning rate is unpinned",
+  "claim": "Doubling the residual-variance EWMA rate moves the published price_prior weekday_sigma[17] after two different days from 1.0936 to 0.9929 through PriceShapeLearner.fold and PriceShapeModel.summary; no gated script reads residual_var or sigma after a second day.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "published price_prior weekday_sigma[17] (PriceShapeModel.summary) after days folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b5aef00760fd5ea8",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:90",
+  "perturbation": "the one-line mutant b5aef00760fd5ea8: `VAR_ALPHA = 0.15` -> `VAR_ALPHA = 0.3`; direction weekday_sigma_17_two_days_day_reversed: 1.0936 -> 0.9929",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}
