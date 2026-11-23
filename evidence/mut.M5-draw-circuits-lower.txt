@@ -1,0 +1,8 @@
+
+=== features block ===
+  ok   two-zone valve-fed slab: the plant at its pump, settled, holds the room at the valve's 21 C within 0.02 K, scalar step and batch twin
+  FAIL two-zone valve-fed slab: a thermostat set to 21 C holds 21 C behind it  [+5 C 19.4953, -5 C 18.5565, -15 C 17.6177]
+  FAIL two-zone valve curve: an unvalved install's curve and a direct slab's curve and day keep their bits  [{'direct_flow_carnot': (30.142857142857146, 35.85714285714286, 41.57142857142857), 'install direct slab': (23.1, 24.4125, 25.725, 22.594125, 30.367533973730524, 35.368439723147205, 44.028566572860214, 56.0)}]
+  FAIL two-zone valve curve: the curve the model reports is the plant's own, at zero wind and rain  [{('install', 5.0): (23.394311333018198, 21.69340099191771), ('install', -5.0): (25.119494504845193, 22.35743479059515), ('install', -15.0): (26.844677676672184, 23.021468589272594), ('split 0.3/0.7', 5.0): (23.45069278145531, 21.40945217647621), ('split 0.3/0.7', -5.0): (25.238834341983633, 21.926763606959625), ('split 0.3/0.7', -15.0): (27.026975902511957, 22.44407503744304)}]
+
+3 of 4 FEATURES BLOCK FAILED
