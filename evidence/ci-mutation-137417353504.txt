@@ -1,0 +1,7 @@
+2026-11-23T00:40:23.4633146Z     ADDED UNPINNED custom_components/heatpump_optimizer/boost.py:369 RETURN_DEL: return held_for(coord).mode_since is not None
+2026-11-23T00:40:23.4633970Z     ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:4137 RETURN_DEL: return CoordinatorDiagnostics.of(self, self.mode)
+2026-11-23T00:40:23.4634786Z     ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:10429 GUARD_OFF: if _ctx_of(self)._config.wear_autotune_enabled:
+2026-11-23T00:40:23.4636396Z MUTATION TABLE REFUSED -- 1922 unpinned site(s) against 1919 at the ratchet base 9276ddf6b122816149ecba82a607aedf38d87ba1, 3 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+2026-11-23T00:40:23.4637851Z     custom_components/heatpump_optimizer/__init__.py:56 GUARD_OFF: if TYPE_CHECKING:
+2026-11-23T00:40:23.4638421Z     custom_components/heatpump_optimizer/__init__.py:91 RETURN_DEL: return importlib.import_module(f".{module}", __package__)
+2026-11-23T00:40:23.4636396Z MUTATION TABLE REFUSED -- 1922 unpinned site(s) against 1919 at the ratchet base 9276ddf6b122816149ecba82a607aedf38d87ba1, 3 of them added by this diff. A new guard, clamp

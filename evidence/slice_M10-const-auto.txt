@@ -1,0 +1,3 @@
+  FAIL the diagnostics view and the download report the mode a real coordinator was set to, for each of two modes  [{'boost': ('auto', 'auto'), 'comfort': ('auto', 'auto')}]
+1 of 17 ENTITY CHECKS FAILED
+rc=1

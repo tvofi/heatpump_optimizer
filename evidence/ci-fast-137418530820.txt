@@ -1,0 +1,6 @@
+2026-11-23T00:46:25.0419468Z   GOLDEN_MODE: drift
+2026-11-23T00:46:25.5730373Z   MODE: SCOPED -- 22 script(s) run, 11 scoped out.
+2026-11-23T01:10:28.0003121Z   ok   the diagnostics view and the download report the mode a real coordinator was set to, for each of two modes
+2026-11-23T01:10:28.0134097Z ALL 2762 ENTITY CHECKS PASSED
+2026-11-23T01:10:28.0452357Z ALL 164 DEBUG COLLECT CHECKS PASSED
+2026-11-23T01:10:28.0488830Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
