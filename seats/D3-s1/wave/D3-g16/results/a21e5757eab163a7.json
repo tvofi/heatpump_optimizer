@@ -1,0 +1,103 @@
+{
+ "key": "a21e5757eab163a7",
+ "site": "dhw_planner.py:2140 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2140,
+ "patch": "if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)): -> if not bool(np.all(candidate[pos + 1: end + 1] < limit + 1e-9)):",
+ "function": "DhwPlanner._dhw_raise_fits",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_raise_fits@2133-2140",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3218.4,
+  "child_cpu_s": 5377.8,
+  "load1_start": 0.94,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/a21e5757eab163a7.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a21e5757eab163a7",
+ "gate_provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py",
+  "results": {
+   "raise_fits_baseline": "1",
+   "raise_fits_mutant": "0",
+   "non_tie_inputs_moved": "0 of 4 (-)",
+   "thread_factor": "1.000",
+   "load1": "0.86",
+   "swapins": "0"
+  },
+  "baseline_value": "1",
+  "mutant_value": "0",
+  "inputs_tried": "a ceiling whose value + 1e-9 equals the simulated temperature to the last bit (moves); a rounded 64 C ceiling, the ceiling at the temperature, 2e-9 and 0.1 K below (do not move)",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "reach": "exact float tie only: a candidate temperature equal to max(ceiling + 0.5, base) + 1e-9 to the last bit",
+ "should_fail": "tests/features.py: the F22 raise-fits block (~69314-69330) compares the chunked check with a reference decision on ordinary inputs; no check builds a temperature exactly on limit + 1e-9",
+ "finding": {
+  "title": "No check pins _dhw_raise_fits' inclusive tolerance; <= vs < at limit + 1e-9 is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "claim": "Mutant a21e5757eab163a7 at dhw_planner.py:2140 (if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)): -> if not bool(np.all(candidate[pos + 1: end + 1] < limit + 1e-9)):) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet probe_a21e5757eab163a7.py moves: raise_fits_baseline=1 vs raise_fits_mutant=0.",
+  "mechanism": "Reach: exact float tie only: a candidate temperature equal to max(ceiling + 0.5, base) + 1e-9 to the last bit. Check that should have failed (D3.M4): tests/features.py: the F22 raise-fits block (~69314-69330) compares the chunked check with a reference decision on ordinary inputs; no check builds a temperature exactly on limit + 1e-9.",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_raise_fits",
+  "metric_definition": "DhwPlanner._dhw_raise_fits's verdict (1 fits, 0 refused) when one simulated tank temperature equals its limit + 1e-9 exactly",
+  "phenomenon_property": "DhwPlanner._dhw_raise_fits accepts a candidate whose every checked temperature is at or below max(ceiling, base) + 1e-9, the boundary inclusive",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list), each key's fullgate.py verdict SURVIVED or RED-AS-NULL and its probe moving",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py"
+  ],
+  "proposed_fix_scope": "tests only: a boundary check with one temperature exactly at limit + 1e-9 asserting the raise fits",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py",
+   "value": "0",
+   "unit": "raise_fits_mutant",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 0.86,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant a21e5757eab163a7 applied in memory by the probe (method re-compiled from its source); full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a21e5757eab163a7",
+   "expected_direction": "verdict down (fits -> refused) on the exact tie only",
+   "observed_value": "0"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py",
+   "value": "a rounded ceiling, the ceiling at the temperature, 2e-9 and 0.1 below: 0 moved",
+   "note": "arms where the edit cannot matter, identical outputs under baseline and mutant; the full-gate null is gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a21e5757eab163a7"
+  ]
+ }
+}
