@@ -1870,6 +1870,10 @@ def _self_test() -> int:
     check("a ROUND_RECORDS key admits its own constant and no other",
           round_literal_hits(rec, plants["module constant"].replace("ROSTER_REL", "REGISTER_DIR")) == []
           and len(round_literal_hits(rec, plants["module constant"])) == 1)
+    as_rec = plants["module constant"].replace("ROSTER_REL", "REGISTER_DIR")
+    check("a ROUND_RECORDS key admits its constant in its own file and no other",
+          len(round_literal_hits("tools/x/other.py", as_rec)) == 1,
+          round_literal_hits("tools/x/other.py", as_rec))
     live = round_literal_defaults("HEAD")
     check("no tools/ default at this checkout's HEAD names a round", live == [], live)
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
