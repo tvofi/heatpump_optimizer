@@ -1,0 +1,81 @@
+{
+ "key": "c40e66fc9831672f",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6069 CLAMP_DROP",
+ "patch": "lo = max(20.0, float(p.cop_flow_reference_temp)) -> lo = (20.0)",
+ "function": "HeatPumpOptimizer._buffer_charge_ceiling",
+ "cluster": "optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling@6069-6097",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3651.1,
+  "load1_start": 0.85,
+  "load1_end": 1.03,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/c40e66fc9831672f.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_c40e66fc9831672f.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_c40e66fc9831672f.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=117 count (ties constructed: 9)",
+   "RESULT inputs_moved=45 count",
+   "RESULT moved hi=30.0 out=-20.0 ua=None: baseline=30.0 mutant=20.0",
+   "RESULT moved hi=30.0 out=-20.0 ua=0.0: baseline=30.0 mutant=20.0",
+   "RESULT moved hi=30.0 out=-20.0 ua=2.0: baseline=30.0 mutant=20.0",
+   "RESULT moved hi=30.0 out=-30.0 ua=None: baseline=30.0 mutant=20.0",
+   "RESULT max_abs_delta_c=15.0",
+   "RESULT focus hi=70.0 out=-20.0 ua=None: baseline=35.0 mutant=20.0",
+   "RESULT null_delta=0 C",
+   "RESULT from_config_buffer_max_30=30.0",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.96",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "ceiling 35.0 C (buffer_max 70, out_mean -20 C, defaults)",
+  "mutant_value": "ceiling 20.0 C",
+  "inputs_tried": "117: buffer_max {30,35,40,55,70,90} x out_mean {15,0,-10,-15,-20,-30} x buffer_cooling_rate {default,0,2.0} + 9 constructed exact ties net(hi|lo|mid)==0; moved 45 (every cold case where net(35 C) <= 0); max |delta| 15 C"
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py (its traced baseline reaches line 6093's `return lo`, the only script that does) lacks an assertion that a cold-weather _buffer_charge_ceiling never falls below the 35 C flow reference (cop_flow_reference_temp): heat below the reference is always chargeable",
+ "finding": {
+  "title": "Buffer charge ceiling's floor at the COP flow reference is unpinned: dropping it lowers the cold-weather ceiling 35 -> 20 C",
+  "claim": "With max(20, cop_flow_reference_temp) replaced by 20, HeatPumpOptimizer._buffer_charge_ceiling at out_mean -20 C returns 20.0 C instead of 35.0 C (45 of 117 probe inputs move), and the GATE_SCOPE=full GOLDEN_MODE=drift gate stays green.",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "metric_definition": "the value _buffer_charge_ceiling(out_mean) returns, C, default parameters, buffer_max_temp 70 C, out_mean -20 C",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._buffer_charge_ceiling",
+  "perturbation": {
+   "change": "the key's one-line mutant, applied in memory by the probe",
+   "expected_direction": "35.0 -> 20.0 C (down) under the mutant"
+  },
+  "null_control": "out_mean 15 C (net(hi) > 0, returns buffer_max_temp on both arms): null_delta 0 C",
+  "stop_rule_class": "bug",
+  "proposed_fix_scope": "tests: a cold-weather ceiling assertion (>= cop_flow_reference_temp) in tests/features.py",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_c40e66fc9831672f.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_c40e66fc9831672f.py"
+ }
+}
