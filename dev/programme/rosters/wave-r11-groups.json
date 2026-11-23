@@ -6974,9 +6974,10 @@
    "source": "audit",
    "brief": "Issue 3713: the two-zone valve-fed slab model omits the series term between the valve and the slab (R11-VALVE-REFERENCE carry 3, item 2c38f69d; that group's approved architect note, design/R11-VALVE-REFERENCE 1abf062b2d, Notes, first bullet, kept it bitwise there and filed it by the sibling-seam rule). Re-homed from R11-SEAM-plant-model, whose fixer pull request 3731 (merged 1850e2e0da) touched no valve or slab model. SIZE L, DESIGN FIRST (decision 0014): the issue body says building it moves the replay install, the two-zone hold of the ledger's reference basis and every valved golden fixture (claimed under tests/golden/claimed_drift.txt, never re-recorded), so the designer's note states the series term's law, the owning module, the fixture set it moves with each move's direction, and the null control before a fixer is dispatched.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner): thermal_model.py is the slab model's other half; the series term is a law edit in the two-zone path, which no not-started group's scope touches"
+    "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner): thermal_model.py is the slab model's other half; the series term is a law edit in the two-zone path, which no not-started group's scope touches",
+    "pr": 3879
    }
   },
   {
@@ -7621,7 +7622,8 @@
     "branch": "handoff/r11-outside-3849",
     "last_step": "fixer dispatched",
     "next_step": "fixer",
-    "note": "owner high priority 2026-11-22, above the cap; a local fixer seat is building it; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT): outside #3849, owner high priority 2026-11-22"
+    "note": "owner high priority 2026-11-22, above the cap; a local fixer seat is building it; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT): outside #3849, owner high priority 2026-11-22",
+    "pr": 3877
    }
   },
   {
