@@ -1,0 +1,99 @@
+{
+ "key": "2693e4fc04518cbf",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4560 BOOLOP",
+ "patch": "if not _pin_is_free(value) and value < 0.5: -> if not _pin_is_free(value) or value < 0.5:",
+ "function": "HeatPumpOptimizer.optimize",
+ "cluster": "optimizer.py:HeatPumpOptimizer.optimize@4518-4610",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2862.6,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/2693e4fc04518cbf.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2693e4fc04518cbf (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_2693e4fc04518cbf.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_2693e4fc04518cbf.py",
+  "baseline_value": "88 count",
+  "mutant_value": "96 count",
+  "metric": "released",
+  "unit": "space steps reported released",
+  "all_results": {
+   "released_baseline": "88 count",
+   "released_mutant": "96 count",
+   "null_released_delta": "0 count",
+   "reach_on_pins": "1 count  (pin values channel_pins can emit: [0.0, 1.0])",
+   "thread_factor": "1.004",
+   "load1": "1.81",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "out-of-rounds abandonment (manual_plan.py's own never_satisfied stub), space pins ON at 0-7, OFF at 8-95: released 88 -> 96",
+   "pins all off as in test_release_always_resolves: 96 -> 96 (no move)",
+   "free NaN pins: never released in either arm",
+   "reach: build_override/channel_pins/_normalise_pins emit pins {0.0, 1.0}: forced-on pins are production input"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/manual_plan.py (the only script whose traced baseline executes line 4560)",
+  "assertion": "test_release_always_resolves abandons a plan of ALL-off pins (np.zeros(N)) and asserts len(manual_released_space) == N; no case mixes forced-on pins and asserts they stay pinned (released count == forced-off count)"
+ },
+ "finding": {
+  "title": "No check abandons a plan holding forced-on pins; and->or in the wholesale release is unseen",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant 2693e4fc04518cbf (if not _pin_is_free(value) and value < 0.5: -> if not _pin_is_free(value) or value < 0.5:) at custom_components/heatpump_optimizer/optimizer.py:4560 leaves the full gate red only as the null is (RED-AS-NULL), yet the probe's released moves from 88 count to 96 count.",
+  "metric_definition": "space steps reported released (released; probe header carries the full definition)",
+  "phenomenon_property": "when the safety repair runs out of rounds, only forced-OFF pins of the breaching channel are released; forced-on pins and free steps are untouched",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_2693e4fc04518cbf.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_2693e4fc04518cbf.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_2693e4fc04518cbf.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_2693e4fc04518cbf.py",
+   "value": "96 count",
+   "unit": "space steps reported released",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g26 cloud: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython, alone on its machine",
+   "cpu_or_wall": "count",
+   "contention_note": "deterministic count; probes ran in a separate baseline worktree while the box's GATE_JOBS=1 gates ran",
+   "tolerance": "exact",
+   "load1": 1.81,
+   "thread_factor": 1.004
+  },
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:4560 if not _pin_is_free(value) and value < 0.5: -> if not _pin_is_free(value) or value < 0.5:, applied in memory by the probe (and on disk by fullgate.py for the gate)",
+   "expected_direction": "up",
+   "observed_value": "96 count"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_2693e4fc04518cbf.py",
+   "value": "null_released_delta=0 count"
+  },
+  "proposed_fix_scope": "tests only: a check in tests/manual_plan.py at the distinguishing input above pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "tests/manual_plan.py"
+  ]
+ }
+}
