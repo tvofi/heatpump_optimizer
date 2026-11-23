@@ -1,0 +1,6 @@
+F-mutant s/const EXTERNAL_HEAT_SUFFIX = "_external_heat_source"/const EXTERNAL_HEAT_SUFFIX = "_external_heat"/:
+
+1 of 1 FEATURES BLOCK FAILED
+F-mutant s/const INPUT_PROBLEM_SUFFIX = "_input_problem"/const INPUT_PROBLEM_SUFFIX = "_input_problems"/:
+
+1 of 1 FEATURES BLOCK FAILED
