@@ -1,0 +1,1 @@
+container restart at ~00:29Z 2026-11-23 interrupted the d128afa0c1ce3d28 gate (started 23:46:42Z); its partial log is kept as d128afa0c1ce3d28.interrupted-restart.log and the gate is re-run from scratch
