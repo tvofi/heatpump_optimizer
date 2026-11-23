@@ -1,0 +1,35 @@
+{
+ "key": "c5ddabc7d9641cba",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1573 CLAMP_DROP",
+ "patch": "cop = max(cop, 0.1) -> cop = (cop)",
+ "function": "SystemIdentification._size_step_power",
+ "cluster": "sysid.py:SystemIdentification._size_step_power@1573-1626",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3263.4,
+  "load1_start": 0.86,
+  "load1_end": 1.01,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/c5ddabc7d9641cba.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c5ddabc7d9641cba",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_c5ddabc7d9641cba.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_c5ddabc7d9641cba.py",
+  "baseline_value": "130.546875 kW at max_power 160, cop 0.05/0.0",
+  "mutant_value": "160.0 kW",
+  "inputs_tried": "384 inputs at cop in {0, 0.05, 0.09, -1} x max_power {3,6,12,40,80,160} x outdoor {2,12,16,18} x 4 houses: 68 moved, all at max_power 160 kW; 24 inputs at cop >= 0.1 moved 0; production's cop is ThermalModel.compute_cop, floored at 1.0 by the COP law (min 1.050 over outdoor -40..40 C), so the dropped 0.1 floor never acts",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_c5ddabc7d9641cba.out"
+ },
+ "should_fail": "none reachable: the floor binds only below cop 0.1, which compute_cop never returns"
+}
