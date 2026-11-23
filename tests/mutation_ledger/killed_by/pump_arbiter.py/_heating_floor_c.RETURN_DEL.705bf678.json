@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_heating_floor_c RETURN_DEL 705bf678",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return clear, _bounded(inp, \"space_setpoint\", clear, lo=clear) or clear",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
