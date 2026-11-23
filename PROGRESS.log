@@ -10,3 +10,4 @@
 1795402343 CKPT step 2 pushed: P3 full-draw, ported probes snapshot 602e38561b94
 1795402563 HB alive
 1795402604 CKPT step 3 pushed: step tick + tail snapshot 0746ac19dba1
+1795402729 CKPT step 4 pushed: carry 1 night registers; m6 ported snapshot b82add62d2d6
