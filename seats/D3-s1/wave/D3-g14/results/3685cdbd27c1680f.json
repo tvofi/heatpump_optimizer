@@ -1,0 +1,81 @@
+{
+ "key": "3685cdbd27c1680f",
+ "site": "dhw_planner.py:2076 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2076,
+ "patch": "jointly_raised: np.ndarray = np.clip(joint, 0.0, p_dhw_max) -> jointly_raised: np.ndarray = (joint)",
+ "function": "DhwPlanner._apply_dhw_min_run",
+ "cluster": "dhw_planner.py:DhwPlanner._apply_dhw_min_run@2055-2106",
+ "slice": "u1a",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2842.6,
+  "load1_start": 0.66,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/3685cdbd27c1680f.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3685cdbd27c1680f"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_3685cdbd27c1680f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_3685cdbd27c1680f.py",
+  "baseline_value": "baseline_step0_kw=3.000000 kW",
+  "mutant_value": "mutant_step0_kw=5.000000 kW",
+  "inputs_tried": [
+   "plan [5.0,0.1,0..] tank 30 C ceiling 55 C (delta 2.0 kW)",
+   "plan [-1.0,0.1,0..] (delta 1.0 kW)",
+   "in-range plan [3.0,0.1,0..] (null, delta 0)",
+   "three ordinary days through _build_dhw_requirements (realistic_delta 0.0 kW)"
+  ],
+  "production_reach": "unit only: the caller hands _apply_dhw_min_run the greedy planner's plan, already inside [0, p_dhw_max]; realistic_delta_kw=0.000000 on three ordinary days"
+ },
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes dhw_planner.py:2076; also tests/entities.py, tests/env_drift.py)",
+  "assertion": "no direct _apply_dhw_min_run check feeds a plan entry outside [0, p_dhw_max] on the jointly-raised path and asserts the result is clipped to [0, p_dhw_max]"
+ },
+ "finding": {
+  "title": "No check feeds _apply_dhw_min_run's jointly-raised path an out-of-range entry; dropping its [0, p_dhw_max] clip is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant 3685cdbd27c1680f at dhw_planner.py:2076 (jointly_raised: np.ndarray = np.clip(joint, 0.0, p_dhw_max) -> jointly_raised: np.ndarray = (joint)) RED-AS-NULL the full gate (gate_rc 1), yet the probe's number moves: baseline baseline_step0_kw=3.000000 kW, mutant mutant_step0_kw=5.000000 kW. Reach: unit only: the caller hands _apply_dhw_min_run the greedy planner's plan, already inside [0, p_dhw_max]; realistic_delta_kw=0.000000 on three ordinary days.",
+  "metric_definition": "plan value (kW) _apply_dhw_min_run returns at a step given 5.0 kW with p_dhw_max 3.0, on the path where all weak slots fit jointly",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_min_run line 2076",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_3685cdbd27c1680f.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/_g14lib.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_3685cdbd27c1680f.py",
+  "perturbation": {
+   "change": "the one-line mutant 3685cdbd27c1680f (jointly_raised: np.ndarray = np.clip(joint, 0.0, p_dhw_max) -> jointly_raised: np.ndarray = (joint)) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3685cdbd27c1680f",
+   "direction": "up (3.0 -> 5.0 kW: the mutant returns the unclipped entry)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_3685cdbd27c1680f.py",
+   "value": "null arm delta 0 (see the probe's null_* RESULT lines)",
+   "gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}
