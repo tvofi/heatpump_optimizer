@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_log.py:<module> CONST a2232314",
+  "killed_by": "tests/features.py",
+  "old": "FAULT_LOG_STORE_VERSION = 1",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`FAULT_LOG_STORE_VERSION = 2`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

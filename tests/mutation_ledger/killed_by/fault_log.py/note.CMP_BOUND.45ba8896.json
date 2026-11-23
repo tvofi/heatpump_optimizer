@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_log.py:note CMP_BOUND 45ba8896",
+  "killed_by": "tests/features.py",
+  "old": "        if len(log.episodes) > EPISODES_MAX:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if len(log.episodes) >= EPISODES_MAX:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_log.py:flag_text BOOLOP bba5c3da",
+  "killed_by": "tests/features.py",
+  "old": "    source = \"bitmap\" if number is not None and number.is_integer() else \"flag\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`source = \"bitmap\" if number is not None or number.is_integer() else \"flag\"`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
