@@ -1,0 +1,93 @@
+{
+ "key": "e163f6fbc359cd4c",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9402 CMP_BOUND",
+ "patch": "if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6: -> if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] >= 1e-6:",
+ "function": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture@9383-9402",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3807.4,
+  "child_cpu_s": 6369.4,
+  "load1_start": 0.85,
+  "load1_end": 0.94,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/e163f6fbc359cd4c.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e163f6fbc359cd4c",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "candidate",
+ "red_as_null": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py",
+  "rc": 0,
+  "baseline_value": "1.000000",
+  "mutant_value": "2.000000",
+  "baseline_result": "scale_baseline_tie",
+  "mutant_result": "scale_mutant_tie",
+  "all_results": {
+   "tie_found": "1",
+   "var_after": "1e-06",
+   "scale_baseline_tie": "1.000000",
+   "scale_mutant_tie": "2.000000",
+   "null_baseline": "2.000000",
+   "null_mutant": "2.000000",
+   "realistic_sequences_tried": "36",
+   "realistic_sequences_differing": "0",
+   "thread_factor": "1.000",
+   "load1": "0.75",
+   "swapins": "0"
+  },
+  "inputs_tried": "moment state n=100, cov=2e-6, x == mx, start variance searched over representable floats until v - a*v == 1e-6 exactly (found); null: variance one float above the tie; 36 realistic fold sequences (31/60/200 folds x irradiance ramps 150/300/600 W/m2 x 5/20 W/m2 steps x residual ratio 0.6/1.5): 0 differ"
+ },
+ "traced_reach": [
+  "tests/features.py"
+ ],
+ "should_fail": "tests/features.py (traced reach of coordinator.py:9402) has no check of the `var > 1e-6` guard at its exact tie; the tie is a float-equality event the probe could only reach by constructing the moment state, never by a realistic fold sequence (0 of 36 differ)",
+ "finding": {
+  "title": "No check pins the solar-aperture variance guard at its exact 1e-6 tie",
+  "claim": "Mutating coordinator.py:9402 `m[\"var\"] > 1e-6` to `>= 1e-6` moves the learned scale 1.0 -> 2.0 when the EWMA variance lands exactly on 1e-6, and the full gate stays green; no realistic fold sequence tried reaches the tie.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "_solar_aperture['scale'] after one fold whose variance update lands exactly on 1e-6 (ratio)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_solar_aperture",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e163f6fbc359cd4c  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py  (scale_baseline_tie=1.000000, scale_mutant_tie=2.000000)",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/coordinator.py:9402 `if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6:` -> `if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] >= 1e-6:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+   "expected_direction": "up",
+   "observed_value": "1.000000 -> 2.000000"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py",
+   "value": "null_baseline=2.000000, null_mutant=2.000000",
+   "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+  },
+  "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._fold_solar_aperture that changes its returned value has a check that fails when the guard is mutated",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._fold_solar_aperture on the probe's input and asserting the baseline value"
+ }
+}
