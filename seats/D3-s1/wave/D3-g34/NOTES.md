@@ -14,3 +14,10 @@ only what the diff can reach, the same worktree-scope artefact), harness_headers
 build_results.py `ROOT = S1.parents[4]` and _sysid_lib.py's non-canonical repo_root). All artefact checks of the tree state, none a machine
 red (no card.mjs heap, no stress/optimality): the null is usable, not re-taken. After the null the two wave files were given the canonical
 repo_root (inline_scan rc=0), so a key gate's harness_headers count can only be <= the null's 4, never above it.
+
+## Probe-tree correction (2026-11-23 ~04:30Z)
+The first records (b8d5, 756f, 3918, 8437, 20f7) ran their probes in the gate's tree while the next key's gate held its mutant on disk,
+so both probe arms imported that mutant (20f7's probe refused outright: line 2018 read the 50da mutant). Every probe now runs in
+$HOME/probe-tree, a clean detached worktree of the baseline that build_results.py checks (HEAD == baseline, custom_components clean)
+before each run. The five records were rebuilt there; results-superseded/ keeps the contaminated ones (20f7 flips equivalent ->
+candidate; the other four keep their class and numbers).

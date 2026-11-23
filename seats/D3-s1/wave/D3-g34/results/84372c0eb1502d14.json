@@ -41,7 +41,8 @@
    "plant_noisy (differs=0)"
   ],
   "thread_factor": "1.000 ratio",
-  "load1": "0.91"
+  "load1": "1.09",
+  "run_in": "a clean detached worktree of the baseline ($HOME/probe-tree), never the gate tree"
  },
  "should_fail": "tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks an identify() case whose first unregularised pass gives a negative UA/C slope (a noisy, drifting window) and asserts the curvature-corrected noise estimate uses k_hat = 0",
  "finding": {

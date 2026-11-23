@@ -43,7 +43,8 @@
    "plant (differs=0)"
   ],
   "thread_factor": "1.000 ratio",
-  "load1": "0.93"
+  "load1": "1.09",
+  "run_in": "a clean detached worktree of the baseline ($HOME/probe-tree), never the gate tree"
  },
  "should_fail": "tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks none reachable: an input with rows <= 4 is refused at :1942 before :1979",
  "equivalence": "the rows >= 5 guard at sysid.py:1942 precedes the line, so len(rows) - n_cols >= 1 and the max(.., 1) clamp is the identity on every input that reaches it",

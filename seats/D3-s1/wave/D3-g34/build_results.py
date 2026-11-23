@@ -114,10 +114,24 @@ SPEC = {
 }
 
 
+PROBE_ROOT = Path(os.environ.get("D3G34_PROBE_ROOT", Path.home() / "probe-tree"))
+
+
 def probe(key):
+    """Run the key's probe in a clean baseline worktree (PROBE_ROOT), never in the gate's tree, whose
+    production file carries the gated key's mutant while a gate runs."""
     rel = f"{REL}/probes/probe_{key[:8]}.py"
+    if subprocess.run(["git", "diff", "--quiet", BASE, "--", "custom_components"], cwd=PROBE_ROOT).returncode != 0 \
+            or subprocess.run(["git", "rev-parse", "HEAD"], cwd=PROBE_ROOT, capture_output=True, text=True).stdout.strip() != BASE:
+        raise SystemExit(f"REFUSE probe tree {PROBE_ROOT} is not the clean baseline")
+    dst = PROBE_ROOT / REL / "probes"
+    dst.mkdir(parents=True, exist_ok=True)
+    for f in ("_sysid_lib.py", f"probe_{key[:8]}.py"):
+        (dst / f).write_text((W / "probes" / f).read_text())
     env = dict(os.environ, PYTHONPATH="tests/hastub")
-    out = subprocess.run([sys.executable, rel], cwd=ROOT, env=env, text=True, capture_output=True, timeout=1800).stdout
+    out = subprocess.run([sys.executable, rel], cwd=PROBE_ROOT, env=env, text=True, capture_output=True, timeout=1800).stdout
+    if "RESULT cases_differing=" not in out:
+        raise SystemExit(f"REFUSE probe {rel} printed no cases_differing:\n{out[-800:]}")
     res = dict(re.findall(r"^RESULT (\w+)=(.*)$", out, re.M))
     cases = re.findall(r"^CASE (\S+): differs=(\d)", out, re.M)
     return rel, res, cases
@@ -155,7 +169,8 @@ def build(key, row):
                         + ([f"{sum(1 for n, _ in cases if re.match(r'(ulp|rand)', n))} tie-search inputs (ulp-300..+300, rand0..999), "
                             f"{sum(int(d) for n, d in cases if re.match(r'(ulp|rand)', n))} differ"]
                            if any(re.match(r"(ulp|rand)", n) for n, _ in cases) else []),
-                        "thread_factor": res.get("thread_factor"), "load1": res.get("load1")}
+                        "thread_factor": res.get("thread_factor"), "load1": res.get("load1"),
+                        "run_in": "a clean detached worktree of the baseline ($HOME/probe-tree), never the gate tree"}
         rec["should_fail"] = f"{FEAT}; it lacks {sp['lacks']}"
         if moved and "title" in sp:
             rec["cls"] = "candidate"
