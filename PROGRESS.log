@@ -9,3 +9,4 @@
 1795402210 CKPT step 1 pushed: grid, delivery, lead, boost, gate, feedback snapshot bbf91d779396
 1795402343 CKPT step 2 pushed: P3 full-draw, ported probes snapshot 602e38561b94
 1795402563 HB alive
+1795402604 CKPT step 3 pushed: step tick + tail snapshot 0746ac19dba1
