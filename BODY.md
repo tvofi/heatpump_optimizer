@@ -23,6 +23,8 @@ Departures from the approved design, each measured:
 
 ## Head
 
+`a6dd172693260908df97777553b7e6001c828f95` merges the PR head `7fb673f398` (`ci: pin killed mutants`, mutation-autofix's 14 pins at `19eafc0fb1`) into `b4a84ed9f1`. Three of those pins were add/add conflicts with the same anchors that #3812 put on main: `_silent_target` GUARD_OFF 32150d03, `_silent_target` RETURN_DEL 1d15c126 and `inside_silent` RETURN_DEL 21e6a29d. `killed_by` holds one driver, so the two sides cannot be unioned in one file. Main's file is kept for each, byte-identical to `origin/main`'s, so this diff carries none of the three. Each of the other 11 pins anchors a line that `grep -cxF` finds exactly once at this head. `python3 tests/mutation_table.py --normalize` leaves `git diff` empty, and `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`. The merge changes no production line, so the block and mutant figures below, taken at `b4a84ed9f1`, hold here.
+
 `b4a84ed9f1feb804cf85190bab2fc00add9f4f2d` adds one commit to the merge `010e0088d5`, the structure payment that #3812's merge left owed (Figures). The commit does two things:
 
 - It deletes the narration of replaced implementations from five `pump_arbiter.py` docstrings: `step_duty`, `_arm_space`, `_lead_mode`, `on_off_service` and `_level_kw`. Each keeps its rule and its finding ID. This is 16 lines.
@@ -162,30 +164,19 @@ Option mutants, in `flow_limit.py` / `pump_arbiter.py`, re-taken at `6d54e9bd1d`
 
 - custom_components/heatpump_optimizer/flow_limit.py:32 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/flow_limit.py:32 CMP_BOUND*2: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/flow_limit.py:32 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/flow_limit.py:52 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/flow_limit.py:52 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/flow_limit.py:52 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/flow_limit.py:54 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/flow_limit.py:56 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/inputs.py:576 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/inputs.py:584 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/inputs.py:742 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/inputs.py:743 CLAMP_DROP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/inputs.py:744 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/inputs.py:745 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:614 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/pump_arbiter.py:623 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/pump_arbiter.py:978 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:999 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1103 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/pump_arbiter.py:1103 CMP_BOUND: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/pump_arbiter.py:1111 RETURN_DEL: pinned by mutation-autofix
 
 ## Red checks
 
 - `tests / fast (3.14)` at f36611dd2354: red on this PR's own two checks, `tests/doc_claims.py`'s comment ratchet (one new sentence over 40 words in `tests/features.py`) and `tests/harness_headers.py` (the D6 claims harness header at 98 modules after `flow_limit.py` made 99). Both are repaired at `566727d1db`, figures above. Cheaper detector: both scripts are in this diff's `scope.run` and run locally (`doc_claims.py` in seconds, `harness_headers.py` in minutes), and `prepr.sh` runs the scoped set; the previous head was handed off without a local prepr run (state b, the process existed and was not followed). Standing cost of the detector: zero new, it exists; no countermeasure is built.
-- `tests / mutation` at f36611dd2354: red by construction on the site(s) under `## Unpinned sites`, all logged ADDED UNPINNED; mutation-autofix pins killed sites after the push. At `19eafc0fb1` that list also carried `pump_arbiter.py:936 GUARD_OFF`, described as "pinned by mutation-autofix". That claim was false: the site was a survivor, and autofix pins only killed mutants. The site is deleted at `6d54e9bd1d`, and the `pump_arbiter.py` sites after it moved up two lines; each moved line was compared with its old content. At `b4a84ed9f1`, each site was mapped to its line by content, comparing `git show 8c2c57a37f:<file>` with the head. The `_silent_target` and `quiet_windows.inside_silent` lines are main's since #3812, pinned by main's ledger entries, and are no longer this diff's: each has one exact match in `git show origin/main:<file>`.
+- `tests / mutation` at f36611dd2354: red by construction on the site(s) under `## Unpinned sites`, all logged ADDED UNPINNED; mutation-autofix pins killed sites after the push. At `19eafc0fb1` that list also carried `pump_arbiter.py:936 GUARD_OFF`, described as "pinned by mutation-autofix". That claim was false: the site was a survivor, and autofix pins only killed mutants. The site is deleted at `6d54e9bd1d`, and the `pump_arbiter.py` sites after it moved up two lines; each moved line was compared with its old content. At `b4a84ed9f1`, each site was mapped to its line by content, comparing `git show 8c2c57a37f:<file>` with the head. The `_silent_target` and `quiet_windows.inside_silent` lines are main's since #3812, pinned by main's ledger entries, and are no longer this diff's: each has one exact match in `git show origin/main:<file>`. At `a6dd172693`, mutation-autofix's pins from the PR head (`7fb673f398`) cover 11 more sites, which are no longer listed: `flow_limit.py` 32 RETURN_DEL, 52 CMP_BOUND, 52 GUARD_OFF and 56 RETURN_DEL; `inputs.py` 576 RETURN_DEL, 584 RETURN_DEL, 742 GUARD_OFF and 743 CLAMP_DROP; `pump_arbiter.py` 614 GUARD_OFF, 999 CLAMP_DROP and 1103 BOOLOP. Prepr step 6d at that head lists 10 sites, and this section lists those 10.
 
 ## Forward-carry
 
