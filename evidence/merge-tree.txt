@@ -1,0 +1,30 @@
+origin/main 24e3f37620f8f51022a2f9c82f863c7ba28fc6d4
+head 625cc2c2aef154c507b37cefb015b1c40b27bde7
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17317 + both deltas = 17297
+  max_class_loc: 7868 + both deltas = 7836
+  module_excess_loc: 21779 + both deltas = 21763
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+c861df03532558f69f501894a0c4853eabc9ab38
+custom_components/heatpump_optimizer/coordinator.py
+custom_components/heatpump_optimizer/pump_arbiter.py
+tests/entities.py
+
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/early_cutoff.py
+Auto-merging custom_components/heatpump_optimizer/legionella.py
+Auto-merging custom_components/heatpump_optimizer/manifest.json
+Auto-merging custom_components/heatpump_optimizer/off_restore.py
+Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/pump_arbiter.py
+Auto-merging tests/closures.json
+Auto-merging tests/dst_checks.py
+Auto-merging tests/entities.py
+CONFLICT (content): Merge conflict in tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/seam_map.json
+Auto-merging tests/structure_budgets.json
+Auto-merging tools/pr/prepr.sh
+rc=1
