@@ -7,7 +7,6 @@ S1 = Path.home() / "audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1"
 W = S1 / "wave/D3-g02"
 REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g02"
 spec = json.load(open(Path.home() / "tools/specs.json"))[key]
-row = dict(zip(*[l.split("\t") for l in (W / "keys.tsv").read_text().splitlines()[:1]] ,))
 hdr = (W / "keys.tsv").read_text().splitlines()[0].split("\t")
 row = next(dict(zip(hdr, l.split("\t"))) for l in (W / "keys.tsv").read_text().splitlines()[1:] if l.startswith(key))
 mut = json.load(open(S1 / f"state/results/complete/{key}.json"))["mutant"]
