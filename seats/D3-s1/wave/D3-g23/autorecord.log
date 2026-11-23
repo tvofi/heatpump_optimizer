@@ -10,3 +10,4 @@ RESULT 0ecb763c4bcb0828 verdict=RED-AS-NULL class=candidate
 2026-11-23T04:22:46Z recorded+ckpt 0ecb763c4bcb0828
 RESULT f2894b5754c254fe verdict=RED-AS-NULL class=equivalent-candidate
 2026-11-23T05:19:50Z recorded+ckpt f2894b5754c254fe
+RESULT bc3a42f14c903439 verdict=RED-AS-NULL class=candidate
