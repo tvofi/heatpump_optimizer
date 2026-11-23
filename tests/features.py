@@ -47995,8 +47995,23 @@ R.check(
 # single-zone branch. (a) to (d) on the owner's replay install, whose valve is
 # `manual` at 21 C; the law uses `slab_heat_transfer_floored`, which equals
 # `slab_heat_transfer` on every install above 1e-6 kW/K, this one included.
+# The install's upper-floor area ratio is 0.5, where the law's r and 1 - r arms
+# are interchangeable, so (a), (b) and (d) also run it at 0.3/0.7 and 0.7/0.3:
+# gains or losses weighted to the wrong floor then miss 21 C.
 def _tz_install(**over):
     return ThermalParameters.from_config(_tz_replay(**over))
+
+
+_TZ_SPLITS = (("install", {}),
+              ("split 0.3/0.7", {"upper_floor_area_ratio": 0.3, "radiator_power_fraction": 0.7}),
+              ("split 0.7/0.3", {"upper_floor_area_ratio": 0.7, "radiator_power_fraction": 0.3}))
+
+
+def _tz_split(over):
+    _tz_q = _tz_install()
+    for _tz_k, _tz_v in over.items():
+        setattr(_tz_q, _tz_k, _tz_v)
+    return _tz_q
 
 
 from profiles import replay_install as _tz_replay  # noqa: E402
@@ -48005,11 +48020,12 @@ from profiles import replay_install as _tz_replay  # noqa: E402
 def _tz_holds():
     from heatpump_optimizer.optimizer import _thermostat_held_state as _tz_held
 
-    _tz_p = _tz_install()
-    _tz_model = ThermalModel(_tz_p)
     _tz_n = 960
     _tz_out = {}
-    for _tz_outdoor in (5.0, -5.0, -15.0):
+    for (_tz_name, _tz_over), _tz_outdoor in (
+            (_s, _o) for _s in _TZ_SPLITS for _o in (5.0, -5.0, -15.0)):
+        _tz_p = _tz_split(_tz_over)
+        _tz_model = ThermalModel(_tz_p)
         _tz_start = ThermalState(
             room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_tz_outdoor,
             upper_floor_temperature=21.0, lower_floor_temperature=21.0,
@@ -48024,25 +48040,26 @@ def _tz_holds():
                 _tz_s, _tz_p.max_electrical_power, _tz_outdoor, 3.0, 0.0, 0.0, 0.25)
         _tz_b = _tz_model.simulate_trajectory_batch(
             _tz_h, np.full((1, _tz_n), _tz_p.max_electrical_power), _tz_w, dt_hours=0.25)
-        _tz_out[_tz_outdoor] = (
+        _tz_out[(_tz_name, _tz_outdoor)] = (
             _tz_h.room_temperature, _tz_s.room_temperature, float(_tz_b["room"][0, -1]))
-    return _tz_p, _tz_out
+    return _tz_out
 
 
-_tz_p, _tz_holds_out = _tz_holds()
+_tz_p = _tz_install()
+_tz_holds_out = _tz_holds()
 R.check(
     "two-zone valve-fed slab: the plant at its pump, settled, holds the room at the "
     "valve's 21 C within 0.02 K, scalar step and batch twin",
     _tz_p.two_zone_enabled and not _tz_p.slab_fed_direct and _tz_p.mixing_valve_target == 21.0
     and all(abs(_tz_sc - 21.0) < 0.02 and abs(_tz_bt - 21.0) < 0.02
             for _, _tz_sc, _tz_bt in _tz_holds_out.values()),
-    ", ".join(f"{o:+.0f} C scalar {sc:.3f} batch {bt:.3f}"
-              for o, (_, sc, bt) in _tz_holds_out.items()),
+    ", ".join(f"{n} {o:+.0f} C scalar {sc:.4f} batch {bt:.4f}"
+              for (n, o), (_, sc, bt) in _tz_holds_out.items()),
 )
 R.check(
     "two-zone valve-fed slab: a thermostat set to 21 C holds 21 C behind it",
     all(abs(_tz_room - 21.0) < 1e-3 for _tz_room, _, _ in _tz_holds_out.values()),
-    ", ".join(f"{o:+.0f} C {r:.4f}" for o, (r, _, _) in _tz_holds_out.items()),
+    ", ".join(f"{n} {o:+.0f} C {r:.4f}" for (n, o), (r, _, _) in _tz_holds_out.items()),
 )
 
 
@@ -48099,11 +48116,8 @@ def _tz_curve_agrees():
     from heatpump_optimizer.thermal_model import _valve_draw_circuits
 
     _tz_out = {}
-    for _tz_name, _tz_over in (("install", {}), ("split 0.3/0.7", {
-            "upper_floor_area_ratio": 0.3, "radiator_power_fraction": 0.7})):
-        _tz_q = _tz_install()
-        for _tz_k, _tz_v in _tz_over.items():
-            setattr(_tz_q, _tz_k, _tz_v)
+    for _tz_name, _tz_over in _TZ_SPLITS:
+        _tz_q = _tz_split(_tz_over)
         _tz_m = ThermalModel(_tz_q)
         _tz_st = ThermalState(
             room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=0.0,
