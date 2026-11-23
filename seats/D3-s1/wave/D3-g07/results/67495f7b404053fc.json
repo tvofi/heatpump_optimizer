@@ -1,0 +1,59 @@
+{
+ "key": "67495f7b404053fc",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:7477 CMP_BOUND",
+ "patch": "while len(series) < n_steps: -> while len(series) <= n_steps:",
+ "function": "HeatPumpOptimizerCoordinator._forecast_arrays",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays@7477-7492",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3803.3,
+  "child_cpu_s": 6328.5,
+  "load1_start": 0.81,
+  "load1_end": 1.08,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/67495f7b404053fc.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 67495f7b404053fc",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "equivalent-candidate",
+ "red_as_null": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_67495f7b404053fc.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_67495f7b404053fc.py",
+  "rc": 0,
+  "baseline_value": "0",
+  "mutant_value": "0",
+  "baseline_result": "fields_differing",
+  "mutant_result": "fields_differing",
+  "all_results": {
+   "cases_tried": "16",
+   "fields_differing": "0",
+   "padded_len_baseline": "96",
+   "padded_len_mutant": "97",
+   "thread_factor": "1.000",
+   "load1": "1.01",
+   "swapins": "0"
+  },
+  "inputs_tried": "weather forecast 0/1/10/48 h x solar series 0/48 h x Open-Meteo off/on = 16 cases, each on a first and a second call of one coordinator, all 10 ForecastArrays fields compared NaN-aware: 0 differ; positive arm: the outdoor list after the padding loop is 96 long on the baseline and 97 under the mutant (the mutant runs, its extra element is sliced off by [:n_steps] before any array is built, and the lists are rebuilt per call)"
+ },
+ "traced_reach": [
+  "tests/config_flow_steps.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/solar_alignment.py"
+ ],
+ "should_fail": "none: no observable output of _forecast_arrays changes (every series is sliced [:n_steps]); a check could only read the internal list length"
+}
