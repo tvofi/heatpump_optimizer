@@ -53,7 +53,10 @@ ok   graphql secondary: a Retry-After past the cap, or a spent primary bucket, p
 ok   cost: GitHub's documented example costs 51 by the formula, and one item query of GRAPHQL_BATCH items stays under QUERY_COST_CAP
 ok   cost: the formula counts each connection once per parent node, rounds the hundreds and is at least 1
 ok   partition: a batch key of another GRAPHQL_BATCH kept in the cursor is no unit of this pass: universe and examined count the current batches
+ok   partition files: an item file of another GRAPHQL_BATCH is removed, so the directory holds each item once, under the current keys
+ok   graphql status: an answer exiting 0 with a non-2xx status is no answer: its body is never stored, the query is asked again
 ok   graphql observe: a rateLimit missing, malformed, with no positive limit or a reset that is no UTC stamp keeps no pacing state and never raises
+ok   graphql cost: the cursor keeps the last cost answered and the largest, and 'cost' prints both
 ok   graphql wait: none before any answer; the pace at exactly the floor; the reset up to 3599 s and a pause at 3600; nothing once both are past
 ok   graphql secondary: a Retry-After of 300 s is waited, 301 s is not, and a primary or unreadable one never
 ok   gate: a search path, a field write, a mutation or any other gh command stops the mirror before the call
@@ -69,6 +72,7 @@ ok   mutant killed: gap (by 'gap is kept between calls')
 ok   mutant killed: graphql paced (by 'proportional to the cost')
 ok   mutant killed: pace by cost (by 'proportional to the cost')
 ok   mutant killed: token bucket waited (by 'proportional to the cost')
+ok   mutant killed: rateLimit asked (by 'proportional to the cost')
 ok   mutant killed: rateLimit read (by 'proportional to the cost')
 ok   mutant killed: rateLimit not stored (by 'not stored with the items')
 ok   mutant killed: floor before a query (by 'sleeps until resetAt')
@@ -81,6 +85,10 @@ ok   mutant killed: secondary cap (by 'past the cap, or a spent primary')
 ok   mutant killed: secondary only (by 'past the cap, or a spent primary')
 ok   mutant killed: query read with -i (by 'a query read with its headers')
 ok   mutant killed: partition (by 'no unit of this pass')
+ok   mutant killed: partition files (by 'an item file of another GRAPHQL_BATCH is removed')
+ok   mutant killed: formula rounds (by 'rounds the hundreds')
+ok   mutant killed: largest cost kept (by 'keeps the last cost answered and the largest')
+ok   mutant killed: 2xx only (by 'a non-2xx status is no answer')
 ok   mutant killed: cost cap (by 'stays under QUERY_COST_CAP')
 ok   mutant killed: formula per parent (by 'documented example costs 51')
 ok   mutant killed: formula nesting (by 'documented example costs 51')
@@ -128,7 +136,3 @@ ok   mutant killed: site prefix (by 'stays on the site's own prefix')
 ok   mutant killed: owner-only files (by 'the files are owner-only')
 ok   mutant killed: new pass (by 're-reads every list')
 corpus_mirror self-test: ok (with mutants)
-
-real	2m59.613s
-user	0m39.619s
-sys	1m50.040s
