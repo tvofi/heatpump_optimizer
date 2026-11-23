@@ -1,0 +1,78 @@
+{
+ "key": "cf96494341270371",
+ "site": "sysid.py:1541 CMP_BOUND",
+ "patch": "if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp <= outdoor_temp < cfg.max_outdoor_temp):",
+ "function": "SystemIdentification.conditions_met",
+ "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3761.2,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cf96494341270371",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/cf96494341270371.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py [--mutant]",
+  "metric": "band_refused",
+  "baseline_value": "0",
+  "mutant_value": "1",
+  "null_metric": "band_refused_inside",
+  "null_baseline": "0",
+  "null_mutant": "0",
+  "all_results_baseline": {
+   "band_refused": "0",
+   "band_refused_inside": "0",
+   "band_refused_scan": "00001",
+   "thread_factor": "1.000",
+   "load1": "1.14",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "band_refused": "1",
+   "band_refused_inside": "0",
+   "band_refused_scan": "00011",
+   "thread_factor": "1.000",
+   "load1": "1.14",
+   "swapins": "0"
+  },
+  "inputs_tried": "outdoor 10.0 (the tie), 9.9, 10.1, 0.0 (null), -5.0",
+  "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+ },
+ "reach": "reachable: an outdoor reading of exactly 10.0 C at the default band",
+ "should_fail": "tests/features.py (traced, executes sysid.py:1541): no conditions_met check at outdoor_temp == SysIdConfig.max_outdoor_temp (10.0 C) asserting the safe-band check passes",
+ "title": "No check pins conditions_met's inclusive upper outdoor bound (10.0 C); <= -> < is unseen",
+ "claim": "Mutant cf96494341270371 at sysid.py:1541 CMP_BOUND (if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp <= outdoor_temp < cfg.max_outdoor_temp):) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's band_refused moves 0 -> 1 while its null band_refused_inside stays 0 -> 0. reachable: an outdoor reading of exactly 10.0 C at the default band.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.conditions_met",
+ "metric_definition": "band_refused = 1 when SystemIdentification.conditions_met refuses with 'outdoor temperature outside the safe band' at outdoor_temp == SysIdConfig().max_outdoor_temp (10.0 C), default window, hour 1, cheap price.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py --mutant",
+ "perturbation": {
+  "change": "the one-line mutant at sysid.py:1541 (if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp <= outdoor_temp < cfg.max_outdoor_temp):), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cf96494341270371",
+  "expected_direction": "up",
+  "baseline_value": "0",
+  "observed_value": "1"
+ },
+ "null_control": {
+  "probe_arm": "band_refused_inside: 0 -> 0 (an input where the edit cannot matter)",
+  "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+ }
+}
