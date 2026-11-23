@@ -1,0 +1,73 @@
+{
+ "key": "7030f8259cc37dd4",
+ "site": "defrost.py:746 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/defrost.py",
+ "line": 746,
+ "patch": "if delta is not None and delta > 0: -> if delta is not None and delta >= 0:",
+ "function": "DefrostWindow._accrue",
+ "cluster": "defrost.py:DefrostWindow._accrue@746-746",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 2850.7,
+  "child_cpu_s": 4741.1,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/7030f8259cc37dd4.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7030f8259cc37dd4",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+  "answer": "defrost.py:746 DefrostWindow._accrue CMP_BOUND: `if delta is not None and delta > 0:` -> `if delta is not None and delta >= 0:`. Ran 12 closure scripts, none killed. Should fail: tests/config_flow_steps.py, tests/features.py each execute line 746 on the traced baseline yet no check of theirs reads an outcome the mutation changes."
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_7030f8259cc37dd4.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_7030f8259cc37dd4.py",
+  "rc": 0,
+  "results": [
+   "RESULT on_then_peek: baseline=(1.0, 1, True, 600.0)/(1.0, 1, True, 600.0) mutant=(1.0, 1, True, 600.0)/(1.0, 1, True, 600.0)",
+   "RESULT off_on_peek: baseline=(0.666666666667, 1, True, 900.0)/(0.666666666667, 1, True, 900.0) mutant=(0.666666666667, 1, True, 900.0)/(0.666666666667, 1, True, 900.0)",
+   "RESULT on_off_peek: baseline=(0.333333333333, 1, True, 900.0)/(0.333333333333, 1, True, 900.0) mutant=(0.333333333333, 1, True, 900.0)/(0.333333333333, 1, True, 900.0)",
+   "RESULT repeat_same_stamp: baseline=(1.0, 1, True, 300.0)/(1.0, 1, True, 300.0) mutant=(1.0, 1, True, 300.0)/(1.0, 1, True, 300.0)",
+   "RESULT zero_length: baseline=(0.0, 1, True, 0.0)/(0.0, 1, True, 0.0) mutant=(0.0, 1, True, 0.0)/(0.0, 1, True, 0.0)",
+   "RESULT backwards_clock: baseline=(0.0, 1, True, 0.0)/(0.0, 1, True, 0.0) mutant=(0.0, 1, True, 0.0)/(0.0, 1, True, 0.0)",
+   "RESULT dark_then_on: baseline=(0.8, 1, False, 600.0)/(0.8, 1, False, 600.0) mutant=(0.8, 1, False, 600.0)/(0.8, 1, False, 600.0)",
+   "RESULT carried_level_after_close: baseline=(1.0, 0, False, 600.0)/(1.0, 0, False, 600.0) mutant=(1.0, 0, False, 600.0)/(1.0, 0, False, 600.0)",
+   "RESULT carried_level_reobserved: baseline=(1.0, 0, True, 600.0)/(1.0, 0, True, 600.0) mutant=(1.0, 0, True, 600.0)/(1.0, 0, True, 600.0)",
+   "RESULT none_observed: baseline=(0.0, 0, False, 0.0)/(0.0, 0, False, 0.0) mutant=(0.0, 0, False, 0.0)/(0.0, 0, False, 0.0)",
+   "RESULT direct_delta=0.0: baseline_seconds_on=3.0 mutant=3.0 same=1",
+   "RESULT direct_delta=-0.0: baseline_seconds_on=3.0 mutant=3.0 same=1",
+   "RESULT direct_delta=-5.0: baseline_seconds_on=3.0 mutant=3.0 same=1",
+   "RESULT direct_delta=1e-09: baseline_seconds_on=3.0 mutant=3.0 same=1",
+   "RESULT direct_delta=7.0: baseline_seconds_on=10.0 mutant=10.0 same=1",
+   "RESULT sequences_moved=0 of 15 ()",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.87",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "10 observe/close sequences (on/off/dark/repeated stamp/zero length/backwards clock/carried level)",
+   "direct _accrue delta 0.0, -0.0, -5.0, 1e-9, 7.0"
+  ],
+  "baseline_value": null,
+  "mutant_value": null,
+  "load1": 0.87,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none: at delta == 0 the mutant adds 0.0 (or -0.0) to a non-negative float accumulator, bit-identically",
+ "equivalence": "delta == 0 contributes += 0.0; no input separates"
+}
