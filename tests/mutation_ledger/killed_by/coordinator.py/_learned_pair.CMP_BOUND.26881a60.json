@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_learned_pair CMP_BOUND 26881a60",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if not (np.isfinite(value) and value > 0 and count >= least):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if not (np.isfinite(value) and value >= 0 and count >= least):`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}
