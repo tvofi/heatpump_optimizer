@@ -1,0 +1,92 @@
+{
+ "key": "0a40fc8d3d37f2ba",
+ "site": "optimizer.py:2111 GUARD_OFF",
+ "patch": "if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9): -> if False:",
+ "function": "_better_objective",
+ "cluster": "optimizer.py:_better_objective@2111-2111",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3129.2,
+  "load1_start": 0.72,
+  "load1_end": 1.0,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/0a40fc8d3d37f2ba.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0a40fc8d3d37f2ba",
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0a40fc8d3d37f2ba.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0a40fc8d3d37f2ba.py",
+  "baseline_value": "right",
+  "mutant_value": "left",
+  "example_input": "left=0.0,right=-3.0",
+  "results": [
+   "example_input=left=0.0,right=-3.0",
+   "kept_baseline=right",
+   "kept_mutant=left",
+   "kept_objective_baseline_left10_right5=5.0",
+   "kept_objective_mutant_left10_right5=10.0",
+   "grid_inputs_tried=196 count",
+   "grid_inputs_moved=84 count",
+   "domain_inputs_tried=121 count",
+   "domain_inputs_moved=51 count",
+   "production_calls=0 count",
+   "production_calls_moved=0 count",
+   "null_inputs_moved=0 count"
+  ],
+  "inputs_tried": "production domain: any two finite objective values (an OptimizationResult's objective_value); grid_inputs_tried=196 count; domain_inputs_tried=121 count",
+  "null": [
+   "null_inputs_moved=0 count"
+  ]
+ },
+ "step4": "moves on production inputs: 51 of 121 finite value pairs flip; the kept objective for (10, 5) goes 5.0 -> 10.0. The probe's four manual_plan solves never call it (0 calls); features.py reaches it",
+ "should_fail": "tests/features.py (the one script that executes optimizer.py:2111 on the traced baseline, through _repair_throttled_buffer_caps at optimizer.py:5180) never asserts which plan _better_objective keeps when the second arm (the cap-tighten seeds) is lower",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "finding": {
+  "title": "No check makes the cap-tighten seed arm win _better_objective; disabling its right-wins branch is unseen",
+  "claim": "Mutant 0a40fc8d3d37f2ba at optimizer.py:2111 (the right-wins guard -> `if False:`) survives the full gate, yet the probe's kept objective for left=10, right=5 moves 5.0 -> 10.0, and 51 of 121 finite value pairs flip: the buffer-cap repair (optimizer.py:5180) would always keep the unseeded solve, so its extra seeds could never win. Full gate: RED-AS-NULL, gate_rc=1.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "the objective of the plan _better_objective keeps for left=10.0, right=5.0, and the count of finite (left, right) pairs whose kept side flips",
+  "phenomenon_property": "_better_objective keeps the plan with the lower finite objective (ties keep left)",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this key's row) with the full gate's verdict in gates/<key>.json",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:_better_objective",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0a40fc8d3d37f2ba.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0a40fc8d3d37f2ba.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0a40fc8d3d37f2ba.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0a40fc8d3d37f2ba.py",
+   "value": 10.0,
+   "unit": "kept objective for left=10, right=5 (baseline 5.0)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+   "tolerance": "exact (counts); solver floats to 1e-3 relative",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "the one-line mutant `if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9):` -> `if False:` at custom_components/heatpump_optimizer/optimizer.py:2111, in memory by the probe; on disk by fullgate.py run --key 0a40fc8d3d37f2ba",
+   "expected_direction": "up",
+   "observed_value": 10.0
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0a40fc8d3d37f2ba.py",
+   "value": "null_inputs_moved=0 count",
+   "note": "the function re-compiled with the line unchanged: no grid input, production call or plan moves; the box's full-gate null is gates/null.json"
+  },
+  "should_fail": "tests/features.py (the one script that executes optimizer.py:2111 on the traced baseline, through _repair_throttled_buffer_caps at optimizer.py:5180) never asserts which plan _better_objective keeps when the second arm (the cap-tighten seeds) is lower",
+  "proposed_fix_scope": "tests only: the check named in should_fail, at the input the probe's example_input names"
+ }
+}
