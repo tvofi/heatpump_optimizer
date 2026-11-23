@@ -27,6 +27,7 @@ _T0 = (time.process_time(), time.thread_time())
 
 def repo_root(start):
     """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
     here = Path(start).resolve()
     if here.is_file():
         here = here.parent

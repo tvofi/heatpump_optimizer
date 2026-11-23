@@ -14,7 +14,8 @@
 import os
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
-import asyncio, inspect, sys, textwrap, time
+import asyncio, inspect, logging, sys, textwrap, time
+logging.disable(logging.CRITICAL)
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -24,6 +25,7 @@ _T0 = (time.process_time(), time.thread_time())
 
 def repo_root(start):
     """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
     here = Path(start).resolve()
     if here.is_file():
         here = here.parent
