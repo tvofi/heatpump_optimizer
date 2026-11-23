@@ -1,2 +1,3 @@
 1795402411 INIT r11-rev-3880
 1795402420 HB alive
+1795402611 CKPT mutants run: M7 ROUND_RECORDS file-half survives; awaiting replan self-test and CI snapshot 2044dbcc4fd4
