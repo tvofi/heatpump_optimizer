@@ -183,7 +183,7 @@ gantt
 | R11-ARCH-cycle-surface | CORE | 1 | in-progress | - | opus/opus | - | Refactor group with no finding (ADR-005, its approved design). |  |
 | R11-ARCH-fabric-learner | CORE | 2 | in-progress | #3795 | opus/opus | - | Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. |  |
 | R11-READS-RESIDUE | IN | 1 | done | - | opus/opus | - | Round 11. |  |
-| R11-SEAM-two-zone-slab | CORE | 1 | not-started | **#3713** | opus/opus | - | Issue 3713: the two-zone valve-fed slab model omits the series term between the valve and the slab (R11-VALVE-REFERENCE carry 3, item 2c38f69d; that group's... |  |
+| R11-SEAM-two-zone-slab | CORE | 1 | in-progress | **#3713** | opus/opus | - | Issue 3713: the two-zone valve-fed slab model omits the series term between the valve and the slab (R11-VALVE-REFERENCE carry 3, item 2c38f69d; that group's... |  |
 | R11-SEAM-wallclock-dst | CORE | 1 | not-started | **#3786** | opus/opus | - | Class P7 residual (issue 3786), re-homed from R11-SEAM-money, which closed the class's verified finding D2-s3-07: ledger.month_hours counts the zone's real h... |  |
 | R11-HOTFIX-CODEQL-PERMS | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
 | R11-OUTSIDE-ROOMS-3B | IN | 1 | in-progress | #3616 | fable/fable | - | Owner item from #3616 (outside reporter), placed by the orchestrator under mandate 6893738184: the room lift made visible. |  |

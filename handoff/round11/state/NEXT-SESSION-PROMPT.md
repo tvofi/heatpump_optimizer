@@ -31,6 +31,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SEAM-comments-tests (stage carries-open, branch `handoff/r11-seam-comments-tests`): `git fetch origin handoff/r11-seam-comments-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-cycle-surface (stage in-progress, branch `handoff/r11-arch-cycle-surface`): `git fetch origin handoff/r11-arch-cycle-surface && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-fabric-learner (stage in-progress, branch `handoff/r11-arch-fabric-learner`): `git fetch origin handoff/r11-arch-fabric-learner && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-two-zone-slab (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-ROOMS-3B (stage in-progress, branch `handoff/r11-outside-rooms-3b`): `git fetch origin handoff/r11-outside-rooms-3b && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-CARD-EXTERNAL-HEAT (stage in-progress, branch `handoff/r11-owner-card-external-heat`): `git fetch origin handoff/r11-owner-card-external-heat && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FLOWCAP (stage in-progress, branch `handoff/r11-owner-flowcap`): `git fetch origin handoff/r11-owner-flowcap && git worktree add --detach $SEAT/wt FETCH_HEAD`
