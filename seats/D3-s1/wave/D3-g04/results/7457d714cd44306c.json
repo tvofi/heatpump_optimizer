@@ -1,0 +1,69 @@
+{
+ "key": "7457d714cd44306c",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9166 CMP_BOUND",
+ "patch": "return margins if bool(np.any(margins > 1e-9)) else None -> return margins if bool(np.any(margins >= 1e-9)) else None",
+ "function": "HeatPumpOptimizerCoordinator._confidence_margins",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._confidence_margins@9153-9166",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3225.4,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 5332.1,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/7457d714cd44306c.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_7457d714cd44306c.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_7457d714cd44306c.py",
+  "rc": 0,
+  "baseline_value": "outcome_baseline=None",
+  "mutant_value": "outcome_mutant=array[4] max=1e-09",
+  "results": {
+   "outcome_baseline": "None",
+   "outcome_mutant": "array[4] max=1e-09",
+   "differing_inputs": "2 count",
+   "null_differing": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.95",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "sigma 2e-9 at damp 0.5 (mae 1.125)",
+   "sigma 4e-9 at damp 0.25 (mae 0.6875)",
+   "null: sigma 1e-8 and 1e-10"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_7457d714cd44306c.out"
+ },
+ "should_fail": "tests/features.py: the _confidence_margins block (~23988-24030) never constructs a margin of exactly 1e-9; it lacks the tie case asserting None.",
+ "finding": {
+  "title": "No check makes a confidence margin exactly 1e-9; the `>` -> `>=` swap in its None test is unseen",
+  "claim": "_confidence_margins returns None unless some margin exceeds 1e-9. With `>` -> `>=`, a lead sigma of 2e-9 C at damp 0.5 (sigma*damp == 1e-9 exactly) returns an array of 1e-9 C instead of None. The full gate does not notice; the consequence is a non-None, nanokelvin min_temp_margins.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "None-versus-array outcome of _confidence_margins(4) when sigma*damp == 1e-9 exactly",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._confidence_margins (custom_components/heatpump_optimizer/coordinator.py:9166)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_7457d714cd44306c.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_7457d714cd44306c.py  ;  custom_components/heatpump_optimizer/coordinator.py:9166 full gate: GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7457d714cd44306c",
+  "perturbation": "coordinator.py:9166 `margins > 1e-9` -> `margins >= 1e-9`; None -> array of 1e-9",
+  "null_control": "the probe's null arm (null_delta/null_differing RESULT = 0 count) and this box's fullgate.py null gate (gates/null.json)"
+ }
+}
