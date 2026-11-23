@@ -1,0 +1,81 @@
+{
+ "key": "4410da4e8eb84cb8",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8838 BOOLOP",
+ "patch": "if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp: -> if params.dhw_enabled or state.dhw_temperature < params.dhw_min_temp:",
+ "function": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold@8838-8847",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3867.5,
+  "child_cpu_s": 6474.6,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/4410da4e8eb84cb8.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4410da4e8eb84cb8",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "candidate",
+ "red_as_null": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py",
+  "rc": 1,
+  "baseline_value": null,
+  "mutant_value": null,
+  "baseline_result": "hold_baseline",
+  "mutant_result": "hold_mutant",
+  "all_results": {},
+  "inputs_tried": "dhw_enabled False, dhw_temperature 40 C < dhw_min_temp 45 C, room 21 C, floor 17 C; null: dhw 55 C"
+ },
+ "traced_reach": [
+  "tests/features.py"
+ ],
+ "should_fail": "tests/features.py (traced reach of coordinator.py:8838) has no _guard_floor_hold check with hot water disabled and a low tank reading asserting False",
+ "finding": {
+  "title": "No check pins _guard_floor_hold's hot-water arm to installs with hot water enabled",
+  "claim": "Mutating coordinator.py:8838 `params.dhw_enabled and ...` to `or` makes a disabled tank's low reading hold the peak/price guard (verdict 0 -> 1) and the full gate stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "_guard_floor_hold() verdict, 1 hold / 0 none, for one coordinator state (bool)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._guard_floor_hold",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4410da4e8eb84cb8  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py  (hold_baseline=None, hold_mutant=None)",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/coordinator.py:8838 `if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp:` -> `if params.dhw_enabled or state.dhw_temperature < params.dhw_min_temp:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+   "expected_direction": "up",
+   "observed_value": "None -> None"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py",
+   "value": "null_baseline=None, null_mutant=None",
+   "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+  },
+  "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._guard_floor_hold that changes its returned value has a check that fails when the guard is mutated",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._guard_floor_hold on the probe's input and asserting the baseline value"
+ }
+}
