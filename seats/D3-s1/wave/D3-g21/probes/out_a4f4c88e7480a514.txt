@@ -1,0 +1,10 @@
+RESULT tie_cost_baseline=29.00000000
+RESULT tie_cost_mutant=28.99999600
+RESULT moved=1 count
+RESULT null_delta=0 count
+RESULT plan_predicted_cost_baseline=10.72234229
+RESULT plan_predicted_cost_mutant=10.72234229
+RESULT plan_maxabs_diff_kw=0.000000 kW
+RESULT thread_factor=1.000
+RESULT load1=1.62
+RESULT swapins=0
