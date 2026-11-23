@@ -20495,7 +20495,7 @@ R.check(
 # the draw learner. Monday 07:00 is the control: inside, at every reader.
 from unittest import mock as _d17_mock  # noqa: E402
 from harness import FakeEntry as _d17_entry  # noqa: E402
-from heatpump_optimizer import boost as _d17_boost, dhw_schedule as _d17_sched  # noqa: E402
+from heatpump_optimizer import boost as _d17_boost, circulation as _d17_circ, dhw_schedule as _d17_sched  # noqa: E402
 from homeassistant.util import dt as _d17_dt_util  # noqa: E402
 
 _D17_MON = datetime(2026, 1, 12, 7, 0, tzinfo=UTC)
@@ -20576,19 +20576,25 @@ _D17_SAT1030 = _D17_SAT.replace(hour=10, minute=30)
 _d17_hcr = {}
 for _d17_label, _d17_cal in (("holiday", "on"), ("ordinary", "off")):
     _d17_hc.hass.states.set("calendar.holiday", FakeState(_d17_cal))
-    _d17_hc._pump_commanded.clear()
-    _d17_hc.hass.services.calls.clear()
-    with _d17_mock.patch.object(_d17_dt_util, "now", lambda: _D17_SAT1030):
+    _d17_vvc_on = []
+
+    # The VVC decision as the coordinator hands it to circulation.command,
+    # whose write and restore mechanics are not this check's subject.
+    async def _d17_cmd(hass, entry, config, pump, on, reason, _l=_d17_vvc_on):
+        if pump == _d17_circ.DHW:
+            _l.append(on)
+
+    with _d17_mock.patch.object(_d17_dt_util, "now", lambda: _D17_SAT1030), \
+            _d17_mock.patch.object(_d17_circ, "command", _d17_cmd):
         _asyncio.run(_d17_hc._async_drive_pumps())
         _d17_hcr[_d17_label] = (
             _d17_hc._dhw_in_demand_window(),
             _d17_boost._window_open(_d17_hc.arbiter_inputs(), _D17_SAT1030),
-            [_svc for _dom, _svc, _pl in _d17_hc.hass.services.calls
-             if _pl == {"entity_id": "switch.vvc"}],
+            _d17_vvc_on,
         )
 R.check(
     "the in-window flag, boost and the VVC pump take the holiday tier from the holiday calendar (D17-s3-51)",
-    _d17_hcr == {"holiday": (True, True, ["turn_on"]), "ordinary": (False, False, ["turn_off"])},
+    _d17_hcr == {"holiday": (True, True, [True]), "ordinary": (False, False, [False])},
     f"{_d17_hcr} -- Saturday 10:30 is inside the holiday windows 10:00-11:00 and outside "
     "Saturday's own 08:00-09:30",
 )
