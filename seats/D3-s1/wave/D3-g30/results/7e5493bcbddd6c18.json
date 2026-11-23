@@ -1,0 +1,79 @@
+{
+ "key": "7e5493bcbddd6c18",
+ "site": "custom_components/heatpump_optimizer/price_model.py:80 CONST",
+ "patch": "QUARTER_ALPHA = 0.12 -> QUARTER_ALPHA = 0.24",
+ "function": "<module>",
+ "cluster": "price_model.py:<module>@66-90",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3478.5,
+  "load1_start": 0.94,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/7e5493bcbddd6c18.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py",
+  "baseline": {
+   "qf_h7q0_two_days_up_down": "0.924"
+  },
+  "mutant": {
+   "qf_h7q0_two_days_up_down": "0.948"
+  },
+  "moved": {
+   "qf_h7q0_inputs_moved": "2 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "two_days_up_down,three_days_up_down_up,one_day_seed_only,two_identical_days",
+  "all_results": {
+   "qf_h7q0_two_days_up_down_baseline": "0.924",
+   "qf_h7q0_two_days_up_down_mutant": "0.948",
+   "qf_h7q0_three_days_up_down_up_baseline": "0.92112",
+   "qf_h7q0_three_days_up_down_up_mutant": "0.93648",
+   "null_qf_h7q0_one_day_seed_only_baseline": "0.9",
+   "null_qf_h7q0_one_day_seed_only_mutant": "0.9",
+   "null_qf_h7q0_two_identical_days_baseline": "0.9",
+   "null_qf_h7q0_two_identical_days_mutant": "0.9",
+   "qf_h7q0_inputs_moved": "2 count",
+   "null_delta": "0 count",
+   "inputs_tried": "two_days_up_down,three_days_up_down_up,one_day_seed_only,two_identical_days",
+   "thread_factor": "1.000",
+   "load1": "0.80",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "Doubling the quarter EWMA rate moves the learned 07:00 quarter factor after two opposite-ramp days from 0.924 to 0.948 through PriceShapeLearner.fold; no gated script reads a quarter factor after a second, different day.",
+ "should_fail": "tests/features.py quarter block (~18722-18800, traced executing observe_day_quarters' EWMA): it folds identical days only (6x the same _q_days day; 3x _spiked), where alpha cancels; it lacks an assertion of quarter_factors after two different days equal to (1-QUARTER_ALPHA)*day1 + QUARTER_ALPHA*day2 renormalised.",
+ "finding": {
+  "title": "price_model.py:80 QUARTER_ALPHA 0.12 -> 0.24 survives the full gate: the quarter-factor learning rate is unpinned",
+  "claim": "Doubling the quarter EWMA rate moves the learned 07:00 quarter factor after two opposite-ramp days from 0.924 to 0.948 through PriceShapeLearner.fold; no gated script reads a quarter factor after a second, different day.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "learned quarter factor of hour 7 quarter 0 (quarter_factors[weekday][28]) after quarter days folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7e5493bcbddd6c18",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:80",
+  "perturbation": "the one-line mutant 7e5493bcbddd6c18: `QUARTER_ALPHA = 0.12` -> `QUARTER_ALPHA = 0.24`; direction qf_h7q0_two_days_up_down: 0.924 -> 0.948",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}
