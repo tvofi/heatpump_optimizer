@@ -11,7 +11,7 @@ Tooling fix by owner request (tooling-freeze exception, owner, 2026-11-22T19:05Z
 
 ## Head
 
-`a36a6b14a5728a2c7f77de7c73b75128c29b7891`, seven commits on `origin/main` `1207ee13b0` (measured 2026-11-23T01:11Z). Read the diff three-dot. Round 2 (repair of the block at `273e5ece99`, verdict `1f242d125a`): the four commits after `1cfbe54f94`, `git diff 1cfbe54f94 a36a6b14a5`.
+`f737eed72009e0ff4bf1f4126e929c5430b39684`, eight commits on `origin/main` `1207ee13b0` plus main merged at `0812e8b2e4`. Read the diff three-dot. Round 3 (repair of the `mutation-vacuous` block at `0812e8b2e4`, verdict `0a4ce66fa9`): one commit, `git diff 0812e8b2e4 f737eed720`.
 
 ## Mutation proof
 
@@ -53,6 +53,20 @@ Every diff mutant on a production line, not the first 40: `prepr.sh`'s drawer st
 
 `vacuous_probe.py --rules AB --repo . --head HEAD --base origin/main --body <this body>` printed `VACUOUS-PROBE: PASS -- 0 changed production file(s); rule A 0, B 0, C 0`: rules A and B read `custom_components/` only, so they pass here by reach, not by content; rule C over `tools/audit/seat/` is the line-revert run above.
 
+**Round 3 (repair of the `mutation-vacuous` block at `0812e8b2e4`).** The reviewer's two survivors, each now killed. New case `partition keep: a pass resumed under the same partition keeps the file of every batch answered before the pause, so each batch holds its file` (on the `ghour` pause-then-resume run: the 3 files held at the pause are byte-identical after the resume, and the directory's stems equal the cursor's batch keys). `observe`'s max is rewritten `max(seen["max"], cost) if "max" in seen else cost`, so the first cost has no default figure to mutate, and `graphql cost` also observes `92, 30` (the first answer the largest) and must hold `{"last": 30, "max": 92}`. A scratch driver applied each mutant to the file at `f737eed720` and ran `python3 -I tools/audit/seat/corpus_mirror.py --self-test --no-mutants`:
+
+```
+null control (unmutated): rc=0 fails=0
+reviewer 'unlink all': rc=1 fails=1
+    FAIL partition keep: a pass resumed under the same partition keeps the file of every batch answered before the pause, so each batch holds its file
+reviewer 'max default 0' (re-cut needle: first cost -> 0): rc=1 fails=1
+    FAIL graphql cost: the cursor keeps the last cost answered and the largest, and 'cost' prints both
+reviewer 'unlink none glob': rc=1 fails=1
+    FAIL partition files: an item file of another GRAPHQL_BATCH is removed, so the directory holds each item once, under the current keys
+```
+
+New in-tree mutants: `partition keeps current` (`if stale.stem not in batches:` -> `if True:`) and `first cost is a max` (`else cost` -> `else 0`); `largest cost kept` re-anchored on the rewritten line.
+
 ## Null control
 
 - `graphql pace null: a query of cost 1 waits only the gap`: at cost 1 (0.72 s by the rule) every GraphQL call is preceded by exactly `MIN_GAP_S`, and the base's `budget ... gap is kept between calls` case (`set(sleeps) == {MIN_GAP_S}`) still passes unedited.
@@ -65,7 +79,7 @@ Every diff mutant on a production line, not the first 40: `prepr.sh`'s drawer st
 - Base pacing: 13 queries cross the 60 % floor (2000 / 154, rounded up) and 32 spend 5000 (5000 / 154), against one budget read per 200 calls (`gh_read.BATCH`).
 - Issue count (issues plus pull requests): `gh api -X GET search/issues -f q='repo:tvofi/heatpump_optimizer is:issue' --jq .total_count` printed `1082`, the same with `is:pull-request` `2785`: 3867 items, 129 queries of 30 (`ceil(3867/30)`), 11868 points at 92.
 - Expected S3 GraphQL wall time at the head, assuming each hour's bucket starts full at 5000 and nothing else spends it, by `graphql_wait`'s rule (query while `remaining - 92 >= floor * 5000`): shared token (floor 0.60) 21 queries a window (23 min at the 66.24 s pace, then a sleep to reset), so 129 queries take six windows plus 3 queries, about 6.1 h; `--own-identity` (floor 0.10) 48 queries a window (53 min), two windows plus 33 queries, about 2.6 h; the pace alone bounds it below at 129 x 66.24 s = 2.37 h. Query latency adds to each gap; a first bucket below full shortens the first window. Arithmetic over the figures above, no API call.
-- `python3 -I tools/audit/seat/corpus_mirror.py --self-test`: `corpus_mirror self-test: ok (with mutants)`, 135 `ok` lines of which 72 are `ok   mutant killed`, no `FAIL` (`grep -c '^ok'` and `grep -c '^ok   mutant killed'` over its output; at `1cfbe54f94` the same counts were 127 and 67).
+- `python3 -I tools/audit/seat/corpus_mirror.py --self-test`: `corpus_mirror self-test: ok (with mutants)`, 138 `ok` lines of which 74 are `ok   mutant killed`, no `FAIL` (`grep -c '^ok'` and `grep -c '^ok   mutant killed'` over its output; at `0812e8b2e4` the same counts were 135 and 72, at `1cfbe54f94` 127 and 67).
 - Scoped gate: `D=$(mktemp -d); python3 tests/closure.py select --diff 1207ee13b0 --workdir "$D"` printed `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`; `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
 
 ## Red checks
