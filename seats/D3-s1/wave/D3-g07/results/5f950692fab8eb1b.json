@@ -1,0 +1,62 @@
+{
+ "key": "5f950692fab8eb1b",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:7492 CLAMP_DROP",
+ "patch": "humidity[i] = float(np.clip(rh, 0.0, 100.0)) -> humidity[i] = float((rh))",
+ "function": "HeatPumpOptimizerCoordinator._forecast_arrays",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays@7477-7492",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3804.1,
+  "child_cpu_s": 6371.7,
+  "load1_start": 0.78,
+  "load1_end": 1.0,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/5f950692fab8eb1b.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 5f950692fab8eb1b",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "equivalent-candidate",
+ "red_as_null": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_5f950692fab8eb1b.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_5f950692fab8eb1b.py",
+  "rc": 0,
+  "baseline_value": "0",
+  "mutant_value": "0",
+  "baseline_result": "production_inputs_differing",
+  "mutant_result": "production_inputs_differing",
+  "all_results": {
+   "reach_calls": "96",
+   "parsed150_baseline": "85.0",
+   "parsed150_mutant": "85.0",
+   "parsed95_baseline": "95.0",
+   "parsed95_mutant": "95.0",
+   "parsedneg_baseline": "85.0",
+   "parsedneg_mutant": "85.0",
+   "parsednan_baseline": "85.0",
+   "parsednan_mutant": "85.0",
+   "production_inputs_differing": "0",
+   "bypass_baseline": "100.0",
+   "bypass_mutant": "150.0",
+   "thread_factor": "1.000",
+   "load1": "0.86",
+   "swapins": "0"
+  },
+  "inputs_tried": "Open-Meteo hourly humidity 150 / 95 / -5 / NaN through the production _parse_block (max_value=100): 0 of 4 differ (out-of-range and non-finite samples are dropped before humidity_for, whose mean of in-range samples stays in [0, 100]); reach: line 7492 executes 96 times per call in the probe; positive arm: a 150 % series injected past the parser gives 100 vs 150, an input no production path builds"
+ },
+ "traced_reach": [],
+ "should_fail": "none: the clamp is the identity on every value the only producer (open_meteo._parse_block, max_value=100) can deliver. No traced baseline executes coordinator.py:7492 (the closure scripts never drive an available Open-Meteo client with humidity); the probe reaches it, so the line is reachable, not dead"
+}
