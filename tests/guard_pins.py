@@ -817,6 +817,65 @@ def _r10_arch_shapes_pins() -> dict[str, bool]:
     }
 
 
+def _r11_seam_store_pins() -> dict[str, tuple[bool, str]]:
+    """R11-SEAM-store: the loader, restore and debug-row lines the diff rewrote.
+
+    Each check reads production against ``store.DOMAINS``, the schema the
+    diff makes the one source: a learned pair loads exactly when its
+    declaration admits it, the restore refuses a snapshot with no measured
+    in-band bias, and a debug row declares exactly the fields an accuracy
+    sample writes. The ``features.py`` checks that also reach the first two
+    ran past the pin drive's per-driver timeout under their mutants.
+    """
+    from heatpump_optimizer.accuracy import AccuracySample
+    from heatpump_optimizer.coordinator import _learned_pair
+    from heatpump_optimizer.snapshots import BIAS_BAND_C, SnapshotRing
+    from heatpump_optimizer.store import DOMAINS, admitted
+
+    def loads(entry: list, least: int) -> bool:
+        try:
+            return _learned_pair(entry, least) == entry
+        except ValueError:
+            return False
+
+    # Each pair on a bound of the loader's test: the count at ``least`` and
+    # one under it, the value at zero and either side, a non-finite value.
+    probes = ([6.0, 0], [6.0, 1], [2.5, 0], [2.5, 1], [0.0, 3], [-1.0, 3],
+              [float("nan"), 3], [1e-9, 3])
+    agree = {
+        # The capacity envelope seeds a measured floor at count 0 (least=0);
+        # a COP baseline is written at its first sample (least=1).
+        f"{key} {entry}": loads(entry, least) is admitted("thermal_learning", {key: {"4": entry}})
+        for key, least in (("capacity_envelope", 0), ("cop_baseline_measured", 1))
+        for entry in probes
+    }
+
+    def restorable(bias: object) -> bool:
+        ring = SnapshotRing()
+        accuracy = {} if bias is None else {"temperature_bias": bias}
+        ring.take(datetime(2026, 6, 1, 12, tzinfo=timezone.utc), {"marker": 1}, accuracy, True)
+        return ring.best_restore() is not None
+
+    row = "rows/#/accuracy_sample/"
+    declared = {k[len(row):] for k in DOMAINS["debug"] if k.startswith(row)}
+    written = AccuracySample(
+        when=datetime(2026, 1, 5, tzinfo=timezone.utc), predicted_power_kw=1.0,
+        actual_power_kw=1.0, predicted_temp=21.0, actual_temp=21.0,
+        predicted_cost=None, actual_cost=None, outdoor_temp=0.0).as_dict()
+    return {
+        "a stored learned pair loads exactly when store.DOMAINS admits it": (
+            all(agree.values()), f"disagreeing: {sorted(k for k, ok in agree.items() if not ok)}"),
+        "the probes separate: a count at least loads, one under it and a zero value do not": (
+            loads([6.0, 0], 0) and loads([2.5, 1], 1) and not loads([2.5, 0], 1)
+            and not loads([0.0, 3], 0), ""),
+        "a snapshot with no bias, or one past the band, is no restore point; one in band is": (
+            [restorable(b) for b in (None, BIAS_BAND_C + 0.01, -BIAS_BAND_C, 0.1)]
+            == [False, False, True, True], ""),
+        "a debug row declares exactly the accuracy sample's fields": (
+            declared == set(written), f"symmetric difference: {sorted(declared ^ set(written))}"),
+    }
+
+
 _STEP_ISSUE = "dhw_legionella_off_step"
 #: The config flow's integer sliders (``config_flow.py``'s everyday and
 #: disinfection selectors) on a 30-80 degC number of each step: every row
@@ -1169,6 +1228,8 @@ def main() -> int:
         R.check(f"R10-DISINFECTION-STEP-NOTICE {name}", ok)
     for name, ok in _space_scope_caps_pins().items():
         R.check(f"R11-OUTSIDE-HONEST-STARTS-RUNS {name}", ok)
+    for name, (ok, detail) in _r11_seam_store_pins().items():
+        R.check(f"R11-SEAM-store {name}", ok, detail)
     return R.close("GUARD PIN CHECKS")
 
 
