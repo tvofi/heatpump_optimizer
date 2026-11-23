@@ -76,11 +76,36 @@
   "  FAIL a9:roster_unchanged  [before=1 after=2 only_before=[] only_after=['sensor.b']]",
   "  FAIL a9:no_growth  [ceiling tasks=1 listeners=4 stop=1; max t/l/s=3/4/3]",
   "  FAIL hb:changed_save  [max gap 1000.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]",
-  "  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want True)]"
+  "  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want True)]",
+  "  FAIL the per-call-cost arm reaches the rule the sweep applies, with both count channels flat, and an unchanged solve does not (round-5 D9-07)  [winter/1z/space, median of 7 interleaved rounds: 39 ms of kernel CPU plain, 31 ms plain again (x0.80), 66 ms with every seam call's CPU doubled (x1.69); evaluations 42 vs 42, simulate 131232 vs 131232; factor 1.80; null fired [], per-call-cost fired []]"
  ],
  "non_finding": {
   "claim": "full gate kills aa338654e7801916 (custom_components/heatpump_optimizer/optimizer.py:6070 GUARD_OFF): python3 tests/stress.py",
   "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aa338654e7801916",
-  "value": "verdict KILLED gate_rc 1 killed_by ['python3 tests/stress.py']"
- }
+  "value": "verdict KILLED gate_rc 1 killed_by ['python3 tests/stress.py'] (stress.py timing-ratio check only; timing-suspect, see kill_note)"
+ },
+ "kill_note": "The only check beyond the null is tests/stress.py's timing-ratio check 'the per-call-cost arm reaches the rule ...': its unchanged-solve arm read x0.80 (31 ms vs 39 ms plain). The mutant changes _buffer_charge_ceiling only when buffer_max_temp < 35 C (probe below), a rating no stress.py building uses at the 40..90 C flow range, so the kill is provisional and timing-suspect: wall 3798.3 s, load1 0.85->0.85, nproc 4. Recorded KILLED as fullgate.py decides; the judge's quiet re-take settles it.",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_aa338654e7801916.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_aa338654e7801916.py",
+  "result_lines": [
+   "RESULT inputs_tried=117 count (ties constructed: 9)",
+   "RESULT inputs_moved=6 count",
+   "RESULT moved hi=30.0 out=-20.0 ua=None: baseline=30.0 mutant=35.0",
+   "RESULT moved hi=30.0 out=-20.0 ua=0.0: baseline=30.0 mutant=35.0",
+   "RESULT moved hi=30.0 out=-20.0 ua=2.0: baseline=30.0 mutant=35.0",
+   "RESULT moved hi=30.0 out=-30.0 ua=None: baseline=30.0 mutant=35.0",
+   "RESULT max_abs_delta_c=5.0",
+   "RESULT focus hi=30.0 out=-30.0 ua=None: baseline=30.0 mutant=35.0",
+   "RESULT null_delta=0 C",
+   "RESULT from_config_buffer_max_30=30.0",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.78",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "ceiling 30.0 C (buffer_max 30 C, out_mean -20/-30 C)",
+  "mutant_value": "ceiling 35.0 C, above the tank's own rating",
+  "inputs_tried": "117 (as c40e66fc); moved 6, all buffer_max 30 C (< the 35 C flow reference) in cold weather; ThermalParameters.from_config keeps buffer_max_temperature 30 unclamped (the flow's selector minimum is 40)"
+ },
+ "should_fail": "tests/validate.py or tests/features.py (both execute line 6070) lack a _buffer_charge_ceiling(\u2026) <= buffer_max_temp assertion for a rating below the flow reference"
 }
