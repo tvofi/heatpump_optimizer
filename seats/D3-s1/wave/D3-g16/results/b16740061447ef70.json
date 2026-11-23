@@ -1,0 +1,53 @@
+{
+ "key": "b16740061447ef70",
+ "site": "dhw_planner.py:1018 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1018,
+ "patch": "window_hours = max((end_idx - start_idx) * dt, dt) -> window_hours = ((end_idx - start_idx) * dt)",
+ "function": "DhwPlanner._dhw_window_floors",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_window_floors@1018-1034",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3191.2,
+  "child_cpu_s": 5291.4,
+  "load1_start": 0.94,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/b16740061447ef70.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b16740061447ef70",
+ "gate_provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_b16740061447ef70.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_b16740061447ef70.py",
+  "results": {
+   "inputs_tried": "600 count",
+   "stats_branch_live": "1  (count 8 at p90 0 moves the ready temps against no stats: the blend is reached)",
+   "outputs_differing": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.83",
+   "swapins": "0"
+  },
+  "baseline_value": "see results",
+  "mutant_value": "see results",
+  "inputs_tried": "600: specs '06:00-08:30, 17:00-22:00', '00:00-24:00', '23:00-23:15', '05:45-06:00', '21:00-03:00' x (dt, n) (0.25, 96), (1, 24), (0.25, 1), (1, 3) x start 0/5.75/22 h x learned stats none/count 0/negative/3/8 at p90 0/0 at p90 0/negative p90/1e300/NaN-inf/unparseable",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "why_equivalent": "a window start has in_window[start_idx] True, so end_idx >= start_idx + 1 and (end_idx - start_idx) * dt >= dt already",
+ "should_fail": "none: no input found that the mutant changes (equivalent-candidate); the closure scripts executing the line (m4_source) cannot fail on it"
+}
