@@ -1,0 +1,1 @@
+d8101520588009d9: gate started 2026-11-22T23:44:15Z, cut at ~00:28Z by a container restart (no record written); partial log kept here, gate re-run from scratch by gate_wave.sh run
