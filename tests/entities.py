@@ -27067,6 +27067,26 @@ R.check(
                   "tibber_reauth_started", "cop_samples")
     }),
 )
+# The mode is handed to the view by the coordinator (ADR-005), so a
+# coordinator that stopped handing it would report None behind a present key.
+# A real coordinator is told two modes through ``async_set_mode`` in turn: the
+# second is the null control, so a constant or stale value fails one of them.
+_diag_coord = _diag_entry.runtime_data
+_diag_modes = {}
+for _m in (const.MODE_BOOST, const.MODE_COMFORT):
+    asyncio.run(_diag_coord.async_set_mode(_m, refresh=False))
+    _diag_modes[_m] = (
+        _diag_coord.diagnostics_state().mode,
+        asyncio.run(_diag_mod.async_get_config_entry_diagnostics(
+            _diag_hass, _diag_entry))["coordinator"]["mode"],
+    )
+asyncio.run(_diag_coord.async_set_mode(const.MODE_AUTO, refresh=False))
+R.check(
+    "the diagnostics view and the download report the mode a real coordinator was "
+    "set to, for each of two modes",
+    all(got == (m, m) for m, got in _diag_modes.items()),
+    repr(_diag_modes),
+)
 
 # The view's tolerance, both ends: a coordinator that cannot produce the
 # view reports None fields and no learner keys, and a learner whose
