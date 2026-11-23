@@ -37,12 +37,14 @@ def main(key):
         log = open(f"{W}/gates/{key}.log", errors="replace").read() if os.path.exists(f"{W}/gates/{key}.log") else ""
         lines = []
         cur = None
-        for ln in log.splitlines():
+        ll = log.splitlines()
+        for i, ln in enumerate(ll):
             m = re.match(r"^#{10} (.+?) #{10}$", ln)
             if m:
                 cur = m.group(1); continue
             if cur and any(k in cur for k in gate.get("killed_by", [])) and re.match(r"^\s*FAIL\b", ln):
-                lines.append(f"{cur}: {ln.strip()[:300]}")
+                nxt = ll[i + 1].strip() if i + 1 < len(ll) and re.match(r"^\s{4,}\S", ll[i + 1]) else ""
+                lines.append(f"{cur}: {ln.strip()[:300]}" + (f" | {nxt[:300]}" if nxt else ""))
         rec.update({"class": "killed", "killed_by": gate.get("killed_by"), "failing_checks": lines[:40],
                     "non_finding": f"the full gate fails on the mutant: killed_by={gate.get('killed_by')}, gate_rc={gate.get('gate_rc')}"})
     elif verdict == "TIMEOUT":

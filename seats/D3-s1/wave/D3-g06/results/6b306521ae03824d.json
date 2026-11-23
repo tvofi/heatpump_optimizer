@@ -41,7 +41,7 @@
   "node tests/card.mjs"
  ],
  "failing_checks": [
-  "node tests/card.mjs: FAIL  user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language"
+  "node tests/card.mjs: FAIL  user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language | gate 0.3, modelled floor undefined; wrong in: en,sv,de"
  ],
  "non_finding": "the full gate fails on the mutant: killed_by=['node tests/card.mjs'], gate_rc=1"
 }
