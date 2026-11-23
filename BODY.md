@@ -38,6 +38,13 @@ Carry 0: (FAULT-HOLD's flag-prefill-reach, adding the hold's 10 minutes to the p
 
 ## Head
 
+`b98650edabd8afc2f1d5478172a1e2bd3e973b7e` is the code head of round 3, a local repair. It is one commit on `7a666abfe90b0e0db2468b04dc0b7b43cb0ce582`, the PR's head after its clean merge with main.
+- The commit changes two test files: `tests/features.py` (two checks) and `tests/deployment_shape.py` (the #1218 note's pair count). It changes no production line.
+- At 2026-11-23T04:40Z origin/main was at `3153a635b4012d3f8a157c2aaaa34f8da5c8d357`. `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged (fixer.md step 6).
+- Why this push cancels the running pin drive: the `mutation-pins` drive at `7a666abfe9` printed `MUTATION TABLE INCONCLUSIVE`. Its reason was `the baseline is already red in tests/entities.py`: `entities.py`'s #1218 check found `167 of 528 pairs` in the tree, while the note still said 169. The shard that had concluded (3 of 12) left `fault_log.py:142 GUARD_OFF`, `fault_log.py:244 GUARD_OFF` and `modbus_prefill.py:277 GUARD_OFF` unpinned. The fault-record block kills the two `fault_log.py` ones locally (below). The drive's other shards measure against the same red baseline, so their pins cannot be trusted. This head fixes that baseline.
+
+Round 2's head and its notes follow.
+
 `c18501831385cb135f9d893599c42504162e1c26`, merge base `e3cb5c019b464a770cc7c6fe2fbc858ed29debf7`. Round 2: the repair of the round-1 block at `9f133225f72bc9581a411bdc40d544dd447f78ee`, on top of it.
 - At 2026-11-22T21:34Z origin/main was at `e3cb5c019b464a770cc7c6fe2fbc858ed29debf7`.
 - `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged (fixer.md step 6).
@@ -46,7 +53,16 @@ Prepr: at `c18501831385cb135f9d893599c42504162e1c26`, a full run with `PREPR_SKI
 
 ## Mutation proof
 
-Round 2 (this repair). The block's failing check and the review's three survivors, driven one mutant at a time on `fault_log.py` through the fault-record block (`features_block.py`, prelude by `--emit-prelude`), restored after each; `git status` after the drive lists only the two edited files. Driver: scratch, sha1 `bcf536df5bbbfc4f35c179c3c9e4b32ad20080c9`. All 9 killed:
+Round 3, the local repair. The driver applies `tests/mutation_table.py`'s own generated mutant (`candidates()`) at each `fault_log.py` site listed in `tests / mutation`'s refusal at `7a666abfe9`. It runs one mutant at a time and restores the file after each. Each mutant runs against `tests/features.py`'s preamble plus its R11-OWNER-FAULT-TEXT section, from the section heading to `# 9: the prefill rows`. Driver: scratch, sha1 `e2bfe3acdba9dcb1ea229df7587b98a7f430e66a`. Section runner: scratch, sha1 `eb8de62e3bdee585b5a4039e0cd9b052895e7fcf`. `git status --short` after the drive lists only this round's two edited test files.
+- Null run: `NULL SURVIVED`, and the section printed `ALL 23 FL SECTION PASSED`.
+- At this head, all 58 `fault_log.py` sites the refusal lists are `KILLED`, including `142 GUARD_OFF`, `142 BOOLOP`, `142 CMP_BOUND` and `244 GUARD_OFF`.
+- Two sites survived the section as it stood at `7a666abfe9` (the same driver, `FL_FEATURES` = that head's `tests/features.py`): `SURVIVED 365 CLAMP_DROP` and `SURVIVED 46 CONST`. Each now has a check:
+  - `365 CLAMP_DROP` (`max(0, now_s - log.open[0])` as `now_s - log.open[0]` in `diagnostics_view`): fails `an open row stamped 300 s after the view's clock … shows 0 open seconds, never a negative span …`. Its null control is a row stamped 30 s before the clock, which shows 30.
+  - `46 CONST` (`FAULT_LOG_STORE_VERSION = 2`): fails `a fault record saved at store version 1 loads whole and saves back at 1 …`. Its null control is a document stamped version 2, which is refused, so the record starts afresh. Round 1's M45 already showed `finite_boundary.py` killing this mutant, so the new check is a second, direct pin.
+- `config_flow.py`'s three listed sites were driven the same way against `tests/config_flow_steps.py` (`NULL SURVIVED`). `1150 RETURN_DEL`, `2659 CMP_BOUND` and `2660 RETURN_DEL` are all `KILLED`.
+- `modbus_prefill.py:277` was not driven locally. A full `tests/features.py` run takes over an hour on this host, and the drive above is `features.py`'s own. The mutation drive on this head decides it.
+
+Round 2. The block's failing check and the review's three survivors, driven one mutant at a time on `fault_log.py` through the fault-record block (`features_block.py`, prelude by `--emit-prelude`), restored after each; `git status` after the drive lists only the two edited files. Driver: scratch, sha1 `bcf536df5bbbfc4f35c179c3c9e4b32ad20080c9`. All 9 killed:
 - M1 `_ended` not registered; M2 `_ended` releases without saving; M5 setup does not await `old.ending`; M6 the last save not kept on `ending`: each fails `a setup that fails after the record's … releases the listener and the deferred save …`.
 - M3 `_release` not once: fails `open, then unload, then an event fired after close …` (a second close saves again).
 - M4 `async_close` skips its save: fails 5 checks, `open, the stop event, then a reload …` and `through async_setup_entry …` among them.
@@ -124,6 +140,18 @@ Failing test first, at the merge base's production with this head's tests (workt
 
 ## Figures
 
+Round 3, at `b98650edab`:
+- The #1218 pair census is `entities.py`'s `_d308_pairs` (Jaccard over production closure files, empty sets skipped, floor 0.80), re-derived over `git show <rev>:tests/closures.json` by a scratch script:
+  - this head: 121 production files, 167 of 528 pairs, 406 comparable;
+  - the merge with origin/main `3153a635b4` (`git merge-tree --write-tree`): 167;
+  - null control, origin/main `3153a635b4` itself: 120 files, 169 pairs. That 169 is the figure the note carried.
+- The two pairs that leave are `config_flow_steps.py` with `boost_drift_replay.py` and `config_flow_steps.py` with `plan_view.py`. Each moves from 0.800 to 0.792. `fault_log.py` is in `config_flow_steps.py`'s recorded closure and in neither of the others'.
+- `tests/deployment_shape.py`'s note now says 167, and names the move.
+- `PYTHONPATH=tests/hastub python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
+- Scope: `python3 tests/closure.py select --diff 7a666abfe9` prints `MODE: SCOPED`. Its run list includes `tests/entities.py`, `tests/features.py` and `tests/deployment_shape.py`. CI runs it.
+
+Round 2:
+
 - The reviewer's probe (`git show 170e96ec5c3d003f8fa7f4e09b5424dfd0d087d1:evidence/probe_failed_setup.py`, the `verdict/3870` ref; sha1 `1728c7fdb3325abce4b9086976fe7093a0ff59b7`), inserted after the failed-setup check in a scratch copy of `tests/features.py` and run through `features_block.run` (driver sha1 `be2bbf5fb52b43876f6b6142b0c1ff0b6a456eb2`), `(listeners, saves on one event)`:
   - on `9f133225f7`'s `fault_log.py`: failed setup `(2, 2)`, null control `(1, 1)`;
   - at this head: failed setup `(1, 1)`, null control `(1, 1)`.
@@ -169,7 +197,13 @@ Round 1 figures, at `41b57b2daf` (merge base `8ef450936a`):
 
 ## Red checks
 
-- `tests / mutation`: predicted red by `prepr.sh` step 6d.
+- `tests / mutation`: red at `7a666abfe9` with `MUTATION TABLE REFUSED`, 63 sites added by this diff. Pins: `unmeasured` at this head.
+  - The pin drive at `7a666abfe9` was `INCONCLUSIVE` because its `tests/entities.py` baseline was red on the #1218 pair count (169 in the note, 167 in the tree). This head fixes that note (see `## Head`), and `mutation-autofix` re-measures on this head.
+  - The two sites the fault-record block left alive, `fault_log.py:46 CONST` and `fault_log.py:365 CLAMP_DROP`, have killing checks at this head (`## Mutation proof`, round 3).
+- `tests / fast (3.14)` (`tests/entities.py`): red at `7a666abfe9` on `and the lane's docstring records those measured numbers as the selection-cost note (#1218)`, because the note said 169 where the tree measures 167. Fixed at this head.
+  - The cheaper detector was `prepr.sh`'s scoped run of `entities.py` after the merge with main: that merge's `fault_log.py` closures moved the count. The merge was a hand resolution with no prepr run after it.
+- `tests / nightly-ha (stable)` and `(2025.2.0)`: red at `7a666abfe9` on `FAILED: 2 of 66 checks: ['a5:pages_ok', 'run:exit_status']`, with `raised=['grid:InvalidData']`. The check is not required (`tests.yml`'s `nightly-status` note), and this diff does not cause it. `fix/r11-owner-mode-legs`'s run of the same job printed the same line: `a5:pages_ok [raised=['grid:InvalidData'] …]`. This diff touches no grid page.
+- Earlier rounds' prediction:
   - The diff adds 57 operator sites. No `killed_by` pin exists for them until `mutation-autofix` writes it after the push.
   - Every site is listed under `## Unpinned sites` with the check that kills it at this head.
   - The cheaper detector is the one that fired: step 6d's offline prediction, which costs nothing beyond the prepr run.
@@ -180,7 +214,7 @@ Round 1 figures, at `41b57b2daf` (merge base `8ef450936a`):
 - custom_components/heatpump_optimizer/config_flow.py:1150 RETURN_DEL: pinned by mutation-autofix: killed by tests/config_flow_steps.py (every entity row loses its selector: AttributeError, rc 1)
 - custom_components/heatpump_optimizer/config_flow.py:2659 CMP_BOUND: pinned by mutation-autofix: killed by tests/config_flow_steps.py (the fault-text cap checks)
 - custom_components/heatpump_optimizer/config_flow.py:2660 RETURN_DEL: pinned by mutation-autofix: killed by tests/config_flow_steps.py (the fault-text cap checks)
-- custom_components/heatpump_optimizer/fault_log.py:46 CONST: pinned by mutation-autofix: killed by tests/finite_boundary.py (a store version above 1 with no migration hook, #1740)
+- custom_components/heatpump_optimizer/fault_log.py:46 CONST: pinned by mutation-autofix: killed by tests/finite_boundary.py (a store version above 1 with no migration hook, #1740) and by the fault-record block's `a fault record saved at store version 1 loads whole …` (round 3)
 - custom_components/heatpump_optimizer/fault_log.py:48 CONST: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/fault_log.py:50 CONST: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/fault_log.py:53 CONST: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
@@ -237,7 +271,7 @@ Round 1 figures, at `41b57b2daf` (merge base `8ef450936a`):
 - custom_components/heatpump_optimizer/fault_log.py:346 BOOLOP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/fault_log.py:346 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/fault_log.py:357 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
-- custom_components/heatpump_optimizer/fault_log.py:365 CLAMP_DROP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
+- custom_components/heatpump_optimizer/fault_log.py:365 CLAMP_DROP: pinned by mutation-autofix: killed by the fault-record block's `an open row stamped 300 s after the view's clock …` (round 3; it survived the block before)
 - custom_components/heatpump_optimizer/modbus_prefill.py:277 BOOLOP: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 - custom_components/heatpump_optimizer/modbus_prefill.py:277 GUARD_OFF: pinned by mutation-autofix: killed by the fault-record block of tests/features.py in this head's mutant drive
 
@@ -248,3 +282,4 @@ Round 1 figures, at `41b57b2daf` (merge base `8ef450936a`):
 ## Friction
 
 - roster_queue.readback: unenforced: `roster_queue.py run`'s read-back printed `FAILED group R11-OWNER-FAULT-HOLD not in the roster at 981e3402e`, while `git show 981e3402e4:dev/programme/rosters/wave-r11-groups.json` holds the group and the carry exactly; the same miss printed at 7d42e7ad3 and 39ace5656. Carry: dismissed: a read-back miss after a verified push, recorded here and re-checked by hand
+
