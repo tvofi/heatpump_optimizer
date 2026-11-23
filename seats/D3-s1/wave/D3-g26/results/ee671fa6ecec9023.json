@@ -1,0 +1,58 @@
+{
+ "key": "ee671fa6ecec9023",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4560 CMP_BOUND",
+ "patch": "if not _pin_is_free(value) and value < 0.5: -> if not _pin_is_free(value) and value <= 0.5:",
+ "function": "HeatPumpOptimizer.optimize",
+ "cluster": "optimizer.py:HeatPumpOptimizer.optimize@4518-4610",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2776.8,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/ee671fa6ecec9023.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ee671fa6ecec9023 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_ee671fa6ecec9023.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_ee671fa6ecec9023.py",
+  "baseline_value": "88 count",
+  "mutant_value": "96 count",
+  "metric": "released",
+  "unit": "space steps reported released",
+  "all_results": {
+   "released_baseline": "88 count",
+   "released_mutant": "96 count",
+   "null_released_delta": "0 count",
+   "reach_half_pins": "0 count  (pin values channel_pins can emit: [0.0, 1.0])",
+   "thread_factor": "1.003",
+   "load1": "1.78",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "direct optimize() input with pins = 0.5 at 0-7, abandonment stub: released 88 -> 96 (moves only on a 0.5 pin)",
+   "pins 1.0 / 0.0: no move",
+   "reach: build_override over 5 slot layouts x 2 channels, through channel_pins and _normalise_pins, emits only {0.0, 1.0}; reach_half_pins=0"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/manual_plan.py (the only script executing line 4560)",
+  "assertion": "none through production: a 0.5 pin never reaches optimize(); only a direct optimize() call with a 0.5 pin separates the arms"
+ },
+ "non_finding": {
+  "claim": "mutant ee671fa6ecec9023 at custom_components/heatpump_optimizer/optimizer.py:4560 (if not _pin_is_free(value) and value < 0.5: -> if not _pin_is_free(value) and value <= 0.5:) survives the full gate but is equivalent through production: none through production: a 0.5 pin never reaches optimize(); only a direct optimize() call with a 0.5 pin separates the arms",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_ee671fa6ecec9023.py",
+  "value": "released: baseline 88 count, mutant 96 count; direct optimize() input with pins = 0.5 at 0-7, abandonment stub: released 88 -> 96 (moves only on a 0.5 pin); pins 1.0 / 0.0: no move; reach: build_override over 5 slot layouts x 2 channels, through channel_pins and _normalise_pins, emits only {0.0, 1.0}; reach_half_pins=0"
+ }
+}
