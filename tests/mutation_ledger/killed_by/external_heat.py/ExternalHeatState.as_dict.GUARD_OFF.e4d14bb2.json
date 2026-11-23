@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatState.as_dict GUARD_OFF e4d14bb2",
+  "killed_by": "tests/features.py",
+  "old": "        if block_ignored is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
