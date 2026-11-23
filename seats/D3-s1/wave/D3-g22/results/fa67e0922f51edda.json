@@ -1,0 +1,41 @@
+{
+ "key": "fa67e0922f51edda",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6498 CMP_BOUND",
+ "patch": "if out_t < 0: -> if out_t <= 0:",
+ "function": "HeatPumpOptimizer._power_to_displace_schedule",
+ "cluster": "optimizer.py:HeatPumpOptimizer._power_to_displace_schedule@6497-6509",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3852.4,
+  "load1_start": 0.77,
+  "load1_end": 0.87,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/fa67e0922f51edda.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fa67e0922f51edda",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_fa67e092.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_fa67e092.py",
+  "baseline_value": "max_abs_delta=0.0 displace",
+  "mutant_value": "identical",
+  "inputs_tried": [
+   "out_t 0.0, -0.0, 1e-300, -1e-300, 5e-324, nan, -10, 5 x power zeros / 3 kW / ramp (24 cells)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "equivalent mutant: at out_t == 0 the branch adds min(2, |0|*0.08) = 0.0"
+ },
+ "should_fail": "none: no check can distinguish (equivalent)"
+}
