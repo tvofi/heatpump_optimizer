@@ -99346,5 +99346,16 @@ R.check(
     f"{_r3_cb_fl[2]} {_r3_cb_mold[2]} {_r3_cb_clip[2]} {_r3_cb_none[2]} clip={_r3_cb_clip_min} "
     f"tight={_r3_tight_none} {_r3_tight_zero}",
 )
+# The margins less the lift are clipped at zero, so a lift the margins do not
+# carry is not attributed to the room (the residual review/3838 fc7ae551 found).
+_r3_cb_short = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.2, 0.0]), None, room_lifts=_r3_cb_lift)[3][2]
+_r3_cb_bare = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None, room_lifts=_r3_cb_lift)[3][2]
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the room lifts never exceed the margins that carry them (0.2 and 0 of a 0.5 K lift "
+    "over margins 0.2 and 0; 0 with no margins); null control, margins carrying the whole lift attribute 0.5",
+    np.allclose(_r3_cb_short, [0.2, 0.0]) and np.allclose(_r3_cb_bare, [0.0, 0.0])
+    and np.allclose(_r3_cb_fl[2], [0.5, 0.5]),
+    f"short={_r3_cb_short} bare={_r3_cb_bare} full={_r3_cb_fl[2]}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))
