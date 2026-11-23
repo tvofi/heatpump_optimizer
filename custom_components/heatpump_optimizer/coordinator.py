@@ -4055,9 +4055,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._ecl110_displace_max: float = ctx._config.ecl110_displace_max
         self._ecl110_current_displace: float = 0.0
         self._ecl110_last_payload: Ecl110Payload = {}
-        #: The optimizer that solved the live plan: the one cut of it reads its
-        #: model, at the solve and at each step boundary (``_cut_action``).
-        self._cut_by: HeatPumpOptimizer | None = None
         self._unsub_ecl110_state: Any = None
     @property
     def mode(self) -> str:
@@ -6055,9 +6052,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._overlay_boost()
             await self._apply_action()
 
-            # The step-derived writers, after _apply_action so a failed write
-            # can never block the primary actuation; the step tick runs the
-            # same tail at each boundary between cycles (D16-s2-01).
+            # After _apply_action, so a failed write never blocks the primary actuation.
             async with pump_arbiter.state_for(self).tail_lock:
                 await self._async_step_tail()
 
@@ -6414,8 +6409,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # the trajectory was built from, not to "after the solve".
             self._file_lead_predictions(result, solve_now)
 
-            self._cut_by = solve_optimizer
-            self._cut_action()
+            self._cut_action(solve_optimizer)
 
             # A step-response experiment overrides the plan for its duration.
             await self._run_system_identification(prices)
@@ -7630,11 +7624,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         reason: str = "optimizer",
         boundary: bool = False,
     ) -> None:
-        """Publish ECL110 displace command via direct `/set` topic and optional legacy JSON topic.
-
-        At a step ``boundary`` a displace integer and on flag equal to the
-        last sent are not published again; the cycle publishes as before.
-        """
+        """Publish ECL110 displace command via direct `/set` topic and optional legacy JSON topic; at a step ``boundary`` only a change."""
         # #2 (gated): the standing learned curve bias joins after every
         # guard has had its say and before the configured displace clamp —
         # exactly where a user correcting an over-hot installer curve by
@@ -7662,65 +7652,37 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
 
     async def async_publish_current_action(self, reason: str = "optimizer", *, boundary: bool = False) -> None:
-        """Publish the current action's MQTT command: the cycle's supply, and
-        the displace less the peak guard's nudge while it suppresses.
-
-        Off and a let-go plan write nothing. At a step ``boundary`` an
-        unchanged displace integer and on flag are not sent again.
-        """
+        """Publish the current action's MQTT command: the cycle's supply, the displace less
+        the peak guard's nudge while it suppresses; at a step ``boundary`` only a change."""
         if not (action := self._current_action) or self._mode == MODE_OFF or _plan_let_go(self):
             return
         nudge = PEAK_GUARD_DISPLACE_NUDGE_C if self._peak_guard.suppressing else 0.0
         await self.async_publish_ecl110_command(
-            displace_value=float(action.get("displace_value", 0.0)) - nudge,
-            heat_pump_on=self._cycle_on(), reason=reason, boundary=boundary,
-        )
+            float(action.get("displace_value", 0.0)) - nudge, self._cycle_on(), reason, boundary)
 
     def _cycle_on(self) -> bool:
-        """The supply the cycle writes: the plan's command for the step now."""
         return pump_arbiter.cycle_supply(self.arbiter_inputs(), boost.held_for(self), bool((self._current_action or {}).get("heat_pump_on", False)))
 
-    def _cut_action(self) -> None:
-        """The one cut of the live plan for the step covering now, by the
-        optimizer that solved it; stamps the step. Nothing to cut before a
-        solve of this instance."""
-        if (by := self._cut_by) is None or self._optimization_result is None:
-            return
+    def _cut_action(self, by: HeatPumpOptimizer | None = None) -> None:
+        """The one cut of the live plan, stamping the step; a re-cut (no ``by``) re-lays a boost."""
         now = dt_util.now()
-        boost.adopt_plan(self, by.get_current_action(self._optimization_result, now))
+        cutter = by or HeatPumpOptimizer(self._thermal_model, _ctx_of(self)._opt_config)
+        boost.adopt_plan(self, cutter.get_current_action(self._optimization_result, now))
         pump_arbiter.stamp_step(pump_arbiter.state_for(self), now)
+        if by is None:
+            self._overlay_boost()
 
     def _overlay_boost(self) -> None:
-        """Lay a live boost over the action (``boost.apply``)."""
-        boost.apply(self, boost.BoostOverlay(
-            max_power=float(self._thermal_model.params.max_electrical_power),
-            max_temp=float(_ctx_of(self)._opt_config.max_temp),
-            ecl_max=float(self._ecl110_displace_max),
-        ))
-
-    def _supply_wiring(self) -> pump_arbiter.SupplyWiring:
-        """What the step tick reads and writes through: the cycle's own gates and tail."""
-        return pump_arbiter.SupplyWiring(
-            self.arbiter_inputs, boost.held_for(self), self._write_supply,
-            self._recut_step, functools.partial(self._async_step_tail, True))
-
-    def _recut_step(self) -> None:
-        """The step tick's re-cut: the action for the new step, boost re-applied."""
-        self._cut_action()
-        self._overlay_boost()
+        boost.apply(self, boost.BoostOverlay(float(self._thermal_model.params.max_electrical_power),
+                                             float(_ctx_of(self)._opt_config.max_temp), float(self._ecl110_displace_max)))
 
     async def _async_step_tail(self, boundary: bool = False, reason: str = "scheduled_update") -> bool:
-        """The step-derived writers, one definition the cycle and the step tick
-        read: disinfection follower, MQTT, frequency, valve, pumps.
-
-        Each is best-effort, so a failed write never blocks the next. True
-        where the frequency's rate limit refused a target unlike its record:
-        the tick runs the tail again a minute later.
-        """
-        await _best_effort_cycle_step(self._legionella.async_follow, "Disinfection follower skipped: %s")
+        """The step-derived writers the cycle and the step tick run, each best-effort; True
+        where the frequency's rate limit refused a changed target (the tick retries it)."""
         await _best_effort_cycle_step(
-            functools.partial(self.async_publish_current_action, reason, boundary=boundary),
-            "ECL110 publish skipped: %s")
+            functools.partial(self._legionella.async_track_cycle, self._legionella.tank_c), "Disinfection follower skipped: %s")
+        await _best_effort_cycle_step(
+            functools.partial(self.async_publish_current_action, reason, boundary=boundary), "ECL110 publish skipped: %s")
         pending = await _best_effort_cycle_step(self._command_frequency, "Frequency command skipped: %s")
         await _best_effort_cycle_step(self._command_valve_target, "Valve command skipped: %s")
         await _best_effort_cycle_step(self._async_drive_pumps, "Pump scheduling skipped: %s")
@@ -7762,9 +7724,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             outdoor = ctx._current_state.outdoor_temperature
             target = self._thermal_model.flow_target_for_indoor(target, outdoor)
         valve = self._valve_target
-        if not delivers_to(self.hass.states.get(entity_id)):
-            return  # a write Home Assistant skips is never recorded (D16-s1-05)
-        if not await valve.command(
+        if not delivers_to(self.hass.states.get(entity_id)) or not await valve.command(
             target, lambda: off_restore.async_arm(self.hass, self.entry, ctx._config, number_restore.VALVE_RESTORE),
             lambda target_c: _valve_write_problem(self.hass, entity_id, target_c),
         ):
@@ -7820,9 +7780,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         on = self._cycle_on()
         await self._write_supply(on)
-        # Between cycles the step tick writes each step's change (#2492) and
-        # re-derives the step's writes (D16-s2-01).
-        pump_arbiter.note_supply(pump_arbiter.state_for(self), self._supply_wiring(), on)
+        # Between cycles the step tick re-derives each step's writes (#2492, D16-s2-01).
+        pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(
+            self.arbiter_inputs, boost.held_for(self), self._write_supply,
+            self._cut_action, functools.partial(self._async_step_tail, True)), on)
 
     async def _write_supply(self, on: bool) -> None:
         """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
@@ -8862,24 +8823,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _async_peak_guard_transition(self) -> None:
         """Actuate one suppression transition — and only transitions.
 
-        Engaging nudges the ECL displace down for the rest of the window;
-        releasing re-publishes the plan's own action. The DHW hold itself
+        The publish carries the nudge while the guard suppresses, at the step
+        covering now (``pump_arbiter.step_transition``). The DHW hold itself
         rides ``ThermalState.peak_guard_active`` through the same
         discretionary-suppression gate external heat uses, at the next
         solve — no solve happens here.
         """
-        held = pump_arbiter.state_for(self)
-        async with held.tail_lock:
-            now = dt_util.now()
-            reason = "peak_guard" if self._peak_guard.suppressing else "peak_guard_release"
-            # The action of the step covering now, not of the step it was cut
-            # in: at a step the tick has not reached, the tick's own re-cut and
-            # tail, which publish the guard's displace (N-stale-step-actuation).
-            if held.step_cut != plan_step_start(now) and pump_arbiter.step_gate(self.arbiter_inputs(), now):
-                self._recut_step()
-                held.step_pending = await self._async_step_tail(reason=reason)
-            else:
-                await self.async_publish_current_action(reason=reason)
+        reason = "peak_guard" if self._peak_guard.suppressing else "peak_guard_release"
+        await pump_arbiter.step_transition(
+            pump_arbiter.state_for(self), functools.partial(self.async_publish_current_action, reason), reason)
         self.async_update_listeners()
 
     def _fuse_kw(self) -> float | None:
@@ -10850,18 +10802,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         map with no evidence writes NOTHING: None is never a frequency.
         """
         entity_id = getattr(self, "_ctx", self)._config.compressor_freq_entity
-        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or _plan_let_go(self):
+        if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or _plan_let_go(self) \
+                or not delivers_to(self.hass.states.get(entity_id)):  # a skipped write is never recorded (D16-s1-05)
             return
-        if not delivers_to(self.hass.states.get(entity_id)):
-            return  # a write Home Assistant skips is never recorded (D16-s1-05)
         _reported, hz_min, hz_max, _source = self._freq_entity_reading()
         target = self._freq_map.recommend(
             self._commanded_power() or 0.0, hz_min, hz_max
         )
         if target is None:
             return
-        # On the entity's own step inside its own range, before the dedup, so
-        # the record is the value sent (D16-s1-01).
+        # On the entity's step and range before the dedup: the record is the value sent (D16-s1-01).
         target = on_entity_grid(self.hass, entity_id, float(np.clip(target, hz_min, hz_max)))
         now = dt_util.now()
         if (

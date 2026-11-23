@@ -355,8 +355,7 @@ class FeedbackRun:
     #: Where the controller cut a loop write: the target never passes it.
     cut_lo_c: float | None = None
     cut_hi_c: float | None = None
-    #: When the compressor stopped under this run; a qualifying pass keeps
-    #: the run for one :data:`FEEDBACK_WINDOW` after it (:func:`_kept`).
+    #: When the compressor stopped under this run (:func:`_kept`).
     stopped: datetime | None = None
 
 
@@ -386,8 +385,9 @@ class ArbiterState:
     #: (step start, the supply the plan commanded for that step): written by
     #: the cycle's switch write and moved by :func:`supply_tick` (#2492).
     supply: tuple[datetime, bool] | None = None
-    #: The step tick's listener; dropped only at unload, never by duty mode.
+    #: The step tick's listener and wiring; dropped only at unload, never by duty mode.
     supply_unsub: Callable[[], None] | None = None
+    wiring: "SupplyWiring | None" = None
     #: The space set-point's reading when the arbiter last armed a write to
     #: it; ``None`` unknown (a restart, or the power switch read off since).
     #: A later reading that is neither this nor the write is a person's edit.
@@ -402,15 +402,13 @@ class ArbiterState:
     held_until: datetime | None = None
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
-    #: The step the action was last cut or refused for (:func:`stamp_step`),
-    #: and whether a writer's rate limit refused that step's target, so a
-    #: later minute's tick runs the tail again (:func:`supply_tick`).
+    #: The step the action was last cut or refused for, and whether a rate
+    #: limit refused its target (:func:`_step_writes`).
     step_cut: datetime | None = None
     step_pending: bool = False
-    #: Held around one re-cut and its tail, by the cycle and the tick alike.
+    #: Held around one re-cut and its tail, by cycle and tick alike.
     tail_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-    #: GCHV night register -> its reading before the arbiter's first write to
-    #: it, which the off restore writes back (:func:`_release_row`); persisted.
+    #: GCHV night register -> its reading before the first write; persisted.
     night_before: dict[str, int] = field(default_factory=dict)
 
 
@@ -643,9 +641,8 @@ def _space_target(
 ) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`.
 
-    ``boosted``: a space boost or the global boost mode is live
-    (:func:`_boost_live`); a water set-point maps it to a level
-    (:func:`_level_kw`), an indoor one writes the action's set-point.
+    ``boosted`` (:func:`_boost_live`): a water set-point maps the boost to a
+    level, an indoor one writes the action's set-point (D16-s1-03).
     """
     entity = _entities(inp.config)["space_setpoint"]
     if _flow_unit(inp.config):
@@ -668,9 +665,6 @@ def _space_target(
         entity, low,
     ):
         return None
-    # Under a boost the action's own set-point, which the overlay and the
-    # Boost row raise to the band's top, outranks the plan's room value,
-    # which the boost replaced (D16-s1-03).
     lifted = finite_float((inp.action or {}).get("setpoint")) if boosted else None
     return _bounded(inp, "space_setpoint", room if lifted is None else lifted)
 
@@ -909,9 +903,7 @@ def _full_draw_c(inp: ArbiterInputs, ceiling_c: float) -> float:
 
 
 def _floor_lift_k(inp: ArbiterInputs) -> float:
-    """The lift the floor write takes (``thermal_model.start_flow_min_lift_k``),
-    read by the full-draw set-point too, so a floor-level write is never the
-    set-point called full draw (class P3)."""
+    """The floor write's lift, which the full-draw set-point reads too (class P3)."""
     return start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None))
 
 
@@ -1058,9 +1050,8 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
     the deadband instead of re-anchored to the rising inlet, and stays
     within :func:`_feedback_bounds`. A run's first
     :data:`FEEDBACK_START_HOLD` writes ``base``, so its first write is
-    today's. A compressor that stops on a qualifying pass keeps the run and
-    its target for one window, its passes read as zero draw (:func:`_kept`);
-    any other pass, a stop past that window or a missing inlet resets the run.
+    today's. A stop on a qualifying pass keeps the run (:func:`_kept`); any
+    other pass, a longer stop or a missing inlet resets it.
     """
     inlet = _flow_inlet_c(inp) if on else None
     if base is None or inlet is None:
@@ -1076,18 +1067,8 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
             _note_stop(held, rec, inlet, base)
         held.feedback = FeedbackRun(now, base, now)
         return base
-    if rec is None:
-        rec = held.feedback = FeedbackRun(now, base, now)
-    if stopped and rec.running:
-        _note_stop(held, rec, inlet, base)
-        rec.stopped = now
-    elif not stopped:
-        rec.stopped = None
-    rec.samples.append((now, 0.0 if stopped else power))
-    while utc_elapsed_seconds(now, rec.samples[0][0]) > FEEDBACK_WINDOW.total_seconds():
-        rec.samples.popleft()
-    minutes = max(0.0, utc_elapsed_seconds(now, rec.seen)) / 60.0
-    rec.running, rec.seen = not stopped, now
+    rec = held.feedback = rec or FeedbackRun(now, base, now)
+    minutes = _sampled(held, rec, now, None if stopped else power, inlet, base)
     if utc_elapsed_seconds(now, rec.start) < FEEDBACK_START_HOLD.total_seconds():
         rec.w_c, rec.sent_c = base, None
         return base
@@ -1098,15 +1079,26 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
     return out
 
 
+def _sampled(held: ArbiterState, rec: FeedbackRun, now: datetime, power: float | None, inlet: float, base: float) -> float:
+    """Fold one pass into ``rec``'s window, a stopped one (``power`` None) as zero
+    draw, noting the stop once; the minutes since the last pass."""
+    if power is None and rec.running:
+        _note_stop(held, rec, inlet, base)
+        rec.stopped = now
+    elif power is not None:
+        rec.stopped = None
+    rec.samples.append((now, power or 0.0))
+    while utc_elapsed_seconds(now, rec.samples[0][0]) > FEEDBACK_WINDOW.total_seconds():
+        rec.samples.popleft()
+    minutes = max(0.0, utc_elapsed_seconds(now, rec.seen)) / 60.0
+    rec.running, rec.seen = power is not None, now
+    return minutes
+
+
 def _kept(rec: FeedbackRun | None, now: datetime) -> bool:
-    """Whether a stop on a qualifying pass keeps ``rec`` and its target: a
-    running run, or one stopped at most :data:`FEEDBACK_WINDOW` ago, whose
-    stopped passes are zero samples (D16-s2-04)."""
-    if rec is None:
-        return False
-    if rec.running:
-        return True
-    return rec.stopped is not None and utc_elapsed_seconds(now, rec.stopped) <= FEEDBACK_WINDOW.total_seconds()
+    """A stop keeps ``rec`` and its target for one window (D16-s2-04)."""
+    return rec is not None and (rec.running or rec.stopped is not None and (
+        utc_elapsed_seconds(now, rec.stopped) <= FEEDBACK_WINDOW.total_seconds()))
 
 
 def _nudged(rec: FeedbackRun, inp: ArbiterInputs, now: datetime, minutes: float) -> float:
@@ -1350,16 +1342,13 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
 
 
 def _boost_live(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
-    """A space boost or the global boost mode is live, on either unit.
-
-    A caller may hand no coordinator: then only the global mode counts.
-    """
+    """A space boost (``coord`` may be ``None``) or the global boost mode is live."""
     return inp.mode == MODE_BOOST or (
         coord is not None and boost.held_for(coord).active(boost.CHANNEL_SPACE, now))
 
 
 def _boosted(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
-    """:func:`_boost_live` on a water set-point, the one a boost maps a level for."""
+    """:func:`_boost_live` on a water set-point."""
     return _flow_unit(inp.config) and _boost_live(coord, inp, now)
 
 
@@ -1874,10 +1863,8 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
         "night_end_minute": end_m,
     }
     for slot in _NIGHT_SLOTS:
-        if slot not in held.written and slot not in held.night_before:
-            # The register's own value, before the first write moves it.
-            if (before := _observed(inp, slot)) is not None:
-                held.night_before[slot] = before
+        if slot not in held.written and slot not in held.night_before and (before := _observed(inp, slot)) is not None:
+            held.night_before[slot] = before  # the register's own value (D16-s3-01)
         await _write(coord, inp, slot, values[slot], now)
 
 
@@ -1912,18 +1899,12 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
 
 
 def _dhw_gate_c(inp: ArbiterInputs) -> float:
-    """The hot-water set-point a space step with no Heating option writes, °C.
-
-    :data:`DHW_GATE_C`, or lower where the tank reads colder: the tank
-    reading plus the pump's read start hysteresis (none read: zero), so a
-    cold tank is not asked to charge on a space step (D16-s1-02). With no
-    tank reading, :data:`DHW_GATE_C`.
-    """
+    """The tank set-point a space step with no Heating option writes, °C: no
+    hotter than the tank plus its read start hysteresis, so a cold tank is not
+    asked to charge (D16-s1-02); :data:`DHW_GATE_C` with no tank reading."""
     tank = finite_float(getattr(inp.state, "dhw_temperature", None))
-    if tank is None:
-        return DHW_GATE_C
     hysteresis = finite_float(getattr(inp.state, "dhw_start_hysteresis_k", None)) or 0.0
-    return min(DHW_GATE_C, tank + hysteresis)
+    return DHW_GATE_C if tank is None else min(DHW_GATE_C, tank + hysteresis)
 
 
 def _dhw_start_below_c(inp: ArbiterInputs) -> float | None:
@@ -2012,9 +1993,7 @@ async def _lead_mode(coord: Any, on: bool) -> None:
         if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held):
             return
         duty = _step_duty(coord, held, inp, now)
-        # A select moved while off no longer holds the record: the record is
-        # dropped so the lead writes the step's mode; no miss is counted. An
-        # unreadable select keeps it (D16-s2-03).
+        # A select moved while off drops the record; an unreadable one keeps it (D16-s2-03).
         observed, recorded = _observed(inp, "mode"), held.written.get("mode")
         if observed is not None and recorded is not None and _differs("mode", observed, recorded[0]):
             del held.written["mode"]
@@ -2119,12 +2098,7 @@ def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
 
 
 def step_gate(inp: ArbiterInputs, now: datetime) -> bool:
-    """Whether the step covering ``now`` speaks for the action: Auto or Economy
-    on a fresh plan that covers ``now``, no experiment's override.
-
-    The one gate the supply half and the step half of :func:`supply_tick`
-    read: where it does not hold, the action is not the plan's step.
-    """
+    """The one gate of the step tick's halves: :func:`_plan_speaks` on a plan covering ``now``."""
     return _plan_speaks(inp) and plan_step_index(inp.plan, now) is not None
 
 
@@ -2136,7 +2110,7 @@ def _plan_speaks(inp: ArbiterInputs) -> bool:
 
 
 def stamp_step(held: ArbiterState, now: datetime) -> None:
-    """The action was cut for the step covering ``now``: the one cut stamps it."""
+    """The one cut stamps the step covering ``now``."""
     held.step_cut = plan_step_start(now)
 
 
@@ -2171,7 +2145,7 @@ class SupplyWiring:
     recut: Callable[[], None] = lambda: None
     #: The step-derived writers' one tail; returns whether a writer's rate
     #: limit refused a target that differs from its record.
-    tail: Callable[[], Awaitable[bool]] | None = None
+    tail: Callable[..., Awaitable[bool]] | None = None
 
 
 def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetime | None = None) -> None:
@@ -2184,7 +2158,7 @@ def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetim
     held.supply = (plan_step_start(now or dt_util.now()), on)
     if held.supply_unsub is not None:
         return
-    inp = wiring.inputs()
+    inp, held.wiring = wiring.inputs(), wiring
 
     async def _tick(_now: Any = None) -> None:
         await supply_tick(held, wiring)
@@ -2193,13 +2167,9 @@ def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetim
 
 
 async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | None = None) -> None:
-    """At a step boundary, re-derive the step's writes, then write the supply
-    where the plan's command changes.
-
-    The step half (:func:`_step_half`) runs on every install at a new step or
-    while a rate-limited target is pending; the supply half only where a
-    power switch is configured. A tick fired while a tail holds the lock
-    returns, so ticks never queue.
+    """At a step boundary, the step half (:func:`_step_writes`, every install, a
+    new step or a pending target), then the supply half (a switch configured).
+    A tick that finds a tail holding the lock returns, so ticks never queue.
 
     The cycle writes the switch once per interval, so without this a step
     change reached the pump only at the next cycle, as late as one interval
@@ -2213,9 +2183,14 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
         return  # the cycle's tail runs: the next minute decides again
     step = plan_step_start(now)
     if held.step_cut != step or held.step_pending:
-        await _step_half(held, wiring, step, now)
-    if not EntryConfig.from_mapping(wiring.inputs().config).heat_pump_switch_entity:
-        return
+        async with held.tail_lock:
+            await _step_writes(held, wiring, now)
+    if EntryConfig.from_mapping(wiring.inputs().config).heat_pump_switch_entity:
+        await _supply_half(held, wiring, step, now)
+
+
+async def _supply_half(held: ArbiterState, wiring: SupplyWiring, step: datetime, now: datetime) -> None:
+    """Write the supply where the plan's command for ``step`` changes, or retry a held write."""
     if held.supply is None or (held.supply[0] == step and not held.supply_held):
         return
     inp = wiring.inputs()
@@ -2230,22 +2205,30 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
         await wiring.write(on)
 
 
-async def _step_half(held: ArbiterState, wiring: SupplyWiring, step: datetime, now: datetime) -> None:
-    """Re-derive the step's writes: at a new step re-cut the action, then run
-    the tail; a pending minute re-checks the gate and runs the tail only.
+async def _step_writes(held: ArbiterState, wiring: SupplyWiring, now: datetime, **tail: Any) -> bool:
+    """Under ``tail_lock``: where :func:`step_gate` holds, re-cut a new step's
+    action and run the tail; stamp the step either way. False where the gate
+    (a mode, a stale plan, an experiment, a released entry) refused: Off and a
+    stale plan are the release's (D16-s2-01, D16-s2-02)."""
+    step, inp = plan_step_start(now), wiring.inputs()
+    ran = not inp.entry_released and step_gate(inp, now) and wiring.tail is not None
+    if ran and held.step_cut != step:
+        wiring.recut()
+    held.step_cut, held.step_pending = step, bool(ran and await wiring.tail(**tail))
+    return ran
 
-    A refused gate (a mode, a stale plan, an experiment, a released entry)
-    stamps the step, clears the flag and runs nothing: Off and a stale plan
-    are the release's (D16-s2-01, D16-s2-02).
-    """
+
+async def step_transition(
+    held: ArbiterState, publish: Callable[[], Awaitable[None]], reason: str, now: datetime | None = None,
+) -> None:
+    """A transition between ticks (the peak guard's): at a step the tick has not
+    reached, its re-cut and tail under ``reason`` (class N-stale-step-actuation);
+    else ``publish``."""
+    now = now or dt_util.now()
     async with held.tail_lock:
-        inp = wiring.inputs()
-        pending = False
-        if not inp.entry_released and step_gate(inp, now) and wiring.tail is not None:
-            if held.step_cut != step:
-                wiring.recut()
-            pending = await wiring.tail()
-        held.step_cut, held.step_pending = step, pending
+        if held.wiring is None or held.step_cut == plan_step_start(now) \
+                or not await _step_writes(held, held.wiring, now, reason=reason):
+            await publish()
 
 
 def _action_supply(inp: ArbiterInputs) -> bool | None:
@@ -2413,12 +2396,13 @@ async def _load(coord: Any) -> None:
             continue
         if at is not None and _writable(slot, value):
             held.written[slot] = (value, at)
-    dropped = raw.get("dropped")
-    held.dropped = {k: v for k, v in dropped.items() if _writable(k, v)} if isinstance(dropped, dict) else {}
-    before = raw.get("night_before")
-    held.night_before = {
-        k: v for k, v in before.items() if k in _NIGHT_KEYS and _writable(k, v)
-    } if isinstance(before, dict) else {}
+    held.dropped = _restored(raw.get("dropped"), (*_SLOTS, *_NIGHT_KEYS))
+    held.night_before = _restored(raw.get("night_before"), _NIGHT_KEYS)
+
+
+def _restored(raw: Any, slots: Any) -> dict[str, Any]:
+    """A stored slot map, each entry one the arbiter could have written to a slot of ``slots``."""
+    return {k: v for k, v in raw.items() if k in slots and _writable(k, v)} if isinstance(raw, dict) else {}
 
 
 def _writable(slot: str, value: Any) -> bool:

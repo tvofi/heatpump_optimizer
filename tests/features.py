@@ -19469,10 +19469,9 @@ R.check(
 _published = []
 async def _rec_ecl(**kw):
     _published.append(kw)
-async def _rec_plan(reason="optimizer", heat_pump_on=None):
-    _published.append({"reason": reason})
+# One publish definition (async_publish_current_action) carries the nudge
+# while the guard suppresses; the ECL110 call is the recorded edge.
 _c.async_publish_ecl110_command = _rec_ecl
-_c.async_publish_current_action = _rec_plan
 _c._current_action = {"displace_value": 5.0, "heat_pump_on": True}
 _asyncio.run(_c._async_peak_guard_transition())
 R.check(
@@ -19490,7 +19489,8 @@ _c._peak_guard.suppressing = False
 _asyncio.run(_c._async_peak_guard_transition())
 R.check(
     "releasing re-publishes the plan's own action",
-    _published[-1] == {"reason": "peak_guard_release"},
+    _published[-1].get("reason") == "peak_guard_release"
+    and abs(_published[-1].get("displace_value") - 5.0) < 1e-9,
     f"published {_published[-1]}",
 )
 

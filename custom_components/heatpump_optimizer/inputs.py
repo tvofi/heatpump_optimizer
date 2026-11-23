@@ -571,10 +571,16 @@ def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, fl
     state = hass.states.get(entity_id) if entity_id else None
     if not entity_id or state is None:
         return None, None
+    unit = setpoint_unit(hass, entity_id, state)
+    low, high = _range_attrs(state, entity_id)
+    return temperature_c(low, unit), temperature_c(high, unit)
+
+
+def _range_attrs(state: Any, entity_id: str) -> tuple[Any, Any]:
+    """The entity's stated (min, max) attributes, raw, by its domain's keys."""
     attrs = getattr(state, "attributes", None) or {}
     low_key, high_key = _RANGE_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_RANGE_KEYS)
-    unit = setpoint_unit(hass, entity_id, state)
-    return temperature_c(attrs.get(low_key), unit), temperature_c(attrs.get(high_key), unit)
+    return attrs.get(low_key), attrs.get(high_key)
 
 
 #: The step a set-point entity that states none accepts, in its own unit:
@@ -630,12 +636,10 @@ def on_entity_grid(hass: Any, entity_id: str, value: float) -> float:
     """
     step = setpoint_step(hass, entity_id)
     out = _on_step(float(value), step, "nearest")
-    state = hass.states.get(entity_id)
-    attrs = getattr(state, "attributes", None) or {}
-    low_key, high_key = _RANGE_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_RANGE_KEYS)
-    if (low := finite_float(attrs.get(low_key))) is not None:
+    low, high = (finite_float(v) for v in _range_attrs(hass.states.get(entity_id), entity_id))
+    if low is not None:
         out = max(out, _on_step(low, step, "up"))
-    if (high := finite_float(attrs.get(high_key))) is not None:
+    if high is not None:
         out = min(out, _on_step(high, step, "down"))
     return out
 

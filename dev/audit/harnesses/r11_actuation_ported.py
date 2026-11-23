@@ -6,7 +6,7 @@ one-minute tick by name: the cycle calls `_apply_action`, `_command_frequency` a
 the solve's valve write follows the adoption, and the tick builds a `SupplyWiring` of three fields.
 R11-SEAM-actuation-writes folds those into one tail (`_async_step_tail`, run under the arbiter's
 `tail_lock` by the cycle and by the tick), moves the publish out of `_apply_action` into it, cuts the
-action through `_cut_action` and gives the tick its wiring through `_supply_wiring`. On that tree the
+action through `_cut_action` and keeps the tick's wiring on `ArbiterState.wiring`. On that tree the
 rig as written skips the publish and the tick's step half, so its stale shares read the rig, not the
 tree. This launcher loads the finder's rig and, only where the coordinator has `_async_step_tail`,
 replaces its adoption, cycle tail and tick with production's own calls; at a tree without it (the base)
@@ -48,8 +48,7 @@ def _port(rig):
         c = self.coord
         c._optimization_result = result
         c._last_optimization = dt_util.now()
-        c._cut_by = HeatPumpOptimizer(ThermalModel(c._ctx._thermal_params), c._ctx._opt_config)
-        c._cut_action()
+        c._cut_action(HeatPumpOptimizer(ThermalModel(c._ctx._thermal_params), c._ctx._opt_config))
 
     async def _cycle_writes(self):
         c = self.coord
@@ -71,7 +70,7 @@ def _port(rig):
         self.run(pump_arbiter.apply(c, dt_util.now()))
         held = pump_arbiter.state_for(c)
         if held.supply is not None:  # armed by the cycle's note_supply, as production arms it
-            self.run(pump_arbiter.supply_tick(held, c._supply_wiring(), dt_util.now()))
+            self.run(pump_arbiter.supply_tick(held, held.wiring, dt_util.now()))
 
     rig.Sim.adopt, rig.Sim._cycle_writes, rig.Sim.cycle, rig.Sim.tick = adopt, _cycle_writes, cycle, tick
     return "step tail"
