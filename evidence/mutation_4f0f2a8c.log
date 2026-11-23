@@ -1,0 +1,10 @@
+2026-11-23T02:29:28.7271212Z     ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1377 GUARD_OFF: if duty == "idle" or cooling_mode(inp):
+2026-11-23T02:29:28.7272334Z     ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:2024 RETURN_DEL: return mode if mode.cooling else None
+2026-11-23T02:29:28.7273266Z     ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:2105 BOOLOP: if held.supply is None or (held.supply[0] == step and not retry):
+2026-11-23T02:29:28.7274264Z     ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:2105 GUARD_OFF: if held.supply is None or (held.supply[0] == step and not retry):
+2026-11-23T02:29:28.7275628Z     ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:178 GUARD_OFF: if note_cooling(held, inp, signals, on) is None and (on or not (signals.
+2026-11-23T02:29:28.7276494Z     ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:181 RETURN_DEL: return None
+2026-11-23T02:29:28.7277273Z     ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:191 BOOLOP: if mode is None and held.cooling_asked:
+2026-11-23T02:29:28.7278197Z     ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:193 GUARD_OFF: elif mode is not None and asks_heat and not held.cooling_asked:
+2026-11-23T02:29:28.7279049Z     ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:199 RETURN_DEL: return mode
+2026-11-23T02:29:28.7280966Z MUTATION TABLE REFUSED -- 1928 unpinned site(s) against 1919 at the ratchet base 3153a635b4012d3f8a157c2aaaa34f8da5c8d357, 9 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.

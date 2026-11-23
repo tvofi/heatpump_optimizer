@@ -1,0 +1,8 @@
+mb1=8ef450936a1786abf4bb9610dc3336da4e77e8de mb2=b18edd593c94c9ef5d2d1bcfded4021dbd78fb31
+custom_components same
+tests/features.py same
+tests/entities.py same
+docs same
+README.md same
+4f0f2a8cc6 ci: merge main
+baf1450505 ci: pin killed mutants
