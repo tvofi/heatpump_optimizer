@@ -54,7 +54,7 @@ def main(key):
     if verdict == "KILLED":
         rec["class"] = "killed"
         rec["killed_by"] = gate.get("killed_by")
-        rec["fail_lines"] = gate.get("fail_lines", [])[:20]
+        rec["fail_lines"] = gate.get("fail_lines", {})
         rec["non_finding"] = {"claim": f"mutant {key} at {file}:{line} is caught by the full gate",
                               "command": rec["gate_command"],
                               "value": f"KILLED by {', '.join(gate.get('killed_by') or [])} (gate_rc {gate.get('gate_rc')})"}
