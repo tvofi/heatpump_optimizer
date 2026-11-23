@@ -147,8 +147,8 @@ is not persisted. It is what decides whether control is worth turning on:
 what the plan wanted.
 
 **A latched fault suspends control** (:mod:`fault_hold`): while the pump's
-fault alarm holds, a pass writes nothing, the baseline row stays owed and the
-ledger scores the step ``device-fault``.
+fault alarm holds, a pass writes nothing, an unload leaves the baseline row
+owed, and the ledger scores the step ``device-fault``.
 """
 from __future__ import annotations
 
@@ -2186,14 +2186,13 @@ async def _release_row(_hass: Any, entry: Any, _config: Any, reason: str) -> boo
 
     While the power switch reads off the pump takes no write
     (:func:`_pump_off`), so the row stays owed and the next cycle tries
-    again; an unload has no next cycle and writes regardless. A latched
-    fault (:mod:`fault_hold`) takes no row, an unload's included: it stays
-    owed, so Off (which clears the latch) or the next restore hands it back.
-    Takes no arbiter lock: a pass that forgets the record between two of
-    these writes drops only what is cleared here anyway.
+    again; an unload has no next cycle and writes regardless, but not into
+    a latched fault (:mod:`fault_hold`): that row stays owed. Off ends the
+    hold, so its row is written. Takes no arbiter lock: a pass that forgets
+    the record between two of these writes drops only what is cleared here.
     """
     coord = getattr(entry, "runtime_data", None)
-    if coord is None or fault_hold.held(coord.entry):
+    if coord is None or (reason == "unload" and fault_hold.held(coord.entry)):
         return False
     inp, held, now = coord.arbiter_inputs(), state_for(coord), dt_util.now()
     if reason != "unload" and _pump_off(inp, held):

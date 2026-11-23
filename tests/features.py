@@ -89236,9 +89236,10 @@ _fh_bits = {raw: _fh_latch({"sensor.fault_code": FakeState(raw, last_updated=_PA
 R.check("a raw fault bitmap holds on non-zero and not on zero", _fh_bits == {"3": [True], "0": [False]}, f"{_fh_bits}")
 
 # 12. The off restore's baseline row (``pump_arbiter._release_row``) is not
-# written into a faulted pump: not at unload, and not on entering Off, where it
-# stays owed until Off's own pass clears the latch. The space set-point's own
-# restore is not the row and still runs (the design's unload-row carry).
+# written into a faulted pump at unload: it stays owed. Off ends the hold, so
+# entering Off hands the row back at once, as with no fault. The space
+# set-point's own restore is not the row and still runs (the design's
+# unload-row carry).
 def _fh_row_writes(c):
     """The row's writes (mode select, hot-water set-point): every pump write but the space set-point's."""
     return [(d, (data or {}).get("entity_id"), (data or {}).get("option", (data or {}).get("value")))
@@ -89247,7 +89248,7 @@ def _fh_row_writes(c):
 
 
 def _fh_handback(fault, how):
-    """Row writes of the hand-back after a written control pass; the alarm on 30 minutes when ``fault``."""
+    """(row writes, latch held) of the hand-back after a written control pass; the alarm on 30 minutes when ``fault``."""
     c = _fh_coord(state="off")
     _pa_run(c, 0)
     if fault:
@@ -89261,10 +89262,8 @@ def _fh_handback(fault, how):
             return _fh_row_writes(c), _fh.held(c.entry)
         _pa_enter_off(c)
         at_change = _fh_row_writes(c)
-        c.hass.services.calls.clear()
-        _pa_run(c, 2)  # Off's pass: its consult clears the latch
-        _asyncio.run(_pa_orr.async_restore(c.hass, c.entry, c._config, "mode_off"))  # the cycle's retry
-        return at_change, _fh_row_writes(c), _fh.held(c.entry)
+        _pa_run(c, 2)  # Off's own pass: its consult clears the latch
+        return at_change, _fh.held(c.entry)
     finally:
         _sa_dt.freeze(None)
 
@@ -89273,10 +89272,10 @@ _fh_unl, _fh_unl_null = _fh_handback(True, "unload"), _fh_handback(False, "unloa
 R.check("unload under the hold writes no baseline row, and drops the latch", _fh_unl == ([], False), f"{_fh_unl}")
 R.check("null control: unload with no fault writes the baseline row", bool(_fh_unl_null[0]), f"{_fh_unl_null}")
 _fh_off, _fh_off_null = _fh_handback(True, "off"), _fh_handback(False, "off")
-R.check("entering Off under the hold writes no row at the mode change; Off's pass clears the latch and the retry writes it",
-        _fh_off[0] == [] and bool(_fh_off[1]) and _fh_off[2] is False, f"{_fh_off}")
-R.check("null control: with no fault the mode change itself writes the baseline row",
-        bool(_fh_off_null[0]), f"{_fh_off_null}")
+R.check("Off ends the hold: entering Off under it writes the baseline row at the mode change, and Off's pass clears the latch",
+        bool(_fh_off[0]) and _fh_off[1] is False, f"{_fh_off}")
+R.check("null control: with no fault the same mode change writes the same row",
+        _fh_off_null[0] == _fh_off[0], f"{_fh_off_null} vs {_fh_off}")
 
 
 # 12b. A stale plan's hand-back (``off_restore.async_cycle``'s stale half:

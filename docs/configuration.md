@@ -991,8 +991,12 @@ repair, *The heat pump reports a fault; the plan is suspended*, is raised for
 the duration and clears itself. Faults that clear within 10 minutes change
 nothing. The alarm is read at any age, so a fault a source reported once and
 never again still holds; *unavailable*, *unknown* and a word that is not a
-flag neither start a hold nor end one. Turning the optimizer Off ends the hold,
-and turning it On again holds at once on a fault that is still old. The
+flag neither start a hold nor end one. A stale plan hands nothing back while
+the hold lasts (it does once the alarm clears), and an unload under the hold
+leaves the pump's mode and hot-water set-point as they are, owed to the next
+Off, unload or stale plan. Turning the optimizer Off
+ends the hold and hands everything back at once, and turning it On again holds
+at once on a fault that is still old. The
 diagnostics download shows the latch under `fault_hold`; the heat-curve
 displace the diagnostics report under the hold is the one computed, which was
 not sent. To switch the pump by hand while it is faulted, turn **Optimizer
