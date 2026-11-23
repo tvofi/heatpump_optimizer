@@ -5582,7 +5582,7 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-seam-actuation-release",
     "commit": "9276ddf6b122816149ecba82a607aedf38d87ba1",
     "last_step": "carries folded, PR #3812",
