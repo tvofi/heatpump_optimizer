@@ -62,11 +62,19 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.1.2
+# claims-for: 10.1.3
 #
-# v10.1.2: one place per config entry key, room history, solver start set, comment ratchet. The stamp empties the list; the
+# v10.1.3: Dashboard card readability and input guards. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+valve_storage  # baseline_cost LOWER (129.949 -> 129.251)
+valve_storage_flat_prices  # baseline_cost HIGHER (105.998 -> 107.513), plan re-solved
+valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 127.893), plan re-solved
+valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 127.884), plan re-solved
+valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
+wood_coil  # baseline_cost LOWER (144.781 -> 144.082)
+wood_two_tank  # baseline_cost LOWER (129.949 -> 129.251)
+wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -811,11 +819,3 @@
 # carry a may-drift entry whose judged key, baseline_cost, it cannot excuse, so
 # those five are suspended above for this release. Direction per fixture,
 # baseline_cost base -> head:
-valve_storage  # baseline_cost LOWER (129.949 -> 129.251)
-valve_storage_flat_prices  # baseline_cost HIGHER (105.998 -> 107.513), plan re-solved
-valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 127.893), plan re-solved
-valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 127.884), plan re-solved
-valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
-wood_coil  # baseline_cost LOWER (144.781 -> 144.082)
-wood_two_tank  # baseline_cost LOWER (129.949 -> 129.251)
-wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
