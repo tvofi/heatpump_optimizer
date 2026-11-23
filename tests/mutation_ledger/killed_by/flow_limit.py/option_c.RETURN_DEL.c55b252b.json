@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_limit.py:option_c RETURN_DEL c55b252b",
+  "killed_by": "tests/features.py",
+  "old": "    return value if value is not None and FLOW_LIMIT_C_MIN <= value <= FLOW_HEAT_C_MAX else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}
