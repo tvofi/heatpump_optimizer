@@ -85,7 +85,7 @@ OLD=$(git rev-parse HEAD)
 # unread merge state is not DIRTY: the merge-tree reading below is the local proof either way.
 ST=$(gh pr view "$N" -R $R --json mergeStateStatus -q .mergeStateStatus 2>/dev/null) || ST=unread
 MAIN=""
-git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || MAIN=1
+MAIN=1  # seat-forced: the push gate verifies the figure block against origin/main, which differs from the recorded base unless main is merged
 [ "$ST" != DIRTY ] || MAIN=1
 [ -z "$MAIN" ] || $G merge -q --no-edit origin/main
 # Keys taken at the code sha, or at the previous head when none was given, re-keyed where the merges
@@ -103,7 +103,7 @@ M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 upd_figures() { # <where>
   grep -q '^<!-- figure-block: ' "$B" || return 0
   local fb=origin/main
-  fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
+  if [ -n "$MAIN" ]; then fb=origin/main; else fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"; fi  # mut:updbase  LOCAL OVERLAY r11 reland: main merged -> the push's base is origin/main, which prepr verifies
   python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
   pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
 $(tail -n 20 $WT.fig.log)"
