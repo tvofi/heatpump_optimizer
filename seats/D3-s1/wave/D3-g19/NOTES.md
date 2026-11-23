@@ -9,3 +9,4 @@
   (2,3) round4/D6/claims.py header 123/0 vs printed 122/1, (4) that harness leaves claims.json/claims.md modified. None is a machine failure; the null is usable, not re-taken.
   A mutant kills only by failing a script beyond these three or more checks in one of them (fullgate.py's rule).
 - 911f3cf5172ffc44: RED-AS-NULL (same 3 scripts, same counts 2/1/4 as null), wall 3992 s; probe reaches line 496 only with an injected stale row -> candidate (unreachable from shipped catalog).
+- b5f0a73275608684: RED-AS-NULL (null-identical reds) -> candidate (tie label fixed->entity).
