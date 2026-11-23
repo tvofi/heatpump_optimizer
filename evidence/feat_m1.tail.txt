@@ -1,0 +1,9 @@
+head 625cc2c2aef154c507b37cefb015b1c40b27bde7
+TypeError: 'NoneType' object is not iterable
+rc=1
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s6/rev-3845-local/m1/tests/features.py", line 18075, in <module>
+    f"{_elv_ct.weekdays_only}, months {sorted(_elv_ct.months)}",
+                                       ~~~~~~^^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not iterable
+rc=1

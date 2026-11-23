@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/diagnostics.py b/custom_components/heatpump_optimizer/diagnostics.py
+index 6131cef4ac..f390505f85 100644
+--- a/custom_components/heatpump_optimizer/diagnostics.py
++++ b/custom_components/heatpump_optimizer/diagnostics.py
+@@ -372,7 +372,7 @@ def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
+         return view(coord)
+     except Exception:  # noqa: BLE001 -- diagnostics never breaks
+         _LOGGER.debug("Diagnostics view %s unavailable", view, exc_info=True)
+-        return "unavailable"
++        pass
+ 
+ 
+ #: Each module's own ``diagnostics_view``, one ``(key, view)`` row per module.

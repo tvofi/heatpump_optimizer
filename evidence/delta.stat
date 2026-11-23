@@ -1,0 +1,10 @@
+ ...rCoordinator._async_first_refresh_light.RETURN_DEL.fd0988d6.json | 6 ++++++
+ ...OptimizerCoordinator._async_update_data.RETURN_DEL.fd0988d6.json | 6 ++++++
+ ...tPumpOptimizerCoordinator._tariff_hours.RETURN_DEL.6f0a441d.json | 6 ++++++
+ ...PumpOptimizerCoordinator._tariff_months.RETURN_DEL.0ea43e0f.json | 6 ++++++
+ .../killed_by/diagnosis.py/attribute.RETURN_DEL.d7923b87~2.json     | 6 ++++++
+ .../killed_by/diagnostics.py/_never_breaks.RETURN_DEL.1f5b4c27.json | 6 ++++++
+ .../killed_by/services.py/handle_set_away.BOOLOP.b199ea6c.json      | 6 ++++++
+ .../killed_by/services.py/handle_set_away.GUARD_OFF.b199ea6c.json   | 6 ++++++
+ .../killed_by/store.py/save_held.RETURN_DEL.96c9f042.json           | 6 ++++++
+ 9 files changed, 54 insertions(+)
