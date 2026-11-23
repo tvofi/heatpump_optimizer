@@ -402,6 +402,13 @@ class ArbiterState:
     held_until: datetime | None = None
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
+    #: The step the action was last cut or refused for (:func:`stamp_step`),
+    #: and whether a writer's rate limit refused that step's target, so a
+    #: later minute's tick runs the tail again (:func:`supply_tick`).
+    step_cut: datetime | None = None
+    step_pending: bool = False
+    #: Held around one re-cut and its tail, by the cycle and the tick alike.
+    tail_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
 @dataclass(frozen=True)
@@ -2096,14 +2103,34 @@ def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
     coordinator's ``boost.BoostState``) is on, as ``boost.overlay`` makes the
     action the cycle writes.
     """
-    if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_stale or inp.plan is None:
-        return None
-    if (inp.action or {}).get("mode") == "system_identification":
+    if not _plan_speaks(inp):
         return None
     if boosts.active(boost.CHANNEL_SPACE, now) or boosts.active(boost.CHANNEL_DHW, now):
         return True
     i = plan_step_index(inp.plan, now)
     return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
+
+
+def step_gate(inp: ArbiterInputs, now: datetime) -> bool:
+    """Whether the step covering ``now`` speaks for the action: Auto or Economy
+    on a fresh plan that covers ``now``, no experiment's override.
+
+    The one gate the supply half and the step half of :func:`supply_tick`
+    read: where it does not hold, the action is not the plan's step.
+    """
+    return _plan_speaks(inp) and plan_step_index(inp.plan, now) is not None
+
+
+def _plan_speaks(inp: ArbiterInputs) -> bool:
+    """Auto or Economy on a fresh plan, no experiment's override."""
+    if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_stale or inp.plan is None:
+        return False
+    return (inp.action or {}).get("mode") != "system_identification"
+
+
+def stamp_step(held: ArbiterState, now: datetime) -> None:
+    """The action was cut for the step covering ``now``: the one cut stamps it."""
+    held.step_cut = plan_step_start(now)
 
 
 def cycle_supply(inp: ArbiterInputs, boosts: Any, on: bool, now: datetime | None = None) -> bool:
@@ -2132,10 +2159,17 @@ class SupplyWiring:
     inputs: Callable[[], ArbiterInputs]
     boosts: Any
     write: Callable[[bool], Awaitable[None]]
+    #: Cut the action again for the step covering now, its boost overlay
+    #: re-applied; called only where :func:`step_gate` holds.
+    recut: Callable[[], None] = lambda: None
+    #: The step-derived writers' one tail; returns whether a writer's rate
+    #: limit refused a target that differs from its record.
+    tail: Callable[[], Awaitable[bool]] | None = None
 
 
 def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetime | None = None) -> None:
-    """Record the cycle's supply command for its step; arm the step tick once.
+    """Record the cycle's supply command for its step; arm the step tick once,
+    on every install: its step half needs no supply switch.
 
     ``wiring.write`` is the coordinator's gated switch write, the cycle's
     own, so the tick passes the same cut-off hold and blocked-mode skip.
@@ -2144,8 +2178,6 @@ def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetim
     if held.supply_unsub is not None:
         return
     inp = wiring.inputs()
-    if not EntryConfig.from_mapping(inp.config).heat_pump_switch_entity:
-        return
 
     async def _tick(_now: Any = None) -> None:
         await supply_tick(held, wiring)
@@ -2154,7 +2186,13 @@ def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetim
 
 
 async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | None = None) -> None:
-    """At a step boundary, write the supply where the plan's command changes.
+    """At a step boundary, re-derive the step's writes, then write the supply
+    where the plan's command changes.
+
+    The step half (:func:`_step_half`) runs on every install at a new step or
+    while a rate-limited target is pending; the supply half only where a
+    power switch is configured. A tick fired while a tail holds the lock
+    returns, so ticks never queue.
 
     The cycle writes the switch once per interval, so without this a step
     change reached the pump only at the next cycle, as late as one interval
@@ -2164,7 +2202,13 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
     cut-off still holds until the next cycle, as ``early_cutoff`` documents.
     """
     now = now or dt_util.now()
+    if held.tail_lock.locked():
+        return  # the cycle's tail runs: the next minute decides again
     step = plan_step_start(now)
+    if held.step_cut != step or held.step_pending:
+        await _step_half(held, wiring, step, now)
+    if not EntryConfig.from_mapping(wiring.inputs().config).heat_pump_switch_entity:
+        return
     if held.supply is None or (held.supply[0] == step and not held.supply_held):
         return
     inp = wiring.inputs()
@@ -2177,6 +2221,24 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
     last, held.supply = held.supply[1], (step, on)
     if on != last or held.supply_held:
         await wiring.write(on)
+
+
+async def _step_half(held: ArbiterState, wiring: SupplyWiring, step: datetime, now: datetime) -> None:
+    """Re-derive the step's writes: at a new step re-cut the action, then run
+    the tail; a pending minute re-checks the gate and runs the tail only.
+
+    A refused gate (a mode, a stale plan, an experiment, a released entry)
+    stamps the step, clears the flag and runs nothing: Off and a stale plan
+    are the release's (D16-s2-01, D16-s2-02).
+    """
+    async with held.tail_lock:
+        inp = wiring.inputs()
+        pending = False
+        if not inp.entry_released and step_gate(inp, now) and wiring.tail is not None:
+            if held.step_cut != step:
+                wiring.recut()
+            pending = await wiring.tail()
+        held.step_cut, held.step_pending = step, pending
 
 
 def _action_supply(inp: ArbiterInputs) -> bool | None:

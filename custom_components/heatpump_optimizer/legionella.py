@@ -163,6 +163,8 @@ class LegionellaGuard:
         #: The (owned switches, latch) pair as last written to the store.
         self._switch_saved: tuple[tuple[str, ...], bool] = ((), False)
         self.last_cycle: datetime | None = None
+        #: The tank reading the last observation was handed, °C; ``None`` unread.
+        self.tank_c: float | None = None
         self.store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             LEGIONELLA_STORE_VERSION,
@@ -543,13 +545,19 @@ class LegionellaGuard:
         """
         await self.disinfect.release_blind()
 
+    async def async_follow(self) -> None:
+        """The cycle follower on the last tank reading, after the action is cut:
+        the step tail's, so it reads the action of the step it lands in."""
+        await self.async_track_cycle(self.tank_c)
+
     async def async_observe(self, dhw_temp: float | None, reader: Any) -> float | None:
-        """One cycle: the observer on a reading, the cycle follower regardless; ``hours_since``."""
+        """One cycle: the observer on a reading, kept for the follower
+        (:meth:`async_follow`); ``hours_since``."""
         if dhw_temp is not None:
             await self.async_track(dhw_temp)
         self.disinfect.observe(reader)
         self.off_step.check(self._params(), self._config)
-        await self.async_track_cycle(dhw_temp)
+        self.tank_c = dhw_temp
         self.check_ceiling()
         self.check_overdue()
         return self.hours_since()
