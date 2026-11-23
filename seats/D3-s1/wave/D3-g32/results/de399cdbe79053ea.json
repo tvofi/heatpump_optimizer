@@ -1,0 +1,35 @@
+{
+ "key": "de399cdbe79053ea",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1640 CMP_BOUND",
+ "patch": "and abs(room_temp - base) > self.config.max_excursion_c -> and abs(room_temp - base) >= self.config.max_excursion_c",
+ "function": "SystemIdentification._over_excursion",
+ "cluster": "sysid.py:SystemIdentification._over_excursion@1640-1640",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3269.8,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/de399cdbe79053ea.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key de399cdbe79053ea",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_de399cdbe79053ea.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_de399cdbe79053ea.py",
+  "baseline_value": "False at an exact float tie",
+  "mutant_value": "True at an exact float tie",
+  "inputs_tried": "202 readings at 0.1 C resolution (15-25 C, room = base +- 0.8) moved 0 and had 0 exact ties; 2002 at 0.01 C, 402 at 0.05 C and 42 at 0.5 C had 0 exact ties (scratch scan); 600000 random indoor readings (base U[5,30] C, room base+-0.8 and both float neighbours) moved 0; the only tie found is base 0.2 C, room 1.0 C (moved), outside any indoor reading; max_excursion_c is fixed at 0.8 (SysIdConfig default, the coordinator never sets it), and 0.8 is not a multiple of ulp(x) for |x| >= 1, so no tie exists for room temperatures at or above 1 C",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_de399cdbe79053ea.out"
+ },
+ "should_fail": "none reachable: a check at |room - base| == 0.8 exactly cannot be built from indoor readings at or above 1 C"
+}
