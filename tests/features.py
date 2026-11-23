@@ -76019,8 +76019,8 @@ R.check(
 
 
 # 3. The DHW block: the fire plan with the switch on is the no-fire plan.
-# The suppression only removes discretionary slots in the first two hours, and
-# the fixture's prices are anchored on the clock, so whether the no-fire plan
+# The suppression only removes discretionary slots in the first two hours.
+# The fixture's prices are anchored on the clock, so whether the no-fire plan
 # has such a slot depends on the hour: the clock is pinned to one where it has.
 _X62_AT = datetime(2026, 11, 22, 19, 30, tzinfo=timezone.utc)
 
