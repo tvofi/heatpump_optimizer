@@ -2306,7 +2306,7 @@ def _valve_flow_set(
         w_upper = r * (ua_slab + lower_heat_loss_coefficient + c) + (1.0 - r) * c
         w_lower = r * c + (1.0 - r) * (ua_rad + heat_loss_coefficient + c)
         w_sum = w_upper + w_lower
-        free_heat_kw = (w_upper * r + w_lower * (1.0 - r)) * p.internal_gains / w_sum
+        free_heat_kw = (w_upper * (1.0 - r) + w_lower * r) * p.internal_gains / w_sum
         emitter_ua = (w_upper * ua_rad + w_lower * ua_slab) / w_sum
         heat_loss_coefficient = (
             w_upper * heat_loss_coefficient + w_lower * lower_heat_loss_coefficient) / w_sum
