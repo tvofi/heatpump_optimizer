@@ -22,5 +22,14 @@
  "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
  "class": "timeout",
  "last_script_running": "python3 tests/features.py",
- "should_fail": "tests/features.py (executes line 6360 on its traced baseline; the #1754 re-run checks drive the finally's re-run but no check calls async_run_optimization with _optimization_running already True and asserts no solve starts and the flag stays set)"
+ "should_fail": "tests/features.py (executes line 6360 on its traced baseline; the #1754 re-run checks drive the finally's re-run but no check calls async_run_optimization with _optimization_running already True and asserts no solve starts and the flag stays set)",
+ "timeout_note": "capped at 14400 s (gate_wave.sh GATE_CAP) while python3 tests/features.py sat idle (load1 0.00 at 2.5 h) after printing the section '#1754 -- a refresh during an in-flight solve is honoured' (tests/features.py:31448): with the re-run branch's return deleted, the second run request enters the rig's gated executor (_solve_coord's hass.entered/release events) and waits on a release the check never gives, so the suite deadlocks instead of failing an assertion. Neither a finding nor a non-finding (unit (c)); the pre-gate probe (probes/9efe002b48e1827d/probe.out) moves 0 -> 2 solves.",
+ "probe_pregate": [
+  "RESULT reentrant_solves_baseline=0 mutant=2",
+  "RESULT inflight_flag_after_baseline=True mutant=False",
+  "RESULT null_moved=0 count  (no solve in flight: baseline (1, False, None), mutant (1, False, None))",
+  "RESULT thread_factor=1.000",
+  "RESULT load1=0.00",
+  "RESULT swapins=0 count"
+ ]
 }
