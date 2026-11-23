@@ -1,0 +1,70 @@
+{
+ "key": "7cb1bac951ddeb9e",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:3772 CMP_BOUND",
+ "patch": "(d := cap - traj[name][:, -1]) > 0.0, d, 0.0 -> (d := cap - traj[name][:, -1]) >= 0.0, d, 0.0",
+ "function": "HeatPumpOptimizer._terminal_cost_batch.cost_batch",
+ "cluster": "optimizer.py:HeatPumpOptimizer._terminal_cost_batch.cost_batch@3772-3772",
+ "slice": "u1b",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3500.2,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5719.5,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/7cb1bac951ddeb9e.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7cb1bac951ddeb9e",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/7cb1bac951ddeb9e.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py",
+  "metric": "mutant_cases_moved",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "extra": {
+   "mutant_parity_breaks": "0"
+  },
+  "moving_cases": [],
+  "inputs_tried": "81 cases: 3 row_cost variants (same COP, split COP, refill derate) x coef +/-/0 x 9 end temperatures (end == cap, cap=-0/end=+0, +/-1 ulp, NaN, +/-inf, far below/above), compared bit for bit",
+  "thread_factor": "1.000",
+  "load1": "1.08"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/block_duty.py",
+   "tests/boost_drift_replay.py",
+   "tests/config_flow_steps.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/validate.py"
+  ],
+  "assertion_lacking": "none can fail: equivalent"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "np.where(d >= 0, d, 0) differs from the > form only at d == +/-0.0, where it returns a signed zero that the row's builtin sum absorbs bit for bit",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:3772 CMP_BOUND (d := cap - traj[name][:, -1]) > 0.0, d, 0.0 -> (d := cap - traj[name][:, -1]) >= 0.0, d, 0.0 survives the full gate but is equivalent on every input tried: np.where(d >= 0, d, 0) differs from the > form only at d == +/-0.0, where it returns a signed zero that the row's builtin sum absorbs bit for bit",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py",
+  "value": "mutant_cases_moved=0 (null 0); mutant_parity_breaks=0"
+ }
+}
