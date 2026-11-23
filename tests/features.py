@@ -98129,6 +98129,10 @@ class _SgUpstreamDebouncer:
     with no timer armed is dropped ("any call is good, so abort"); one inside
     the cooldown runs at its end. The stub awaits the job inline and arms the
     timer before any spawned task runs, so it cannot show the drop.
+
+    Each eager task names the running loop, as upstream's ``create_eager_task``
+    passes ``hass.loop``: Python 3.13's ``Task`` given no loop fails its eager
+    start, and the coverage job runs this script on 3.13.
     """
 
     def __init__(self, function, cooldown):
@@ -98150,7 +98154,7 @@ class _SgUpstreamDebouncer:
 
     async def _run_job(self):
         try:
-            await _sg_aio.Task(self.function(), eager_start=True)
+            await _sg_aio.Task(self.function(), loop=_sg_aio.get_running_loop(), eager_start=True)
         finally:
             self._schedule_timer()
 
@@ -98176,7 +98180,7 @@ class _SgUpstreamDebouncer:
 
     def _on_debounce(self):
         self._timer_task = None
-        _sg_aio.Task(self._handle_timer_finish(), eager_start=True)
+        _sg_aio.Task(self._handle_timer_finish(), loop=_sg_aio.get_running_loop(), eager_start=True)
 
     def _schedule_timer(self):
         if not self._shutdown_requested:
