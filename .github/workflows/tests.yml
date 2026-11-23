@@ -243,6 +243,8 @@ jobs:
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: needs.closure-scope.outputs.fast_skip != 'skip'
@@ -471,6 +473,8 @@ jobs:
         if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - name: Install pinned test dependencies
         if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
@@ -535,6 +539,8 @@ jobs:
         if: needs.closure-scope.outputs.browser_skip != 'skip'
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: needs.closure-scope.outputs.browser_skip != 'skip'
@@ -709,6 +715,8 @@ jobs:
         if: needs.closure-scope.outputs.typing_skip != 'skip'
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       # The versions are recorded in tests/typing_budgets.json and installed
       # from tests/requirements-typing.txt, the hash-pinned resolution of
@@ -779,6 +787,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       # Per-script coverage is reused from the push run at the diff's base
       # (R9-F10.9b, #1812) -- and, since the V1 lever, the push arm reuses
@@ -1058,6 +1068,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - name: Install pinned test dependencies
         run: >-
@@ -1144,9 +1156,11 @@ jobs:
     # The step's 340 plus this runner's checkout, pip install and upload
     # (R9-CI-1 round 2: the budget the step hands the base program is 260).
     timeout-minutes: 350
+    # CI-7 (owner 2026-11-21): at most 4 shards at once, of mutation_table's
+    # MAX_SHARDS: a full burst held 12 of the 40 runner slots for its ~97 min.
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: 4
       matrix:
         shard: ${{ fromJSON(needs.mutation.outputs.shards) }}
     steps:
@@ -1157,6 +1171,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - name: Install pinned test dependencies
         run: >-
@@ -1359,6 +1375,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - name: Install pinned test dependencies
         run: >-
@@ -2008,6 +2026,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       # Everything from here to the under-approximation check is the full arm
       # and is gated off the docs-only fast lane: the fast arm derives its
@@ -2448,10 +2468,7 @@ jobs:
         id: push
         if: steps.autofix.outputs.status == 'changed'
         env:
-          GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
-          PR: ${{ inputs.pr }}
-          BASE_REF: ${{ inputs.base }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
           PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
@@ -2476,41 +2493,27 @@ jobs:
             exit 0
           fi
           # A GITHUB_TOKEN push's pull_request runs at this head are held
-          # `action_required` (since 2026-10-15; run 38781421410), and the
-          # next step's poll, keyed on the pushed SHA (#1283), has hpo-runs
-          # approve them; the dispatch below is not held.
+          # `action_required` (since 2026-10-15; run 38781421410): the next
+          # step has hpo-runs approve them, and the one after dispatches the
+          # umbrella only where it approved none (CI-1).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          # No -f recheck=: the dispatched run uses this ref's workflow, and
-          # every dispatch of it runs the pull-request-like lanes (the
-          # nightly lanes are nightly.yml's since R10-CI-LAYOUT PR 1).
-          # One dispatch of the umbrella, naming the PR and its base (U0c's
-          # inputs): its prelude verifies they name the open PR this pushed
-          # SHA heads, and its gate judges every unit at that head.
-          gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
-      # The dispatch above runs at once. #1276 added this step because a
-      # GITHUB_TOKEN push's pull_request runs were held action_required for a
-      # human, and a pending required check shadowed the dispatched green on
-      # the PR. Measured 2026-10-09, at two bot heads: no such run is created
-      # at all, so this step normally finds nothing to approve and the
-      # dispatched runs stood alone. Under the umbrella the held run is a
-      # `CI` run (ci.yml), which this step approves like any other on the
-      # branch; whether it is approved beside the dispatched `gate` or the
-      # step is deleted is M-3's decision (DESIGN-P2 10, U10's M-3(b)).
-      # The listing is preceded by a bounded poll: GitHub creates the pushed
-      # SHA's runs asynchronously, and a one-shot listing was measured
-      # approving nothing while all five runs appeared moments later (#1283).
-      # Approve them as a dedicated Actions-only App -- HPO_RUNS_PEM /
-      # HPO_RUNS_APPID, Actions: write alone, a smaller blast radius than
-      # hpo-approver's -- minting the token with the same RS256 flow
-      # tools/pr/app_approve.sh uses, ported inline because a workflow
-      # cannot read the orchestrator box's key files. Fail-soft throughout:
-      # absent secrets print one notice and approve nothing (until the owner
-      # sets them, behavior is unchanged), and a later mint or approve error
-      # warns rather than reddening a job whose push already happened -- red
-      # means "no bot commit" (#523), and the commit exists.
+      # CI-1 (owner 2026-11-21): one full run per pushed head. A GITHUB_TOKEN
+      # push's pull_request runs wait action_required (#1276); this step
+      # approves them as a dedicated Actions-only App -- HPO_RUNS_PEM /
+      # HPO_RUNS_APPID, Actions: write alone -- minting the token with the
+      # RS256 flow tools/pr/app_approve.sh uses, ported inline because a
+      # workflow cannot read the orchestrator box's key files, after a bounded
+      # poll for the pushed SHA's runs (#1283). It outputs approved_head=true
+      # once it approved a `CI` run at that SHA; the next step dispatches the
+      # umbrella only without it, so the approved run is the head's one full
+      # run, and absent secrets, a refused approval or no held run in the
+      # window still get one. Fail-soft throughout: an error warns rather than
+      # reddening a job whose push already happened (red means "no bot
+      # commit", #523).
       - name: Approve the runs the push left holding
+        id: approve
         if: steps.push.outputs.token_push == 'true'
         env:
           REPO: ${{ github.repository }}
@@ -2609,6 +2612,9 @@ jobs:
             if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
               echo "approved run $id ($name)"
               approved=$((approved + 1))
+              if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then
+                echo "approved_head=true" >> "$GITHUB_OUTPUT"
+              fi
             else
               echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
             fi
@@ -2622,6 +2628,18 @@ jobs:
             held_ids | sed 's/^/  still held: /'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dispatch the umbrella when no held run was approved
+        if: ${{ !cancelled() && steps.push.outputs.token_push == 'true' && steps.approve.outputs.approved_head != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR: ${{ inputs.pr }}
+          BASE_REF: ${{ inputs.base }}
+        # No -f recheck=: every dispatch of the umbrella runs the
+        # pull-request-like lanes. Its prelude verifies pr and base name the
+        # open PR this pushed SHA heads (U0c), and its gate judges every unit.
+        run: gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
       # The push above runs only on `changed`; the other statuses fell through
       # to job success, so a skipped repair was invisible and the documented
@@ -2718,10 +2736,7 @@ jobs:
         id: push
         if: steps.autofix.outputs.status == 'changed'
         env:
-          GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
-          PR: ${{ inputs.pr }}
-          BASE_REF: ${{ inputs.base }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
           PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
@@ -2746,28 +2761,16 @@ jobs:
             exit 0
           fi
           # A GITHUB_TOKEN push's pull_request runs at this head are held
-          # `action_required` (since 2026-10-15; run 38781421410), and the
-          # next step's poll, keyed on the pushed SHA (#1283), has hpo-runs
-          # approve them; the dispatch below is not held.
+          # `action_required` (since 2026-10-15; run 38781421410): the next
+          # step has hpo-runs approve them, and the one after dispatches the
+          # umbrella only where it approved none (CI-1).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          # One dispatch of the umbrella, naming the PR and its base (U0c's
-          # inputs): its prelude verifies they name the open PR this pushed
-          # SHA heads, and its gate judges every unit at that head.
-          gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
-      # As in closures-autofix (#1276): the dispatch runs at once. That
-      # step exists because a GITHUB_TOKEN push's pull_request runs were held
-      # action_required for a human; measured 2026-10-09 at two bot heads, no
-      # such run is created at all, so the poll below normally finds nothing
-      # and the dispatched run stands alone. Where GitHub does hold one,
-      # the approve step clears it as the Actions-only App -- the RS256 mint
-      # tools/pr/app_approve.sh uses, ported inline -- after the same bounded
-      # poll for the pushed SHA's runs (#1283). Fail-soft throughout: absent
-      # secrets print one notice and approve nothing, and a later error warns
-      # rather than reddening a job whose push already happened (red means
-      # "no bot commit", #523).
+      # As in closures-autofix (CI-1): approve the held runs, then dispatch
+      # the umbrella only where no `CI` run at the pushed SHA was approved.
       - name: Approve the runs the push left holding
+        id: approve
         if: steps.push.outputs.token_push == 'true'
         env:
           REPO: ${{ github.repository }}
@@ -2866,6 +2869,9 @@ jobs:
             if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
               echo "approved run $id ($name)"
               approved=$((approved + 1))
+              if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then
+                echo "approved_head=true" >> "$GITHUB_OUTPUT"
+              fi
             else
               echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
             fi
@@ -2879,6 +2885,18 @@ jobs:
             held_ids | sed 's/^/  still held: /'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dispatch the umbrella when no held run was approved
+        if: ${{ !cancelled() && steps.push.outputs.token_push == 'true' && steps.approve.outputs.approved_head != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR: ${{ inputs.pr }}
+          BASE_REF: ${{ inputs.base }}
+        # No -f recheck=: every dispatch of the umbrella runs the
+        # pull-request-like lanes. Its prelude verifies pr and base name the
+        # open PR this pushed SHA heads (U0c), and its gate judges every unit.
+        run: gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
       # As in closures-autofix (#523). This job's apply function has no
       # attempted-and-failed status, so today only an unrecognised or empty
@@ -3006,10 +3024,7 @@ jobs:
         id: push
         if: steps.autofix.outputs.status == 'changed'
         env:
-          GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
-          PR: ${{ inputs.pr }}
-          BASE_REF: ${{ inputs.base }}
           USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
           PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
         run: |
@@ -3034,28 +3049,16 @@ jobs:
             exit 0
           fi
           # A GITHUB_TOKEN push's pull_request runs at this head are held
-          # `action_required` (since 2026-10-15; run 38781421410), and the
-          # next step's poll, keyed on the pushed SHA (#1283), has hpo-runs
-          # approve them; the dispatch below is not held.
+          # `action_required` (since 2026-10-15; run 38781421410): the next
+          # step has hpo-runs approve them, and the one after dispatches the
+          # umbrella only where it approved none (CI-1).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          # One dispatch of the umbrella, naming the PR and its base (U0c's
-          # inputs): its prelude verifies they name the open PR this pushed
-          # SHA heads, and its gate judges every unit at that head.
-          gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
-      # As in closures-autofix (#1276): the dispatch runs at once. That
-      # step exists because a GITHUB_TOKEN push's pull_request runs were held
-      # action_required for a human; measured 2026-10-09 at two bot heads, no
-      # such run is created at all, so the poll below normally finds nothing
-      # and the dispatched run stands alone. Where GitHub does hold one,
-      # the approve step clears it as the Actions-only App -- the RS256 mint
-      # tools/pr/app_approve.sh uses, ported inline -- after the same bounded
-      # poll for the pushed SHA's runs (#1283). Fail-soft throughout: absent
-      # secrets print one notice and approve nothing, and a later error warns
-      # rather than reddening a job whose push already happened (red means
-      # "no bot commit", #523).
+      # As in closures-autofix (CI-1): approve the held runs, then dispatch
+      # the umbrella only where no `CI` run at the pushed SHA was approved.
       - name: Approve the runs the push left holding
+        id: approve
         if: steps.push.outputs.token_push == 'true'
         env:
           REPO: ${{ github.repository }}
@@ -3154,6 +3157,9 @@ jobs:
             if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
               echo "approved run $id ($name)"
               approved=$((approved + 1))
+              if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then
+                echo "approved_head=true" >> "$GITHUB_OUTPUT"
+              fi
             else
               echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
             fi
@@ -3167,6 +3173,18 @@ jobs:
             held_ids | sed 's/^/  still held: /'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dispatch the umbrella when no held run was approved
+        if: ${{ !cancelled() && steps.push.outputs.token_push == 'true' && steps.approve.outputs.approved_head != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR: ${{ inputs.pr }}
+          BASE_REF: ${{ inputs.base }}
+        # No -f recheck=: every dispatch of the umbrella runs the
+        # pull-request-like lanes. Its prelude verifies pr and base name the
+        # open PR this pushed SHA heads (U0c), and its gate judges every unit.
+        run: gh workflow run ci.yml --ref "$HEAD_REF" -f pr="$PR" -f base="$BASE_REF"
 
       # As in closures-autofix (#523): the status reaches the job summary, and
       # a measurement that was owed and did not happen reddens this job.

@@ -189,15 +189,6 @@ pr_kept() { printf '%s: KEPT %s on %s: %s\n' "${PR_NAME:-pr}" "$1" "$2" "$3" >&2
 PR_FRESH_PATHS=(:/tools/audit/seat :/tools/pr)  # mut:freshpaths
 # This file's own directory, absolute, fixed once at source time. A caller that sourced it by a relative path and then changed directory (update_pr.sh and open_pr.sh `cd "$M"`) would otherwise resolve the relative BASH_SOURCE against the new directory and measure the main checkout, not the one holding these tools: a false STALE CHECKOUT (P362, P401). Every reader uses this, never BASH_SOURCE at call time.
 PR_ARGS_DIR=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)  # mut:argsdir
-# The base a figure block is rendered against is the pull request's recorded base.sha, the value pr-contract
-# verifies with (pr-contract.yml, "base="), never origin/main's tip, which moves past it
-# (R10-RCA-FAMILY-FIGURE-BLOCK-STALE). Prints the sha, present locally; fails when unread or malformed.
-pr_recorded_base() { # <repo> <pull request number>
-  local b; b=$(gh api "repos/$1/pulls/$2" --jq .base.sha 2>/dev/null) || return 1
-  [[ $b =~ ^[0-9a-f]{40}$ ]] || return 1
-  git cat-file -e "$b^{commit}" 2>/dev/null || git fetch -q origin "$b" 2>/dev/null || return 1
-  printf '%s\n' "$b"
-}
 pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's checkout is behind it in PR_FRESH_PATHS
   local d=${PR_ARGS_DIR:-} n h o why
   h=$(git -C "$d" rev-parse --short=12 HEAD 2>/dev/null) && o=$(git -C "$d" rev-parse --short=12 origin/main 2>/dev/null) \
@@ -1271,7 +1262,7 @@ STUB
       && git -C "$o" branch fix/u "$base" && touch "$t/fixr"
   fi
   codeR=$(git -C "$o" rev-parse handoff/r)
-  printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; "pr edit"*|"pr ready"*) exit 0 ;; api*pulls/*) cat "%s/pullbase" ;; *) exit 99 ;; esac\n' "$t" "$t" "$t" > "$t/bin/gh"
+  printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; "pr edit"*|"pr ready"*) exit 0 ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh"
   racerun() {
     local sd=$t/race-${1//+/_} sdir=$t/race-${1//+/_}-stub g k=0 op
     rm -rf "$sd" "$sdir" "$t/s$i"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)  # git lists worktrees by physical path
@@ -1387,23 +1378,19 @@ STUB
   done
   dualrun stateroot link; [ "$(cat "$t/rc2")" != 75 ] && [ "$(cat "$t/bd1")" != "$(cat "$t/bd2")" ]
   ck "  mutant mut:stateroot (its line deleted): through a symlinked state dir the second opener is not BUSY and rewrites body.md (the defect)" $?
-  # R10-HOTFIX-OPENPR-FIGURE-REFRESH: a figure block names the head it was rendered at, so the body
-  # open_pr.sh pushes needs it re-rendered at each head it pushes (p1 when the main merge moved the
-  # head, p2 always: the row commit moves it). The stub pusher is lint's figure-block head check; the
-  # stub figure_block.py rewrites each head= to the worktree's HEAD (the real one has its own self-test).
+  # A body stores no figure block (R11-PRE-SHARED-FILES): open_pr.sh cuts one a body written before
+  # that rule carries, once, before its first push (the cut holds at every later head). The stub
+  # pusher is lint's refusal of a stored block, and refuses the row push while FIG_P2_FAIL is set;
+  # the stub figure_block.py deletes each block (the real one has its own self-test).
   if [ ! -e "$t/fixf" ]; then
     git -C "$o" checkout -q -b handoff/f "$base" && mkdir -p "$o/tools/pr" && printf 'f\n' > "$o/f" \
       && cat > "$o/tools/pr/app_push.sh" <<'STUB'
 #!/bin/bash
 D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; flag=; case $1 in --row-only|--reuse) flag=$1; shift ;; esac
 wt=$2; br=$3; body=$4; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
-h=$(grep -o '^<!-- figure-block: [a-z-]* mb=[0-9a-f]* head=[0-9a-f]*' "$body" | grep -o 'head=.*' | cut -c6-)
-if [ -n "$h" ]; then
-  [ "$h" = "$(git -C "$wt" rev-parse HEAD)" ] || { echo "app_push: REFUSE: figure-block scope-line names another head ($h)"; exit 1; }
-  [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr RUNS: the body changed"
-else
-  [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr SKIPPED: only the row"
-fi
+if grep -q '^<!-- /\{0,1\}figure-block' "$body"; then echo "app_push: REFUSE: the body carries a stored figure block"; exit 1; fi
+[ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr SKIPPED: only the row"
+[ "$n" != 2 ] || [ -z "${FIG_P2_FAIL:-}" ] || { echo "app_push: REFUSE: the row push is refused (FIG_P2_FAIL)"; exit 1; }
 if [ "$n" = 1 ] && [ "$(git -C "$wt" rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then  # the main merge moved the head: the ## Head section names it
   sed -n '/^## Head/,/^## Figures/p' "$body" | grep -q "$(git -C "$wt" rev-parse HEAD)" || { echo "app_push: REFUSE: ## Head does not name HEAD"; exit 1; }
 fi
@@ -1414,8 +1401,8 @@ STUB
     git -C "$o" add f tools/pr/app_push.sh && git -C "$o" commit -q -m "code f" && git -C "$o" checkout -q main && touch "$t/fixf"
   fi
   codeF=$(git -C "$o" rev-parse handoff/f)
-  printf 'import os, re, subprocess, sys\nf = sys.argv[sys.argv.index("refresh") + 1]\nh = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()\nt = re.sub(r"head=[0-9a-f]{40}", "head=" + h, open(f).read())\nopen(f, "w").write(t)\nopen(os.environ["FIGBASE_LOG"], "a").write(sys.argv[sys.argv.index("--base") + 1] + "\\n")\n' > "$m/tools/pr/figure_block.py"
-  figbody() { # <block|none>: handoff-body/f carries a body with a figure block naming the code head, or none
+  printf 'import re, sys\nf = sys.argv[sys.argv.index("strip") + 1]\nt = re.sub(r"(?ms)^<!-- figure-block.*?^<!-- /figure-block -->\\n", "", open(f).read())\nopen(f, "w").write(t)\n' > "$m/tools/pr/figure_block.py"
+  figbody() { # <block|none>: handoff-body/f carries a body with a stored figure block, or none
     local blob tree
     if [ "$1" = block ]; then blob=$(printf '## Head\n\nthe body\n\n## Figures\n\n<!-- figure-block: scope-line mb=%s head=%s -->\n~~~text\nx\n~~~\n<!-- /figure-block -->\n' "$codeF" "$codeF" | git -C "$o" hash-object -w --stdin)
     else blob=$(printf '## Head\n\nthe body\n' | git -C "$o" hash-object -w --stdin); fi
@@ -1438,55 +1425,45 @@ STUB
     cp "$sd/pr/f/p2.log" "$t/fp2" 2>/dev/null || : > "$t/fp2"
     git -C "$o" reset -q --hard "$base"; true
   }
-  export FIGBASE_LOG=$t/figbase
-  printf '%s\n' "$base" > "$t/pullbase"; : > "$FIGBASE_LOG"
   figrun - block; [ "$(cat "$t/frc")" = 0 ] && grep -q '^PR=5 ' "$t/fo" && [ "$(cat "$t/frow")" = 1 ]
-  ck "open_pr: a body with a figure block opens (both pushes land, the row is present), the main merge having moved the head" $?
-  # R11-HOTFIX-FIGURE-BLOCK-BASE: figrun moves main past $base, which the stub gh reports as the pull request's
-  # recorded base.sha: the p2 render (after the PR exists) takes it, the p1 render (no PR yet) origin/main.
-  [ "$(tail -n 1 "$FIGBASE_LOG")" = "$base" ] && [ "$(head -n 1 "$FIGBASE_LOG")" = origin/main ]
-  ck "open_pr: the row-head figure render takes the pull request's recorded base.sha, not origin/main, main having moved past it" $?
-  figrun opbase block; [ "$(tail -n 1 "$FIGBASE_LOG")" = origin/main ]
-  ck "  mutant mut:opbase (its line deleted): the row-head render falls back to the local origin/main" $?
-  figrun opfig2 block; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ] && grep -qF "figure-block scope-line names another head" "$t/fo" "$t/fp2" 2>/dev/null
-  ck "  mutant mut:opfig2 (its line deleted): the row push is refused, naming another head, and the PR is closed" $?
+  ck "open_pr: a body with a stored figure block opens with the block cut (both pushes land, the row is present), the main merge having moved the head" $?
+  FIG_P2_FAIL=1 figrun - block; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ] && grep -qF "the row push is refused (FIG_P2_FAIL)" "$t/fo" "$t/fp2" 2>/dev/null
+  ck "  the stub's row-push refusal closes the open at its row push (the arms below re-run over it)" $?
   figrun headnote block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "## Head does not name HEAD" "$t/fo"
   ck "  mutant mut:headnote (its line deleted): the head note is missing, so the code push is refused for a ## Head that does not name HEAD" $?
-  figrun opfig1 block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "figure-block scope-line names another head" "$t/fo"
-  ck "  mutant mut:opfig1 (its line deleted): the code push is refused at the merged head, with nothing pushed" $?
+  figrun opfig1 block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "the body carries a stored figure block" "$t/fo"
+  ck "  mutant mut:opfig1 (its line deleted): the code push is refused for the stored block, with nothing pushed" $?
   figrun - none; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ] && grep -qF "ROW-ONLY: prepr SKIPPED" "$t/fp2"
   ck "  null control: a body with no figure block opens as before and its row push skips prepr" $?
   # An open closed after its second push leaves the local branch and the detached worktree; the next run's
   # worktree add -b failed on them. The re-run must clear what origin already holds.
-  figrun opfig2 block; figrun - block keep; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ]
+  FIG_P2_FAIL=1 figrun - block; figrun - block keep; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ]
   ck "open_pr: a re-run after an open closed at its row push clears the left-over branch and worktree and opens" $?
-  figrun opfig2 block; figrun opclear block keep; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ]
+  FIG_P2_FAIL=1 figrun - block; figrun opclear block keep; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ]
   ck "  mutant mut:opclear (its line deleted): the re-run fails at git worktree add -b on the left-over branch (the defect)" $?
   # The same re-run on a host with many worktrees: `worktree list --porcelain | grep -q` under pr_trap's
   # pipefail read the left-over checkout, listed early, as absent once the list outgrew the pipe (SIGPIPE,
   # 141), so it was never removed. The wrapper appends 300 KB of entries after git's own list.
   mkdir -p "$t/wtpad"; ( k=0; while [ "$k" -lt 3000 ]; do printf 'worktree /nonexistent/pad-%d\nHEAD %040d\ndetached\n\n' "$k" "$k"; k=$((k + 1)); done ) > "$t/wtpad/list"
   printf '#!/bin/bash\n"%s" "$@" || exit\ncase " $* " in *" worktree list --porcelain "*) exec cat "%s" ;; esac\n' "$(command -v git)" "$t/wtpad/list" > "$t/wtpad/git"; chmod +x "$t/wtpad/git"
-  figrun opfig2 block; PATH="$t/wtpad:$PATH" figrun - block keep; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ]
+  FIG_P2_FAIL=1 figrun - block; PATH="$t/wtpad:$PATH" figrun - block keep; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ]
   ck "open_pr: the same re-run with 3000 more worktrees listed after the left-over one still clears it and opens" $?
-  # R10-HOTFIX-UPDATEPR-FIGURE-REFRESH: update_pr.sh re-renders the body's figure blocks at the head it
-  # pushes (moved-head path, before app_push) or patches (body-only path, before body_patch.sh), as
-  # open_pr.sh's op_figures does. fix/g starts at $base; handoff/f's pusher stub is lint's figure-block
-  # head check; the stub figure_block.py rewrites head= to HEAD, notes each call and fails while $t/figfail exists.
+  # update_pr.sh cuts a stored figure block from the body before the head it pushes (moved-head path,
+  # before app_push) or patches (body-only path, before body_patch.sh), as open_pr.sh's op_figures does.
+  # fix/g starts at $base; handoff/f's pusher stub is lint's refusal of a stored block; the stub
+  # figure_block.py deletes each block, notes each call and fails while $t/figfail exists.
   cat > "$m/tools/pr/figure_block.py" <<STUBF
 import os, re, subprocess, sys
 open("$t/figcalled", "a").close()
 if os.path.exists("$t/figfail"): sys.exit(1)
-f = sys.argv[sys.argv.index("refresh") + 1]
-h = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-t = re.sub(r"head=[0-9a-f]{40}", "head=" + h, open(f).read())
+f = sys.argv[sys.argv.index("strip") + 1]
+t = re.sub(r"(?ms)^<!-- figure-block.*?^<!-- /figure-block -->\\n", "", open(f).read())
 open(f, "w").write(t)
-open(os.environ["FIGBASE_LOG"], "a").write(sys.argv[sys.argv.index("--base") + 1] + "\n")
 STUBF
   cp "$t/bin/gh" "$t/gh.orig"
-  printf '#!/bin/sh\ncase "$*" in *--head*) echo 5 ;; *mergeStateStatus*) echo CLEAN ;; "pr view"*) echo "a title" ;; api*pulls/*) cat "%s/pullbase" ;; *) exit 99 ;; esac\n' "$t" > "$t/bin/gh"
-  printf '#!/bin/bash\necho called >> "%s/ubp.log"\nh=$(grep -o "^<!-- figure-block: [a-z-]* mb=[0-9a-f]* head=[0-9a-f]*" "$5" | grep -o "head=.*" | cut -c6-)\n[ -z "$h" ] || [ "$h" = "$4" ] || { echo "body_patch: REFUSE: figure-block scope-line names another head ($h)"; exit 1; }\necho "body_patch: OK"\n' "$t" > "$t/ubp.sh"
-  ufig() { # <mutant|-> <code sha|-> <block|none>: update_pr.sh fix/g over a body with (or without) a figure block naming the code head
+  printf '#!/bin/sh\ncase "$*" in *--head*) echo 5 ;; *mergeStateStatus*) echo CLEAN ;; "pr view"*) echo "a title" ;; *) exit 99 ;; esac\n' > "$t/bin/gh"
+  printf '#!/bin/bash\necho called >> "%s/ubp.log"\n! grep -q "^<!-- /\\{0,1\\}figure-block" "$5" || { echo "body_patch: REFUSE: the body carries a stored figure block"; exit 1; }\necho "body_patch: OK"\n' "$t" > "$t/ubp.sh"
+  ufig() { # <mutant|-> <code sha|-> <block|none>: update_pr.sh fix/g over a body with (or without) a stored figure block
     rm -f "$t/figcalled"
     if [ "$3" = block ]; then printf '## Head\n\nthe body\n\n## Figures\n\n<!-- figure-block: scope-line mb=%s head=%s -->\n~~~text\nx\n~~~\n<!-- /figure-block -->\n' "$base" "$codeF" > "$t/bu.md"
     else printf '## Head\n\nthe body\n' > "$t/bu.md"; fi
@@ -1495,49 +1472,32 @@ STUBF
     git -C "$o" rev-parse fix/g > "$t/uafter"
   }
   ufresh() { git -C "$o" branch -f fix/g "$base"; rm -f "$t/figfail" "$t/ubp.log"; }
-  ubody() { grep -o '^<!-- figure-block: [a-z-]* mb=[0-9a-f]* head=[0-9a-f]*' "$t/bu.md" | grep -o 'head=.*' | cut -c6-; }
+  ubody() { grep -c '^<!-- /\{0,1\}figure-block' "$t/bu.md"; }
   ufresh; ufig - "$codeF" block
-  [ "$(cat "$t/rc")" = 0 ] && [ "$(ubody)" = "$(cat "$t/uafter")" ] && [ "$(cat "$t/uafter")" != "$(cat "$t/ubefore")" ]
-  ck "update_pr: a moved head with a figure block pushes a body whose block names the new head" $?
-  # R11-HOTFIX-FIGURE-BLOCK-BASE: the render takes the recorded base.sha. Main has moved past $base (precondition
-  # asserted); the null control records origin/main's own tip, where the render is the same sha either way.
-  printf 'y\n' > "$o/yy" && git -C "$o" add yy && git -C "$o" -c user.name=t -c user.email=t@t commit -q -m "main moves on"
-  [ "$(git -C "$o" rev-parse main)" != "$base" ]; ck "update_pr: precondition, origin/main has moved past the base the stub records" $?
-  printf '%s\n' "$base" > "$t/pullbase"; : > "$FIGBASE_LOG"; ufresh; ufig - "$codeF" block
-  [ "$(cat "$t/rc")" = 0 ] && [ "$(tail -n 1 "$FIGBASE_LOG")" = "$base" ]
-  ck "update_pr: a recorded base differing from origin/main's tip renders the recorded one" $?
-  git -C "$o" rev-parse main > "$t/pullbase"; : > "$FIGBASE_LOG"; ufresh; ufig - "$codeF" block
-  [ "$(cat "$t/rc")" = 0 ] && [ "$(tail -n 1 "$FIGBASE_LOG")" = "$(git -C "$o" rev-parse main)" ]
-  ck "  null control: equal bases render the one sha, as before" $?
-  printf '%s\n' "$base" > "$t/pullbase"; : > "$FIGBASE_LOG"; ufresh; ufig updbase "$codeF" block
-  [ "$(tail -n 1 "$FIGBASE_LOG")" = origin/main ]
-  ck "  mutant mut:updbase (its line deleted): the render falls back to the local origin/main" $?
-  printf '' > "$t/pullbase"; ufresh; ufig - "$codeF" block
-  [ "$(cat "$t/rc")" != 0 ] && grep -qF "recorded base.sha could not be read" "$t/out" && [ "$(cat "$t/uafter")" = "$base" ]
-  ck "update_pr: an unreadable recorded base refuses and pushes nothing" $?
-  printf '%s\n' "$base" > "$t/pullbase"; git -C "$o" reset -q --hard "$base"
+  [ "$(cat "$t/rc")" = 0 ] && [ "$(ubody)" = 0 ] && grep -qF 'the body' "$t/bu.md" && [ "$(cat "$t/uafter")" != "$(cat "$t/ubefore")" ]
+  ck "update_pr: a moved head with a stored figure block pushes the body with the block cut" $?
   ufresh; ufig updfig1 "$codeF" block
-  [ "$(cat "$t/rc")" != 0 ] && grep -qF "figure-block scope-line names another head" "$t/out"
-  ck "  mutant mut:updfig1 (its line deleted): the push carries a block naming another head and is refused" $?
+  [ "$(cat "$t/rc")" != 0 ] && grep -qF "the body carries a stored figure block" "$t/out"
+  ck "  mutant mut:updfig1 (its line deleted): the push carries the stored block and is refused" $?
   ufresh; touch "$t/figfail"; ufig - "$codeF" block
-  [ "$(cat "$t/rc")" != 0 ] && grep -qF "update_pr: REFUSE: the figure-block refresh at the head to push failed" "$t/out" && [ "$(cat "$t/uafter")" = "$base" ]
-  ck "update_pr: a failing refresh at the head to push refuses and pushes nothing" $?
+  [ "$(cat "$t/rc")" != 0 ] && grep -qF "update_pr: REFUSE: the figure-block strip at the head to push failed" "$t/out" && [ "$(cat "$t/uafter")" = "$base" ]
+  ck "update_pr: a failing strip at the head to push refuses and pushes nothing" $?
   ufresh; ufig - "$codeF" block; rm -f "$t/ubp.log"
   ufig - - block
-  [ "$(cat "$t/rc")" = 0 ] && [ "$(cat "$t/ubefore")" = "$(cat "$t/uafter")" ] && grep -qF "update_pr: BODY-ONLY" "$t/out" && [ "$(ubody)" = "$(cat "$t/uafter")" ] && [ "$(wc -l < "$t/ubp.log")" = 1 ]
-  ck "update_pr: a body-only run over a block naming the code head patches a body naming the live head" $?
+  [ "$(cat "$t/rc")" = 0 ] && [ "$(cat "$t/ubefore")" = "$(cat "$t/uafter")" ] && grep -qF "update_pr: BODY-ONLY" "$t/out" && [ "$(ubody)" = 0 ] && [ "$(wc -l < "$t/ubp.log" | tr -d ' ')" = 1 ]
+  ck "update_pr: a body-only run over a stored block patches the body with the block cut" $?
   ufig updfig2 - block
-  [ "$(cat "$t/rc")" != 0 ] && grep -qF "body_patch: REFUSE: figure-block scope-line names another head" "$t/out"
-  ck "  mutant mut:updfig2 (its line deleted): body_patch.sh is handed a block naming another head and refuses" $?
+  [ "$(cat "$t/rc")" != 0 ] && grep -qF "body_patch: REFUSE: the body carries a stored figure block" "$t/out"
+  ck "  mutant mut:updfig2 (its line deleted): body_patch.sh is handed the stored block and refuses" $?
   rm -f "$t/ubp.log"; touch "$t/figfail"; ufig - - block
-  [ "$(cat "$t/rc")" != 0 ] && grep -qF "update_pr: REFUSE: the figure-block refresh at the unmoved head failed" "$t/out" && [ ! -e "$t/ubp.log" ] && [ "$(cat "$t/ubefore")" = "$(cat "$t/uafter")" ]
-  ck "update_pr: a failing refresh on the body-only path refuses and patches nothing" $?
+  [ "$(cat "$t/rc")" != 0 ] && grep -qF "update_pr: REFUSE: the figure-block strip at the unmoved head failed" "$t/out" && [ ! -e "$t/ubp.log" ] && [ "$(cat "$t/ubefore")" = "$(cat "$t/uafter")" ]
+  ck "update_pr: a failing strip on the body-only path refuses and patches nothing" $?
   ufresh; ufig - "$codeF" none
   [ "$(cat "$t/rc")" = 0 ] && [ ! -e "$t/figcalled" ] && ! grep -q 'figure-block' "$t/bu.md"
-  ck "null control: a body with no figure block never reaches the refresh and is pushed as before" $?
+  ck "null control: a body with no figure block never reaches the strip and is pushed as before" $?
   ufresh; ufig - "$codeF" none; ufig - - none
   [ "$(cat "$t/rc")" = 0 ] && [ ! -e "$t/figcalled" ] && grep -qF "update_pr: BODY-ONLY" "$t/out"
-  ck "null control: a body-only run over a body with no figure block never reaches the refresh" $?
+  ck "null control: a body-only run over a body with no figure block never reaches the strip" $?
   git -C "$o" branch -qD fix/g; git -C "$o" reset -q --hard "$base"; cp "$t/gh.orig" "$t/bin/gh"
   git -C "$m" worktree prune; git -C "$m" branch -qD fix/g 2>/dev/null; git -C "$m" update-ref -d refs/remotes/origin/fix/g; true
   # R10-FLOW-BODY-ONLY parts (a) and (b), ruling R4: update_pr.sh merges origin/main only when the PR
@@ -1666,7 +1626,7 @@ GH
       if [ "$1" = - ]; then cp "$seat/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$seat/$g" > "$m/tools/audit/seat/$g"; fi
     done
     case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; selftest) touch "$sdir/p2selftest" ;; host) touch "$sdir/p2selftest" "$sdir/hostfail" ;; stmix|body) touch "$sdir/p2$2" "$sdir/hostfail" ;;
-      stalefig) touch "$sdir/hostfail" "$sdir/figfail"; mkdir -p "$sd/pr/r" && printf '  REFUSE   self-test             FAIL x\n' > "$sd/pr/r/p2.log" ;; *) touch "$sdir/p2fail" ;; esac
+      stalefig) touch "$sdir/hostfail" "$sdir/rowstop"; mkdir -p "$sd/pr/r" && printf '  REFUSE   self-test             FAIL x\n' > "$sd/pr/r/p2.log" ;; *) touch "$sdir/p2fail" ;; esac
     touch "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
     PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
     git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
@@ -1907,17 +1867,15 @@ STUB
   ck "  mutant mut:hostsame (its line deleted): the head's own self-test red leaves the PR open" $?
   codeR=$codeS; git -C "$o" update-ref refs/heads/handoff/r "$codeR"; git -C "$o" branch -qD handoff/g
   # A p2 log an earlier run of the topic left is not this run's refusal: the opener stops at its
-  # figure refresh at the row head, before its own row push, and the stale self-test row is not read.
-  printf '## Head\n\nthe body\n\n<!-- figure-block: x -->\n' > "$t/bodyF.md"
-  bodyF=$(git -C "$o" commit-tree "$(printf '100644 blob %s\tBODY.md\n' "$(git -C "$o" hash-object -w "$t/bodyF.md")" | git -C "$o" mktree)" -m "body: figures")
-  git -C "$o" update-ref refs/heads/handoff-body/r "$bodyF"
-  printf 'import os, sys\nsys.exit(1 if os.path.exists(os.path.join(os.environ.get("STUB_DIR", "."), "figfail")) and os.path.exists("dev/programme/delivery/5.md") else 0)\n' > "$m/tools/pr/figure_block.py"
+  # head note at the row head (head_note.py, made to exit once the row file exists), before its own
+  # row push, and the stale self-test row is not read.
+  printf '\nimport os as _o, sys as _s\nif _o.path.exists(_o.path.join(_o.environ.get("STUB_DIR", "."), "rowstop")) and _o.path.exists("dev/programme/delivery/5.md"): _s.exit(1)\n' >> "$m/tools/pr/head_note.py"
   rowless - stalefig
-  hostclosed && grep -qF "figure-block refresh at the row head failed" "$t/outo"
+  hostclosed
   ck "open_pr: a stop before this run's own row push closes the PR, whatever self-test row an earlier run's log holds" $?
   rowless hoststale stalefig; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
   ck "  mutant mut:hoststale (its line deleted): the earlier run's log is measured and the PR is left open" $?
-  rm -f "$m/tools/pr/figure_block.py"; git -C "$o" update-ref refs/heads/handoff-body/r "$body"
+  cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py"
   git -C "$o" reset -q --hard HEAD~1; unset HPO_ALLOW_STALE_TOOLS
   # A conflicted main merge was left in the opener's worktree, and pr_release_wt kept it as dirty
   # work (carry 8); the opener now aborts its own merge and refuses, and the clean worktree, which

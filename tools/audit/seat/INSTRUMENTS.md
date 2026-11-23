@@ -22,7 +22,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR —
 - [`app_comment.sh`](instruments/app_comment.sh.md) — posts one fix-review verdict on a PR as `hpo-approver` and reads the posted comment back byte-identical
 - [`app_push.sh`](instruments/app_push.sh.md) — pushes a branch and opens or re-bodies its pull request as the `hpo-author` App
 - [`depgraph.py` (tools/pr/)](instruments/depgraph.py.md) — compares GitHub's dependency graph with the tree's pins
-- [`figure_block.py` (tools/pr/)](instruments/figure_block.py.md) — renders/refreshes/verifies registered figure blocks in a PR body
+- [`figure_block.py` (tools/pr/)](instruments/figure_block.py.md) — renders the registered figures and refuses a PR body that stores a figure block
 - [`head_note.py` (tools/pr/)](instruments/head_note.py.md) — prefixes a note under a body's `## Head` heading, found as `checkPrBody`'s `sections()` reads it (outside a fence, `##`, whitespace, `Head`)
 - [`outside.py` (tools/pr/)](instruments/outside.py.md) — the outside-contributor contract (decision 0017): admission, the three path classes, the class-O check and its one mandated approval writer
 - [`role_pack.py` (tools/policy/)](instruments/role_pack.py.md) — renders one seat's policy pack: its role contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim, in one file

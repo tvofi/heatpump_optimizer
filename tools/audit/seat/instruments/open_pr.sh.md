@@ -53,10 +53,9 @@
   before its push. A main merge that conflicts is aborted and refused
   (`merging origin/main into <sha> conflicts`), so the clean worktree is
   released instead of kept as dirty.
-  A body carrying a generated figure block is re-rendered (`figure_block.py refresh`) at each
-  head the opener pushes: before the code push when the main merge moved the head, and always
-  before the row push, whose commit moves it; a refresh that fails refuses (nothing pushed at the
-  first, the PR closed with the reason at the second). A re-run after an open closed past its
+  A body carrying a stored figure block (one written before `pr-contract` rendered the
+  registered figures) has it cut (`figure_block.py strip`) once, before the code push; a strip
+  that fails refuses, with nothing pushed. A re-run after an open closed past its
   second push first removes the left-over detached worktree and local branch when origin holds
   all their commits, and refuses when it does not.
   `--self-test` runs `delivery_row.sh`'s, then
