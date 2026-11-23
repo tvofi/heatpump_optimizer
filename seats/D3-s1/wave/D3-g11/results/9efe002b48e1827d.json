@@ -1,0 +1,26 @@
+{
+ "key": "9efe002b48e1827d",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:6360 RETURN_DEL",
+ "patch": "return None -> pass",
+ "function": "HeatPumpOptimizerCoordinator.async_run_optimization",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization",
+ "gate": {
+  "verdict": "TIMEOUT",
+  "killed_by": null,
+  "gate_rc": null,
+  "wall_s": null,
+  "load1_start": null,
+  "load1_end": null,
+  "failed_scripts": null,
+  "fail_lines": null,
+  "more_fails_than_null": null,
+  "cap_s": 14400,
+  "note": "gate exceeded the box cap or ended without a record; never read as KILLED"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/9efe002b48e1827d.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9efe002b48e1827d",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "class": "timeout",
+ "last_script_running": "python3 tests/features.py",
+ "should_fail": "tests/features.py (executes line 6360 on its traced baseline; the #1754 re-run checks drive the finally's re-run but no check calls async_run_optimization with _optimization_running already True and asserts no solve starts and the flag stays set)"
+}
