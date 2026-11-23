@@ -1,0 +1,77 @@
+{
+ "key": "91617fb42e33ebdf",
+ "site": "dhw_planner.py:1800 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1800,
+ "patch": "pinned = np.where(temps[: b + 1] >= ceiling[: b + 1] - 0.1)[0] -> pinned = np.where(temps[: b + 1] > ceiling[: b + 1] - 0.1)[0]",
+ "function": "DhwPlanner._repair_dhw_floor",
+ "cluster": "dhw_planner.py:DhwPlanner._repair_dhw_floor@1800-1893",
+ "slice": "u1c",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3233.0,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/91617fb42e33ebdf.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/91617fb42e33ebdf.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 91617fb42e33ebdf",
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_91617fb42e33ebdf.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_91617fb42e33ebdf.py",
+  "baseline_value": "one-decimal start 0.1 K under the ceiling (step 0 ties): plan as baseline; e.g. case 226 13.06 kWh",
+  "mutant_value": "sensor_reading_differing=3 of 500 (case 226: 13.06 -> 9.48 kWh, c=0.232 kWh/K, 4.8 kW cap); bisected exact ties in the first round: 262 ties, 0 differing; plain calls 0 differing",
+  "inputs_tried": "262 double-precision crossings of temps[i] - (ceiling[i] - 0.1) bisected on the start temperature (200 seeded near-ceiling calls); 1500 seeded calls; 500 seeded near-ceiling calls started from float(f'{ceil-0.1:.1f}'), which equals ceil - 0.1 exactly for every ceiling tried",
+  "reach": "A one-decimal tank reading exactly 0.1 K under the charge ceiling (64.9 under 65) is an exact tie at step 0; 3 of 500 such seeded calls move. Not seen in the 147 captured production calls."
+ },
+ "should_fail": "tests/features.py's floor-repair checks (the `_fr_fixed` 'the repair closes the breach' block at ~41112, ~63196, ~63616, ~63797, ~82600) execute line 1800 but none starts the tank on the pin boundary (ceiling - 0.1 exactly) and asserts that step counts as full.",
+ "title": "No check starts the DHW floor repair exactly 0.1 K under the ceiling; the pinned-step >= boundary is unpinned",
+ "claim": "Mutant 91617fb42e33ebdf at dhw_planner.py:1800 (pinned = np.where(temps[: b + 1] >= ceiling[: b + 1] - 0.1)[0] -> pinned = np.where(temps[: b + 1] > ceiling[: b + 1] - 0.1)[0]) survives the full gate (RED-AS-NULL); its probe moves: sensor_reading_differing=3 of 500 (case 226: 13.06 -> 9.48 kWh, c=0.232 kWh/K, 4.8 kW cap); bisected exact ties in the first round: 262 ties, 0 differing; plain calls 0 differing.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "stop_rule_class": "bug",
+ "metric_definition": "count of 500 seeded _repair_dhw_floor calls started from a one-decimal reading exactly 0.1 K under the ceiling whose repaired plan differs with `>=` -> `>` at dhw_planner.py:1800",
+ "phenomenon_property": "A step whose simulated tank temperature equals ceiling - 0.1 counts as rating-pinned in the floor repair",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_91617fb42e33ebdf.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_91617fb42e33ebdf.py",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._repair_dhw_floor",
+ "perturbation": {
+  "change": "mutant 91617fb42e33ebdf: pinned = np.where(temps[: b + 1] >= ceiling[: b + 1] - 0.1)[0] -> pinned = np.where(temps[: b + 1] > ceiling[: b + 1] - 0.1)[0] at custom_components/heatpump_optimizer/dhw_planner.py:1800, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 91617fb42e33ebdf",
+  "expected_direction": "up (0 -> 3 differing; the moving cases buy less, e.g. 13.06 -> 9.48 kWh)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_91617fb42e33ebdf.py",
+  "value": "1500 seeded calls with no tie forced: differing_plain_calls=0",
+  "full_gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/dhw_planner.py"
+ ],
+ "proposed_fix_scope": "tests only: a check in the named script that fails under the mutant"
+}
