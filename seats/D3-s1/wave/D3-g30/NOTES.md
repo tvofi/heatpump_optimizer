@@ -10,3 +10,12 @@
   later gate on harness_headers may show 3 lines instead of 4: fewer than the null, never read as KILLED. Probe values
   unchanged (runprobes.sh: 16 same).
 - Probes run only from a clean baseline worktree $HOME/probe-base (the gate's tree carries the mutant while a gate runs).
+- 2026-11-23T00:59Z a stale `.git/worktrees/audit-r11-D3-s1/index.lock` (0 bytes, no git process held it; not created by the
+  gate's own run.sh, whose log never mentions it) appeared 13 min into the 66686e3b gate. That gate ran its full hour, then
+  fullgate.py's reset hit the lock (CalledProcessError) and wrote no record; gate_wave.sh then recorded 66686e3b and, as the
+  tree stayed on the mutant commit, 5bf50f5d and cc96ce9e (each refused in seconds: "HEAD ... is not the baseline") as
+  TIMEOUT. Those three TIMEOUTs are false and were withdrawn (kept under aborted/ as evidence, removed from the checkpoint).
+  The lock was moved aside, the tree reset to the baseline, and the three keys are re-gated from scratch.
+  Box-local workaround (never pushed as a tool change; copy at probes/_generator/gate_wave.box-local.sh): the driver now
+  halts with DRIVER-ABORT instead of writing TIMEOUT when the tree is locked/off-baseline before a gate, or when fullgate
+  ends without a record before the 4 h cap.
