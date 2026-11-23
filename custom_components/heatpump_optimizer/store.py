@@ -238,7 +238,7 @@ _KINDS: dict[str, Any] = {
 }
 
 
-def in_domain(domain: Domain, value: Any) -> bool:
+def in_domain(domain: Domain, value: Any, key: bool = False) -> bool:  # reviewer shim: main behaviour, head signature
     """Whether ``value`` lies in ``domain`` (a key is read as the number it spells)."""
     if value is None or value == "":
         return domain.null

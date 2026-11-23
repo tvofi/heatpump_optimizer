@@ -3147,6 +3147,44 @@ R.check(
 R.check("parse_bool reads a real bool through", parse_bool(True) is True)
 R.check("parse_bool refuses a word it does not know", parse_bool("warm") is None)
 R.check("parse_bool reads any non-zero number as yes", parse_bool("-2") is True)
+_R11IG_NONFINITE = ("nan", "NaN", "inf", "-inf", "1e309", " Infinity ")
+R.check(
+    "parse_bool reads no non-finite number as a flag (D1-s3-01)",
+    all(parse_bool(_t) is None for _t in _R11IG_NONFINITE)
+    and all(parse_bool(_t, strict=True) is None for _t in _R11IG_NONFINITE),
+    f"{[(_t, parse_bool(_t)) for _t in _R11IG_NONFINITE]}",
+)
+R.check(
+    "and the codes either side of it still read (null control)",
+    parse_bool("0") is False and parse_bool("1") is True and parse_bool("0.0") is False,
+)
+_r11ig_slot = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=minutes_ago(5, NOW))}),
+    {"indoor_temp_entity": {"v": "sensor.indoor"}, "outdoor_temp_entity": ["sensor.indoor"]},
+    now=lambda: NOW,
+)
+_r11ig_slot_reads = [_r11ig_slot.read(_k) for _k in ("indoor_temp_entity", "outdoor_temp_entity")]
+R.check(
+    "a slot holding a dict or a list reads as unset, not a raise (D1-s2-05)",
+    all(_r.problem == "not_configured" and _r.entity_id is None for _r in _r11ig_slot_reads),
+    f"{[(_r.problem, _r.entity_id) for _r in _r11ig_slot_reads]}",
+)
+_r11ig_window = _r9f41_const.INPUT_PLAUSIBLE_RANGE_C
+_r11ig_outside = [
+    (_k, _v)
+    for _k, (_lo, _hi) in _r11ig_window.items()
+    for _v in (_lo - 1.0, _hi + 1.0)
+    if inputs_mod.plausible_c(_k, _v)
+]
+R.check(
+    "every plausible window refuses a reading one degree past either end (D1-s2-51)",
+    len(_r11ig_window) > 0 and not _r11ig_outside,
+    f"accepted: {_r11ig_outside}",
+)
+R.check(
+    "and accepts its own midpoint (null control)",
+    all(inputs_mod.plausible_c(_k, (_lo + _hi) / 2.0) for _k, (_lo, _hi) in _r11ig_window.items()),
+)
 
 # -- health, and what must NOT freeze ---------------------------------------
 # Mode configured and healthy, online configured but unusable, defrost never
@@ -14999,7 +15037,8 @@ R.check(
 # Once a weekly snapshot is newer, the restore is the ordinary one again.
 _fr_w_before, _fr_w_entry, _, _ = _fr_case("learners", "fr_weekly")
 _fr_w_ring = _fr_w_entry.runtime_data._snapshot_ring
-_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {}, True)
+# In band: a snapshot with no accuracy evidence is no restore point (D17-s3-03).
+_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {"temperature_bias": 0.1}, True)
 R.check(
     "a weekly snapshot newer than the undo point takes the restore back from it",
     _fr_w_ring.undo_target() is _fr_w_ring.snapshots[-1] and "before_reset" not in _fr_w_ring.snapshots[-1]
@@ -15497,8 +15536,9 @@ def _lsl_ring():
     coord._house_heat_loss_samples = 33
     coord._apply_cop_scale(1.1)
     coord._cop_samples = 21
+    # In band: a snapshot with no accuracy evidence is no restore point (D17-s3-03).
     coord._snapshot_ring.take(datetime.now(timezone.utc), coord._learner_snapshot_payloads(),
-                              coord._accuracy.summary(), True)
+                              {**coord._accuracy.summary(), "temperature_bias": 0.1}, True)
     return coord._snapshot_ring.as_dict()
 
 
@@ -63050,6 +63090,19 @@ from heatpump_optimizer.const import (  # noqa: E402
     DEFAULT_PV_EXPORT_PRICE as _P8_EXPORT_DEFAULT,
 )
 
+_R11IG_TEMPS_C = (-20.0, 0.0, 21.5, 55.0, 100.0)
+_r11ig_units = _r9f41_const.TEMPERATURE_UNIT_TO_C
+_r11ig_trip = [
+    (_u, _c, inputs_mod.normalize_temperature_c(inputs_mod.temperature_from_c(_c, _u), _u))
+    for _u in _r11ig_units
+    for _c in _R11IG_TEMPS_C
+]
+R.check(
+    "temperature_from_c inverts every unit row the reader converts (D7-s3-01)",
+    any(_f != 1.0 for _o, _f in _r11ig_units.values())
+    and all(_back is not None and _p8_math.isclose(_back, _c, abs_tol=1e-9) for _u, _c, _back in _r11ig_trip),
+    f"{[t for t in _r11ig_trip if t[2] is None or not _p8_math.isclose(t[2], t[1], abs_tol=1e-9)]}",
+)
 _p8_norm = getattr(inputs_mod, "normalize_price_per_kwh", None)
 _P8_FACTORS = {
     "SEK/kWh": 1.0,
@@ -66864,7 +66917,7 @@ R.check(
 
 # D1-s1-02: best_restore must never raise on a stored bias leaf of any shape.
 _si_bias = {}
-for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
+for _si_leaf in (0.3, "0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
     _si_r = _SiRing.from_dict({"snapshots": [{
         "taken_at": "2026-06-01T12:00:00+00:00", "healthy": True,
         "accuracy": {"temperature_bias": _si_leaf}, "learners": {},
@@ -66875,10 +66928,33 @@ for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
         _si_bias[repr(_si_leaf)] = type(_si_err).__name__
 R.check(
     "best_restore skips a non-numeric or out-of-band stored bias instead of "
-    "raising, and still restores an in-band numeric one (D1-s1-02)",
-    _si_bias == {"'0.3'": True, "'garbage'": False, "[0.3]": False,
+    "raising, and still restores an in-band numeric one (D1-s1-02); text that "
+    "spells a number is out of its declared domain (R11-SEAM-store)",
+    _si_bias == {"0.3": True, "'0.3'": False, "'garbage'": False, "[0.3]": False,
                  "{'v': 0.3}": False, "nan": False, "0.9": False},
     f"{_si_bias}",
+)
+
+# D17-s3-03: the first heartbeat's snapshot is taken before any accuracy sample,
+# so its summary carries no bias: no evidence of in-band accuracy, and neither
+# the service nor the drift rollback may take it. Driven through take() with an
+# empty tracker's own summary; the same ring with an in-band bias restores
+# (null control).
+from heatpump_optimizer.snapshots import BIAS_BAND_C as _SI_BAND  # noqa: E402
+
+_si_unevidenced = {}
+for _si_label, _si_summary in (("empty", AccuracyTracker().summary()), ("in_band", {"temperature_bias": 0.1}),
+                               ("edge", {"temperature_bias": -_SI_BAND}),
+                               ("past", {"temperature_bias": _SI_BAND + 0.01})):
+    _si_r = _SiRing()
+    _si_r.take(datetime(2026, 6, 1, 12, tzinfo=UTC), {"marker": _si_label}, _si_summary, True)
+    _si_unevidenced[_si_label] = (_si_r.best_restore() is not None, _si_r.undo_target() is not None)
+R.check(
+    "a snapshot whose accuracy summary carries no bias is no restore point for the service "
+    "or the drift rollback, and an in-band one is, the band's edge included (D17-s3-03)",
+    _si_unevidenced == {"empty": (False, False), "in_band": (True, True), "edge": (True, True),
+                        "past": (False, False)},
+    f"{_si_unevidenced}",
 )
 
 # D1-s3-01: the typed return time is the user's wall clock, and boost, the
@@ -85067,6 +85143,33 @@ R.check(
     == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS
     and [_he_store.in_domain(_bt_hdom, v) for v in (0.0, 0.5, None, -0.1)] == [True, True, True, False],
     f"{_bt_store.get('space_settle')}",
+)
+# D1-s2-06: the restore reads a boosted sum against that declaration before
+# timedelta() sees it. One longer than two datetimes can bound reads unknown,
+# and the rest of the restore still runs. One inside it is restored as stored,
+# and the next overlay's run still adds to the longest.
+_bt_range = {}
+for _bt_h in (1.5, 3e10, 1e14):
+    _bt_far = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+    try:
+        boost_mod._restore_settle(_bt_far, {
+            "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat(), "boosted_h": _bt_h},
+            "space": {"until": (NOW + timedelta(hours=1)).isoformat(),
+                      "since": (NOW - timedelta(hours=1)).isoformat()},
+        }, NOW)
+        _bt_range[_bt_h] = (_bt_far.space_boosted, _bt_far.space_since == NOW - timedelta(hours=1))
+    except Exception as _bt_err:  # noqa: BLE001 -- the escape is the measurement
+        _bt_range[_bt_h] = type(_bt_err).__name__
+_bt_top = (datetime.max - datetime.min) // timedelta(hours=1)
+_bt_longest = boost_mod.BoostState(space_boosted=timedelta(hours=_bt_top))
+R.check(
+    "a stored boosted sum longer than two datetimes bound reads unknown and the overlay's "
+    "start is still restored, one inside it is restored as stored, the declaration's ceiling "
+    "is that span, and a run added to it does not overflow (D1-s2-06)",
+    _bt_range == {1.5: (timedelta(hours=1.5), True), 3e10: (None, True), 1e14: (None, True)}
+    and [_he_store.in_domain(_bt_hdom, v) for v in (float(_bt_top), float(_bt_top + 1))] == [True, False]
+    and _bt_longest._boosted_with(datetime.max, datetime.min) >= timedelta(hours=2 * _bt_top),
+    f"{_bt_range}",
 )
 
 
