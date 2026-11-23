@@ -1,0 +1,43 @@
+{
+ "key": "e72d16a241bfa7be",
+ "site": "custom_components/heatpump_optimizer/price_model.py:357 CMP_BOUND",
+ "patch": "`if var <= 0.0:` -> `if var < 0.0:`",
+ "function": "PriceShapeModel.sigma",
+ "cluster": "price_model.py:PriceShapeModel.sigma@357-357",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3513.2,
+  "load1_start": 0.92,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5832.9,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/gates/e72d16a241bfa7be.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e72d16a241bfa7be",
+ "machine": "box D3-g31: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB (walls and loads provisional)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_e72d16a241bfa7be.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_e72d16a241bfa7be.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_e72d16a241bfa7be.out",
+  "baseline_value": "prod_differ=0 of 840; direct var 0, level inf -> 0.0",
+  "mutant_value": "prod_differ=0 of 840; direct var 0, level inf -> nan",
+  "inputs_tried": "from_dict-loaded models, residual_var in {0,-0.0,1e-12,0.04,-0.01,-5} x days {0,1,5,9} x level {0,-0,0.5,2,-0.3,1e-300,1e300} at 5 instants; direct-constructed var -1e-3, var 0 with level inf/nan, var -0.0 with level inf"
+ },
+ "should_fail": "none through production; a direct sigma call at var 0 with a non-finite level asserting 0.0 would",
+ "note": "from_dict floors residual_var at 0 (and the learner's EWMA of squares is >= 0), and extend_price_series passes a finite level (finite known prices over a shape mean > 1e-6), so var < 0 and a non-finite level never reach sigma; at var == 0 with a finite level the mutant's level*sqrt(0)*conf is 0.0 (or -0.0, equal). Equivalent through production."
+}
