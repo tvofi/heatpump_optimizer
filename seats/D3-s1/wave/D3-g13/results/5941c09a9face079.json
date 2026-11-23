@@ -1,0 +1,72 @@
+{
+ "key": "5941c09a9face079",
+ "site": "defrost.py:739 BOOLOP",
+ "file": "custom_components/heatpump_optimizer/defrost.py",
+ "line": 739,
+ "patch": "if isinstance(raw, (int, float)) and not isinstance(raw, bool): -> if isinstance(raw, (int, float)) or not isinstance(raw, bool):",
+ "function": "DefrostWindow._elapsed",
+ "cluster": "defrost.py:DefrostWindow._elapsed@739-739",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 2798.4,
+  "child_cpu_s": 4680.4,
+  "load1_start": 0.95,
+  "load1_end": 0.93,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/5941c09a9face079.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 5941c09a9face079",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+  "answer": "defrost.py:739 DefrostWindow._elapsed BOOLOP: `if isinstance(raw, (int, float)) and not isinstance(raw, bool):` -> `if isinstance(raw, (int, float)) or not isinstance(raw, bool):`. Ran 13 closure scripts, none killed. Should fail: tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/entities.py, tests/features.py each execute line 739 on the traced baseline yet no check of theirs reads an outcome the mutation changes."
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_5941c09a9face079.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_5941c09a9face079.py",
+  "rc": 0,
+  "results": [
+   "RESULT stamp_aware_utc: baseline=600.0 mutant=600.0",
+   "RESULT stamp_aware_tz2: baseline=600.0 mutant=600.0",
+   "RESULT stamp_naive: baseline=600.0 mutant=600.0",
+   "RESULT stamp_mixed: baseline=None mutant=None",
+   "RESULT stamp_equal: baseline=0.0 mutant=0.0",
+   "RESULT stamp_negative: baseline=-600.0 mutant=-600.0",
+   "RESULT stamp_none_then: baseline=None mutant=None",
+   "RESULT stamp_none_now: baseline=None mutant=None",
+   "RESULT stamp_micro: baseline=1e-06 mutant=1e-06",
+   "RESULT production_shaped_moved=0 of 19 ()",
+   "RESULT fabricated_bool_True: baseline=None mutant=1.0",
+   "RESULT fabricated_decimal_5: baseline=None mutant=5.0",
+   "RESULT fabricated_str_5: baseline=None mutant=5.0",
+   "RESULT fabricated_moved=3 of 3 (bool_True,decimal_5,str_5)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.95",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "aware UTC / aware +02:00 / naive / mixed / equal / negative / None / 1 us stamps",
+   "10 window sequences",
+   "fabricated stamps whose total_seconds() is True, Decimal('5'), '5'"
+  ],
+  "baseline_value": null,
+  "mutant_value": null,
+  "load1": 0.95,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none through production: timedelta.total_seconds() is always a float; only fabricated non-datetime stamps (no production caller passes one) separate, by a direct _elapsed call",
+ "equivalence": "unreachable through production: separating inputs exist only as fabricated objects (fabricated_moved=3 of 3, production_shaped_moved=0 of 19)"
+}
