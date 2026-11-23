@@ -20511,6 +20511,40 @@ R.check(
     str(_d17_hol),
 )
 _d17_params.dhw_holiday_windows = None
+# The other three readers take the holiday tier from the configured holiday
+# calendar too: the published in-window flag (``_dhw_effective_windows``),
+# boost's tank release (``boost._window_open``) and the VVC pump. Holiday
+# windows 10:00-11:00 against Saturday's own 08:00-09:30: Saturday 10:30 is in
+# a window only while the calendar is on, so a reader dropping the tier reads
+# it out. The ordinary Saturday is the null control: out at every reader.
+_d17_hc = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True,
+    "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30",
+    "holiday_calendar_entity": "calendar.holiday",
+    "vvc_pump_entity": "switch.vvc", "vvc_lead_minutes": 20}))
+_d17_hc._thermal_params.dhw_holiday_windows = [(10.0, 11.0)]
+_D17_SAT1030 = _D17_SAT.replace(hour=10, minute=30)
+_d17_hcr = {}
+for _d17_label, _d17_cal in (("holiday", "on"), ("ordinary", "off")):
+    _d17_hc.hass.states.set("calendar.holiday", FakeState(_d17_cal))
+    _d17_hc._pump_commanded.clear()
+    _d17_hc.hass.services.calls.clear()
+    with _d17_mock.patch.object(_d17_dt_util, "now", lambda: _D17_SAT1030):
+        _asyncio.run(_d17_hc._async_drive_pumps())
+        _d17_hcr[_d17_label] = (
+            _d17_hc._dhw_in_demand_window(),
+            _d17_boost._window_open(_d17_hc.arbiter_inputs(), _D17_SAT1030),
+            [_svc for _dom, _svc, _pl in _d17_hc.hass.services.calls
+             if _pl == {"entity_id": "switch.vvc"}],
+        )
+R.check(
+    "the in-window flag, boost and the VVC pump take the holiday tier from the holiday calendar (D17-s3-51)",
+    _d17_hcr == {"holiday": (True, True, ["turn_on"]), "ordinary": (False, False, ["turn_off"])},
+    f"{_d17_hcr} -- Saturday 10:30 is inside the holiday windows 10:00-11:00 and outside "
+    "Saturday's own 08:00-09:30",
+)
 
 # The lead across midnight reads TOMORROW's windows: the VVC pre-heat and the
 # published hours to the next window. "Tu 00:10-00:40": Monday 23:55 is 15
@@ -69026,9 +69060,12 @@ R.check(
 
 # dhw_planner._dhw_windows_at: holiday flags shorter than the horizon.
 _sw_normal, _sw_holiday = [(6, 7)], [(10, 11)]
+_sw_wparams = SimpleNamespace(
+    dhw_weekly_windows=None, dhw_holiday_windows=_sw_holiday, dhw_day_windows=None,
+)
 _sw_win = [
     _sw_try(lambda k=k: _sw_windows_at(
-        None, None, k, _sw_normal, _sw_holiday, np.array([True, True]),
+        _sw_wparams, None, k, _sw_normal, np.array([True, True]),
     ))
     for k in range(_sw_n)
 ]
