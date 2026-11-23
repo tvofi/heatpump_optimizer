@@ -1,0 +1,53 @@
+{
+ "key": "b6b6e82fb4a33703",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9153 CMP_BOUND",
+ "patch": "if damp <= 1e-9: -> if damp < 1e-9:",
+ "function": "HeatPumpOptimizerCoordinator._confidence_margins",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._confidence_margins@9153-9166",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3096.1,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 5143.5,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/b6b6e82fb4a33703.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_b6b6e82fb4a33703.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_b6b6e82fb4a33703.py",
+  "rc": 0,
+  "baseline_value": "exact_tie_reachable=0 count",
+  "mutant_value": "differing_inputs=0 count",
+  "results": {
+   "nearest_damp_above": "1.000000082740371e-09",
+   "nearest_damp_below": "9.999999717180685e-10",
+   "trust_values_scanned": "2001 count",
+   "mae_values_scanned": "401 count",
+   "exact_tie_reachable": "0 count",
+   "differing_inputs": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.17",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "2001 trust values within 1000 ulps of 1-1e-9, sigma 2 and 5 C",
+   "401 MAE values within 200 ulps of 0.25+1.75e-9",
+   "exact damp==1e-9: not representable as 1 - t (nearest 9.9999997e-10 / 1.00000008e-9)"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_b6b6e82fb4a33703.out"
+ },
+ "should_fail": "none reachable: the arms differ only at damp == 1e-9 exactly, which 1.0 - trust() cannot produce (granularity 2**-53 near 1)."
+}
