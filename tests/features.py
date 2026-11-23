@@ -99218,6 +99218,16 @@ R.check(
     _r3_edge == ["comfort_floor", "room_floor", "comfort_floor", "room_floor"],
     f"{_r3_edge}",
 )
+# A trajectory no longer than the steps (classify_space_steps' own fallback):
+# the last step reads the last temperature it has (20.1), as step 2 does.
+_r3_short = _r3_opt._mark_room_floor(["comfort_floor"] * 4, np.array([19.6, 19.95, 19.6, 20.1]),
+                                     19.5 + _R3_LIFT, _R3_LIFT)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: with a trajectory as long as the steps the last step reads its last temperature "
+    "(20.1: room_floor); null control, step 1 reads 19.6 and stays comfort_floor",
+    _r3_short == ["room_floor", "comfort_floor", "room_floor", "room_floor"],
+    f"{_r3_short}",
+)
 
 # Invariant (iv): a room_floor step is a step that is comfort_floor today, so
 # the narrative's two groups sum to today's one.
