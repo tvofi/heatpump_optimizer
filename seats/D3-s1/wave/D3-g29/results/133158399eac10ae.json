@@ -1,0 +1,61 @@
+{
+ "key": "133158399eac10ae",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2357 CMP_BOUND",
+ "patch": "if power[i] <= threshold: -> if power[i] < threshold:",
+ "function": "classify_dhw_steps",
+ "cluster": "optimizer.py:classify_dhw_steps@2357-2357",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3364.9,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5655.1,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/133158399eac10ae.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 133158399eac10ae",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_133158399eac10ae.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_133158399eac10ae.py",
+  "baseline_value": "reasons identical to the mutant on all 7 default-threshold inputs; at threshold 0 with zero draw: all 'idle'/'idle_coasting'",
+  "mutant_value": "identical at the default threshold; at a non-default threshold (0.0, 0.5) every idle step at draw == threshold becomes active",
+  "inputs_tried": [
+   "default threshold: zeros, exactly CHANNEL_ACTIVE_KW, one ulp above/below, mixed, nan, negative",
+   "threshold 0.0 with zero draws",
+   "threshold 0.5 with 0.5 kW draws"
+  ],
+  "reach": "no production caller passes `threshold` (optimizer.py:2467, 3905), and channel_heating_draw returns 0.0 or a draw strictly above CHANNEL_ACTIVE_KW, so no step equals the default threshold: draws_equal_threshold=0 of 56; golden matrix nondefault_threshold 0, power_eq_threshold 0",
+  "results": {
+   "moved_default_threshold": "0 count of 7 inputs",
+   "reasons_zeros_threshold_0_baseline": "['idle', 'idle', 'idle', 'idle', 'idle', 'idle', 'idle', 'idle']",
+   "reasons_zeros_threshold_0_mutant": "['dhw_preheat', 'dhw_preheat', 'dhw_window', 'dhw_window', 'dhw_preheat', 'dhw_preheat', 'dhw_preheat', 'dhw_preheat']",
+   "reasons_half_kw_threshold_half_baseline": "['idle', 'idle', 'idle', 'idle', 'idle', 'idle', 'idle', 'idle']",
+   "reasons_half_kw_threshold_half_mutant": "['dhw_preheat', 'dhw_preheat', 'dhw_window', 'dhw_window', 'dhw_preheat', 'dhw_preheat', 'dhw_preheat', 'dhw_preheat']",
+   "moved_nondefault_threshold": "2 count of 2 inputs",
+   "draws_equal_threshold": "0 count of 56 draws",
+   "null_delta": "0 count (the default-threshold arm above is the null: no production caller passes threshold)",
+   "reach": "skipped (pass --reach to solve the 50 golden scenarios with spies)",
+   "thread_factor": "1.000",
+   "load1": "1.06",
+   "swapins": "0 count"
+  },
+  "reach_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/reach_sweep.py",
+  "null_delta": "0 count (the default-threshold arm above is the null: no production caller passes threshold)"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "none through production; only a direct classify_dhw_steps call with a non-default threshold separates the arms"
+ },
+ "note": "unreachable through production"
+}
