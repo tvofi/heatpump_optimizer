@@ -13,3 +13,4 @@
 1795402729 CKPT step 4 pushed: carry 1 night registers; m6 ported snapshot b82add62d2d6
 1795403166 HB alive
 1795403524 CKPT BLOCKED pushed at 4a356d0fa6: module_excess_loc +123 raise question, carry 3/4 rulings snapshot 60e80e0d2d35
+1795403528 DONE blocked at 4a356d0fa6 on a module_excess_loc +123 raise and the Carry 3 and 4 rulings; code for 9 findings and carries 1-2 on handoff-wip
