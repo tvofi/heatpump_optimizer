@@ -1,0 +1,94 @@
+{
+ "key": "b020c93535a7f9e6",
+ "site": "defrost.py:795 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/defrost.py",
+ "line": 795,
+ "patch": "if self._opened is None: -> if False:",
+ "function": "DefrostWindow.peek",
+ "cluster": "defrost.py:DefrostWindow.peek@795-804",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 2859.3,
+  "child_cpu_s": 4809.6,
+  "load1_start": 0.86,
+  "load1_end": 0.85,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/b020c93535a7f9e6.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b020c93535a7f9e6",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+  "answer": {
+   "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek GUARD_OFF 2e316dc7",
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "line": 795,
+   "kind": "GUARD_OFF",
+   "old": "if self._opened is None:",
+   "new": "if False:",
+   "fast_net_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/finite_boundary.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "deferred_slow": [
+    "tests/harness_headers.py",
+    "tests/boost_drift_replay.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "should_have_failed": [
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "full_net": "SURVIVED",
+   "full_net_killed_by": []
+  }
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_b020c93535a7f9e6.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_b020c93535a7f9e6.py",
+  "rc": 0,
+  "results": [
+   "RESULT fresh_aware: baseline=(0.0, 0, False, 0.0) mutant=(0.0, 0, False, 0.0)",
+   "RESULT fresh_naive: baseline=(0.0, 0, False, 0.0) mutant=(0.0, 0, False, 0.0)",
+   "RESULT fresh_none: baseline=(0.0, 0, False, 0.0) mutant=(0.0, 0, False, 0.0)",
+   "RESULT fresh_int: baseline=(0.0, 0, False, 0.0) mutant=(0.0, 0, False, 0.0)",
+   "RESULT fresh_str: baseline=(0.0, 0, False, 0.0) mutant=(0.0, 0, False, 0.0)",
+   "RESULT inputs_moved=0 of 15 ()",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.71",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "10 window sequences",
+   "fresh window peeked with aware, naive, None, int, str stamps"
+  ],
+  "baseline_value": null,
+  "mutant_value": null,
+  "load1": 0.71,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none: with _opened None, _elapsed(now, None) raises AttributeError inside its try and returns None, and the next guard returns the same empty DefrostObservation()",
+ "equivalence": "the next line's `total is None` guard returns the identical empty observation"
+}
