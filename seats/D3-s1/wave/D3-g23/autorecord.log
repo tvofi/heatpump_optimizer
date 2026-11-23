@@ -4,3 +4,4 @@ RESULT ce686724ef107650 verdict=RED-AS-NULL class=candidate
 2026-11-23T01:32:33Z recorded+ckpt ce686724ef107650
 RESULT 8fd14c249b86abf7 verdict=RED-AS-NULL class=candidate
 2026-11-23T02:28:37Z recorded+ckpt 8fd14c249b86abf7
+RESULT 0120a5a672990611 verdict=RED-AS-NULL class=candidate
