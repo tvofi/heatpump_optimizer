@@ -14,6 +14,15 @@ R11-SEAM-tests (round 11; findings D10-s1-05, D10-s1-06, D9-s3-01, D9-s3-02; cla
 
 ## Head
 
+`8c50adf246667ced4d4b03c6586aac61c8692668` merges origin/main `9276ddf6b1` into the previous head `c48d7a36c5` (the merge verdict's head), resolving one conflict by hand; the reviewer judges this delta alone (`git diff c48d7a36c5 8c50adf246 -- tests/deployment_shape.py tests/closures.json`, beside main's own changes):
+
+- `tests/deployment_shape.py`: both sides re-counted the #1218 selection-cost note, this branch for `tests/cycle_lane.py` (167 -> 180 of 561) and #3812 (`30b3f090`, `e9922bc1`) for R11-SEAM-actuation-release's `circulation.py`, `duty_ledger.py` and `number_restore.py` (167 -> 169 of 528, 117 -> 120 files, auto-merged). Union: both histories kept, the count re-derived from the merged ledger with `tests/entities.py`'s own pair predicate (Jaccard >= 0.80 over production closures, empty sets skipped): 182 of 561, 435 comparable, 120 files.
+- `tests/closures.json`: the ledger merge driver (`env_drift.py --install-merge-driver`) unions closures as sets, so `tests/cycle_lane.py`'s closure (recorded on this branch, before those three modules existed) missed them although the lane imports `coordinator.py`, which imports `circulation` and `number_restore` and, through `pump_arbiter.py`, `duty_ledger`. Every other closure that imports the coordinator gained exactly those three in main's re-record, so this merge adds them to `cycle_lane.py`'s closure (three lines, the CI `UNDER-SCOPED` repair done in advance). Null control: the census reads 178 of 561 on the driver's merged ledger without them, and 182 with them.
+- Budget: `script_runs_per_push` stays 56. The every-script-once count on the merged tree (closures test scripts outside `SLOW_GATED` plus `coverage_tree.sh fast`, `tests/entities.py`'s `_cir_once_count` enumeration) is 35 + 21 = 56; main adds no test script (33 closures entries at both the merge base and `origin/main`), so the raise's measured value is unchanged.
+- Scoped gate at `8c50adf246`: `MODE: FULL -- every test script runs, nothing is scoped out.` (this branch's own `tests/run.sh` change). Run locally: `tests/deployment_shape.py` ALL DEPLOYMENT SHAPE CHECKS PASSED, `tests/structure.py` STRUCTURE RATCHET PASSED, `tests/cycle_lane.py` ALL 25 checks PASSED; `tests/entities.py` (exclusive lease held by another seat) is left to CI, its two checks this merge moves (the #1218 note's numbers and the every-script-once count) re-derived above.
+
+`c48d7a36c5bfb5bce5f417497eb43be15ea11d38` was the previous head: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
 `db727d36e02f837e587bc049069d586a587fb913` merges the authored code head `ea5ad2a5fdb1ab6e66422a9af9df52cebc8b2331`.
 
 ea5ad2a5fdb1ab6e66422a9af9df52cebc8b2331
@@ -65,11 +74,6 @@ No main merge: `git merge-tree --write-tree origin/main HEAD` reports no conflic
 - `Architecture score: dS +0.0000 NULL`, from `python3 tools/audit/archscore/score.py --diff 9e7abae6bbce9bc971393a5010ae099dfd9e6a90`.
 - Scope: `tests/run.sh` changed, so `python3 tests/closure.py select --diff 9e7abae6bbce9bc971393a5010ae099dfd9e6a90` reads `MODE: FULL`. Run locally at the head (each exit 0): `config_flow_steps.py`, `doc_claims.py`, `cycle_lane.py`, `entities.py`, `structure.py`, `closure.py selftest`, `comment_ratchet.py`. The rest is left to CI.
 
-<!-- figure-block: scope-line mb=a8efe1d1c2a8f1e0b44cdf1046a0ea4ca2155a3b head=ea5ad2a5fdb1ab6e66422a9af9df52cebc8b2331 -->
-~~~text
-MODE: FULL -- every test script runs, nothing is scoped out.
-~~~
-<!-- /figure-block -->
 
 ## Raise justification
 
@@ -88,11 +92,12 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 - `tests / fast (3.14)` at `7104e5eb78` (jobs 136820868652, 136580032295), two failing scripts:
   - `tests/config_flow_steps.py`: `FAIL every rendered flow error is recovered on the flow that rendered it [config/device_prefill/silent_mode_fraction_uncapped; config/device_prefill/silent_mode_window_too_short]`. Main's merge brought two new refusals on the setup pre-fill step, and this branch's closing check correctly refused them as unrecovered. Repaired by `8b42bf71c5` (Mutation proof). Cheaper detector: none beyond the gate that caught it: the refusals arrived with main's merge, and the check that reads them is this script, which a scoped re-run after any main merge already names (the round's re-run rule).
   - `tests/doc_claims.py`: comment ratchet `REFUSE scope total: long units 1622 -> 1625`. Repaired by `3b87493b88` (Null control, comment ratchet). Cheaper detector: `python3 tests/comment_ratchet.py` standalone; it existed already and is in no local edit-time path. Recorded finding: no new detector built, because `tests/doc_claims.py` is in this MODE: FULL diff's local run list from now on, at no added standing cost.
-- `tests / closures` (job 136820868183): `UNDER-SCOPED: tests/doc_claims.py really reads 1 file(s) the committed closure does not list: tests/cycle_lane.py`. `closures-autofix` refused because `tests/doc_claims.py` exited non-zero while being recorded (the comment ratchet above). Repaired by `b7ef6835cf` after the ratchet fix. Cheaper detector: `prepr.sh`'s UNDER-SCOPED prediction, which the scoped prepr skips (`PREPR_SKIP_CLOSURES=1`); the bot's repair is the standing mechanism for this class, and it failed here only on the other red.
+- `tests / closures` (job 136820868183): `UNDER-SCOPED: tests/doc_claims.py really reads 1 file(s) the committed closure does not list: tests/cycle_lane.py`. `tests / closures-autofix` (same run) refused because `tests/doc_claims.py` exited non-zero while being recorded (the comment ratchet above). Repaired by `b7ef6835cf` after the ratchet fix. Cheaper detector: `prepr.sh`'s UNDER-SCOPED prediction, which the scoped prepr skips (`PREPR_SKIP_CLOSURES=1`); the bot's repair is the standing mechanism for this class, and it failed here only on the other red.
 - `pr-contract / pr-contract` (job 136623136750): the figure block's scope line named `ebe14f5c4ede`. Refreshed at this head by `tools/pr/figure_block.py refresh`. Cheaper detector: none; the block is a function of the head, and `body_push.sh`'s refresh is the step that keeps it current.
 - `budget-raise-gate / budget-raise-gate` (job 136820888171): 27 raises read by the base's gate copy, and `no decisive review by tvofi`; the PR is code-owned. Answered under `## Raise justification`. Cheaper detector: none is owed, since this is a raise and not a defect; `tests/entities.py`'s every-script-once count found the one real raise locally before any push.
 
 - `governance / instrument-self-tests` (job 136950503428) at `e1dd8b8462`: step `Show the supervised beat refusing its own fixtures` printed `FAIL (2) SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP` and `beatd self-test: 157 checks, 1 failed`. The cause was a latent race in `beatd.py`'s `run()`: the handler was installed after the job threads started. `merge_train.py classify` read the failure as INTRODUCED because this branch's diff selected the step at its head. Repaired by `ea5ad2a5fd` (Head, Mutation proof). Cheaper detector: none was built. The new mutant now pins the ordering in the step itself.
+- `governance / policy-docs` (job 137193697630) at `db727d36e0`: step `Refuse a governance check input field no check reads` printed `REFUSED  census registry: a census gates unloaded_package_imports, which is no row of tests/structure_budgets.json or tests/ci_budgets.json` and `FIELD COVERAGE REFUSED`. That head's `tests/structure_budgets.json` had no `unloaded_package_imports` row (`git show db727d36e0:tests/structure_budgets.json | grep -c unloaded_package_imports` prints 0); main had gained the row and its census with #3729 after this branch last merged it. Repaired by the merge of main at `c48d7a36c5`, where the same grep prints 1 and the check is green; no line of this branch's own changed. Cheaper detector: none exists, the refusal came from main moving under the branch and the first check that can read it is the one that ran on the next push. Carry: dismissed: no defect of this branch, cleared by its merge of main
 
 ## Forward-carry
 
@@ -102,4 +107,6 @@ MODE: FULL -- every test script runs, nothing is scoped out.
 ## Friction
 
 none
+
+
 
