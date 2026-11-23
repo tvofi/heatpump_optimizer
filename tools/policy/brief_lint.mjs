@@ -38,6 +38,7 @@
 // ambiguous shorthand, no tag object present locally) is a WARNING, not a
 // failure -- a linter that cries wolf gets bypassed. Run:
 //   node tools/policy/brief_lint.mjs [files...]
+//   node tools/policy/brief_lint.mjs --repin [files...]   rewrite each moved line pin in place (see repinText)
 // A named file is linted as a carry when its basename matches CARRY_FILE_RE
 // and as a roster otherwise, so re-running one file reproduces CI's verdict.
 //
@@ -423,15 +424,20 @@ function anchorCandidatesFor(context, excludeStems) {
   return [...cands]
 }
 
-function findCandidateElsewhere(lines, candidate) {
-  const idx = lines.findIndex((l) => l.includes(candidate))
-  return idx === -1 ? null : idx + 1
+// Every line a candidate sits on, 1-based. One place is a pin that moved and can
+// be re-pinned by rule; several is a pin whose target a person has to choose.
+function candidateLines(lines, candidate) {
+  const out = []
+  lines.forEach((l, i) => { if (l.includes(candidate)) out.push(i + 1) })
+  return out
 }
 
 export function checkPathLine(relPath, start, end, context, excludeStems, exact) {
   const lines = fileLines(relPath)
   if (!lines) return { ok: false, reason: `${relPath} could not be read` }
-  if (start > lines.length) return { ok: false, reason: `line ${start} is past end of file (${lines.length} lines)` }
+  // A file ending in a newline splits into one empty element past its last line.
+  const lineCount = lines.length - (lines[lines.length - 1] === '' ? 1 : 0)
+  if (start > lineCount) return { ok: false, reason: `line ${start} is past end of file (${lineCount} lines)` }
   const isJs = /\.(mjs|js)$/.test(relPath)
   const pad = exact ? 0 : 1 // an explicit range is checked as given; a single line gets +-1 for off-by-one
   const win = windowText(lines, start, end ?? start, pad)
@@ -444,14 +450,41 @@ export function checkPathLine(relPath, start, end, context, excludeStems, exact)
     if (win.includes(c)) return { ok: true, matched: c }
     if (chain.includes(c)) return { ok: true, matched: c, via: 'enclosing scope' }
   }
+  // A pin whose anchor sits at exactly one other place has moved, not rotted:
+  // the cited fact is still in the file, so it is a warning that names the new
+  // line and `--repin` rewrites it (R11-PRE-SHARED-FILES: a line pin is
+  // regenerated, not hand-edited inside every pull request that shifts a file).
+  // A clause that quotes a phrase cites that phrase, so the quoted phrases
+  // alone decide where the pin went: each must sit at exactly one place and all
+  // at the same line, and one that is gone or repeated keeps the error. A
+  // keyword or symbol of the clause never stands in for a missing phrase.
+  // Without a quoted phrase the most specific candidate found anywhere decides.
+  // One found at several places stays an error, because no rule picks among them.
+  const cited = `${relPath}:${start}${end ? '-' + end : ''}`
+  const ambiguous = (c, at) => ({ ok: false, reason: `'${c}' not found near ${cited}; found at ${at.length} places instead (lines ${at.slice(0, 5).join(', ')}${at.length > 5 ? ', ...' : ''}), so the pin is ambiguous` })
+  const moved = (c, line) => {
+    const to = { start: line, end: end ? Math.min(lineCount, line + (end - start)) : undefined }
+    return { ok: true, warn: true, movedTo: to,
+      reason: `'${c}' moved from ${cited} to line ${to.start}${to.end ? '-' + to.end : ''}, its one place in the file; re-pin with \`brief_lint.mjs --repin\`` }
+  }
+  const quoted = quotedPhrases(context).filter((p) => candidates.includes(p))
+  if (quoted.length) {
+    const places = quoted.map((c) => ({ c, at: candidateLines(lines, c) }))
+    const lost = places.filter((p) => p.at.length === 0).map((p) => p.c)
+    if (lost.length) return { ok: false, reason: `the quoted anchor [${lost.join(', ')}] is not found near ${cited}, or anywhere else in the file` }
+    const several = places.find((p) => p.at.length > 1)
+    if (several) return ambiguous(several.c, several.at)
+    const at = [...new Set(places.map((p) => p.at[0]))]
+    if (at.length > 1) return { ok: false, reason: `the quoted anchors [${quoted.join(', ')}] are not found near ${cited} and sit at different lines (${at.join(', ')}), so the pin is ambiguous` }
+    return moved(places.sort((a, b) => b.c.length - a.c.length)[0].c, at[0])
+  }
   const bySpecificity = [...candidates].sort((a, b) => b.length - a.length)
   for (const c of bySpecificity) {
-    const foundAt = findCandidateElsewhere(lines, c)
-    if (foundAt) {
-      return { ok: false, reason: `'${c}' not found near ${relPath}:${start}${end ? '-' + end : ''}; found at line ${foundAt} instead` }
-    }
+    const at = candidateLines(lines, c)
+    if (at.length === 1) return moved(c, at[0])
+    if (at.length > 1) return ambiguous(c, at)
   }
-  return { ok: false, reason: `none of [${bySpecificity.join(', ')}] found near ${relPath}:${start}${end ? '-' + end : ''}, or anywhere else in the file` }
+  return { ok: false, reason: `none of [${bySpecificity.join(', ')}] found near ${cited}, or anywhere else in the file` }
 }
 
 // ---------------------------------------------------------------------------
@@ -567,7 +600,7 @@ function briefDerivations() {
 // ---------------------------------------------------------------------------
 // per-brief lint
 
-function lintBrief(groupName, brief, findings) {
+function lintBrief(groupName, brief, findings, repins = null) {
   const add = (severity, kind, message) => findings.push({ group: groupName, severity, kind, message })
   const briefTagRefs = tagRefsIn(brief)
 
@@ -607,6 +640,12 @@ function lintBrief(groupName, brief, findings) {
     const r = checkPathLine(resolved, start, end, context, stems, end !== undefined)
     if (!r.ok) add('error', 'path:line', `${label}: ${r.reason}`)
     else if (r.warn) add('warning', 'path:line', `${label}: ${r.reason}`)
+    if (r.movedTo && repins) {
+      const sep = m[0].slice(token.length + 1 + m.groups.start.length, token.length + 2 + m.groups.start.length)
+      const tail = m[0].endsWith('+') ? '+' : ''
+      repins.push({ index: m.index, length: m[0].length,
+        text: `${token}:${r.movedTo.start}${end ? sep + r.movedTo.end : ''}${tail}` })
+    }
   }
 
   // --- class 2b: bare :line anchored forms -------------------------------
@@ -628,6 +667,10 @@ function lintBrief(groupName, brief, findings) {
     const r = checkPathLine(resolvedFile, start, end, context, stems, false)
     if (!r.ok) add('error', 'path:line (anchored)', `${label} (${resolvedFile}): ${r.reason}`)
     else if (r.warn) add('warning', 'path:line (anchored)', `${label}: ${r.reason}`)
+    if (r.movedTo && repins) {
+      const sep = end ? m[0].slice(1 + m.groups.start.length, 2 + m.groups.start.length) : ''
+      repins.push({ index: m.index, length: m[0].length, text: `:${r.movedTo.start}${end ? sep + r.movedTo.end : ''}` })
+    }
   }
 
   // --- class 3: named symbols ---------------------------------------------
@@ -981,7 +1024,8 @@ function readLegacyControlFiles() {
 }
 const LEGACY_CONTROL_FILES = readLegacyControlFiles()
 
-export function lintCarryFile(file, { roster, legacy = LEGACY_CONTROL_FILES } = {}) {
+export function lintCarryFile(file, { roster, legacy = LEGACY_CONTROL_FILES, moved = null } = {}) {
+  const pins = (text) => { if (!moved) return null; const r = []; moved.push({ text, repins: r }); return r }
   const findings = []
   const label = path.posix.basename(file)
   let data
@@ -998,7 +1042,7 @@ export function lintCarryFile(file, { roster, legacy = LEGACY_CONTROL_FILES } = 
     // The control is cited prose like the brief: an unresolvable path or symbol, a metric literal or a
     // derived count in it is refused the same way (the next stage re-establishes the finding from it).
     if (typeof c.control === 'string' && c.control.trim() && !legacy.has(label)) {
-      lintBrief(`${label} carry ${i} control`, c.control, findings)
+      lintBrief(`${label} carry ${i} control`, c.control, findings, pins(c.control))
       // A control no seat can re-run is a figure, not a control (writing-for-agents.md: no enumerator,
       // no figure). The requirement binds every carry file but the LEGACY_CONTROL_FILES recorded below.
       const names = [...c.control.matchAll(PATH_TOKEN_RE)].length + [...c.control.matchAll(PATHLINE_RE)].length
@@ -1007,7 +1051,7 @@ export function lintCarryFile(file, { roster, legacy = LEGACY_CONTROL_FILES } = 
       }
     }
     if (typeof c.brief !== 'string' || !c.brief.trim()) return // absence already reported
-    lintBrief(`${label} carry ${i}`, c.brief, findings)
+    lintBrief(`${label} carry ${i}`, c.brief, findings, pins(c.brief))
   })
   return findings
 }
@@ -1147,7 +1191,8 @@ function assertPlaybookFixtures() {
   return 0
 }
 
-function lintFile(file, { shape = true } = {}) {
+function lintFile(file, { shape = true, moved = null } = {}) {
+  const pins = (text) => { if (!moved) return null; const r = []; moved.push({ text, repins: r }); return r }
   const findings = []
   let data
   try {
@@ -1166,7 +1211,7 @@ function lintFile(file, { shape = true } = {}) {
     if (!g || typeof g !== 'object') continue
     if (g.resume?.stage === STAGE_SKIP) continue // merged work; brief will not be read again
     if (typeof g.brief !== 'string' || !g.brief.trim()) continue // absence already reported
-    lintBrief(typeof g.group === 'string' ? g.group : '(unnamed)', g.brief, findings)
+    lintBrief(typeof g.group === 'string' ? g.group : '(unnamed)', g.brief, findings, pins(g.brief))
   }
   return findings
 }
@@ -1187,6 +1232,38 @@ function lintFileGuarded(file, opts, lint = lintFile) {
   } catch (e) {
     return [{ group: '(file)', severity: 'error', kind: 'shape', message: `lint aborted: ${e.message}` }]
   }
+}
+
+// --repin: rewrite each `path:line` whose anchor moved to its one other place
+// (checkPathLine's `movedTo`). The file is JSON and is never re-serialised: a
+// cited string is replaced as the JSON text of itself, which must sit in the
+// file exactly once, so a pin is rewritten only inside the brief that cites it
+// and every other byte stays. A string whose JSON text is not found once (an
+// escape JSON.stringify would not write, or two briefs with the same text) is
+// refused by name and left as it was.
+export function repinText(raw, moved) {
+  const refused = []
+  let out = raw
+  let n = 0
+  for (const { text, repins } of moved) {
+    if (!repins.length) continue
+    let next = text
+    for (const r of [...repins].sort((a, b) => b.index - a.index)) next = next.slice(0, r.index) + r.text + next.slice(r.index + r.length)
+    const was = JSON.stringify(text)
+    if (out.split(was).length !== 2) { refused.push(text.slice(0, 60)); continue }
+    out = out.replace(was, () => JSON.stringify(next))
+    n += repins.length
+  }
+  return { text: out, repinned: n, refused }
+}
+
+function repinFile(file, lint, opts = {}) {
+  const moved = []
+  lint(file, { ...opts, moved })
+  const raw = fs.readFileSync(file, 'utf8')
+  const r = repinText(raw, moved)
+  if (r.text !== raw) fs.writeFileSync(file, r.text)
+  return r
 }
 
 function printReport(file, findings) {
@@ -1218,7 +1295,9 @@ const REQUIRED_931DFFE = [
   { group: 'W1-G8', kind: 'metric', needle: 'methods 255' },
   { group: 'W1-G8', kind: 'metric', needle: 'attrs 176' },
   { group: 'W1-G13', kind: 'path', needle: 'card_geometry.mjs' },
-  { group: 'W1-G14', kind: 'path:line', needle: 'entities.py:6042-6062' },
+  // The quoted phrase sits at one place in tests/entities.py, so the pin has
+  // moved and is a warning naming its new line; assertRepin holds the error arms.
+  { group: 'W1-G14', kind: 'path:line', severity: 'warning', needle: "'does not run ahead' moved from tests/entities.py:6042-6062 to line " },
   { group: 'W1-G14', kind: 'version', needle: '6.3.9' },
   { group: 'W1-G9', kind: 'path', needle: 'model_sanity.py' },
   { group: 'W1-G9', kind: 'path:line (anchored)', needle: 'wood_share:1152' },
@@ -1255,8 +1334,10 @@ function assertAcceptanceFixture(name, label, opts, required) {
   const errors = findings.filter((f) => f.severity === 'error')
   printReport(path.relative(ROOT, fixture), findings)
   const held = required.filter((r) => !r.whileBudgetKey || r.whileBudgetKey in budgets())
+  // A pin is an error unless it names another severity; a pin that names one
+  // must be met at that severity, so a warning promoted or demoted goes missing.
   const missing = held.filter(
-    (r) => !errors.some((e) => e.group === r.group && e.kind === r.kind && e.message.includes(r.needle))
+    (r) => !findings.some((e) => e.severity === (r.severity ?? 'error') && e.group === r.group && e.kind === r.kind && e.message.includes(r.needle))
   )
   if (missing.length) {
     console.log(`\nFIXTURE VACUOUS: ${label} acceptance pins missing:`)
@@ -1677,6 +1758,104 @@ function assertRosterIssues() {
 // honest pin is to hand the guard a lint that does: what is being asserted is
 // that one roster's failure comes back as that roster's error, leaving the
 // loop and the fixtures above to finish.
+// The re-pin acceptance, over a frozen fixture file (playbook-null.md) so the
+// lines do not move under it. A roster is written to a scratch directory and
+// linted, re-pinned and linted again: the moved pin warns with its new line,
+// is rewritten to it and is then clean; a pin in place leaves the file's bytes
+// alone (the null); an anchor at several places and one that is gone stay
+// errors and are not rewritten, and a quoted phrase that is gone is not
+// replaced by a symbol of its clause.
+function assertRepin() {
+  const target = 'tools/policy/fixtures/playbook-null.md'
+  const lines = fileLines(target)
+  const lineOf = (needle) => lines.findIndex((l) => l.includes(needle)) + 1
+  const want = lineOf('Not a citation')
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'brief-repin-'))
+  const roster = (brief) => {
+    const f = path.join(dir, 'wave-repin-groups.json')
+    fs.writeFileSync(f, JSON.stringify({ groups: [{ group: 'P', brief, resume: { stage: 'fix' } }, { group: 'Q', brief: 'untouched: 1 + 1', resume: { stage: 'fix' } }] }, null, 1) + '\n')
+    return f
+  }
+  const pathline = (f) => lintFile(f, { shape: false }).filter((x) => x.kind === 'path:line')
+  const problems = []
+  const expect = (name, ok) => { if (!ok) problems.push(name) }
+  try {
+    let f = roster(`See ${target}:2 "Not a citation" for the null row.`)
+    let found = pathline(f)
+    expect('a moved pin with one other place is a warning naming the new line',
+      found.length === 1 && found[0].severity === 'warning' && found[0].message.includes(`to line ${want},`))
+    let r = repinFile(f, lintFile, { shape: false })
+    expect('--repin rewrites the moved pin to its one place', r.repinned === 1 && r.refused.length === 0
+      && JSON.parse(fs.readFileSync(f, 'utf8')).groups[0].brief === `See ${target}:${want} "Not a citation" for the null row.`)
+    expect('the re-pinned brief lints clean', pathline(f).length === 0)
+    const before = fs.readFileSync(f, 'utf8')
+    r = repinFile(f, lintFile, { shape: false })
+    expect('null: a pin in place is not rewritten and the file keeps its bytes', r.repinned === 0 && fs.readFileSync(f, 'utf8') === before)
+    f = roster(`See ${target}:2-3 "Not a citation" for the null row.`)
+    repinFile(f, lintFile, { shape: false })
+    expect('a moved range keeps its length at the new place', fs.readFileSync(f, 'utf8').includes(`${target}:${want}-${want + 1} `) && pathline(f).length === 0)
+    f = roster(`See ${target}:2 "is_skipped" for the fence.`)
+    found = pathline(f)
+    const two = fs.readFileSync(f, 'utf8')
+    r = repinFile(f, lintFile, { shape: false })
+    expect('an anchor at several places is an error and is not rewritten',
+      found.length === 1 && found[0].severity === 'error' && found[0].message.includes('ambiguous') && r.repinned === 0 && fs.readFileSync(f, 'utf8') === two)
+    f = roster(`See ${target}:2 for indented_is_skipped.`)
+    found = pathline(f)
+    expect('with no quoted phrase, a symbol at one other place is a moved pin',
+      found.length === 1 && found[0].severity === 'warning' && found[0].message.includes(`to line ${lineOf('indented_is_skipped')},`))
+    f = roster(`See ${target}:2 for the is_skipped fences.`)
+    found = pathline(f)
+    const bare = fs.readFileSync(f, 'utf8')
+    r = repinFile(f, lintFile, { shape: false })
+    expect('an unquoted anchor at several places is an error and is not rewritten',
+      found.length === 1 && found[0].severity === 'error' && found[0].message.includes('ambiguous') && r.repinned === 0 && fs.readFileSync(f, 'utf8') === bare)
+    f = roster(`See ${target}:2 "no such phrase anywhere" for nothing.`)
+    found = pathline(f)
+    expect('an anchor that is gone is an error', found.length === 1 && found[0].severity === 'error' && found[0].message.includes('anywhere else in the file'))
+    // A quoted phrase is the anchor the brief cites: when it is gone, a shorter
+    // symbol of the same clause found once elsewhere must not stand in for it.
+    f = roster(`See ${target}:2 "no such phrase anywhere" which bounds indented_is_skipped.`)
+    found = pathline(f)
+    const gone = fs.readFileSync(f, 'utf8')
+    r = repinFile(f, lintFile, { shape: false })
+    expect('a gone quoted anchor stays an error when a clause symbol sits once in the file',
+      found.length === 1 && found[0].severity === 'error' && found[0].message.includes('no such phrase anywhere')
+      && r.repinned === 0 && fs.readFileSync(f, 'utf8') === gone)
+    f = roster(`See ${target}:2 "Not a citation" beside "indented_is_skipped" for two rows.`)
+    found = pathline(f)
+    const apart = fs.readFileSync(f, 'utf8')
+    r = repinFile(f, lintFile, { shape: false })
+    expect('two quoted anchors each at one place but on different lines are an error and are not rewritten',
+      found.length === 1 && found[0].severity === 'error' && found[0].message.includes('different lines')
+      && r.repinned === 0 && fs.readFileSync(f, 'utf8') === apart)
+    // An anchored bare `:N-M` (class 2b) re-pinned to a file's last line keeps
+    // its range inside the file, as class 2's does.
+    const tail = 'dev/audit/rounds/round11/sweep/N-unbounded-retention/D14/retention/clean_fixture/bounded.py'
+    const tailLines = (fileLines(tail) || []).join('\n').replace(/\n+$/, '').split('\n')
+    const last = tailLines[tailLines.length - 1].trim()
+    expect('precondition: the anchored fixture resolves and its last line sits once in it',
+      resolveModuleFile('bounded') === tail && last.length >= 4 && tailLines.filter((l) => l.includes(last)).length === 1)
+    f = roster(`The loop "${last}" in bounded.add at :1-3 trims old days.`)
+    r = repinFile(f, lintFile, { shape: false })
+    const anchored = (g) => lintFile(g, { shape: false }).filter((x) => x.kind === 'path:line (anchored)')
+    expect('an anchored range re-pinned at the end of the file ends inside it',
+      r.repinned === 1 && JSON.parse(fs.readFileSync(f, 'utf8')).groups[0].brief.includes(`at :${tailLines.length}-${tailLines.length} `)
+      && anchored(f).length === 0)
+    const twice = repinText('{"a": "x.py:1", "b": "x.py:1"}', [{ text: 'x.py:1', repins: [{ index: 0, length: 6, text: 'x.py:2' }] }])
+    expect('a cited string in the file twice is refused, not guessed', twice.refused.length === 1 && twice.repinned === 0 && twice.text === '{"a": "x.py:1", "b": "x.py:1"}')
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+  if (problems.length) {
+    console.log('\nREPIN VACUOUS:')
+    for (const p of problems) console.log(`  ${p}`)
+    return 1
+  }
+  console.log('\nREPIN ok: a moved pin warns with its line and is re-pinned; an ambiguous or lost anchor stays an error; a pin in place is untouched')
+  return 0
+}
+
 function assertDriverGuard() {
   const thrower = () => {
     throw new TypeError(GUARD_PROBE)
@@ -1697,7 +1876,9 @@ function assertDriverGuard() {
 }
 
 function main() {
-  const args = process.argv.slice(2)
+  const argv = process.argv.slice(2)
+  const repin = argv.includes('--repin')
+  const args = argv.filter((a) => a !== '--repin')
   const defaultRun = args.length === 0
   const files = defaultRun
     ? workflowFiles(ROSTER_FILE_RE)
@@ -1710,6 +1891,20 @@ function main() {
   const carries = defaultRun ? carryFiles() : files.filter(isCarry)
   const rosters = defaultRun ? files : files.filter((f) => !isCarry(f))
   const roster = rosterIssues()
+
+  // The re-pin run writes and exits: it lints nothing else and runs no
+  // acceptance, so its exit code is its own (1 on a string it had to refuse).
+  if (repin) {
+    let refused = 0
+    for (const f of [...rosters, ...carries]) {
+      const r = isCarry(f) ? repinFile(f, lintCarryFile, { roster }) : repinFile(f, lintFile)
+      for (const t of r.refused) console.log(`REPIN REFUSED ${path.relative(ROOT, f)}: the cited text is not in the file exactly once as JSON: ${JSON.stringify(t)}`)
+      if (r.repinned) console.log(`REPIN ${path.relative(ROOT, f)}: ${r.repinned} pin(s) rewritten`)
+      refused += r.refused.length
+    }
+    console.log(`REPIN: ${rosters.length + carries.length} file(s) read, ${refused} refused`)
+    process.exit(refused ? 1 : 0)
+  }
 
   let totalErrors = 0
   for (const f of rosters) {
@@ -1741,6 +1936,7 @@ function main() {
     acceptanceRc += assertLegacyListedClean()
     acceptanceRc += assertTreeRev()
     acceptanceRc += assertPlaybookFixtures()
+    acceptanceRc += assertRepin()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }

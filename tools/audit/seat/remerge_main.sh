@@ -12,28 +12,18 @@
 # The worktree may be detached: it is reset to origin/<branch> before the merge, and left clean there
 # when the merge fails (MERGE CONFLICT, or REMERGE FAILED <pr> at <step> when no conflict caused it).
 #
-# --head-repo <owner/repo> is a pull request whose head is NOT a branch of ours (decision 0017;
-# merge_train.py passes it when tools/pr/outside.py reports the head cross-repository, with <branch>
-# the fork's own branch name from the pulls API). Nothing of origin/<branch> is read then: a fork
-# names its own branch, and ours of the same name is another head. The start is refs/pull/<pr>/head,
-# the local merge only proves that main merges with no resolution (MERGE CONFLICT otherwise, which
-# the train parks naming the fork), no claims commit is made (a non-merge commit after the verdict
-# never carries on a head that is not ours, and a fork changes no claim file), and the head is moved
-# by GitHub's own update-branch at the expected head, asked as the hpo-author App through its
-# installation on OUR repository: app_push.sh mints for the repository it pushes to, where the App
-# is not installed, and no personal token is used. The new head is read back and must be the
-# 2-parent merge of the old head and a commit of main whose tree is git's own automatic merge.
+# --head-repo <owner/repo> is a pull request whose head is NOT a branch of ours (decision 0017).
+# It is refused, before anything is fetched, minted, merged or pushed: no identity of ours merges
+# into, pushes to or update-branches a contributor's fork (tvofi, 2026-11-22: "DO NOT MERGE
+# ANYTHING ON ANOTHER USERS FORK"). The contributor brings the branch up to date with main.
+# merge_train.py parks such an entry [OUTSIDE] without calling this script at all.
 set -uo pipefail
 # A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
 # trap reaps it, and the push runs asynchronously so an INT does not wait behind it.
 . "$(dirname -- "$0")/pr_args.sh"
 PR=$1; W=$2; BR=$3; B=$4; shift 4
-R=tvofi/heatpump_optimizer; FORK=""; TIP="origin/$BR"; SRC=$BR
-if [ "${1:-}" = --head-repo ]; then
-  FORK=${2:-}; TIP="refs/remotes/pull/$PR/head"; SRC="+refs/pull/$PR/head:$TIP"
-  argok=no; { [[ $FORK =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] && [ "$FORK" != "$R" ] && [[ $PR =~ ^[0-9]+$ ]]; } && argok=yes
-  [ "$argok" = yes ] || { echo "REMERGE FAILED $PR at args (--head-repo '$FORK' is not another owner/repo)"; exit 1; }  # mut:remergeforkarg
-fi
+R=tvofi/heatpump_optimizer; TIP="origin/$BR"; SRC=$BR
+[ "${1:-}" = --head-repo ] && { echo "REMERGE FAILED $PR at fork (${2:-?}:$BR): refused, nothing fetched, merged or pushed: no identity of ours writes to a contributor's fork; the contributor brings the branch up to date with main (decision 0017)"; exit 1; }  # mut:remergeforkrefuse
 SEAT=$(cd "$(dirname -- "$0")" && pwd)
 PL=$B.push.log; pr_exit_trap 'declare -F mint_cleanup >/dev/null && mint_cleanup; test -n "${KEEP:-}" || rm -f "$PL"'
 cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
@@ -56,33 +46,6 @@ if [ "$rc" -ne 0 ]; then
   { [ "$step" = merge ] && [ -n "$(git -C "$W" diff --name-only --diff-filter=U)" ]; } || why="REMERGE FAILED $PR at $step (rc=$rc)"  # mut:remergeconflict
   git -C "$W" merge --abort 2>/dev/null || git -C "$W" reset -q --hard "$TIP" 2>/dev/null || :  # mut:remergeabort
   echo "$why"; exit 1
-fi
-if [ -n "$FORK" ]; then
-  old=$(git -C "$W" rev-parse "$TIP")
-  API=https://api.github.com; ACCEPT='Accept: application/vnd.github+json'
-  die() { echo "REMERGE FAILED $PR at push (fork $FORK:$BR): $*"; exit 1; }
-  # shellcheck source=../../pr/app_mint.sh
-  MINT_NAME=remerge_main; MINT_TRAP=caller; . tools/pr/app_mint.sh
-  mint_identity; mint_token "$R"
-  curl -fsS -X PUT -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$R/pulls/$PR/update-branch" \
-    --data "{\"expected_head_sha\":\"$old\"}" > "$PL" 2>&1 \
-    || die "GitHub refused update-branch at the expected head $old ($(tail -1 "$PL" | cut -c1-200)); the fork must allow maintainer edits, or its owner merges main"
-  new=$old
-  for _ in $(seq 1 "${REMERGE_POLLS:-12}"); do
-    new=$(curl -fsS -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$R/pulls/$PR" 2>/dev/null \
-      | python3 -c 'import sys, json; print(json.load(sys.stdin)["head"]["sha"])' 2>/dev/null) || new=$old
-    [ "$new" != "$old" ] && break
-    sleep 5; done
-  [[ $new =~ ^[0-9a-f]{40}$ ]] && [ "$new" != "$old" ] || die "the head did not move off $old after update-branch"
-  ( cd "$W" && python3 "$SEAT/gh_read.py" --git-retry git fetch -q origin main "$SRC" ) || die "the new head $new could not be fetched"
-  # The read-back: what GitHub made is the automatic merge and nothing else, or it is not PUSHED.
-  read -r got p1 p2 p3 <<< "$(git -C "$W" rev-list --parents -n 1 "$TIP")"
-  auto=no; { [ "$got" = "$new" ] && [ "$p1" = "$old" ] && [ -n "$p2" ] && [ -z "$p3" ] \
-    && git -C "$W" rev-list --first-parent origin/main | grep -qx "$p2" \
-    && [ "$(git -C "$W" merge-tree --write-tree "$old" "$p2" 2>/dev/null)" = "$(git -C "$W" rev-parse "$new^{tree}")" ]; } && auto=yes
-  [ "$auto" = yes ] || die "the new head $new is not the automatic 2-parent merge of $old and main"  # mut:remergeforkback
-  echo "RECARRY: fork head $FORK:$BR merged with main by GitHub's update-branch as the App, at the expected head $old; no prepr (no commit of ours is pushed)"
-  echo "PUSHED $new to $FORK:$BR"; echo "RESULT pr=$PR head=$new"; exit 0
 fi
 ( cd "$W" && python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge" )
 ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')
