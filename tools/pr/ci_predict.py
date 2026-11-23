@@ -822,9 +822,19 @@ def step_replay_self_test(root: Path) -> int:
             got = len(step_replay_preds(t, base, changed))
             print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
             bad += got != want
+        # env_seconds: only a positive number overrides; empty, junk, 0 and negative keep the default.
+        import os
+        got = []
+        for raw in ("", "x", "0", "-1", "2.5"):
+            os.environ["HPO_ENV_SECONDS_PROBE"] = raw
+            got.append(env_seconds("HPO_ENV_SECONDS_PROBE", 7))
+        os.environ.pop("HPO_ENV_SECONDS_PROBE", None)
+        good = got == [7, 7, 7, 7, 2.5]
+        print(f"  {'ok  ' if good else 'FAIL'} env_seconds keeps the default for empty, junk, 0 and a negative; "
+              f"null control: 2.5 overrides it")
+        bad += not good
         # C4's bound (R10-RCA-OPEN-PREPR-SLOW): a's step names a.sh, c's reaches it through
         # c.sh's text; under a spent budget a is replayed first and c is left to CI, by name.
-        import os
         (t / "tools" / "a.sh").write_text("echo nothing\n")
         for budget, want, left in (("0.001", ["a"], True), (None, ["a", "c"], False)):
             was = os.environ.pop(STEP_REPLAY_BUDGET_ENV, None)
