@@ -1,0 +1,92 @@
+{
+ "key": "6af4c3b8f521e3d3",
+ "site": "optimizer.py:2111 CMP_BOUND",
+ "patch": "if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9): -> if np.isfinite(ro) and (not np.isfinite(lo) or ro <= lo - 1e-9):",
+ "function": "_better_objective",
+ "cluster": "optimizer.py:_better_objective@2111-2111",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3151.8,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/6af4c3b8f521e3d3.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6af4c3b8f521e3d3",
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6af4c3b8f521e3d3.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6af4c3b8f521e3d3.py",
+  "baseline_value": "left",
+  "mutant_value": "right",
+  "example_input": "left=0.0,right=-1e-09",
+  "results": [
+   "example_input=left=0.0,right=-1e-09",
+   "kept_baseline=left",
+   "kept_mutant=right",
+   "kept_objective_baseline_left10_right5=5.0",
+   "kept_objective_mutant_left10_right5=5.0",
+   "grid_inputs_tried=196 count",
+   "grid_inputs_moved=4 count",
+   "domain_inputs_tried=121 count",
+   "domain_inputs_moved=4 count",
+   "production_calls=0 count",
+   "production_calls_moved=0 count",
+   "null_inputs_moved=0 count"
+  ],
+  "inputs_tried": "production domain: any two finite objective values; grid_inputs_tried=196 count; domain_inputs_tried=121 count",
+  "null": [
+   "null_inputs_moved=0 count"
+  ]
+ },
+ "step4": "moves on 4 of 121 finite value pairs, all at the exact tie margin; 0 production calls in the probe's solves",
+ "should_fail": "tests/features.py (executes optimizer.py:2111) has no _better_objective case at the tie margin right == left - 1e-9",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "finding": {
+  "title": "No check pins _better_objective's 1e-9 tie margin; < -> <= at it is unseen",
+  "claim": "Mutant 6af4c3b8f521e3d3 at optimizer.py:2111 (`ro < lo - 1e-9` -> `<=`) survives the full gate, yet at right == left - 1e-9 exactly the kept plan flips left -> right (4 of 121 finite pairs, e.g. left=0.0, right=-1e-09). Full gate: RED-AS-NULL, gate_rc=1.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "the side _better_objective keeps at right == left - 1e-9 exactly, counted over the finite value grid",
+  "phenomenon_property": "_better_objective keeps left unless right is lower by more than 1e-9",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this key's row) with the full gate's verdict in gates/<key>.json",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:_better_objective",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6af4c3b8f521e3d3.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6af4c3b8f521e3d3.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6af4c3b8f521e3d3.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6af4c3b8f521e3d3.py",
+   "value": 4,
+   "unit": "finite value pairs whose kept side flips",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+   "tolerance": "exact (counts); solver floats to 1e-3 relative",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "the one-line mutant `if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9):` -> `if np.isfinite(ro) and (not np.isfinite(lo) or ro <= lo - 1e-9):` at custom_components/heatpump_optimizer/optimizer.py:2111, in memory by the probe; on disk by fullgate.py run --key 6af4c3b8f521e3d3",
+   "expected_direction": "up",
+   "observed_value": 4
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6af4c3b8f521e3d3.py",
+   "value": "null_inputs_moved=0 count",
+   "note": "the function re-compiled with the line unchanged: no grid input, production call or plan moves; the box's full-gate null is gates/null.json"
+  },
+  "should_fail": "tests/features.py (executes optimizer.py:2111) has no _better_objective case at the tie margin right == left - 1e-9",
+  "proposed_fix_scope": "tests only: the check named in should_fail, at the input the probe's example_input names"
+ }
+}
