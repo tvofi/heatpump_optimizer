@@ -1,3 +1,4 @@
 1795402394 INIT r11-rev-3868
 1795402466 HB alive
 1795402518 CKPT setup done, worktree at head snapshot e6e44b0f4cd3
+1795402861 DONE verdict pushed: blocked mutation-vacuous at 0812e8b2e4 (probe/rev-3868-f1c1d967 = 89bf3aded2)
