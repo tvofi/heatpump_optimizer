@@ -101147,6 +101147,50 @@ R.check(
     f"{_fl_edge_delays} {_fl_edge_view}",
 )
 
+
+async def _fl_v1(version):
+    """A record an install saved at store ``version``, then a setup whose first read is the same code."""
+    hass, entry = _FlHass({"sensor.fd": _fl_state("E5", 900)}), _fl_entry(entry_id=f"fl_v{version}")
+    _fl_storage._DISK[_fl_key(entry)] = _fi_json.dumps(
+        _fl.stored(_fl.Log(7, source="text", episodes=[[1, 2, "P3", False]], open=[100, "E5"],
+                           codes={"P3": [1, 1, 2]})))
+    _fl_storage._VERSIONS[_fl_key(entry)] = version
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+    log = _fl._RECORDS[entry].log
+    await _fl.async_close(entry)
+    return log.since_s, log.episodes, log.open, _fl_storage._VERSIONS[_fl_key(entry)]
+
+
+_fl_v1_read = _fl_aio.run(_fl_v1(1))
+_fl_v2_read = _fl_aio.run(_fl_v1(2))
+R.check(
+    "a fault record saved at store version 1 loads whole and saves back at 1: its row, its open E5 "
+    "continued by an E5 read, its start; null control, a document stamped version 2 is refused, so the "
+    "record starts afresh with the E5 opened at the read",
+    _fl_v1_read == (7, [[1, 2, "P3", False]], [100, "E5"], 1)
+    and _fl_v2_read[1] == [] and _fl_v2_read[2] == [int(_FL_T0.timestamp()) + 900, "E5"]
+    and _fl_v2_read[0] != 7,
+    f"v1={_fl_v1_read} v2={_fl_v2_read}",
+)
+
+_fl_now_real = _fl._now_s
+_fl._now_s = lambda: 5000  # noqa: E731
+_fl_entry_key = _fl_entry(entry_id="fl_skew")
+try:
+    _fl._RECORDS[_fl_entry_key] = _fl._Record(
+        None, None, "text", ["sensor.fd"], _fl.Log(4000, source="text", open=[5300, "E5"]))
+    _fl_skew = _fl.diagnostics_view(_fl_entry_key)["open"]
+    _fl._RECORDS[_fl_entry_key].log.open = [4970, "E5"]
+    _fl_skew_null = _fl.diagnostics_view(_fl_entry_key)["open"]
+finally:
+    _fl._now_s = _fl_now_real
+R.check(
+    "an open row stamped 300 s after the view's clock (a state's last_changed ahead of this host) shows "
+    "0 open seconds, never a negative span; null control, one stamped 30 s before shows 30",
+    _fl_skew["seconds"] == 0 and _fl_skew["code"] == "E5" and _fl_skew_null["seconds"] == 30,
+    f"{_fl_skew} {_fl_skew_null}",
+)
+
 # 9: the prefill rows (the device route's roles are pinned in W1067-G7b-1's table above).
 _fl_dev = {"sensor.rw_fault_description": FakeState("OK"), "binary_sensor.rw_fault_alarm": FakeState("off")}
 _fl_dev_roles = {
