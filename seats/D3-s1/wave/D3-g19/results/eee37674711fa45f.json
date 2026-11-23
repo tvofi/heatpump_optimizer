@@ -1,0 +1,99 @@
+{
+ "key": "eee37674711fa45f",
+ "site": "optimizer.py:2006 CONST",
+ "file": "custom_components/heatpump_optimizer/optimizer.py",
+ "line": 2006,
+ "patch": "PRICE_MEAN_GUESS_EPS = 1e-3 -> PRICE_MEAN_GUESS_EPS = 0.002e-3",
+ "function": "<module>",
+ "cluster": "optimizer.py:<module>@2006-2385",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "reach_carried": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3934.9,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/eee37674711fa45f.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/eee37674711fa45f.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key eee37674711fa45f",
+ "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz, box D3-g19 alone on its machine",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_eee37674711fa45f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_eee37674711fa45f.py",
+  "results": [
+   "RESULT weights_baseline=[1.0, 0.7333, 0.4667, 0.2]",
+   "RESULT weights_mutant=[1.0, 0.8344, 0.2, 0.2]",
+   "RESULT max_abs_delta=0.2667",
+   "RESULT max_abs_delta_24step=0.2783",
+   "RESULT null_max_abs_delta=0.0",
+   "RESULT wall=0.36 s (provisional)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.85",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": "Inputs tried: the 4-step ramp above; a 24-step ramp 0..0.0012; the two null horizons.",
+  "load1": "0.85",
+  "thread_factor": "1.000",
+  "baseline_value": "[1.0, 0.7333, 0.4667, 0.2]",
+  "mutant_value": "[1.0, 0.8344, 0.2, 0.2]",
+  "metric_key": "weights"
+ },
+ "reach": "executed on every solve; the moving input (horizon mean price between 2e-6 and 1e-3 per kWh) is a near-zero-price horizon",
+ "should_fail": "tests/features.py / tests/optimality.py (traced baselines execute optimizer.py:2082 through _price_guess_weights): no check calls _price_guess_weights on a horizon whose mean lies in (2e-6, 1e-3]; it lacks e.g. _price_guess_weights([0, 4e-4, 8e-4, 1.2e-3]) == rank weights [1.0, 0.733, 0.467, 0.2]",
+ "finding": {
+  "title": "No check pins PRICE_MEAN_GUESS_EPS; a 500x smaller threshold sends near-zero-mean horizons down the saturating guess",
+  "claim": "Changing optimizer.py:2006 PRICE_MEAN_GUESS_EPS from 1e-3 to 2e-6 survives the full gate and moves _price_guess_weights on a mean-6e-4 horizon by up to 0.267 (rank fill -> clipped smooth weights)",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "max |weight_baseline - weight_mutant| of _price_guess_weights on prices [0, 4e-4, 8e-4, 1.2e-3]",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:<module>",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_eee37674711fa45f.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_eee37674711fa45f.py",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:2006 PRICE_MEAN_GUESS_EPS = 1e-3 -> PRICE_MEAN_GUESS_EPS = 0.002e-3 (in memory)",
+   "expected_direction": "up",
+   "observed_value": "[1.0, 0.7333, 0.4667, 0.2] -> [1.0, 0.8344, 0.2, 0.2]"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_eee37674711fa45f.py",
+   "value": "{\"null_max_abs_delta\": \"0.0\"}",
+   "note": "inputs where the arms must agree; full-gate null on this box: gates/null.json"
+  },
+  "phenomenon_property": "a horizon whose mean price is at or below 1e-3 gets the rank-filled guess",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_eee37674711fa45f.py",
+  "proposed_fix_scope": "tests: a _price_guess_weights check at a mean between the thresholds",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "tests/features.py"
+  ]
+ }
+}
