@@ -16,9 +16,9 @@
  "max_method_loc": 373,
  "methods_over_150": 14,
  "methods_over_200": 7,
- "module_excess_loc": 21775,
+ "module_excess_loc": 21741,
  "name_kept_members": 38,
- "recorded_at": "59b17e97ae1b65bd86c6b5423c0a5e993031c9a0",
+ "recorded_at": "af4d89f7632586770874bc200e76820e845c8cc0",
  "seam_cut_total": 413,
  "unloaded_package_imports": 14
 }
