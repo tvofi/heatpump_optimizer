@@ -1,0 +1,46 @@
+{
+ "key": "3dcdfbdd2542f33e",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:10267 CLAMP_DROP",
+ "patch": "idx = min(steps, len(trajectory) - 1) -> idx = (steps)",
+ "function": "HeatPumpOptimizerCoordinator._predicted_next_room_temp",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._predicted_next_room_temp@10262-10267",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3323.3,
+  "child_cpu_s": 5529.3,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/3dcdfbdd2542f33e.json",
+ "gate_command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3dcdfbdd2542f33e  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3dcdfbdd2542f33e.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/out_3dcdfbdd2542f33e.txt",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3dcdfbdd2542f33e.py",
+  "metric": "RESULT differing_cells_at_production_len: arms that disagree on _predicted_next_room_temp() at trajectory length n_steps+1 = 97",
+  "baseline_value": "differing_cells_at_production_len=0 (23 intervals)",
+  "mutant_value": "differing_cells_short_trajectory=100 (IndexError where len(trajectory) <= steps <= 8)",
+  "inputs_tried": [
+   "optimization_interval 10..120 by 5 x trajectory length 1..12 and 97"
+  ],
+  "null_control": "production-length cells",
+  "load1": 0.99,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none on a produced plan: the one OptimizationResult constructor (optimizer.py:3848) emits n_steps+1 points with the forecasts held flat to opt_config.n_steps (coordinator.py:7475); a trajectory of <= 8 points would separate the arms (IndexError) but no solve produces one"
+}
