@@ -1,0 +1,9 @@
+RESULT baseline={'month': '2026-11', 'kwh': 10.0, 'hourly_spot_sek': 12.0, 'grid_fee_sek': 3.0, 'monthly_avg_spot_sek': 15.0, 'load_profile_value_per_kwh': 0.3, 'cheapest': 'hourly_spot'}
+RESULT mutant={'month': '2026-11', 'kwh': 10.0, 'hourly_spot_sek': 12.0, 'monthly_avg_spot_sek': 15.0, 'load_profile_value_per_kwh': 0.3, 'cheapest': 'hourly_spot'}
+RESULT grid_fee_sek_baseline=3.0
+RESULT grid_fee_sek_mutant=absent
+RESULT keys_lost=1 count
+RESULT null_delta=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.90
+RESULT swapins=0

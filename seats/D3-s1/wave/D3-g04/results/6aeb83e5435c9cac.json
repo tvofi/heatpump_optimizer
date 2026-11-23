@@ -1,0 +1,70 @@
+{
+ "key": "6aeb83e5435c9cac",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:10428 GUARD_OFF",
+ "patch": "if fee_line[\"sek\"]: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._contract_comparison",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison@10428-10445",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3230.0,
+  "load1_start": 0.85,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 5390.8,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/6aeb83e5435c9cac.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_6aeb83e5435c9cac.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_6aeb83e5435c9cac.py",
+  "rc": 0,
+  "baseline_value": "grid_fee_sek_baseline=3.0",
+  "mutant_value": "grid_fee_sek_mutant=absent",
+  "results": {
+   "baseline": "{'month': '2026-11', 'kwh': 10.0, 'hourly_spot_sek': 12.0, 'grid_fee_sek': 3.0, 'monthly_avg_spot_sek': 15.0, 'load_profile_value_per_kwh': 0.3, 'cheapest': 'hourly_spot'}",
+   "mutant": "{'month': '2026-11', 'kwh': 10.0, 'hourly_spot_sek': 12.0, 'monthly_avg_spot_sek': 15.0, 'load_profile_value_per_kwh': 0.3, 'cheapest': 'hourly_spot'}",
+   "grid_fee_sek_baseline": "3.0",
+   "grid_fee_sek_mutant": "absent",
+   "keys_lost": "1 count",
+   "null_delta": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.90",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "10 kWh, 12 SEK spot, 3 SEK grid fee, mean 1.5",
+   "null: no grid-fee line"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_6aeb83e5435c9cac.out"
+ },
+ "should_fail": "tests/features.py: the _contract_comparison block (~56964-57000, `_t6_contract`) books only a spot line, never a grid_fee line; it lacks an assertion that grid_fee_sek equals the month's grid-fee line. tests/entities.py publishes the contract_comparison sensor without a grid-fee ledger line either.",
+ "finding": {
+  "title": "No check books a grid-fee line before reading the contract comparison; dropping grid_fee_sek is unseen",
+  "claim": "_contract_comparison publishes the month's grid-fee cost as grid_fee_sek when the ledger holds a grid_fee line. With the `if fee_line[\"sek\"]:` branch disabled the key is never published (3.0 SEK -> absent), and the full gate does not notice: no check books a grid_fee line and reads the comparison.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "high",
+  "stop_rule_class": "bug",
+  "metric_definition": "the grid_fee_sek value _contract_comparison() publishes for a month whose ledger carries a 3.00 SEK grid_fee line",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._contract_comparison (custom_components/heatpump_optimizer/coordinator.py:10428)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_6aeb83e5435c9cac.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_6aeb83e5435c9cac.py  ;  custom_components/heatpump_optimizer/coordinator.py:10428 full gate: GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6aeb83e5435c9cac",
+  "perturbation": "coordinator.py:10428 `if fee_line[\"sek\"]:` -> `if False:`; grid_fee_sek 3.0 -> absent",
+  "null_control": "the probe's null arm (null_delta/null_differing RESULT = 0 count) and this box's fullgate.py null gate (gates/null.json)"
+ }
+}
