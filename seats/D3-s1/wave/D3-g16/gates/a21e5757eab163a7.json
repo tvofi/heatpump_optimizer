@@ -1,0 +1,35 @@
+{
+ "key": "a21e5757eab163a7",
+ "mutant": {
+  "kind": "CMP_BOUND",
+  "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+  "line": 2140,
+  "old": "            if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)):",
+  "new": "            if not bool(np.all(candidate[pos + 1: end + 1] < limit + 1e-9)):",
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_raise_fits CMP_BOUND 655157d4"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3218.4,
+ "child_cpu_s": 5377.8,
+ "load1_start": 0.94,
+ "load1_end": 1.01,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}
