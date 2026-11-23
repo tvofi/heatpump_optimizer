@@ -1,0 +1,35 @@
+{
+ "key": "80fd46122d85566c",
+ "site": "custom_components/heatpump_optimizer/price_model.py:820 GUARD_OFF",
+ "patch": "if state is None: -> if False:",
+ "function": "prices_from_entity_state",
+ "cluster": "price_model.py:prices_from_entity_state@820-825",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3174.3,
+  "load1_start": 0.85,
+  "load1_end": 1.01,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/80fd46122d85566c.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 80fd46122d85566c",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_80fd46122d85566c.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_80fd46122d85566c.py",
+  "baseline_value": "'Price entity is empty'",
+  "mutant_value": "'Price entity is empty'",
+  "inputs_tried": "state None at vat/surcharge (1.0,0.0) (1.25,0.3) (0.0,-1.0); non-None states unknown/{} , ''/None, numeric, unavailable+raw_today",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_80fd46122d85566c.out"
+ },
+ "should_fail": "none: with the guard off, getattr(None, 'state', '') == '' and attrs None reach the next guard, which returns the same string; entities.py:8138's check prices_from_entity_state(None) == 'Price entity is empty' holds under both arms"
+}
