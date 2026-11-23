@@ -1,0 +1,111 @@
+{
+ "key": "8fd14c249b86abf7",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5234 GUARD_OFF",
+ "patch": "if pinned_off: -> if False:",
+ "function": "HeatPumpOptimizer._safety_release_steps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._safety_release_steps@5222-5250",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3371.5,
+  "child_cpu_s": 5662.5,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8fd14c249b86abf7",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/8fd14c249b86abf7.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+  "metric": "direct_off_step_at_floor_plus_0.1_release",
+  "baseline_value": "([0],[])",
+  "mutant_value": "([],[])",
+  "reach": "through optimize(): 11 of 55 manual-plan solves with short off blocks (winter_extreme, 16.6-17.6 C) return a different plan",
+  "inputs_tried": [
+   "forced-off step at floor+0.1 (direct)",
+   "the same step at floor-0.5 (null)",
+   "55 optimize() solves: 11 start temperatures x 5 off-block layouts"
+  ],
+  "results": [
+   "RESULT direct_off_step_at_floor_plus_0.1_release_baseline=([0],[])",
+   "RESULT direct_off_step_at_floor_plus_0.1_release_mutant=([],[])",
+   "RESULT null_deep_breach_delta=0",
+   "RESULT optimize_off_block_differing_plans=11 of 55",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=4.91",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "tests/manual_plan.py (test_safety_release, test_give_up_is_per_channel, test_release_always_resolves) -- test_safety_release's cold case releases through the free-step rule as well, so no check isolates a forced-off step inside (floor-0.25, floor+0.15]",
+ "finding": {
+  "title": "No check isolates the pinned-off breach band; disabling the rule leaves the gate green",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 8fd14c249b86abf7 at optimizer.py:5234 (if pinned_off: -> if False:) leaves the full GATE_SCOPE=full GOLDEN_MODE=drift gate RED-AS-NULL on box D3-g23, yet the probe's direct_off_step_at_floor_plus_0.1_release moves ([0],[]) -> ([],[]).",
+  "mechanism": "Reach: through optimize(): 11 of 55 manual-plan solves with short off blocks (winter_extreme, 16.6-17.6 C) return a different plan. Check that should have failed (D3.M4): tests/manual_plan.py (test_safety_release, test_give_up_is_per_channel, test_release_always_resolves) -- test_safety_release's cold case releases through the free-step rule as well, so no check isolates a forced-off step inside (floor-0.25, floor+0.15].",
+  "metric_definition": "direct_off_step_at_floor_plus_0.1_release printed by probe_8fd14c249b86abf7.py (baseline arm vs the mutant re-compiled in memory)",
+  "phenomenon_property": "A forced-off step whose room temperature ends at or below floor+0.15 releases its off block",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave list; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g23/keys.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._safety_release_steps",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/_g23_common.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+   "value": "([],[])",
+   "unit": "direct_off_step_at_floor_plus_0.1_release",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g23: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probes ran from a scratch baseline worktree beside the box's gates; gate walls provisional",
+   "tolerance": "exact"
+  },
+  "perturbation": {
+   "change": "the mutant edit at optimizer.py:5234 applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8fd14c249b86abf7",
+   "expected_direction": "to_zero",
+   "observed_value": "([],[])"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+   "value": "0",
+   "note": "the probe's null_* RESULT line: an input where the edit cannot matter, identical under both arms"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8fd14c249b86abf7"
+  ],
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/manual_plan.py that feeds the probe's distinguishing input and asserts the baseline outcome"
+ }
+}
