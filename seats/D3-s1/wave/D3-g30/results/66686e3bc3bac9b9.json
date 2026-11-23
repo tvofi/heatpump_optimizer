@@ -1,0 +1,83 @@
+{
+ "key": "66686e3bc3bac9b9",
+ "site": "custom_components/heatpump_optimizer/price_model.py:81 CONST",
+ "patch": "QUARTER_CONFIDENCE_DAYS = 5 -> QUARTER_CONFIDENCE_DAYS = 10",
+ "function": "<module>",
+ "cluster": "price_model.py:<module>@66-90",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3502.6,
+  "load1_start": 0.3,
+  "load1_end": 1.18,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/66686e3bc3bac9b9.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py",
+  "baseline": {
+   "predict_0700_5_days": "1.57377",
+   "predict_0700_7_days": "1.57377"
+  },
+  "mutant": {
+   "predict_0700_5_days": "1.661202",
+   "predict_0700_7_days": "1.62623"
+  },
+  "moved": {
+   "predict_0700_inputs_moved": "3 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "5_days,7_days,1_day,0_days,10_days",
+  "all_results": {
+   "predict_0700_5_days_baseline": "1.57377",
+   "predict_0700_5_days_mutant": "1.661202",
+   "predict_0700_7_days_baseline": "1.57377",
+   "predict_0700_7_days_mutant": "1.62623",
+   "predict_0700_1_day_baseline": "1.126732",
+   "predict_0700_1_day_mutant": "1.13823",
+   "null_predict_0700_0_days_baseline": "1.0",
+   "null_predict_0700_0_days_mutant": "1.0",
+   "null_predict_0700_10_days_baseline": "1.57377",
+   "null_predict_0700_10_days_mutant": "1.57377",
+   "predict_0700_inputs_moved": "3 count",
+   "null_delta": "0 count",
+   "inputs_tried": "5_days,7_days,1_day,0_days,10_days",
+   "thread_factor": "1.000",
+   "load1": "0.95",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "Doubling the quarter confidence ramp changes predict(weekday 07:00, level 1.0) after 5 learned quarter days from 1.57377 to 1.661202 (trust 1.0 -> 0.5) through PriceShapeLearner.fold; the gate's only quarter_confidence check (features.py ~18780) folds QUARTER_CONFIDENCE_DAYS days and reads the constant back, so it moves with the mutant.",
+ "should_fail": "tests/features.py ~18772-18800 (traced executing quarter_confidence): it derives its day count from QUARTER_CONFIDENCE_DAYS itself; it lacks a literal pin, e.g. quarter_confidence == 1.0 after exactly 5 quarter days (or 0.6 after 3).",
+ "finding": {
+  "title": "price_model.py:81 QUARTER_CONFIDENCE_DAYS 5 -> 10 survives the full gate: the quarter-confidence ramp length is unpinned",
+  "claim": "Doubling the quarter confidence ramp changes predict(weekday 07:00, level 1.0) after 5 learned quarter days from 1.57377 to 1.661202 (trust 1.0 -> 0.5) through PriceShapeLearner.fold; the gate's only quarter_confidence check (features.py ~18780) folds QUARTER_CONFIDENCE_DAYS days and reads the constant back, so it moves with the mutant.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "PriceShapeModel.predict(weekday 07:00, level 1.0) after n quarter days folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 66686e3bc3bac9b9",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:81",
+  "perturbation": "the one-line mutant 66686e3bc3bac9b9: `QUARTER_CONFIDENCE_DAYS = 5` -> `QUARTER_CONFIDENCE_DAYS = 10`; direction predict_0700_5_days: 1.57377 -> 1.661202; predict_0700_7_days: 1.57377 -> 1.62623",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}
