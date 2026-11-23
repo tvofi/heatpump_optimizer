@@ -7,16 +7,17 @@ Owner ruling 2026-11-22 (no round named in a default or docstring): every live d
 - `tools/audit/seat/closeout.py`: `--report-dir` default naming round 10's evidence directory → `report_dir_for(--roster-file)`, the roster file's own round; a roster file naming no round refuses, rc 2.
 - `tools/audit/seat/plan_phases.py`: the usage line in the docstring → `round<N>`.
 
-The barrier: `roster_lib.round_literal_defaults` (run by `roster_lib.py --self-test`, governance step `roster-library`) refuses a round literal (`audit-r<N>`, `wave-r<N>`, `round<N>`, any N) in a default shape anywhere in `tools/**/*.py` at a ref (the self-test reads HEAD from git's object store, as `tmp_paths.py --check` does, so no runner of the self-test records a read of an INERT tools/ file): argparse `default=`/`help=`, a parameter default, a parameter reassigned in the body, an `or`/`.get`/conditional fallback, a module-level UPPER constant, or a docstring line saying "default". Legal: a function whose name says self-test, a file under a `round<N>/` directory, and `ROUND_RECORDS` keyed on (file, constant) for four fixed records (round 10's carry cut-over commit, round 4's D6 register directory, round 4/6's D11 library search paths, `gh_comment.py`'s verbatim posted bodies). The key admits its own constant only (a self-test arm plants the same literal under another constant name in the same file and is refused).
+The barrier: `roster_lib.round_literal_defaults` (run by `roster_lib.py --self-test`, governance step `roster-library`) refuses a round literal (`audit-r<N>`, `wave-r<N>`, `round<N>`, any N) in a default shape anywhere in `tools/**/*.py` at a ref (the self-test reads HEAD from git's object store, as `tmp_paths.py --check` does, so no runner of the self-test records a read of an INERT tools/ file): argparse `default=`/`help=`, a parameter default, a parameter reassigned in the body, an `or`/`.get`/conditional fallback, a module-level UPPER constant, or a docstring line saying "default". Legal: a function whose name says self-test, a file under a `round<N>/` directory, and `ROUND_RECORDS` keyed on (file, constant) for four fixed records (round 10's carry cut-over commit, round 4's D6 register directory, round 4/6's D11 library search paths, `gh_comment.py`'s verbatim posted bodies). The key admits its own constant in its own file only: one self-test arm plants the same literal under another constant name in the record's file and is refused, another plants the record's own constant (`REGISTER_DIR`) under another file path and is refused.
 
 Alternatives not taken: a plain text grep over `tools/` returns every self-test fixture and dated record (the census below), so it would need an allow-list keyed on line text, which a new default with the same literal passes; scoping by AST default shape needs no per-line list. Placing the check in `tmp_paths.py --check` (its own governance step) would give round naming a second owner; `roster_lib` owns which roster and which ref.
 
 ## Head
 
-b9a91ebdb35a5a7aa9e91533dd1583b093f4ef7c, merge base e3cb5c019b464a770cc7c6fe2fbc858ed29debf7; origin/main 49cb3207a9 at 2026-11-22T22:18:51Z (`git merge-tree --write-tree origin/main HEAD`: no conflict).
+`1e81226fb9f9fa7dad1796e5268f8f6e8e095f6d` adds the self-test arm `a ROUND_RECORDS key admits its constant in its own file and no other` to `roster_lib.py`: `REGISTER_DIR`, a record of `tools/release/stamp.py`, planted with a round literal at `tools/x/other.py` must return one hit. This answers verdict/3880 (M7 survived). The previous head was 0b1994a331; this commit is the only code change since then.
 
 ## Mutation proof
 
+- verdict/3880 M7 (the ROUND_RECORDS test `(rel, x) not in ROUND_RECORDS` loosened to `x not in {k for _, k in ROUND_RECORDS}`, which matches on the constant name in any file): unmutated, `roster_lib.py --self-test` prints `125 checks, 0 failed`. Under the mutant it prints `125 checks, 1 failed` with `FAIL a ROUND_RECORDS key admits its constant in its own file and no other (got: [])`.
 - replan, in-tree: the self-test's mutation table gains `roster-ref-default` (the `reader_ref` line replaced by the round-10 literal, assembled at run time); `python3 -I tools/plan/replan.py --self-test` prints `mutation roster-ref-default: 'ref = roster_lib.reader_ref(repo, ref)' -> rc=1` and `ok self-test fails when roster-ref-default is deleted`. The same mutant run alone fails exactly `no --roster-ref reads round 12's roster branch` (PlanError: cannot list rosters at origin/handoff/audit-r10-roster) and `the CLI with no --roster-ref plans from round 12's branch` (rc=2); the round-10 null control passes under it, as it must.
 - the barrier: that same replan mutant fails `roster_lib.py --self-test` on `no tools/ default in this checkout names a round` (got `tools/plan/replan.py:165: parameter fallback: audit-r10`, `... or fallback: audit-r10`).
 - roster_queue: `rel = rel or roster_rel(ref, cwd)` in `roster_at` replaced by the round-10 path fails `a later round's roster is the one a ref carries: read, read back and shown` (69 checks, 1 failed).
@@ -27,6 +28,7 @@ b9a91ebdb35a5a7aa9e91533dd1583b093f4ef7c, merge base e3cb5c019b464a770cc7c6fe2fb
 
 ## Null control
 
+- ROUND_RECORDS file half: the record's constant in its own file (`tools/release/stamp.py`, `REGISTER_DIR`) still returns `[]` (arm `a ROUND_RECORDS key admits its own constant and no other`), so the new arm refuses only because the file differs.
 - replan: a scratch repo whose rounds are 9 and 10 resolves to `origin/handoff/audit-r10-roster` through the same `load_roster` call (`no --roster-ref reads round 10's roster branch (null control ...)`). The CLI arm runs for the newest round only: a scratch round-10 roster meets `CARRY_CUTOVER`'s real commit, absent from a scratch repo.
 - symptom: at the head, `--roster-ref origin/handoff/audit-r10-roster` given explicitly reproduces the base's group set exactly (116 groups, none of the three).
 - lint: the base tree returns 5 hits (below); fixtures, a round read through a variable, a literal outside a default shape and a `round<N>/` directory each return none (four null arms).
@@ -53,3 +55,4 @@ none
 ## Friction
 
 none
+
