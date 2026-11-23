@@ -8586,7 +8586,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
     def _tariff_months(self) -> frozenset[int]:
         """The #13 month mask, empty (= every month) when unset or broken."""
-        return peak_tariff_months(getattr(self, "_ctx", self)._config.peak_tariff_months)
+        pass
 
     def _tariff_hours(self) -> tuple[Any, ...]:
         """The #13 peak-hour windows, empty (= every hour) when unset."""
