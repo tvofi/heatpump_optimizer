@@ -1,0 +1,52 @@
+{
+ "key": "b546d5e705722bb5",
+ "site": "coordinator.py:5382 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/coordinator.py",
+ "patch": "if modelled_cop <= 0.1: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._fold_cop_evidence",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_cop_evidence@5382-5382",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "node tests/card.mjs",
+   "python3 tests/stress.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3252.1,
+  "load1_start": 0.89,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "node tests/card.mjs",
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/stress.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/stress.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "5 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/gates/b546d5e705722bb5.json",
+  "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b546d5e705722bb5",
+  "provisional": true
+ },
+ "class": "killed",
+ "killed_by": [
+  "node tests/card.mjs",
+  "python3 tests/stress.py"
+ ],
+ "failing_checks": [
+  "node tests/card.mjs: FAIL  user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language | gate 0.3, modelled floor undefined; wrong in: en,sv,de",
+  "python3 tests/stress.py: FAIL the per-call-cost arm reaches the rule the sweep applies, with both count channels flat, and an unchanged solve does not (round-5 D9-07)  [winter/1z/space, median of 7 interleaved rounds: 39 ms of kernel CPU plain, 40 ms plain again (x1.03), 55 ms with every seam call's CPU doubled (x1.41); eva"
+ ],
+ "non_finding": "the full gate fails on the mutant: killed_by=['node tests/card.mjs', 'python3 tests/stress.py'], gate_rc=1"
+}
