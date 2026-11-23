@@ -836,7 +836,9 @@ class Stub:
         self.events.append(("sleep", s))
         self.clock += s
 
-    def graphql(self, included: bool):
+    def graphql(self, argv):
+        """A GraphQL answer, its headers included when argv asks -i; a rateLimit only when the query asks one, as GitHub."""
+        included, asked = argv[2] == "-i", any(a.startswith("query=") and "rateLimit{" in a for a in argv)
         self.gql_clocks.append(self.clock)
         if self.gql_fail:
             f_ = self.gql_fail.pop(0)
@@ -847,8 +849,8 @@ class Stub:
         self.gql_min = min(self.gql_min, self.gql_remaining)
         import datetime
         reset = datetime.datetime.fromtimestamp(self.gql_reset, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        body = json.dumps({"data": {"rateLimit": {"cost": self.gql_cost, "remaining": self.gql_remaining, "limit": self.gql_limit, "resetAt": reset},
-                                    "repository": {"i1": {"__typename": "Issue"}}}})
+        rate = {"rateLimit": {"cost": self.gql_cost, "remaining": self.gql_remaining, "limit": self.gql_limit, "resetAt": reset}} if asked else {}
+        body = json.dumps({"data": {**rate, "repository": {"i1": {"__typename": "Issue"}}}})
         return 0, (self.inc(200, [], body) if included else body)
 
     def gql_gaps(self):
@@ -891,7 +893,7 @@ class Stub:
         if k in self.limit_at:
             return 1, self.limit_at.pop(k)
         if "graphql" in argv[2:4]:
-            return self.graphql(argv[2] == "-i")
+            return self.graphql(argv)
         path = argv[3]
         if any(d in path for d in self.down):
             return 1, self.inc(502, [], "", "gh: Bad Gateway (HTTP 502)\n")
@@ -1476,6 +1478,7 @@ MUTANTS = {
     "graphql paced": ('        if bucket == "graphql":\n            gap = max(gap, self.graphql_wait())\n', "", "proportional to the cost"),
     "pace by cost": ('"next": self.now() + cost * 3600 / limit}', '"next": self.now()}', "proportional to the cost"),
     "token bucket waited": ('        return max(g["next"] - now, 0.0)\n\n    def observe', "        return 0.0\n\n    def observe", "proportional to the cost"),
+    "rateLimit asked": ("{rateLimit{cost remaining limit resetAt} repository", "{repository", "proportional to the cost"),
     "rateLimit read": ('            self.observe(data.pop("rateLimit", None))', '            data.pop("rateLimit", None)', "proportional to the cost"),
     "rateLimit not stored": ('            self.observe(data.pop("rateLimit", None))', '            self.observe(data.get("rateLimit"))', "not stored with the items"),
     "floor before a query": ('        if g["remaining"] - g["cost"] < self.floor * g["limit"]:', "        if False:", "sleeps until resetAt"),
