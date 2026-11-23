@@ -466,11 +466,11 @@ def self_test() -> int:
     check("no --report-dir reports under the --roster-file's round",
           report_dir_for("x/wave-r12-groups.json") == "dev/audit/rounds/round12"
           and report_dir_for("wave-r9-groups.json") == "dev/audit/rounds/round9")
-    try:
-        unnamed = main(["--roster-file", str(ROOT / "README.md")])
-    except Exception as e:  # noqa: BLE001 -- a run past the refusal is this arm's FAIL
-        unnamed = repr(e)[:80]
-    check("no --report-dir and a roster file naming no round refuses, rc 2", unnamed == 2)
+    # A run past the refusal reads README.md as a roster and raises: a crash.
+    check("no --report-dir and a roster file naming no round refuses, rc 2",
+          main(["--roster-file", str(ROOT / "README.md")]) == 2)
+    check("both --report-dir arms ran (deleting either is refused here)",
+          sum(t.startswith("no --report-dir") for t, _ in res) == 2)
 
     tmp = Path(tempfile.mkdtemp(prefix="closeout_selftest."))
     try:
