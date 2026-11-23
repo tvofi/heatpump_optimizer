@@ -1,0 +1,12 @@
+r 0.5 rad 0.5 out +5: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.296 lower 20.704
+r 0.5 rad 0.5 out -5: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.499 lower 20.501
+r 0.5 rad 0.5 out -15: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.701 lower 20.299
+r 0.3 rad 0.7 out +5: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.654 lower 20.720
+r 0.3 rad 0.7 out -5: held 21.0000 scalar 21.0000 batch 21.0000 upper 22.152 lower 20.506
+r 0.3 rad 0.7 out -15: held 21.0000 scalar 21.0000 batch 21.0000 upper 22.650 lower 20.293
+r 0.7 rad 0.3 out +5: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.060 lower 20.859
+r 0.7 rad 0.3 out -5: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.080 lower 20.814
+r 0.7 rad 0.3 out -15: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.099 lower 20.768
+r 0.3 rad 0.5 out +5: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.360 lower 20.846
+r 0.3 rad 0.5 out -5: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.646 lower 20.723
+r 0.3 rad 0.5 out -15: held 21.0000 scalar 21.0000 batch 21.0000 upper 21.932 lower 20.601
