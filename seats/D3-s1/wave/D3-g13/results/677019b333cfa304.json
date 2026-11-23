@@ -1,0 +1,59 @@
+{
+ "key": "677019b333cfa304",
+ "site": "defrost.py:184 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/defrost.py",
+ "line": 184,
+ "patch": "if value < centers[i + 1]: -> if value <= centers[i + 1]:",
+ "function": "_interp_position",
+ "cluster": "defrost.py:_interp_position@181-184",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 2869.6,
+  "child_cpu_s": 4751.8,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/677019b333cfa304.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 677019b333cfa304",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+  "answer": "defrost.py:184 _interp_position CMP_BOUND: `if value < centers[i + 1]:` -> `if value <= centers[i + 1]:`. Ran 15 closure scripts, none killed. Should fail: tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/entities.py, tests/features.py, tests/finite_boundary.py, tests/manual_plan.py, tests/solar_alignment.py each execute line 184 on the traced baseline yet no check of theirs reads an outcome the mutation changes."
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_677019b333cfa304.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_677019b333cfa304.py",
+  "rc": 0,
+  "results": [
+   "RESULT at_interior_centre baseline=(2, 0.0) mutant=(1, 1.0)",
+   "RESULT interp_tuple_moves=4 of 76 count",
+   "RESULT factor_max_abs_delta=0.0 over 8892 (t,h) pairs x 6 learners",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.10",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "every temperature and humidity centre, +-1e-9 around each, its negation, +-100, 0, +-inf, nan, on 6 fully learned learners (8892 factor pairs)"
+  ],
+  "baseline_value": null,
+  "mutant_value": null,
+  "load1": 1.1,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none at the observable output: the (i, u) tuple moves at the four interior temperature centres ((i+1, 0.0) -> (i, 1.0)), but _factor_uncached, its only reader, weights the same neighbour by exactly 1.0 and the other by exactly 0.0 either way",
+ "equivalence": "interp tuple moves 4 of 76, factor_max_abs_delta 0.0 over 8892 pairs: equivalent at the only consumer"
+}
