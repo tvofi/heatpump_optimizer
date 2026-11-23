@@ -1,0 +1,66 @@
+{
+ "key": "905a40b5ecea024f",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5044 GUARD_OFF",
+ "patch": "if n == 0 or len(prices) != n: -> if False:",
+ "function": "HeatPumpOptimizer._derive_hold_schedule",
+ "cluster": "optimizer.py:HeatPumpOptimizer._derive_hold_schedule@5044-5074",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3219.8,
+  "load1_start": 0.86,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/905a40b5ecea024f.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/905a40b5ecea024f.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.10GHz; the judge re-takes them)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_905a40b5ecea024f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_905a40b5ecea024f.py",
+  "metric": "_derive_hold_schedule's outcome on length-mismatched / empty inputs, and the count of production calls that pass such inputs",
+  "baseline_value": "None",
+  "mutant_value": "raise:ValueError",
+  "baseline_name": "mismatch_baseline",
+  "mutant_name": "mismatch_mutant",
+  "inputs_tried": [
+   "power 8 / prices 9 (mismatch)",
+   "power 0 / prices 0 (empty)",
+   "matched length 8 (null)",
+   "optimize() smart-write store reach: 24-step horizon with 24 and 30 prices"
+  ],
+  "results": {
+   "mismatch_baseline": "None",
+   "mismatch_mutant": "raise:ValueError",
+   "empty_baseline": "None",
+   "empty_mutant": "raise:IndexError",
+   "null_delta": "0 count",
+   "reach_calls_mismatched": "0 count",
+   "reach_calls_total": "2 count",
+   "thread_factor": "1.000",
+   "load1": "1.47",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_905a40b5ecea024f.txt"
+ },
+ "should_fail": "none through production: tests/features.py and tests/stress.py execute line 5044 but no production caller passes a length mismatch or an empty horizon",
+ "note": "The direct call moves (None -> ValueError / IndexError), but the one production caller (optimizer.py:4601) passes result.power_schedule and prices both n_steps long: reach_calls_mismatched=0 of 2. Equivalent at every production-reachable input; a non-finding unless a later seat finds a caller that delivers a mismatch."
+}
