@@ -915,8 +915,8 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
 
     The set-point entity's own maximum (tvofi, 2026-11-13: "set at the
     maximum value"), capped by a heating ceiling (``flow_heat_c``) set to
-    anything but its default, and by the high limit (:func:`_space_limit_c`:
-    the controller's sensor, the manual option). The default caps nothing: an
+    anything but its default. The high limit caps the boost where it is
+    written, in :func:`_map_inputs`. The default caps nothing: an
     absent key reads as it, and an untouched options page must change
     nothing (``tests/config_flow_steps.py``), so a stored default cannot be
     told from no setting.
@@ -933,8 +933,6 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
     caps = [high]
     if (ceiling := _heat_ceiling_c(inp.config)) != DEFAULT_FLOW_HEAT_C:
         caps.append(ceiling)
-    if (limit := _space_limit_c(inp)) is not None:
-        caps.append(limit)
     return min(caps)
 
 
