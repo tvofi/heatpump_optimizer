@@ -389,15 +389,13 @@ class Mirror:
         if limit <= 0 or reset is None:
             return
         self.gql = {"cost": cost, "remaining": remaining, "limit": limit, "reset": reset, "next": self.now() + cost * 3600 / limit}
-        seen = self.cur.setdefault("graphql_cost", {"last": 0, "max": 0})
-        seen["last"], seen["max"] = cost, max(seen["max"], cost)
+        seen = self.cur.setdefault("graphql_cost", {})
+        seen["last"], seen["max"] = cost, max(seen.get("max", cost), cost)
 
     def secondary_wait(self, out: str) -> "float | None":
         """The Retry-After (s) of a secondary-limit answer when it is at most SECONDARY_WAIT_CAP_S; else None."""
         after = gh_read.parse_included(out)[1].get("retry-after", "")
-        if gh_read.SECONDARY in out.lower() and after.isdigit() and int(after) <= SECONDARY_WAIT_CAP_S:
-            return float(after)
-        return None
+        return float(after) if gh_read.SECONDARY in out.lower() and after.isdigit() and int(after) <= SECONDARY_WAIT_CAP_S else None
 
     def get(self, path: str, etag: str = ""):
         """A conditional REST read -> (state, body, etag): fresh, unchanged, gone or error:<what>."""
@@ -559,6 +557,9 @@ class Mirror:
         kept = self.cur["items"].setdefault("item batches", {})
         for key in [key for key in kept if key not in batches]:
             del kept[key]  # a batch of another partition (an earlier GRAPHQL_BATCH, a last batch since grown) is no unit of this one
+        for stale in (self.dir / "graphql" / "items").glob("*.json"):
+            if stale.stem not in batches:
+                stale.unlink()  # nor is its file: its items are read again under this partition's keys, and held once
 
         def batch(key):
             data, why = self.query(ITEM_QUERY % "\n".join(ITEM_FIELDS % (n, n) for n in batches[key]), o=owner, n=repo)
@@ -825,7 +826,7 @@ class Stub:
         # GraphQL's own bucket, as each answer's rateLimit reports it: one query spends gql_cost, the reset refills it
         self.gql_cost, self.gql_limit, self.gql_remaining, self.gql_min = 1, 5000, 5000, 5000
         self.gql_reset = int(self.clock) + 1800
-        self.gql_fail: list[str] = []  # the next GraphQL calls answer these outputs, in order
+        self.gql_fail: list = []  # the next GraphQL calls answer these outputs (exit 1), or these (exit code, output), in order
         self.gql_clocks: list[float] = []  # the clock at each GraphQL call
 
     def sleep(self, s):
@@ -833,18 +834,21 @@ class Stub:
         self.events.append(("sleep", s))
         self.clock += s
 
-    def graphql(self, included: bool):
+    def graphql(self, argv):
+        """A GraphQL answer, its headers included when argv asks -i; a rateLimit only when the query asks one, as GitHub."""
+        included, asked = argv[2] == "-i", any(a.startswith("query=") and "rateLimit{" in a for a in argv)
         self.gql_clocks.append(self.clock)
         if self.gql_fail:
-            return 1, self.gql_fail.pop(0)
+            f_ = self.gql_fail.pop(0)
+            return f_ if isinstance(f_, tuple) else (1, f_)
         while self.clock >= self.gql_reset:
             self.gql_remaining, self.gql_reset = self.gql_limit, self.gql_reset + 3600
         self.gql_remaining -= self.gql_cost
         self.gql_min = min(self.gql_min, self.gql_remaining)
         import datetime
         reset = datetime.datetime.fromtimestamp(self.gql_reset, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        body = json.dumps({"data": {"rateLimit": {"cost": self.gql_cost, "remaining": self.gql_remaining, "limit": self.gql_limit, "resetAt": reset},
-                                    "repository": {"i1": {"__typename": "Issue"}}}})
+        rate = {"rateLimit": {"cost": self.gql_cost, "remaining": self.gql_remaining, "limit": self.gql_limit, "resetAt": reset}} if asked else {}
+        body = json.dumps({"data": {**rate, "repository": {"i1": {"__typename": "Issue"}}}})
         return 0, (self.inc(200, [], body) if included else body)
 
     def gql_gaps(self):
@@ -887,7 +891,7 @@ class Stub:
         if k in self.limit_at:
             return 1, self.limit_at.pop(k)
         if "graphql" in argv[2:4]:
-            return self.graphql(argv[2] == "-i")
+            return self.graphql(argv)
         path = argv[3]
         if any(d in path for d in self.down):
             return 1, self.inc(502, [], "", "gh: Bad Gateway (HTTP 502)\n")
@@ -1014,6 +1018,7 @@ class LocalFailure:
 
 
 def cases(m) -> dict[str, bool]:
+    import contextlib
     import errno
     import tempfile
     r: dict[str, bool] = {}
@@ -1366,8 +1371,8 @@ def cases(m) -> dict[str, bool]:
             fc is not None and fc(example) == 51 and fc(item_doc(m.GRAPHQL_BATCH)) <= getattr(m, "QUERY_COST_CAP", 0) < fc(item_doc(m.GRAPHQL_BATCH + 3)) \
             and (fc(item_doc(m.GRAPHQL_BATCH)), m.QUERY_COST_CAP) == (92, 100)
         r["cost: the formula counts each connection once per parent node, rounds the hundreds and is at least 1"] = \
-            fc is not None and (fc("query{a(first:148){b(first:1){x}}}"), fc("query{a(first:100){b(first:100){c(first:100){x}}}}"),
-                                fc("query{viewer{login}}")) == (1, 101, 1)
+            fc is not None and (fc("query{a(first:148){b(first:1){x}}}"), fc("query{a(first:150){b(first:1){x}}}"),
+                                fc("query{a(first:100){b(first:100){c(first:100){x}}}}"), fc("query{viewer{login}}")) == (1, 2, 101, 1)
         z = Stub()
         real_batch = m.GRAPHQL_BATCH
         m.GRAPHQL_BATCH = 7
@@ -1379,6 +1384,17 @@ def cases(m) -> dict[str, bool]:
         uz = mz.man["sources"]["S3"]["units"]["item batches"]
         r["partition: a batch key of another GRAPHQL_BATCH kept in the cursor is no unit of this pass: universe and examined count the current batches"] = \
             rc == 0 and (uz["universe"], uz["examined"]) == (n_batches, n_batches) and len(mz.cur["items"]["item batches"]) == n_batches
+        part_files = sorted(f_.stem for f_ in (Path(td) / "part" / "corpus" / "graphql" / "items").glob("*.json"))
+        r["partition files: an item file of another GRAPHQL_BATCH is removed, so the directory holds each item once, under the current keys"] = \
+            part_files == sorted(mz.cur["items"]["item batches"]) and len(part_files) == n_batches
+        bad_ok = Stub.inc(502, [], json.dumps({"data": {"repository": {"i999": {"__typename": "Issue"}}}}), "")
+        st_ = Stub()
+        st_.gql_fail = [(0, bad_ok)]
+        mst, rc = mirror(Path(td) / "gstatus", st_)
+        held = [f_.read_text() for f_ in (Path(td) / "gstatus" / "corpus" / "graphql" / "items").glob("*.json")]
+        r["graphql status: an answer exiting 0 with a non-2xx status is no answer: its body is never stored, the query is asked again"] = \
+            rc == 0 and mst.cur["state"] == "complete" and len(st_.gql_clocks) == n_batches + 1 and len(held) == n_batches \
+            and not any("i999" in x for x in held) and set(mst.cur["items"]["item batches"].values()) == {"ok"}
         w_ = Stub()
         mw_ = m.Mirror(Path(td) / "unit", run=w_.run, run_bytes=w_.run_bytes, git=w_.git, http=w_.http, new_bare=w_.new_bare, sleep=w_.sleep,
                        now=lambda: 1000.0, repo="o/r")
@@ -1396,6 +1412,17 @@ def cases(m) -> dict[str, bool]:
                                               {**good, "resetAt": "not a time"}, {**good, "resetAt": "1970-01-01T01:00:00"})) \
             and observed(good) == {"cost": 92, "remaining": 5000, "limit": 5000, "reset": 3600.0, "next": 1000.0 + 92 * 3600 / 5000} \
             and observed({**good, "limit": 1})["limit"] == 1
+        mw_.cur.pop("graphql_cost", None)
+        for c_ in (46, 92, 30):
+            mw_.observe({**good, "cost": c_})
+        mw_.save()
+        os.chmod(Path(td) / "unit", 0o700)
+        printed = io.StringIO()
+        with contextlib.redirect_stdout(printed):
+            cost_rc = m.main(["cost", "--private-root", str(Path(td) / "unit")])
+        r["graphql cost: the cursor keeps the last cost answered and the largest, and 'cost' prints both"] = \
+            mw_.cur["graphql_cost"] == {"last": 30, "max": 92} and cost_rc == 0 \
+            and 'GraphQL cost per query as answered {"last": 30, "max": 92}' in printed.getvalue()
 
         def waited(remaining, reset, nxt):
             mw_.gql = {"cost": 92, "remaining": remaining, "limit": 5000, "reset": reset, "next": nxt}
@@ -1449,6 +1476,7 @@ MUTANTS = {
     "graphql paced": ('        if bucket == "graphql":\n            gap = max(gap, self.graphql_wait())\n', "", "proportional to the cost"),
     "pace by cost": ('"next": self.now() + cost * 3600 / limit}', '"next": self.now()}', "proportional to the cost"),
     "token bucket waited": ('        return max(g["next"] - now, 0.0)\n\n    def observe', "        return 0.0\n\n    def observe", "proportional to the cost"),
+    "rateLimit asked": ("{rateLimit{cost remaining limit resetAt} repository", "{repository", "proportional to the cost"),
     "rateLimit read": ('            self.observe(data.pop("rateLimit", None))', '            data.pop("rateLimit", None)', "proportional to the cost"),
     "rateLimit not stored": ('            self.observe(data.pop("rateLimit", None))', '            self.observe(data.get("rateLimit"))', "not stored with the items"),
     "floor before a query": ('        if g["remaining"] - g["cost"] < self.floor * g["limit"]:', "        if False:", "sleeps until resetAt"),
@@ -1460,9 +1488,14 @@ MUTANTS = {
                        "        while failure is not None and self.secondary_wait(failure) is not None:\n            self.sleep(self.secondary_wait(failure))\n            value, failure, _, _ = gh_read.retry(attempt, lambda f: gh_read.included_wait(f, self.now), self.sleep)\n        if failure is not None:\n            if gh_read.RATE_LIMIT in failure.lower():\n                raise Paused(\"rate limit: a GraphQL",
                        "after the one retry pauses"),
     "secondary cap": ("int(after) <= SECONDARY_WAIT_CAP_S", "True", "past the cap, or a spent primary"),
-    "secondary only": ("        if gh_read.SECONDARY in out.lower() and after.isdigit()", "        if after.isdigit()", "past the cap, or a spent primary"),
+    "secondary only": ("if gh_read.SECONDARY in out.lower() and after.isdigit()", "if after.isdigit()", "past the cap, or a spent primary"),
     "query read with -i": ('        query = argv[:2] + argv[3:] if argv[2:3] == ["-i"] else argv', "        query = argv", "a query read with its headers"),
     "partition": ("            del kept[key]  #", "            pass  #", "no unit of this pass"),
+    "partition files": ("                stale.unlink()  #", "                pass  #", "an item file of another GRAPHQL_BATCH is removed"),
+    "formula rounds": ("    return max(1, round(requests / 100))", "    return max(1, int(requests / 100))", "rounds the hundreds"),
+    "largest cost kept": ('seen["last"], seen["max"] = cost, max(seen.get("max", cost), cost)', 'seen["last"], seen["max"] = cost, cost',
+                          "keeps the last cost answered and the largest"),
+    "2xx only": ("code == 0 and status is not None and 200 <= status < 300", "code == 0 and status is not None", "a non-2xx status is no answer"),
     "cost cap": ("GRAPHQL_BATCH = 30\n", "GRAPHQL_BATCH = 50\n", "stays under QUERY_COST_CAP"),
     "formula per parent": ('            requests += scale[-1] if n else 0', '            requests += 1 if n else 0', "documented example costs 51"),
     "formula nesting": ("            scale.append(scale[-1] * (pending or 1))", "            scale.append(scale[-1])", "documented example costs 51"),
