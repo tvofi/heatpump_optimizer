@@ -1,0 +1,2 @@
+head 96523195a04a4abe456ffcf58c04076bf11474b3
+worktree detached at that head; block R11-OWNER-FROST-HOLD via tools/audit/seat/features_block.py

@@ -1,0 +1,46 @@
+  GOLDEN_MODE: drift
+  MODE: SCOPED -- 30 script(s) run, 3 scoped out.
+  [04:31:51] FAILED python3 tests/features.py (1299s)
+  [04:45:03] FAILED python3 tests/doc_claims.py (33s)
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  FAIL D16-s3-02: after off the supply switch, the frequency, the valve and the circulation pump read what they read before the optimizer's first write, each written back once  [before {'switch.hp': 'on', 'number.freq': '45', 'number.valve': '18', 'switch.vvc': 'off'} after {'switch.hp': 'on', 'number.freq': '70', 'number.valve': '22', 'switch.vvc': 'on'} writes {'swit
+  FAIL D16-s3-02: after unload the supply switch, the frequency, the valve and the circulation pump read what they read before the optimizer's first write, each written back once  [before {'switch.hp': 'on', 'number.freq': '45', 'number.valve': '18', 'switch.vvc': 'off'} after {'switch.hp': 'on', 'number.freq': '70', 'number.valve': '22', 'switch.vvc': 'on'} writes {'s
+  FAIL D16-s3-02: after remove the supply switch, the frequency, the valve and the circulation pump read what they read before the optimizer's first write, each written back once  [before {'switch.hp': 'on', 'number.freq': '45', 'number.valve': '18', 'switch.vvc': 'off'} after {'switch.hp': 'on', 'number.freq': '70', 'number.valve': '22', 'switch.vvc': 'on'} writes {'s
+  FAIL D16-s1-04 precondition: the last fresh cycle left the supply off and the plan is stale  [({'switch.hp': 'on', 'number.freq': '45', 'number.valve': '18', 'switch.vvc': 'off'}, True, [([('select', 'select_option', {'entity_id': 'select.pump_mode', 'option': 'Heating'}), ('number', 'set_value', {'entity_id': 'number.freq', 'value': 70}), ('number', 'set_value', {'e
+  FAIL D16-s1-04: a stale plan returns the supply switch to on and the frequency and valve to their pre-write readings 70 and 22, one write each in that cycle  [({'switch.hp': 'on', 'number.freq': '45', 'number.valve': '18', 'switch.vvc': 'off'}, True, [([('select', 'select_option', {'entity_id': 'select.pump_mode', 'option': 'Heating'}), ('number', 'set_value', {'enti
+  FAIL verdict item 9: Off taken on an idle step sends the supply switch on but writes no mode select while the switch still reads off, and the row stays armed  [('on', 'on', [('homeassistant', 'turn_on', {'entity_id': 'switch.vvc'}), ('number', 'set_value', {'entity_id': 'number.offset', 'value': 0}), ('mqtt', 'publish', {'topic': 'ecl110/displace/set', 'payload': '0'
+  FAIL design note 3: an off write of the supply switch racing the unload's restore is refused or restored: after the unload the switch reads on and its restore is not left armed  [(switch, armed, switch calls, raced) ('on', False, [], False)]
+  FAIL design note 3 null control: with no racing write the same end state, from exactly one turn_on  [('on', False, [], False)]Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+  FAIL design note 3 (later key) null control: with no racing write the same end state, from exactly one turn_on  [('on', False, [], False)]
+9 of 6169 FEATURE CHECKS FAILED
+>>> FAILED: python3 tests/features.py
+  FAIL hb:changed_save  [max gap 1000.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want True)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want False)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 0 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True); raised KeyError: x]
+  FAIL hb:positive_control  [a 600 ms spin read as 599.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: False; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 500.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 2 of 2 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 735.2 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.3 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  ok   a run whose OWN conclusion is not a passing one is FAILED, whatever its jobs say
+  ok   a failed lane is superseded only by a NEWER in-flight run that concluded the same job green; every other arm stays FAILED
+  ok   main fetches the in-flight run's jobs and grades with them: a superseded failure exits 0, a newer failed or unreadable lane stays FAILED, and a green concluded run fetches nothing
+  ok   after a floor-FAIL re-validation each coverage ledger holds one row per script and no `reused` row
+  ok   a red script whose output has no FAIL line still names its reason
+  ok   run_script returns the stdout whose FAIL line names the red check (#1134)
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL no tests/ or production comment or docstring gains a sentence over 40 words (comment ratchet)  [REFUSE custom_components/heatpump_optimizer/duty_ledger.py: long units 0 -> 1; new: "Each step is ``delivered``, ``space-instead``, ``dhw-instead``, ``idle-instead``, ``not-startable`` (a hot-water step left ..."; REFUSE scope total: long units 2300 -> 2301]
+1 of 441 checks FAILED
+>>> FAILED: python3 tests/doc_claims.py
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+2 TEST SCRIPT(S) FAILED
+job 137473905123 at head 96523195a04a4abe456ffcf58c04076bf11474b3

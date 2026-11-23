@@ -1,0 +1,66 @@
+
+=== features block ===
+
+-- R11-OWNER-FROST-HOLD: an idle step below the frost threshold keeps the power switch on
+  ok   frost hold gate: an OFF at -3 °C is held, the switch left on
+  ok   frost hold gate: null control: the same OFF with the option off is written
+  ok   frost hold gate: an OFF at +3 °C (threshold + 1 K) is written
+  ok   frost hold gate: an OFF at +1.9 °C, one hair below +2, is held
+  ok   frost hold gate: inside [t, t+1): a held latch stays held at +2.9 °C
+  ok   frost hold gate: inside [t, t+1): an inactive latch stays inactive at +2.0 °C
+  ok   frost hold gate: the latch clears exactly at threshold + 1 K
+  ok   frost hold gate: no reading sets the latch from inactive
+  ok   frost hold gate: null control: no reading with the option off writes the OFF
+  ok   frost hold gate: the threshold is the option's: at -5 °C, 0 °C is warm enough
+  ok   frost hold gate: an ON passes and ends a hold
+  ok   frost hold gate: a held write (None) passes unchanged
+  ok   frost hold gate: a switch reading off is switched back on
+  ok   frost hold gate: null control: the switch reading off at +5 °C is left off
+  ok   frost hold reading: a sensor reading ok is the reading
+  ok   frost hold reading: a stale sensor is no reading, not the forecast
+  ok   frost hold reading: an unavailable sensor is no reading
+  ok   frost hold reading: no cycle read yet is no reading
+  ok   frost hold reading: no sensor configured: the forecast is the reading
+  ok   frost hold reading: no sensor and no forecast is no reading
+  ok   frost hold: the cut-off below the threshold is refused and the hold takes over
+  ok   frost hold: null control: above it the cut-off cuts
+  ok   frost hold: null control: opted out the cut-off cuts
+  ok   frost hold: a held pump the meter reads running freezes the learners
+  ok   frost hold: a held pump with no meter freezes them (fail closed)
+  ok   frost hold: null control: a held pump the meter reads idle does not
+  ok   frost hold: null control: a write passed above the threshold does not
+  ok   frost hold: a run seen at 06:00 still freezes at 06:59, the meter idle since
+  ok   frost hold: the freeze ends two intervals after the run was last seen
+  ok   frost hold: a hold still running at 07:01 keeps the learners frozen
+  ok   frost hold: the early cut-off writes no turn_off while the hold applies; null control: it cuts
+  ok   frost hold, real coordinator: an idle step at -3 °C leaves the switch on
+  ok   frost hold, real coordinator: null control: the same step with the option off switches it off
+  ok   frost hold, real coordinator: null control: the same step at +4 °C switches it off
+  ok   frost hold, real coordinator: a stale sensor holds, though the state reads a back-filled +5.0 °C
+  ok   frost hold, real coordinator: no sensor: a forecast of -2 °C holds
+  ok   frost hold, real coordinator: no sensor: null control: a forecast of +6 °C does not
+  ok   frost hold, real coordinator: no sensor and no forecast holds
+  ok   frost hold, real coordinator: a switch read off on a cold idle step is switched on at once (no MIN_PAUSE); null control: at +4 °C main's OFF is written
+  ok   frost hold: the observe ledger scores the held step frost-hold and the diagnostics name no reading as the cause; null control: at +4 °C neither
+  ok   frost hold, real coordinator: the learners freeze on the unmetered hold and the cycle's cut-off wiring asks the hold; null control: at +4 °C neither
+  ok   frost hold: an early cut-off armed or wired with no frost answer never holds
+  ok   frost hold: a held OFF is logged as the frost hold; null control: at +4 °C nothing is
+  ok   frost hold replay: over 24 h no turn_off lands while the latch is set, where main writes some; the latch was set for the cold and the stale stretches and not at a warm 00:00; null control: opted out, the switch calls are main's
+  figure: frost hold replay: turn_off while latched 0 (main 34), latched minutes 1020 of 1440, turn_off in all 14 (main 48); opted out == main: True
+  ok   frost hold, control on Tuya: an idle step held writes Heating and the space floor; null control: the same idle step not held writes no mode
+  ok   frost hold, control on GCHV (no heating-only mode): Heat + DHW, hot water at the DHW gate, space at the floor
+  ok   frost hold floor: an entity minimum of 20 °C is written as is
+  ok   frost hold floor: the controller's lower limit of 28 °C raises it
+  ok   frost hold floor: no stated minimum on a flow unit is the gate
+  ok   frost hold floor: an indoor unit is held at its own minimum
+  ok   frost hold floor: a space block does not drop the hold row
+  ok   frost hold: null control: a space block on a heating step, no hold, writes no Heating
+  ok   frost hold: a switch-on into a hold writes Heating ahead of it on Tuya; null control: an idle switch-on writes no mode
+  ok   frost hold options: two rows on the entities page, shown with a power switch and not without one; the threshold -15..10 °C; defaults on and +2 °C
+  ok   frost hold options: a label and a description in strings.json and the en, sv and de translations
+
+ALL 55 FEATURES BLOCK PASSED
+
+real	0m13.799s
+user	0m2.204s
+sys	0m0.340s

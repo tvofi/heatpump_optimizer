@@ -1,0 +1,36 @@
+    ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:1695 RETURN_DEL: return bool(config.get(CONF_HEAT_PUMP_SWITCH_ENTITY))
+    ADDED UNPINNED custom_components/heatpump_optimizer/duty_ledger.py:47 GUARD_OFF: if row.get("frost"):
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:317 BOOLOP: if reason is None and wiring.frost_off():
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:317 GUARD_OFF: if reason is None and wiring.frost_off():
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:51 CONST: CLEAR_K = 1.0
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:67 GUARD_OFF: if not EntryConfig.from_mapping(config).outdoor_temp_entity:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:70 BOOLOP: return got.value if got is not None and got.ok else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:70 RETURN_DEL: return got.value if got is not None and got.ok else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:79 GUARD_OFF: if not cfg.frost_hold:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:81 RETURN_DEL: return False
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:83 CMP_BOUND: if out is None or out < cfg.frost_hold_below_c:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:83 GUARD_OFF: if out is None or out < cfg.frost_hold_below_c:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:85 CMP_BOUND: elif out >= cfg.frost_hold_below_c + CLEAR_K:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:85 GUARD_OFF: elif out >= cfg.frost_hold_below_c + CLEAR_K:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:87 RETURN_DEL: return bool(held.frost)
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:100 GUARD_OFF: if value is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:102 GUARD_OFF: if value:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:104 RETURN_DEL: return True
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:107 GUARD_OFF: if not held.frost_holding:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:110 RETURN_DEL: return True if getattr(supply_switch(inp), "state", None) == "off" else 
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:119 GUARD_OFF: if not _active(held, inp):
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:123 RETURN_DEL: return True
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:128 BOOLOP: return held.frost_holding and inp.mode != MODE_OFF
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:128 RETURN_DEL: return held.frost_holding and inp.mode != MODE_OFF
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:137 GUARD_OFF: if not holding(held, inp):
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:140 CMP_BOUND: if power is None or float(power) >= ran_kw(inp):
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:140 GUARD_OFF: if power is None or float(power) >= ran_kw(inp):
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:146 RETURN_DEL: return _freeze(state_for(coord), lambda: coord.arbiter_inputs(), now)
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:153 GUARD_OFF: if held.frost_holding:
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:156 BOOLOP: return FREEZE_FROST if until is not None and now < until else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:156 CMP_BOUND: return FREEZE_FROST if until is not None and now < until else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:156 RETURN_DEL: return FREEZE_FROST if until is not None and now < until else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/frost_hold.py:161 GUARD_OFF: if held.frost_holding:
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1290 BOOLOP: if _flow_unit(inp.config) and not frost:
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1306 CLAMP_DROP: return _bounded(inp, "space_setpoint", low if limit is None else max(low
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1306 RETURN_DEL: return _bounded(inp, "space_setpoint", low if limit is None else max(low
