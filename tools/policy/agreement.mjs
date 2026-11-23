@@ -544,6 +544,19 @@ const PAIRS = [
         cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
     },
   },
+  {
+    concept: 'stored-figure-block',
+    what: 'which lines of a pull-request body are refused as a stored figure block (R11-PRE-SHARED-FILES: a body stores none): tools/pr/figure_block.py verify_text (pr-contract and prepr.sh) against policy_lint.mjs figureBlockProblems (the body contract), each line number refused',
+    async corpus() {
+      return Object.keys(py('figure_block')).map((b, i) => [`body ${i} ${JSON.stringify(b.slice(0, 30))}`, b])
+    },
+    async readers() {
+      const pl = await load('tools/policy/policy_lint.mjs')
+      const rows = py('figure_block')
+      return { 'figure_block.py verify_text': (b) => rows[b],
+        'policy_lint.mjs figureBlockProblems': (b) => pl.figureBlockProblems(b).map((m) => Number(/^line (\d+):/.exec(m)[1])) }
+    },
+  },
 ]
 
 // ---- discovery ---------------------------------------------------------------

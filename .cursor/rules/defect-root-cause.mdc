@@ -139,8 +139,8 @@ set keeps the pre-ruling rule, exempting `nightly-status` unless the diff touche
 `REPORTER_INPUTS`. A red outside the set, an alert apart, blocks nothing; `nightly-status`
 grades `main`, where the orchestrator fixes its lane and dispatches Nightly
 (`web-fragments.md`). A cause outside this repository is named with its owner.
-An `instrument-self-tests` step red at the head and not at the merge base is the pull
-request's finding, a block (`fix-review.md` step 11); one inherited from `main` stays unowed.
+An `instrument-self-tests` step red at the head that the diff's scope selects (all if unread)
+is the pull request's finding, a block (`fix-review.md` step 11); others stay unowed.
 
 The first trigger — the defect reached a released version — has no moment
 cheaper than the issue itself, so it is carried by the **Root cause** section

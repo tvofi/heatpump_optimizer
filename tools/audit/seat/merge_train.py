@@ -757,8 +757,11 @@ def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
 # dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md). SELFTESTS is in no required
 # set (decision 0013's HPO_JOB_GRADES boundary), so the 2026-11-07 ruling owes
 # its red no answer, and #3361 and #3425 merged reds their own diffs made. A
-# step red at the head and not at the merge base is the PR's finding; one red at
-# both is main's, inherited and still unowed.
+# step red at the head and selected by the diff's scope (selftest_scope.py's
+# rule) is the PR's finding; one the diff cannot reach is main's, inherited and
+# still unowed. CI-4 (owner 2026-11-21): the reading needs no merge-base job,
+# which a cancelled main push run never concluded; a scope that cannot be read
+# (FULL, git unable to diff) counts every red.
 SELFTESTS = "governance / instrument-self-tests"
 #: The push-only step: SELFTEST_TRACE (strace) is set on a push to main alone,
 #: so its red is main's read-set table, never a pull request's diff.
@@ -777,8 +780,8 @@ RED_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out", "action_requir
 #: (a job-level cancelled, startup_failure, action_required) has no reading.
 SELFTESTS_CLEAN = frozenset({"success", "skipped", "neutral"})
 SELFTESTS_STEP_READ = frozenset({"failure", "timed_out"})
-#: The INTRODUCED name of a head job that timed out where its base's did not: a
-#: hang behind a step already red at the base hides every step after it.
+#: The INTRODUCED name of a head job that timed out on a step the diff's scope
+#: reaches (or with no scope read): a hang hides every step after it.
 JOB_TIMED_OUT = "(the job concluded timed_out)"
 
 
@@ -793,29 +796,59 @@ def _red_steps(steps) -> "set[str]":
     return {s.get("name") for s in steps if s.get("conclusion") in RED_CONCLUSIONS}
 
 
-def introduced_reds(head_steps, base_steps) -> "list[str]":
-    """The SELFTESTS step names concluded red (RED_CONCLUSIONS) at the head and
-    not at the base, less SELFTESTS_PUSH_ONLY; pure. `base_steps` None (no base
-    run): every head red is introduced. A step skipped by scoping concluded
-    `skipped`, so it is never red on either side."""
-    def red(steps):
-        return _red_steps(steps) - SELFTESTS_PUSH_ONLY
-    return sorted(red(head_steps) - (red(base_steps) if base_steps is not None else set()))
+def introduced_reds(head_steps, unreached) -> "list[str]":
+    """The SELFTESTS step names concluded red (RED_CONCLUSIONS) at the head,
+    less SELFTESTS_PUSH_ONLY and less `unreached`, the gated steps the diff's
+    scope does not select; pure. `unreached` None (no scope reading): every
+    head red is introduced. A step skipped by scoping concluded `skipped`, so
+    it is never red; one the scope does not select ran only because the run
+    was unscoped (a FULL or dispatched run), so its red is main's."""
+    return sorted(_red_steps(head_steps) - SELFTESTS_PUSH_ONLY - set(unreached or ()))
+
+
+@functools.lru_cache(maxsize=1)
+def _selftest_scope():
+    """tools/ci/selftest_scope.py, imported from its tree path: its `select` is THE scope rule."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("hpo_selftest_scope", str(ROOT / "tools/ci/selftest_scope.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def selftest_unreached(git, base: str, head: str) -> "set[str] | None":
+    """The names of the gated SELFTESTS steps the three-dot diff base...head
+    does not reach, by tools/ci/selftest_scope.py's own `select` over <head>'s
+    workflow and table. None -- every red counts -- when the selection is FULL
+    or a read fails; an ungated or unknown step name is never in the set.
+    `git(*args)` returns stdout, or None when git refuses."""
+    st = _selftest_scope()
+    diff = git("diff", "--no-renames", "--name-status", f"{base}...{head}")
+    wf, table = git("show", f"{head}:{st.WORKFLOW}"), git("show", f"{head}:{st.TABLE}")
+    if diff is None or wf is None or table is None:
+        return None
+    changes = [(ln.split("\t")[0][:1], ln.split("\t")[1]) for ln in diff.splitlines() if ln.count("\t") == 1]
+    steps = st.job_steps(wf)
+    plan = st.select(changes, st.parse_table(table), steps)
+    if plan["mode"] != "SCOPED" or not steps:
+        return None
+    return {x.name for x in steps if x.gated and x.id not in set(plan["ids"])}
 
 
 def _job_conclusion(job: dict) -> str:
     return job.get("conclusion") if job.get("status") == "completed" else str(job.get("status"))
 
 
-def introduced_at(head_runs, base_runs, job_steps) -> "tuple[list[str] | None, str]":
-    """(introduced names, how read) from the head's check runs; `base_runs()`
-    reads the base's (None unreadable) and `job_steps(job id)` one job's steps
-    (None unreadable), each called only when the head's latest SELFTESTS job is
-    red. Names None: that job has not concluded (a wait). No run, or a clean
-    conclusion, is ([], ...) at no read. A job concluding timed_out where the
-    base's did not adds JOB_TIMED_OUT. Any input with no reading (unreadable, a
-    job-level cancelled, a red job with no red step) raises ValueError: fail
-    closed, never an empty list."""
+def introduced_at(head_runs, scope, job_steps) -> "tuple[list[str] | None, str]":
+    """(introduced names, how read) from the head's check runs; `scope()` reads
+    the gated step names the diff's scope leaves out (None: every red counts) and
+    `job_steps(job id)` one job's steps (None unreadable), each called only when
+    the head's latest SELFTESTS job is red. Names None: that job has not
+    concluded (a wait). No run, or a clean conclusion, is ([], ...) at no read.
+    A job concluding timed_out adds JOB_TIMED_OUT unless the step it cancelled
+    is out of scope. Any head input with no reading (unreadable, a job-level
+    cancelled, a red job with no red step) raises ValueError: fail closed,
+    never an empty list."""
     hj = selftest_job(head_runs)
     if hj is None:
         return [], f"head {SELFTESTS}: no run"
@@ -831,23 +864,14 @@ def introduced_at(head_runs, base_runs, job_steps) -> "tuple[list[str] | None, s
         raise ValueError(f"the head's {SELFTESTS} job {hj['id']} is unreadable")
     if not _red_steps(hs):
         raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc} with no red step")
-    runs = base_runs()
-    if runs is None:
-        raise ValueError("the base's check runs are unreadable")
-    bj = selftest_job(runs)
-    bs, bc = None, None
-    if bj is not None:
-        bc = _job_conclusion(bj)
-        if bc not in SELFTESTS_CLEAN | SELFTESTS_STEP_READ:
-            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is {bc}, which reads no step")
-        bs = job_steps(bj["id"])
-        if bs is None:
-            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is unreadable")
-    names = introduced_reds(hs, bs)
-    if hc == "timed_out" and bc != "timed_out":
+    unreached = scope()
+    names = introduced_reds(hs, unreached)
+    hung = {x.get("name") for x in hs if x.get("conclusion") == "cancelled"}
+    if hc == "timed_out" and not (hung and hung <= set(unreached or ())):
         names.insert(0, JOB_TIMED_OUT)
-    return names, (f"head job {hj['id']} {hc} base job "
-                   + (f"{bj['id']} {bc}" if bj else "none: every head red counts"))
+    return names, (f"head job {hj['id']} {hc} scope "
+                   + (f"leaves {len(unreached)} step(s) out" if unreached is not None
+                      else "unread: every head red counts"))
 
 
 def introduced_cmd(t: "Train", head: str, base: "str | None") -> "tuple[int, str]":
@@ -2280,15 +2304,6 @@ class Train:
                     f"after the verdict. Re-verdict at the live head {h[:8]}: the delta is {delta}",
                     cls=STALE_VERDICT_CARRY)
 
-    def _selftest_runs(self, h: str) -> "list[dict] | None":
-        """<h>'s SELFTESTS check runs, one read (SELFTESTS_RUNS); None when unreadable."""
-        code, raw = self.run(["gh", "api", f"repos/{self.repo}/commits/{h}/{SELFTESTS_RUNS}", "--jq", ".check_runs"])
-        try:
-            runs = json.loads(raw) if code == 0 else None
-        except ValueError:
-            return None
-        return runs if isinstance(runs, list) else None
-
     def _job_steps(self, job: int) -> "list[dict] | None":
         """One read of an Actions job's steps (introduced_at's job-step read); None when unreadable."""
         code, raw = self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{job}", "--jq", ".steps"])
@@ -2299,25 +2314,28 @@ class Train:
         return steps if isinstance(steps, list) else None
 
     def introduced(self, head: str, head_runs=None, base: "str | None" = None) -> "tuple[list[str] | None, str]":
-        """introduced_at at <head> against <base>, by default the merge base
-        `git merge-base origin/main <head>` (approval_owed's base), read only
-        when the head's job is red; a read that fails is a Stop, never an empty
-        list. <head_runs> spares the head's check-run read a caller already
+        """introduced_at at <head>, scoped by the diff against <base>, by default
+        the merge base `git merge-base origin/main <head>` (approval_owed's
+        base), read only when the head's job is red; a head read that fails is
+        a Stop, never an empty list, and a scope git cannot read counts every
+        red. <head_runs> spares the head's check-run read a caller already
         made. Returns (names, what was read); names None while the job runs."""
         runs = self._check_runs(head) if head_runs is None else head_runs
         if runs is None:
             raise Stop("selftests", f"the check runs at {head[:12]} could not be read")
         at = [base]
 
-        def base_runs():
+        def git(*a):
+            code, out = self.run(["git", *a])
+            return None if code else out
+
+        def scope():
             if at[0] is None:
-                code, out = self.run(["git", "merge-base", "origin/main", head])
-                if code or not is_sha(out.strip()):
-                    raise ValueError(f"no merge base for {head[:12]}: {out.strip()[:120]}")
-                at[0] = out.strip()
-            return self._selftest_runs(at[0])
+                out = git("merge-base", "origin/main", head)
+                at[0] = out.strip() if out and is_sha(out.strip()) else None
+            return selftest_unreached(git, at[0], head) if at[0] else None
         try:
-            names, how = introduced_at(runs, base_runs, self._job_steps)
+            names, how = introduced_at(runs, scope, self._job_steps)
         except ValueError as e:
             raise Stop("selftests", f"{e}: an introduced red cannot be ruled out (fail closed)")
         return names, f"against {at[0] or '-'}: {how}"
@@ -7090,33 +7108,62 @@ def _ruleset_etag_self_test(check) -> None:
           and all("If-None-Match" in " ".join(c) for c in warm))
 
 
+#: A SELFTESTS job of four gated steps, each reading its own tools/<name>.py,
+#: and its table: the scope fixture `_introduced_self_test` and review_packet's
+#: self-test diff against. (workflow text, table text)
+def selftest_scope_fixture() -> "tuple[str, str]":
+    st = _selftest_scope()
+    wf = "jobs:\n  instrument-self-tests:\n    steps:\n      - name: Choose\n        id: scope\n        run: echo\n" + "".join(
+        f"      - name: {n}\n        id: {n}\n        if: ${{{{ !cancelled() && steps.scope.outputs.{n} == 'true' }}}}\n"
+        f"        run: python3 tools/{n}.py\n" for n in ("census", "render", "hang", "after"))
+    table = {"steps": {x.id: {"run_sha": x.run_sha, "files": [f"tools/{x.id}.py"], "probes": [], "dirs": [],
+                              "index": False, "objects": False} for x in st.job_steps(wf) if x.gated}}
+    return wf, json.dumps(table)
+
+
 def _introduced_self_test(check) -> None:
-    """R10-INTRODUCED-REDS-BARRIER: a SELFTESTS step red at the head and not at
-    the base is INTRODUCED, `classify --pr` reads it RED, and every unreadable
-    input fails closed. The four cases: introduced, inherited, no base run, and
-    a step skipped by scoping; the push-only drift step never counts."""
+    """R10-INTRODUCED-REDS-BARRIER, read by scope (CI-4): a SELFTESTS step red at
+    the head that the diff's scope reaches is INTRODUCED, `classify --pr` reads
+    it RED, a red on a step the diff cannot reach is inherited, and no merge-base
+    job is read. A scope git cannot read counts every red; an unreadable head
+    input fails closed. The push-only drift step never counts."""
     H, B = "1" * 40, "2" * 40
     drift = next(iter(SELFTESTS_PUSH_ONLY))
+    wf, table = selftest_scope_fixture()
 
     def job(i, concl="failure"):
         return {"name": SELFTESTS, "id": i, "status": "completed", "conclusion": concl}
 
-    head_s = [{"name": "new red", "conclusion": "failure"}, {"name": "old red", "conclusion": "failure"},
-              {"name": "scoped", "conclusion": "skipped"}, {"name": drift, "conclusion": "failure"}]
-    base_s = [{"name": "new red", "conclusion": "success"}, {"name": "old red", "conclusion": "failure"},
-              {"name": "scoped", "conclusion": "failure"}, {"name": drift, "conclusion": "failure"}]
-    check("introduced: red at the head and not at the base is the PR's; one red at both is inherited",
-          introduced_reds(head_s, base_s) == ["new red"])
-    check("no base run: every head red counts, the push-only drift step still excluded",
-          introduced_reds(head_s, None) == ["new red", "old red"])
-    check("a step skipped by scoping at the head is not counted, though red at the base",
-          "scoped" not in introduced_reds(head_s, None) + introduced_reds(head_s, base_s))
-    check("null: the base subtraction is what clears an inherited red (the same head against itself reads 0)",
-          introduced_reds(head_s, head_s) == [])
-    check("the push-only drift step alone red at the head is never introduced",
-          introduced_reds([{"name": drift, "conclusion": "failure"}], None) == [])
+    head_s = [{"name": "census", "conclusion": "failure"}, {"name": "render", "conclusion": "failure"},
+              {"name": "after", "conclusion": "skipped"}, {"name": drift, "conclusion": "failure"}]
+    check("introduced: a head red the scope reaches is the PR's; one on an unreached step is inherited",
+          introduced_reds(head_s, {"render"}) == ["census"])
+    check("no scope reading: every head red counts, the push-only drift step still excluded",
+          introduced_reds(head_s, None) == ["census", "render"])
+    check("a step skipped by scoping at the head is never counted",
+          "after" not in introduced_reds(head_s, None))
+    check("null: the unreached set is what clears an inherited red (an empty one clears nothing)",
+          introduced_reds(head_s, set()) == ["census", "render"])
 
-    def world(head_runs, base_runs, jobs, mb=B):
+    def git_for(diff, show=True):
+        def git(*a):
+            if a[0] == "diff":
+                return diff
+            if a[0] == "show" and show:
+                return wf if a[1].endswith(".yml") else table
+            return None
+        return git
+    check("selftest_unreached: the gated steps the diff's read sets miss, by selftest_scope's select",
+          selftest_unreached(git_for("M\ttools/census.py\n"), B, H) == {"render", "hang", "after"})
+    check("null: a diff reaching every step leaves none out",
+          selftest_unreached(git_for("".join(f"M\ttools/{n}.py\n" for n in ("census", "render", "hang", "after"))),
+                             B, H) == set())
+    for why, g in (("a gate file in the diff (FULL)", git_for("M\t.github/workflows/governance.yml\n")),
+                   ("an empty diff (FULL)", git_for("")),
+                   ("git unable to diff", git_for(None)), ("the head's table unreadable", git_for("M\tx\n", show=False))):
+        check(f"selftest_unreached: {why} is None, every red counts", selftest_unreached(g, B, H) is None)
+
+    def world(head_runs, jobs, diff="M\ttools/census.py\n", mb=B):
         calls: list = []
 
         def run(argv, cwd=ROOT, stdin=None):
@@ -7124,14 +7171,14 @@ def _introduced_self_test(check) -> None:
             calls.append(a)
             if argv[:2] == ["git", "merge-base"]:
                 return (0, mb + "\n") if mb else (128, "fatal: Not a valid commit name")
+            if argv[:2] == ["git", "diff"]:
+                return (128, "fatal: bad revision") if diff is None else (0, diff)
+            if argv[:2] == ["git", "show"]:
+                return 0, (wf if argv[2].endswith(".yml") else table)
             if "/rulesets" in a:
                 return gh_read.fake_ruleset(argv, "7", "fast")
-            for sha, runs in ((H, head_runs), (B, base_runs)):
-                if f"commits/{sha}/{SELFTESTS_RUNS}" in a:  # the filtered read: one JSON array
-                    return (1, "HTTP 502") if runs is None else (0, json.dumps(
-                        [r for r in runs if r["name"] == SELFTESTS]))
-                if f"commits/{sha}/check-runs" in a:
-                    return (1, "HTTP 502") if runs is None else (0, "\n".join(json.dumps(r) for r in runs))
+            if f"commits/{H}/check-runs" in a:
+                return (1, "HTTP 502") if head_runs is None else (0, "\n".join(json.dumps(r) for r in head_runs))
             m = re.search(r"actions/jobs/(\d+)", a)
             if m:
                 st = jobs.get(int(m.group(1)))
@@ -7140,88 +7187,86 @@ def _introduced_self_test(check) -> None:
         return Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run, sleep=lambda s: None), calls
 
     fast = {"name": "fast", "id": 5, "status": "completed", "conclusion": "success"}
-    t, calls = world([fast, job(11)], [job(21)], {11: head_s, 21: base_s})
+    t, calls = world([fast, job(11)], {11: head_s})
     rc, out = introduced_cmd(t, H, None)
-    check("introduced_cmd: rc 1, one INTRODUCED line per introduced step, base by git merge-base origin/main",
-          rc == 1 and out.splitlines()[0] == "INTRODUCED new red" and len(out.splitlines()) == 2
-          and f"against {B}: head job 11 failure base job 21 failure" in out
-          and any(c.startswith("git merge-base origin/main") for c in calls))
-    check("the cost: one job-step read per side, the base's SELFTESTS runs by one filtered read",
-          sum("actions/jobs/" in c for c in calls) == 2 and sum(f"commits/{B}/" in c for c in calls) == 1
-          and any(f"commits/{B}/{SELFTESTS_RUNS}" in c for c in calls))
+    check("introduced_cmd: rc 1, one INTRODUCED line per step the scope reaches, scoped against git merge-base origin/main",
+          rc == 1 and out.splitlines()[0] == "INTRODUCED census" and len(out.splitlines()) == 2
+          and f"against {B}: head job 11 failure scope leaves 3 step(s) out" in out
+          and any(c.startswith("git merge-base origin/main") for c in calls)
+          and any(c == f"git diff --no-renames --name-status {B}...{H}" for c in calls))
+    check("the cost: one job-step read, and no read of the base's check runs or jobs",
+          sum("actions/jobs/" in c for c in calls) == 1 and not any(f"commits/{B}/" in c for c in calls))
     rc, line = classify_cmd(t, H, 7, False)
     check("classify --pr reads an introduced red RED with its INTRODUCED lines, the required set green",
           rc == 1 and line.startswith(f"RED {H} pending: none red: none introduced: 1")
-          and "\nINTRODUCED new red" in line)
+          and "\nINTRODUCED census" in line)
     check("null: classify without --pr is unchanged (GREEN), and so is --main",
           classify_cmd(t, H, None, False)[0] == 0 and classify_cmd(t, H, 7, True)[0] == 0)
-    t, calls = world([fast, job(11)], [job(21)], {11: base_s, 21: base_s})
-    check("null: a head red only where its base is (inherited) is GREEN under classify --pr, introduced rc 0",
+    t, calls = world([fast, job(11)], {11: head_s}, diff="M\ttools/hang.py\n")
+    check("null: a head red only on steps the diff cannot reach (inherited) is GREEN under classify --pr, introduced rc 0",
           classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
-    t, calls = world([fast, job(11)], [fast], {11: head_s})
-    check("no base run: every head red but the drift step is INTRODUCED",
-          introduced_cmd(t, H, B)[1].count("INTRODUCED") == 2)
-    t, calls = world([fast, job(11, "success")], None, {})
+    for why, w in (("git unable to diff", dict(diff=None)), ("no merge base", dict(mb=""))):
+        t, calls = world([fast, job(11)], {11: head_s}, **w)
+        check(f"a scope that cannot be read ({why}): every head red but the drift step is INTRODUCED",
+              introduced_cmd(t, H, None)[1].count("INTRODUCED") == 2)
+    t, calls = world([fast, job(11)], {11: head_s})
+    check("an explicit base is the diff's left side, with no merge-base read",
+          introduced_cmd(t, H, "3" * 40)[0] == 1 and not any("merge-base" in c for c in calls)
+          and any(f"{'3' * 40}...{H}" in c for c in calls))
+    t, calls = world([fast, job(11, "success")], {})
     check("a head whose SELFTESTS concluded success costs no read beyond its check runs",
-          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c or "merge-base" in c for c in calls))
-    for why, w in (("the head's job", ([fast, job(11)], [job(21)], {21: base_s})),
-                   ("the base's job", ([fast, job(11)], [job(21)], {11: head_s})),
-                   ("the base's check runs", ([fast, job(11)], None, {11: head_s})),
-                   ("the merge base", ([fast, job(11)], [job(21)], {11: head_s, 21: base_s}, ""))):
-        t, _ = world(*w)
-        try:
-            classify_cmd(t, H, 7, False)
-            closed = False
-        except Stop as s:
-            closed = s.step == "selftests"
-        check(f"fail closed: {why} unreadable is a Stop (rc 2), never an empty list", closed)
+          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c or "git " in c for c in calls))
+    t, _ = world([fast, job(11)], {})
+    try:
+        classify_cmd(t, H, 7, False)
+        closed = False
+    except Stop as s_:
+        closed = s_.step == "selftests"
+    check("fail closed: the head's job unreadable is a Stop (rc 2), never an empty list", closed)
 
-    # Beyond a `failure` conclusion (the r1 verdict's class): a hang the pull
-    # request makes concludes timed_out with its running step cancelled, a
-    # cancelled step can sit in a failed job, a head can carry a re-run, a job
-    # can still be running, and a job-level cancelled reads nothing.
+    # Beyond a `failure` conclusion: a hang the pull request makes concludes
+    # timed_out with its running step cancelled, a cancelled step can sit in a
+    # failed job, a head can carry a re-run, a job can still be running, and a
+    # job-level cancelled reads nothing.
     hang = [{"name": "hang", "conclusion": "cancelled"}, {"name": "after", "conclusion": "skipped"}]
     green = [{"name": "hang", "conclusion": "success"}, {"name": "after", "conclusion": "success"}]
-    t, _ = world([fast, job(11, "timed_out")], [job(21, "success")], {11: hang, 21: green})
+    t, _ = world([fast, job(11, "timed_out")], {11: hang}, diff="M\ttools/hang.py\n")
     rc, line = classify_cmd(t, H, 7, False)
-    check("a hang the PR makes (job timed_out, its step cancelled) is RED under classify --pr, step and timeout INTRODUCED",
+    check("a hang the PR makes (job timed_out, its reached step cancelled) is RED under classify --pr, step and timeout INTRODUCED",
           rc == 1 and f"\nINTRODUCED {JOB_TIMED_OUT}" in line and "\nINTRODUCED hang" in line)
-    t, _ = world([fast, job(11)], [job(21, "success")], {11: hang, 21: green})
+    t, _ = world([fast, job(11)], {11: hang}, diff="M\ttools/hang.py\n")
     check("a cancelled step inside a failed job is INTRODUCED",
           introduced_cmd(t, H, None)[1].splitlines()[0] == "INTRODUCED hang")
-    inherited = [{"name": "hang", "conclusion": "failure"}, {"name": "after", "conclusion": "skipped"}]
-    t, _ = world([fast, job(11, "timed_out")], [job(21)], {11: hang, 21: inherited})
-    out = introduced_cmd(t, H, None)[1]
-    check("a hang behind a step already red at the base: the timeout alone is INTRODUCED",
-          out.splitlines()[0] == f"INTRODUCED {JOB_TIMED_OUT}" and out.count("INTRODUCED") == 1)
-    t, _ = world([fast, job(11, "timed_out")], [job(21, "timed_out")], {11: hang, 21: hang})
-    check("null: a timeout the base had too, on the same step, is inherited (GREEN, introduced rc 0)",
+    t, _ = world([fast, job(11, "timed_out")], {11: hang}, diff="M\ttools/census.py\n")
+    check("null: a timeout on a step the diff cannot reach is inherited (GREEN, introduced rc 0)",
           classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
-    t, _ = world([fast, job(11, "success"), job(12)], [job(21, "success")], {12: hang, 21: green})
+    t, _ = world([fast, job(11, "timed_out")], {11: hang}, diff=None)
+    check("a timeout under an unread scope counts: the timeout and the step INTRODUCED",
+          introduced_cmd(t, H, None)[1].count("INTRODUCED") == 2)
+    t, _ = world([fast, job(11, "success"), job(12)], {12: hang}, diff="M\ttools/hang.py\n")
     check("a re-run at one head that went red: the latest run (highest id) is read, its red INTRODUCED",
           introduced_cmd(t, H, None)[0] == 1)
-    t, calls = world([fast, job(11), job(12, "success")], [job(21, "success")], {11: hang, 21: green})
+    t, calls = world([fast, job(11), job(12, "success")], {11: hang})
     check("a re-run at one head that went green reads clean at no job read",
           introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c for c in calls))
     running = {"name": SELFTESTS, "id": 12, "status": "in_progress", "conclusion": None}
-    t, calls = world([fast, job(11, "success"), running], [job(21, "success")], {})
+    t, calls = world([fast, job(11, "success"), running], {})
     rc, line = classify_cmd(t, H, 7, False)
     check("a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN",
           rc == 3 and line.startswith(f"WAIT {H}") and introduced_cmd(t, H, None)[0] == 3
           and not any("actions/jobs" in c for c in calls))
-    t, _ = world([fast], [job(21, "success")], {})
+    t, _ = world([fast], {})
     check("null: a head with no instrument-self-tests run (the prelude skipped it) is GREEN",
           classify_cmd(t, H, 7, False)[0] == 0)
-    for why, w in (("the head's job concluded cancelled", ([fast, job(11, "cancelled")], [job(21)], {11: hang, 21: green})),
-                   ("the head's job concluded startup_failure", ([fast, job(11, "startup_failure")], [job(21)], {})),
-                   ("the base's job concluded cancelled", ([fast, job(11)], [job(21, "cancelled")], {11: hang, 21: green})),
-                   ("a red head job with no red step", ([fast, job(11)], [job(21)], {11: green, 21: green}))):
+    for why, w in (("the head's job concluded cancelled", ([fast, job(11, "cancelled")], {11: hang})),
+                   ("the head's job concluded startup_failure", ([fast, job(11, "startup_failure")], {})),
+                   ("a red head job with no red step", ([fast, job(11)], {11: green}))):
         t, _ = world(*w)
         try:
             classify_cmd(t, H, 7, False)
             closed = False
-        except Stop as s:
-            closed = s.step == "selftests"
+        except Stop as s_:
+            closed = s_.step == "selftests"
         check(f"fail closed: {why} is a Stop (rc 2), never a clean read", closed)
 
 
@@ -11764,10 +11809,10 @@ def _parser() -> argparse.ArgumentParser:
     c.add_argument("--main", action="store_true", help="<sha> is main's tip: PR_ONLY contexts are not judged")
     c.add_argument("--pr", type=int, help="the pull request <sha> heads: lets a RED read as APPROVAL-OWED (rc 4)")
     i = sub.add_parser("introduced", parents=[common],
-                       help=f"the {SELFTESTS} steps red at <sha> and not at its merge base (or --base): "
+                       help=f"the {SELFTESTS} steps red at <sha> that the diff from its merge base (or --base) reaches: "
                             "INTRODUCED lines, rc 1 when any, 0 none, 3 its job still runs, 2 unreadable (fail closed)")
     i.add_argument("sha")
-    i.add_argument("--base", help="the base commit (default: git merge-base origin/main <sha>)")
+    i.add_argument("--base", help="the diff's left side (default: git merge-base origin/main <sha>)")
     # The required set a `## Red checks` obligation is judged against
     # (policy_lint.mjs --pr-body): the one owner, read live.
     pv = sub.add_parser("posted-verdict", parents=[common],
