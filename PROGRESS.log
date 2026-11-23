@@ -73,3 +73,4 @@
 1795398303 HB alive
 1795398343 CKPT D3-s1 77 file(s)
 1795398346 HB withdrawn: TIMEOUT records for 66686e3b 5bf50f5d cc96ce9e were a stale index.lock cascade (no gate ran for 2 of them, the 66686e3b gate lost its record at reset); lock cleared, tree reset, the 3 keys re-gate now
+1795398350 HB gate started: 66686e3bc3bac9b9
