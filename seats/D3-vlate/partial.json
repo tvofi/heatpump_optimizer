@@ -1,13 +1,67 @@
-{"note": "draft before full gates; gate fields pending", "votes": [
-{"id": "D3-s1-02", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-52", "stage": "V1+V2 done (no gate claim)"},
-{"id": "D3-s1-62", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-63", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-64", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-65", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-66", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-67", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-68", "stage": "probe+V2 done (V2: 0 of 287299 production calls separate), gate pending"},
-{"id": "D3-s1-69", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-70", "stage": "probe+V2 done, gate pending"},
-{"id": "D3-s1-71", "stage": "probe+V2 done, gate pending"}]}
+{
+ "note": "draft before full gates; gate fields pending",
+ "votes": [
+  {
+   "id": "D3-s1-02",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "02 guard_pins rc=0  | 02 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged",
+   "gate": "SURVIVED gate_rc=0 wall 3666 s load1 0.94->1.88"
+  },
+  {
+   "id": "D3-s1-52",
+   "stage": "V1+V2 done (no gate claim)"
+  },
+  {
+   "id": "D3-s1-62",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "62 guard_pins rc=0  | 62 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged",
+   "gate": "SURVIVED gate_rc=0"
+  },
+  {
+   "id": "D3-s1-63",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "63 guard_pins rc=0  | 63 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged"
+  },
+  {
+   "id": "D3-s1-64",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "64 guard_pins rc=0  | 64 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged"
+  },
+  {
+   "id": "D3-s1-65",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "65 guard_pins rc=0  | 65 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged"
+  },
+  {
+   "id": "D3-s1-66",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "66 guard_pins rc=0  | 66 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged"
+  },
+  {
+   "id": "D3-s1-67",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "67 guard_pins rc=0  | 67 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged"
+  },
+  {
+   "id": "D3-s1-68",
+   "stage": "probe+V2 done (V2: 0 of 287299 production calls separate), gate pending",
+   "at_head_targeted": "68 guard_pins rc=0  | 68 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged"
+  },
+  {
+   "id": "D3-s1-69",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "69 guard_pins rc=0  | 69 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged"
+  },
+  {
+   "id": "D3-s1-70",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "70 guard_pins rc=0  | 70 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged"
+  },
+  {
+   "id": "D3-s1-71",
+   "stage": "probe+V2 done, gate pending",
+   "at_head_targeted": "71 guard_pins rc=0  | 71 features rc=1 1 of 6034 FEATURE CHECKS FAILED"
+  }
+ ],
+ "null_gate": "gate_rc=0, 0 failed scripts, wall 3767 s, load1 0.90->1.0"
+}
