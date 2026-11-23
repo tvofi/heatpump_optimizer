@@ -203,8 +203,8 @@ def main(keys):
                 rec["finding"] = {
                     "title": p["title"], "step": "D3.M3", "scope": "D3-s1", "class_guess": "new",
                     "severity_claimed": p["sev"], "stop_rule_class": "hygiene",
-                    "claim": (f"Mutant {key} at {f.split('/')[-1]}:{line} ({rec['patch']}) {v} the full gate "
-                              f"(gate_rc {gate.get('gate_rc')}), yet the probe's number moves: baseline {p['base']}, mutant {p['mut']}. "
+                    "claim": (f"Mutant {key} at {f.split('/')[-1]}:{line} ({rec['patch']}) survives the full gate ({v}, "
+                              f"gate_rc {gate.get('gate_rc')}, no script beyond this box's null control), yet the probe's number moves: baseline {p['base']}, mutant {p['mut']}. "
                               f"Reach: {p['reach']}."),
                     "metric_definition": p["metric"],
                     "instrumented_symbol": f"custom_components.heatpump_optimizer.dhw_planner:{fn} line {line}",
