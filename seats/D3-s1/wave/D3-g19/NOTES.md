@@ -11,3 +11,4 @@
 - 911f3cf5172ffc44: RED-AS-NULL (same 3 scripts, same counts 2/1/4 as null), wall 3992 s; probe reaches line 496 only with an injected stale row -> candidate (unreachable from shipped catalog).
 - b5f0a73275608684: RED-AS-NULL (null-identical reds) -> candidate (tie label fixed->entity).
 - 68cc141bf2c3493a: RED-AS-NULL (null-identical reds) -> candidate (entity tie label fixed->entity).
+- 2043855ef5cf151d: RED-AS-NULL -> candidate (parse_rules(None) [] -> GridFeeError).
