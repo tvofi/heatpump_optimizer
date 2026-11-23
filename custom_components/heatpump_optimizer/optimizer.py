@@ -4934,7 +4934,7 @@ class HeatPumpOptimizer:
             margins = _padded_nonneg(np.zeros(n_steps) if min_temp_margins is None else min_temp_margins, n_steps)
             unlifted = _raised_floor(low, temp_max_bounds, margins - _padded_nonneg(room_lifts, n_steps),
                                      min_temp_floors, n_steps)[0]
-            lifts = np.maximum(temp_min_bounds - unlifted, 0.0)
+            lifts = temp_min_bounds - unlifted  # >= 0: each step is monotone in the margins
         return comfort_targets, temp_min_bounds, temp_max_bounds, (comfort_floors, mold_floors, lifts)
 
     def _build_space_power_caps(
