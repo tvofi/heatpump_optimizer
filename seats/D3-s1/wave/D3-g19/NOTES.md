@@ -12,3 +12,4 @@
 - b5f0a73275608684: RED-AS-NULL (null-identical reds) -> candidate (tie label fixed->entity).
 - 68cc141bf2c3493a: RED-AS-NULL (null-identical reds) -> candidate (entity tie label fixed->entity).
 - 2043855ef5cf151d: RED-AS-NULL -> candidate (parse_rules(None) [] -> GridFeeError).
+- eee37674711fa45f: RED-AS-NULL -> candidate (guess weights max delta 0.267 at mean 6e-4).
