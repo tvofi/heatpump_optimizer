@@ -1,0 +1,99 @@
+{
+ "key": "23b144fb9583c5c7",
+ "site": "optimizer.py:2156 CONST",
+ "file": "custom_components/heatpump_optimizer/optimizer.py",
+ "line": 2156,
+ "patch": "_MIN_MODULATION_BAND_KW = 0.1 -> _MIN_MODULATION_BAND_KW = 0.2",
+ "function": "<module>",
+ "cluster": "optimizer.py:<module>@2006-2385",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "reach_carried": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3975.0,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/23b144fb9583c5c7.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/23b144fb9583c5c7.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 23b144fb9583c5c7",
+ "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz, box D3-g19 alone on its machine",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py",
+  "results": [
+   "RESULT fraction_baseline=0.6667",
+   "RESULT fraction_mutant=0.9565",
+   "RESULT abs_delta=0.2899",
+   "RESULT bands_moved=3 of 3 count",
+   "RESULT null_abs_delta=0.0",
+   "RESULT wall=0.33 s (provisional)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.78",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": "Inputs tried: bands 0.10, 0.15, 0.19 kW at mid-band power; the two null bands.",
+  "load1": "0.78",
+  "thread_factor": "1.000",
+  "baseline_value": "0.6667",
+  "mutant_value": "0.9565",
+  "metric_key": "fraction"
+ },
+ "reach": "executed on every plan (setpoint, displace and action sites share _power_fraction); the moving input is a pump whose modulation band is 0.1-0.2 kW",
+ "should_fail": "tests/features.py (traced baseline executes _power_fraction, optimizer.py:2170): its pumps have bands of 0 (fixed speed) or well above 0.2 kW; it lacks a _power_fraction check on a band in [0.1, 0.2) kW, e.g. min 1.00 / max 1.15 kW at 1.10 kW == 0.667",
+ "finding": {
+  "title": "No check pins _MIN_MODULATION_BAND_KW; doubling it grades a 0.15 kW-band pump as fixed-speed unseen",
+  "claim": "Changing optimizer.py:2156 _MIN_MODULATION_BAND_KW from 0.1 to 0.2 survives the full gate and moves _power_fraction(1.10 kW) on a 1.00-1.15 kW pump from 0.667 to 0.957",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "_power_fraction(1.10, min 1.00, max 1.15 kW)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:<module>",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:2156 _MIN_MODULATION_BAND_KW = 0.1 -> _MIN_MODULATION_BAND_KW = 0.2 (in memory)",
+   "expected_direction": "up",
+   "observed_value": "0.6667 -> 0.9565"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py",
+   "value": "{\"null_abs_delta\": \"0.0\"}",
+   "note": "inputs where the arms must agree; full-gate null on this box: gates/null.json"
+  },
+  "phenomenon_property": "a pump whose band is at least 0.1 kW is graded inside its band",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py",
+  "proposed_fix_scope": "tests: a _power_fraction check at a 0.15 kW band",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "tests/features.py"
+  ]
+ }
+}
