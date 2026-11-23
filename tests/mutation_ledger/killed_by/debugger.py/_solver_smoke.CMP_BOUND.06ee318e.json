@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:_solver_smoke CMP_BOUND 06ee318e",
+  "killed_by": "tests/debug_collect.py",
+  "old": "            [ms for row in rows if (ms := row.get(\"payload_solve_time_ms\") or 0) > 0]),",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`[ms for row in rows if (ms := row.get(\"payload_solve_time_ms\") or 0) >= 0]),`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}
