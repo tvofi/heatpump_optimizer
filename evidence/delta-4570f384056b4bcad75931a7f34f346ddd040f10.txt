@@ -1,0 +1,5 @@
+head 4570f384056b4bcad75931a7f34f346ddd040f10
+reviewed-head c48d7a36c5bfb5bce5f417497eb43be15ea11d38
+PR diff vs main af4d89f7: identical per-file to reviewed PR diff except tests/closures.json (+3 cycle_lane lines) and tests/deployment_shape.py (#1218 note)
+recomputed: Jaccard>=0.80 pairs=182 of 561 (34 scripts), comparable 435, package files 120
+every closure containing coordinator.py contains circulation.py, duty_ledger.py, number_restore.py; importers coordinator.py/pump_arbiter.py are in cycle_lane closure
