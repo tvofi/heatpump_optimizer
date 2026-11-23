@@ -1,0 +1,111 @@
+{
+ "key": "8ef1027c9e221b64",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5229 CMP_BOUND",
+ "patch": "pinned_off = not _pin_is_free(pin) and pin < 0.5 -> pinned_off = not _pin_is_free(pin) and pin <= 0.5",
+ "function": "HeatPumpOptimizer._safety_release_steps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._safety_release_steps@5222-5250",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3457.0,
+  "child_cpu_s": 5799.9,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8ef1027c9e221b64",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/8ef1027c9e221b64.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+  "metric": "direct_half_pin_release",
+  "baseline_value": "([],[])",
+  "mutant_value": "([0],[])",
+  "reach": "optimize() accepts any float pin (_normalise_pins copies it); 5 of 55 optimize() solves with 0.5 pins (winter_extreme, 16.6-17.6 C) return a different plan; the manual-plan service itself only writes 0.0/1.0",
+  "inputs_tried": [
+   "0.5 pin at floor+0.1 after an off step (direct)",
+   "1.0 pin (null)",
+   "55 optimize() solves: 11 start temperatures x 5 pin layouts with 0.5 pins"
+  ],
+  "results": [
+   "RESULT direct_half_pin_release_baseline=([],[])",
+   "RESULT direct_half_pin_release_mutant=([0],[])",
+   "RESULT null_on_pin_delta=0",
+   "RESULT optimize_half_pin_differing_plans=5 of 55",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.98",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "tests/manual_plan.py (test_safety_release, test_give_up_is_per_channel, test_release_always_resolves) -- no check passes a pin of exactly 0.5 (the on/off boundary _apply_pins_to_bounds and _safety_release_steps must agree on)",
+ "finding": {
+  "title": "No check pins the 0.5 on/off boundary of the safety release's pinned-off test",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 8ef1027c9e221b64 at optimizer.py:5229 (pinned_off = not _pin_is_free(pin) and pin < 0.5 -> pinned_off = not _pin_is_free(pin) and pin <= 0.5) leaves the full GATE_SCOPE=full GOLDEN_MODE=drift gate RED-AS-NULL on box D3-g23, yet the probe's direct_half_pin_release moves ([],[]) -> ([0],[]).",
+  "mechanism": "Reach: optimize() accepts any float pin (_normalise_pins copies it); 5 of 55 optimize() solves with 0.5 pins (winter_extreme, 16.6-17.6 C) return a different plan; the manual-plan service itself only writes 0.0/1.0. Check that should have failed (D3.M4): tests/manual_plan.py (test_safety_release, test_give_up_is_per_channel, test_release_always_resolves) -- no check passes a pin of exactly 0.5 (the on/off boundary _apply_pins_to_bounds and _safety_release_steps must agree on).",
+  "metric_definition": "direct_half_pin_release printed by probe_8ef1027c9e221b64.py (baseline arm vs the mutant re-compiled in memory)",
+  "phenomenon_property": "A pin of 0.5 is classified the same way (not forced off) by _safety_release_steps as by the bounds that pin the step",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave list; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g23/keys.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._safety_release_steps",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/_g23_common.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+   "value": "([0],[])",
+   "unit": "direct_half_pin_release",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g23: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probes ran from a scratch baseline worktree beside the box's gates; gate walls provisional",
+   "tolerance": "exact"
+  },
+  "perturbation": {
+   "change": "the mutant edit at optimizer.py:5229 applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8ef1027c9e221b64",
+   "expected_direction": "up",
+   "observed_value": "([0],[])"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+   "value": "0",
+   "note": "the probe's null_* RESULT line: an input where the edit cannot matter, identical under both arms"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8ef1027c9e221b64"
+  ],
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/manual_plan.py that feeds the probe's distinguishing input and asserts the baseline outcome"
+ }
+}
