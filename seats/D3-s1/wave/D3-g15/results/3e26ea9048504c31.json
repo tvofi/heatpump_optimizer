@@ -1,0 +1,63 @@
+{
+ "key": "3e26ea9048504c31",
+ "site": "dhw_planner.py:743 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 743,
+ "patch": "if c_dhw > 0.0 and legionella_step is not None and n_steps > 0 and ( -> if c_dhw > 0.0 and legionella_step is not None and n_steps >= 0 and (",
+ "function": "DhwPlanner._dhw_legionella_ceilings",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3486.1,
+  "load1_start": 0.93,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5767.9,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/3e26ea9048504c31.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3e26ea9048504c31"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_3e26ea9048504c31.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_3e26ea9048504c31.py",
+  "baseline_value": "direct_n0_step0_baseline=unchanged",
+  "mutant_value": "direct_n0_step0_mutant=raises IndexError",
+  "results": {
+   "inputs_tried": "12 count",
+   "moved_in_range": "0 count",
+   "direct_n0_step0_baseline": "unchanged",
+   "direct_n0_step0_mutant": "raises IndexError",
+   "reach_n0_due_step_hours_since_20": "None",
+   "reach_n0_due_step_hours_since_150": "None",
+   "reach_n0_due_step_hours_since_400": "None",
+   "reach_n0_plan_moved": "0 count",
+   "reach_n0_optimize_baseline": "['optimize raised IndexError']",
+   "reach_n0_optimize_mutant": "['optimize raised IndexError']",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.18",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "n_steps 0/1/2/96 x cycle step None/0/middle/last; _dhw_legionella_plan at n_steps 0 for hours_since 20/150/400; optimize() on a 0-step horizon, both arms",
+  "reading": "identical on n_steps >= 1 (12 inputs); separates only for a direct call at n_steps=0 WITH a cycle step (no-op -> IndexError); through the caller the due stage's own `n_steps > 0` guard returns step None at n_steps 0 (reach_n0_plan_moved=0), optimize() raises IndexError at n_steps 0 in both arms, and coordinator.py:6379 refuses a solve with fewer than 4 price steps: unreachable through production",
+  "thread_factor": 1.0,
+  "load1": 3.18
+ },
+ "should_fail": "none through production; only a direct call with n_steps 0 and a cycle step separates"
+}
