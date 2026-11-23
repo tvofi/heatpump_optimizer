@@ -96225,9 +96225,9 @@ R.check(
     == sorted([("unlatched", b) for b in _dsp_states] + [("latched", "unlatched")]),
     f"bad {_dsp_rule_bad} nomask {_dsp_rule_nomask}",
 )
-# A design choice, not an accident of the default: a configuration that never
+# A design choice, not an accident of the default. A configuration that never
 # sets the mask (a harness handed a pair, the R10 fixtures above) reads its
-# pair as latched, so every pair it prices also moves the legs as before.
+# pair as latched. Every pair it prices then moves the legs as before.
 _dsp_nomask_cfg = _DspCfg()
 _dsp_nomask_cfg.duty_switch_stop_probability = (1.0, 0.0)
 R.check(
