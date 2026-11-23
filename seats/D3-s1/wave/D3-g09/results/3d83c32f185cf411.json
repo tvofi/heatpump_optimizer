@@ -1,0 +1,99 @@
+{
+ "key": "3d83c32f185cf411",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9819 CMP_BOUND",
+ "patch": "if not config.enabled or config.peak_kw <= 0: -> if not config.enabled or config.peak_kw < 0:",
+ "function": "HeatPumpOptimizerCoordinator._pv_forecast",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast@9819-9836",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3284.8,
+  "child_cpu_s": 5476.9,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/3d83c32f185cf411.json",
+ "gate_command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3d83c32f185cf411  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3d83c32f185cf411.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/out_3d83c32f185cf411.txt",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3d83c32f185cf411.py",
+  "metric": "RESULT summary_keys_peak0_{baseline,mutant}: len(_pv_forecast(solar, 8)[1]) with pv_enabled and pv_peak_kw 0",
+  "baseline_value": "summary_keys_peak0=0 ({})",
+  "mutant_value": "summary_keys_peak0=5 (forecast_production_kwh 0.0, ..., export_price 0.0)",
+  "inputs_tried": [
+   "pv_peak_kw 0 (the flow's minimum, config_flow.py:1933)",
+   "pv_peak_kw 6",
+   "pv_peak_kw -1"
+  ],
+  "null_control": "peak 6 and peak -1 cells: equal arms",
+  "load1": 0.99,
+  "thread_factor": 1.0
+ },
+ "should_fail": "tests/solar_alignment.py / tests/features.py PV checks: none configures pv_enabled with pv_peak_kw 0 and asserts the disabled-PV answer (empty summary, zero surplus, _pv_production None)",
+ "title": "A 0 kWp enabled PV array is unpinned: `peak_kw <= 0` -> `< 0` publishes an all-zero PV summary",
+ "claim": "HeatPumpOptimizerCoordinator._pv_forecast (coordinator.py:9819) may be weakened from `peak_kw <= 0` to `< 0` and the gate passes; with pv_enabled and pv_peak_kw 0 (accepted by the options flow) the baseline treats PV as off (summary {}) while the mutant publishes a five-key all-zero PV summary (probe). The surplus is 0 in both, so the plan is unchanged; only the published PV block differs.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "stop_rule_class": "bug",
+ "metric_definition": "RESULT summary_keys_peak0_{baseline,mutant}: len(_pv_forecast(solar, 8)[1]) with pv_enabled and pv_peak_kw 0",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._pv_forecast",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3d83c32f185cf411.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3d83c32f185cf411.py",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3d83c32f185cf411.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3d83c32f185cf411.py",
+  "value": "summary_keys_peak0=5 (forecast_production_kwh 0.0, ..., export_price 0.0)",
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-g09: 4 vCPU Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB, no swap",
+  "cpu_or_wall": "count",
+  "contention_note": "one full gate running on the box (GATE_JOBS=1); the probe's numbers are counts and values, contention-immune",
+  "tolerance": "exact",
+  "load1": 0.99,
+  "thread_factor": 1.0
+ },
+ "gate_evidence": {
+  "command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3d83c32f185cf411  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/3d83c32f185cf411.json",
+  "verdict": "RED-AS-NULL",
+  "gate_rc": 1,
+  "null_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/null.json"
+ },
+ "perturbation": {
+  "change": "mutant 3d83c32f185cf411: if not config.enabled or config.peak_kw <= 0: -> if not config.enabled or config.peak_kw < 0: (custom_components/heatpump_optimizer/coordinator.py:9819), applied in memory by the probe and on disk by fullgate.py",
+  "expected_direction": "up",
+  "observed_value": "summary_keys_peak0=5 (forecast_production_kwh 0.0, ..., export_price 0.0)",
+  "direction": "summary keys 0 -> 5 at peak 0"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3d83c32f185cf411.py",
+  "value": "peak 6 and peak -1 cells: equal arms",
+  "note": "the probe's equal-arm cells; for the gate, this box's fullgate.py null (gates/null.json)"
+ },
+ "phenomenon_property": "a production line whose one-line mutant changes the value its own seam delivers on a stated input is pinned by at least one check of the closure that executes it",
+ "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivors; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g09/keys.tsv)",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "proposed_fix_scope": "tests only: add the distinguishing arm named in should_fail to the closure script that executes the line"
+}
