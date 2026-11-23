@@ -15,7 +15,8 @@ kill below is the runner's and not the mutant's. A mutant whose text no
 longer occurs once in the driver prints ``stale`` rather than a verdict.
 The M* and R-* rows are the #3066 review's own mutants (M5 retired with the
 two-way survival check it mutated); N* mutate the stamp and ``may-drift``
-decision, N10 restoring round 2's three-way stamp guard. RESULT lines count the rows.
+decision, N10 restoring round 2's three-way stamp guard; S* mutate the release-stamp
+arm (``_stamp_emptied_side``, R11-PRE-SHARED-FILES). RESULT lines count the rows.
 """
 from __future__ import annotations
 
@@ -58,6 +59,15 @@ MUTANTS = (
      "    if both_changed and _parse_claims(ours)[0] != _parse_claims(theirs)[0]:",
      "    if both_changed and not (\n        _parse_claims(base)[0] == _parse_claims(ours)[0]"
      " == _parse_claims(theirs)[0]\n    ):"),
+    ("S1-stamp-side-may-hold-claims", "        return not their_map\n", "        return True\n"),
+    ("S2-ours-stamp-side-may-hold-claims", "        return not our_map\n", "        return True\n"),
+    ("S3-stamp-moved-on-both-sides", "    if mine == was and main not in (was, None):",
+     "    if main not in (was, None):"),
+    ("S4-removed-stamp-is-a-release", "    if mine == was and main not in (was, None):",
+     "    if mine == was and main != was:"),
+    ("S5-no-release-stamp-arm",
+     "        if not _stamp_emptied_side(base, ours, theirs, our_map, their_map):\n"
+     "            return None, []", "        return None, []"),
     ("M6-no-own-lines-check",
      "            return f\"the claims for '{name}' are neither side's own\"", "            pass"),
     ("R-keep-deleted", "        if lines:\n            decided[name] = lines",
@@ -114,6 +124,9 @@ def main() -> int:
         shutil.copytree(ROOT / "tests", copy / "tests",
                         ignore=shutil.ignore_patterns("__pycache__"))
         shutil.copy(ROOT / ".gitattributes", copy / ".gitattributes")
+        # tests/harness.py lists the translations at import; the section reads nothing else there.
+        translations = "custom_components/heatpump_optimizer/translations"
+        shutil.copytree(ROOT / translations, copy / translations)
         target = copy / DRIVER
         rc, fails = run_section(copy)
         print(f"baseline   rc={rc} {'pass' if rc == 0 else 'FAIL ' + '; '.join(fails)}")

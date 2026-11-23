@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_release_row BOOLOP bbca8c74",
+  "killed_by": "tests/features.py",
+  "old": "    if reason != \"unload\" and _pump_off(inp, held):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if reason != \"unload\" or _pump_off(inp, held):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=19."
+}
