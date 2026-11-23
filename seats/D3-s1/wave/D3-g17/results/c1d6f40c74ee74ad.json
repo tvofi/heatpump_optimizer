@@ -1,0 +1,109 @@
+{
+ "key": "c1d6f40c74ee74ad",
+ "site": "custom_components/heatpump_optimizer/dhw_planner.py:1510 CLAMP_DROP",
+ "patch": "influence = np.where(lag >= 0, np.power(decay, np.maximum(lag, 0)) / c_dhw, 0.0) -> influence = np.where(lag >= 0, np.power(decay, (lag)) / c_dhw, 0.0)",
+ "function": "DhwPlanner._plan_dhw_min_cost",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_min_cost@1510-1627",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3281.1,
+  "load1_start": 0.86,
+  "load1_end": 1.03,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/gates/c1d6f40c74ee74ad.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c1d6f40c74ee74ad",
+ "provisional_walls": true,
+ "machine": "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+ "class": "candidate",
+ "m4_carried_from": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_c1d6f40c74ee74ad.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_c1d6f40c74ee74ad.py",
+  "results": {
+   "null_decay": "0.988",
+   "null_warnings_baseline": "0",
+   "null_warnings_mutant": "0",
+   "null_plan_delta_kw": "0",
+   "decay0_decay": "0",
+   "decay0_warnings_baseline": "0",
+   "decay0_warnings_mutant": "1",
+   "decay0_plan_delta_kw": "0",
+   "sweep_inputs": "80",
+   "differing_inputs": "0",
+   "sweep_max_delta_kw": "0",
+   "reach": "decay 0 needs the tank's standby loss over one step to reach its whole stored heat (here dhw_cooling_rate 3.0 on a 0.01 kWh/C store); a realistic 200 l tank decays 0.988 per hour",
+   "inputs_tried": "decay 0.988 (null) and 0.0, 24 steps; 80 random scenarios at decay 0.988 for plan deltas",
+   "thread_factor": "1.005",
+   "load1": "1.31",
+   "swapins": "0"
+  },
+  "inputs_tried": "decay 0.988 (null) and 0.0, 24 steps; 80 random scenarios at decay 0.988 for plan deltas"
+ },
+ "reach": "decay 0 only (standby loss over one step >= the stored heat); a realistic tank decays ~0.988/h; plan output unchanged",
+ "should_fail": "none in the suite: no check runs _plan_dhw_min_cost with tank decay 0 under warnings-as-errors or counts its RuntimeWarnings",
+ "finding": {
+  "title": "No check sees the DHW LP's 0**negative RuntimeWarning at tank decay 0 once the lag clamp is dropped",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant c1d6f40c74ee74ad at dhw_planner.py:1510 (CLAMP_DROP: influence = np.where(lag >= 0, np.power(decay, np.maximum(lag, 0)) / c_dhw, 0.0) -> influence = np.where(lag >= 0, np.power(decay, (lag)) / c_dhw, 0.0)) survives the full gate (RED-AS-NULL), yet the probe's number moves: baseline decay0_warnings_baseline=0, mutant decay0_warnings_mutant=1.",
+  "mechanism": "Reach: decay 0 only (standby loss over one step >= the stored heat); a realistic tank decays ~0.988/h; plan output unchanged. Check that should have failed (D3.M4): none in the suite: no check runs _plan_dhw_min_cost with tank decay 0 under warnings-as-errors or counts its RuntimeWarnings.",
+  "metric_definition": "RuntimeWarnings per call -- see the probe header's Metric line",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_min_cost",
+  "perturbation": {
+   "change": "the one-line mutant at dhw_planner.py:1510 applied in memory by the probe; full gate: fullgate.py run --key c1d6f40c74ee74ad",
+   "expected_direction": "up",
+   "observed_value": "decay0_warnings_baseline=0 -> decay0_warnings_mutant=1"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_c1d6f40c74ee74ad.py",
+   "value": "null_warnings_mutant=0",
+   "note": "the arm where the edit cannot matter (probe header's Null control line); box null gate: gates/null.json"
+  },
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_c1d6f40c74ee74ad.py"
+  ],
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_c1d6f40c74ee74ad.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_c1d6f40c74ee74ad.py",
+   "value": "1",
+   "unit": "RuntimeWarnings per call",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "count",
+   "contention_note": "probe values are deterministic floats/counts; the probes ran in a separate baseline worktree (~/probe-tree) while this box's gates ran (load1 ~1)",
+   "tolerance": "exact",
+   "load1": 1.31,
+   "thread_factor": 1.005
+  },
+  "phenomenon_property": "_plan_dhw_min_cost's influence matrix raises no floating-point warning at any tank decay in [0, 1]",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_c1d6f40c74ee74ad.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c1d6f40c74ee74ad"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's separating input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}
