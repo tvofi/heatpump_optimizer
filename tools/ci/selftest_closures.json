@@ -235,6 +235,8 @@
     "tools/audit/seat/ci_predict_replay.sh",
     "tools/audit/seat/ci_priority.py",
     "tools/audit/seat/ci_probe.py",
+    "tools/audit/seat/ci_rerun.py",
+    "tools/audit/seat/ci_supersede.sh",
     "tools/audit/seat/closeout.py",
     "tools/audit/seat/cloud-setup.sh",
     "tools/audit/seat/cloud_dispatch.py",
@@ -332,6 +334,7 @@
     "tools/audit/seat/sweep_template.md",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/token_ledger.py",
     "tools/audit/seat/toolchain.py",
     "tools/audit/seat/toolchain_selftest.py",
     "tools/audit/seat/topic_grammar.py",
@@ -432,6 +435,8 @@
     "tools/audit/seat/fixtures",
     "tools/audit/seat/fixtures/beat_jobs",
     "tools/audit/seat/fixtures/ci_critpath",
+    "tools/audit/seat/fixtures/ci_rerun",
+    "tools/audit/seat/fixtures/ci_rerun/pr3836",
     "tools/audit/seat/hooks",
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims",
@@ -3117,6 +3122,7 @@
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/review_packet.py",
     "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/token_ledger.py",
     "tools/audit/seat/topic_grammar.py"
    ],
    "probes": [
@@ -11171,6 +11177,23 @@
     "maintenance",
     "rev-list"
    ]
+  },
+  "token-ledger": {
+   "run_sha": "2187606ddb988417845b538a2a014db8fc1fd2616f7bf42e304f706467d5d4a6",
+   "files": [
+    "tools/audit/seat/round_metrics.py",
+    "tools/audit/seat/token_ledger.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
   },
   "toolchain": {
    "run_sha": "58a9dcb43610f2fb8ff4466f1623dd23eff5bec9e8fdfd1cf4ca65cfa4bc6b54",

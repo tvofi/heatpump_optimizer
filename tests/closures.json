@@ -4384,6 +4384,7 @@
    "tools/audit/seat/sweep_gantt.py",
    "tools/audit/seat/sweep_render.py",
    "tools/audit/seat/tmp_paths.py",
+   "tools/audit/seat/token_ledger.py",
    "tools/audit/seat/toolchain.py",
    "tools/audit/seat/toolchain_selftest.py",
    "tools/audit/seat/topic_grammar.py",
