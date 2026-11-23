@@ -1,0 +1,37 @@
+M1 roster_at default -> wave-r10 literal
+FAIL a later round's roster is the one a ref carries: read, read back and shown (got: dev/programme/rosters/wave-r11-groups.json)
+roster_queue self-test: 69 checks, 1 failed
+M2 readback default -> literal
+M3 readback_text default -> literal
+ tools/audit/seat/closeout.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M4 closeout default -> round10 literal
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+rc=1
+M-readback default -> literal (rerun, tail)
+rc=1
+    raise RuntimeError(f"group {grp} not in the roster at {sha}")
+RuntimeError: group N not in the roster at fe9825a5d644c0e562f9416783b20c9fa26d086a
+M-readback_text default -> literal (rerun, tail)
+rc=1
+    raise RuntimeError(f"group {grp} not in the roster at {sha}")
+RuntimeError: group N not in the roster at a45027010f523206713266ed7c9c3e6d987892b8
+M5 replan literal fallback, roster_lib barrier (committed in scratch worktree so HEAD carries it)
+roster_lib self-test: 124 checks, 1 failed
+FAIL no tools/ default at this checkout's HEAD names a round (got: ['tools/plan/replan.py:166: parameter fallback: audit-r10'])
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M6 or-fallback hit deleted
+roster_lib self-test: 124 checks, 1 failed
+FAIL round_literal_hits refuses a round literal as or fallback: 'def f(ref):\n    return ref or "handoff/a' (got: [])
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M7 ROUND_RECORDS key loosened to constant name only
+roster_lib self-test: 124 checks, 0 failed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M8 argparse help shape dropped
+roster_lib self-test: 124 checks, 1 failed
+FAIL round_literal_hits refuses a round literal as argparse help: 'ap.add_argument("--r", help="default: or' (got: [])
+M7 witness, head:
+['tools/x/other.py:1: module constant: round11']
+M7 witness, mutant:
+[]
