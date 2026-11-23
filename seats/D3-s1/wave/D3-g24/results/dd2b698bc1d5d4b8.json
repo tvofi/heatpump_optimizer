@@ -1,0 +1,68 @@
+{
+ "key": "dd2b698bc1d5d4b8",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4717 CMP_BOUND",
+ "patch": "if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None and self.config.price_risk_lambda >= 0.0:",
+ "function": "HeatPumpOptimizer._stash_price_horizon",
+ "cluster": "optimizer.py:HeatPumpOptimizer._stash_price_horizon@4696-4720",
+ "slice": "u1d",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3669.9,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 6320.4,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/dd2b698bc1d5d4b8.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key dd2b698bc1d5d4b8",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/dd2b698bc1d5d4b8.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py",
+  "metric": "mutant_cases_moved",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "extra": {},
+  "moving_cases": [],
+  "inputs_tried": "the 25 _stash_cases.CASES (lambda 0 with sigma pos/inf/NaN/None, negative lambda included)",
+  "thread_factor": "1.000",
+  "load1": "1.08"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/block_duty.py",
+   "tests/boost_drift_replay.py",
+   "tests/config_flow_steps.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/validate.py"
+  ],
+  "assertion_lacking": "none can fail: equivalent"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "at lambda == 0 the risk term is 0*sigma (0, or NaN for inf sigma, which np.any(risk > 0) skips), so prices are returned untouched in both arms",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:4717 CMP_BOUND if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None and self.config.price_risk_lambda >= 0.0: survives the full gate but is equivalent on every input tried: at lambda == 0 the risk term is 0*sigma (0, or NaN for inf sigma, which np.any(risk > 0) skips), so prices are returned untouched in both arms",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py",
+  "value": "mutant_cases_moved=0 (null 0); "
+ }
+}
