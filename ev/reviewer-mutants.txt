@@ -1,0 +1,15 @@
+unlink all: rc=0 SURVIVED fails=0
+unlink none glob: rc=1 KILLED fails=1
+    FAIL partition files: an item file of another GRAPHQL_BATCH is removed, so the directory holds each item once, under the current keys
+max default 0: pattern count 2, skipped
+max keeps first: pattern count 2, skipped
+secondary cap strict: pattern count 2, skipped
+secondary no digit check: rc=1 KILLED fails=0
+max default 0: first of 2 occurrence(s), production line 393
+max default 0: rc=0 SURVIVED fails=0
+max keeps first: first of 2 occurrence(s), production line 393
+max keeps first: rc=1 KILLED fails=1
+    FAIL graphql cost: the cursor keeps the last cost answered and the largest, and 'cost' prints both
+secondary cap strict: first of 2 occurrence(s), production line 398
+secondary cap strict: rc=1 KILLED fails=1
+    FAIL graphql secondary: a Retry-After of 300 s is waited, 301 s is not, and a primary or unreadable one never
