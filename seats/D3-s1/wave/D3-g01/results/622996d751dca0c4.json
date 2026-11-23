@@ -1,0 +1,83 @@
+{
+ "key": "622996d751dca0c4",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:1622 CONST",
+ "patch": "BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.15 -> BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.3",
+ "function": "<module>",
+ "cluster": "coordinator.py:<module>@822-1796",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3458.6,
+  "child_cpu_s": 5868.6,
+  "load1_start": 0.85,
+  "load1_end": 0.84,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 622996d751dca0c4",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g01/gates/622996d751dca0c4.json",
+ "provisional": "wall/cpu/load are provisional (nproc 4, Intel Xeon @ 2.10GHz, box alone); counts final",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_622996d751dca0c4.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_622996d751dca0c4.py",
+  "metric": "buffer-cooling samples folded from one quiet 0.2 h interval 40.0 -> 39.8 degC",
+  "baseline_value": "1 (rate +0.017208 degC/h)",
+  "mutant_value": "0 (rate unchanged)",
+  "inputs_tried": [
+   "dt_h 0.1 (both 0)",
+   "0.15 (1 vs 0)",
+   "0.2 (1 vs 0)",
+   "0.29 (1 vs 0)",
+   "0.3 (both 1)",
+   "null 0.5 h (identical)"
+  ],
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling"
+ },
+ "should_fail": "tests/features.py executes coordinator.py:5654 on the traced baseline but feeds no quiet interval between 0.15 h and 0.3 h asserting it is folded",
+ "finding": {
+  "title": "No check folds a 0.15-0.3 h quiet buffer interval; BUFFER_COOLING_MIN_SAMPLE_HOURS 0.15 -> 0.3 is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 622996d751dca0c4 at custom_components/heatpump_optimizer/coordinator.py:1622 (BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.15 -> BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.3) is not killed by the full GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict RED-AS-NULL, gate_rc 1, no script red beyond this box's null), yet the probe's number moves: baseline 1 (rate +0.017208 degC/h), mutant 0 (rate unchanged).",
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py executes coordinator.py:5654 on the traced baseline but feeds no quiet interval between 0.15 h and 0.3 h asserting it is folded.",
+  "metric_definition": "buffer-cooling samples folded from one quiet 0.2 h interval 40.0 -> 39.8 degC",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+  "phenomenon_property": "A quiet buffer interval of at least 0.15 h is a usable cooling sample",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_622996d751dca0c4.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_622996d751dca0c4.py",
+  "perturbation": {
+   "change": "the one-line mutant 622996d751dca0c4 applied in memory by the probe; full gate: fullgate.py run --src complete --key 622996d751dca0c4",
+   "expected_direction": "down",
+   "unit": "samples folded"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_622996d751dca0c4.py",
+   "value": "null_delta=0 count",
+   "gate_null": "fullgate.py null on box D3-g01: gate_rc 1, red ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+ }
+}
