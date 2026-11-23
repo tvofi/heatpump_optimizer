@@ -372,7 +372,7 @@ def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
         return view(coord)
     except Exception:  # noqa: BLE001 -- diagnostics never breaks
         _LOGGER.debug("Diagnostics view %s unavailable", view, exc_info=True)
-        return "unavailable"
+        pass
 
 
 #: Each module's own ``diagnostics_view``, one ``(key, view)`` row per module.
