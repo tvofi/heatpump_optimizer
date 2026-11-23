@@ -89273,9 +89273,9 @@ R.check("unload under the hold writes no baseline row, and drops the latch", _fh
 R.check("null control: unload with no fault writes the baseline row", bool(_fh_unl_null[0]), f"{_fh_unl_null}")
 _fh_off, _fh_off_null = _fh_handback(True, "off"), _fh_handback(False, "off")
 R.check("Off ends the hold: entering Off under it writes the baseline row at the mode change, and Off's pass clears the latch",
-        bool(_fh_off[0]) and _fh_off[1] is False, f"{_fh_off}")
-R.check("null control: with no fault the same mode change writes the same row",
-        _fh_off_null[0] == _fh_off[0], f"{_fh_off_null} vs {_fh_off}")
+        bool(_fh_off[0]) and _fh_off[0] == _fh_off_null[0] and _fh_off[1] is False, f"{_fh_off} vs {_fh_off_null}")
+R.check("null control: with no fault the same mode change writes the baseline row",
+        bool(_fh_off_null[0]), f"{_fh_off_null}")
 
 
 # 12b. A stale plan's hand-back (``off_restore.async_cycle``'s stale half:
