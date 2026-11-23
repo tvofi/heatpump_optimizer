@@ -1,0 +1,10 @@
+RESULT fresh_error_baseline=((('candidate_fuse_a', 20), ('error', 'solver_failed'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)
+RESULT fresh_error_mutant=((), '2026-07-09T12:00:00+00:00', 1)
+RESULT fresh_no_echo_baseline=((('candidate_fuse_a', 20), ('error', 'rate_limited'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)
+RESULT fresh_no_echo_mutant=((), '2026-07-09T12:00:00+00:00', 1)
+RESULT stale_error_record_then_error_baseline=((('candidate_fuse_a', 20), ('error', 'x'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)
+RESULT stale_error_record_then_error_mutant=((('candidate_fuse_a', 20), ('error', 'old'), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1)
+RESULT null_prior_verdict_error_baseline=((('candidate_kw', 13.8), ('feasible', True), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1) mutant=((('candidate_kw', 13.8), ('feasible', True), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1)
+RESULT null_success_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1) mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)
+RESULT cases_moved=3 count of 3
+RESULT null_moved=0 count of 2
