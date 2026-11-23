@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Carry destination for D0 (price optimality) at its next stage: the half-price",
+    "continuation's two-zone storage gain, which PR #3879 (R11-SEAM-two-zone-slab,",
+    "#3713) found start-dependent. Shape and required fields:",
+    ".claude/rules/finding-propagation.md; linted by tools/policy/brief_lint.mjs."
+  ],
+  "issue": 3881,
+  "stage": "D0 price optimality, next round's finders: whether the half-price continuation may ship a candidate worse than the multi-start's plain result",
+  "carries": [
+    {
+      "from": "PR #3879 (R11-SEAM-two-zone-slab, closes #3713): the two-zone valve-fed curve moved the plant the storage solve plans against, and the R9-F2.1 P3 check's two-zone tank start moved from 35 C to 55 C",
+      "effect": "invalidates",
+      "control": "Established by measurement with its null control at #3879's head, per kernel class (SkylakeX, Haswell, Sandybridge, Nehalem, through tools/audit/seat/cloud-setup.sh --kernels): a scratch copy of tests/features.py's _f21_storage_solve with the buffer tank start as a parameter, run with the continuation on and with _multi_start_minimize's continuation patched out (continuation=False), over starts 35, 38, 40, 42, 45, 50 and 55 C. From 35 C the continuation's plan is 0.043 to 0.057 worse in objective on all four classes; at the merge base the same start gained +1.500 (Haswell); only 55 C gains on all four (+0.189 to +0.469). The single-zone null arm ships bit-identical plans with the continuation on and off, so the probe separates the continuation's effect from noise.",
+      "remeasure": "These figures are snapshots at #3879's head. Re-run the same sweep (continuation on and off, the seven starts, the four kernel classes) at your own merge base before quoting any of them, and read the RESULT f21_p3_two_zone line tests/features.py prints (continuation_gain) for the start the check uses now.",
+      "brief": "The R9-F2.1 P3 check in tests/features.py asserts a strict continuation gain at one tank start (55 C), chosen because it is the one start measured to gain on all four kernel classes; it does not assert the continuation never loses. Do not read that check as evidence the continuation is safe at every start: from 35 C it ships a worse plan than the multi-start without it. Measure whether the optimizer's multi-start should keep the better of the continuation's candidate and the plain result (a no-regression guard), with the on/off sweep above as the control, before scoring the continuation's optimality."
+    }
+  ]
+}
