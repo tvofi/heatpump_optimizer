@@ -1,0 +1,6 @@
+
+=== features block ===
+  ok   the boost store declares the settling tail's lead past the overlay's two hours, and a boosted sum of any length from zero, or unknown; a negative one is out of its domain
+  FAIL a stored boosted sum longer than two datetimes bound reads unknown and the overlay's start is still restored, one inside it is restored as stored, the declaration's ceiling is that span, and a run added to it does not overflow (D1-s2-06)  [{1.5: (datetime.timedelta(seconds=5400), True), 30000000000.0: (None, True), 100000000000000.0: (None, True)}]
+
+1 of 2 FEATURES BLOCK FAILED

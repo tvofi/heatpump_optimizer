@@ -1,0 +1,70 @@
+== base dev/audit/rounds/round11/D1/s2/boost_settle.py sha1=17415b04dd56628fe892bec167881bc3a8f24a57
+CELL boosted_h=1.5 restart=1: raised=[] space_since=2026-01-20 11:00:00+00:00 space_boosted=1:30:00 dhw_boost_restored=True
+CELL boosted_h=1.5 restart=2: raised=[] space_since=2026-01-20 11:00:00+00:00 space_boosted=1:30:00 dhw_boost_restored=True
+RESULT control_restarts_raising=0 count
+CELL boosted_h=1e+10 restart=1: raised=[] space_since=2026-01-20 11:00:00+00:00 space_boosted=416666666 days, 16:00:00 dhw_boost_restored=True
+CELL boosted_h=1e+10 restart=2: raised=[] space_since=2026-01-20 11:00:00+00:00 space_boosted=416666666 days, 16:00:00 dhw_boost_restored=True
+CELL boosted_h=3e+10 restart=1: raised=['OverflowError: days=1250000000; must have magnitude <= 999999999'] space_since=None space_boosted=0:00:00 dhw_boost_restored=True
+CELL boosted_h=3e+10 restart=2: raised=['OverflowError: days=1250000000; must have magnitude <= 999999999'] space_since=None space_boosted=0:00:00 dhw_boost_restored=True
+CELL boosted_h=1e+11 restart=1: raised=['OverflowError: Python int too large to convert to C int'] space_since=None space_boosted=0:00:00 dhw_boost_restored=True
+CELL boosted_h=1e+11 restart=2: raised=['OverflowError: Python int too large to convert to C int'] space_since=None space_boosted=0:00:00 dhw_boost_restored=True
+CELL boosted_h=1e+12 restart=1: raised=['OverflowError: Python int too large to convert to C int'] space_since=None space_boosted=0:00:00 dhw_boost_restored=True
+CELL boosted_h=1e+12 restart=2: raised=['OverflowError: Python int too large to convert to C int'] space_since=None space_boosted=0:00:00 dhw_boost_restored=True
+CELL boosted_h=1e+14 restart=1: raised=['OverflowError: Python int too large to convert to C int'] space_since=None space_boosted=0:00:00 dhw_boost_restored=True
+CELL boosted_h=1e+14 restart=2: raised=['OverflowError: Python int too large to convert to C int'] space_since=None space_boosted=0:00:00 dhw_boost_restored=True
+RESULT cells=5 count
+RESULT restarts_raising=8 count
+RESULT per_cell=[0, 2, 2, 2, 2]
+RESULT thread_factor=1.000
+RESULT load1=43.50
+RESULT swapins=238
+rc=0
+== base dev/audit/rounds/round11/D15/s1/domains_drift.py sha1=9a26c560e94171cad340cb05861a4f964c68b62a
+rc=124
+== base dev/audit/rounds/round11/D15/s1/capacity_envelope.py sha1=56f0e94eb80475533fbb8a4443e6ef71d5431191
+RESULT fold_written=1 unit=buckets
+RESULT fold_written_count_zero=1 unit=buckets
+RESULT reloaded=0 unit=buckets
+RESULT lost=1 unit=buckets
+RESULT store_off_domain=1 unit=fields
+RESULT thread_factor=1.001 unit=ratio
+RESULT load1=118.98 unit=load
+RESULT swapins=1356515 unit=count
+rc=0
+== base dev/audit/rounds/round11/D17/s3/f03_restore_unevidenced.py sha1=8d1c189fca0994303fb3af6790ddf13c926aa4e4
+RESULT snapshots_in_ring=1 count
+RESULT snapshot_bias_is_none=1 count
+RESULT restored=1 count
+RESULT scale_after=1.0 ratio
+RESULT perturbed=0 bool
+RESULT thread_factor=1.000
+RESULT load1=159.96
+RESULT swapins=-1
+rc=0
+== base dev/audit/rounds/round11/D1/s2/nan_boundary.py --stores accuracy,dhw_profile sha1=2cf463c7121ec1cc1d76b5fa4f17496416f99c76
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  ok   the boundary quarantines nan at every depth
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  ok   the boundary quarantines str-nan at every depth
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the boundary quarantines an absurd magnitude as it does a non-finite (class P1)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+RESULT nan_boundary_passes=0 count
+STORE accuracy: leaves=72 live=0 disk_undecodable=0 ex=[]
+STORE dhw_profile: leaves=76 live=0 disk_undecodable=0 ex=[]
+RESULT leaves_total=148 count
+RESULT leaves_reaching_live=0 count
+RESULT leaves_making_disk_undecodable=0 count
+RESULT stores_affected=0 count
+RESULT thread_factor=1.000
+RESULT load1=172.43
+RESULT swapins=5
+rc=0

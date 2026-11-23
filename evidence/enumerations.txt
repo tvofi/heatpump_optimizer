@@ -1,0 +1,53 @@
+## admitted( sites
+custom_components/heatpump_optimizer/boost.py:619:                              and admitted("boost", {"space_settle": {"boosted_h": hours}}) else None)
+custom_components/heatpump_optimizer/coordinator.py:3043:        if not admitted("ledger", {"fuse_advisor": stored["fuse_advisor"]}):
+custom_components/heatpump_optimizer/coordinator.py:8281:                    if isinstance(value, dict) and admitted("ledger", {"month_reports": {key: value}})
+custom_components/heatpump_optimizer/coordinator.py:8294:                    if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
+custom_components/heatpump_optimizer/coordinator.py:8301:            driving_grade.restore(driving_grade.held(self), stored.get("operation_drivers"), lambda drivers: admitted(
+custom_components/heatpump_optimizer/coordinator.py:8303:            price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
+custom_components/heatpump_optimizer/debugger.py:166:    if not needs <= item.keys() or not admitted("debug", {field: [item]}):
+custom_components/heatpump_optimizer/driving_grade.py:120:    if isinstance(stored, Mapping) and admitted(stored):
+custom_components/heatpump_optimizer/snapshots.py:271:                if isinstance(snap.get("accuracy"), dict) and not admitted("snapshots", summary):
+## setdefault pairs
+custom_components/heatpump_optimizer/freq_control.py:162:        entry = self.buckets.setdefault(decile, [ratio, 0])
+custom_components/heatpump_optimizer/coordinator.py:9295:        entry = self._capacity_envelope.setdefault(bucket, [thermal_kw, 0])
+custom_components/heatpump_optimizer/room_history.py:114:        tally = period.rooms.setdefault(reading.entity_id, [None, None, 0, 0])
+## timedelta unit= lines:       82
+## non-literal:       32
+custom_components/heatpump_optimizer/accuracy.py:781:            min(s.when for s in settled), timedelta(hours=-dt_hours)
+custom_components/heatpump_optimizer/boost.py:51:_MAX_LEAD = timedelta(hours=max(BOOST_HOURS, BLOCK_HOURS))
+custom_components/heatpump_optimizer/boost.py:175:        return self.space_boosted + timedelta(seconds=max(0.0, utc_elapsed_seconds(end, since)))
+custom_components/heatpump_optimizer/boost.py:618:        held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
+custom_components/heatpump_optimizer/coordinator.py:3071:            "datetime": (start + timedelta(hours=i)).isoformat(),
+custom_components/heatpump_optimizer/coordinator.py:7177:        horizon = now + timedelta(hours=hours)
+custom_components/heatpump_optimizer/coordinator.py:8478:            timedelta(hours=getattr(self, "_ctx", self)._opt_config.dt_hours),
+custom_components/heatpump_optimizer/coordinator.py:10157:                    utc_shift(solve_time, timedelta(hours=lead)),
+custom_components/heatpump_optimizer/coordinator.py:10196:                    utc_shift(solve_time, timedelta(hours=lead)),
+custom_components/heatpump_optimizer/optimizer.py:798:        [(step_datetimes[0] - timedelta(hours=dt)).weekday()]
+custom_components/heatpump_optimizer/optimizer.py:3076:        return utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
+custom_components/heatpump_optimizer/optimizer.py:3176:    step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
+custom_components/heatpump_optimizer/optimizer.py:6303:            when, hours = _step_clock((inputs.start_time or datetime.now()) + timedelta(days=offset), day, dt)
+custom_components/heatpump_optimizer/early_cutoff.py:172:    held.cycle_end = dt_util.as_utc(now) + timedelta(minutes=cfg.optimization_interval)
+custom_components/heatpump_optimizer/open_meteo.py:234:    resolution = timedelta(seconds=min(gaps, key=lambda gap: (-gaps[gap], gap)))
+custom_components/heatpump_optimizer/plan_slots.py:60:            else timestamps[-1] + timedelta(hours=dt_hours)
+custom_components/heatpump_optimizer/duty_switch.py:540:    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
+custom_components/heatpump_optimizer/price_tiles.py:260:    oldest = (today - timedelta(days=HORIZON_DAYS - 1)).isoformat()
+custom_components/heatpump_optimizer/pump_arbiter.py:1525:    if now - held.dhw_since <= timedelta(minutes=cap):
+custom_components/heatpump_optimizer/pump_arbiter.py:1727:                           for at in (now, utc_shift(now, timedelta(seconds=duty_switch.STOP_WINDOW_S)))),
+custom_components/heatpump_optimizer/quiet_windows.py:142:        utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))
+custom_components/heatpump_optimizer/quiet_windows.py:241:        day = now.date() + timedelta(days=offset)
+custom_components/heatpump_optimizer/rooms.py:305:    steps = utc_step_starts(start_time, n_steps, timedelta(hours=config.dt_hours))
+custom_components/heatpump_optimizer/running_signal.py:186:    due = utc_shift(pending[1], timedelta(seconds=wear.EDGE_DEBOUNCE_S))
+custom_components/heatpump_optimizer/store.py:165:        limit = bound + timedelta(hours=getattr(node.get(""), "ahead_h", 0.0))  # undeclared: 0
+custom_components/heatpump_optimizer/supply_hold.py:101:    return 2 * timedelta(minutes=EntryConfig.from_mapping(config).optimization_interval)
+custom_components/heatpump_optimizer/tariff.py:63:    slot = midnight + timedelta(minutes=minutes)
+custom_components/heatpump_optimizer/tariff.py:651:    starts = [base + timedelta(minutes=window * i) for i in range(int(n_windows))]
+custom_components/heatpump_optimizer/silent_mode.py:80:    for i, step in enumerate(utc_step_starts(start_time, n_steps, timedelta(hours=dt_hours))):
+custom_components/heatpump_optimizer/wood_fuel.py:213:    return max(first_start - timedelta(minutes=lead_minutes), now), first_start
+custom_components/heatpump_optimizer/wood_fuel.py:319:    step = timedelta(hours=float(dt_hours))
+custom_components/heatpump_optimizer/wood_fuel.py:398:        anchor + timedelta(hours=i * dt_hours) for i in range(n_steps)
+## best_restore callers
+1363:    snapshot (``best_restore``: healthy, in band, pre-streak) and a batch
+1376:    snap = ring.best_restore()
+9667:                snap = self._snapshot_ring.best_restore()
+9705:        snap = self._snapshot_ring.undo_target()
