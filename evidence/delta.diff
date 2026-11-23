@@ -1,0 +1,48 @@
+diff --git a/dev/audit/harnesses/owner_only_channel.py b/dev/audit/harnesses/owner_only_channel.py
+index 3124a43731..eb62f85102 100755
+--- a/dev/audit/harnesses/owner_only_channel.py
++++ b/dev/audit/harnesses/owner_only_channel.py
+@@ -82,9 +82,9 @@ RESULTS: list[tuple[str, bool, str]] = []
+ #: The writers that mint or sign with a credential of their own (design row P5b), and the two
+ #: files the sibling command also returns that are no writer.
+ CREDENTIALED = ("tools/pr/app_push.sh", "tools/pr/app_comment.sh", "tools/pr/app_approve.sh", "tools/audit/seat/body_patch.sh",
+-                "tools/audit/seat/remerge_main.sh", "tools/audit/seat/bus.sh", "tools/release/stamp.py")
++                "tools/audit/seat/bus.sh", "tools/release/stamp.py")
+ NOT_WRITERS = {"tools/pr/app_mint.sh": "sourced by its callers, each an arm of its own",
+-               "tools/audit/seat/remerge_main_selftest.py": "a test of remerge_main.sh"}
++               "tools/audit/seat/remerge_main_selftest.py": "a test of remerge_main.sh, whose mint stub records that no mint is made"}
+ SIBLING = ["git", "grep", "-l", "-E", "mint_token|openssl dgst -sha256 -sign|GIT_SSH_COMMAND", "--", "tools"]
+ 
+ 
+@@ -398,21 +398,6 @@ def w_bus(td, rel):
+            {"identity-approver.pem": "KEY"}, cwd=ROOT, extra={"HPO_BUS_REMOTE": str(origin), "HPO_BUS_STATE": str(td / "bus-state")})
+ 
+ 
+-def w_remerge(td, rel):
+-    """Its non-fork path reads no key itself: it runs app_push.sh, whose fail-closed line it reports. So it has no null of
+-    its own: app_push.sh's is its null."""
+-    td.mkdir(parents=True)
+-    stubs, log = stub_bin(td, ("gh", "curl", "ssh", "sleep"))
+-    env = launcher_env(td, stubs)
+-    wt, body = td / "wt", td / "body.md"
+-    wt.mkdir()
+-    body.write_text(f"{NONCE}\n")
+-    rc, out = run(["bash", str(ROOT / rel), "1", str(wt), "fix/x", str(body)], cwd=ROOT, env=env, timeout=120)
+-    arm(f"P5b: {rel} fails at its push with no key, and no curl or ssh is started (its key read is app_push.sh's, the null above)",
+-        rc != 0 and "REMERGE FAILED" in out and not [ln for ln in log.read_text().splitlines() if ln.startswith(("curl", "ssh"))]
+-        and NONCE not in log.read_text(), f"rc {rc}: {out[-200:]!r} log {log.read_text()[:100]!r}")
+-
+-
+ def w_stamp(td, rel):
+     """Run to its refusal only; the null reads the same rule's own function, since past it the stamp would run for real."""
+     td.mkdir(parents=True)
+@@ -433,8 +418,7 @@ def w_stamp(td, rel):
+ 
+ 
+ WRITER_ARMS: dict = {"tools/pr/app_push.sh": w_app_push, "tools/pr/app_comment.sh": w_app_comment, "tools/pr/app_approve.sh": w_app_approve,
+-                     "tools/audit/seat/body_patch.sh": w_body_patch, "tools/audit/seat/remerge_main.sh": w_remerge,
+-                     "tools/audit/seat/bus.sh": w_bus, "tools/release/stamp.py": w_stamp}
++                     "tools/audit/seat/body_patch.sh": w_body_patch, "tools/audit/seat/bus.sh": w_bus, "tools/release/stamp.py": w_stamp}
+ 
+ 
+ def main(argv: list[str]) -> int:

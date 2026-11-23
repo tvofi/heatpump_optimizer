@@ -1,0 +1,16 @@
+FAIL P5b: every file the sibling command returns is an arm here or named as no writer, and every arm is still returned -- owes an arm: ['tools/audit/seat/remerge_main_selftest.py']; no longer returned: []
+ok   P5b: tools/pr/app_push.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_push.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/pr/app_comment.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_comment.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/pr/app_approve.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/pr/app_approve.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/audit/seat/body_patch.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/audit/seat/body_patch.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/audit/seat/bus.sh stops on its own fail-closed line before any call, in the launcher's environment
+ok   P5b null: tools/audit/seat/bus.sh with a throwaway identity directory no longer stops on that line (the refusal is the absent key's)
+ok   P5b: tools/release/stamp.py refuses a deploy key it cannot read, before any git or ssh call
+ok   P5b null: tools/release/stamp.py's push-key rule passes a throwaway mode-600 key (the refusal is the absent key's)
+RESULT arms=13 failed=1
+OWNER-ONLY CHANNEL BROKEN: P5b: every file the sibling command returns is an arm here or named as no writer, and every arm is still returned
+rc=1
