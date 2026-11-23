@@ -1,0 +1,68 @@
+{
+ "key": "7729bdd71430fcf1",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9022 CMP_BOUND",
+ "patch": "if breach > 0.0 and base_cold is not None and sim_cold is not None: -> if breach >= 0.0 and base_cold is not None and sim_cold is not None:",
+ "function": "HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor@8966-9030",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3416.8,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/7729bdd71430fcf1.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7729bdd71430fcf1.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7729bdd71430fcf1.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7729bdd71430fcf1.out",
+  "result_lines": [
+   "RESULT b0_base_above_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_base_above_mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_equal_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_equal_mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_base_below_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_base_below_mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_inf_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_inf_mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_neg_inf_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_neg_inf_mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_nan_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b0_nan_mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b_neg_zero_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b_neg_zero_mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b_missing_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT b_missing_mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT null_b_positive_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.1), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', False), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1) mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.1), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', False), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT cases_moved=0 count of 8",
+   "RESULT null_moved=0 count of 1"
+  ],
+  "baseline_value": "breach 0.0 -> verdict feasible True, comfort_shortfall_c 0.0",
+  "mutant_value": "identical in all 8 cases (cases_moved=0 of 8)",
+  "inputs_tried": "breach 0.0 with base above / equal / below sim, base +inf, -inf, NaN; breach -0.0; breach field missing; null breach 0.3",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "every successful fuse what-if with no cap-induced shortfall",
+ "equivalence": "at breach == 0.0 the clamp max(0.0, min(0.0, base - sim)) is 0.0 for every finite, infinite or NaN difference, so the mutant's extra entry into the clamp returns the same breach",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:9022)",
+  "assertion": "none: no input moves the published verdict"
+ }
+}
