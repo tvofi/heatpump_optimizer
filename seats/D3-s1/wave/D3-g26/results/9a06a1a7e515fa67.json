@@ -1,0 +1,59 @@
+{
+ "key": "9a06a1a7e515fa67",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4610 CMP_BOUND",
+ "patch": "and candidate.objective_value < fixed_objective - 1e-9 -> and candidate.objective_value <= fixed_objective - 1e-9",
+ "function": "HeatPumpOptimizer.optimize",
+ "cluster": "optimizer.py:HeatPumpOptimizer.optimize@4518-4610",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2834.8,
+  "load1_start": 0.72,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/9a06a1a7e515fa67.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9a06a1a7e515fa67 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_9a06a1a7e515fa67.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_9a06a1a7e515fa67.py",
+  "baseline_value": "0 (the metric is a baseline-vs-mutant delta)",
+  "mutant_value": "0 count",
+  "metric": "natural_cells_moved",
+  "unit": "cells whose (adopted, objective) differ",
+  "all_results": {
+   "natural_cells": "8 count",
+   "natural_cells_moved": "0 count",
+   "adopted_baseline_mutant": "['valve_storage_smart_write/winter_typical/24h:11', 'valve_storage_smart_write/winter_typical/48h:00', 'valve_storage_smart_write/flat/24h:00', 'valve_storage_smart_write/flat/48h:00', 'wood_two_tank_smart_write/winter_typical/24h:11', 'wood_two_tank_smart_write/winter_typical/48h:00', 'wood_two_tank_smart_write/flat/24h:00', 'wood_two_tank_smart_write/flat/48h:00']",
+   "forced_tie_solves": "2 count",
+   "forced_tie_adopted_baseline": "0",
+   "forced_tie_adopted_mutant": "1",
+   "thread_factor": "1.000",
+   "load1": "2.32",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "golden valve_storage_smart_write and wood_two_tank_smart_write, winter_typical and flat prices, 24 h and 48 h (8 cells): 0 cells move (hold adopted at winter 24 h in both arms, never elsewhere)",
+   "forced exact tie (candidate objective overwritten to fixed_objective - 1e-9): adopted 0 -> 1 -- the boundary itself, which no honest solve lands on"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/features.py, tests/env_drift.py execute line 4610",
+  "assertion": "none: only a candidate objective exactly equal to fixed_objective - 1e-9 separates < from <=, a measure-zero float tie"
+ },
+ "non_finding": {
+  "claim": "mutant 9a06a1a7e515fa67 at custom_components/heatpump_optimizer/optimizer.py:4610 (and candidate.objective_value < fixed_objective - 1e-9 -> and candidate.objective_value <= fixed_objective - 1e-9) survives the full gate but is equivalent through production: none: only a candidate objective exactly equal to fixed_objective - 1e-9 separates < from <=, a measure-zero float tie",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_9a06a1a7e515fa67.py",
+  "value": "natural_cells_moved: baseline 0 (the metric is a baseline-vs-mutant delta), mutant 0 count; golden valve_storage_smart_write and wood_two_tank_smart_write, winter_typical and flat prices, 24 h and 48 h (8 cells): 0 cells move (hold adopted at winter 24 h in both arms, never elsewhere); forced exact tie (candidate objective overwritten to fixed_objective - 1e-9): adopted 0 -> 1 -- the boundary itself, which no honest solve lands on"
+ }
+}
