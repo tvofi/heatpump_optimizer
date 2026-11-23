@@ -1,0 +1,43 @@
+{
+ "key": "c9f07b68ade152e6",
+ "site": "custom_components/heatpump_optimizer/price_model.py:303 CMP_BOUND",
+ "patch": "`if trust <= 0.0:` -> `if trust < 0.0:`",
+ "function": "PriceShapeModel.quarter_factor",
+ "cluster": "price_model.py:PriceShapeModel.quarter_factor@303-303",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3498.0,
+  "load1_start": 0.99,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5831.0,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/gates/c9f07b68ade152e6.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c9f07b68ade152e6",
+ "machine": "box D3-g31: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB (walls and loads provisional)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_c9f07b68ade152e6.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_c9f07b68ade152e6.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_c9f07b68ade152e6.out",
+  "baseline_value": "prod_differ=0 of 900; direct nan factor at trust 0 -> 1.0",
+  "mutant_value": "prod_differ=0 of 900; direct nan factor at trust 0 -> nan",
+  "inputs_tried": "from_dict-loaded models, quarter factor in {0.25,0.5,1.0,1.3,4.0,nan,inf,-1,0} x quarter_days {0,1,3,5,9} at 20 instants (weekday and weekend, every quarter mark); direct-constructed factors nan, inf, -inf, 1.3, 0.25 at trust 0"
+ },
+ "should_fail": "none through production (trust = min(1, quarter_days/5) with quarter_days floored at 0 is never negative); only the direct non-finite-factor call separates",
+ "note": "At trust 0 the mutant returns 1 + (f - 1) * 0 == 1.0 for every finite factor; only a non-finite stored factor separates, and from_dict's _stored_rows rejects non-finite bins and _in_domain clips the rest to [0.25, 4.0], while the learner writes clipped finite factors. Equivalent through every load and learn path."
+}
