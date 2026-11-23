@@ -409,6 +409,9 @@ class ArbiterState:
     step_pending: bool = False
     #: Held around one re-cut and its tail, by the cycle and the tick alike.
     tail_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    #: GCHV night register -> its reading before the arbiter's first write to
+    #: it, which the off restore writes back (:func:`_release_row`); persisted.
+    night_before: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -1871,6 +1874,10 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
         "night_end_minute": end_m,
     }
     for slot in _NIGHT_SLOTS:
+        if slot not in held.written and slot not in held.night_before:
+            # The register's own value, before the first write moves it.
+            if (before := _observed(inp, slot)) is not None:
+                held.night_before[slot] = before
         await _write(coord, inp, slot, values[slot], now)
 
 
@@ -2305,7 +2312,8 @@ def baseline_row(coord: Any, inp: ArbiterInputs, now: datetime) -> PumpCommand:
 
 
 async def _release_row(_hass: Any, entry: Any, _config: Any, reason: str) -> bool:
-    """The off restore of :data:`ROW`: write the baseline row; True once every slot took it.
+    """The off restore of :data:`ROW`: write the baseline row, then each GCHV
+    night register's own value (``night_before``); True once every slot took it.
 
     While the power switch reads off the pump takes no write
     (:func:`_pump_off`), so the row stays owed and the next cycle tries
@@ -2321,6 +2329,10 @@ async def _release_row(_hass: Any, entry: Any, _config: Any, reason: str) -> boo
         return False
     if not await _command(coord, inp, baseline_row(coord, inp, now), now, release=True):
         return False
+    for slot, before in list(held.night_before.items()):
+        if not await _write(coord, inp, slot, before, now, release=True):
+            return False
+        del held.night_before[slot]
     for record in (held.written, held.misses, held.retry):
         for slot in [s for s in record if s != "space_setpoint"]:
             del record[slot]
@@ -2374,6 +2386,7 @@ async def _persist(coord: Any) -> None:
     payload = {
         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
         "dropped": dict(held.dropped),
+        "night_before": dict(held.night_before),
     }
     try:
         await _store(coord).async_save(payload)
@@ -2402,6 +2415,10 @@ async def _load(coord: Any) -> None:
             held.written[slot] = (value, at)
     dropped = raw.get("dropped")
     held.dropped = {k: v for k, v in dropped.items() if _writable(k, v)} if isinstance(dropped, dict) else {}
+    before = raw.get("night_before")
+    held.night_before = {
+        k: v for k, v in before.items() if k in _NIGHT_KEYS and _writable(k, v)
+    } if isinstance(before, dict) else {}
 
 
 def _writable(slot: str, value: Any) -> bool:
