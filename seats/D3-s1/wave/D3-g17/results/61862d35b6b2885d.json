@@ -1,0 +1,106 @@
+{
+ "key": "61862d35b6b2885d",
+ "site": "custom_components/heatpump_optimizer/dhw_planner.py:2307 CLAMP_DROP",
+ "patch": "return np.clip(plan, 0.0, p_dhw_max) -> return (plan)",
+ "function": "DhwPlanner._plan_dhw_cheapest_first",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first@2232-2307",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3197.3,
+  "load1_start": 0.78,
+  "load1_end": 0.94,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/gates/61862d35b6b2885d.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 61862d35b6b2885d",
+ "provisional_walls": true,
+ "machine": "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+ "class": "candidate",
+ "m4_carried_from": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_61862d35b6b2885d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_61862d35b6b2885d.py",
+  "results": {
+   "plan_baseline": "[0,0,0,0,0,0,0,0,3,0,0,0]",
+   "plan_mutant": "[0,0,0,0,0,0,0,0,3.5,0,0,0]",
+   "plan_max_baseline": "3",
+   "plan_max_mutant": "3.5",
+   "plan_max_null_delta": "0",
+   "sweep_inputs": "160",
+   "sweep_differing_inputs": "0",
+   "sweep_max_delta_kw": "0",
+   "reach": "DhwPlanner.optimize sets min_run_power = min(p_dhw_run, ...) (dhw_planner.py:1141), so min_run_power > p_dhw_max is not produced by optimize; the method itself is the seam",
+   "inputs_tried": "min_run_power 3.5/p_dhw_max 3.0; null 0.1/3.0; 160 random (derate 0/0.2/0.9, initial plans) for a float overshoot",
+   "thread_factor": "1.000",
+   "load1": "1.25",
+   "swapins": "0"
+  },
+  "inputs_tried": "min_run_power 3.5/p_dhw_max 3.0; null 0.1/3.0; 160 random (derate 0/0.2/0.9, initial plans) for a float overshoot"
+ },
+ "reach": "method-level only: DhwPlanner.optimize sets min_run_power <= p_dhw_run (dhw_planner.py:1141), and its _ctx_clamp re-clamps later",
+ "should_fail": "tests/features.py _plan_dhw_cheapest_first callers (_r7d203_greedy_steps at features.py:63168, the derate check at features.py:82539, the min-cost/greedy comparison at features.py:63622): none passes min_run_power > p_dhw_max and asserts the returned plan stays <= ctx.p_dhw_max",
+ "finding": {
+  "title": "No check pins cheapest-first's final clip to p_dhw_max; dropping it is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant 61862d35b6b2885d at dhw_planner.py:2307 (CLAMP_DROP: return np.clip(plan, 0.0, p_dhw_max) -> return (plan)) survives the full gate (RED-AS-NULL), yet the probe's number moves: baseline plan_max_baseline=3, mutant plan_max_mutant=3.5.",
+  "mechanism": "Reach: method-level only: DhwPlanner.optimize sets min_run_power <= p_dhw_run (dhw_planner.py:1141), and its _ctx_clamp re-clamps later. Check that should have failed (D3.M4): tests/features.py _plan_dhw_cheapest_first callers (_r7d203_greedy_steps at features.py:63168, the derate check at features.py:82539, the min-cost/greedy comparison at features.py:63622): none passes min_run_power > p_dhw_max and asserts the returned plan stays <= ctx.p_dhw_max.",
+  "metric_definition": "kW (max planned DHW step power) -- see the probe header's Metric line",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_cheapest_first",
+  "perturbation": {
+   "change": "the one-line mutant at dhw_planner.py:2307 applied in memory by the probe; full gate: fullgate.py run --key 61862d35b6b2885d",
+   "expected_direction": "up",
+   "observed_value": "plan_max_baseline=3 -> plan_max_mutant=3.5"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_61862d35b6b2885d.py",
+   "value": "plan_max_null_delta=0",
+   "note": "the arm where the edit cannot matter (probe header's Null control line); box null gate: gates/null.json"
+  },
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_61862d35b6b2885d.py"
+  ],
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_61862d35b6b2885d.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_61862d35b6b2885d.py",
+   "value": "3.5",
+   "unit": "kW (max planned DHW step power)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "count",
+   "contention_note": "probe values are deterministic floats/counts; the probes ran in a separate baseline worktree (~/probe-tree) while this box's gates ran (load1 ~1)",
+   "tolerance": "exact",
+   "load1": 1.25,
+   "thread_factor": 1.0
+  },
+  "phenomenon_property": "DhwPlanner._plan_dhw_cheapest_first never returns a step above ctx.p_dhw_max",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_61862d35b6b2885d.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 61862d35b6b2885d"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's separating input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}
