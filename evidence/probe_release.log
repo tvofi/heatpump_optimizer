@@ -1,4 +1,0 @@
-PROBE ('cycle in Cooling', True, [])
-PROBE ('tick +15 after Heating set', [])
-PROBE ('tick +30 after Heating set', [])
-ALL 18 FEATURES BLOCK PASSED
