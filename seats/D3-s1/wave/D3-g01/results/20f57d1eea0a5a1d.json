@@ -1,0 +1,81 @@
+{
+ "key": "20f57d1eea0a5a1d",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4508 BOOLOP",
+ "patch": "if params.dhw_enabled and params.dhw_windows_active -> if params.dhw_enabled or params.dhw_windows_active",
+ "function": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps@4497-4538",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3014.8,
+  "child_cpu_s": 4973.0,
+  "load1_start": 1.01,
+  "load1_end": 0.92,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 20f57d1eea0a5a1d",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g01/gates/20f57d1eea0a5a1d.json",
+ "provisional": "wall/cpu/load are provisional (nproc 4, Intel Xeon @ 2.30GHz, box alone); counts final",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_20f57d1eea0a5a1d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_20f57d1eea0a5a1d.py",
+  "metric": "VVC pump command at 12:00 with a 06:00-08:30 DHW window and DHW disabled",
+  "baseline_value": "[('turn_on', 'switch.vvc')]",
+  "mutant_value": "[('turn_off', 'switch.vvc')]",
+  "inputs_tried": [
+   "DHW disabled, schedule on, 12:00 (on vs off)",
+   "DHW enabled, schedule off, 12:00 (on vs off)",
+   "DHW disabled at 07:00 inside the window (both on)",
+   "null: both operands true / both false (identical)"
+  ],
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps"
+ },
+ "should_fail": "tests/features.py and tests/config_flow_steps.py execute coordinator.py:4508 on the traced baseline but no check drives the VVC pump with exactly one of dhw_enabled / dhw_windows_active true and asserts it is left on",
+ "finding": {
+  "title": "No check drives the VVC pump with DHW disabled but windows configured; and -> or switches the loop off unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 20f57d1eea0a5a1d at custom_components/heatpump_optimizer/coordinator.py:4508 (if params.dhw_enabled and params.dhw_windows_active -> if params.dhw_enabled or params.dhw_windows_active) is not killed by the full GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict RED-AS-NULL, gate_rc 1, no script red beyond this box's null), yet the probe's number moves: baseline [('turn_on', 'switch.vvc')], mutant [('turn_off', 'switch.vvc')].",
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py and tests/config_flow_steps.py execute coordinator.py:4508 on the traced baseline but no check drives the VVC pump with exactly one of dhw_enabled / dhw_windows_active true and asserts it is left on.",
+  "metric_definition": "VVC pump command at 12:00 with a 06:00-08:30 DHW window and DHW disabled",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps",
+  "phenomenon_property": "With DHW disabled or its schedule off, the VVC circulation loop is left on (no window frame applies)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_20f57d1eea0a5a1d.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_20f57d1eea0a5a1d.py",
+  "perturbation": {
+   "change": "the one-line mutant 20f57d1eea0a5a1d applied in memory by the probe; full gate: fullgate.py run --src complete --key 20f57d1eea0a5a1d",
+   "expected_direction": "down",
+   "unit": "VVC command"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_20f57d1eea0a5a1d.py",
+   "value": "null_delta=0 count",
+   "gate_null": "fullgate.py null on box D3-g01: gate_rc 1, red ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+ }
+}
