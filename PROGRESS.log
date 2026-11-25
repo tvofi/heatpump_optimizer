@@ -127,3 +127,8 @@
 1795612705 HB alive
 1795613311 HB alive
 1795613915 HB alive
+1795614520 HB alive
+1795614537 HB alive
+1795614537 CKPT D3-s1 60 file(s)
+1795614599 HB resumed after session restart: loop restarted (stale proxy env); gated 11/16
+1795614672 CKPT D3-s1 60 file(s)
