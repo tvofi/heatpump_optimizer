@@ -6755,6 +6755,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._pump_mode_last_good_at = _mode_now
         _observe_heat_energy(self, reader, _mode_now)
         self._check_pump_mode_expired()
+        supply_hold.note_cooling(pump_arbiter.state_for(self), self.arbiter_inputs(), self._pump_signals)  # clears once cooling is left
         # The arbiter's own gate, wired here: the coordinator owns both
         # sides of the seam, so setpoint_check needs no import-time hook
         # back into pump_arbiter (#1739).
@@ -7777,19 +7778,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _write_supply(self, on: bool) -> None:
         """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
         held = pump_arbiter.state_for(self)
-        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
-            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
+        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), supply_hold.supply_write(
+            held, self.arbiter_inputs(), early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
             await pump_arbiter.write_supply(self, switch_entity, value)
-        elif switch_entity and not held.supply_held:
-            _LOGGER.debug(
-                "Not switching %s off: mode %s is cooling or blocks both "
-                "channels, so an empty plan is this integration's doing "
-                "rather than a decision to stop the pump",
-                switch_entity,
-                self._pump_signals.mode.label,
-            )
     # ------------------------------------------------------------------
     # Published state
     # ------------------------------------------------------------------
