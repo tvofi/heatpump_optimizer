@@ -5,7 +5,7 @@ Metric (one line): differing_cases = how many inputs of this probe's case set gi
 published SystemIdentification.identify() result (completed, reason, UA, C, gains, drift,
 confidence) under the mutant than at the baseline; the KEY case's internal_gains_kw is printed per arm.
 Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d203230963349f60.py
-Expected: (filled from the recorded run)
+Expected: differing_cases=2 of cases=30 (exact count); key_internal_gains_kw baseline=0.0, mutant=-0.2999999803793181 (tolerance 1e-6 relative on floats)
 Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (sysid.py read with git show, never the worktree file).
 Machine: box D3-g35 cloud container, 4 cores, Intel Xeon @ 2.10GHz; counts exact, run time provisional.
 Instrumented symbol: custom_components.heatpump_optimizer.sysid:SystemIdentification.identify
