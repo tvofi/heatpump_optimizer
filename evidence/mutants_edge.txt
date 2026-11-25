@@ -1,5 +1,0 @@
-UNMUTATED edge rc=0 
-K8_moldpad_truncate SURVIVED (edge)
-O5_markoff KILLED rc=1 (edge) 1 FAILURES
-O6_buildoff KILLED rc=1 (edge) 1 FAILURES
-git status: 0 modified
