@@ -842,12 +842,12 @@ def step_replay_self_test(root: Path) -> int:
                 got = sorted(l.split(":")[0].removeprefix("STEP REPLAY ")
                              for _, l in step_replay_preds(t, base, {"tools/a.sh"}, notes))
             said = any(x.startswith("LEFT TO CI 1 of 2 ") and x.endswith(": c") for x in notes)
-            good = got == want and said == left
-            print(f"  {'ok  ' if good else 'FAIL'} " + (
+            held = got == want and said == left  # its own name: a deleted line cannot inherit `good`
+            print(f"  {'ok  ' if held else 'FAIL'} " + (
                 "a spent replay budget replays the step naming the changed file first and leaves "
                 "the rest to CI, named" if budget else
                 "null control: under the default budget both steps are replayed and none is left"))
-            bad += not good
+            bad += not held
         wf = (t / INSTRUMENT_WF).read_text()
         (t / INSTRUMENT_WF).write_text(wf + "      - name: e\n        id: e\n        if: ${{ !cancelled() && steps.d.outcome == 'failure' }}\n"
                                        "        run: bash tools/e.sh\n      - name: f\n        id: f\n"
