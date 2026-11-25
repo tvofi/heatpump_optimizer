@@ -384,7 +384,7 @@ _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     # #3862: the switch as held, and whether it lifts the block (False with detection off).
     ("external_heat_block_ignore", lambda c: {
         "switch_on": boost.extheat_block_ignored(c),
-        "block_ignored": bool(((c.data or {}).get("external_heat") or {}).get("block_ignored")),
+        "block_ignored": False,
     }),
 )
 
