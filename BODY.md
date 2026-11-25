@@ -37,7 +37,7 @@ Code-owned paths: `.github/workflows/ci.yml` and `tests.yml`. The owner's approv
 
 ## Head
 
-`23eb36c87a583355843337dc9dee5b4cf18527d7`, on `origin/handoff/r11-ci-case-select` 58c73880 merged with `origin/main` 91f6e91b (merge ea95bdd3). Measured 2026-11-25T22:43Z.
+`a486d863340304d6f6a37d2deaa28380fa0cd70f`, on `origin/handoff/r11-ci-case-select` 58c73880 merged with `origin/main` 91f6e91b (merge ea95bdd3). Measured 2026-11-25T22:43Z.
 
 ## Mutation proof
 
