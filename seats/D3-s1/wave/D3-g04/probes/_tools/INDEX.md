@@ -1,1 +1,2 @@
 - _tools/: the probe generator (gen.py + spec.py + prelude.py) and the per-key record builder (record.py, meta.py); run from $HOME/pgen on the box
+- build_wave_report.py: builds REPORT.json/md from results/; autorec.sh: records each newly gated key with record.py and checkpoints (fire 2)
