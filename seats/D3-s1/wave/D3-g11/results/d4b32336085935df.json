@@ -1,0 +1,64 @@
+{
+ "key": "d4b32336085935df",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8457 GUARD_OFF",
+ "patch": "if not entry: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator.month_channel_totals",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator.month_channel_totals",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2653.0,
+  "load1_start": 0.86,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/d4b32336085935df.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d4b32336085935df",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_d4b32336.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_d4b32336.py",
+  "rc": 0,
+  "results": [
+   "RESULT fresh_ledger_baseline=(0.0, 0.0) mutant=(0.0, 0.0)",
+   "RESULT other_month_only_baseline=(0.0, 0.0) mutant=(0.0, 0.0)",
+   "RESULT other_line_only_baseline=(0.0, 0.0) mutant=(0.0, 0.0)",
+   "RESULT restored_non_dict_entry_baseline=(0.0, 0.0) mutant=(0.0, 0.0)",
+   "RESULT moved_production=0 count",
+   "RESULT stub_empty_dict_baseline=None mutant=(0.0, 0.0)  (not a production ledger)",
+   "RESULT stub_none_baseline=None mutant=AttributeError  (not a production ledger)",
+   "RESULT null_moved=0 count",
+   "RESULT thread_factor=1.002",
+   "RESULT load1=0.77",
+   "RESULT swapins=0 count"
+  ],
+  "inputs_tried": [
+   "RESULT fresh_ledger_baseline=(0.0, 0.0) mutant=(0.0, 0.0)",
+   "RESULT other_month_only_baseline=(0.0, 0.0) mutant=(0.0, 0.0)",
+   "RESULT other_line_only_baseline=(0.0, 0.0) mutant=(0.0, 0.0)",
+   "RESULT restored_non_dict_entry_baseline=(0.0, 0.0) mutant=(0.0, 0.0)",
+   "RESULT moved_production=0 count",
+   "RESULT stub_empty_dict_baseline=None mutant=(0.0, 0.0)  (not a production ledger)",
+   "RESULT stub_none_baseline=None mutant=AttributeError  (not a production ledger)",
+   "RESULT null_moved=0 count",
+   "RESULT thread_factor=1.002",
+   "RESULT load1=0.77",
+   "RESULT swapins=0 count"
+  ]
+ },
+ "should_fail": "none can fail through production: ledger.py:MonthlyLedger.line returns {'kwh': 0.0, 'sek': 0.0} (truthy) for an empty month or line, so the guard never fires on the baseline either (see the lead on the docstring's None contract)",
+ "class": "equivalent-candidate"
+}
