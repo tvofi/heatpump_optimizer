@@ -125,10 +125,6 @@ NOT_A_TEST = {
     # runs, kept out of features.py so CodeQL's extraction of that module
     # fits its job limit. Measured through features.py's closure.
     "worker_deadlines.py",
-    # The case sampler (#3885): a module features.py and entities.py import
-    # and run first. Measured through their closures; entities.py runs its
-    # self-test.
-    "case_sample.py",
     # The case runner and recorder (R11-CI-CASE-SELECT): a gate file below,
     # never a test of its own; tests/entities.py runs its self-test.
     "case_select.py",

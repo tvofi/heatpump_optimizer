@@ -409,14 +409,9 @@ jobs:
           # The architecture-score pair is `arch-instrument`'s, below (U5b):
           # run.sh skips it here by name.
           RUN_PART: fast
-          # #3885, pull requests only: run.sh skips tests/stress.py (the push
-          # to main and nightly.yml's `slow` job run it), and features.py and
-          # entities.py run a seeded 30% of their independent sections
-          # (tests/case_sample.py), seeded by the head so a rerun repeats the
-          # subset. Every other event leaves both empty: the full set.
+          # #3885: on a pull request run.sh skips tests/stress.py; the push
+          # to main and nightly.yml's `slow` job run it.
           HPO_CI_EVENT: ${{ github.event_name }}
-          HPO_CASE_SAMPLE: ${{ github.event_name == 'pull_request' && '0.3' || '' }}
-          HPO_CASE_SAMPLE_SEED: ${{ github.event_name == 'pull_request' && (inputs.head || github.sha) || '' }}
           # No STRESS_SOLVE_BUDGET_MS here any more. An absolute wall-clock
           # budget cannot tell a slower solver from a busier runner, and on
           # shared runners it answered the second question. tests/stress.py

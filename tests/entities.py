@@ -35,14 +35,6 @@ import sys
 import tempfile
 import threading
 from datetime import UTC, datetime, timedelta
-
-import case_sample  # noqa: E402
-
-# #3885: on a pull request, a seeded sample of this script's sections
-# (tests/case_sample.py); everywhere else every section, and one CASE-SAMPLE
-# line says which.
-if case_sample.engage(__file__, "entities"):
-    raise SystemExit  # unreachable: engage() exits with the sampled run's status
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
@@ -17307,7 +17299,10 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
         script = td / "drive.sh"
         script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=${JOBS:-1}; LANE=x; step=0\n%s\n\"$@\"\n"
                           % (sys.executable, fns))
-        env = {k: v for k, v in _os.environ.items() if not k.startswith("HPO_GATE")}
+        # Not the CI job's event or scope: on a pull request lane_stress skips
+        # stress.py (#3885), and this pin is about the lease, not the skip.
+        env = {k: v for k, v in _os.environ.items()
+               if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
         env["HPO_GATE_LOCK_DIR"] = str(lock)
         drive = lambda jobs, *cmd: _subprocess.Popen(
             ["bash", str(script), *cmd], cwd=td, env={**env, "JOBS": jobs},
@@ -17336,6 +17331,37 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_run_sh_leases_stress()
 R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
+def _gl_stress_off_pull_requests() -> dict[tuple[str, str], tuple[bool, bool]]:
+    """#3885: run.sh's own lane_stress, sourced and driven against the stub
+    tree under each (HPO_CI_EVENT, GATE_SCOPE): (stress.py ran, the SKIP line
+    was printed). Only a pull request under a scoped gate skips it."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|in_scope|run|run_always|leased|skip|lane_stress)\(\) \{.*?^\}\n", text))
+    out = {}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=1; LANE=x; step=0\n%s\n\"$@\"\n"
+                          % (sys.executable, fns))
+        base = {k: v for k, v in _os.environ.items()
+                if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
+        base["HPO_GATE_LOCK_DIR"] = str(Path(tds) / "lock")
+        for event, scope in (("pull_request", "auto"), ("pull_request", "full"), ("push", "auto"), ("", "auto")):
+            (td / "stress.ran").unlink(missing_ok=True)
+            env = {**base, "GATE_SCOPE": scope, **({"HPO_CI_EVENT": event} if event else {})}
+            r = _subprocess.run(["bash", str(script), "lane_stress"], cwd=td, env=env, timeout=120,
+                                capture_output=True, text=True)
+            out[(event or "local", scope)] = ((td / "stress.ran").exists(), "SKIP: tests/stress.py" in r.stdout)
+    return out
+
+
+_gl_off = _gl_stress_off_pull_requests()
+R.check("run.sh's lane_stress skips stress.py on a pull request under a scoped gate, and runs it under "
+        "GATE_SCOPE=full, on a push and locally (#3885)",
+        _gl_off == {("pull_request", "auto"): (False, True), ("pull_request", "full"): (True, False),
+                    ("push", "auto"): (True, False), ("local", "auto"): (True, False)}, str(_gl_off))
 
 
 def _gl_run_sh_wait_unrun() -> dict[str, tuple[bool, str]]:
@@ -43347,6 +43373,10 @@ _R10_LOG_ALLOWED_BY_REASON = {
         # R11 D14-s2-03: a fit that raises ends the experiment in the same
         # call (phase done, a refusal published), so it logs once per night armed.
         ("sysid.py", "_finish"): 1,
+        # R11-OWNER-COOLING-GUARD: the warning raises ``ISSUE_COOLING`` and
+        # sets ``cooling_asked`` in the same call; it logs again only after
+        # the mode has left cooling and the flag cleared.
+        ("supply_hold.py", "note_cooling"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
@@ -44009,22 +44039,6 @@ R.check(
     and len(_BR("tests/README.md")) == 1
     and " key " not in _BR("tests/README.md")[0],
     f"rows: {_BR('dev/audit/README.md') + _BR('tools/audit/README.md') + _BR('tests/README.md')}",
-)
-
-
-R.section("The case sampler (#3885)")
-# tests/case_sample.py decides which sections of features.py and of this
-# script a pull request runs. Its self-test drives the dependency rule (a
-# reader never runs without what it reads, an order-dependent section always
-# runs), the seed (a rerun repeats the subset), the fraction bounds and the
-# FULL line, each against a fixture script it writes and runs.
-_cs_run = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("case_sample.py")), "--self-test"],
-                         capture_output=True, text=True, timeout=600)
-R.check(
-    "the case sampler's self-test passes: a sampled run keeps every section a kept one reads, repeats its "
-    "subset for the same seed, and a full run prints FULL n/n",
-    _cs_run.returncode == 0 and "CASE-SAMPLE SELF-TEST: PASSED" in _cs_run.stdout,
-    (_cs_run.stdout + _cs_run.stderr)[-600:],
 )
 
 
