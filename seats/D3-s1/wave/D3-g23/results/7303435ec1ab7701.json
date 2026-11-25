@@ -1,0 +1,64 @@
+{
+ "key": "7303435ec1ab7701",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5212 CMP_BOUND",
+ "patch": "pin = float(pins[j]) if j < len(pins) else float(\"nan\") -> pin = float(pins[j]) if j <= len(pins) else float(\"nan\")",
+ "function": "HeatPumpOptimizer._safety_release_steps._preceding_off",
+ "cluster": "optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off@5211-5213",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3238.0,
+  "child_cpu_s": 5328.5,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7303435ec1ab7701",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/7303435ec1ab7701.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7303435ec1ab7701.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7303435ec1ab7701.py",
+  "metric": "direct_short_pins",
+  "baseline_value": "([0],[])",
+  "mutant_value": "IndexError",
+  "reach": "unreachable through production: _normalise_pins makes every pin array n_steps long; 0 of 3 optimize() solves with short arrays differ; 0 of 11 release calls see a short array",
+  "inputs_tried": [
+   "1-long pins with a breach at step 2 (direct)",
+   "full-length pins (null)",
+   "optimize() with 95/50/1-long pins",
+   "reach count over the 7 REACH_SCENARIOS"
+  ],
+  "results": [
+   "RESULT direct_short_pins_baseline=([0],[])",
+   "RESULT direct_short_pins_mutant=IndexError",
+   "RESULT null_full_pins_delta=0",
+   "RESULT optimize_short_pins_differing_plans=0 of 3",
+   "RESULT reach_short_pins_calls=0 of 11 (over 7 manual-plan solves)",
+   "RESULT thread_factor=1.001",
+   "RESULT load1=4.96",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "none through production; only a direct call with a short pin array separates"
+}
