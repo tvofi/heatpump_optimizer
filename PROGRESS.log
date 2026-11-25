@@ -18,3 +18,4 @@
 1795632245 INBOX acked through 2
 1795632253 CKPT start: stale dispatch; resuming from mm/3872 per NOTE 2 snapshot 9d48c5ad128e
 1795632352 CKPT structure.py PASSED on merged tree 0c8d0bd4 snapshot 7b8b97977de6
+1795632414 CKPT ci_predict re-measured: 42 sites, 7 relocated keys snapshot 09d1961196d6
