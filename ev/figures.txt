@@ -1,0 +1,9 @@
+[(1, 3), (30, 92), (32, 99), (33, 102), (50, 154)]
+0
+138
+74
+dev/programme/delivery/3868.md
+tools/audit/seat/corpus_mirror.py
+tools/audit/seat/instruments/corpus_mirror.py.md
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+STRUCTURE RATCHET PASSED
