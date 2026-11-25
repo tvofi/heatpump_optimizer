@@ -29,22 +29,22 @@ Wall, CPU and load numbers are provisional (nproc 4, Intel Xeon @ 2.10GHz; the j
 
 | key | site | patch | verdict | class | probe baseline -> mutant |
 |---|---|---|---|---|---|
-| 9efe002b48e1827d | coordinator.py:6360 RETURN_DEL | `return None -> pass` | TIMEOUT | timeout | - -> - |
-| a7488872387d5ca7 | coordinator.py:6379 CMP_BOUND | `if len(prices) < 4: -> if len(prices) <= 4:` | RED-AS-NULL | equivalent-candidate | - -> - |
+| 9efe002b48e1827d | coordinator.py:6360 RETURN_DEL | `return None -> pass` | TIMEOUT | timeout | pre-gate: see below |
+| a7488872387d5ca7 | coordinator.py:6379 CMP_BOUND | `if len(prices) < 4: -> if len(prices) <= 4:` | RED-AS-NULL | equivalent-candidate | equal on every input tried |
 | 61e748f094f2daa8 | coordinator.py:6454 CMP_BOUND | `if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT: -> if self._solve_failures > SOLVE_FAILURE_ISSUE_COUNT:` | RED-AS-NULL | candidate | 0 -> 1 |
 | a33188790c5affad | coordinator.py:6454 GUARD_OFF | `if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT: -> if False:` | RED-AS-NULL | candidate | 0 -> 1 |
 | 94285425a1bc856a | coordinator.py:6615 GUARD_OFF | `if pending: -> if False:` | RED-AS-NULL | candidate | True -> False |
 | 69b933a6a720006b | coordinator.py:6620 GUARD_OFF | `if still_pending: -> if False:` | RED-AS-NULL | candidate | 1 -> 0 |
-| ede3dd3467ffc6e5 | coordinator.py:11214 CMP_BOUND | `if len(horizon.prices) < 4: -> if len(horizon.prices) <= 4:` | RED-AS-NULL | equivalent-candidate | - -> - |
+| ede3dd3467ffc6e5 | coordinator.py:11214 CMP_BOUND | `if len(horizon.prices) < 4: -> if len(horizon.prices) <= 4:` | RED-AS-NULL | equivalent-candidate | equal on every input tried |
 | 9dcd374ac007dfc9 | coordinator.py:11271 BOOLOP | `if "power_cap_kw" in overrides and simulated.predictive_info -> if "power_cap_kw" in overrides or simulated.predictive_info` | RED-AS-NULL | candidate | 0 -> 1 |
-| d4b32336085935df | coordinator.py:8457 GUARD_OFF | `if not entry: -> if False:` | RED-AS-NULL | equivalent-candidate | - -> - |
+| d4b32336085935df | coordinator.py:8457 GUARD_OFF | `if not entry: -> if False:` | RED-AS-NULL | equivalent-candidate | equal on every input tried |
 | 4fd094e9727818b3 | coordinator.py:2907 CMP_BOUND | `age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES) -> age >= timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES)` | RED-AS-NULL | candidate | 12.0 -> None |
 | e2b030e0716d126c | coordinator.py:2910 CMP_BOUND | `-5.0 <= value <= 35.0 -> -5.0 <= value < 35.0` | RED-AS-NULL | candidate | 35.0 -> None |
-| dc6c13eca2ca1737 | coordinator.py:1864 GUARD_OFF | `if worker is not None and worker.poll() is None: -> if False:` | KILLED | killed | - -> - |
+| dc6c13eca2ca1737 | coordinator.py:1864 GUARD_OFF | `if worker is not None and worker.poll() is None: -> if False:` | KILLED | killed | killed by the suite |
 | 738102c9ed0f89af | coordinator.py:984 GUARD_OFF | `if curve is None: -> if False:` | RED-AS-NULL | candidate | ok -> TypeError |
 | 372a4f4fcc8de86f | coordinator.py:490 CMP_BOUND | `value > 0 and -> value >= 0 and` | RED-AS-NULL | candidate | 0 -> 1 |
 | 6f5898d327366799 | coordinator.py:3101 CMP_BOUND | `precip > 1e-9, -> precip >= 1e-9,` | RED-AS-NULL | candidate | 1.0 -> 0.0 |
-| b247841f5466162d | coordinator.py:2539 CMP_BOUND | `if now_s < starts[0]: -> if now_s <= starts[0]:` | RED-AS-NULL | equivalent-candidate | - -> - |
+| b247841f5466162d | coordinator.py:2539 CMP_BOUND | `if now_s < starts[0]: -> if now_s <= starts[0]:` | RED-AS-NULL | equivalent-candidate | equal on every input tried |
 
 ## Survivors: step-4 answers
 

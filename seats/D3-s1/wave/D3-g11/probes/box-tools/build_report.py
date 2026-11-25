@@ -83,7 +83,7 @@ L = [f"# D3-s1 box D3-g11: full gate for 16 D3.M3 full-net survivors (round 11, 
      "| key | site | patch | verdict | class | probe baseline -> mutant |", "|---|---|---|---|---|---|"]
 for k in [x[0] for x in keys]:
     r = R[k]; p = r.get("probe") or {}
-    L.append(f"| {k} | {r['site'].replace('custom_components/heatpump_optimizer/','')} | `{r['patch']}` | {r['gate']['verdict']} | {r['class']} | {p.get('baseline_value','-')} -> {p.get('mutant_value','-')} |")
+    L.append(f"| {k} | {r['site'].replace('custom_components/heatpump_optimizer/','')} | `{r['patch']}` | {r['gate']['verdict']} | {r['class']} | {('equal on every input tried' if r['class']=='equivalent-candidate' else ('killed by the suite' if r['class']=='killed' else ('pre-gate: see below' if r['class']=='timeout' else str(p.get('baseline_value'))+' -> '+str(p.get('mutant_value')))))} |")
 L += ["", "## Survivors: step-4 answers", ""]
 for k in [x[0] for x in keys]:
     r = R[k]
