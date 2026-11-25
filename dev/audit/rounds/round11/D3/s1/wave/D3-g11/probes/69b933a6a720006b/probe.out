@@ -1,0 +1,6 @@
+RESULT wedged_task_baseline=task_done:False warnings:1 mutant=task_done:False warnings:0
+RESULT warnings_baseline=1 mutant=0
+RESULT null_moved=0 count  (0.3 s task: baseline (True, 0), mutant (True, 0))
+RESULT thread_factor=1.000
+RESULT load1=0.19
+RESULT swapins=0 count

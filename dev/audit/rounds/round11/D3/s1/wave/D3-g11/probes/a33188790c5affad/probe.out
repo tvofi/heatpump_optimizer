@@ -1,0 +1,5 @@
+RESULT issues_left_after_recovery_3_failures_baseline=0 mutant=1  (raised 1 / 1)
+RESULT null_moved=0 count  (1 failures: baseline (0, 0), mutant (0, 0))
+RESULT thread_factor=1.000
+RESULT load1=0.23
+RESULT swapins=0 count

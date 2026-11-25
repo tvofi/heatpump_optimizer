@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py: pins _dhw_inlet_c line 2907 (CMP_BOUND `age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES)` -> `age >= timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES)`): _dhw_inlet_c's return for a 12.0 degC inlet reading aged exactly 24 h (frozen clock)

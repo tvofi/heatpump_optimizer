@@ -1,0 +1,24 @@
+
+import time
+from datetime import datetime, timedelta, timezone
+from unittest import mock
+from tests.harness import FakeState, FakeStates
+
+NOW = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+MUT = mutate(co._dhw_inlet_c, "age > timedelta(", "age >= timedelta(")
+
+
+def read(fn, age):
+    hass = type("H", (), {})()
+    hass.states = FakeStates({"sensor.inlet": FakeState("12.0", last_updated=NOW - age, unit="°C")})
+    with mock.patch.object(co.dt_util, "utcnow", lambda: NOW):
+        return fn(hass, "sensor.inlet")
+
+
+t0, t1 = time.process_time(), time.thread_time()
+lim = timedelta(minutes=co.DHW_INLET_MAX_AGE_MINUTES)
+print(f"RESULT age_at_limit_baseline={read(co._dhw_inlet_c, lim)}")
+print(f"RESULT age_at_limit_mutant={read(MUT, lim)}")
+nulls = [lim - timedelta(minutes=1), lim + timedelta(minutes=1), timedelta(hours=1)]
+print(f"RESULT null_moved={sum(read(co._dhw_inlet_c, a) != read(MUT, a) for a in nulls)} count")
+tail_results(t0, t1)

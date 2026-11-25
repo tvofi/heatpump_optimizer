@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: the open-loop plan value coordinator._open_loop_plan_value returns (a trajectory entry, or None) for a plan
+#   whose first step starts exactly at `now` (the `<` / `<=` tie), plus every other input class searched.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_b247841f.py
+# Expected: every production-shaped input agrees (moved_valid=0 count); only a malformed plan with a DUPLICATED head
+#   timestamp moves (dup_head baseline 51.0 -> mutant 50.0), which no plan producer emits.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g11 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:_open_loop_plan_value (line 2539,
+#   `    if now_s < starts[0]:`).
+# Perturbation: mutant b247841f5466162d, `now_s < starts[0]` -> `now_s <= starts[0]`, in memory (recompiled from its own
+#   source in the module namespace). Direction: none on valid plans (equivalent-candidate): at the tie the baseline's
+#   _covering_index returns 0 and the mutant's head branch returns trajectory[0] (0 <= 900 s).
+# Null control: now 1 s and 600 s before the head, mid-plan, past the end: both arms agree by construction.

@@ -1,0 +1,100 @@
+{
+ "key": "e2b030e0716d126c",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:2910 CMP_BOUND",
+ "patch": "-5.0 <= value <= 35.0 -> -5.0 <= value < 35.0",
+ "function": "_dhw_inlet_c",
+ "cluster": "coordinator.py:_dhw_inlet_c",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2688.5,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/e2b030e0716d126c.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e2b030e0716d126c",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_e2b030e0.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_e2b030e0.py",
+  "rc": 0,
+  "results": [
+   "RESULT inlet_35_baseline=35.0",
+   "RESULT inlet_35_mutant=None",
+   "RESULT null_moved=0 count",
+   "RESULT thread_factor=1.004",
+   "RESULT load1=0.78",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "35.0",
+  "mutant_value": "None",
+  "inputs_tried": [
+   "RESULT inlet_35_baseline=35.0",
+   "RESULT inlet_35_mutant=None",
+   "RESULT null_moved=0 count",
+   "RESULT thread_factor=1.004",
+   "RESULT load1=0.78",
+   "RESULT swapins=0 count"
+  ]
+ },
+ "should_fail": "tests/features.py and the other traced closure scripts execute line 2910; none feeds an inlet reading at the 35.0 degC bound",
+ "class": "candidate",
+ "finding": {
+  "title": "No check pins _dhw_inlet_c's 35 degC plausibility bound; <= -> < is unseen",
+  "claim": "A fresh DHW inlet reading of exactly 35.0 degC is used on the baseline (35.0); with `<= 35.0` -> `< 35.0` it is rejected (None) and the seasonal model is used.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "_dhw_inlet_c's return for a fresh 35.0 degC inlet reading",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:_dhw_inlet_c",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_e2b030e0.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_e2b030e0.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_e2b030e0.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_e2b030e0.py",
+   "value": "None",
+   "baseline_value": "35.0",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g11: Linux x86_64, nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "tolerance": "exact",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "mutant e2b030e0716d126c at custom_components/heatpump_optimizer/coordinator.py:2910: `-5.0 <= value <= 35.0` -> `-5.0 <= value < 35.0`, applied in memory by the probe",
+   "expected_direction": "to_zero",
+   "observed_value": "35.0 -> None"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_e2b030e0.py",
+   "value": "null_moved=0 count",
+   "note": "the probe's null arm (inputs where both arms must agree); the full-gate null is PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)"
+  },
+  "gate_null_control": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)",
+  "phenomenon_property": "an inlet reading inside [-5.0, 35.0] degC inclusive is accepted",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e2b030e0716d126c",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "proposed_fix_scope": "a check in the closure script named in should_fail that drives _dhw_inlet_c on the probe's distinguishing input and asserts the baseline value",
+  "should_have_failed": "tests/features.py and the other traced closure scripts execute line 2910; none feeds an inlet reading at the 35.0 degC bound"
+ }
+}

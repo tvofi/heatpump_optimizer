@@ -1,0 +1,70 @@
+{
+ "key": "a7488872387d5ca7",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:6379 CMP_BOUND",
+ "patch": "if len(prices) < 4: -> if len(prices) <= 4:",
+ "function": "HeatPumpOptimizerCoordinator.async_run_optimization",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3212.0,
+  "load1_start": 0.07,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/a7488872387d5ca7.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a7488872387d5ca7",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a7488872.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a7488872.py",
+  "rc": 0,
+  "results": [
+   "RESULT no_prices_len=0 baseline='no_prices' mutant='no_prices'",
+   "RESULT one_hour_from_now_len=96 baseline=None mutant=None",
+   "RESULT two_hours_from_now_len=96 baseline=None mutant=None",
+   "RESULT past_only_len=0 baseline='no_prices' mutant='no_prices'",
+   "RESULT head_2h_past_len=96 baseline=None mutant=None",
+   "RESULT tail_23h_len=0 baseline='no_prices' mutant='no_prices'",
+   "RESULT day_and_half_len=96 baseline=None mutant=None",
+   "RESULT lengths_seen=[0, 96]",
+   "RESULT moved_production=0 count",
+   "RESULT sensitivity_1h_horizon_len=4 baseline=None mutant='no_prices'  (not a production horizon)",
+   "RESULT null_moved=0 count  (len=5)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.08",
+   "RESULT swapins=0 count"
+  ],
+  "inputs_tried": [
+   "RESULT no_prices_len=0 baseline='no_prices' mutant='no_prices'",
+   "RESULT one_hour_from_now_len=96 baseline=None mutant=None",
+   "RESULT two_hours_from_now_len=96 baseline=None mutant=None",
+   "RESULT past_only_len=0 baseline='no_prices' mutant='no_prices'",
+   "RESULT head_2h_past_len=96 baseline=None mutant=None",
+   "RESULT tail_23h_len=0 baseline='no_prices' mutant='no_prices'",
+   "RESULT day_and_half_len=96 baseline=None mutant=None",
+   "RESULT lengths_seen=[0, 96]",
+   "RESULT moved_production=0 count",
+   "RESULT sensitivity_1h_horizon_len=4 baseline=None mutant='no_prices'  (not a production horizon)",
+   "RESULT null_moved=0 count  (len=5)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.08",
+   "RESULT swapins=0 count"
+  ]
+ },
+ "should_fail": "tests/config_flow_steps.py, tests/entities.py, tests/features.py execute line 6379; none can fail: the horizon is 0 or opt_config.n_steps (96) steps long, and no config path sets horizon_hours",
+ "class": "equivalent-candidate"
+}

@@ -1,0 +1,19 @@
+
+
+def accepted(fn, entry):
+    try:
+        fn(entry)
+        return 1
+    except ValueError:
+        return 0
+
+
+import time
+t0, t1 = time.process_time(), time.thread_time()
+MUT = mutate(co._learned_pair, "value > 0 and", "value >= 0 and")
+for name, entry in {"zero_value": [0.0, 3], "neg_zero_value": [-0.0, 1]}.items():
+    print(f"RESULT {name}_baseline={accepted(co._learned_pair, entry)}")
+    print(f"RESULT {name}_mutant={accepted(MUT, entry)}")
+nulls = [[1.5, 3], [-1.0, 3], [float("nan"), 3], [float("inf"), 3], [2.0, 0]]
+print(f"RESULT null_moved={sum(accepted(co._learned_pair, e) != accepted(MUT, e) for e in nulls)} count")
+tail_results(t0, t1)

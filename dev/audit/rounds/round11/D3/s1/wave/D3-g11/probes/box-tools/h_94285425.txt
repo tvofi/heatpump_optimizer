@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: whether a fire-and-forget background task still pending at unload has finished when
+#   HeatPumpOptimizerCoordinator.async_shutdown returns (task_done 1/True = shutdown awaited it), for a 0.3 s task.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_94285425.py
+# Expected: RESULT task_done_baseline=True, mutant=False (the unload returns with the save still running); null_moved=0.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g11 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_shutdown
+#   (line 6615, `        if pending:`), on tests/features.py:_r9f13_make's coordinator rig; the task is an asyncio.sleep
+#   registered in coord._background_tasks the way _spawn registers its tasks.
+# Perturbation: mutant 94285425a1bc856a, `if pending:` -> `if False:`, in memory (the method recompiled from its own
+#   source in the module namespace). Direction: True -> False: the docstring's "still-pending fire-and-forget tasks are
+#   awaited (a capped wait)" no longer holds, so a reload can start while the old entry's save is still writing.
+# Null control: a task already done before shutdown (0 s sleep, awaited once): both arms report it done.

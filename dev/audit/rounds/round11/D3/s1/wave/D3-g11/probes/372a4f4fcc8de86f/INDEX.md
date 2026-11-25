@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_372a4f4f.py: pins _learned_pair line 490 (CMP_BOUND `value > 0 and` -> `value >= 0 and`): whether _learned_pair accepts a stored fold [0.0, 3] (1 installed, 0 dropped)

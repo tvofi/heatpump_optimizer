@@ -1,0 +1,30 @@
+
+from dataclasses import replace
+
+ha_dt.freeze(NOW)
+t0, t1 = time.process_time(), time.thread_time()
+MUT = mutate(CLS.async_run_optimization, "if len(prices) < 4:", "if len(prices) <= 4:")
+
+
+def outcome(fn, hours, start, horizon=None):
+    _, c = make(f"p{hours}_{start}", hours, start)
+    if horizon is not None:
+        c._opt_config = replace(c._opt_config, horizon_hours=horizon)
+    n = len(c._forecast_arrays(ha_dt.now()).prices)
+    return n, run(fn, c)
+
+
+seen, moved = set(), 0
+for name, (h, s) in PRICE_CASES.items():
+    (n, b), (_, m) = outcome(CLS.async_run_optimization, h, s), outcome(MUT, h, s)
+    seen.add(n)
+    moved += int(b != m)
+    print(f"RESULT {name}_len={n} baseline={b!r} mutant={m!r}")
+print(f"RESULT lengths_seen={sorted(seen)}")
+print(f"RESULT moved_production={moved} count")
+(n, b), (_, m) = outcome(CLS.async_run_optimization, 50, -2, 1.0), outcome(MUT, 50, -2, 1.0)
+print(f"RESULT sensitivity_1h_horizon_len={n} baseline={b!r} mutant={m!r}  (not a production horizon)")
+(n, b), (_, m) = outcome(CLS.async_run_optimization, 50, -2, 1.25), outcome(MUT, 50, -2, 1.25)
+print(f"RESULT null_moved={int(b != m)} count  (len={n})")
+ha_dt.freeze(None)
+tail_results(t0, t1)
