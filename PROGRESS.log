@@ -21,3 +21,4 @@
 1795585081 CKPT coord_footprint paid 2517<=2521 (dS +0.0023), pushed; features.py full run in flight snapshot f9002f68b378
 1795585384 HB alive
 1795585403 CKPT fixed finite_boundary night_before domain, kw publish call, docs counts; pushed; full features/entities in flight snapshot e24003575b64
+1795585606 CKPT 970c3e5dff pushed; three builders writing failing-first features blocks A/B/C snapshot 5281c781d198
