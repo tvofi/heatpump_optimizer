@@ -82,5 +82,12 @@
    "python3 tests/entities.py": 1,
    "python3 tests/harness_headers.py": 4
   }
- }
+ },
+ "failing_check_lines": [
+  "1 metric(s) IMPROVED and not yet recorded: max_cc budget 44 measured 43 delta -1 BETTER (lower is better)",
+  "1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED",
+  ">>> FAILED: python3 tests/structure.py"
+ ],
+ "kill_note": "Killed by the structural ratchet's improvement-not-recorded check (identify()'s cyclomatic complexity 44 -> 43 when the two-term guard becomes `if False:`), not by a behaviour check. The behaviour it removes (the excursion's drift correction) is the same one 5654f855fcc27724 (>= 4 -> > 4) removes without touching complexity, and that key SURVIVED the full gate with a moving probe (confidence 0.981307 -> 0.981529 on a +0.01 C/h drift); the probe for this key moves identically. Non-finding by the gate's rule; the behaviour gap is carried under 5654f855fcc27724.",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c303df62a0b7b9bc (via gate_wave.sh run)"
 }
