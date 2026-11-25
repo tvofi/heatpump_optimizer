@@ -1,0 +1,804 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "box": "D3-g43",
+ "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/REPORT.md",
+ "exposure": "No docs/ or GitHub read; no gh. Worked only in the stripped worktree (finder wall) plus scratch copies of the baseline package under $TMPDIR for the probes; the baseline checkout used as the scratch source was never edited.",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried, not re-driven here: carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)"
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 343,
+   "not_reached": [
+    "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+    "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+    "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+    "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+    "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+    "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+    "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+    "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+    "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+    "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+    "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+    "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+    "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+    "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+    "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+    "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+    "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+    "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+    "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+    "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+    "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+    "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+    "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+    "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+    "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+    "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+    "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+    "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+    "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried, not re-driven here: box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice"
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 268,
+   "examined": 225,
+   "not_reached": [
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+   ],
+   "redispatched": [],
+   "evidence": "carried, not re-driven here: m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)"
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "assigned to box D3-m5: tests/card.mjs",
+    "assigned to box D3-m5: tests/card_drift.mjs",
+    "assigned to box D3-m5: tests/golden.py",
+    "assigned to box D3-m5: tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "carried, not re-driven here: carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+   "universe": 742,
+   "examined": 15,
+   "not_reached": [
+    "assigned to box D3-g01 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g02 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g03 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g04 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g05 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g06 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g07 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g08 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g09 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g10 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g11 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g12 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g13 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g14 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g15 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g16 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g17 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g18 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g19 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g20 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g21 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g22 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g23 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g24 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g25 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g26 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g27 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g28 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g29 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g30 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g31 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g32 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g33 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g34 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g35 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g36 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g37 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g38 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g39 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g40 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g41 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g42 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g44 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g45 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g46 (its keys.tsv; the full gate of each key is that box's)",
+    "assigned to box D3-g47 (its keys.tsv; the full gate of each key is that box's)"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "gate_wave.sh run (fullgate.py run --src complete --key <key>, GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh) over dev/audit/rounds/round11/D3/s1/wave/D3-g43/keys.tsv; records dev/audit/rounds/round11/D3/s1/wave/D3-g43/gates/<key>.json and .log; null control dev/audit/rounds/round11/D3/s1/wave/D3-g43/gates/null.json; results dev/audit/rounds/round11/D3/s1/wave/D3-g43/results/<key>.json"
+  }
+ ],
+ "unfinished": [
+  "none: all 15 keys gated, no TIMEOUT."
+ ],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "97bd985754f1099b (custom_components/heatpump_optimizer/thermal_model.py:4140 GUARD_OFF, if n_sub == 1: -> if False:) is KILLED by the full gate",
+   "command": "GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh with the one-line mutant, via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 97bd985754f1099b (box D3-g43, gate_wave.sh)",
+   "value": "killed_by=['python3 tests/stress.py'], gate_rc=1, more_fails_than_null=[], wall=3725.7s, load1 0.78->0.93 (provisional)"
+  },
+  {
+   "claim": "cc34cacdd80553ed (custom_components/heatpump_optimizer/thermal_model.py:4553 GUARD_OFF, if initial_state.wood_tank_temperature is not None: -> if False:) is KILLED by the full gate",
+   "command": "GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh with the one-line mutant, via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cc34cacdd80553ed (box D3-g43, gate_wave.sh)",
+   "value": "killed_by=['python3 tests/edge.py'], gate_rc=1, more_fails_than_null=[], wall=3724.5s, load1 0.78->0.92 (provisional)"
+  },
+  {
+   "claim": "a3f2b00cc4aa527e (custom_components/heatpump_optimizer/thermal_model.py:4668 CLAMP_DROP, np.maximum(T_wood, T_buf) -> (T_wood)) is KILLED by the full gate",
+   "command": "GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh with the one-line mutant, via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a3f2b00cc4aa527e (box D3-g43, gate_wave.sh)",
+   "value": "killed_by=['python3 tests/edge.py', 'python3 tests/stress.py'], gate_rc=1, more_fails_than_null=[], wall=3791.4s, load1 0.46->1.0 (provisional)"
+  },
+  {
+   "claim": "a486806b8f4ff4d7 (custom_components/heatpump_optimizer/thermal_model.py:4679 CLAMP_DROP, floor_temp = np.minimum(T_upper, T_slab) -> floor_temp = (T_upper)) is KILLED by the full gate",
+   "command": "GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh with the one-line mutant, via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a486806b8f4ff4d7 (box D3-g43, gate_wave.sh)",
+   "value": "killed_by=['python3 tests/stress.py'], gate_rc=1, more_fails_than_null=[], wall=3637.0s, load1 1.01->1.0 (provisional)"
+  },
+  {
+   "claim": "f2706cbdb16a8f66 (custom_components/heatpump_optimizer/thermal_model.py:4695 CLAMP_DROP, * np.maximum(0.0, T_buf - floor_temp) -> * (0.0)) is KILLED by the full gate",
+   "command": "GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh with the one-line mutant, via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f2706cbdb16a8f66 (box D3-g43, gate_wave.sh)",
+   "value": "killed_by=['python3 tests/edge.py'], gate_rc=1, more_fails_than_null=[], wall=3598.9s, load1 1.0->0.92 (provisional)"
+  },
+  {
+   "claim": "f2ab25c56b407ef9 (custom_components/heatpump_optimizer/thermal_model.py:3389 CMP_BOUND, if carnot_ref <= 1e-9: -> if carnot_ref < 1e-9:) is an equivalent-candidate: survives the full gate (RED-AS-NULL) and no input tried moves the production value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2ab25c56b407ef9.py",
+   "value": "baseline_vs_mutant_max_abs_diff=0 (null 0); scenarios moved=None; inputs tried: carnot_ref = (ref+273.15)/max(ref+273.15-t_out, 1.0) is >0 for any physical ref, so `<= 1e-9` and `< 1e-9` differ only at carnot_ref == 1e-9 bit-exactly. 576-point grid (ref 25..55, cop_reference_temp -7..12, outdoor -30..30, flow ref-1..60 and NaN): 0 moved; a scan of 4001 floats around ref=-273.15+1e-9 found none with ref+273.15 == 1e-9 exactly."
+  },
+  {
+   "claim": "d9a65b3770e6860a (custom_components/heatpump_optimizer/thermal_model.py:4114 GUARD_OFF, if n_sub == 1: -> if False:) is an equivalent-candidate: survives the full gate (RED-AS-NULL) and no input tried moves the production value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_d9a65b3770e6860a.py",
+   "value": "baseline_vs_mutant_max_abs_diff=0 (null 0); scenarios moved=0; inputs tried: two-zone fast path `if n_sub == 1` -> `if False`: the loop path with n_sub == 1 does one _simulate_step_two_zone at dt/1 and divides the refused sums by 1; bit-identical. 108 step scenarios (n_sub histogram 1:38, 2:62, 7:4, 25:4) x six configs: 0 moved."
+  },
+  {
+   "claim": "7b46514aedc0a8cf (custom_components/heatpump_optimizer/thermal_model.py:4571 BOOLOP, start_hour is not None and p.internal_gains_profile is not None -> start_hour is not None or p.internal_gains_profile is not None) is an equivalent-candidate: survives the full gate (RED-AS-NULL) and no input tried moves the production value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7b46514aedc0a8cf.py",
+   "value": "baseline_vs_mutant_max_abs_diff=0 (null 0); scenarios moved=0; inputs tried: `start_hour is not None and gains_profile is not None` -> `or`: hour_i then also exists when no profile is set, but it only reaches internal_gains_at, which returns the constant when profile is None (thermal_model.py:3535-3537). battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved."
+  },
+  {
+   "claim": "876be7bf2f538255 (custom_components/heatpump_optimizer/thermal_model.py:4578 BOOLOP, if p.two_zone_enabled and throttled: -> if p.two_zone_enabled or throttled:) is an equivalent-candidate: survives the full gate (RED-AS-NULL) and no input tried moves the production value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_876be7bf2f538255.py",
+   "value": "baseline_vs_mutant_max_abs_diff=0 (null 0); scenarios moved=0; inputs tried: `if p.two_zone_enabled and throttled` -> `or`: the extra branch only computes ua_rad/ua_floor, which are read only under the two-zone throttled branch. battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved."
+  },
+  {
+   "claim": "806f3255b74936a9 (custom_components/heatpump_optimizer/thermal_model.py:4690 CLAMP_DROP, ) / max(dt, 1e-6) -> ) / (dt)) is an equivalent-candidate: survives the full gate (RED-AS-NULL) and no input tried moves the production value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_806f3255b74936a9.py",
+   "value": "baseline_vs_mutant_max_abs_diff=inf (null 0); scenarios moved=4; inputs tried: `/ max(dt, 1e-6)` -> `/ dt` in avail_wood: moves only at dt=0 (NaN from 0/0 or inf), 4 scenarios; every dt >= 1e-6 gives 0 moved. dt is the positive plan step in every production caller."
+  },
+  {
+   "claim": "1108e8140e06404e (custom_components/heatpump_optimizer/thermal_model.py:4696 CLAMP_DROP, / max(dt, 1e-6) -> / (dt)) is an equivalent-candidate: survives the full gate (RED-AS-NULL) and no input tried moves the production value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_1108e8140e06404e.py",
+   "value": "baseline_vs_mutant_max_abs_diff=0 (null 0); scenarios moved=0; inputs tried: `/ max(dt, 1e-6)` -> `/ dt` in avail_hp (wood branch): differs only for dt <= 1e-6. battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved, dt=0 and dt=1e-7 included; production dt_hours is the plan step (>0)."
+  },
+  {
+   "claim": "daf153fda85092ff (custom_components/heatpump_optimizer/thermal_model.py:4711 CLAMP_DROP, / max(dt, 1e-6) -> / (dt)) is an equivalent-candidate: survives the full gate (RED-AS-NULL) and no input tried moves the production value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_daf153fda85092ff.py",
+   "value": "baseline_vs_mutant_max_abs_diff=2.55385e+08 (null 0); scenarios moved=2; inputs tried: `/ max(dt, 1e-6)` -> `/ dt` in avail (non-wood): moves only at dt=0 (2 scenarios, max abs diff 2.55e8 = inf/NaN propagation); every dt >= 1e-6 gives 0 moved. dt is the positive plan step in every production caller."
+  },
+  {
+   "claim": "e5a0d6a548f12244 (custom_components/heatpump_optimizer/thermal_model.py:4714 CLAMP_DROP, drawn, np.maximum(available, 0.0) -> drawn, (available)) is an equivalent-candidate: survives the full gate (RED-AS-NULL) and no input tried moves the production value",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_e5a0d6a548f12244.py",
+   "value": "baseline_vs_mutant_max_abs_diff=0 (null 0); scenarios moved=0; inputs tried: `min(drawn, max(available, 0))` -> `min(drawn, available)` in the non-wood branch: battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved, including hot floors (45 C) over a 40 C buffer at zero power, where available < 0 and drawn == 0."
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/_blib.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/gate_wave.sh",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/write_results.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/runprobes.sh",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2ab25c56b407ef9.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_d9a65b3770e6860a.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_97bd985754f1099b.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_cc34cacdd80553ed.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7b46514aedc0a8cf.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_876be7bf2f538255.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_a3f2b00cc4aa527e.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_a486806b8f4ff4d7.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_806f3255b74936a9.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2706cbdb16a8f66.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_1108e8140e06404e.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7068e39e4608027f.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_daf153fda85092ff.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_e5a0d6a548f12244.py"
+ ],
+ "leads": [
+  "tools/audit/seat/gate_lock / fullgate.py: a stale zero-byte worktree index.lock (created 13:48Z, 15 min into the gate of a3f2b00cc4aa527e, source unknown: no git process of this seat held it) made fullgate's finally `git reset` fail; gate_wave.sh then recorded keys a3f2b00cc4aa527e, a486806b8f4ff4d7 and 806f3255b74936a9 as TIMEOUT without running them (REFUSE: HEAD is not the baseline). The lock was removed, the three bogus records discarded (kept under $HOME/aborted on the box, not in this report) and the three keys re-gated in full; the reported verdicts are the re-runs."
+ ],
+ "gated": [
+  {
+   "key": "f2ab25c56b407ef9",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3389 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "d9a65b3770e6860a",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4114 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "97bd985754f1099b",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4140 GUARD_OFF",
+   "verdict": "KILLED",
+   "killed_by": [
+    "python3 tests/stress.py"
+   ],
+   "class": "killed"
+  },
+  {
+   "key": "cc34cacdd80553ed",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4553 GUARD_OFF",
+   "verdict": "KILLED",
+   "killed_by": [
+    "python3 tests/edge.py"
+   ],
+   "class": "killed"
+  },
+  {
+   "key": "7b46514aedc0a8cf",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4571 BOOLOP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "876be7bf2f538255",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4578 BOOLOP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "a3f2b00cc4aa527e",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4668 CLAMP_DROP",
+   "verdict": "KILLED",
+   "killed_by": [
+    "python3 tests/edge.py",
+    "python3 tests/stress.py"
+   ],
+   "class": "killed"
+  },
+  {
+   "key": "a486806b8f4ff4d7",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4679 CLAMP_DROP",
+   "verdict": "KILLED",
+   "killed_by": [
+    "python3 tests/stress.py"
+   ],
+   "class": "killed"
+  },
+  {
+   "key": "806f3255b74936a9",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4690 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "f2706cbdb16a8f66",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4695 CLAMP_DROP",
+   "verdict": "KILLED",
+   "killed_by": [
+    "python3 tests/edge.py"
+   ],
+   "class": "killed"
+  },
+  {
+   "key": "1108e8140e06404e",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4696 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "7068e39e4608027f",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4699 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "6462c28df2f973e0",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4702 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "daf153fda85092ff",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4711 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "e5a0d6a548f12244",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4714 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  }
+ ],
+ "gate_survivors": [
+  {
+   "key": "7068e39e4608027f",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4699 CLAMP_DROP",
+   "patch": "w * drawn, np.maximum(avail_wood, 0.0) -> w * drawn, (avail_wood)",
+   "function": "ThermalModel.simulate_trajectory_batch",
+   "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3527.0,
+    "load1_start": 0.93,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7068e39e4608027f.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7068e39e4608027f.py",
+    "baseline_value": 0,
+    "mutant_value": "0.00408045",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 2",
+    "parity_mutant_vs_scalar": "0.00408045",
+    "inputs_tried": "see probe battery"
+   },
+   "should_fail": "tests/features.py `_grad_parity`: a two-tank cell where the wood tank is at or below the floor temperature so avail_wood < 0.",
+   "provisional": true,
+   "title": "Batch two-tank wood draw clamp max(avail_wood, 0) is unpinned",
+   "claim": "Replacing `np.maximum(avail_wood, 0.0)` by `avail_wood` moves the batch trajectories by 0.0041 K (2 scenarios: two-tank, wood tank just below the floor temperature at zero power) and breaks parity with the scalar path, yet the full gate stays as red as the null.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "N-structure-blind",
+   "severity_claimed": "low",
+   "metric_definition": "max abs difference over the batch trajectory arrays (K) between baseline and the one-line mutant across the probe's scenario battery",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7068e39e4608027f.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7068e39e4608027f.py",
+   "perturbation": {
+    "change": "w * drawn, np.maximum(avail_wood, 0.0) -> w * drawn, (avail_wood) (thermal_model.py:4699)",
+    "expected_direction": "up",
+    "observed_value": "0.00408045"
+   },
+   "null_control": "the same battery against an unedited scratch copy of the baseline: baseline_vs_baseline diff 0; batch_vs_scalar_parity_baseline=0"
+  },
+  {
+   "key": "6462c28df2f973e0",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4702 CLAMP_DROP",
+   "patch": "drawn - wood_draw, np.maximum(avail_hp, 0.0) -> drawn - wood_draw, (avail_hp)",
+   "function": "ThermalModel.simulate_trajectory_batch",
+   "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3380.4,
+    "load1_start": 0.31,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py",
+    "baseline_value": 0,
+    "mutant_value": "0.0166438",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 4",
+    "parity_mutant_vs_scalar": "0.0166438",
+    "inputs_tried": "see probe battery"
+   },
+   "should_fail": "tests/features.py `_grad_parity`: a two-tank cell at zero power with the buffer at or below the floor temperature so avail_hp < 0.",
+   "provisional": true,
+   "title": "Batch two-tank hp draw clamp max(avail_hp, 0) is unpinned",
+   "claim": "Replacing `np.maximum(avail_hp, 0.0)` by `avail_hp` moves the batch trajectories by 0.0166 K (4 scenarios: two-tank, buffer just below the floor temperature at zero power) and breaks parity with the scalar path, yet the full gate stays as red as the null.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "N-structure-blind",
+   "severity_claimed": "low",
+   "metric_definition": "max abs difference over the batch trajectory arrays (K) between baseline and the one-line mutant across the probe's scenario battery",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py",
+   "perturbation": {
+    "change": "drawn - wood_draw, np.maximum(avail_hp, 0.0) -> drawn - wood_draw, (avail_hp) (thermal_model.py:4702)",
+    "expected_direction": "up",
+    "observed_value": "0.0166438"
+   },
+   "null_control": "the same battery against an unedited scratch copy of the baseline: baseline_vs_baseline diff 0; batch_vs_scalar_parity_baseline=0"
+  }
+ ],
+ "equivalent_candidates": [
+  {
+   "key": "f2ab25c56b407ef9",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3389 CMP_BOUND",
+   "patch": "if carnot_ref <= 1e-9: -> if carnot_ref < 1e-9:",
+   "function": "ThermalModel.flow_lift_factor",
+   "cluster": "thermal_model.py:ThermalModel.flow_lift_factor@3366-3389",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3591.1,
+    "load1_start": 0.86,
+    "load1_end": 0.95,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2ab25c56b407ef9.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2ab25c56b407ef9.py",
+    "baseline_value": 0,
+    "mutant_value": "0",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = None",
+    "parity_mutant_vs_scalar": null,
+    "inputs_tried": "carnot_ref = (ref+273.15)/max(ref+273.15-t_out, 1.0) is >0 for any physical ref, so `<= 1e-9` and `< 1e-9` differ only at carnot_ref == 1e-9 bit-exactly. 576-point grid (ref 25..55, cop_reference_temp -7..12, outdoor -30..30, flow ref-1..60 and NaN): 0 moved; a scan of 4001 floats around ref=-273.15+1e-9 found none with ref+273.15 == 1e-9 exactly."
+   },
+   "should_fail": "none identified: equivalent-candidate",
+   "provisional": true
+  },
+  {
+   "key": "d9a65b3770e6860a",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4114 GUARD_OFF",
+   "patch": "if n_sub == 1: -> if False:",
+   "function": "ThermalModel.simulate_step",
+   "cluster": "thermal_model.py:ThermalModel.simulate_step@4114-4140",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3739.8,
+    "load1_start": 0.88,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_d9a65b3770e6860a.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_d9a65b3770e6860a.py",
+    "baseline_value": 0,
+    "mutant_value": "0",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 0",
+    "parity_mutant_vs_scalar": null,
+    "inputs_tried": "two-zone fast path `if n_sub == 1` -> `if False`: the loop path with n_sub == 1 does one _simulate_step_two_zone at dt/1 and divides the refused sums by 1; bit-identical. 108 step scenarios (n_sub histogram 1:38, 2:62, 7:4, 25:4) x six configs: 0 moved."
+   },
+   "should_fail": "none identified: equivalent-candidate",
+   "provisional": true
+  },
+  {
+   "key": "7b46514aedc0a8cf",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4571 BOOLOP",
+   "patch": "start_hour is not None and p.internal_gains_profile is not None -> start_hour is not None or p.internal_gains_profile is not None",
+   "function": "ThermalModel.simulate_trajectory_batch",
+   "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3562.4,
+    "load1_start": 0.72,
+    "load1_end": 1.09,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7b46514aedc0a8cf.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7b46514aedc0a8cf.py",
+    "baseline_value": 0,
+    "mutant_value": "0",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 0",
+    "parity_mutant_vs_scalar": "0",
+    "inputs_tried": "`start_hour is not None and gains_profile is not None` -> `or`: hour_i then also exists when no profile is set, but it only reaches internal_gains_at, which returns the constant when profile is None (thermal_model.py:3535-3537). battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved."
+   },
+   "should_fail": "none identified: equivalent-candidate",
+   "provisional": true
+  },
+  {
+   "key": "876be7bf2f538255",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4578 BOOLOP",
+   "patch": "if p.two_zone_enabled and throttled: -> if p.two_zone_enabled or throttled:",
+   "function": "ThermalModel.simulate_trajectory_batch",
+   "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3663.5,
+    "load1_start": 1.07,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_876be7bf2f538255.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_876be7bf2f538255.py",
+    "baseline_value": 0,
+    "mutant_value": "0",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 0",
+    "parity_mutant_vs_scalar": "0",
+    "inputs_tried": "`if p.two_zone_enabled and throttled` -> `or`: the extra branch only computes ua_rad/ua_floor, which are read only under the two-zone throttled branch. battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved."
+   },
+   "should_fail": "none identified: equivalent-candidate",
+   "provisional": true
+  },
+  {
+   "key": "806f3255b74936a9",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4690 CLAMP_DROP",
+   "patch": ") / max(dt, 1e-6) -> ) / (dt)",
+   "function": "ThermalModel.simulate_trajectory_batch",
+   "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3509.2,
+    "load1_start": 0.78,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_806f3255b74936a9.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_806f3255b74936a9.py",
+    "baseline_value": 0,
+    "mutant_value": "inf",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 4",
+    "parity_mutant_vs_scalar": "0",
+    "inputs_tried": "`/ max(dt, 1e-6)` -> `/ dt` in avail_wood: moves only at dt=0 (NaN from 0/0 or inf), 4 scenarios; every dt >= 1e-6 gives 0 moved. dt is the positive plan step in every production caller."
+   },
+   "should_fail": "none identified: equivalent-candidate",
+   "provisional": true
+  },
+  {
+   "key": "1108e8140e06404e",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4696 CLAMP_DROP",
+   "patch": "/ max(dt, 1e-6) -> / (dt)",
+   "function": "ThermalModel.simulate_trajectory_batch",
+   "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3617.8,
+    "load1_start": 0.85,
+    "load1_end": 0.93,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_1108e8140e06404e.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_1108e8140e06404e.py",
+    "baseline_value": 0,
+    "mutant_value": "0",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 0",
+    "parity_mutant_vs_scalar": "0",
+    "inputs_tried": "`/ max(dt, 1e-6)` -> `/ dt` in avail_hp (wood branch): differs only for dt <= 1e-6. battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved, dt=0 and dt=1e-7 included; production dt_hours is the plan step (>0)."
+   },
+   "should_fail": "none identified: equivalent-candidate",
+   "provisional": true
+  },
+  {
+   "key": "daf153fda85092ff",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4711 CLAMP_DROP",
+   "patch": "/ max(dt, 1e-6) -> / (dt)",
+   "function": "ThermalModel.simulate_trajectory_batch",
+   "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3489.0,
+    "load1_start": 0.49,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_daf153fda85092ff.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_daf153fda85092ff.py",
+    "baseline_value": 0,
+    "mutant_value": "2.55385e+08",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 2",
+    "parity_mutant_vs_scalar": "0",
+    "inputs_tried": "`/ max(dt, 1e-6)` -> `/ dt` in avail (non-wood): moves only at dt=0 (2 scenarios, max abs diff 2.55e8 = inf/NaN propagation); every dt >= 1e-6 gives 0 moved. dt is the positive plan step in every production caller."
+   },
+   "should_fail": "none identified: equivalent-candidate",
+   "provisional": true
+  },
+  {
+   "key": "e5a0d6a548f12244",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4714 CLAMP_DROP",
+   "patch": "drawn, np.maximum(available, 0.0) -> drawn, (available)",
+   "function": "ThermalModel.simulate_trajectory_batch",
+   "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3496.7,
+    "load1_start": 0.31,
+    "load1_end": 0.85,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": []
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_e5a0d6a548f12244.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_e5a0d6a548f12244.py",
+    "baseline_value": 0,
+    "mutant_value": "0",
+    "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 0",
+    "parity_mutant_vs_scalar": "0",
+    "inputs_tried": "`min(drawn, max(available, 0))` -> `min(drawn, available)` in the non-wood branch: battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved, including hot floors (45 C) over a 40 C buffer at zero power, where available < 0 and drawn == 0."
+   },
+   "should_fail": "none identified: equivalent-candidate",
+   "provisional": true
+  }
+ ]
+}

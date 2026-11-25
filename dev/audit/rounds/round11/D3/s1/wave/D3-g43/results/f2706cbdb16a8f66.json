@@ -1,0 +1,43 @@
+{
+ "key": "f2706cbdb16a8f66",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4695 CLAMP_DROP",
+ "patch": "* np.maximum(0.0, T_buf - floor_temp) -> * (0.0)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/edge.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3598.9,
+  "load1_start": 1.0,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/edge.py",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": []
+ },
+ "class": "killed",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2706cbdb16a8f66.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2706cbdb16a8f66.py",
+  "baseline_value": 0,
+  "mutant_value": "53.4289",
+  "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 34",
+  "parity_mutant_vs_scalar": "53.4289",
+  "inputs_tried": "not needed: the full gate kills the mutant"
+ },
+ "should_fail": "tests/features.py `_grad_parity`: a two-tank 4-way throttled valve cell with T_buf > floor_temp; no existing cell uses that layout.",
+ "provisional": true,
+ "killed_by": [
+  "python3 tests/edge.py"
+ ],
+ "failing_check_lines": [
+  "FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_manual_plan__dup', 'reset_heat_loss_learners__dup', 'set_thermal_parameters__dup']; missing=[]]",
+  "FAIL hb:positive_control  [a 600 ms spin read as 753.9 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]"
+ ]
+}

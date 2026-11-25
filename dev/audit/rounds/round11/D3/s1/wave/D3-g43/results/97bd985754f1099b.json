@@ -1,0 +1,45 @@
+{
+ "key": "97bd985754f1099b",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4140 GUARD_OFF",
+ "patch": "if n_sub == 1: -> if False:",
+ "function": "ThermalModel.simulate_step",
+ "cluster": "thermal_model.py:ThermalModel.simulate_step@4114-4140",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/stress.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3725.7,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/stress.py"
+  ],
+  "more_fails_than_null": []
+ },
+ "class": "killed",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_97bd985754f1099b.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_97bd985754f1099b.py",
+  "baseline_value": 0,
+  "mutant_value": "0",
+  "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 0",
+  "parity_mutant_vs_scalar": null,
+  "inputs_tried": "not needed: the full gate kills the mutant"
+ },
+ "should_fail": "none identified: equivalent-candidate",
+ "provisional": true,
+ "killed_by": [
+  "python3 tests/stress.py"
+ ],
+ "failing_check_lines": [
+  "FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['clear_manual_plan__dup', 'set_thermal_parameters__dup', 'simulate_plan__dup']; missing=[]]",
+  "FAIL hb:positive_control  [a 600 ms spin read as 742.3 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]",
+  "FAIL hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]",
+  "FAIL no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)  [summer/1z/space/valve: 197850 production calls against the baseline's 187866 = 1.053x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +9984); interpreter work outside the named seams -- a per-row loop, an uncached property, a repeated pass -- moves no evaluation or simulate cou"
+ ]
+}

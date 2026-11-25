@@ -1,0 +1,48 @@
+{
+ "key": "a3f2b00cc4aa527e",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4668 CLAMP_DROP",
+ "patch": "np.maximum(T_wood, T_buf) -> (T_wood)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/edge.py",
+   "python3 tests/stress.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3791.4,
+  "load1_start": 0.46,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/edge.py",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/stress.py"
+  ],
+  "more_fails_than_null": []
+ },
+ "class": "killed",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_a3f2b00cc4aa527e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_a3f2b00cc4aa527e.py",
+  "baseline_value": 0,
+  "mutant_value": "50.5462",
+  "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 30",
+  "parity_mutant_vs_scalar": "50.5462",
+  "inputs_tried": "not needed: the full gate kills the mutant"
+ },
+ "should_fail": "tests/features.py `_grad_parity` bitwise parity cell with a two-tank layout whose wood tank is colder than the buffer (T_wood < T_buf) and whose valve is throttled; the supply branch `two_tank and T_wood is not None` is never evaluated with T_wood < T_buf.",
+ "provisional": true,
+ "killed_by": [
+  "python3 tests/edge.py",
+  "python3 tests/stress.py"
+ ],
+ "failing_check_lines": [
+  "FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_manual_plan__dup', 'restore_learned_snapshot__dup', 'run_optimization__dup']; missing=[]]",
+  "FAIL hb:positive_control  [a 600 ms spin read as 769.4 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]",
+  "FAIL hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]",
+  "FAIL no scenario exceeds its own recorded cost by the budget factor  [summer/2z/space/wood-two-tank at 8.5x its reference vs its own budget 6.6x (recorded 2.2x x 3); confirmed at median 11.9x over 3 re-solves (min 9.2x, max 12.2x)]"
+ ]
+}

@@ -1,0 +1,12 @@
+scenarios=144 errored=0 moved=34
+  moved: twotank maxdiff=47.5178
+  moved: smartread_twotank maxdiff=47.5178
+  moved: twotank hotbuf maxdiff=52.9922
+  moved: twotank coldbuf maxdiff=23.5755
+  moved: twotank hotwood maxdiff=38.5487
+  moved: twotank coldwood maxdiff=27.4927
+RESULT batch_baseline_vs_mutant_max_abs_diff=53.4289
+RESULT batch_scenarios_moved=34
+RESULT batch_wood_array_dropped_scenarios=0
+RESULT batch_vs_scalar_parity_baseline=0
+RESULT batch_vs_scalar_parity_mutant=53.4289

@@ -1,0 +1,33 @@
+{
+ "key": "f2ab25c56b407ef9",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3389 CMP_BOUND",
+ "patch": "if carnot_ref <= 1e-9: -> if carnot_ref < 1e-9:",
+ "function": "ThermalModel.flow_lift_factor",
+ "cluster": "thermal_model.py:ThermalModel.flow_lift_factor@3366-3389",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3591.1,
+  "load1_start": 0.86,
+  "load1_end": 0.95,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": []
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2ab25c56b407ef9.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2ab25c56b407ef9.py",
+  "baseline_value": 0,
+  "mutant_value": "0",
+  "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = None",
+  "parity_mutant_vs_scalar": null,
+  "inputs_tried": "carnot_ref = (ref+273.15)/max(ref+273.15-t_out, 1.0) is >0 for any physical ref, so `<= 1e-9` and `< 1e-9` differ only at carnot_ref == 1e-9 bit-exactly. 576-point grid (ref 25..55, cop_reference_temp -7..12, outdoor -30..30, flow ref-1..60 and NaN): 0 moved; a scan of 4001 floats around ref=-273.15+1e-9 found none with ref+273.15 == 1e-9 exactly."
+ },
+ "should_fail": "none identified: equivalent-candidate",
+ "provisional": true
+}
