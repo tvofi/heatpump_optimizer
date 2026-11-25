@@ -1048,6 +1048,7 @@
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
+   "custom_components/heatpump_optimizer/learning_freeze.py",
    "custom_components/heatpump_optimizer/ledger.py",
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/log_latch.py",
