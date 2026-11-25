@@ -20,3 +20,4 @@
 1795632352 CKPT structure.py PASSED on merged tree 0c8d0bd4 snapshot 7b8b97977de6
 1795632414 CKPT ci_predict re-measured: 42 sites, 7 relocated keys snapshot 09d1961196d6
 1795633687 CKPT entities 2766 PASSED; mutants 41/0; gate running snapshot 164f06619250
+1795635930 CKPT pushed handoff 0c8d0bd41e6b and body c9e58bb9 snapshot 418632fc0baf
