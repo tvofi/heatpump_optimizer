@@ -16,3 +16,4 @@
 1795649088 HB alive
 1795649161 CKPT packet rendered; classify GREEN; merge-tree clean snapshot f4a138aa0adb
 1795649394 CKPT verdict drafted: merge; carry audit pending snapshot b8358c2201f1
+1795649451 DONE rev-3896: merge 04e17d32; probe ref already held an earlier fire's merge verdict 4c7091b7, my 043808de not force-pushed; extra findings: merge_tables header-union and deleted-span mutants survive; body's 3 forward-carries absent from carry-3885.json
