@@ -15,3 +15,4 @@
 1795616894 HB alive
 1795617402 CKPT handoff pushed: head 71af14b6d88998d59cef37e629dfde9ff5d05622; resolution delta 91cfc89fdade..71af14b6d889 (merge da1f90c785; unload-row fix fdde1320d3..71af14b6d8); body c8699d78d4; scoped gate 1 red (entities.py #1218 note) answered at head, entities ALL 2763 PASSED; mutants 41/0 survived snapshot ffb2dc4ee6b8
 1795617406 DONE head 71af14b6d88998d59cef37e629dfde9ff5d05622; delta 91cfc89fdade..71af14b6d889; merge d3d66c4040 + verdict/3872 9b11d200 unload-row-written fixed; body handoff-body c8699d78d4
+1795632245 INBOX acked through 2
