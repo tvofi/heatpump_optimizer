@@ -1,0 +1,97 @@
+{
+ "key": "c5abe60d7c7ca966",
+ "site": "optimizer.py:1582 CMP_BOUND",
+ "patch": "backward = (upper_dist < lower_dist) & ~fitting -> backward = (upper_dist <= lower_dist) & ~fitting",
+ "function": "_fd_steps",
+ "cluster": "optimizer.py:_fd_steps@1567-1582",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3264.0,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/c5abe60d7c7ca966.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c5abe60d7c7ca966",
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c5abe60d7c7ca966.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c5abe60d7c7ca966.py",
+  "baseline_value": "9.999778782798785e-13",
+  "mutant_value": "-9.999778782798785e-13",
+  "example_input": "x0=0.5,eps=0.0001,lb=0.499999999999,ub=0.500000000001",
+  "results": [
+   "example_input=x0=0.5,eps=0.0001,lb=0.499999999999,ub=0.500000000001",
+   "h_baseline=9.999778782798785e-13",
+   "h_mutant=-9.999778782798785e-13",
+   "crafted_inputs_tried=38449 count",
+   "crafted_inputs_moved=425 count",
+   "domain_inputs_tried=1255 count",
+   "domain_inputs_moved=29 count",
+   "random_inputs_tried=19129 count",
+   "random_inputs_moved=1 count",
+   "production_fd_calls=76 count",
+   "production_fd_calls_moved=0 count",
+   "production_gradients=76 count",
+   "production_gradients_moved=0 count",
+   "production_plan_max_abs_delta_kw=0 kW",
+   "null_inputs_moved=0 count",
+   "null_plan_max_abs_delta_kw=0 kW"
+  ],
+  "inputs_tried": "production domain: L-BFGS-B's own eps (1e-4) with 0 <= lb <= x0 <= ub <= 100 kW; crafted_inputs_tried=38449 count; domain_inputs_tried=1255 count; random_inputs_tried=19129 count",
+  "null": [
+   "null_inputs_moved=0 count",
+   "null_plan_max_abs_delta_kw=0 kW"
+  ]
+ },
+ "step4": "moves on 29 of 4685 production-domain inputs (centred narrow boxes); 0 of 57 production calls",
+ "should_fail": "tests/features.py::_grad_parity (features.py:6394; per-variable parity with scipy's approx_derivative over uniform, capped and DHW-pinned-headroom bounds at rng.uniform(0, 3) powers) lacks a free variable at the exact centre of a box narrower than 2*eps",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "finding": {
+  "title": "No check differences a variable centred in a box narrower than 2*eps; the backward tie in _fd_steps is unpinned",
+  "claim": "Mutant c5abe60d7c7ca966 at optimizer.py:1582 (`upper_dist < lower_dist` -> `<=`) survives the full gate, yet for a free variable at the exact centre of a box narrower than 2*eps the forward step is overwritten backward (x0=0.5, bounds 0.5+-1e-12: h +1e-12 -> -1e-12); 29 of 4685 production-domain inputs move, 0 of 57 production calls. Full gate: RED-AS-NULL, gate_rc=1.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "the count of production-domain crafted inputs whose _fd_steps step differs where the gradient reads it",
+  "phenomenon_property": "_fd_steps reproduces scipy's one-sided rule: at equal distances a non-fitting step goes forward",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this key's row) with the full gate's verdict in gates/<key>.json",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:_fd_steps",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c5abe60d7c7ca966.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c5abe60d7c7ca966.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c5abe60d7c7ca966.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c5abe60d7c7ca966.py",
+   "value": 29,
+   "unit": "production-domain inputs whose step moves",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+   "tolerance": "exact (counts); solver floats to 1e-3 relative",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "the one-line mutant `backward = (upper_dist < lower_dist) & ~fitting` -> `backward = (upper_dist <= lower_dist) & ~fitting` at custom_components/heatpump_optimizer/optimizer.py:1582, in memory by the probe; on disk by fullgate.py run --key c5abe60d7c7ca966",
+   "expected_direction": "up",
+   "observed_value": 29
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c5abe60d7c7ca966.py",
+   "value": "null_inputs_moved=0 count; null_plan_max_abs_delta_kw=0 kW",
+   "note": "the function re-compiled with the line unchanged: no grid input, production call or plan moves; the box's full-gate null is gates/null.json"
+  },
+  "should_fail": "tests/features.py::_grad_parity (features.py:6394; per-variable parity with scipy's approx_derivative over uniform, capped and DHW-pinned-headroom bounds at rng.uniform(0, 3) powers) lacks a free variable at the exact centre of a box narrower than 2*eps",
+  "proposed_fix_scope": "tests only: the check named in should_fail, at the input the probe's example_input names"
+ }
+}
