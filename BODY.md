@@ -6,7 +6,16 @@ Builds the approved design `design/R11-OWNER-MODE-LEGS` 0e59437a (rev 2, verdict
 
 ## Head
 
-39b182d75fa1b01fa9f063612378a78c4bd342a0, measured against merge base b18edd593c94c9ef5d2d1bcfded4021dbd78fb31. 39b182d75f merges the pull request's head 1aa635d275 (`mutation-autofix`'s pins and its merge of main) into the repair at bc71899abf, tree-identical to this seat's own merge of the same pair. `origin/main`'s tip 0f63320c96cb at 2026-11-25T04:40Z; `git merge-tree --write-tree origin/main HEAD` rc 0, so no re-merge.
+180da49d412bbceb8843c2c6c021227db0c49d23, measured against merge base d3d66c40408e76351ffc528686353cadf815a05c (`origin/main`'s tip at 2026-11-25T13:30Z).
+
+**Merge repair** (resolution delta 02fc3cde92e3..180da49d412b). `origin/main` d3d66c4040 did not merge into 02fc3cde92 without a resolution: three content conflicts and two mutation-ledger rename/rename pairs. Each was resolved as the union of both sides:
+
+- `duty_legs.leg_rule` takes main's `unlatched` mask (issue 3849) third and this diff's `heat_min`, `dhw_min` and `before` after it, and returns the `LegRule` NamedTuple. Main's `both_step_legs` stays deleted, as this diff deleted it for `plan_legs`.
+- `duty_switch._fields` reads main's `DutySwitchLearner.config_fields()` and adds this diff's minimum legs and `duty_leg_before`.
+- `optimizer._leg_rule` passes main's latched stops and mask with this diff's minimum legs. `OptimizationConfig` carries both sides' fields.
+- The ledger pairs were four different sites that git's rename detection had paired. `mutation_table.py --carry-rows` rebuilt the ledger from main's, byte-identical to keeping all four entries. 180da49d41 drops main's two pins, on `leg_rule`'s and `planner_fields`' old returns, which the merge replaced: `prepr.sh` predicted them as `STALE PIN` reds.
+- Main's new `tests/features.py` checks compared a leg rule with 2-tuples, and one of them called the removed `both_step_duty`. They now compare with `LegRule(...)` and call `served_leg` (ec6be8dbdf).
+- `_leg_rule`'s call lost one line, which pays the merged tree's `module_excess_loc` +1 (`tests/structure.py` rc 0).
 
 **Round 2 repair** (block `mutation-vacuous` at 8ca95413, `probe/rev-3869-8ba22bbd` 7c308abb), two defects:
 
@@ -86,7 +95,7 @@ Failing first: the same 15 checks as their own block (`"# --- R11-OWNER-MODE-LEG
 
 ## Gate at head
 
-`GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=b18edd593c94 ./tests/run.sh` at 39b182d75f (this worktree): `MODE: SCOPED -- 30 script(s) run, 3 scoped out`; `32 TEST SCRIPT(S) PASSED; 2 SCOPED OUT AND NOT RUN`, `ALL 6134 FEATURE CHECKS PASSED`, `ALL 2761 ENTITY CHECKS PASSED`, `ALL 122 STRESS CHECKS PASSED`, rc 0. The run at 5cac9af1c1 before it was red on `tests/doc_claims.py` alone (T6c's comment over 40 words; re-cut in ff7aa67a47).
+`PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` at 180da49d41: `MODE: SCOPED`, `PRE-PR: 180da49d41… rc=0`. The run before it, at ec6be8dbdf, refused only on the two stale pins named in Head. `tests/features.py` on the merged tree: `ALL 6190 FEATURE CHECKS PASSED`, rc 0, with this PR's own mode-leg checks (T6b–T6e) among them. `tests/structure.py` rc 0.
 
 ## Architecture score
 
