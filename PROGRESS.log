@@ -57,3 +57,4 @@
 1795586470 HB alive
 1795586779 DONE blocked: code 76b84e40 handed off, prepr clean; body_push refused brief-carries 0-6 (DRAWMAP part F); BLOCKED.md pushed
 1795587169 HB alive
+1795587188 CKPT merged origin/main dc2b2bab into 76b84e40a7, boost.py union resolved snapshot 8d32ae4a2571
