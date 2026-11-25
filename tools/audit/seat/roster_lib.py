@@ -278,7 +278,7 @@ def roster_path(repo: str = ".", ref: str | None = None,
                                  f"file at {ref or Path(repo).resolve()}")
         return override
     if ref:
-        r = _git(repo, "ls-tree", "--name-only", ref, ROSTERS_DIR + "/")
+        r = _git(repo, "ls-tree", "--full-tree", "--name-only", ref, ROSTERS_DIR + "/")
         if r.returncode:
             raise RosterNotFound(f"cannot list {ROSTERS_DIR}/ at {ref} in "
                                  f"{repo}: {(r.stderr or r.stdout).strip()[:200]}")
@@ -338,7 +338,7 @@ def git_in(repo: str):
 def round_ref(git) -> str | None:
     """`origin/handoff/audit-r<N>-roster`, N the newest round at `MAIN_REF`;
     None when no roster is readable there. Names the ref; never checks it."""
-    code, o = git(["ls-tree", "--name-only", MAIN_REF, ROSTERS_DIR + "/"])
+    code, o = git(["ls-tree", "--full-tree", "--name-only", MAIN_REF, ROSTERS_DIR + "/"])
     path = None if code else newest_roster(o.split())
     return None if path is None else "origin/" + round_branch(path)
 
@@ -360,7 +360,7 @@ def default_roster_ref(git) -> tuple[str, str]:
     if git(["rev-parse", "--verify", "--quiet", ref + "^{commit}"])[0]:
         return MAIN_REF, (f"{ref} is absent in this clone (fetch it); reading "
                           f"{MAIN_REF}, which lags the round's roster edits")
-    if git(["diff", "--quiet", f"{ref}...{MAIN_REF}", "--", ROSTERS_DIR + "/"])[0]:
+    if git(["diff", "--quiet", f"{ref}...{MAIN_REF}", "--", ":(top)" + ROSTERS_DIR + "/"])[0]:
         return ref, (f"WARNING: {MAIN_REF} carries roster changes {ref} has "
                      "not merged; merge main into it")
     return ref, ""
@@ -1603,6 +1603,15 @@ def _self_test() -> int:
         got = default_roster_ref(g)
         check("the round branch present and carrying main: it, with no note",
               got == ("origin/handoff/audit-r10-roster", ""), got)
+        # FROM A SUBDIRECTORY: ci_pause and cancel_superseded pass `tools/` as
+        # the repo; a cwd-relative pathspec there listed nothing, so neither
+        # read a roster (train.log `PAUSE unreadable`, 2026-11-21).
+        sub = str(repo / "dev")
+        got_sub = default_roster_ref(git_in(sub))
+        check("from a subdirectory: the same ref and note as from the root",
+              got_sub == got, got_sub)
+        check("from a subdirectory: roster_path reads the ref's root tree",
+              roster_path(sub, MAIN_REF) == f"{ROSTERS_DIR}/wave-r10-groups.json")
         put(10, "R10-B")
         ref("main", subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
                                    capture_output=True, text=True).stdout.strip())
