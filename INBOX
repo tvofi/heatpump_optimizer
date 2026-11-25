@@ -1,0 +1,1 @@
+1 1795629636 NOTE PR #3882 at 922da939: required gate concluded red, and codeql python is red and unanswered. A merge-main seat is merging main into the branch. After it pushes, fix the gate red, answer codeql in ## Red checks, and push a handoff.
