@@ -1,0 +1,59 @@
+{
+ "key": "cfda6ca73c6951f1",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2825 GUARD_OFF",
+ "patch": "if values.size >= n_steps: -> if False:",
+ "function": "OptimizationConfig.baseline_load_array",
+ "cluster": "optimizer.py:OptimizationConfig.baseline_load_array@2823-2825",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3496.1,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/cfda6ca73c6951f1.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cfda6ca73c6951f1 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_cfda6ca73c6951f1.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_cfda6ca73c6951f1.py",
+  "baseline_value": "0 (the metric is a baseline-vs-mutant delta)",
+  "mutant_value": "4 count  ['list97_n96:values->ValueError', 'arr97_n96:values->ValueError', 'list1_n0:values->ValueError', 'arr1_n0:values->ValueError']",
+  "metric": "cells_moved",
+  "unit": "grid cells whose outcome differs",
+  "all_results": {
+   "grid_cells": "13 count",
+   "cells_moved": "4 count  ['list97_n96:values->ValueError', 'arr97_n96:values->ValueError', 'list1_n0:values->ValueError', 'arr1_n0:values->ValueError']",
+   "null_cells_moved": "0 count",
+   "reach_solves": "4 count",
+   "reach_pairs": "[(96, 96)]",
+   "reach_distinguishing_calls": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.19",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "13-cell grid: 4 cells move, every profile longer than n_steps (size 97 at n=96, size 1 at n=0): values -> ValueError (np.full negative count); size == n equal",
+   "reach: 4 coordinator refresh cycles: pairs [(96, 96)], 0 distinguishing calls"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/config_flow_steps.py, tests/entities.py, tests/env_drift.py, tests/features.py execute line 2825",
+  "assertion": "none through production: only a stored profile longer than the horizon separates the arms, and the coordinator builds it at exactly n_steps"
+ },
+ "non_finding": {
+  "claim": "mutant cfda6ca73c6951f1 at custom_components/heatpump_optimizer/optimizer.py:2825 (if values.size >= n_steps: -> if False:) survives the full gate but is equivalent through production: none through production: only a stored profile longer than the horizon separates the arms, and the coordinator builds it at exactly n_steps",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_cfda6ca73c6951f1.py",
+  "value": "cells_moved: baseline 0 (the metric is a baseline-vs-mutant delta), mutant 4 count  ['list97_n96:values->ValueError', 'arr97_n96:values->ValueError', 'list1_n0:values->ValueError', 'arr1_n0:values->ValueError']; 13-cell grid: 4 cells move, every profile longer than n_steps (size 97 at n=96, size 1 at n=0): values -> ValueError (np.full negative count); size == n equal; reach: 4 coordinator refresh cycles: pairs [(96, 96)], 0 distinguishing calls"
+ }
+}

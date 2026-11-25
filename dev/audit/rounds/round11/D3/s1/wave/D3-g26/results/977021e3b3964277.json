@@ -1,0 +1,140 @@
+{
+ "key": "977021e3b3964277",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2782 GUARD_OFF",
+ "patch": "if self.holiday_comfort_night is not None: -> if False:",
+ "function": "OptimizationConfig._comfort_pair",
+ "cluster": "optimizer.py:OptimizationConfig._comfort_pair@2782-2796",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3852.4,
+  "load1_start": 0.35,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/977021e3b3964277.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 977021e3b3964277 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_977021e3b3964277.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_977021e3b3964277.py",
+  "baseline_value": "0 (the metric is a baseline-vs-mutant delta)",
+  "mutant_value": "24 count",
+  "metric": "hours_moved_total",
+  "unit": "hourly comfort targets moved over two holiday days",
+  "all_results": {
+   "pair_holiday_wed_baseline": "(20.0, 17.0, 8, 20)",
+   "pair_holiday_wed_mutant": "(20.0, 19.5, 8, 20)",
+   "hours_moved_holiday_wed": "12 count",
+   "pair_holiday_sat_baseline": "(20.0, 17.0, 8, 20)",
+   "pair_holiday_sat_mutant": "(20.0, 19.5, 8, 20)",
+   "hours_moved_holiday_sat": "12 count",
+   "pair_plain_sat_baseline": "(22.0, 20.0, 9, 23)",
+   "pair_plain_sat_mutant": "(22.0, 20.0, 9, 23)",
+   "hours_moved_plain_sat": "0 count",
+   "pair_plain_wed_baseline": "(21.0, 19.5, 7, 22)",
+   "pair_plain_wed_mutant": "(21.0, 19.5, 7, 22)",
+   "hours_moved_plain_wed": "0 count",
+   "hours_moved_total": "24 count",
+   "null_hours_moved": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.92",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "holiday Wednesday and holiday Saturday with holiday_comfort_night 17.0 (weekday night 19.5): night 17.0 -> 19.5, 12 hours each, 24 moved",
+   "plain Saturday (weekend overrides): 0",
+   "null plain Wednesday: 0"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/features.py (also tests/entities.py executes the line)",
+  "assertion": "no check configures holiday_comfort_night and asserts _comfort_pair / get_comfort_temp returns it at a night hour of a holiday date"
+ },
+ "finding": {
+  "title": "No check reads the holiday night comfort override; ignoring holiday_comfort_night is unseen",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant 977021e3b3964277 (if self.holiday_comfort_night is not None: -> if False:) at custom_components/heatpump_optimizer/optimizer.py:2782 leaves the full gate red only as the null is (RED-AS-NULL), yet the probe's hours_moved_total moves from 0 (the metric is a baseline-vs-mutant delta) to 24 count.",
+  "metric_definition": "hourly comfort targets moved over two holiday days (hours_moved_total; probe header carries the full definition)",
+  "phenomenon_property": "on a holiday date each configured holiday override (comfort day/night, day start/end hour) replaces the regular value",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:OptimizationConfig._comfort_pair",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_977021e3b3964277.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_977021e3b3964277.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_977021e3b3964277.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_977021e3b3964277.py",
+   "value": "24 count",
+   "unit": "hourly comfort targets moved over two holiday days",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g26 cloud: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz (first container; probes re-run on the resumed container, Intel Xeon @ 2.10GHz, same RESULT values), 16 GB, venv-ci CPython, alone on its machine",
+   "cpu_or_wall": "count",
+   "contention_note": "deterministic count; probes ran in a separate baseline worktree while the box's GATE_JOBS=1 gates ran",
+   "tolerance": "exact",
+   "load1": 1.92,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:2782 if self.holiday_comfort_night is not None: -> if False:, applied in memory by the probe (and on disk by fullgate.py for the gate)",
+   "expected_direction": "up",
+   "observed_value": "24 count"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_977021e3b3964277.py",
+   "value": "null_hours_moved=0 count"
+  },
+  "proposed_fix_scope": "tests only: a check in tests/features.py at the distinguishing input above pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "tests/features.py"
+  ]
+ },
+ "gate_takes": [
+  {
+   "take": 1,
+   "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/977021e3b3964277-take1.json",
+   "verdict": "KILLED",
+   "killed_by": [
+    "python3 tests/stress.py"
+   ],
+   "gate_rc": 1,
+   "wall_s": 2741.1,
+   "load1_start": 0.79,
+   "load1_end": 0.85,
+   "fail_lines": {
+    "python3 tests/closure.py selftest": 2,
+    "python3 tests/entities.py": 1,
+    "python3 tests/stress.py": 1,
+    "python3 tests/harness_headers.py": 3
+   },
+   "read_as": "timing artefact: the one extra FAIL line is stress.py's own per-call-cost self-test ('the per-call-cost arm reaches the rule the sweep applies ... (round-5 D9-07)', winter/1z/space: 41 ms plain vs 23 ms plain again, x0.56; evaluations 42 vs 42, simulate 131232 vs 131232) -- its two plain arms disagree, its count channels are flat, and its scenario sets no holiday date, so it never takes the mutated branch"
+  },
+  {
+   "take": 2,
+   "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/977021e3b3964277.json",
+   "verdict": "RED-AS-NULL",
+   "gate_rc": 1,
+   "wall_s": 3852.4,
+   "load1_start": 0.35,
+   "load1_end": 1.0,
+   "read_as": "re-taken once, alone on the machine, after every other gate finished: red only on the null's three scripts"
+  }
+ ],
+ "gate_note": "first take KILLED by a stress.py wall-time self-test line on a scenario that never reaches the line; re-taken once alone: RED-AS-NULL. The recorded verdict is the re-take's; both takes are kept."
+}

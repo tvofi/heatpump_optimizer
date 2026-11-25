@@ -1,0 +1,59 @@
+{
+ "key": "67ac7292ac5ddd19",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2825 CMP_BOUND",
+ "patch": "if values.size >= n_steps: -> if values.size > n_steps:",
+ "function": "OptimizationConfig.baseline_load_array",
+ "cluster": "optimizer.py:OptimizationConfig.baseline_load_array@2823-2825",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3491.6,
+  "load1_start": 0.91,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/67ac7292ac5ddd19.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 67ac7292ac5ddd19 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_67ac7292ac5ddd19.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_67ac7292ac5ddd19.py",
+  "baseline_value": "0 (the metric is a baseline-vs-mutant delta)",
+  "mutant_value": "0 count  []",
+  "metric": "cells_moved",
+  "unit": "grid cells whose outcome differs",
+  "all_results": {
+   "grid_cells": "13 count",
+   "cells_moved": "0 count  []",
+   "null_cells_moved": "0 count",
+   "reach_solves": "4 count",
+   "reach_pairs": "[(96, 96)]",
+   "reach_distinguishing_calls": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.19",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "13-cell grid (None, [], size n-1/n/n+1 lists and ndarrays at n=96 and n=0): 0 cells move -- at size == n the pad branch appends np.full(0) and returns the same float64 values",
+   "reach: production pairs [(96, 96)]; the returned array is only read (_grid_report, _peak_billing callers), never mutated, so view-vs-copy is unobservable"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/config_flow_steps.py, tests/entities.py, tests/env_drift.py, tests/features.py execute line 2825",
+  "assertion": "none: the mutant is equivalent at the returned values"
+ },
+ "non_finding": {
+  "claim": "mutant 67ac7292ac5ddd19 at custom_components/heatpump_optimizer/optimizer.py:2825 (if values.size >= n_steps: -> if values.size > n_steps:) survives the full gate but is equivalent through production: none: the mutant is equivalent at the returned values",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_67ac7292ac5ddd19.py",
+  "value": "cells_moved: baseline 0 (the metric is a baseline-vs-mutant delta), mutant 0 count  []; 13-cell grid (None, [], size n-1/n/n+1 lists and ndarrays at n=96 and n=0): 0 cells move -- at size == n the pad branch appends np.full(0) and returns the same float64 values; reach: production pairs [(96, 96)]; the returned array is only read (_grid_report, _peak_billing callers), never mutated, so view-vs-copy is unobservable"
+ }
+}

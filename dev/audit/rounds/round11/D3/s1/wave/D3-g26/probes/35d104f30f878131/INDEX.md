@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_35d104f30f878131.py (+ dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py): step-4 probe for mutant 35d104f30f878131; pins: how many of the three predictive keys (solar_reduction_factor, wind_anticipation_factor, pre_heat_urgency)
