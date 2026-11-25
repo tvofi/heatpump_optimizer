@@ -18,3 +18,4 @@
 1795632316 HB alive
 1795632441 CKPT verified mm/3805 merge counts (structure PASSED, D6 claims identical, deployment_shape PASSED); combi block runs pending snapshot 5c0908ce7a83
 1795632922 HB alive
+1795633452 CKPT combi check made deterministic (block ok at fix, mutant break->pass killed); scoped gate running snapshot 2fac059648af
