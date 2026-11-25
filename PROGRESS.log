@@ -4,3 +4,4 @@
 1795609325 CKPT mutants run: M1-M5 killed, M6 status filter and M7 id-order survive; pinned-grader units in code_red domain snapshot 54448db5a930
 1795609726 HB alive
 1795610329 HB alive
+1795610364 DONE verdict pushed: blocked class-open (pinned-grader units in code_red) at d339e843, probe 8d47f14e
