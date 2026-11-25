@@ -6,6 +6,15 @@ Builds option D of the approved design `design/R11-OWNER-STEP-KICK` 09fecb1b (re
 
 ## Head
 
+`cc1f776895fc1d33d9895ff41b4d99c78b969dab` repairs fix review `blocked ef591eaa mutation-vacuous` (`_pass_record`'s `_settle(held, inp)` -> `held.served` survived). Delta for review: `git diff ef591eaa11 cc1f776895` minus main's own changes; it is two commits:
+- `f60f227143`, on `ef591eaa11`: `tests/features.py` adds T6b, and `_sk_e2e` takes `unit` and `action`. Through the production `_arbitrate`, a system-identification step and a return target on the swap pass record the floor they record with no swap; the null control is a plain flow target, which records the settled floor below it. The mutant reads `{'flow': (34.0, 59.0), 'probe': (34.0, 59.0), 'return': (34.0, 59.0)}` (swap, no swap) and fails T6b; the head passes.
+- `cc1f776895` merges origin/main `d3d66c4040`, because the PR was DIRTY on `tests/structure_budgets.json`. The ledger merge driver summed both sides' deltas, and `python3 tests/structure.py` on the merged tree prints STRUCTURE RATCHET PASSED with no metric improved and unrecorded, so no row is re-recorded (the commit message says so). No other file conflicted.
+At `cc1f776895`: ALL 13 FEATURES BLOCK PASSED, and the semantic drive is 20 of 20 KILLED (Mutation proof). `git merge-tree --write-tree origin/main` is clean.
+
+`66950069035692c17d33b7997acbc03988bdb670` merges origin/main `b4a8bbd567` into the repaired head `280a51a4ccafea2002fb3cecc7fe9f0581119b58`, because the two no longer merged cleanly. Its hand-resolved hunks, for the delta review (`git diff 280a51a4cc 6695006903` minus main's own changes):
+- `tests/features.py`: both sides appended a block before `sys.exit`, and both are kept: this group's R11-OWNER-STEP-KICK block, then main's R11-OWNER-CARD-EXTERNAL-HEAT block.
+- `dev/audit/rounds/round4/D6/claims.py`, `tests/deployment_shape.py` and `docs/architecture.md`: the counts are a union. This group's `flow_anchor.py` and main's `solve_gate.py` give 103 modules, 122 package files and 66 HA-free modules, and each history clause is kept. `claims.py` was re-run, and `claims.json` reads `documented=103 measured=103`.
+
 `280a51a4ccafea2002fb3cecc7fe9f0581119b58`, measured against its merge base with `origin/main`, `3210fcd733`. It merges the pull request's own head bdb3b6885d (the merge-main bot's `ci: merge main` of 3210fcd733 and its closures re-record) into the repair, clean, so the code delta is three commits on the previous head 4c2f14778, the repair of rev-3883's draft `blocked architecture-unsound`: b5ae3058f5 moves the swap note into `_note_served` and the I4/I6 exclusions into the one gate `_settle` (the shape 58a605d3a6 measured NULL), fixes `docs/architecture.md`'s HA-free count and pins the gate in T6; 61429e795e re-records `module_excess_loc` (Figures); 5e88c6f01a restores the merge base's pin for `desired()`'s feedback guard, whose line is the base's again. The earlier history: 51b63d0f8e (the authored code head, superseding 58a605d3a6, which `28f37f8695` records as a parent with `git merge -s ours`), e6a21bab8a (an automatic merge of origin/main `3153a635b4`), 4c2f14778 (this PR's delivery row).
 
 ## Design departures
@@ -20,7 +29,7 @@ Builds option D of the approved design `design/R11-OWNER-STEP-KICK` 09fecb1b (re
 
 ## Mutation proof
 
-Both drives ran at 5e88c6f01a; the merge to 280a51a4cc changes neither `pump_arbiter.py` nor `flow_anchor.py` (`git diff --quiet 5e88c6f01a 280a51a4cc -- <both>` exits 0), and the block passes at 280a51a4cc.
+The semantic drive was re-run at `cc1f776895` with M20 (`_pass_record` ungated) added: 20 of 20 KILLED (`sem/drive-cc1f776895.txt`, 13-check block, the prelude re-emitted at that tree). Before that, both drives ran at 5e88c6f01a; the merge to 280a51a4cc changes neither `pump_arbiter.py` nor `flow_anchor.py` (`git diff --quiet 5e88c6f01a 280a51a4cc -- <both>` exits 0), and the block passes at 280a51a4cc.
 
 Driver: `sem/drive.py` in the seat directory (scratch, not committed) applies each mutant to its production line at the head, runs `python3 tools/audit/seat/features_block.py --prelude "exec(open('sk_prelude.py').read())" "# --- R11-OWNER-STEP-KICK: the step-start kick"` (11 checks, prelude from `--emit-prelude`), and restores the line. A mutant whose run exits 0 prints SURVIVED. 19 of 19 KILLED at the head:
 
@@ -31,6 +40,7 @@ Driver: `sem/drive.py` in the seat directory (scratch, not committed) applies ea
 - `_settle`'s I4 (return target) and I6 (experiment) exclusions, each dropped: T6 fails.
 - floor `min(today, anchored)` -> anchored: I1/I2 fail.
 - `_note_served` call -> `pass`, `settle` not threaded from `desired()`, `_pass_record` unsettled: end-to-end fails.
+- `_pass_record` ungated (`_settle(held, inp)` -> `held.served`, rev ef591eaa's m3): T6b fails.
 
 Every site `tools/pr/ci_predict.py` names as added and unpinned was also driven by its own syntactic mutant (`../sites.py 3153a635b4` lists them from `mutation_table.candidates`, `../drive_sites.py` applies each and runs the same block): baseline PASS, 15 of 15 KILLED. `desired()`'s `if _flow_unit(inp.config):` (GUARD_OFF) survives the block, as at the merge base, where `tests/features.py` kills it (failed=9); its base pin `desired.GUARD_OFF.0082e8a4` is restored in 5e88c6f01a.
 
@@ -100,5 +110,6 @@ Each concluded red on this pull request's heads, by check name:
 
 ## Friction
 
-none
+- fixer.md: cost: two fixer seats built R11-OWNER-STEP-KICK. Their heads `58a605d3a6` (the other local seat's ten commits from e6873a7fb1) and `f67fb20bae` (the stopped cloud seat, prepr rc 0), the reviewed `4c2f14778b` and the PR head `bdb3b6885d` are each an ancestor of `280a51a4cc` (`git merge-base --is-ancestor`, rc 0 for all four), so nothing is ported and nothing is dropped. `pump_arbiter.py` keeps 58a605d3a6's coordinator-free `_note_served`/`_settle` shape. Carry: R11-OWNER-STEP-KICK
+
 
