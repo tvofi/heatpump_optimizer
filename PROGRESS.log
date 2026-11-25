@@ -104,3 +104,4 @@
 1795570883 HB 0b6e291153f1d738 KILLED set aside as box artefact (probes in gated tree tripped harness_headers inlined-walk check); probes moved out; key re-gated after the pass
 1795570906 HB stale 0b6e291153f1d738 gate record removed from wip seat dir (kept under gates-artefact/)
 1795570951 HB alive
+1795571555 HB alive
