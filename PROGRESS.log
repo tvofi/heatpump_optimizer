@@ -3,3 +3,4 @@
 1795614798 CKPT mutants run: 5 named reproduce, 3 extra survive; equivalence runs in flight snapshot 9db8e7865366
 1795615043 HB alive
 1795615648 HB alive
+1795615898 CKPT runner equivalence re-derived at head: 6307 identical check lines snapshot d9e424385a15
