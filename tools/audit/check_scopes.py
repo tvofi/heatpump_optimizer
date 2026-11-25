@@ -855,9 +855,9 @@ def evaluation_self_test(tree, show):
             == ["E evaluator 'evaluator-r8' is a seat in the graded round's token ledger: it worked the round it grades"]
             and len(ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "plan-review-r8"}], 1767312000, 2e9)) == 1,
         "B1 null: the same seat outside the window, another seat, or a `-` seat is no gap":
-            ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "evaluator-r8"}], 0, 1e9) == []
-            and ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "fixer-r8-x"},
-                                        {"t": "2026-01-02T00:00:00Z", "seat": "-"}], 0, 2e9) == [],
+            ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "evaluator-r8"}], b=1767312000, a=0) == []
+            and ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "fixer-r8-x"}, {"t": "2026-01-02T00:00:00Z", "seat": "-"},
+                                        {"t": "2026-01-02T00:00:01Z", "seat": "evaluator-r8"}], b=1767312001, a=0) == [],
         "B2 a review that is no approve verdict is refused":
             only(run(edit(lambda c: c.pop("review"))), "review is not an approve") and only(run(edit(lambda c: c["review"].update(verdict="revise"))), "review is not an approve"),
         "B2 a review sha outside the ref's history is refused": only(run(edit(lambda c: c["review"].update(sha="zzz"))), "is not a commit in the ref"),
@@ -1306,8 +1306,9 @@ def main():
             and "FAIL start evaluation" in run_r1.stdout and "round1/EVALUATION.json is not in the tree" in run_r1.stdout)
         # main()'s --round reads the token ledger (0018 section 6): run whole, an absent ledger
         # prints unread whatever the tree's tags; round_ledger_gaps' window and rows below.
-        out11 = default_run(scopes, "--round", "11", "--tokens", str(Path(tempfile.gettempdir()) / "no-such-tokens.tsv")).stdout
-        cov["--round reads its token ledger: an absent one prints unread"] = "LEDGER unread: no token ledger (--tokens)" in out11
+        with tempfile.TemporaryDirectory() as nod:
+            cov["--round reads its token ledger: an absent one prints unread"] = "LEDGER unread: no token ledger (--tokens)" in (
+                default_run(scopes, "--round", "11", "--tokens", str(Path(nod) / "tokens.tsv")).stdout)
         cov.update(ledger_round_self_test())
         run_oc = default_run(scopes, "--round", "1", "--open-cards")
         cov["--open-cards refuses a round with no evaluation, never an empty list"] = (run_oc.returncode == 2
@@ -1355,9 +1356,9 @@ def ledger_round_self_test():
     with tempfile.TemporaryDirectory() as d:
         env = throwaway_git_init(d, "-q")
         for n, stamp in ((9, 1767225600), (10, 1767398400)):
-            subprocess.run(["git", "-C", d, "commit", "-q", "--allow-empty", "-m", f"v{n}"], check=True,
+            subprocess.run(["git", "-C", d, "commit", "-q", "--allow-empty", "-m", f"v{n}"],
                            env=dict(env, GIT_COMMITTER_DATE=f"{stamp} +0000", GIT_AUTHOR_DATE=f"{stamp} +0000"))
-            subprocess.run(["git", "-C", d, "tag", f"v{n}.0.0"], env=env, check=True)
+            subprocess.run(["git", "-C", d, "tag", f"v{n}.0.0"], env=env)  # a failure leaves no window: the arms below fail
         led = Path(d) / "tokens.tsv"
 
         def run(rows, tree=frozenset({rec}), tokens=str(led)):
