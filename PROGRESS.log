@@ -16,3 +16,4 @@
 1795619403 CKPT 3841 handed off: handoff 0d024e2804, body 5d07480448; delta a4123b13fe..0d024e2804 (merge 9a7b262f17 + record 0d024e2804) snapshot acfd8f3fb766
 1795619407 INBOX acked through 1
 1795619624 HB alive
+1795620186 CKPT 3841: killing checks written for sysid:2504, dhw_planner:96/:99; pin drive running snapshot 0512e0410e1c
