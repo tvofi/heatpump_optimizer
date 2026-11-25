@@ -6,6 +6,10 @@ Baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine (provisional): nproc:
 
 Null control (`fullgate.py null`, comment-only marker): gate_rc=1, failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'] with fail_lines {'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 1, 'python3 tests/harness_headers.py': 4}, wall 4025.7 s, load1 0.59..0.92. Red on artefact checks only: see gates/null-note.txt (includes this box's own probes/_mut.py helper-copy line, fixed after the null; later gates read at most 3 there).
 
+## Box events
+
+Box events: at ~13:48 UTC the session's container was restarted while key 845bf7a69b48b94b's first gate had just started (13:55); the long-running comms loop and gate driver kept the old proxy address, so their pushes failed and a failed push left box_comms.sh's mkdir lock behind. The comms loop was restarted under the current environment, the stale lock (this box's own) removed, and the gate driver stopped by PID (parents first, then SIGINT to fullgate.py, whose finally reset the tree to the baseline) 5 minutes into that gate, which wrote no record; gate_wave.sh run was restarted and re-gated 845bf7a69b48b94b from the start (14:00-15:09 UTC). No gate record was lost or overwritten; every key's gate is a single complete run. After all 16 gates, all 16 probes were re-run on the quiet box with the final helper code; every number matched the first run (outputs in probes/out/).
+
 ## Tally
 
 - gated: 16 of 16; TIMEOUT: 0; not gated: 0
