@@ -15,7 +15,7 @@ Alternatives not taken:
 
 ## Head
 
-`ea5c36ab348672cb9f93438075e40b43cd769292`, measured against merge base `1207ee13b0e439a4acefccabace691785af2ebad` (origin/main at the time of measurement).
+`b503d2e8d1d752e85db0a4f1b85f2cb8250ee322`, merge base `2f4e32c2a3b959142e29966e001292d42ff1affd` (origin/main `0f63320c96cb4e1926a584c89d0dfe920d1778ab` at 2026-11-25T02:36Z). The figures below were measured at `ea5c36ab34` against merge base `1207ee13b0`, except the repair figures, which were measured at this head. The commits since `ea5c36ab34` are the merge of main, the delivery row, the `ci: pin killed mutants` bot commit and this repair, which touches `tests/finite_boundary.py` and `tests/mutation_ledger/killed_by/` only.
 
 ## Mutation proof
 
@@ -34,6 +34,8 @@ Each mutant was applied to a detached worktree at the head, and the closure name
   - The debug row's `whole=` dropped: 1 of 120 FAIL, the #3714 cell-cost check (`debug:rows/#/...`).
   - Text read as a number in any value (`if key and` removed): 1 of 120 FAIL, "each kind's shape and parse conjuncts decide alone" (`real refuses a value that spells a number`, `int refuses a value that spells an integer`).
 - Unmutated blocks: both exit 0 (`none-boost`, `none-snap`).
+
+- Repair at `e2f34a09c8` (`tests / mutation` survivors): `tests/finite_boundary.py` gains two checks. One drives `coordinator._learned_pair` with a zero value at both count floors, a negative value, and the least positive value as the null control. The other reads the debug declaration's `rows/#/accuracy_sample/` paths against `AccuracySample.as_dict()`'s own fields. Each mutant was applied with `sed` to a detached worktree carrying this head's test, and `tests/finite_boundary.py` was run there: `value > 0` to `>=` fails the fold check, and the `store.py` debug-declaration `and` to `or` fails the declaration check. The unmutated worktree passes. `--pin-killed` then recorded both CMP_BOUND mutants at `_learned_pair` (`count >= least` to `>` fails the least-positive arm) and the BOOLOP as killed by `tests/finite_boundary.py`.
 
 ## Null control
 
@@ -54,6 +56,11 @@ Harnesses run in tree at main (`1207ee13b0`) and at `b54a76e0e6` with `PYTHONPAT
 - The delta from `b54a76e0e6` to `43312aac55` (the D17-s3-03 edge arms and eight stale-pin deletions) scopes to `tests/doc_claims.py`, `tests/entities.py` and `tests/features.py` (`python3 tests/closure.py select --diff b54a76e0e6`). Each ran alone at `43312aac55`: `ALL 441 checks PASSED`, `ALL 2748 ENTITY CHECKS PASSED` and `ALL 6030 FEATURE CHECKS PASSED`. The head's last commit deletes one more stale pin, and that delta scopes to `tests/entities.py` alone (`python3 tests/closure.py select --diff 43312aac55`): `ALL 2748 ENTITY CHECKS PASSED` at the head.
 - `python3 tests/doc_claims.py`: three new comment sentences over 40 words were split to pass it.
 
+- `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/finite_boundary.py,tests/features.py,tests/entities.py --jobs 4` at `e2f34a09c8`: `PIN KILLED: 2 pinned, 3 left unpinned` (the survivors were `coordinator.py` `_learned_pair` CMP_BOUND x2 and `store.py` debug-declaration BOOLOP). With the new checks, the same command with `--scripts tests/finite_boundary.py` printed `PIN KILLED: 3 pinned, 0 left unpinned`, and the null control `coordinator.py:396 NULL_COMMENT` survived.
+- `PYTHONPATH=tests/hastub python3 tests/finite_boundary.py` at this head: `ALL 122 FINITE BOUNDARY CHECKS PASSED`. In the `_learned_pair` `value >= 0` mutant worktree and in the debug-declaration `or` mutant worktree, each printed `1 of 122 FINITE BOUNDARY CHECKS FAILED`.
+- `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --scope changed --base origin/main --max 0 --jobs 3` at this head: `MUTATION TABLE PASSED (empty pool)`, and the ratchet line reads the ledger as agreeing with the inventory.
+- `python3 tests/structure.py` at this head: `STRUCTURE RATCHET PASSED`.
+
 Seam enumerations (fixer step 8). Each rule was run on the head, and every seam it returns is dispositioned:
 - D15-s1-04, the readers that drop on `DOMAINS`: `grep -n 'admitted(' custom_components/heatpump_optimizer/*.py` returns 9 sites outside its definition. `boost.py:619` is new here. `coordinator.py` 3043, 8281, 8294, 8301 and 8303 cover ledger parts. `debugger.py:166` covers debug rows. `driving_grade.py:120` is the ledger's `operation_drivers`, through the lambda at `coordinator.py:8301`. `snapshots.py:274` covers the snapshot summary. Every store they read is one Arm 6 seeds through its real saver and loader (`len(seeds) == len(LOADERS)`, asserted). The writer-side seams are the Arm 6 coverage check's output: at main it listed the fields above, and at the head it lists none.
 - D15-s1-05: `grep -nE "setdefault\([^)]*\[[^]]*, *0\]\)" custom_components/heatpump_optimizer/*.py` returns 3 seams. `coordinator.py:9295` (capacity envelope) is closed here. `freq_control.py:162` is not a seam: the count increments before any save, and its loader accepts `>= 0`. `room_history.py:114` is not a stored `[value, count]` pair, because it persists as a share column (`_share`, `None` at 0 samples).
@@ -66,17 +73,20 @@ Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --d
 
 ## Red checks
 
-- `tests / mutation` (predicted): `ci_predict.py` (prepr step 6d) names the 9 added unpinned sites listed under `## Unpinned sites`. mutation-autofix (`tests/mutation_table.py --pin-killed`) records them on this branch after the push (ci-autofix.md). That job is the cheaper detector, at a standing cost of one bot commit.
+- `tests / mutation` (run 45096361095, at `e2f34a09c8`): `MUTATION TABLE REFUSED`. The bot's `ci: pin killed mutants` commit had pinned what the drivers killed. The added sites no driver killed were left unpinned: `coordinator.py` `_learned_pair` CMP_BOUND x2 and `store.py` debug-declaration BOOLOP, plus the `_learned_pair` GUARD_OFF and `snapshots.py` `best_restore` GUARD_OFF, which `--pin-killed` pinned on this branch. Killing checks were added and the sites pinned here (`## Mutation proof`, `## Figures`). Cheaper detector: `--pin-killed` run locally before the handoff (fixer.md step 2). Its standing cost is one local drive of the diff's added sites. On this diff that took the better part of an hour, because `tests/features.py` is a driver.
+- `pr-contract / pr-contract` (run 45096361095): `FAIL closed: this run's codeql jobs were not listed finished after 600 s`, from `tools/ci/codescan_wait.py`. The body steps after it ran clean (`FIGURES: ... 0 refused`, `clean no refusal`, `CARRY-AUDIT: ... 0 unrouted`). The red is a wait on another workflow's jobs, not on this body or diff. Cheaper detector: none; the gate that waits is the only place the CodeQL timing is observable.
+
+## Unpinned sites`. mutation-autofix (`tests/mutation_table.py --pin-killed`) records them on this branch after the push (ci-autofix.md). That job is the cheaper detector, at a standing cost of one bot commit.
 
 ## Unpinned sites
 
-`ci_predict.py` (prepr step 6d) names 9 added sites. All are under `custom_components/`, so mutation-autofix's lane measures them after the push:
-- custom_components/heatpump_optimizer/coordinator.py:493 CMP_BOUND*2: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/coordinator.py:493 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/snapshots.py:229 CMP_BOUND: pinned by mutation-autofix (killed by the D17-s3-03 check's edge arm, measured above)
-- custom_components/heatpump_optimizer/snapshots.py:229 GUARD_OFF: pinned by mutation-autofix
+None at this head: `--pin-killed` leaves 0 unpinned (`## Figures`). The sites `ci_predict.py` (prepr step 6d) named and their pins:
+- custom_components/heatpump_optimizer/coordinator.py:493 CMP_BOUND*2: killed by `tests/finite_boundary.py` (the fold check added here), pinned here
+- custom_components/heatpump_optimizer/coordinator.py:493 GUARD_OFF: killed by `tests/finite_boundary.py`, pinned here
+- custom_components/heatpump_optimizer/snapshots.py:229 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/snapshots.py:229 GUARD_OFF: killed by `tests/features.py`, pinned here
 - custom_components/heatpump_optimizer/store.py:247 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/store.py:610 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/store.py:610 BOOLOP: killed by `tests/finite_boundary.py` (the declaration check added here), pinned here
 - custom_components/heatpump_optimizer/store.py:696 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/store.py:696 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/store.py:706 RETURN_DEL: pinned by mutation-autofix
