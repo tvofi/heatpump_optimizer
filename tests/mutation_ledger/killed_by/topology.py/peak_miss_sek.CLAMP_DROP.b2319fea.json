@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/topology.py:peak_miss_sek CLAMP_DROP b2319fea",
+  "killed_by": "tests/entities.py",
+  "old": "    return max(0.0, (true_peak - blind_peak) * float(price_per_kw) / max(int(count), 1))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return (0.0)`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=4. Each of the 2 sites under this anchor was killed."
+}
