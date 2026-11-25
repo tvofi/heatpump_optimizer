@@ -37,3 +37,4 @@
 1795626735 HB alive
 1795627339 HB alive
 1795629118 CKPT merged PR head f4ec7bf618 (bot pins) into handoff at f244a4b7b5; prepr rerunning snapshot d58099de4411
+1795633167 DONE merge-mode-legs returned (NOTE 1): handoff/r11-owner-mode-legs 54a8c81c15f0fcc99066f82908c64f64b4f5abe5 (ff from 180da49d41; merges PR head f4ec7bf618), delta 180da49d41..54a8c81c15, body 932cc430ab; 6 pins added, stale bot pin leg_rule 2413dc3f dropped, 9 sites unmeasured in ## Unpinned sites; codeql python red answered (runner shutdown); scoped prepr rc=0 with code steps; owed: delta review, update_pr
