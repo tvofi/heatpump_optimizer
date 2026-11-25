@@ -1,0 +1,19 @@
+custom_components/heatpump_optimizer/dhw_planner.py:1332:        if getattr(initial_state, "external_heat_active", False) or getattr(
+custom_components/heatpump_optimizer/dhw_learning.py:155:    ``external_heat_active`` whether a wood burn is driving the tank — the
+custom_components/heatpump_optimizer/dhw_learning.py:168:        external_heat_active: Callable[[], bool],
+custom_components/heatpump_optimizer/dhw_learning.py:174:        self._external_heat_active = external_heat_active
+custom_components/heatpump_optimizer/dhw_learning.py:494:        if self._external_heat_active():
+custom_components/heatpump_optimizer/payload.py:935:    external_heat_active: bool
+custom_components/heatpump_optimizer/wood_fuel.py:622:    if result is not None and det.suppressing:
+custom_components/heatpump_optimizer/binary_sensor.py:260:        return bool(self._data().get("external_heat_active"))
+custom_components/heatpump_optimizer/external_heat.py:510:    return detector.suppressing and not ignore_effective(detector, ignored)
+custom_components/heatpump_optimizer/external_heat.py:517:        "external_heat_active": detector.state.active,
+custom_components/heatpump_optimizer/thermal_model.py:2046:    external_heat_active: bool = False
+custom_components/heatpump_optimizer/power_guard.py:117:            if self.suppressing:
+custom_components/heatpump_optimizer/power_guard.py:118:                self.suppressing = False
+custom_components/heatpump_optimizer/power_guard.py:125:            if self.suppressing:
+custom_components/heatpump_optimizer/power_guard.py:126:                self.suppressing = False
+custom_components/heatpump_optimizer/power_guard.py:138:            if not self.suppressing and self._over_count >= HYSTERESIS_SAMPLES:
+custom_components/heatpump_optimizer/power_guard.py:139:                self.suppressing = True
+custom_components/heatpump_optimizer/power_guard.py:149:            if self.suppressing and self._clear_count >= HYSTERESIS_SAMPLES:
+custom_components/heatpump_optimizer/power_guard.py:150:                self.suppressing = False

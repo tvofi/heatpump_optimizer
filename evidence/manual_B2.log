@@ -1,0 +1,6 @@
+KILLED switch-off-false rc=1
+    FAIL turning the external-heat override on and off moves boost's held flag (#3862)  [on=True off=True]
+    FAIL every switch turned off shows off at once, while the published payload still says on  [{'OptimizerEnableSwitch': [False], 'AwaySwitch': [False], 'BoostDhwSwitch': [False], 'BoostSpaceSwitch': [False], 'BlockDhwSwitc
+    FAIL every entity action publishes its own result at once, while the payload still holds the old one, before the one refresh it asks for starts  [ran=24; ExternalHeatIgnoreBlockSwitch.async_turn_off(): is_on=True writes=
+SURVIVED diag-block-ignored rc=1
+done

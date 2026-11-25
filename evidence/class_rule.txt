@@ -1,0 +1,9 @@
+3767:            external_heat_active=lambda: bool(self._external_heat_active),
+3939:        self._external_heat_active: bool = False
+5163:        self._external_heat.config = self._external_heat_config()
+5196:        state = self._external_heat.update(observation)
+5197:        self._external_heat_active = self._external_heat.suppressing
+5214:        forecast = self._external_heat.forecast_free_heat(
+6219:            external_heat_active=self._external_heat_active and not extheat.ignore_effective(
+6839:        if self._external_heat_active:
+10091:            "wood_heated": self._external_heat.state.heating() if wood_furnace_on(ctx._config) else None,

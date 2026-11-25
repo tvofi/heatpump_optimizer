@@ -1,0 +1,261 @@
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+
+=== Entities and platforms ===
+
+-- Platform registration
+  ok   PLATFORMS and PLATFORM_LIST agree
+  ok   every member of the test stub's Platform exists in Home Assistant's own
+  ok   every entry of PLATFORMS is a real Home Assistant platform
+  ok   every entry of PLATFORM_LIST is a real Home Assistant platform
+  ok   diagnostics.py exists
+  ok   diagnostics is NOT forwarded as a platform
+  ok   the binary_sensor platform is registered
+  ok   the binary_sensor module exists and sets up entries
+  ok   the button platform is registered
+  ok   the button module exists and sets up entries
+  ok   the sensor platform declares PARALLEL_UPDATES = 0
+  ok   the binary_sensor platform declares PARALLEL_UPDATES = 0
+  ok   the button platform declares PARALLEL_UPDATES = 0
+  ok   the climate platform declares PARALLEL_UPDATES = 1
+  ok   the switch platform declares PARALLEL_UPDATES = 1
+  ok   the datetime platform declares PARALLEL_UPDATES = 1
+
+-- Sensors
+  ok   all sensors are constructible
+  ok   a configured room list adds exactly the room average, spread and separability sensors; null control, the default roster with no list holds none of them
+  ok   the room sensors read the payload's rooms block: average in degC, spread in K, the dropped room and the coldest and warmest as attributes
+  ok   the spread sensor's lift attribute is the rooms block's lift: its size, room and gate; the average sensor carries none
+  ok   under the quorum both room sensors read unknown
+  ok   the README's sensors count is right
+  ok   the README's binary sensors count is right
+  ok   the README's binary sensors table lists every one of them
+  ok   the README's buttons count is right
+  ok   the README's buttons table lists every one of them
+  ok   the README's wood_cheaper notes name the billed-price gate
+  ok   the README's options-page count matches _OPTION_PAGES
+  ok   the README names every options page by its real menu label
+  ok   the Modbus pre-fill page labels every suggested key as its own page does
+  ok   the README does not list Enable away mode as an options-page field
+  ok   the Quick start prose step numbers agree with the diagram's
+  ok   the diagram's 'how do you want to' step pairs with the prose's 'how to describe' step (#1535 label-wording gap)
+  ok   every Quick start prose heading number is used exactly once
+  ok   the configuration reference names every shipped options field
+  ok   only the unbounded cell keeps Cost Power Headroom unavailable
+  ok   automations.md names every state the Cost Power Headroom sensor publishes
+  ok   the README's total entity count covers every registered platform
+
+=== Stress and economics ===
+  ok   tests/README.md's stress annotation states the sweep's real size
+  ok   the stress annotation's edge-case count is the dict's real size
+  ok   env_drift's drift verdict is importable and judges a moved leaf (R9 D7-s1-02)
+  ok   stress.py's per-scenario budget verdict is importable and refuses a scenario over its own budget (R9 D7-s1-02)
+  ok   the validate annotation's scenario count is the module's real size
+  ok   tests/README.md's golden.py line names the run its default mode makes
+  ok   closures.json's comment discloses the differential guards' stub seconds
+  ok   architecture.md's opening counts name the package it describes
+  ok   architecture.md's module map lists every module in the package
+  ok   architecture.md's HA boundary names exactly the module-level importers
+  ok   architecture.md's one function-level toucher is the only one
+  ok   architecture.md's HA-free count is the tree's
+  ok   architecture.md's option-page count matches _OPTION_PAGES
+  ok   architecture.md's __init__.py service count matches services.yaml
+  ok   architecture.md's services.py service count matches services.yaml
+  ok   architecture.md's services.yaml service count matches services.yaml
+  ok   architecture.md's sensor count matches the platform census
+  ok   architecture.md's switch.py names every entity it constructs
+  ok   architecture.md's binary_sensor.py names every entity it constructs
+  ok   architecture.md's entity diagram counts match the census
+  ok   every README mermaid fence sits inside <details>, so HACS shows a label rather than raw diagram source
+  ok   no README <img> carries a relative src, which HACS blanks
+  ok   no README image with a relative target wraps its alt text across lines, which stops HACS rewriting it and leaves the src blank
+  ok   every relative README image survives HACS's rewriter, judged in the span the rewriter's own global scan gives it: inline, that span's first '(' is the src's own, and no '.md' anywhere in it
+  ok   the README hero is the Playwright screenshot, not B4's interim SVG
+  ok   every sensor the platform builds has a row in the README, and every row is a sensor it builds
+  ok   no sensor is documented in two groups
+  ok   the sensor section is still split into labelled groups
+  ok   unique ids are unique
+  ok   the README has a Removal section, under Installation
+  ok   it names the standard delete path
+  ok   it says the card's Lovelace resource stays behind, and where to remove it
+  ok   it says the code is uninstalled through HACS or by deleting the folder
+  ok   the store files it says are left under .storage are exactly the ones the coordinator keeps
+  ok   the README's store-file count is the census, not a carried ten
+  ok   the README's requirement line states the Home Assistant floor hacs.json declares
+  ok   and the README badge agrees
+  ok   hacs.json's Home Assistant floor is at least 2025.2.0 (the first release whose own requires-python is >=3.13.0)
+  ok   the README states the lowest Python version CI actually runs on
+  ok   the README names exactly the interpreters the SUITE runs on, neither more nor fewer
+  ok   the Python badge agrees with that floor
+  ok   the README carries a level-2 'Known limitations' section (#952)
+  ok   the Known limitations section describes constraints, not a heading with a caption
+  ok   the register's test-coverage row agrees with the recorded coverage floors
+  ok   the register's config-flow-test-coverage row agrees with the recorded config-flow floor
+  ok   the register's docs-examples row is done: the blueprints are listed in the home-assistant.io Blueprints Exchange
+  ok   the docs-examples row cites the listing in its resolving /t/ form
+  ok   README.md and docs/automations.md link the same blueprints
+  ok   neither coverage row quotes figures of its own
+  ok   the carried tier partition covers the register's rows exactly, once each
+  ok   the manifest declares the tier the register supports cumulatively
+  ok   the Measured Power sensor exists
+  ok   the Learning Observed COP sensor exists
+  ok   the Lifetime Space Heating Energy sensor exists
+  ok   the DHW Energy (lifetime) sensor exists
+  ok   the Lifetime Total Energy sensor exists
+  ok   the Lifetime Space Heating Cost sensor exists
+  ok   the DHW Cost (lifetime) sensor exists
+  ok   the Lifetime Total Heating Cost sensor exists
+  ok   the Prediction Accuracy sensor exists
+  ok   the Cost Monthly Peak Power sensor exists
+  ok   the Solar Surplus Forecast sensor exists
+  ok   the Thermal Battery Charge sensor exists
+  ok   the Thermal Battery Energy sensor exists
+  ok   the Learning Comfort Weight sensor exists
+  ok   measured power is distinguishable from recommended power
+  ok   measured power reads the measurement
+  ok   measured power keeps the commanded value alongside
+  ok   observed COP is published
+  ok   Lifetime Space Heating Energy is TOTAL_INCREASING
+  ok   DHW Energy (lifetime) is TOTAL_INCREASING
+  ok   Lifetime Total Energy is TOTAL_INCREASING
+  ok   Lifetime Space Heating Cost is a TOTAL in a currency
+  ok   DHW Cost (lifetime) is a TOTAL in a currency
+  ok   Lifetime Total Heating Cost is a TOTAL in a currency
+  ok   the DHW/space split is described rather than implied
+  ok   the energy split reconciles with the total
+  ok   the accumulators state their period in words
+  ok   and carry this month's figures next to the lifetime state
+  ok   and the date they started counting, when the store has one
+  ok   the plan sensors say their numbers are projections, not history
+  ok   accuracy is published
+  ok   the accuracy bias is published alongside the magnitude
+  ok   the billed peak is published
+  ok   the free headroom threshold is explained
+  ok   the fuse advisor's monthly answer is published
+  ok   outage recovery is visible while it is active
+  ok   the Cost Power Headroom sensor exists
+  ok   headroom is the state, in kW, ready for a charger automation
+  ok   the headroom sensor is available exactly when a limit exists
+  ok   the headroom attributes carry the limit, source and horizon
+  ok   the setpoint advisor recommends in °C with the sweep alongside
+  ok   the tank is translated into shower terms
+  ok   the heavy-day sensor reports the worst learned window
+  ok   PV surplus is published
+  ok   the battery reports state of charge
+  ok   the learned comfort weight is visible
+  ok   the solar sensor advertises a plan_kind marker
+  ok   the plan sensor publishes the manual-plan window for the card
+  ok   the plan sensor publishes its currency for the card
+  ok   and still publishes it before the first plan exists
+  ok   a plan sensor reads 'no plan' before a plan exists, 'no heating planned' for an empty one
+  ok   the plan sensor publishes the configured hot-water windows for the card
+  ok   and it differs from the plan's own reading of the windows
+  ok   and the plan branch really carries both, differing
+  ok   and publishes it before the first plan exists
+  ok   and keeps it out of the recorder, like the windows it explains
+  ok   a plant with no hot water publishes no hot-water attributes, either plan branch (#1237)
+  ok   R10-WHY-NOW-WIDGET: the space plan publishes why_now; the DHW plan does not; none without one
+  ok   the same payload with hot water configured still publishes the block (#1237 control)
+  ok   a plant with no hot water still publishes quiet keys before a plan exists
+  ok   and still publishes them once a space plan exists (#2009)
+  ok   the same payload with hot water configured still publishes the quiet keys
+  ok   the plan sensor publishes wood_fuel for the card (#463)
+  ok   and keeps wood_fuel out of the recorder
+  ok   the space plan keeps why_now out of the recorder (R10-WHY-NOW-WIDGET)
+  ok   the measured power sensor goes unavailable without an entity
+  ok   the observed COP sensor goes unavailable too
+  ok   the peak sensor is unavailable without a capacity tariff
+  ok   the PV sensor is unavailable without an array
+  ok   no sensor crashes before the first update
+  ok   the narrative sensor states the biggest non-idle reason
+  ok   the narrative's items and rendered lines ride in attributes
+  ok   the score sensor states the overall grade with the parts in attributes
+  ok   the score sensor reads unknown, not unavailable, before any grade has evidence: its reasons stay readable (#2258)
+  ok   the starts sensor counts lifetime with the month and wear price along
+  ok   no power meter means no start counter, not a frozen zero
+  ok   the monthly receipt rides the contract comparison sensor
+  ok   the last diagnosis rides the prediction accuracy sensor
+  ok   the frequency advisor states the recommendation with the map along
+  ok   without a frequency entity the advisor is unavailable, not zero
+
+-- A published number is a reading or it is nothing
+
+-- S0 CoordinatorContext (#377)
+  ok   CoordinatorContext is importable from heatpump_optimizer.coordinator
+  ok   CoordinatorContext is a frozen dataclass over the five write-once hubs
+  ok   _current_action is not a CoordinatorContext field
+  ok   a real coordinator constructs _ctx in the existing assignment order
+  ok   _ctx holds the same write-once objects the coordinator still exposes
+  ok   CoordinatorContext rejects writes (frozen)
+  ok   _current_action stays a mutable slot on the coordinator
+  ok   the six hub names still resolve on the coordinator instance
+
+-- S1 hub refs via _ctx (#377)
+  ok   the four write-once hubs are not raw instance attributes
+  ok   coordinator methods read those hubs through _ctx, not raw self
+  ok   facade symbols stay importable from heatpump_optimizer.coordinator
+
+-- S2 zero-state helpers at module level (#193)
+  ok   _liquid_fraction is a module-level FunctionDef, not a class method
+  ok   the solve anchor is plan_step.plan_step_start, outside the coordinator class and its module, and the coordinator reads that one function
+
+-- S5 thermal-learning state outside the dhw seam (#193)
+  ok   _init_thermal_learning exists, in the learning seam, and initialises state
+  ok   no dhw-seam method assigns house or buffer learning state (#193 S5)
+  ok   _effective_house_heat_loss is a module-level FunctionDef, not a class method
+
+-- S6 inverter-frequency state outside the grid seam (#193)
+  ok   _init_frequency exists, outside the grid seam, and initialises state
+  ok   no grid-seam method assigns inverter-frequency state (#193 S6)
+  ok   _grid_fee_entity_value is a module-level FunctionDef, not a class method
+
+-- S8 COP-health watch state outside the core seam (#193)
+  ok   the COP-health watch state is initialised in the learning seam (#193 S8)
+  ok   no core-seam method assigns COP-health watch state (#193 S8)
+  ok   with no tank sensor the published tank temperature is the model default
+  ok   with no buffer probe the published buffer temperature is the default too
+  ok   with no lower-floor sensor the lower floor IS the indoor temperature
+  ok   and the upper floor is the indoor temperature, always
+  ok   nothing reading the hot water tank means that sensor is unavailable
+  ok   nothing reading the buffer tank means that sensor is unavailable
+  ok   nothing reading the slab means that sensor is unavailable
+  ok   nothing reading the lower floor means that sensor is unavailable
+  ok   nothing reading the floor return means that sensor is unavailable
+  ok   the indoor sensor, which IS read, keeps reporting
+  ok   the indoor sensor publishes its thermometer's id, None without one
+  ok   the upper floor is available exactly while the indoor thermometer reads
+  ok   and a stale indoor thermometer publishes the model default, as before
+  ok   without an indoor reading the indoor sensor is unavailable, not 21.0 available
+  ok   without an indoor reading climate does not publish the constructor default
+  ok   the upper floor names where its number comes from
+  ok   the upper floor ships disabled by default (#1669)
+  ok   the indoor sensor it duplicates stays enabled (#1669 control)
+  ok   DHWTemperatureSensor reports its sensor once one is configured
+  ok   BufferTankTempSensor reports its sensor once one is configured
+  ok   FloorReturnTempSensor reports its sensor once one is configured
+  ok   LowerFloorTempSensor reports its sensor once one is configured
+  ok   the slab estimate lives while the return temperature drives it
+  ok   a stale tank sensor still publishes its last number
+  ok   but the entity goes unavailable rather than holding it out as current
+  ok   mixed hot water follows the thermometer it is computed from
+  ok   and it is still available when the tank really is being read
+
+-- Constructor defaults on the install the flow actually produces
+  ok   the shipping flow, every form untouched, configures no thermometer at all
+  ok   and stores the 200 L tank the page pre-fills, with hot water OFF: an untouched wizard answers the presence question no (R9 D12-s3-01)
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r10s6/rev-3874/wt/tests/entities.py", line 3636, in <module>
+    _d801_first, _d801_first_moved = _d801_default_derived(_FLOW_CONFIG, 1)
+                                     ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s6/rev-3874/wt/tests/entities.py", line 3596, in _d801_default_derived
+    base = _d801_publications(config, cycles)
+  File "/Users/timmalmstrom/hpo-seats/r10s6/rev-3874/wt/tests/entities.py", line 3511, in _d801_publications
+    attrs = getattr(entity, "extra_state_attributes", None) or {}
+            ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s6/rev-3874/wt/custom_components/heatpump_optimizer/entity.py", line 266, in scrubbed
+    return _finite(_fget(self))
+                   ~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r10s6/rev-3874/wt/custom_components/heatpump_optimizer/binary_sensor.py", line 276, in extra_state_attributes
+    } | ({"block_ignored": info["block_ignored"]} if True else {})
+                           ~~~~^^^^^^^^^^^^^^^^^
+KeyError: 'block_ignored'
+rc=1 cwd=/Users/timmalmstrom/hpo-seats/r10s6/rev-3874/wt

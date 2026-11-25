@@ -1,0 +1,347 @@
+diff --git a/custom_components/heatpump_optimizer/binary_sensor.py b/custom_components/heatpump_optimizer/binary_sensor.py
+index eea76f87ab..4e6f03f22a 100644
+--- a/custom_components/heatpump_optimizer/binary_sensor.py
++++ b/custom_components/heatpump_optimizer/binary_sensor.py
+@@ -273,7 +273,7 @@ class ExternalHeatBinarySensor(_OptimizerBinarySensorBase):
+             "suppressing_electric_dhw": bool(
+                 self._data().get("external_heat_suppressing")
+             ),
+-        }
++        } | ({"block_ignored": info["block_ignored"]} if "block_ignored" in info else {})
+ 
+ 
+ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
+diff --git a/custom_components/heatpump_optimizer/boost.py b/custom_components/heatpump_optimizer/boost.py
+index 7a54506a89..095e51acdf 100644
+--- a/custom_components/heatpump_optimizer/boost.py
++++ b/custom_components/heatpump_optimizer/boost.py
+@@ -154,6 +154,9 @@ class BoostState:
+     #: the tail on it, and it is persisted with the tail. ``None`` once a start nobody
+     #: saw is in it. Cleared only by ``_clear_spent``.
+     space_boosted: timedelta | None = timedelta(0)
++    #: #3862: the user's "External heat block override" switch. Persisted, no
++    #: timeout; ``external_heat.blocking`` applies it.
++    ignore_extheat_block: bool = False
+ 
+     def settle(self, end: datetime, since: datetime | None) -> None:
+         """Start the tail a space boost live from ``since`` until ``end`` owes.
+@@ -343,6 +346,11 @@ def held_for(coord: Any) -> BoostState:
+     return held
+ 
+ 
++def extheat_block_ignored(coord: Any) -> bool:
++    """The held switch; before the restore gate opens, the default False."""
++    return held_for(coord).ignore_extheat_block
++
++
+ def space_boost_active(coord: Any, now: datetime | None = None) -> bool:
+     """#1935: is boost space heating governing the action right now?
+ 
+@@ -565,6 +573,9 @@ def _store_payload(held: BoostState) -> dict[str, Any]:
+         }
+     if held.space_since is not None and CHANNEL_SPACE in held.until:
+         payload[CHANNEL_SPACE]["since"] = held.space_since.isoformat()
++    # Only when on, so the store of an install that never touches it is unchanged.
++    if held.ignore_extheat_block:
++        payload["ignore_extheat_block"] = True
+     return payload
+ 
+ 
+@@ -602,6 +613,7 @@ async def restore(coord: Any) -> None:
+                 and dt_util.as_utc(parsed_block) > dt_util.as_utc(now)
+             ):
+                 held.blocked[channel] = parsed_block
++    held.ignore_extheat_block = bool(raw.get("ignore_extheat_block"))
+     _restore_settle(held, raw, now)
+ 
+ 
+@@ -696,6 +708,13 @@ async def set_block(
+         await coord.async_request_refresh()
+ 
+ 
++async def set_extheat_block_ignored(coord: Any, on: bool) -> None:
++    """Set and persist the #3862 switch; the caller publishes and refreshes."""
++    await session_restored(coord)
++    held_for(coord).ignore_extheat_block = on
++    await persist(coord)
++
++
+ def bind_cold_lease(fn: Any) -> None:
+     """The arbiter registers the cold-rail test. No import the other way."""
+     global _cold_lease
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 2b4d71b8ce..fe5e55aca5 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -220,6 +220,7 @@ from .external_heat import (
+     wood_mean_temperature,
+ )
+ from . import away as away_mode
++from . import external_heat as extheat
+ from . import boost
+ from . import circulation
+ from . import driving_grade
+@@ -5208,7 +5209,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         its answer into the array the optimizer takes.
+         """
+         ctx = getattr(self, "_ctx", self)
+-        if not self._external_heat.suppressing:
++        if not extheat.blocking(self._external_heat, boost.extheat_block_ignored(self)):
+             return None
+         forecast = self._external_heat.forecast_free_heat(
+             n_steps,
+@@ -6215,7 +6216,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         )
+         state = replace(
+             copy.deepcopy(ctx._current_state),
+-            external_heat_active=self._external_heat_active,
++            external_heat_active=self._external_heat_active and not extheat.ignore_effective(
++                self._external_heat, boost.extheat_block_ignored(self)),
+             # T2: the live guard's suppression and the post-outage DHW queue
+             # both ride the same discretionary-DHW gate in the solve (#7/#22).
+             peak_guard_active=self._peak_guard.suppressing
+@@ -8078,12 +8080,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         }
+ 
+     def _external_heat_view(self) -> ExternalHeatView:
+-        """Whether something other than the heat pump is charging the tanks."""
+-        return {
+-            "external_heat_active": self._external_heat.state.active,
+-            "external_heat_suppressing": self._external_heat.suppressing,
+-            "external_heat": self._external_heat.state.as_dict(),
+-        }
++        return extheat.view(self._external_heat, boost.extheat_block_ignored(self))
+ 
+     def configured_dhw_windows(self) -> str:
+         """The hot-water windows as CONFIGURED, in the grammar the config flow
+diff --git a/custom_components/heatpump_optimizer/diagnostics.py b/custom_components/heatpump_optimizer/diagnostics.py
+index c49354ec08..6ddb89697a 100644
+--- a/custom_components/heatpump_optimizer/diagnostics.py
++++ b/custom_components/heatpump_optimizer/diagnostics.py
+@@ -77,7 +77,7 @@ from homeassistant.core import HomeAssistant
+ from homeassistant.util import dt as dt_util
+ 
+ from . import heat_curve
+-from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc, room_record
++from . import accuracy, boost, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc, room_record
+ from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, LOCATION_KEYS, PRIVATE_ENTITY_ID
+ from .drift import stored_age_seconds
+ from .inputs import OUTRANKS_STALE, describe_problem, health_summary
+@@ -381,6 +381,11 @@ _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
+     # Why the observed-COP sensor has nothing yet: it is unavailable then, and
+     # Home Assistant hides an unavailable entity's attributes.
+     ("cop_learner", lambda c: accuracy.diagnostics_view(c.measured_cop, c.thermal_params, c.accuracy.draw)),
++    # #3862: the switch as held, and whether it lifts the block (False with detection off).
++    ("external_heat_block_ignore", lambda c: {
++        "switch_on": boost.extheat_block_ignored(c),
++        "block_ignored": bool(((c.data or {}).get("external_heat") or {}).get("block_ignored")),
++    }),
+ )
+ 
+ 
+diff --git a/custom_components/heatpump_optimizer/external_heat.py b/custom_components/heatpump_optimizer/external_heat.py
+index d8dc7188f1..5d1aa4a939 100644
+--- a/custom_components/heatpump_optimizer/external_heat.py
++++ b/custom_components/heatpump_optimizer/external_heat.py
+@@ -34,7 +34,7 @@ from .const import (
+     WATER_SPECIFIC_HEAT,
+     WOOD_TANK_MIN_MARGIN,
+ )
+-from .payload import ExternalHeat
++from .payload import ExternalHeat, ExternalHeatView
+ 
+ _LOGGER = logging.getLogger(__name__)
+ 
+@@ -150,8 +150,10 @@ class ExternalHeatState:
+         calibrates a wood house from the intervals this reads False."""
+         return self.active or self.fading or self.displacement > 0.0 or self.free_heat_kw > 0.0
+ 
+-    def as_dict(self) -> ExternalHeat:
+-        return {
++    def as_dict(self, block_ignored: bool | None = None) -> ExternalHeat:
++        """``block_ignored`` is published only when given (the #3862 switch on),
++        so an install that never touches the switch publishes what it did."""
++        out: ExternalHeat = {
+             "active": self.active,
+             "confidence": round(self.confidence, 2),
+             "fading": self.fading,
+@@ -169,6 +171,9 @@ class ExternalHeatState:
+                 else None
+             ),
+         } | self._displacement_dict()
++        if block_ignored is not None:
++            out["block_ignored"] = block_ignored
++        return out
+ 
+     def _displacement_dict(self) -> ExternalHeat:
+         """The item-28 fields, present only when the topology produces them.
+@@ -458,11 +463,8 @@ class ExternalHeatDetector:
+         """
+         state = self.state
+         cfg = self.config
+-        if state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0:
+-            state.confidence = 0.0
+-            state.fading = False
+-            return
+-        if state.last_active is None or cfg.decay_minutes <= 0:
++        spent = state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0
++        if spent or state.last_active is None or cfg.decay_minutes <= 0:
+             state.confidence = 0.0
+             state.fading = False
+             return
+@@ -495,3 +497,24 @@ class ExternalHeatDetector:
+         exists to prevent.
+         """
+         return self.state.active or self.state.fading
++
++
++
++def ignore_effective(detector: ExternalHeatDetector, ignored: bool) -> bool:
++    """Whether the #3862 switch lifts the block: on, with detection enabled."""
++    return ignored and detector.config.enabled
++
++
++def blocking(detector: ExternalHeatDetector, ignored: bool) -> bool:
++    """``suppressing`` unless the switch lifts it; the learning freeze reads the raw one."""
++    return detector.suppressing and not ignore_effective(detector, ignored)
++
++
++def view(detector: ExternalHeatDetector, ignored: bool) -> ExternalHeatView:
++    """The published detection; ``block_ignored`` only while the switch is on."""
++    effective = ignore_effective(detector, ignored) if ignored else None
++    return {
++        "external_heat_active": detector.state.active,
++        "external_heat_suppressing": blocking(detector, ignored),
++        "external_heat": detector.state.as_dict(effective),
++    }
+diff --git a/custom_components/heatpump_optimizer/payload.py b/custom_components/heatpump_optimizer/payload.py
+index 4fb47943ca..93b215b5fc 100644
+--- a/custom_components/heatpump_optimizer/payload.py
++++ b/custom_components/heatpump_optimizer/payload.py
+@@ -581,6 +581,7 @@ class ExternalHeat(TypedDict, total=False):
+     displacement: float
+     free_heat_kw: float
+     wood_energy_kwh: float
++    block_ignored: bool
+ 
+ 
+ class SysIdResultView(TypedDict, total=False):
+diff --git a/custom_components/heatpump_optimizer/switch.py b/custom_components/heatpump_optimizer/switch.py
+index c543201857..7c3b5e5f13 100644
+--- a/custom_components/heatpump_optimizer/switch.py
++++ b/custom_components/heatpump_optimizer/switch.py
+@@ -1,6 +1,6 @@
+ """Switch entities for Heat Pump Cost Optimizer.
+ 
+-Six switches, all plain toggles over coordinator state. Each reads the live
++Seven switches, all plain toggles over coordinator state. Each reads the live
+ state rather than the published payload, and publishes it as soon as the
+ action has changed it, before the refresh that runs the solve (30 to 70 s on
+ a Pi). Home Assistant's toggle falls back to the old state after about two
+@@ -15,6 +15,10 @@ front of the user (v6.6.12).
+   water and the space heating, released when their window ends.
+ * "Block DHW" and "Block Space Heating" — the opposite, for the same two
+   hours. A safety floor releases a block and the switch says why.
++* "External heat block override" — while on, a detected fire (inferred or
++  from the stove entity) no longer holds the plan back; detection and the
++  learning freeze are unchanged. Persisted, no timeout, inert with detection
++  off (#3862).
+ """
+ from __future__ import annotations
+ 
+@@ -52,6 +56,7 @@ async def async_setup_entry(
+             BoostSpaceSwitch(coordinator, entry),
+             BlockDhwSwitch(coordinator, entry),
+             BlockSpaceSwitch(coordinator, entry),
++            ExternalHeatIgnoreBlockSwitch(coordinator, entry),
+         ]
+     )
+ 
+@@ -111,11 +116,11 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
+         publish_then_refresh(self)
+ 
+ 
+-class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+-    """Plan-page away override on/off. ``is_on`` is the override, not resolve()."""
++class _KeyedSwitch(HeatPumpOptimizerEntity, SwitchEntity):
++    """A switch whose registry identity is its class's ``_unique_key``."""
+ 
+-    _attr_translation_key = "away"
+     _platform_domain = "switch"
++    _unique_key = ""
+ 
+     def __init__(
+         self,
+@@ -123,7 +128,14 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+         entry: HeatPumpOptimizerConfigEntry,
+     ) -> None:
+         super().__init__(coordinator)
+-        self._pin_identity(entry, "away")
++        self._pin_identity(entry, self._unique_key)
++
++
++class AwaySwitch(_KeyedSwitch):
++    """Plan-page away override on/off. ``is_on`` is the override, not resolve()."""
++
++    _attr_translation_key = "away"
++    _unique_key = "away"
+ 
+     @property
+     def is_on(self) -> bool:
+@@ -138,7 +150,7 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+         publish_then_refresh(self)
+ 
+ 
+-class TimedDutySwitch(HeatPumpOptimizerEntity, SwitchEntity):
++class TimedDutySwitch(_KeyedSwitch):
+     """A two-hour boost or block of one duty. The four switches share this.
+ 
+     Subclasses set the channel, the polarity and the registry key. Hot-water
+@@ -146,18 +158,8 @@ class TimedDutySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+     map; the coordinator grows no attribute.
+     """
+ 
+-    _platform_domain = "switch"
+     _channel = ""
+     _block = False
+-    _unique_key = ""
+-
+-    def __init__(
+-        self,
+-        coordinator: HeatPumpOptimizerCoordinator,
+-        entry: HeatPumpOptimizerConfigEntry,
+-    ) -> None:
+-        super().__init__(coordinator)
+-        self._pin_identity(entry, self._unique_key)
+ 
+     @property
+     def is_on(self) -> bool:
+@@ -232,3 +234,28 @@ class BlockSpaceSwitch(TimedDutySwitch):
+     _channel = "space"
+     _block = True
+     _unique_key = "block_space"
++
++
++class ExternalHeatIgnoreBlockSwitch(_KeyedSwitch):
++    """Lift the external-heat block on the plan (#3862); state held in ``boost``."""
++
++    _attr_translation_key = "external_heat_ignore_block"
++    _unique_key = "external_heat_ignore_block"
++
++    @property
++    def is_on(self) -> bool:
++        return boost.extheat_block_ignored(self.coordinator)
++
++    @property
++    def extra_state_attributes(self) -> dict[str, Any]:
++        """Whether the switch is effective: False while detection is off."""
++        published = (self.coordinator.data or {}).get("external_heat") or {}
++        return {"block_ignored": bool(published.get("block_ignored"))}
++
++    async def async_turn_on(self, **kwargs: Any) -> None:
++        await boost.set_extheat_block_ignored(self.coordinator, True)
++        publish_then_refresh(self)
++
++    async def async_turn_off(self, **kwargs: Any) -> None:
++        await boost.set_extheat_block_ignored(self.coordinator, False)
++        publish_then_refresh(self)

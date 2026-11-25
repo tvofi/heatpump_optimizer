@@ -1,0 +1,26 @@
+
+=== features block ===
+
+-- External-heat block override switch (#3862)
+  ok   an active or fading fire blocks with the switch off, and not with it on (#3862)
+  ok   null: a quiet detector blocks neither way (#3862)
+  ok   with detection disabled the switch is not effective and publishes block_ignored false (#3862)
+  ok   null: with detection enabled the switch is effective, and off publishes no key (#3862)
+  ok   the cached burn reaches the solve with the switch off, and the switch lifts it (#3862)
+  ok   null: with detection disabled the switch on leaves the cached burn in the solve (#3862)
+  ok   null: with the switch off a fire suppresses discretionary hot water (#3862)
+  ok   with the switch on the fire's hot-water plan equals the no-fire plan slot for slot (#3862)
+  ok   null: an entity-reported fire blocks with the switch off (#3862)
+  ok   the switch lifts an entity-reported fire's block, and the fire stays detected from the entity (#3862)
+  ok   null: with the switch off a fire credits the space plan with free heat (#3862)
+  ok   with the switch on the space plan gets no free-heat credit (#3862)
+  ok   the published wood-fuel view is the same with the switch on as off (#3862)
+  ok   with the switch on during a fire the learners stay frozen (#3862)
+  ok   null: with no fire the switch freezes nothing (#3862)
+  ok   the boost store carries the switch only while it is on (#3862)
+  ok   a stored true restores the switch on; stored false or absent restores it off (#3862)
+  ok   turning the switch off waits for the restore, then wins over the stored on (#3862)
+  ok   null: diagnostics of an untouched coordinator report the switch off and not effective (#3862)
+  ok   diagnostics report the switch on and, with detection disabled, not effective (#3862)
+
+ALL 20 FEATURES BLOCK PASSED
