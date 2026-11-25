@@ -7,3 +7,6 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  17% /
 load1 0.47
 Wed Nov 25 00:53:24 UTC 2026
+
+null control (fullgate.py null, 2026-11-25 00:53-01:56Z): gate_rc 1, failed_scripts closure.py selftest (2 FAIL lines), entities.py (1), harness_headers.py (4); wall 3736 s, child CPU 6152 s, load1 0.34 -> 1.06.
+Identical scripts and FAIL-line counts to box D3-rem's null (state/gates-prior/null-D3-rem.json): artefact checks of the stripped finder tree, not the machine; usable, not re-taken.
