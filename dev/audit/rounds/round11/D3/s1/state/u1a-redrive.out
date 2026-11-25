@@ -1,0 +1,2 @@
+RESULT redrive_killed=True rc=1 failed=8 timed_out=False seconds=2151.2 baseline_seconds=850.1
+RESULT provisional=true (wall under this box's own load; nproc 4)

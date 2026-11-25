@@ -2844,6 +2844,7 @@
     "dev/governance/config/policy_budgets.json",
     "tests/ci_budgets.json",
     "tests/coverage_budgets.json",
+    "tests/cycle_budgets.json",
     "tests/layout.json",
     "tests/layout.py",
     "tests/mutation_budgets.json",
@@ -9814,8 +9815,11 @@
     "tools/release"
    ],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": true,
+   "git": [
+    "cat-file",
+    "ls-tree"
+   ]
   },
   "roster-ops-mutation-harness": {
    "run_sha": "ff64ecaef9c502f634ec498485bc646c76e67e625d81961b0ab116701e85812d",
@@ -10360,6 +10364,25 @@
     "show"
    ]
   },
+  "selftest-absorb": {
+   "run_sha": "5da184dd54cb73a918555ff17e77f723cddb3c5332b9deea5d61fd184abf3bef",
+   "files": [
+    ".github/workflows/governance.yml",
+    "tools/audit/seat/selftest_absorb.py",
+    "tools/ci/selftest_scope.py",
+    "tools/pr/app_push.sh"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "selftest-scope": {
    "run_sha": "f5ec792ec3efe1110346aa55286c78476472afa3a83a128272f5e87587085203",
    "files": [
@@ -10785,16 +10808,25 @@
    "git": []
   },
   "superseded-run-canceller": {
-   "run_sha": "9d9c67b9ee56ec126ff04839b0521157973902359bf2934fe831626812b75f5d",
+   "run_sha": "daf067ecfa493ed11bd6ec5db87679f66f41558f2e3b43b6ecab5e4fe131b960",
    "files": [
+    "tools/audit/seat/ci_rerun.py",
+    "tools/audit/seat/ci_supersede.sh",
+    "tools/audit/seat/fixtures/ci_rerun/**",
     "tools/pr/cancel_superseded.py"
    ],
    "probes": [
     ".",
     "tools",
+    "tools/audit",
+    "tools/audit/seat",
+    "tools/audit/seat/fixtures",
+    "tools/audit/seat/fixtures/ci_rerun",
+    "tools/audit/seat/fixtures/ci_rerun/pr3836",
     "tools/pr"
    ],
    "dirs": [
+    "tools/audit/seat/fixtures/ci_rerun/pr3836",
     "tools/pr"
    ],
    "index": false,
