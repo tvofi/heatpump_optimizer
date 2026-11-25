@@ -8,3 +8,14 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 load1 0.60
 provisional: true
+
+## re-fire 2 (resumed seat, new container) 2026-11-25T00:48:33Z
+nproc: 4
+               total        used        free      shared  buff/cache   available
+Mem:           16087         778       14022          12        1557       15308
+Swap:              0           0           0
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1: 0.38
+null control: kept from the earlier container (gates/null.json, take 2); gates 9-16 run on this machine
