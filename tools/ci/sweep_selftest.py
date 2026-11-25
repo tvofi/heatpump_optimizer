@@ -452,6 +452,30 @@ def run_checks():
     w.sweep()
     ok("stale pin, settle: the #3261 pair (two deferrals under a pre-fix program) takes one dispatch, no re-run",
        w.posts == [dispatch])
+    # #3885: a code unit already red at the head. The fresh run re-grades the same code. On 2026-11-22/23 the 17
+    # STALE-PIN dispatches graded heads a pull_request run had graded already, and none ended green.
+    def code_red(name="tests / fast (3.14)", concl="failure", at="3"):
+        decider = run(3, "1", started="4")
+        decider["units"] = [{"name": name, "conclusion": concl, "started_at": "2", "completed_at": at}]
+        return decider
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red(), v=2)
+    rc, out = w.sweep()
+    ok("stale pin, #3885: a code unit red at the head is no stale verdict: nothing dispatched or re-run, "
+       "the red named", rc == 0 and w.posts == [] and "STALE-PIN P0" in out and "tests / fast (3.14)" in out
+       and "dispatches=0" in out)
+    for label, edit in (("a body unit's red (the fresh run re-reads the body)", dict(name="pr-contract / pr-contract")),
+                        ("a code unit red then green in a later run at the head",
+                         dict(at="3")),
+                        ("a code unit cancelled, not failed", dict(concl="cancelled"))):
+        rs = [run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red(**edit)]
+        if label.startswith("a code unit red then green"):
+            later = run(4, "1", started="4")
+            later["units"] = [{"name": "tests / fast (3.14)", "conclusion": "success", "started_at": "3",
+                               "completed_at": "4"}]
+            rs.append(later)
+        w = pinned(*rs, v=2)
+        w.sweep()
+        ok(f"stale pin, #3885 null: {label} still takes one dispatch", w.posts == [dispatch])
     w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
                run(5, "6", g="success", started="7"), v=2)
     w.runs[5]["event"] = "workflow_dispatch"

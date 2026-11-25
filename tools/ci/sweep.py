@@ -232,6 +232,11 @@ class Sweep:
             self.out(f"STALE-PIN {pin}: run {run['id']}'s red is a deferral and a green gate covers the newest "
                      "event: no verdict to re-judge; re-run in place")
             return False
+        red = self.code_red(runs)
+        if red:
+            self.out(f"STALE-PIN {pin}: run {run['id']} left: {', '.join(red)} failed at this head, a red no "
+                     "program re-judges (a fresh run grades the same code again, #3885); a push re-grades it")
+            return True
         base, ref = self.pull["base"]["ref"], self.pull["head"]["ref"]
         st, _, _ = self.post(f"repos/{self.repo}/actions/workflows/ci.yml/dispatches",
                              {"ref": ref, "inputs": {"pr": str(self.pull_number), "base": base}})
@@ -249,6 +254,21 @@ class Sweep:
             return False
         st, _, body = self.get(f"repos/{self.repo}/actions/runs/{r['id']}/attempts/1/jobs", {"per_page": 100})
         return st == 200 and (latest_gate((body or {}).get("jobs") or []) or {}).get("conclusion") == "success"
+
+    def code_red(self, runs):
+        """The code units (gate.REQUIRED["no-pr"]: the PR head's own code, never the pin's programs) whose
+        newest-started completed job at the head, across every run's latest attempt, concluded failure. A fresh
+        dispatch would grade that code again: on 2026-11-22/23 none of the 17 STALE-PIN dispatches ended green
+        (#3885). A body unit re-reads the PR, so its red is left to the dispatch."""
+        from gate import REQUIRED        # the gate's own list, never restated here
+        newest = {}
+        for r in runs:
+            for j in self.jobs_of(r["id"]):
+                if j.get("name") in REQUIRED["no-pr"] and j.get("status", "completed") == "completed":
+                    k = (j.get("started_at") or "", r["id"])
+                    if j["name"] not in newest or k > newest[j["name"]][0]:
+                        newest[j["name"]] = (k, j.get("conclusion"))
+        return sorted(n for n, (_, c) in newest.items() if c == "failure")
 
     def covered_deferral(self, run, gate, runs):
         """gate.busy() named a run when this red gate started (it deferred), and a green gate at the
