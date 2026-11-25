@@ -1,0 +1,27 @@
+diff --git a/tests/deployment_shape.py b/tests/deployment_shape.py
+index 67022d1323..a3bbd308c1 100644
+--- a/tests/deployment_shape.py
++++ b/tests/deployment_shape.py
+@@ -57,8 +57,11 @@ which drives the CI ratchet's archscore measurement and so opens the package
+ the way this lane's recorder does. A diff touching any production file
+ therefore selects this lane. That is a selection cost, not a
+ duplicate-assertion one: the same
+-recording finds 180 of the 561 script pairs (34 choose 2) sharing 0.80 or more
+-of their production-module closure (182 before R11-OWNER-FAULT-TEXT's
++recording finds 182 of the 561 script pairs (34 choose 2) sharing 0.80 or more
++of their production-module closure (180 on R11-OWNER-FAULT-TEXT's branch before
++the merge bringing R11-SEAM-cycle-solve's solve_gate.py, read by env_drift.py's,
++golden.py's and manual_plan.py's closures, which joined env_drift.py/manual_plan.py
++and golden.py/manual_plan.py at 0.80; 182 before R11-OWNER-FAULT-TEXT's
+ fault_log.py, read by config_flow_steps.py's closure but not by
+ boost_drift_replay.py's or plan_view.py's, moved each of those two pairs with
+ config_flow_steps.py from 0.800 to 0.792; 169 of 528 before R11-SEAM-tests's
+@@ -69,7 +72,7 @@ R11-OUTSIDE-ROOMS-P1's rooms.py, read by every closure that imports the
+ coordinator, the input reader, the config flow or the sensor platform, and
+ R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which joined
+ config_flow_steps.py/debug_collect.py at 0.80; 162 before #3616 re-recorded the
+-closures that import the coordinator), all 180 among the 435 pairs whose two
++closures that import the coordinator), all 182 among the 435 pairs whose two
+ scripts each have a non-empty production closure (``tests/arch_score.py``,
+ ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
+ ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
