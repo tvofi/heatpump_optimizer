@@ -1,0 +1,4 @@
+301c301
+<     r = subprocess.run(["gh", "api", "--allow-escape-sequences", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
+---
+>     r = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
