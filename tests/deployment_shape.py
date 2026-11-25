@@ -57,8 +57,10 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-recording finds 184 of the 561 script pairs (34 choose 2) sharing 0.80 or more
-of their production-module closure (182 on each side before the merge joining
+recording finds 191 of the 561 script pairs (34 choose 2) sharing 0.80 or more
+of their production-module closure (184 on R11-OUTSIDE-HONEST-DHW-RUNS's and
+R11-SEAM-learners's branches before R11-OUTSIDE-START-APPROACH re-recorded the
+28 closures that read approach.py; 182 on each side before the merge joining
 R11-SEAM-cycle-solve's solve_gate.py and R11-OUTSIDE-HONEST-DHW-RUNS's
 dhw_charges.py, which together lifted tests/golden.py/manual_plan.py and
 tests/env_drift.py/manual_plan.py to 0.80; 169 of 528 before R11-SEAM-tests's
@@ -69,7 +71,7 @@ R11-OUTSIDE-ROOMS-P1's rooms.py, read by every closure that imports the
 coordinator, the input reader, the config flow or the sensor platform, and
 R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which joined
 config_flow_steps.py/debug_collect.py at 0.80; 162 before #3616 re-recorded the
-closures that import the coordinator), all 184 among the 435 pairs whose two
+closures that import the coordinator), all 191 among the 435 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
