@@ -5632,26 +5632,24 @@ if __name__ == "__main__":
         f"here means the pass itself retained memory)"
     )
     if not record_mode:
-        # Said rather than implied (#949): the memory pass compares
-        # MEMORY_TOP_N of the recorded scenarios; the rest are compared
-        # only when their budgets are recorded. A regression confined to
-        # an unprobed scenario is invisible here -- the recorded leaders
-        # on both axes are always probed (the check below), and probing
-        # all fifty-one would cost this pass five times over, which is a
-        # trade stated here rather than silently reversed.
-        _mem_recorded = sum(
-            1
-            for entry in budget_table.values()
-            if isinstance(entry, dict)
-            and float(entry.get("traced_peak_mb", 0.0)) > 0.0
-        )
-        print(
-            f"  coverage: this pass probed {len(mem_labels)} of "
-            f"{_mem_recorded} recorded memory budgets; the unprobed ones "
-            f"are compared only at recording time"
+        # A regression confined to an unprobed row is invisible to every
+        # check below, while the detection arithmetic further down sizes
+        # the budgets of every recorded row; so the pass probes every
+        # recorded row (D9-s3-01), which also holds each axis's recorded
+        # maximum.
+        _mem_unprobed = [
+            name
+            for name, entry in budget_table.items()
+            if isinstance(entry, dict) and name not in mem_labels
+        ]
+        R.check(
+            "the memory pass probes every recorded row",
+            not _mem_unprobed,
+            f"{len(_mem_unprobed)} recorded row(s) not probed, so a "
+            f"regression confined to one passes: " + "; ".join(_mem_unprobed),
         )
         if mem_floor_declined:
-            # Said rather than implied, like the coverage line above: on a
+            # Said rather than implied: on a
             # platform whose import floor sits at or above a scenario's
             # record the attributable is unreadable, and this says which
             # probes the stale arm declined instead of leaving them to
@@ -5663,29 +5661,6 @@ if __name__ == "__main__":
                 f"watermark not below the record): "
                 + "; ".join(mem_floor_declined)
             )
-        # The pass is only worth its CPU if it probes the scenarios that
-        # actually allocate. It used to probe six samples of one middling
-        # profile and miss both extremes, so this states the requirement
-        # rather than trusting the selection rule to keep meeting it.
-        _mem_missed: list[str] = []
-        for _axis in ("traced_peak_mb", "rss_peak_mb"):
-            _ranked = sorted(
-                (-float(entry[_axis]), name)
-                for name, entry in budget_table.items()
-                if isinstance(entry, dict) and float(entry.get(_axis, 0.0)) > 0.0
-            )
-            if _ranked and _ranked[0][1] not in mem_labels:
-                _mem_missed.append(
-                    f"{_axis}: the recorded maximum is {_ranked[0][1]} at "
-                    f"{-_ranked[0][0]:.2f} and it was not probed"
-                )
-        R.check(
-            "the memory pass probes the recorded peak on each axis",
-            not _mem_missed,
-            "; ".join(_mem_missed)
-            + "; the pass exists to watch the biggest allocators, so it has "
-            "to include them",
-        )
         R.check(
             "the probed scenarios' memory peaks stay within their "
             "recorded budgets",
