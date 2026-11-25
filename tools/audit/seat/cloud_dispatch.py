@@ -388,9 +388,10 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
            design: str = "", pin: str = "", reviewed_head: str = "", verdict: tuple = (),
            group: str = "") -> dict:
     """The payload; with `publish_ref`, its event is the stub naming PROMPT.md at commit
-    `pin` of that ref (`publish_seat`). The prompt's first line ends with the seat key
-    (`token_ledger.header`: `group`, the role, the model, the seat's dispatch name), which
-    the token ledger keys the seat's usage by."""
+    `pin` of that ref (`publish_seat`). The event's first line, the stub's or the whole
+    prompt's, ends with the seat key (`token_ledger.header`: `group`, the role, the model,
+    the seat's dispatch name), which the token ledger keys the seat's usage by: every cloud
+    seat is fired with a `render` event, so no cloud dispatch path writes an unkeyed one."""
     if role not in ROLES:
         raise Refusal(f"role must be one of {', '.join(ROLES)}")
     if not is_head(head or ""):
@@ -417,13 +418,14 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
         raise Refusal("a published seat's stub needs the 40-hex commit holding its PROMPT.md")
     text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref
             else _prompt(role, repo, pr, head, topic, nonce, brief, design, reviewed_head, verdict))
-    if not publish_ref:  # the stub stays under 1 KB: its seat's key is in the PROMPT.md it pins
-        try:
-            key = token_ledger.header(group=group, role=role, model=model, seat=f"{role}-{topic or 'rev-' + pr}")
-        except token_ledger.Refusal as e:
-            raise Refusal(str(e))
-        first, _, rest = text.partition("\n")  # the first line's end: line 2 stays the setup line
-        text = f"{first} {key}\n{rest}"
+    # The key ends the first line of the event, stub or whole prompt alike: the event is the
+    # seat's first user message, the one line token_ledger.read_transcript reads it from.
+    try:
+        key = token_ledger.header(group=group, role=role, model=model, seat=f"{role}-{topic or 'rev-' + pr}")
+    except token_ledger.Refusal as e:
+        raise Refusal(str(e))
+    first, _, rest = text.partition("\n")  # the first line's end: line 2 stays the setup line
+    text = f"{first} {key}\n{rest}"
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
         "session_context": {
@@ -967,8 +969,10 @@ def _group_checks(check) -> None:
         check("the stub keeps the seat line and the footer ban inline; PROMPT.md is the whole prompt",
               ptr.startswith("CLOUD FIXER seat for owner/name, topic r10-x, at head " + tip + ".")
               and FOOTER_BAN in ptr and msg.startswith("CLOUD FIXER") and msg not in ptr)
-        check("the stub payload is far smaller than the prompt: under 1 KB whole, the brief absent, the SHA present",
-              len(fetched(line, "PAYLOAD.json")) < 1024 < len(msg) and "Fix the thing" not in ptr and pin in ptr)
+        check("the stub payload is far smaller than the prompt: under 1 KB whole less its seat key, the brief absent, "
+              "the SHA present",
+              len(fetched(line, "PAYLOAD.json")) - len(" " + (token_ledger.HEADER.search(ptr) or re.search("$", ptr)).group(0))
+              < 1024 < len(msg) and "Fix the thing" not in ptr and pin in ptr)
         check("without --publish the flag path is unchanged: the whole prompt in its event, nothing published",
               rc0 == 0 and content(plain.getvalue()) == msg)
         check("the roster brief is inlined and the roster tip is the head",
@@ -979,10 +983,12 @@ def _group_checks(check) -> None:
         # CARRY 4 (tvofi 2026-11-01 card 2): the live consumers and the class enumeration, generated.
         ptext = fetched(dispatch("R10-PROD"), "PROMPT.md")
         pkey = token_ledger.parse_header(ptext.splitlines()[0])
-        check("a group seat's prompt keys it, on its first line, by group, role, model and dispatch name; its stub "
-              "carries no key (R11-PRE-TOKEN-LEDGER)",
+        pstub = content(fetched("dispatch/fixer-r10-prod", "PAYLOAD.json"))
+        check("a group seat's prompt keys it, on its first line, by group, role, model and dispatch name, and its "
+              "stub, the seat's first user message, ends its first line with the same key (R11-PRE-TOKEN-LEDGER; "
+              "review/3898: the stub carried none)",
               pkey is not None and (pkey["group"], pkey["role"], pkey["seat"]) == ("R10-PROD", "fixer", "fixer-r10-prod")
-              and "Seat key:" not in fetched("dispatch/fixer-r10-prod", "PAYLOAD.json"))
+              and token_ledger.parse_header(pstub.splitlines()[0]) == pkey)
         check("a fixer's brief lists the live consumers (after-edged and file-sharing) as the only valid Carry targets, not the done one",
               "Valid `Carry:` targets (live consumers of R10-PROD: groups after it or sharing its files): R10-CONS, R10-SHARE\n" in ptext
               and "R10-DONEC" not in ptext.split("Valid `Carry:` targets")[1])
@@ -1557,6 +1563,10 @@ def self_test() -> int:
               ptr.startswith(_seat_line(role, "owner/name", a["pr"], head, a["topic"], a["nonce"]))
               and f"git fetch origin {pin} && git show {pin}:PROMPT.md" in ptr and f"of {ref} " in ptr
               and sum(FOOTER_BAN in x for x in ptr.splitlines()) == 1 and len(ptr) < len(prompts[role]))
+        whole = render(role, head, **base, **a)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+        check(f"a published {role}'s stub ends its first line with the seat key its whole prompt carries",
+              token_ledger.parse_header(ptr.splitlines()[0]) == token_ledger.parse_header(whole.splitlines()[0])
+              is not None)
         check(f"a published {role} with no 40-hex pin is refused", refused(role, publish_ref=ref, pin="")
               and refused(role, publish_ref=ref, pin=ref) and not refused(role, publish_ref=ref, pin=pin))
     check("a reviewer's stub carries its nonce", "abc123" in render(

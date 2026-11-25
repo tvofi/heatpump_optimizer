@@ -4,8 +4,10 @@
   of every seat, apart, keyed by group, role, dimension, model and seat
   (R11-PRE-TOKEN-LEDGER; the process convergence audit d5d7ff81, section 6 row
   a4). Its rules and null controls are the script's docstring; the commands are:
-  - **The key a dispatch writes** (`cloud_dispatch.py` ends every prompt's first
-    line with it; a local spawn writes it as its brief's first line):
+  - **The key a dispatch writes** (`cloud_dispatch.render` ends the first line of
+    every cloud event with it, the published stub included; a local spawn writes
+    it as its brief's first line, which no rule checks, so an unkeyed spawn's row
+    is `seat=-` and `check_scopes.py --round` prints its refusal unread):
 
         python3 -I tools/audit/seat/token_ledger.py header --role <role> --group <G> --model <m> \
           [--dimension <D>] [--seat <name>]
