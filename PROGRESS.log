@@ -45,3 +45,4 @@
 1795295026 DONE returned: handoff/r11-outside-rooms-3b ddfc28e0, body 0edc572d; WIP ref deletes refused by remote
 1795566931 HB alive
 1795566960 CKPT resumed from repair 8a8e01873a; reading predecessor commits snapshot 596b0bd26dae
+1795567185 CKPT archscore dS +0.0000 NULL vs MB; running structure + 3B block + ci_predict snapshot ca9d41eb7fce
