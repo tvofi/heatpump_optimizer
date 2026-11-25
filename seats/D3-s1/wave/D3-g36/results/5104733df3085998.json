@@ -1,0 +1,97 @@
+{
+ "key": "5104733df3085998",
+ "site": "custom_components/heatpump_optimizer/sysid.py:835 CMP_BOUND",
+ "patch": "if x.size >= 3: -> if x.size > 3:",
+ "function": "_lm_solve",
+ "cluster": "sysid.py:_lm_solve@835-852",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3780.8,
+  "load1_start": 0.86,
+  "load1_end": 1.07,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/gates/5104733df3085998.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 5104733df3085998",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_5104733df3085998.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_5104733df3085998.py",
+  "baseline_value": "0 count  # ua=0.125671749 cap=5.010000000 tau=39.865761779 conf=0.000000000 hw=inf; 427 rollouts",
+  "mutant_value": "1 count  # stopped at the first out-of-band rollout; after 5 rollouts",
+  "results": {
+   "baseline_log_ua": "4.605170",
+   "mutant_log_ua": "6.907755",
+   "baseline_out_of_band_rollouts": "0 count  # ua=0.125671749 cap=5.010000000 tau=39.865761779 conf=0.000000000 hw=inf; 427 rollouts",
+   "mutant_out_of_band_rollouts": "1 count  # stopped at the first out-of-band rollout; after 5 rollouts",
+   "null_moved": "0 count",
+   "thread_factor": "1.000",
+   "load1": "4.90",
+   "swapins": "0"
+  },
+  "inputs_tried": "direct _lm_solve, optimum log UA = log 1e3 [moves 4.605 -> 6.908]; identify_slab prior (1e-3, 1e-3) noise 0.1 [moves 0 -> >=1 out-of-band rollouts; unwrapped the mutant run did not finish in 200 s vs 0.4 s: provisional]; size-2 solve and default night [null]; UA 150 / 5e-5, C_r 5000 / 1e-4 [both refused or equal]"
+ },
+ "should_fail": "tests/features.py (executes sysid.py:835; the D7-03 #1396/#1397 projection) lacks an identify_slab call whose LM iterate leaves the log-UA/log-C_r band, asserting the fit finishes inside it",
+ "class": "candidate",
+ "finding": {
+  "title": "_lm_solve's full-solve band projection is unpinned: `>= 3` -> `> 3` lets the slab fit run away",
+  "claim": "With `x.size >= 3` -> `> 3`, _lm_solve no longer projects log UA and log C_r in identify_slab's three-parameter solve: a direct call returns log UA 6.908 instead of the band edge 4.605, and identify_slab on a noisy night with a (1e-3, 1e-3) prior asks the rollout for an out-of-band plant after 5 rollouts (baseline: 0 of 427) and then did not finish in 200 s where the baseline takes 0.4 s; the full gate stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "severity_reason": "a runaway fit is CPU on the solve worker (bounded only by max_iter and the rollout's substep count); needs a far-off prior plus noise",
+  "stop_rule_class": "bug",
+  "metric_definition": "rollouts identify_slab requests with UA or C_r outside the SLAB_LOG band, counted to the first",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:_lm_solve",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_5104733df3085998.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_5104733df3085998.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_5104733df3085998.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_5104733df3085998.py",
+   "value": "1 count  # stopped at the first out-of-band rollout; after 5 rollouts",
+   "unit": "outcome",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g36: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, alone on the box",
+   "cpu_or_wall": "count",
+   "contention_note": "full gates ran beside the probe (GATE_JOBS=1)",
+   "tolerance": "exact",
+   "load1": 4.9,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "sysid.py:835 `if x.size >= 3:` -> `if x.size > 3:`",
+   "expected_direction": "up",
+   "observed_value": "1 count  # stopped at the first out-of-band rollout; after 5 rollouts"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_5104733df3085998.py",
+   "value": "0 count",
+   "note": "null_moved counts the probe's null-arm inputs where baseline and mutant differ; full-gate null in gates/null.json + null-note.txt"
+  },
+  "phenomenon_property": "every behaviour-changing one-line mutant of sysid.py:_lm_solve fails at least one check of the full gate",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "a test in tests/features.py pinning the outcome the probe moves (the assertion named in should_fail)"
+ }
+}
