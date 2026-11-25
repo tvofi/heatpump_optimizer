@@ -1,3 +1,4 @@
+cfbd84697ed7adcc31e1cfb4ae6f5aff69526062  dev/audit/harnesses/cop_duty_floor.py
 RESULT duty_floor_kw=0.800
 RESULT on_threshold_kw=0.500
 RESULT min1_idle_folded=0/9
@@ -102,8 +103,8 @@ RESULT defrost_inferred_selfset_2.2_2C=factor=0.684_count=96
 RESULT defrost_inferred_matched_2C=factor=1.000_count=96
 RESULT defrost_inferred_selfset_2.2_8C=factor=1.000_count=0
 RESULT defrost_inferred_matched_8C=factor=1.000_count=0
-RESULT defrost_inferred_selfset_2.2_2C_ignored=factor=1.000_count=0
-RESULT defrost_inferred_matched_2C_ignored=factor=1.000_count=0
+RESULT defrost_inferred_selfset_2.2_2C_ignored=factor=0.684_count=96
+RESULT defrost_inferred_matched_2C_ignored=factor=1.000_count=96
 RESULT held_full_heatled_true_0.8=96/96_scale=0.810
 RESULT held_filling_heatled_true_0.8=0/96_scale=1.072
-exit=0
+rc=0

@@ -1,0 +1,7 @@
+counter_spans.py --sees-dhw --no-mode, start hour pinned by ev/pinclock.py (first dt_util.now() returns 2026-11-25 <H>:30Z), head file copied into a 3be37247 worktree (sha1 ef4bf2c912c4ccb428bfc5f41aba1a77e37239fa both ends)
+hour end  plan_dhw_share true_dhw inflated_space_spans inflated_spans_folded space_spans_folded cop_records
+12   base 2 4 2 2 2 4
+12   head 2 4 2 0 0 2
+13   base 1 3 2 2 3 4
+13   head 1 3 2 0 1 2
+unpinned run (about 14:3xZ): base == head, see h_counter_spansseesdhwnomode_{base,head}.log
