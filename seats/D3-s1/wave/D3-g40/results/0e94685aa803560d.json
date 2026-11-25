@@ -1,0 +1,64 @@
+{
+ "key": "0e94685aa803560d",
+ "site": "custom_components/heatpump_optimizer/tariff.py:573 CMP_BOUND",
+ "patch": "if per_window <= 1: -> if per_window < 1:",
+ "function": "metering_windows",
+ "cluster": "tariff.py:metering_windows@570-588",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4436.7,
+  "load1_start": 0.94,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/gates/0e94685aa803560d.json",
+  "provisional": true
+ },
+ "machine": "box D3-g40, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (MACHINE.txt); wall/load provisional",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_0e94685aa803560d.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_0e94685aa803560d.py",
+  "metric": "differing_value_or_length",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "unit": "count",
+  "observed": "0 values or lengths differ; at per_window == 1 the partition is the identity (head empty, reshape(n,1).mean). Only the result's identity differs (a copy instead of the input array, 200 inputs), which no caller observes: every caller passes a fresh array and none writes into the result",
+  "inputs_tried": "same 315-input corpus",
+  "run_output": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/0e94685aa803560d/RUN.txt",
+  "probe_class": "equivalent-candidate"
+ },
+ "should_fail": {
+  "scripts": {
+   "line_executing_per_carried_m4": "not named by the carried M4 answer",
+   "full_net_scripts_run_green": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ]
+  },
+  "assertion_lacking": "none at value level"
+ }
+}
