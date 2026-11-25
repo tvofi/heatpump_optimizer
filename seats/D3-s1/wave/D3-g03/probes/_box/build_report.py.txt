@@ -44,7 +44,7 @@ for k in ungated:
 universe = 742
 examined = len(gated_ok)
 _n = examined + sum(len(v) for v in sib.values()) + len(timeouts) + len(ungated) == universe
-assert os.environ.get("REPORT_OUT") or _n == universe, "counts do not close"
+assert os.environ.get("REPORT_OUT") or _n, "counts do not close"
 
 cov = []
 for c in u1b["coverage"]:
