@@ -1,0 +1,10 @@
+RESULT litres_baseline=absent at inlet 39.5
+RESULT litres_mutant=6200.0 at inlet 39.5; at 40.0: raises ZeroDivisionError
+RESULT live_inlet_accepted={30.0: 30.0, 35.0: 35.0, 35.5: None, 39.0: None}
+RESULT inlet_max_reachable=35.0 C
+RESULT inlets_scanned=81
+RESULT differing_reachable=0 count
+RESULT null_delta=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.92
+RESULT swapins=0
