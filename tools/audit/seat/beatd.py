@@ -476,8 +476,6 @@ class Beat:
         self.journal(f"START {utc()} beatd pid={os.getpid()} code={self.code()} supervisor={sup}")
         threads = [threading.Thread(target=self.loop, args=(j, once), daemon=True)
                    for j in self.table["jobs"]]
-        for t in threads:
-            t.start()
 
         def term(*_):
             self.stop.set()
@@ -486,7 +484,10 @@ class Beat:
                     os.killpg(p.pid, signal.SIGTERM)
                 except OSError:
                     pass
+        # Before the first job starts: a TERM that finds a RUNNING job must find the handler.
         signal.signal(signal.SIGTERM, term)
+        for t in threads:
+            t.start()
         if for_s is not None:
             tm = threading.Timer(for_s, self.stop.set)
             tm.daemon = True
@@ -1397,6 +1398,11 @@ MUTANTS = {
         "a watch job restarts interval_s after its instance ends"),
     "m2_sigterm_handler_off": (
         "beatd", "        signal.signal(signal.SIGTERM, term)", "        pass", "2",
+        "SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP"),
+    "m2_sigterm_handler_after_jobs": (
+        "beatd", "        signal.signal(signal.SIGTERM, term)\n        for t in threads:\n"
+        "            t.start()\n", "        for t in threads:\n            t.start()\n"
+        "        time.sleep(2)\n        signal.signal(signal.SIGTERM, term)\n", "2",
         "SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP"),
     "m4_serial_jobs": (
         "beatd", "        for t in threads:\n            t.start()",
