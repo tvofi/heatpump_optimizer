@@ -1,0 +1,2 @@
+  FAIL _bootstrap drops the package directory so datetime is stdlib  [here=/root/mut/base/custom_components/heatpump_optimizer path0='/tmp/g511-zjsthb_0']
+1 of 6159 FEATURE CHECKS FAILED
