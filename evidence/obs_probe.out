@@ -1,0 +1,4 @@
+== base
+async_observe ran follower: True [('track', 55.0), ('cycle', 55.0)]
+== head
+async_observe ran follower: False [('track', 55.0)]
