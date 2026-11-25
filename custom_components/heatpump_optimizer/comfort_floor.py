@@ -1,9 +1,9 @@
 """The comfort floor one solve holds, and the steps the room lift holds.
 
-The bound build's own arithmetic (``optimizer.py``'s ``_build_comfort_bounds``
-calls both): T5 (#16 #54) raises the configured floor by the model's margins
-and the mold guard and clips it under the ceiling; #3616 names the steps the
-room lift's share of that floor holds. Pure numpy, no Home Assistant.
+Both are the bound build's own arithmetic: ``optimizer.py``'s
+``_build_comfort_bounds`` calls them. T5 (#16 #54) raises the configured floor
+by the model's margins and the mold guard, under the ceiling. #3616 names the
+steps that the room lift's share of that floor holds.
 """
 from __future__ import annotations
 
