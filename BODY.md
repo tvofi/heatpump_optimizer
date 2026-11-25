@@ -10,7 +10,16 @@ Alternatives not taken: methods on `ExternalHeatDetector` (the design's shape) r
 
 ## Head
 
-d75c04ad77236c068962405f4468990e384213e6 (merge base baa9a467ac518bc3f8733d2603ea8ae406b235af; origin/main e3cb5c019b464a770cc7c6fe2fbc858ed29debf7 at 2026-11-22T21:43Z).
+cfe3dfcec0a27240d63e182674eee237149541f1 (merge base 24e3f37620f8f51022a2f9c82f863c7ba28fc6d4; origin/main 3210fcd7334af9a870a8a7c23322fcaead7e14eb at 2026-11-25T02:00Z).
+
+## Repair note
+
+The first dispatch at 356bf067 refused: `merge_train.py classify --pr 3874` read `governance / instrument-self-tests` (job 137419276257) and `tests / replay` as `cancelled`, which no step reads, so the classifier failed closed and no reviewer was dispatched. That head was also genuinely red on three checks, each repaired here, and the new head makes CI run every job again:
+
+- `tests / fast (3.14)`: `tests/doc_claims.py`'s comment ratchet refused one tests/features.py comment sentence over 40 words (the #3862 clock-pin note); split in two at 2ebd723f.
+- `tests / mutation` (and `mutation-autofix`, which ended `skip-measure-failed` with no commit): the 14 unpinned sites this diff added. `python3 tests/mutation_table.py --pin-killed --base origin/main` pinned 13 at 06bc7ce1; `external_heat.py:467 CMP_BOUND` was killed by no driver, so 3bd0dcbf adds the check that kills it ("a zero decay window ends the fade at release, without dividing by it", in the item-28 wood block, with the 90-minute `_timed` detector as its null), and the same command pinned it at cfe3dfcec0a27240d63e182674eee237149541f1 (`PIN KILLED: 1 pinned, 0 left unpinned`, killed by tests/features.py).
+- `pr-contract`: it refused the two reds above as unnamed in `## Red checks`; both are cleared at this head.
+
 
 ## Mutation proof
 
@@ -41,10 +50,10 @@ The hot-water checks (design item 3) run with the stub clock frozen at 2026-11-2
 ## Figures
 
 - Mutation: 8 mutants over the #3862 block, 8 killed, plus 2 over the RC2 durability block, 2 killed; commands under `## Mutation proof`.
-- `python3 tests/structure.py`: `class_excess_loc`, `max_class_loc`, `module_excess_loc` read lower than the base's budget and are re-recorded in this branch (`--record`, rows named in the commit); no row fails.
-- `python3 tools/audit/archscore/score.py --diff baa9a467ac518bc3f8733d2603ea8ae406b235af`: `Architecture score: dS -0.0017 WORSENS (inadmissible: coord_footprint 2525->2528)`; `shape_copies` 38 -> 37 (the shared `_KeyedSwitch` base)
-- Scoped gate: `GATE_SCOPE=auto GATE_SCOPE_BASE=baa9a467ac518bc3f8733d2603ea8ae406b235af GOLDEN_MODE=drift bash tests/run.sh`: `MODE: SCOPED`; every script it names passed (features.py `ALL 6048 FEATURE CHECKS PASSED` re-run alone at this head after the clock pin and the rename; the run itself at 5576fd96, its scripts after features.py, cut off by the session's 30-minute background limit and run one by one with the same environment, each exit 0, `harness_headers.py` `ALL 115 HARNESS HEADER CHECKS PASSED`), `stress.py` exit 0 (`ALL 122 STRESS CHECKS PASSED`). At 3c003f43 the same run's reds were features.py's RC2 census (fixed by the two rows), doc_claims (a README bare-relative link and a history phrase in how-it-works; fixed), structure (three improved rows unrecorded; recorded), harness_headers (the round-4 D6 claims harness hard-coded the README's six switches, so C14 read false and its committed output moved; its literal now names the README's seventh row and its output is regenerated: `claims_true` 123, `claims_false` 0, as its header states) and stress.py (exit at 0 s while a second harness_headers run held the machine lease; re-run alone, the exit 0 above)
-- `python3 tests/closure.py select --diff baa9a467ac518bc3f8733d2603ea8ae406b235af`: `MODE: SCOPED -- 28 script(s) run, 5 scoped out`
+- `python3 tests/structure.py` at cfe3dfcec0a27240d63e182674eee237149541f1: `STRUCTURE RATCHET PASSED`; `class_excess_loc`, `max_class_loc`, `module_excess_loc` were re-recorded lower earlier in this branch (`--record`, rows named in the commit).
+- `python3 tools/audit/archscore/score.py --diff 24e3f37620f8f51022a2f9c82f863c7ba28fc6d4` at cfe3dfcec0a27240d63e182674eee237149541f1: `Architecture score: dS -0.0017 WORSENS (inadmissible: coord_footprint 2521->2524)`; `shape_copies` 38 -> 37 (the shared `_KeyedSwitch` base)
+- Repair delta at cfe3dfcec0a27240d63e182674eee237149541f1 (tests/features.py and tests/mutation_ledger/ only, since the measured d75c04ad tree and its merge of main at 356bf067): `PYTHONPATH=tests/hastub python3 tests/features.py` `ALL 6135 FEATURE CHECKS PASSED`; `python3 tests/doc_claims.py` exit 0; `python3 tools/pr/ci_predict.py --only mutation` `no closures, fast, governance or instrument red predicted`; the other scoped scripts are left to CI. Before the repair, at 5576fd96: `GATE_SCOPE=auto GATE_SCOPE_BASE=baa9a467ac518bc3f8733d2603ea8ae406b235af GOLDEN_MODE=drift bash tests/run.sh`: `MODE: SCOPED`; every script it names passed (features.py `ALL 6048 FEATURE CHECKS PASSED` re-run alone at d75c04ad after the clock pin and the rename; the run itself at 5576fd96, its scripts after features.py, cut off by the session's 30-minute background limit and run one by one with the same environment, each exit 0, `harness_headers.py` `ALL 115 HARNESS HEADER CHECKS PASSED`), `stress.py` exit 0 (`ALL 122 STRESS CHECKS PASSED`). At 3c003f43 the same run's reds were features.py's RC2 census (fixed by the two rows), doc_claims (a README bare-relative link and a history phrase in how-it-works; fixed), structure (three improved rows unrecorded; recorded), harness_headers (the round-4 D6 claims harness hard-coded the README's six switches, so C14 read false and its committed output moved; its literal now names the README's seventh row and its output is regenerated: `claims_true` 123, `claims_false` 0, as its header states) and stress.py (exit at 0 s while a second harness_headers run held the machine lease; re-run alone, the exit 0 above)
+- `python3 tests/closure.py select --diff 24e3f37620f8f51022a2f9c82f863c7ba28fc6d4` at cfe3dfcec0a27240d63e182674eee237149541f1: `MODE: SCOPED -- 28 script(s) run, 5 scoped out`
 
 ## Architecture score
 
@@ -52,16 +61,16 @@ The hot-water checks (design item 3) run with the stub clock frozen at 2026-11-2
 
 ## Unpinned sites
 
-Each site the ci_predict step lists, with the ledger's own operator (`tests/mutation_table.py` `candidates`) applied at this head and the check that kills it; pinned by `mutation-autofix` after the push. The four `_decay` sites replace the four `killed_by` pins this branch deleted (their lines merged), killed by the same file, tests/features.py.
+None at cfe3dfcec0a27240d63e182674eee237149541f1: every site below is pinned under `tests/mutation_ledger/killed_by/` by `python3 tests/mutation_table.py --pin-killed --base origin/main` (13 at 06bc7ce1, `external_heat.py:467 CMP_BOUND` at cfe3dfcec0a27240d63e182674eee237149541f1), and `python3 tools/pr/ci_predict.py --only mutation` predicts no mutation red. The sites, with the ledger's operator and the check that kills each (line numbers at 356bf067, where `coordinator.py`'s site read 5212):
 
 - `custom_components/heatpump_optimizer/boost.py:351 RETURN_DEL`: the #3862 block: 8 fail, among them "the cached burn reaches the solve with the switch off, and the switch lifts it (#3862)".
 - `custom_components/heatpump_optimizer/boost.py:577 GUARD_OFF`: the #3862 block: "the boost store carries the switch only while it is on (#3862)".
-- `custom_components/heatpump_optimizer/coordinator.py:5219 GUARD_OFF`: the #3862 block: "with the switch on the space plan gets no free-heat credit (#3862)".
+- `custom_components/heatpump_optimizer/coordinator.py:5212 GUARD_OFF`: the #3862 block: "with the switch on the space plan gets no free-heat credit (#3862)".
 - `custom_components/heatpump_optimizer/external_heat.py:174 GUARD_OFF`: the #3862 block: raises `KeyError: 'block_ignored'` (rc 1).
 - `custom_components/heatpump_optimizer/external_heat.py:176 RETURN_DEL`: the #3862 block: raises `TypeError: 'NoneType' object is not subscriptable` (rc 1).
 - `custom_components/heatpump_optimizer/external_heat.py:466 BOOLOP`: the item-28 wood block (`features_block.py` from `R.section("Wood furnace displacement (item 28)")` to `R.section("Unknown price horizon (item 7)")`): raises `TypeError` on `None <= float` (rc 1).
 - `custom_components/heatpump_optimizer/external_heat.py:466 CMP_BOUND`: the item-28 wood block (`features_block.py` from `R.section("Wood furnace displacement (item 28)")` to `R.section("Unknown price horizon (item 7)")`): "a measurably spent wood tank ends the decay early".
-- `custom_components/heatpump_optimizer/external_heat.py:467 CMP_BOUND`: the item-28 wood block (`features_block.py` from `R.section("Wood furnace displacement (item 28)")` to `R.section("Unknown price horizon (item 7)")`): "a measurably spent wood tank ends the decay early".
+- `custom_components/heatpump_optimizer/external_heat.py:467 CMP_BOUND`: tests/features.py, "a zero decay window ends the fade at release, without dividing by it" (added at 3bd0dcbf); the pin drive read it killed by tests/features.py.
 - `custom_components/heatpump_optimizer/external_heat.py:467 GUARD_OFF`: the item-28 wood block (`features_block.py` from `R.section("Wood furnace displacement (item 28)")` to `R.section("Unknown price horizon (item 7)")`): raises `AttributeError` on `None.tzinfo` (rc 1).
 - `custom_components/heatpump_optimizer/external_heat.py:505 BOOLOP`: the #3862 block: 8 fail, among them "an active or fading fire blocks with the switch off, and not with it on (#3862)".
 - `custom_components/heatpump_optimizer/external_heat.py:505 RETURN_DEL`: the #3862 block: 7 fail, among them "with detection disabled the switch is not effective and publishes block_ignored false (#3862)".
@@ -71,7 +80,8 @@ Each site the ci_predict step lists, with the ledger's own operator (`tests/muta
 
 ## Red checks
 
-- `mutation` at d75c04ad7723: red by construction on the 14 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push. No cheaper detector is owed: prepr's ci_predict step already predicts the red locally, and each site's kill is measured above.
+- `tests / fast (3.14)` at 356bf067: `tests/doc_claims.py`'s comment ratchet refused one tests/features.py comment sentence over 40 words (`long units 465 -> 466`); repaired at 2ebd723f. Cheaper detector: `python3 tests/doc_claims.py`, which this diff's scope already selects, 35 s here at cfe3dfce; it ran in the scoped gate at 5576fd96, before the clock-pin comment was written, and was not re-run after that edit. No new detector is owed: the existing one was in the local path and was not re-run (state b).
+- `tests / mutation` at 356bf067: `MUTATION TABLE REFUSED` on the 14 sites this diff added, and `mutation-autofix` ended `skip-measure-failed` with no commit. Cheaper detector: `python3 tests/mutation_table.py --pin-killed --base origin/main` before the handoff, about 50 minutes wall clock here (00:54Z to 01:44Z for the one site left), and prepr's `ci predict` step, which predicted the red; the body relied on the autofix lane instead of pinning before the handoff, which fixer.md step 2 already requires. No new detector is owed (state b).
 
 ## Forward-carry
 
