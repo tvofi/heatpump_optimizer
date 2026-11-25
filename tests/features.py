@@ -65649,11 +65649,21 @@ async def _r11ar_drive(c, null=False, duties="dd--dd--", disinfect=False, idle=T
     return written
 
 
+def _r11ar_window(start_h, end_h):
+    """A circulation window from T0+start_h to T0+end_h on the wall clock of the stub's zone (HASTUB_TZ):
+    windows are local text and T0 a fixed instant, so a literal window misses the clock in another zone
+    (the nightly runs this under Asia/Kolkata)."""
+    def at(h):
+        return dt_util.as_local(_R11AR_T0 + timedelta(hours=h)).strftime("%H:%M")
+    return f"{at(start_h)}-{at(end_h)}"
+
+
 async def _r11ar_plant(null=False, modbus=False, disinfect=False, duty="control", idle=True):
-    """(hass, entry, coord, written) after the write phase."""
+    """(hass, entry, coord, written) after the write phase; the null arm's window covers the write phase's
+    clock, the other arm's starts two hours after it."""
     base = {**_R11AR_BASE, "select.pump_mode": "Heat + DHW"} if modbus else _R11AR_BASE
     hass = _r11ar_hass(base, _R11AR_MODBUS if modbus else _R11AR_TUYA)
-    entry = _r11ar_Entry(data=_r11ar_config(duty=duty, windows="05:00-09:00" if null else "08:00-09:00"),
+    entry = _r11ar_Entry(data=_r11ar_config(duty=duty, windows=_r11ar_window(0, 3) if null else _r11ar_window(2, 3)),
                          entry_id=f"r11ar_{next(_R11AR_IDS)}")
     c = _r11ar_coord(hass, entry)
     written = await _r11ar_drive(c, null, duties="ssssssss" if modbus else "dd--dd--", disinfect=disinfect, idle=idle)
