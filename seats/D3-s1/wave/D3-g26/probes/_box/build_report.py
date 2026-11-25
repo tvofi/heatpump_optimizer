@@ -145,7 +145,7 @@ md = [f"# Round 11 D3-s1, box D3-g26: full gate of {len(keys)} D3.M3 full-net su
       "Probes run in a separate baseline worktree (never the gate's tree), each applying its one-line mutant in memory and printing "
       "`RESULT <metric>=<value>` for the baseline and the mutant.", "",
       "This box was resumed: a predecessor seat on another container took the null and the first nine gates and wrote the probes; "
-      "this seat restored them from the wip checkpoint, re-ran the nine probes (identical RESULT values) and took the remaining gates.", "",
+      "this seat restored them from the wip checkpoint, re-ran all sixteen probes (RESULT values identical to the first runs), took the remaining seven gates, and re-took 977021e3b3964277 once alone (its first KILLED was a stress.py wall-time self-test line; the re-take is RED-AS-NULL; both takes kept under gates/).", "",
       "## Tally", "",
       f"- gated: {sum(v for k, v in tally.items() if k != 'NOT-GATED')}/{len(keys)}",
       f"- KILLED: {tally.get('KILLED', 0)} ({', '.join(f'{s}: {n}' for s, n in kb.items()) or '-'})",

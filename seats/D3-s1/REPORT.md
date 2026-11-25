@@ -30,7 +30,7 @@ Null control (`fullgate.py null`, a comment-only marker, through `gate_wave.sh n
 
 Procedure: `gate_wave.sh run` (the dispatch ref's driver) runs `fullgate.py run --src complete --key <key>` (GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh) for each key of keys.tsv in order, one gate at a time, capped at 4 h. Probes run in a separate baseline worktree (never the gate's tree), each applying its one-line mutant in memory and printing `RESULT <metric>=<value>` for the baseline and the mutant.
 
-This box was resumed: a predecessor seat on another container took the null and the first nine gates and wrote the probes; this seat restored them from the wip checkpoint, re-ran the nine probes (identical RESULT values) and took the remaining gates.
+This box was resumed: a predecessor seat on another container took the null and the first nine gates and wrote the probes; this seat restored them from the wip checkpoint, re-ran all sixteen probes (RESULT values identical to the first runs), took the remaining seven gates, and re-took 977021e3b3964277 once alone (its first KILLED was a stress.py wall-time self-test line; the re-take is RED-AS-NULL; both takes kept under gates/).
 
 ## Tally
 
