@@ -1039,6 +1039,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -6212,7 +6213,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 31.8
+   "seconds": 86.5
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -6220,7 +6221,7 @@
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 8.3
+   "seconds": 23.4
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
@@ -6272,7 +6273,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 877.7
+   "seconds": 2235.0
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -6288,7 +6289,7 @@
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 8.3
+   "seconds": 20.9
   },
   "tests/ha_contract.py": {
    "rc": 0,
@@ -6296,7 +6297,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 159.7
+   "seconds": 407.7
   },
   "tests/layout.py": {
    "rc": 0,
@@ -6316,7 +6317,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 142.5
+   "seconds": 295.2
   },
   "tests/plan_view.py": {
    "rc": 0,
@@ -6336,7 +6337,7 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 28.3
+   "seconds": 0.8
   },
   "tests/validate.py": {
    "rc": 0,
