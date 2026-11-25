@@ -113,8 +113,10 @@ def place_startable(
     later charge, so the two repeat until the plan stands, at most
     :data:`STARTABLE_ROUNDS` times. The plan that leaves holds no charge the
     pump would not start, and is short of the floor only where no startable
-    step can hold it. ``charge_running`` is :func:`drop_unstartable`'s;
-    ``repair`` is handed it already bound.
+    step can hold it. ``charge_running`` is :func:`drop_unstartable`'s.
+    ``repair`` is not handed it: each plan it gets has been dropped first, so
+    a first-step charge in it is one the pump starts or one under way, and
+    :func:`startable_steps` reads it the same either way.
     """
     if start_below is None:
         return repair(plan=plan)

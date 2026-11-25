@@ -1202,7 +1202,7 @@ class DhwPlanner:
             draw_rates=draw_rates,
             requirement=requirement,
             max_temp=max_temp,
-            forced_off=forced_off, charge_running=running,
+            forced_off=forced_off,
         ), running)
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
@@ -1628,7 +1628,7 @@ class DhwPlanner:
         requirement: np.ndarray,
         max_temp: np.ndarray,
         forced_off: np.ndarray | None = None,
-        start_below: np.ndarray | None = None, charge_running: bool = True,
+        start_below: np.ndarray | None = None,
     ) -> np.ndarray:
         """Top up the plan until the SIMULATED trajectory meets the floor.
 
@@ -1700,7 +1700,7 @@ class DhwPlanner:
             usable = headroom > 1e-6
             if forced_off is not None:
                 usable &= ~np.asarray(forced_off[lo : b + 1], dtype=bool)
-            usable &= startable_steps(plan, temps, start_below, charge_running)[lo : b + 1]
+            usable &= startable_steps(plan, temps, start_below)[lo : b + 1]
             # Degrees of room under the ceiling for heat added at each
             # candidate. The heat is stored from the candidate to the breach,
             # decaying as it leaks away, so the bound is the tightest of
