@@ -81678,6 +81678,7 @@ def _wrr_command(unit, extra=None, inlet=None, inlet_key=None):
     coord._current_action = {"power": 6.0, "dhw_power": 0.0}
     coord._measured_power = 2.3
     _bst_pa.state_for(coord).written["space_setpoint"] = (40.0, _BST_T0)
+    _wrr_command.lift = _bst_pa._floor_lift_k(coord.arbiter_inputs())  # the floor write's lift, as the full draw reads it
     return _bst_pa._flow_command(coord.arbiter_inputs(), _bst_pa.state_for(coord))
 
 
@@ -81697,15 +81698,18 @@ R.check(
     f"return {_wrr_ret} flow {_wrr_flow} indoor {_wrr_indoor}",
 )
 # D1 (review): a return target at the ceiling commands the pump's top only
-# while the measured return sits at least the rated lift below the ceiling.
-_WRR_FULL_OFF = 38.0 + _SP_LIFT
-_wrr_edge = _wrr_command("return", _WRR_CMD, inlet=38.0 - _SP_LIFT)
-_wrr_tight = _wrr_command("return", _WRR_CMD, inlet=38.0 - _SP_LIFT + 0.5)
+# while the measured return sits at least the floor write's lift (class P3) below the ceiling.
+# Class P3 (carry 2 of R11-SEAM-actuation-writes): the full draw reads the floor write's lift, not the rated one.
+_wrr_command("return", _WRR_CMD, inlet=30.0)
+_WRR_LIFT = _wrr_command.lift
+_WRR_FULL_OFF = 38.0 + _WRR_LIFT
+_wrr_edge = _wrr_command("return", _WRR_CMD, inlet=38.0 - _WRR_LIFT)
+_wrr_tight = _wrr_command("return", _WRR_CMD, inlet=38.0 - _WRR_LIFT + 0.5)
 _wrr_blind = _wrr_command("return", _WRR_CMD)
 _wrr_valve = _wrr_command("return", _WRR_CMD, inlet=30.0, inlet_key=_SP_VALVE)
 _wrr_flow_tight = _wrr_command("flow", _WRR_CMD, inlet=37.0)
 R.check(
-    "a return target's ceiling is a max-draw set-point only with the rated lift of "
+    "a return target's ceiling is a max-draw set-point only with the floor write's lift (class P3) of "
     "headroom over the measured return: at exactly that headroom it is, with less, with "
     "no return-side reading, or with only the valve outlet it is reported one lift above "
     "the ceiling, where no write reaches; a flow target's never moves",
@@ -88724,7 +88728,7 @@ async def _sa_guarded(guard=None):
         armed_before = held.supply_unsub is not None and not dropped
         if guard == "unload":
             await _sa_pa.release(coord)
-        return writes, armed_before, dropped == ticks and held.supply_unsub is None
+        return writes, armed_before, dropped == ticks and held.supply_unsub is None, held.supply_held
     finally:
         _sa_dt.freeze(None)
         _sa_pa.async_track_time_interval = armed
@@ -88756,8 +88760,12 @@ R.check(
     f"unload {_sa_g['unload']}; kept {_sa_g[None]}",
 )
 R.check(
-    "an install with no supply switch arms no step tick, where one with a switch arms it",
-    _sa_g["no_switch"][:2] == ([], False) and _sa_g[None][1] is True,
+    # Design 28bedac8a6 section 2 "Arming", invariant 6: the tick arms on every install; with no switch it
+    # makes no switch call and the supply is never held.
+    "an install with no supply switch arms the step tick but makes no switch call and holds no supply, "
+    "where one with a switch arms it and writes",
+    _sa_g["no_switch"][0] == [] and _sa_g["no_switch"][1] is True and _sa_g["no_switch"][3] is False
+    and _sa_g[None][1] is True,
     f"no switch {_sa_g['no_switch']}; switch {_sa_g[None]}",
 )
 # The tick writes through the cycle's gate, ``_write_supply``, never around
@@ -94979,6 +94987,11 @@ def _fb_end_stale(coord, held):
     _fb_pa._feedback(held, coord.arbiter_inputs(), _FB_NOW, 26.4, True)
 
 
+def _fb_end_stop_late(coord, held):
+    coord.power = 0.0
+    _fb_pa._feedback(held, coord.arbiter_inputs(), _FB_NOW + timedelta(seconds=_FB_WIN_S + 60), 26.4, True)
+
+
 def _fb_end_restart(coord, held):
     _fb_aio.run(_fb_pa._persist(coord))
     _fb_pa._STATES.pop(coord, None)
@@ -94993,18 +95006,28 @@ def _fb_end_stop(coord, held):
 _fb_own_ends = {
     "off pass": _fb_own_after(lambda c, h: _fb_pa._feedback(h, c.arbiter_inputs(), _FB_NOW, 26.4, False)),
     "no base": _fb_own_after(lambda c, h: _fb_pa._feedback(h, c.arbiter_inputs(), _FB_NOW, None, True)),
-    "compressor stop": _fb_own_after(_fb_end_stop),
+    "compressor stop past the window": _fb_own_after(_fb_end_stop_late),
     "stale run": _fb_own_after(_fb_end_stale),
     "restart": _fb_own_after(_fb_end_restart),
 }
 print("CARRY8-RUN-ENDS", _fb_own_ends)
+# D16-s2-04 "Floor loop" (design 28bedac8a6): a stop on a qualifying pass keeps the run and its target for one
+# FEEDBACK_WINDOW, so inside it the run (and the own-write fact in its prev_c) is kept, and past it reset above.
+_fb_stop_kept = _fb_own_after(_fb_end_stop)
 R.check(
     "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the "
     "own-write fact survives every end of the loop run while the dropped write is "
-    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart: "
+    "held -- an off pass, a missing base, a compressor stop past the window, a stale run, a restart: "
     "the arm after it sends the write and captures 30.0, not the own 26.0",
     all(after is True and prev is None and baseline == 30.0 for baseline, prev, after in _fb_own_ends.values()),
     f"(baseline, run prev_c after, after) {_fb_own_ends}",
+)
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): a compressor stop on a "
+    "qualifying pass keeps the run and its own-write record inside one feedback window (prev_c 26.0), "
+    "and the arm after it still sends the write and captures 30.0",
+    _fb_stop_kept == (30.0, 26.0, True),
+    f"(baseline, run prev_c after, after) {_fb_stop_kept}",
 )
 # Where the fact stops mattering or ends: once the person moves the
 # controller (25.0) the arm captures and the write lands, after which the
