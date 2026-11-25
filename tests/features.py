@@ -101809,8 +101809,8 @@ R.check(
 _SK_FB_SET = _FB_SET
 
 
-def _sk_e2e(swap, ret_b=54.0):
-    coord = _FbCoord(unit="flow", ceiling=55.0, lift=5.0, plan_kw=1.2, feedback=False)
+def _sk_e2e(swap, ret_b=54.0, unit="flow", action=None):
+    coord = _FbCoord(unit=unit, ceiling=55.0, lift=5.0, plan_kw=1.2, feedback=False)
     coord.hass.states.set(_SK_FB_SET, FakeState("40", attributes={"min": 20, "max": 60, "step": 0.5}))
     held = _sk_pa.state_for(coord)
     held.loaded = True
@@ -101834,6 +101834,8 @@ def _sk_e2e(swap, ret_b=54.0):
     t_b = t_a + timedelta(minutes=30)
     if swap and held.served is not None:
         held.served = _sk_replace(held.served, duty="dhw", at=t_b - timedelta(seconds=60))
+    if action is not None:
+        coord._current_action = action
     return held, run(t_b, 0.0, ret_b)
 
 
@@ -101853,6 +101855,23 @@ R.check(
     and _sk_n_held.last_pass.floor_c == 59.0,
     f"swap sent={_sk_e_sent} floor={_sk_e_held.last_pass and _sk_e_held.last_pass.floor_c} "
     f"oracle={_sk_o_sent} no-swap sent={_sk_n_sent} floor={_sk_n_held.last_pass and _sk_n_held.last_pass.floor_c}",
+)
+
+# T6b: the pass record reads the served record through the same gate as the write
+# (_pass_record's own _settle call): a system-identification step or a return target on
+# the swap pass records the floor it records with no swap; null control, a plain flow
+# target records the settled floor.
+_sk_pf = {
+    name: tuple(_sk_e2e(swap, **kw)[0].last_pass.floor_c for swap in (True, False))
+    for name, kw in (("flow", {}), ("probe", {"action": _sk_probe}), ("return", {"unit": "return"}))
+}
+R.check(
+    "STEP-KICK T6b: through _arbitrate, a system-identification step and a return target on the swap "
+    "pass record the unsettled floor they record with no swap; null control, a plain flow target "
+    "records the settled floor below it",
+    _sk_pf["probe"][0] == _sk_pf["probe"][1] and _sk_pf["return"][0] == _sk_pf["return"][1]
+    and _sk_pf["flow"][0] < _sk_pf["flow"][1],
+    f"(swap, no swap) floors: {_sk_pf}",
 )
 
 R.section("R11-OWNER-CARD-EXTERNAL-HEAT: the binary sensors the card reads by id suffix")
