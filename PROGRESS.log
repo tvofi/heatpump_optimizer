@@ -26,3 +26,4 @@
 1795605083 CKPT mutants done (K8 only survivor); local features/entities running to locate fast red snapshot 721ededeef4b
 1795605200 HB alive
 1795605804 HB alive
+1795605851 DONE verdict pushed: blocked d7029ade tests-red (entities.py #1218 note 182 vs derived 184)
