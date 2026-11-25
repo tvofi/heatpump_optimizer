@@ -21,3 +21,4 @@
 1795363011 DONE verdict merge 868e00db0b pushed to probe/rev-3845-034586e8 (aa3fd0041f); classify rc=2 unreadable: instrument-self-tests cancelled
 1795608506 HB alive
 1795608622 CKPT resolutions read: 5 hand-resolved hunks; merge-tree clean snapshot 1dfb163c638a
+1795608671 CKPT wrong-side coordinator mutant running in features.py; CI classify polling snapshot cbf99365b4c3
