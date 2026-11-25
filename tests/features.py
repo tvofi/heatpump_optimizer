@@ -103644,12 +103644,12 @@ _SA_P = _sa_NS(min_electrical_power=0.53, max_electrical_power=3.0)
 _SA_STEP_S = 300.0
 
 
-def _sa_feed(draw, rows, t0=1.0e9):
+def _sa_feed(draw, rows, t0=1.0e9, params=_SA_P):
     """Fold (drawn, space ask, hot water ask, gates) rows, 5 min each; the time after."""
     t = t0
     for drawn, space, dhw, *gates in rows:
         g = {"frozen": False, "distorted": False, "defrost": False, **(gates[0] if gates else {})}
-        _sa_dr.fold(draw, drawn, (space, dhw), _SA_P, span_s=(t, t + _SA_STEP_S), **g)
+        _sa_dr.fold(draw, drawn, (space, dhw), params, span_s=(t, t + _SA_STEP_S), **g)
         t += _SA_STEP_S
     return t
 
@@ -103669,6 +103669,11 @@ def _sa_learned(runs_n=5, **kw):
 
 
 _sa_d, _sa_t = _sa_learned()
+# One outlier run (2.0 kW in its first bin) beside four of series D: a bin's
+# level is its median, so the first bin still reads 1.25 kW (a max or a mean moves).
+_sa_o, _sa_ot = _sa_learned(runs_n=4)
+_sa_ot = _sa_feed(_sa_o, [(2.0, 0.53, 0.0)] + _sa_run()[1:], _sa_ot)
+_sa_oa = _sa_dr.solve_approach(_sa_o, _SA_P, _sa_ot)
 _sa_a = _sa_dr.solve_approach(_sa_d, _SA_P, _sa_t)
 _sa_none, _ = _sa_learned(runs_n=0)
 _sa_two, _sa_t2 = _sa_learned(runs_n=2)
@@ -103680,7 +103685,8 @@ R.check(
     "runs read an entry whose energy over the floor is series D's within one bin, and series H's ramp",
     _sa_dr.solve_approach(_sa_none, _SA_P, 1e9) is None and _sa_dr.solve_approach(_sa_two, _SA_P, _sa_t2) is None
     and _sa_a is not None and abs(_sa_a.entry_kwh(0.53) - 0.377) < 5 / 60 * 0.72
-    and _sa_a.ramp.size == 1 and abs(_sa_a.ramp[0] - 0.785) < 1e-9 and _sa_a.age_h == 0.0,
+    and _sa_a.ramp.size == 1 and abs(_sa_a.ramp[0] - 0.785) < 1e-9 and _sa_a.age_h == 0.0
+    and _sa_oa is not None and abs(_sa_oa.entry[0] - 1.25) < 1e-9,
     f"entry {None if _sa_a is None else _sa_a.entry} kwh {None if _sa_a is None else _sa_a.entry_kwh(0.53)}",
 )
 
@@ -103795,6 +103801,141 @@ R.check(
     f"{_sa_sr[2]}",
 )
 
+# The published trajectory simulates the received draw the objective scored:
+# the simulation whose room trajectory a full solve publishes is runs.received
+# of the plan it ships. Null: with no approach it is the shipped plan itself.
+def _sa_solve(approach, dhw=False):
+    opt = _sa_om.HeatPumpOptimizer(
+        _sa_om.ThermalModel(_sa_dc.replace(_sa_om.ThermalParameters(), min_electrical_power=0.53, max_electrical_power=3.0, dhw_enabled=dhw)),
+        _sa_dc.replace(_sa_om.OptimizationConfig(), clamp_planned_levels=True))
+    n, seen, real = opt.config.n_steps, [], opt.model.simulate_trajectory
+
+    def spy(*a, **k):
+        out = real(*a, **k)
+        seen.append((np.array(k.get("power_schedule")), np.array(out[0])))
+        return out
+
+    opt.model.simulate_trajectory = spy
+    state = _sa_om.ThermalState(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=9.0)
+    inputs = solve_inputs(initial_state=state, prices=0.2 + 0.1 * np.sin(np.arange(n) * 4 * np.pi / n),
+                          outdoor_temps=np.full(n, 9.0), start_time=datetime(2026, 1, 10, tzinfo=timezone.utc))
+    result = opt.optimize(inputs=_sa_dc.replace(inputs, approach=approach))
+    # The published simulation: the call whose room trajectory the result carries.
+    published = [p for p, room in seen if np.array_equal(room, np.asarray(result.room_temp_trajectory))]
+    return np.asarray(result.power_schedule), published[-1] if published else None
+
+
+for _sa_hw in (False, True):
+    _sa_ship1, _sa_pub1 = _sa_solve(_sa_a, _sa_hw)
+    _sa_ship0, _sa_pub0 = _sa_solve(None, _sa_hw)
+    R.check(
+        f"the published trajectory simulates runs.received of the shipped plan; with no approach, the shipped "
+        f"plan ({'hot-water' if _sa_hw else 'space-only'} solve)",
+        _sa_pub1 is not None and _sa_pub0 is not None
+        and np.allclose(_sa_pub1, _sa_runs.received(_sa_ship1, 0.0, _sa_a, dt=0.25, p_max=3.0))
+        and not np.allclose(_sa_pub1, _sa_ship1) and np.allclose(_sa_pub0, _sa_ship0),
+        f"published {_sa_pub1} shipped {np.round(_sa_ship1[:8], 3)}",
+    )
+
+# 7, the coordinator's wiring: the pending prediction it files for the live
+# step carries the expected draw (the accuracy sample's predicted power, the
+# cost error, the defrost derate's delivered ratio), and the day-ahead promise
+# is costed on the received schedule. Null: the same coordinator with no
+# learned approach files the shipped total and the shipped schedule.
+def _sa_coord(runs_n, **config):
+    """A coordinator whose window learned ``runs_n`` series-D runs, scaled to its own floor."""
+    c = _t2_coord(**config)
+    params = getattr(c, "_ctx", c)._thermal_params
+    k = params.min_electrical_power / 0.53
+    t = _sa_feed(c._accuracy.draw, [(0.02, 0.0, 0.0)], params=params)
+    for _ in range(runs_n):
+        t = _sa_feed(c._accuracy.draw, [(d * k, a * k, h) for d, a, h in _sa_run()], t, params)
+    c._current_action = {**c._current_action, "power": params.min_electrical_power, "dhw_power": 0.0}
+    c._pending_prediction = None
+    with _sa_frozen_now(t):
+        c._record_accuracy()
+    return c, params.min_electrical_power
+
+
+import contextlib as _sa_cl  # noqa: E402
+from unittest import mock as _sa_mock  # noqa: E402
+
+
+@_sa_cl.contextmanager
+def _sa_frozen_now(epoch_s):
+    """The coordinator's clock at ``epoch_s``: the learned run's clock reads it."""
+    at = datetime.fromtimestamp(epoch_s, tz=timezone.utc)
+    with _sa_mock.patch("heatpump_optimizer.coordinator.dt_util.now", lambda *a: at):
+        yield
+
+
+_sa_c1, _sa_f = _sa_coord(5)
+_sa_c0, _ = _sa_coord(0)
+_sa_pend1, _sa_pend0 = _sa_c1._pending_prediction["power"], _sa_c0._pending_prediction["power"]
+
+
+def _sa_promise(c, f):
+    """The space schedule the coordinator files as the day-ahead promise of a plan with one run."""
+    seen = []
+    c._mode = "auto"
+    c._file_dhw_lead_predictions = lambda *a: None
+    c._accuracy.note_promise = lambda *a: seen.append(list(a[3]))
+    plan = _sa_NS(sensor_trajectory=lambda _two: [21.0] * 5, power_schedule=[0.0, f, 0.0, 0.0, 0.0],
+                           dhw_power_schedule=[0.0] * 5, prices=[0.1] * 5)
+    c._file_lead_predictions(plan, datetime(2026, 1, 10, tzinfo=timezone.utc))
+    return seen[0] if seen else None
+
+
+_sa_prom1, _sa_prom0 = _sa_promise(_sa_c1, _sa_f), _sa_promise(_sa_c0, _sa_f)
+R.check(
+    "the coordinator files the expected draw as the interval's predicted power, above the shipped floor on an "
+    "entry, and the promise costed on the received schedule; with no learned approach the shipped total and "
+    "the shipped schedule",
+    _sa_pend1 > 1.5 * _sa_f and _sa_pend0 == _sa_f
+    and _sa_prom1 is not None and _sa_prom1[1] > 1.5 * _sa_f and _sa_prom0 == [0.0, _sa_f, 0.0, 0.0, 0.0],
+    f"pending {_sa_pend1} null {_sa_pend0} floor {_sa_f} promise {_sa_prom1} null {_sa_prom0}",
+)
+
+# The COP fold of the interval the coordinator filed inside the approach reads
+# it as off its ask; the same fold with no learned approach does not.
+def _sa_cop(c):
+    c._measured_power = 1.2
+    return c._fold_measured_cop(c._accuracy.draw)
+
+
+_sa_cop1, _sa_cop0 = _sa_cop(_sa_c1), _sa_cop(_sa_c0)
+# A charge between two space runs moves the run clock (``fold``'s ``charged``):
+# the run after it is an entry, its sample inside the profile adds no window pair.
+_sa_ch = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
+_sa_cht = _sa_feed(_sa_ch, [(0.53, 0.53, 0.0)] * 2, _sa_t)
+_sa_dr.fold(_sa_ch, 1.4, (0.0, 1.0), _SA_P, frozen=False, distorted=False, defrost=False, span_s=(_sa_cht, _sa_cht + 300), charged=True)
+_sa_chn = len(_sa_ch.samples)
+_sa_feed(_sa_ch, [(1.25, 0.53, 0.0)], _sa_cht + 300)
+R.check(
+    "the COP fold refuses the interval filed inside the approach as off its ask, and not with none learned; a "
+    "charge between two space runs leaves the second an entry",
+    _sa_cop1 == _SA_OFF_ASK and _sa_cop0 != _SA_OFF_ASK and len(_sa_ch.samples) == _sa_chn
+    and _sa_ch.approach.entered_s == _sa_cht + 300,
+    f"cop {_sa_cop1} null {_sa_cop0} pairs {_sa_chn}->{len(_sa_ch.samples)}",
+)
+
+# The fabric learner's tracking gate reads the expected draw: an entry metered
+# at series D's first-step level is kept (the metered figure, less no hot
+# water); with no learned approach the same reading is tracking and skipped.
+def _sa_fabric(runs_n):
+    c, f = _sa_coord(runs_n, heat_pump_power_entity="sensor.hp_power")
+    c._measured_power = 1.2 * f / 0.53
+    return c._interval_space_power(), c._measured_power
+
+
+_sa_fab1, _sa_fab0 = _sa_fabric(5), _sa_fabric(0)
+R.check(
+    "the fabric interval of an entry inside the learned approach keeps its metered space figure; with none "
+    "learned the tracking gate skips it (spike s3)",
+    _sa_fab1[0] == _sa_fab1[1] and _sa_fab0[0] is None,
+    f"kept {_sa_fab1} null {_sa_fab0}",
+)
+
 # 5. The generator: with no approach the masks are the base's; with one, a
 # run out of a pause books the entry's energy, so the committed plan runs
 # fewer floor steps for the same relaxed energy.
@@ -103802,11 +103943,22 @@ _sa_q, _sa_pr = np.full(12, 0.3), np.linspace(0.1, 0.3, 12)
 _sa_m0 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25)
 _sa_m00 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25, entry_kwh=0.0)
 _sa_m1 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25, entry_kwh=_sa_a.entry_kwh(0.53))
+# Rule: a mask's energy is its floor steps at 0.53 kW x 0.25 h plus the entry's
+# energy per run begun out of a pause; the commit ends within half a floor step
+# of the relaxed plan's 0.9 kWh. Null: the same rule on the base masks with no entry.
+def _sa_energy(mask, entry):
+    begun = int(np.sum(mask & ~np.r_[False, mask[:-1]]))
+    return float(mask.sum()) * 0.53 * 0.25 + begun * entry
+
+
 R.check(
-    "runs.commit: no entry energy leaves the masks equal; the learned entry's energy leaves later floor steps out",
+    "runs.commit: no entry energy leaves the masks equal; with the learned entry the tightest mask's floor "
+    "steps plus one entry per run out of a pause meet the relaxed energy within half a floor step",
     all(np.array_equal(a, b) for a, b in zip(_sa_m0, _sa_m00)) and len(_sa_m0) == len(_sa_m00)
-    and int(_sa_m1[0].sum()) < int(_sa_m0[0].sum()),
-    f"{[int(m.sum()) for m in _sa_m0]} vs {[int(m.sum()) for m in _sa_m1]}",
+    and abs(_sa_energy(_sa_m1[0], _sa_a.entry_kwh(0.53)) - 0.9) <= 0.53 * 0.25 / 2
+    and abs(_sa_energy(_sa_m0[0], 0.0) - 0.9) <= 0.53 * 0.25 / 2 and int(_sa_m1[0].sum()) < int(_sa_m0[0].sum()),
+    f"{[int(m.sum()) for m in _sa_m0]} vs {[int(m.sum()) for m in _sa_m1]}, "
+    f"energy {_sa_energy(_sa_m1[0], _sa_a.entry_kwh(0.53))}",
 )
 
 # 7. The axis: the expected draw at an entry is the received total, which the

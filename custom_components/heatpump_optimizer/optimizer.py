@@ -5715,7 +5715,7 @@ class HeatPumpOptimizer:
             optimal_power = initial_power
             status = f"failed ({e})"
 
-        # Simulate with optimal schedule
+        # Simulate with optimal schedule, as received (``_shipped_and_received``)
         (
             room_temps,
             slab_temps,
@@ -5724,7 +5724,7 @@ class HeatPumpOptimizer:
             buffer_temps,
             _,
             wood_temps,
-        ) = _space_traj(optimal_power)
+        ) = _space_traj(_shipped_and_received(self, optimal_power, None, None)[2])
         # The achieved objective, for candidate comparison across valve
         # schedules. One extra evaluation, robust on the failure path too.
         achieved_objective = float(objective(optimal_power))
