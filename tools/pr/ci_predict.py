@@ -824,30 +824,23 @@ def step_replay_self_test(root: Path) -> int:
             bad += got != want
         # env_seconds: only a positive number overrides; empty, junk, 0 and negative keep the default.
         import os
+        from unittest import mock
         got = []
         for raw in ("", "x", "0", "-1", "2.5"):
-            os.environ["HPO_ENV_SECONDS_PROBE"] = raw
-            got.append(env_seconds("HPO_ENV_SECONDS_PROBE", 7))
-        os.environ.pop("HPO_ENV_SECONDS_PROBE", None)
+            with mock.patch.dict(os.environ, {"HPO_ENV_SECONDS_PROBE": raw}):
+                got.append(env_seconds("HPO_ENV_SECONDS_PROBE", 7))
         good = got == [7, 7, 7, 7, 2.5]
         print(f"  {'ok  ' if good else 'FAIL'} env_seconds keeps the default for empty, junk, 0 and a negative; "
               f"null control: 2.5 overrides it")
         bad += not good
         # C4's bound (R10-RCA-OPEN-PREPR-SLOW): a's step names a.sh, c's reaches it through
         # c.sh's text; under a spent budget a is replayed first and c is left to CI, by name.
-        (t / "tools" / "a.sh").write_text("echo nothing\n")
-        for budget, want, left in (("0.001", ["a"], True), (None, ["a", "c"], False)):
-            was = os.environ.pop(STEP_REPLAY_BUDGET_ENV, None)
-            if budget:
-                os.environ[STEP_REPLAY_BUDGET_ENV] = budget
-            try:
-                notes = []
+        # An empty budget is env_seconds' default, so the null-control arm needs no unset.
+        for budget, want, left in (("0.001", ["a"], True), ("", ["a", "c"], False)):
+            notes = []
+            with mock.patch.dict(os.environ, {STEP_REPLAY_BUDGET_ENV: budget}):
                 got = sorted(l.split(":")[0].removeprefix("STEP REPLAY ")
                              for _, l in step_replay_preds(t, base, {"tools/a.sh"}, notes))
-            finally:
-                os.environ.pop(STEP_REPLAY_BUDGET_ENV, None)
-                if was is not None:
-                    os.environ[STEP_REPLAY_BUDGET_ENV] = was
             said = any(x.startswith("LEFT TO CI 1 of 2 ") and x.endswith(": c") for x in notes)
             good = got == want and said == left
             print(f"  {'ok  ' if good else 'FAIL'} " + (
