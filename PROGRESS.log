@@ -2,3 +2,4 @@
 1795583725 INIT r11-rev-3870
 1795583803 HB alive
 1795583822 CKPT read packet; delta scoped snapshot 08f809b29bb1
+1795583969 CKPT mutants all killed; reading CI snapshot ef720a0d3b58
