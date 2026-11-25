@@ -17,3 +17,4 @@
 1795607018 HB alive
 1795607622 HB alive
 1795608057 CKPT handoff pushed 0291a7d9a5; RESULT.md at wip-sync/merge-3835 4cc062cf snapshot 6399b986a121
+1795608061 DONE merged origin/main into #3835: head 0291a7d9a5; gate SCOPED 32 run, entities.py red pre-exists at e4d40de (#1218 note 182 vs 184)
