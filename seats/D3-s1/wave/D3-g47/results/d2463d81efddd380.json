@@ -1,0 +1,30 @@
+{
+ "key": "d2463d81efddd380",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2998 CMP_BOUND",
+ "patch": "if draw_kw <= 0.0: -> if draw_kw < 0.0:",
+ "function": "dhw_coil_draw_reduction",
+ "cluster": "thermal_model.py:dhw_coil_draw_reduction@2998-3004",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3784.6,
+  "load1_start": 0.36,
+  "load1_end": 0.93
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_d2463d81efddd380.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_d2463d81efddd380.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 3)",
+   "RESULT inputs_differing=1 count (of 146)",
+   "RESULT baseline_value=(0.0, 0.0)",
+   "RESULT mutant_value=(nan, nan)"
+  ],
+  "inputs_tried": "draw in {0,-0,+-1e-300} x wood {5,10,45,90} x setpoint {20,48,60} x inlet {5,10,20}; plus setpoint=inf; wood=nan"
+ },
+ "should_fail": "tests/features.py: dhw_coil_draw_reduction(0.0,..)==(0.0,0.0) (holds under the mutant for finite inputs)",
+ "note": "draw<=0 -> draw<0 is unobservable for every finite input: at draw 0 the arithmetic returns (0.0,0.0) too; only dhw_setpoint=inf (config bound 40..65) makes the mutant return (nan,nan)"
+}
