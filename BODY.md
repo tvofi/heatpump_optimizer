@@ -40,7 +40,7 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 
 ## Head
 
-`8d8b30aabf42b183ea006b832026928c235fc478`, measured against its merge base `af4d89f7632586770874bc200e76820e845c8cc0` (the `origin/main` merged in `2b1f96e77b`). `origin/main` is `0f63320c96cb4e1926a584c89d0dfe920d1778ab` at the stamp; `git merge-tree --write-tree origin/main HEAD` exits 0. Stamped 2026-11-25T00:26:31Z. Review round 1 (`review/3872` `d77b2da2`, `verdict/3872` `c61cfa41`) blocked `d6a54399a63b` as mutation-vacuous; `ce9619a4f4` answers it, and the commits after it merge main. The branch's own commits, `git log --first-parent 8ef450936a17..HEAD`:
+`79265fe95b710cd3f58c53ee01c2ceac6b0b4846`, measured against its merge base `5594a34a49404109b8e0f18bd5be18ddbb667cdf` (the `origin/main` merged in `e2e30e43ad`). `origin/main` is `7f7e05118feebc6731b854a2a3c7a73b13e4cdd3` at the stamp; `git merge-tree --write-tree origin/main HEAD` exits 0. Stamped 2026-11-25T05:34:06Z. Review round 1 (`review/3872` `d77b2da2`, `verdict/3872` `c61cfa41`) blocked `d6a54399a63b` as mutation-vacuous; `ce9619a4f4` answers it, and the commits after it merge main. The branch's own commits, `git log --first-parent 8ef450936a17..HEAD`:
 
 - `6477e5f7df` R11-OWNER-FAULT-HOLD: suspend actuation while the pump reports a latched fault
 - `149b770946` R11-OWNER-FAULT-HOLD: record block_duty's closure with the two new modules; harness INERT READS
@@ -56,6 +56,9 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 - `ed1b1ae98e` R11-OWNER-FAULT-HOLD: structure budgets re-recorded: module_excess_loc 21741 -> 21740
 - `fdcf373670` test: fault-hold Off check compares against its null control, which no longer fails under the Off-row mutant
 - `8d8b30aabf` R11-OWNER-FAULT-HOLD: config_flow fixture re-recorded with the fault_hold option; claimed
+- `e2e30e43ad` Merge origin/main `5594a34a49` (no conflict; the ledger driver merged `tests/closures.json` as sets)
+- `b29af9141c` R11-OWNER-FAULT-HOLD: D6 claims register regenerated (claims.py): 102 modules, 37 module-level homeassistant importers
+- `79265fe95b` R11-OWNER-FAULT-HOLD: tests/cycle_lane.py's closure gains fault_hold.py (derive_closures.sh --single)
 
 Read the diff three-dot. For the reviewer's delta from the reviewed head: `git diff d6a54399a63b HEAD` (round 1's head, which already carried main to `e3cb5c019b`).
 
@@ -73,6 +76,8 @@ Read the diff three-dot. For the reviewer's delta from the reviewed head: `git d
 - `tests/structure_budgets.json`: the ledger driver summed both sides' deltas to `module_excess_loc` 21690, counting the ledger move both branches made twice; the merge commit takes main's (21775), and `abc36b3f09` / `ed1b1ae98e` record the merged tree's 21740.
 - `tests/closures.json`: merged as sets by the ledger driver, no conflict.
 - `tests/features.py` (no textual conflict, three semantic repairs): section 12 drives main's unload and Off paths (`_pa_unload`, `_pa_enter_off`: `off_restore` then `release`) instead of `release` alone, which no longer writes; the early cut-off fixture passes `entry=` into `ArbiterInputs` (main's `switch_supply` now takes the entry); a new 12b drives a stale-plan cycle through the real coordinator (`_r11ar_*` fixtures of #3812).
+
+Second merge, `e2e30e43ad` (`origin/main` `5594a34a49`, through #3825, #3880, #3886): no textual conflict. `origin/main` changed no file under `custom_components/` since `af4d89f763`. Two semantic repairs: the D6 claims register (`claims.json`, `claims.md`), which the first merge took from main, is now what `claims.py` writes on the merged tree (C32-C35: 102, 102, 37, `fault_hold.py` named); and #3825's new `tests/cycle_lane.py` reads `coordinator.py`, which imports `fault_hold` here, so its closure is re-recorded with `--single`, adding `fault_hold.py` alone.
 
 ## Mutation proof
 
@@ -99,13 +104,14 @@ Every behaviour check is paired with today's behaviour on the same fixture: the 
 
 - `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude 'exec(open("P").read())' 'R.section("R11-OWNER-FAULT-HOLD' 'R.section("duty-switch restart learning, part A'`, P from `--emit-prelude P` with the same two markers, at `69d2557947`: `ALL 59 FEATURES BLOCK PASSED` (55 at `ce9619a4f4`: section 12 gains its Off pair, 12b adds two).
 - `python3 dev/audit/harnesses/r11_owner_fault_hold_mutants.py HEAD`: `RESULT mutants=38`, `RESULT survived=0` at this head.
-- `PYTHONPATH=tests/hastub python3 tests/features.py` at this head: `ALL 6173 FEATURE CHECKS PASSED`.
-- The figures above that say "at this head" were measured at `fdcf373670`; `8d8b30aabf`, the one commit after it, changes only `tests/golden/config_flow.json` and `tests/golden/claimed_drift.txt`, which no production module, harness or block check reads.
+- `PYTHONPATH=tests/hastub python3 tests/features.py` at this head: `ALL 6175 FEATURE CHECKS PASSED` (6173 at `fdcf373670`; main's #3825 adds checks).
+- Main's new and changed scripts that read this group's modules, at this head: `tests/cycle_lane.py` `ALL 25 checks PASSED`; `tests/config_flow_steps.py` `ALL 684 checks PASSED`; `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`.
+- The harness, the four verdict sites and the block were measured at `fdcf373670`. No commit after it changes production code (main changed nothing under `custom_components/`). `8d8b30aabf` changes only `tests/golden/config_flow.json` and `tests/golden/claimed_drift.txt`, which no production module, harness or block check reads.
 - `python3 tests/structure.py` at this head: `STRUCTURE RATCHET PASSED`; `module_excess_loc` 21740 recorded (main 21775), every other row unchanged from main.
 - `python3 tests/comment_ratchet.py` at `69d2557947`: `comment_ratchet: OK`.
 - `python3 tools/pr/ci_predict.py` at this head: `CI PREDICT: no closures, fast, governance or instrument red predicted`; `CI PREDICT: 41 unpinned site(s) the diff adds` (each under `## Unpinned sites`).
 - Not re-run after the merge (scoped, per the merge brief): `tests/derive_closures.sh` (no closures red predicted above; CI's closures job is the authority), prepr's diff-mutant step, and the lanes `5eb7083aaa` ran (`tests/backtest.py`, `tests/edge.py`, `tests/frontend.py`, `tests/md_tables.mjs`, `tests/open_meteo.py`, `tests/optimality.py`, `tests/validate.py`).
-- `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` at this head: `PRE-PR: 8d8b30aabf42b183ea006b832026928c235fc478 ... rc=0`, every step ok or skipped (code-keyed steps and closures skipped by the two variables; CI is the authority for them)
+- `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` at `fdcf373670`: `rc=0`. At `8d8b30aabf` its one refusal was `ci predict`, the `tests/cycle_lane.py` UNDER-SCOPED closure, repaired at this head; `tools/pr/ci_predict.py` at this head before that repair named that one red only. The full prepr runs at the push (`app_push.sh`). Its `self-test` step is skipped by a local overlay in this seat's tools checkout, because `prepr.sh --self-test` fails the same 4 rows (the ancestry-reds rows, `got 0`) on plain `origin/main` `5594a34a49` on this host; CI's `governance` job runs the self-test.
 
 ## Architecture score
 
@@ -166,7 +172,7 @@ The sites `tools/pr/ci_predict.py` lists at this head. Every fault-hold predicat
 ## Forward-carry
 
 - Carry 0 (from R11-OWNER-MODE-LEGS, body item 411606ae, the pin "the fault hold wins with a young leg latched"): not buildable here. MODE-LEGS' `_kept_leg` is not on main (`af4d89f76325`; its head is `handoff/r11-owner-mode-legs`). The hold returns before `_command` in `_arbitrate` (`_fault_stands`), downstream of `_served`, so a latched leg writes nothing under it by construction. Whichever of the two lands second owes the pin, as that body states; with this group first it is MODE-LEGS'. It lands in R11-OWNER-MODE-LEGS's `carry` in `dev/programme/rosters/wave-r11-groups.json`. Carry: R11-OWNER-MODE-LEGS
-- Carry 2 (from R11-OWNER-FROST-HOLD, body item 0846c1b4, the composition owed by this group's merge if FROST-HOLD lands first): `frost_hold` is not on `origin/main` (`3210fcd733`; FROST-HOLD is #3882, open), so there is nothing to compose with at this head. FROST-HOLD's design (`e91a4e30`) places frost before this group, but this group lands on a main without `frost_hold`. Whichever of the two merges second composes them as design `57d5d278`'s "Interaction with the frost hold" states: `hold_supply → frost_hold.gate → fault_hold.gate` (frost's ON passes); frost's cut-off arm consulted after `fault_hold.consult` in `early_cutoff.on_room_event`; `device-fault` decided before `frost-hold` in `duty_ledger.step_verdict`; and no frost row written while `_fault_stands` holds. Lands in R11-OWNER-FROST-HOLD's `carry` in `dev/programme/rosters/wave-r11-groups.json`. Carry: R11-OWNER-FROST-HOLD
+- Carry 2 (from R11-OWNER-FROST-HOLD, body item 0846c1b4, the composition owed by this group's merge if FROST-HOLD lands first): `frost_hold` is not on `origin/main` (`5594a34a4940`; FROST-HOLD is #3882, open), so there is nothing to compose with at this head. FROST-HOLD's design (`e91a4e30`) places frost before this group, but this group lands on a main without `frost_hold`. Whichever of the two merges second composes them as design `57d5d278`'s "Interaction with the frost hold" states: `hold_supply → frost_hold.gate → fault_hold.gate` (frost's ON passes); frost's cut-off arm consulted after `fault_hold.consult` in `early_cutoff.on_room_event`; `device-fault` decided before `frost-hold` in `duty_ledger.step_verdict`; and no frost row written while `_fault_stands` holds. Lands in R11-OWNER-FROST-HOLD's `carry` in `dev/programme/rosters/wave-r11-groups.json`. Carry: R11-OWNER-FROST-HOLD
 - Carry 1, FAULT-TEXT's carry (flag-prefill-reach): FAULT-TEXT has not merged (`origin/main` has no pre-fill Fault alarm text), and this group merges first, so per that carry FAULT-TEXT adds the hold's 10 minutes to the pre-fill rows on its rebase; it stands in this group's own `carry` in `dev/programme/rosters/wave-r11-groups.json` and lands in R11-OWNER-FAULT-TEXT's. Carry: R11-OWNER-FAULT-TEXT
 
 ## Friction
