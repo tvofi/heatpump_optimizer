@@ -44,3 +44,4 @@
 1795300082 DONE returned: handoff/r11-seam-cycle-solve 4e5de6ba, handoff-body 15c84acf; mutation red repaired (8 sites pinned, 0 added); step ref not deleted (push --delete disconnects)
 1795567035 HB alive
 1795567041 CKPT read CI logs: mutation REFUSED 1921 vs 1919, 8 added; autofix skip-measure-failed snapshot 8ca6a62b77ce
+1795567132 CKPT pin-killed running; coverage-ratchet green at 0f6b6834 snapshot 74f1ccbf44f0
