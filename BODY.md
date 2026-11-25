@@ -41,6 +41,8 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 ## Head
 
 
+`1b5c1b29b83dbb6b25d0aec7ef77860a5e523507` merges the authored code head `07223afa29183c818afe339b045d8d5ee0b839f0` and then merges origin/main `bb6377b4da` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `07223afa29183c818afe339b045d8d5ee0b839f0`, measured against its merge base `6a58ba5cb3` (the `origin/main` merged in `07223afa29`). `origin/main` is `bb6377b4dad4e398d1a28bde54d30036a5b25a82` at the stamp; `git merge-tree --write-tree origin/main HEAD` exits 0, without the ledger driver too. Stamped 2026-11-25T11:52:40Z. Review round 1 (`review/3872` `d77b2da2`, `verdict/3872` `c61cfa41`) blocked `d6a54399a63b` as mutation-vacuous; `ce9619a4f4` answers it, and the commits after it merge main. The branch's own commits, `git log --first-parent 8ef450936a17..HEAD`:
 
 - `6477e5f7df` R11-OWNER-FAULT-HOLD: suspend actuation while the pump reports a latched fault
@@ -136,8 +138,8 @@ Every behaviour check is paired with today's behaviour on the same fixture: the 
 
 The sites `tools/pr/ci_predict.py` lists at this head. Every fault-hold predicate among them is killed by `r11_owner_fault_hold_mutants.py` above.
 
-- custom_components/heatpump_optimizer/coordinator.py:7753 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/coordinator.py:10806 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/coordinator.py:7752 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/coordinator.py:10803 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:62 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:62 CMP_BOUND: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:62 GUARD_OFF: pinned by mutation-autofix
