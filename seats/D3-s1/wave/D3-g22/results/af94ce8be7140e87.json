@@ -1,0 +1,43 @@
+{
+ "key": "af94ce8be7140e87",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5225 CMP_BOUND",
+ "patch": "if i < len(temp_min_bounds) -> if i <= len(temp_min_bounds)",
+ "function": "HeatPumpOptimizer._safety_release_steps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._safety_release_steps@5222-5250",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3882.1,
+  "load1_start": 0.83,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/af94ce8be7140e87.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key af94ce8be7140e87",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_af94ce8b.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_af94ce8b.py",
+  "baseline_value": "temp_min_bounds n-1 long: space releases [0, 1, 2]",
+  "mutant_value": "IndexError",
+  "inputs_tried": [
+   "bounds n-1 long (moves)",
+   "bounds n long (null_delta=0)",
+   "real pinned solve (reach_scan.py: rel_bounds_shorter_than_power=0)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "unreachable through production: temp_min_bounds carries n_steps entries for an n-step power schedule"
+ },
+ "should_fail": "none reachable"
+}
