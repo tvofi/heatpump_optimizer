@@ -8,3 +8,14 @@ Filesystem      Size  Used Avail Use% Mounted on
 load1: 0.83
 date: 2026-11-22T21:40:09Z
 python3: /opt/hpo/venv-ci/bin/python3 (symlinked at $HOME/venv-ci)
+re-fire 2026-11-25T00:48:50Z (resumed seat)
+nproc 4
+               total        used        free      shared  buff/cache   available
+Mem:           16087         738       14070          12        1549       15348
+Swap:              0           0           0
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1 0.44
+re-fire seat 2026-11-25: all 16 probes re-run in a fresh baseline worktree ~/probe-tree on this machine; every RESULT line except load1/thread_factor/swapins identical to the predecessor's .out.txt
+re-fire seat: gate b1a8d3056bf42597 was interrupted twice before recording (monitor teardown at 00:49Z, container restart ~01:14Z); each time the stale lease was released, the tree reset to the baseline, the partial log set aside, and the gate re-taken from scratch at 01:15:29Z
