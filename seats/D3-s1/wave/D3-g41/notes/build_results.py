@@ -6,6 +6,8 @@ W = Path(__file__).resolve().parents[1]
 ns = {}; exec((W / "notes" / "analysis.py").read_text(), ns); A = ns["A"]
 REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g41"
 PY = "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3"
+if not (W / "gates" / "null.json").exists():
+    sys.exit(0)
 null = json.loads((W / "gates" / "null.json").read_text())
 null_log = (W / "gates" / "null.log").read_text(errors="replace") if (W / "gates" / "null.log").exists() else ""
 null_fail = {l.strip() for l in null_log.splitlines() if re.search(r"\bFAIL\b", l)}
