@@ -1,0 +1,7 @@
+RESULT config_coast_hours_cooling_rate_0.0_baseline='168.0'
+RESULT config_coast_hours_cooling_rate_0.0_mutant='346.5735902799726'
+RESULT config_coast_hours_cooling_rate_0.05_baseline='168.0'
+RESULT config_coast_hours_cooling_rate_0.05_mutant='346.5735902799726'
+RESULT config_coast_hours_cooling_rate_0.2_baseline='86.64339756999316'
+RESULT config_coast_hours_cooling_rate_0.2_mutant='86.64339756999316'
+RESULT metrics_moved=4

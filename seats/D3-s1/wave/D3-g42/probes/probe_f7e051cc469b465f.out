@@ -1,0 +1,7 @@
+RESULT gain_0_baseline='0.0'
+RESULT gain_0_mutant='0.0'
+RESULT gain_500_baseline='2.45'
+RESULT gain_500_mutant='2.45'
+RESULT gain_m10_baseline='0.0'
+RESULT gain_m10_mutant='-0.049'
+RESULT metrics_moved=1

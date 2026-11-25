@@ -1,0 +1,17 @@
+RESULT DHW_COOLING_RATE_MIN_baseline=0.05
+RESULT DHW_COOLING_RATE_MIN_mutant=0.05
+RESULT config_ua_cooling_rate_-5.0_baseline='0.00046400000000000006'
+RESULT config_ua_cooling_rate_-5.0_mutant='0.00046400000000000006'
+RESULT config_ua_cooling_rate_0.0_baseline='0.00046400000000000006'
+RESULT config_ua_cooling_rate_0.0_mutant='0.00046400000000000006'
+RESULT config_ua_cooling_rate_1e-12_baseline='0.00046400000000000006'
+RESULT config_ua_cooling_rate_1e-12_mutant='0.00046400000000000006'
+RESULT default_h_baseline='57.762265046662115'
+RESULT default_h_mutant='57.762265046662115'
+RESULT ua_0.0001_baseline='168.0'
+RESULT ua_0.0001_mutant='1608.1014588990731'
+RESULT ua_0.001_baseline='160.81014588990732'
+RESULT ua_0.001_mutant='160.81014588990732'
+RESULT ua_1e-06_baseline='168.0'
+RESULT ua_1e-06_mutant='160810.14588990732'
+RESULT metrics_moved=2
