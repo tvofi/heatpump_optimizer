@@ -531,7 +531,7 @@ def run(R, _parent: int) -> None:
             return self.outcome
 
         async def async_request_refresh(self):
-            """The service publishes each diagnosis it ran (D10-s1-02)."""
+            """Never awaited: the diagnosis publishes itself in place (D9-s1-01)."""
             return None
 
 
