@@ -23,7 +23,7 @@ rec = {
     "gate": {k: g.get(k) for k in ("verdict", "killed_by", "gate_rc", "wall_s", "load1_start", "load1_end", "failed_scripts",
                                     "fail_lines", "cap_s", "note")} | {"record": str(W / "gates" / f"{key}.json"),
                                                                       "provisional": True, "nproc": 4,
-                                                                      "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"},
+                                                                      "cpu": os.environ.get("GATE_CPU", "Intel(R) Xeon(R) Processor @ 2.10GHz")},
 }
 v = g.get("verdict")
 probe = W / "probes" / f"probe_{key}.py"
