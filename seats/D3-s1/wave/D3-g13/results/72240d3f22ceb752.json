@@ -1,0 +1,65 @@
+{
+ "key": "72240d3f22ceb752",
+ "site": "dhw_planner.py:2057 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2057,
+ "patch": "unchanged: np.ndarray = np.clip(plan, 0.0, p_dhw_max) -> unchanged: np.ndarray = (plan)",
+ "function": "DhwPlanner._apply_dhw_min_run",
+ "cluster": "dhw_planner.py:DhwPlanner._apply_dhw_min_run@2055-2106",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3029.1,
+  "child_cpu_s": 5013.1,
+  "load1_start": 0.78,
+  "load1_end": 1.07,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/72240d3f22ceb752.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 72240d3f22ceb752",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+  "answer": "dhw_planner.py:2057 DhwPlanner._apply_dhw_min_run CLAMP_DROP: `unchanged: np.ndarray = np.clip(plan, 0.0, p_dhw_max)` -> `unchanged: np.ndarray = (plan)`. Ran 13 closure scripts, none killed. Should fail: tests/entities.py, tests/features.py, tests/manual_plan.py each execute line 2057 on the traced baseline yet no check of theirs reads an outcome the mutation changes."
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_72240d3f22ceb752.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_72240d3f22ceb752.py",
+  "rc": 0,
+  "results": [
+   "RESULT production_shaped_moved=0 of 144 []",
+   "RESULT baseline_paths joint_shortcut=48 per_slot=96 count",
+   "RESULT no_weak_in_range baseline=[2.0, 0.0] mutant=[2.0, 0.0]",
+   "RESULT no_weak_above_pmax baseline=[3.0] mutant=[3.5]",
+   "RESULT no_weak_negative baseline=[0.0] mutant=[-0.5]",
+   "RESULT no_weak_nan baseline=[nan] mutant=[nan]",
+   "RESULT direct_no_weak_moved=2 of 4 (above_pmax,negative)",
+   "RESULT reach_cheapest_first_returns=['np.clip(plan, 0.0, p_dhw_max)', 'plan']",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.88",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "144 production-shaped fixtures",
+   "no-weak plans: in range, a slot at 3.5 > p_max, a slot at -0.5, a nan slot"
+  ],
+  "baseline_value": null,
+  "mutant_value": null,
+  "load1": 0.88,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none through production: the only caller feeds _plan_dhw_cheapest_first's result, whose every return is clipped to [0, p_dhw_max] (dhw_planner.py:2191-2195, 2307), so the no-weak clip is a no-op there; a direct call with an out-of-range plan separates",
+ "equivalence": "unreachable through production: production_shaped_moved 0 of 144, direct_no_weak_moved 2 of 4 (above_pmax, negative)"
+}
