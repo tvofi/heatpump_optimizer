@@ -5,3 +5,4 @@
 1795621171 DONE BLOCKED: head 80412b13b21110010499820e9799fe7dd4a0b3ce pushed to handoff (delta dc972220f313..80412b13b2; both survivors killed, scoped gate green); body_push REFUSED BODY-LINT on carry BAD-DEST R11-OWNER-CARD-EXTERNAL-HEAT (carries-open); question in BLOCKED.md at handoff-wip 882c2448
 1795621691 INBOX acked through 1
 1795621776 CKPT carry re-pointed to dismissed (already landed 58e94013); carry_audit rc 0; ci_predict --body clean snapshot 3f415897aa5e
+1795621923 DONE RETURNED: head 80412b13b21110010499820e9799fe7dd4a0b3ce (delta dc972220f313..80412b13b2); body re-pushed 878c82b3 with carry dismissed (already landed 58e94013), carry_audit rc 0, ci_predict --body clean
