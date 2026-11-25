@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/home/user/audit-r11-d3l-base/dev/audit/rounds/round11/D3/s1/fullgate.py", line 162, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/user/audit-r11-d3l-base/dev/audit/rounds/round11/D3/s1/fullgate.py", line 146, in main
+    rec = gate(a.key, m, f"D3-s1 full-gate mutant {a.key} {m['file']}:{m['line']}")
+  File "/home/user/audit-r11-d3l-base/dev/audit/rounds/round11/D3/s1/fullgate.py", line 102, in gate
+    sh("git", "reset", "-q", BASE)
+    ~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/audit-r11-d3l-base/dev/audit/rounds/round11/D3/s1/fullgate.py", line 46, in sh
+    return subprocess.run(a, cwd=ROOT, check=check, text=True, capture_output=True, **kw)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '('git', 'reset', '-q', '92d38ecb640bd462f2e19c0814d0f0b7df1ee692')' returned non-zero exit status 128.
+rc=1

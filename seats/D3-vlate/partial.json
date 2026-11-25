@@ -13,13 +13,7 @@
   "load1": "1.0",
   "thread_factor": "1.0"
  },
- "gates_pending": [
-  "D3-s1-67",
-  "D3-s1-68",
-  "D3-s1-69",
-  "D3-s1-70",
-  "D3-s1-71"
- ],
+ "gates_pending": [],
  "votes": [
   {
    "id": "D3-s1-02",
@@ -187,15 +181,23 @@
    "severity": "low",
    "value": "unset holiday-DHW-windows option parses to [] instead of None in 3 of 3 unset forms; consequence: a holiday day has 0 DHW windows instead of 2",
    "metric_definition": "_holiday_dhw_windows(config) for absent/''/None; consequence = len(windows_for_day(..., holiday=True)) with the parser's value",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 050fdc4a20eba212`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "attacks": "consequence measured beyond the parser: holiday mode loses every DHW window (2 -> 0); the judge may weigh a raise above low",
-   "reproduced": "probe_050fdc4a.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): None -> [] for absent, '' and None; unset_forms_moved 3; null 0; reach_unset_calls 3; full gate PENDING",
+   "reproduced": "probe_050fdc4a.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): None -> [] for absent, '' and None; unset_forms_moved 3; null 0; reach_unset_calls 3; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 050fdc4a20eba212`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_67_consequence.py (own, dhw_schedule.windows_for_day): holiday day windows in force 2 -> 0; null (not a holiday day) 2 -> 2, delta 0",
    "reachable": "yes: the default install leaves the option unset and the holiday overlay is consulted whenever holiday mode is on (dhw_schedule.py:413 'holiday_windows is not None')",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at thermal_model.py:169, then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "NONE",
+    "gate_rc": null,
+    "failed_scripts": null,
+    "killed": null,
+    "wall_s": null,
+    "load1": null,
+    "thread_factor": null
+   }
   },
   {
    "id": "D3-s1-68",
@@ -203,15 +205,23 @@
    "severity": "nit",
    "value": "direct call at dt=0.25 h: delivered 0.278400 -> 2.800000 kW; through simulate_step: 0 of 287299 calls differ",
    "metric_definition": "(q_rad+q_floor) of _valve_two_zone_delivery, base vs whole-module mutant on the same arguments, over every call simulate_step makes in a plant sweep",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 22b5ec8775d5bd50`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "attacks": "reachability on the public path (0 of 287299 calls separate): the moving number exists only on a direct call with a coarse dt; severity cut to nit",
-   "reproduced": "probe_22b5ec87.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 0.278400 -> 2.800000 kW, delta 2.521600, null 0.0, reach_valve_calls 64 (single-tank 64); full gate PENDING",
+   "reproduced": "probe_22b5ec87.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 0.278400 -> 2.800000 kW, delta 2.521600, null 0.0, reach_valve_calls 64 (single-tank 64); full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 22b5ec8775d5bd50`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_valve_calls.py (own spy over simulate_step): 287299 calls, 0 differ, max delta 0.000000 kW, dt_hours seen 0.00198..0.5; v2_valve_dt.py direct: dt 0.25/0.1/0.05 h differ (2.52/2.10/1.41 kW), dt <= 0.02 h equal; the finder's plant substeps at dt 0.01923 h",
    "reachable": "the function is reached in real HA, but the public path's substepping keeps the tank bound from binding in every swept call, so the mutant is behaviour-equivalent there",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at thermal_model.py:2618 (moved from 2593), then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "NONE",
+    "gate_rc": null,
+    "failed_scripts": null,
+    "killed": null,
+    "wall_s": null,
+    "load1": null,
+    "thread_factor": null
+   }
   },
   {
    "id": "D3-s1-69",
@@ -219,15 +229,23 @@
    "severity": "nit",
    "value": "dhw_kwh 2.5056 -> 1.9948 at prices x1000; realistic profiles delta 0.0; separation needs >= 8000 per kWh",
    "metric_definition": "solved DHW energy (kWh) from HeatPumpOptimizer.optimize, base vs mutant shortfall price, per price-profile cell",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 0911281eca895664`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "attacks": "grid artefact: 0 of 32 cells move at x1000 prices (positive control moves); consequence only at absurd prices -> nit",
-   "reproduced": "probe_0911281e.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 2.5056 -> 1.9948 kWh (delta -0.5108), null 0, realistic_delta 0.0, min_price_for_separation 8000; full gate PENDING",
+   "reproduced": "probe_0911281e.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 2.5056 -> 1.9948 kWh (delta -0.5108), null 0, realistic_delta 0.0, min_price_for_separation 8000; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 0911281eca895664`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_dhw.py (own, tests/profiles.py profiles x1000): 32 cells, 0 moved, max |delta| 0.0000; positive control (shortfall price 0.0) moves 1 of 1 cell by 1.0849 kWh, so the harness can move",
    "reachable": "only with a price spread of >= 8000 per kWh, which no real tariff carries; the shortfall penalty does not bind on any realistic input",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at dhw_planner.py:1559, then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "NONE",
+    "gate_rc": null,
+    "failed_scripts": null,
+    "killed": null,
+    "wall_s": null,
+    "load1": null,
+    "thread_factor": null
+   }
   },
   {
    "id": "D3-s1-70",
@@ -235,15 +253,23 @@
    "severity": "low",
    "value": "tariff disabled with peaks held: threshold (5.0,10.0) -> (5.0,3.0), suppressing False -> True",
    "metric_definition": "(projection, threshold) handed to GuardState.update and guard.suppressing after _on_power_event, base vs and->or",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 5e8d48eff7e4fa8d`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "attacks": "null 0; one of three cells does not move (fuse caps the enabled-factor0 case); the disabled case alone carries the user-visible suppression",
-   "reproduced": "probe_5e8d48ef.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): enabled,factor0 (5.0,10.0) -> (0.0,3.0); disabled,factor1 (5.0,10.0) -> (5.0,3.0) suppressing False -> True; null_moved 0; full gate PENDING",
+   "reproduced": "probe_5e8d48ef.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): enabled,factor0 (5.0,10.0) -> (0.0,3.0); disabled,factor1 (5.0,10.0) -> (5.0,3.0) suppressing False -> True; null_moved 0; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 5e8d48eff7e4fa8d`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_power.py (own, real PeakTracker/GuardState): disabled+fuse 8 ((6,8),False) -> ((6,4),True); enabled factor0 no fuse ((6,inf),False) -> ((0,4),False); enabled factor0 fuse 8 unmoved; 2 of 3 cells moved; null 0",
    "reachable": "yes: a tariff switched off while the tracker holds peaks restored by from_dict (coordinator.py:8378) suppresses heating against a stale peak",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at coordinator.py:8774 (moved from 8806), then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "NONE",
+    "gate_rc": null,
+    "failed_scripts": null,
+    "killed": null,
+    "wall_s": null,
+    "load1": null,
+    "thread_factor": null
+   }
   },
   {
    "id": "D3-s1-71",
@@ -251,15 +277,23 @@
    "severity": "nit",
    "value": "a day whose mean is exactly 1e-6: accepted 0 -> 1",
    "metric_definition": "observe_day_quarters acceptance (0/1) of a hand-built day at mean == 1e-6",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key c38d53ab787ddbfa`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "attacks": "reachability: exact-boundary input only -> nit; the finder's own gate status was RED-AS-NULL, so the re-run gate decides survival; main has since pinned it",
-   "reproduced": "probe_c38d53ab.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): accepted 0 -> 1, quarter_days_delta 1, null 0, reach_real_price_days_at_boundary 0; full gate PENDING",
+   "reproduced": "probe_c38d53ab.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): accepted 0 -> 1, quarter_days_delta 1, null 0, reach_real_price_days_at_boundary 0; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key c38d53ab787ddbfa`): NONE, gate_rc None, failed_scripts None, killed None, wall None s, load1 None, thread_factor None; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_head71.py (own): observe_day_quarters base 0 mut 1; sibling observe_day (sharing _usable_day at head) base 0 mut 1",
    "reachable": "only with a day whose mean price is exactly 1e-6; no real price day sits on that boundary (reach 0)",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at price_model.py:163 (moved from 252, now in _usable_day), then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=1 '1 of 6034 FEATURE CHECKS FAILED' (null at head: features rc=0): KILLED at head; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "NONE",
+    "gate_rc": null,
+    "failed_scripts": null,
+    "killed": null,
+    "wall_s": null,
+    "load1": null,
+    "thread_factor": null
+   }
   }
  ]
 }
