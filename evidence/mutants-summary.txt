@@ -1,0 +1,20 @@
+== M0
+ALL 105 FEATURES BLOCK PASSED
+rc=0
+== M1
+  FAIL the read returns no off time while a direction is unlatched, and its stop probability shrunk to k / (n + PRIOR_N): zeros with no evidence and with every switch kept, 4 / 9 for four stops under 
+  FAIL issue 3849's record (three stops in three switches, n = 2, unlatched) prices hot water to heating at 2 / (2 + PRIOR_N) and reads no off time; control: the same record latched prices p = 1 and i
+  FAIL the shrunk price over every unlatched record on a half-episode grid to the cap (441 records): zero exactly where no stop weighs, under p wherever one does, never a whole start; at the cap with 
+  FAIL an unlatched direction moves neither the order nor the merge: issue 3849's read is DEFAULT_RULE, hot water first and never merged; control: the same pairs read as latched serve space first  [('
+  FAIL the planner's leg rule is the arbiter's on all 16 learner states the census enumerates (four per direction); control: a configuration without the mask disagrees exactly where an unlatched stop 
+  FAIL issue 3849's read reaches a full optimize: the switch is an operand of the objective, the solve's leg rule is DEFAULT_RULE, and it moves the plan on every install class (null control: the empty
+6 of 105 FEATURES BLOCK FAILED
+rc=1
+== M2
+  FAIL an unlatched direction moves neither the order nor the merge: issue 3849's read is DEFAULT_RULE, hot water first and never merged; control: the same pairs read as latched serve space first  [('
+  FAIL the mask is per direction: hot water to heating latched beside an unlatched, priced switch the other way serves space first, as with that switch unpriced; control: both latched serve hot water 
+  FAIL the planner's leg rule is the arbiter's on all 16 learner states the census enumerates (four per direction); control: a configuration without the mask disagrees exactly where an unlatched stop 
+  FAIL the arbiter serves issue 3849's both step as before the learner existed: hot water for its share, then heating  [['space', 'space', 'dhw', 'dhw']]
+  FAIL issue 3849's read reaches a full optimize: the switch is an operand of the objective, the solve's leg rule is DEFAULT_RULE, and it moves the plan on every install class (null control: the empty
+5 of 105 FEATURES BLOCK FAILED
+rc=1
