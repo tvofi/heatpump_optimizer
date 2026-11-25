@@ -1,9 +1,6 @@
-DONE deployment_shape rc=0
-DONE debug_collect rc=0
-DONE guard_pins rc=0
-DONE manual_plan rc=0
-DONE structure rc=0
-DONE doc_claims rc=0
-DONE config_flow_steps rc=1
-DONE finite_boundary rc=0
-DONE entities rc=0
+tests/deployment_shape.py rc=0
+dev/audit/rounds/round4/D6/claims.py rc=0
+tests/entities.py rc=124
+tests/structure.py rc=0
+tests/doc_claims.py rc=0
+DONE
