@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build results/<key>.json for every gated key lacking one. Runs the key's probe (baseline vs in-memory mutant)."""
 import json, os, re, subprocess, sys
-W = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(W, *[".."]*7))
+W = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(W, *[".."]*8))
 M4 = {}
 for l in open(f"{W}/keys.tsv").read().splitlines()[1:]:
     f = l.split("\t"); M4[f[0]] = dict(src=f[1], file=f[2], line=int(f[3]), fn=f[4], cluster=f[5], kind=f[8], m4=f[10])
