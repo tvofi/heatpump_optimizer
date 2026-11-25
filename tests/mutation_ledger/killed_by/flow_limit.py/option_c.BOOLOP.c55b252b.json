@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_limit.py:option_c BOOLOP c55b252b",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return value if value is not None and FLOW_LIMIT_C_MIN <= value <= FLOW_HEAT_C_MAX else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return value if value is not None or FLOW_LIMIT_C_MIN <= value <= FLOW_HEAT_C_MAX else None`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
