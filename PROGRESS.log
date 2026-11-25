@@ -19,3 +19,4 @@
 1795615168 HB alive
 1795615496 CKPT delta read; entities/doc_claims/deployment_shape running at head snapshot cc668c03601d
 1795615773 HB alive
+1795616063 CKPT entities ALL 2763 PASSED, doc_claims ALL 443 PASSED at head; waiting CI snapshot c530904d8fa4
