@@ -1,0 +1,49 @@
+{
+ "key": "aaa2a3d6bb2ba515",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9051 CMP_BOUND",
+ "patch": "if self._outage_dhw_until is None or utc_elapsed_seconds(self._outage_dhw_until, now) <= 0: -> if self._outage_dhw_until is None or utc_elapsed_seconds(self._outage_dhw_until, now) < 0:",
+ "function": "HeatPumpOptimizerCoordinator._outage_dhw_hold",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._outage_dhw_hold@9051-9051",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/stress.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3521.9,
+  "load1_start": 0.94,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/stress.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/stress.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/aaa2a3d6bb2ba515.json",
+ "class": "killed",
+ "killed_by": [
+  "python3 tests/stress.py"
+ ],
+ "failing_checks": {
+  "python3 tests/stress.py": [
+   "FAIL no scenario's simulate kernel got slower per call on an unchanged plan (round-5 D9-07)  [summer/2z/space/wood-two-tank spent 76 ms of kernel CPU against the baseline's 42 ms = 1.81x, over the 1.80x factor on work the counts vouch at 1.00x, on an unchanged plan (objective 21423.23656); this is t"
+  ]
+ },
+ "non_finding": {
+  "claim": "mutant aaa2a3d6bb2ba515 at custom_components/heatpump_optimizer/coordinator.py:9051 CMP_BOUND is killed by the full gate (python3 tests/stress.py)",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aaa2a3d6bb2ba515",
+  "value": "gate_rc=1; failing checks beyond the box null: python3 tests/stress.py: 1"
+ }
+}
