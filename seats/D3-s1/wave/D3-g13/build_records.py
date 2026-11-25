@@ -17,7 +17,8 @@ TREE = S1.parents[4]
 KEYS = [l.split("\t") for l in (W / "keys.tsv").read_text().splitlines()]
 HDR, ROWS = KEYS[0], [dict(zip(KEYS[0], r)) for r in KEYS[1:] if r and r[0]]
 INFO = json.loads((W / "keyinfo.json").read_text())
-MACHINE = "box D3-g13: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython, alone on the box"
+_CPU = next((l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name")), "?")
+MACHINE = f"box D3-g13: Linux x86_64, nproc {os.cpu_count()}, {_CPU}, 16 GB, venv-ci CPython, alone on the box"
 PY = "/opt/hpo/venv-ci/bin/python3"
 
 
