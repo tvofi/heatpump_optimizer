@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_cdd17526ebbf2a93.py: pins stale wood WARNING count (1 -> 3) (baseline vs mutant in memory; output probe_cdd17526ebbf2a93.out)

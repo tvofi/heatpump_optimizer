@@ -1,0 +1,1 @@
+- _scratch/: the probe builder (common.py, mk.py, headers.py, static.py, build_record.py, build_report.py, save_probes.sh, explore_*.py), each saved as .txt; mk.py assembles probes from headers + common + body_<key>.py

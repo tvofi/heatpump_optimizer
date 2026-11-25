@@ -1,0 +1,5 @@
+RESULT precip_1e-9_snow_baseline=1.0 mutant=0.0
+RESULT null_moved=0 count
+RESULT thread_factor=1.003
+RESULT load1=0.35
+RESULT swapins=0 count

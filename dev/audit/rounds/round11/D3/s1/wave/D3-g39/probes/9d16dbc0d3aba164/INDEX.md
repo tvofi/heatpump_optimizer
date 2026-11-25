@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_9d16dbc0d3aba164.py (+ _mutload.py): pins _peak_excess on an empty plan (size-0 power and baseline arrays), for 60/15-minute windows, with and without window_factors; baseline None.

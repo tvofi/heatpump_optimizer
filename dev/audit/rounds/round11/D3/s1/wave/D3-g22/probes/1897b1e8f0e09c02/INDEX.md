@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_1897b1e8.py: pins max |baseline - mutant| (displace units) of HeatPumpOptimizer._power_to_displace_schedule over a grid of (shared: g22_rig.py, reach_scan.py)

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_e2b030e0.py: pins _dhw_inlet_c line 2910 (CMP_BOUND `-5.0 <= value <= 35.0` -> `-5.0 <= value < 35.0`): _dhw_inlet_c's return for a fresh 35.0 degC inlet reading

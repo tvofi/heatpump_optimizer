@@ -1,0 +1,70 @@
+{
+ "key": "0f03bb94bcab1682",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4067 GUARD_OFF",
+ "patch": "if phase == 0: -> if False:",
+ "function": "HeatPumpOptimizer._window_offset_steps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._window_offset_steps@4067-4069",
+ "slice": "u1a",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2671.9,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 4401.4,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/0f03bb94bcab1682.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0f03bb94bcab1682",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/0f03bb94bcab1682.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py",
+  "metric": "mutant_downstream_moved",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "extra": {
+   "mutant_return_moved": "57"
+  },
+  "moving_cases": [],
+  "inputs_tried": "127 cases: window 15/60 min x dt 0.25/0.5/1.0/0.75/1 min x starts 00:00, 07:00, 12:00, 12:15, 12:45, 23:30 x masks off/on; dt 1e-9/0/-0.25; start None",
+  "thread_factor": "1.000",
+  "load1": "1.15"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/block_duty.py",
+   "tests/boost_drift_replay.py",
+   "tests/config_flow_steps.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/validate.py"
+  ],
+  "assertion_lacking": "an _window_offset_steps unit asserting 0 at an aligned start would fail; no check through _peak_billing can (equivalent at the observable output)"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "the return moves (0 -> one whole window of steps) on every aligned start, but every consumer partitions by offset % per_window (tariff._window_partition), so PeakBilling, the capacity penalty and _grid_report never move",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:4067 GUARD_OFF if phase == 0: -> if False: survives the full gate but is equivalent on every input tried: the return moves (0 -> one whole window of steps) on every aligned start, but every consumer partitions by offset % per_window (tariff._window_partition), so PeakBilling, the capacity penalty and _grid_report never move",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py",
+  "value": "mutant_downstream_moved=0 (null 0); mutant_return_moved=57"
+ }
+}

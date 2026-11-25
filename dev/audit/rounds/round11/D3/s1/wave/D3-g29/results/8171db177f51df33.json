@@ -1,0 +1,90 @@
+{
+ "key": "8171db177f51df33",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2300 CMP_BOUND",
+ "patch": "if room <= temp_min_bounds[i] + 0.15: -> if room < temp_min_bounds[i] + 0.15:",
+ "function": "classify_space_steps",
+ "cluster": "optimizer.py:classify_space_steps@2286-2309",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3167.7,
+  "load1_start": 0.86,
+  "load1_end": 0.99,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5309.6,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/8171db177f51df33.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8171db177f51df33",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_8171db177f51df33.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_8171db177f51df33.py",
+  "baseline_value": "'comfort_floor'",
+  "mutant_value": "'cheap_price'",
+  "inputs_tried": [
+   "tie at floor 19.0, 0.0, -5.0, 21.85, 35.0 (all move)",
+   "null: room 19.16, 19.14, 21.0"
+  ],
+  "reach": "golden matrix: room_eq_floor_plus_015 0 of 1999 active steps; the room trajectory is a continuous solver output, so the tie is in-domain",
+  "results": {
+   "tie_reason_baseline": "'comfort_floor'",
+   "tie_reason_mutant": "'cheap_price'",
+   "moved": "1 count",
+   "tie_floor0.0_moved": "1",
+   "tie_floor-5.0_moved": "1",
+   "tie_floor21.85_moved": "1",
+   "tie_floor35.0_moved": "1",
+   "null_delta": "0 count",
+   "reach": "skipped (pass --reach to solve the 50 golden scenarios with spies)",
+   "thread_factor": "1.000",
+   "load1": "1.05",
+   "swapins": "0 count"
+  },
+  "reach_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/reach_sweep.py",
+  "null_delta": "0 count"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "a classify_space_steps check at the exact boundary `if room <= temp_min_bounds[i] + 0.15` asserting the baseline reason 'comfort_floor'"
+ },
+ "title": "No check feeds classify_space_steps an active step at its next room temperature boundary",
+ "claim": "Mutant 8171db177f51df33 (optimizer.py:2300, the `if room <= temp_min_bounds[i] + 0.15` comparison flipped) survives the full gate, yet the probe's reason moves at the next room temperature exactly temp_min_bound + 0.15: baseline 'comfort_floor', mutant 'cheap_price'. Full gate verdict RED-AS-NULL.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "metric_definition": "the reason classify_space_steps gives an active step whose next room temperature exactly temp_min_bound + 0.15",
+ "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:2300 CMP_BOUND",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_8171db177f51df33.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_8171db177f51df33.py",
+ "evidence_value": "'comfort_floor' -> 'cheap_price'",
+ "perturbation": {
+  "change": "the mutant 8171db177f51df33 (if room <= temp_min_bounds[i] + 0.15: -> if room < temp_min_bounds[i] + 0.15:) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8171db177f51df33",
+  "expected_direction": "reason 'comfort_floor' -> 'cheap_price' at the exact tie"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_8171db177f51df33.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null inputs, where the edit cannot matter: identical under both arms"
+ },
+ "phenomenon_property": "classify_space_steps' reason at the next room temperature exactly temp_min_bound + 0.15 is the baseline's 'comfort_floor'",
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/features.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value",
+ "reach": "golden matrix: room_eq_floor_plus_015 0 of 1999 active steps; the room trajectory is a continuous solver output, so the tie is in-domain"
+}

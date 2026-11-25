@@ -1,0 +1,1 @@
+Per-key probe analysis (analysis.json) and the result builder (build_result.py, run as: python3 notes/build_result.py <key> from a copy beside analysis.json; it runs each probe from a clean baseline checkout). Classes are provisional until each key's gate verdict lands.

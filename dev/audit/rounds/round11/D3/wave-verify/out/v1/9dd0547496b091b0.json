@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT baseline_kw=0 kW\nRESULT mutant_kw=-3 kW\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=19.31\nRESULT swapins=0\n", "stderr": "", "key": "9dd0547496b091b0", "box": "D3-g36", "wall_s": 0.7, "load1": 19.314453125}

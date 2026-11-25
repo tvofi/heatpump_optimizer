@@ -1,0 +1,96 @@
+{
+ "key": "ad01ae06d7ea84ec",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5054 GUARD_OFF",
+ "patch": "if p85 <= p25 * 1.05: -> if False:",
+ "function": "HeatPumpOptimizer._derive_hold_schedule",
+ "cluster": "optimizer.py:HeatPumpOptimizer._derive_hold_schedule@5044-5074",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3229.9,
+  "load1_start": 0.92,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/ad01ae06d7ea84ec.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/ad01ae06d7ea84ec.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.10GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ad01ae06d7ea84ec.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ad01ae06d7ea84ec.py",
+  "metric": "whether _derive_hold_schedule proposes a valve-hold schedule at a sub-5 % price spread; through optimize() the proposals (each one a full re-solve) and solve CPU",
+  "baseline_value": "None",
+  "mutant_value": "array:23,23,19,19,19,19,23,23",
+  "baseline_name": "nearflat_baseline",
+  "mutant_name": "nearflat_mutant",
+  "inputs_tried": [
+   "8-step direct call at p85/p25 = 1.03",
+   "exactly flat prices (null)",
+   "optimize() smart-write 500 L store, -15 C, profile 1.0x6/1.02x12/1.04x6"
+  ],
+  "results": {
+   "nearflat_baseline": "None",
+   "nearflat_mutant": "array:23,23,19,19,19,19,23,23",
+   "moved": "1 count",
+   "null_delta": "0 count",
+   "reach_proposed_baseline": "0 count",
+   "reach_proposed_mutant": "1 count",
+   "reach_plan_maxabs_diff_kw": "0.0000 kW",
+   "reach_objective_delta": "0.000000",
+   "reach_cpu_baseline_s": "1.15 s (provisional)",
+   "reach_cpu_mutant_s": "1.73 s (provisional)",
+   "thread_factor": "1.000",
+   "load1": "1.47",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_ad01ae06d7ea84ec.txt"
+ },
+ "should_fail": "tests/features.py (traced baseline executes optimizer.py:5054; tests/stress.py too): no check drives _derive_hold_schedule or a smart-write solve at a near-flat (<5 %) spread and asserts None / a single solve",
+ "title": "No check pins the flat-price refusal of _derive_hold_schedule; dropping it re-solves every near-flat plan",
+ "claim": "Mutant ad01ae06d7ea84ec at custom_components/heatpump_optimizer/optimizer.py:5054 (if p85 <= p25 * 1.05: -> if False:) is not failed by the full gate (RED-AS-NULL), yet the probe's whether _derive_hold_schedule proposes a valve-hold schedule at a sub-5 % price spread; through optimize() the proposals (each one a full re-solve) and solve CPU moves: baseline None, mutant array:23,23,19,19,19,19,23,23.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "At a price spread under 5 % (p85 <= 1.05 * p25) no valve-hold candidate is proposed, so no second full solve runs",
+ "metric_definition": "whether _derive_hold_schedule proposes a valve-hold schedule at a sub-5 % price spread; through optimize() the proposals (each one a full re-solve) and solve CPU",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._derive_hold_schedule",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ad01ae06d7ea84ec.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ad01ae06d7ea84ec.py",
+ "perturbation": {
+  "change": "optimizer.py:5054 if p85 <= p25 * 1.05: -> if False:, applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ad01ae06d7ea84ec",
+  "expected_direction": "up: proposals 0 -> 1 per near-flat plan; solve CPU about +70 % (provisional); plan unchanged"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ad01ae06d7ea84ec.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/features.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}

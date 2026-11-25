@@ -1,0 +1,1 @@
+- `dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py`: price_model.py:219 observe_day's first-day variance seed deleted survives the full gate — pins the baseline vs mutant value of the probe's metric (candidate); run: `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py`

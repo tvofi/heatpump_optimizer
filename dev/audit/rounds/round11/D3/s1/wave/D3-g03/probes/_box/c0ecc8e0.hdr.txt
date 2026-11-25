@@ -1,0 +1,14 @@
+# Metric: on the heartbeat where the accuracy-drift alarm clears (bias back in band after a 5-day out-of-band streak),
+#   the repair-issue calls HeatPumpOptimizerCoordinator._async_watch_learning_drift makes (delete / create of
+#   "accuracy_drift") and the `_rollback_done_for_alarm` latch it leaves. Real snapshots.SnapshotRing restored alarmed.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_c0ecc8e0.py
+# EXPECTED RESULT clear_issue_calls_baseline=['delete'] rollback_latch=False
+# EXPECTED RESULT clear_issue_calls_mutant=['create'] rollback_latch=True (the notice is re-raised on a cleared alarm
+#   and the latch never re-arms, so a later alarm cannot auto-roll back)
+# EXPECTED RESULT null_delta=0 count (a heartbeat on the same day: no state change, both arms return early)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_watch_learning_drift,
+#   line 9695 `if not self._snapshot_ring.alarmed:`.
+# Perturbation: key c0ecc8e0b6b66ded GUARD_OFF -> `if False:`, in memory (the else branch then runs). Direction:
+#   delete -> create; latch False -> True.
+# Null control: a second heartbeat on the already-counted day.

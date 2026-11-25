@@ -1,0 +1,8 @@
+{
+ "key": "b53efc6448b724e4",
+ "class_provisional": "candidate",
+ "probe_direction": "the tie goes to the last-scored start instead of the first (x 0.5 -> 1.5); no golden plan moves",
+ "inputs": "a plateau objective (zero on [0,2]^4) with starts 0.5 and 1.5; null: the plateau tilted by 0.01*sum(x); golden winter_typical, summer_negative, flat",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

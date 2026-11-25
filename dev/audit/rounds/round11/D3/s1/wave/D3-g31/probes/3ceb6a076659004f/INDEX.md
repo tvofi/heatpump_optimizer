@@ -1,0 +1,1 @@
+- probes/probe_3ceb6a076659004f.py (output probes/probe_3ceb6a076659004f.out): pins prod_differ=0 of 192; direct_differ=0 of 6 vs mutant identical; provisional class if the gate survives: equivalent-candidate

@@ -1,0 +1,1 @@
+- _scratch/: the probe generator parts (preamble.py, *_common.py, hdr_*.txt, bodies/), runprobe.sh (runs a probe from the clean baseline worktree $HOME/probe-tree), try*.py (exploratory mutant sweeps), waitnext.sh (event waiter)

@@ -1,0 +1,148 @@
+"""Box D3-g27's REPORT.json and REPORT.md from its gates/, results/ and probes/."""
+import json, sys
+from collections import defaultdict
+from pathlib import Path
+
+SP = Path(__file__).parent
+TR = Path.home() / "audit-r11-D3-s1"
+S1 = TR / "dev/audit/rounds/round11/D3/s1"
+W = S1 / "wave/D3-g27"
+WREL = "dev/audit/rounds/round11/D3/s1/wave/D3-g27"
+PY = "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3"
+BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+BOX = "D3-g27"
+keys = [l.split("\t") for l in (W / "keys.tsv").read_text().splitlines()[1:] if l.strip()]
+wave = [l.split("\t") for l in (SP / "wave_keys.tsv").read_text().splitlines() if l.strip()]
+machine = (W / "MACHINE.txt").read_text()
+null = json.loads((W / "gates/null.json").read_text())
+res = {}
+unfinished = []
+for k in keys:
+    p = W / "results" / f"{k[0]}.json"
+    if p.exists():
+        res[k[0]] = json.loads(p.read_text())
+    else:
+        unfinished.append(f"D3.M3: {k[0]} {k[2].split('/')[-1]}:{k[3]} has no gate record yet (left by a STOP/SKIP or not reached)")
+
+u1b = json.loads((S1 / "REPORT-D3-u1b.json").read_text())
+cov = []
+for row in u1b["coverage"]:
+    if row["step"] == "D3.M3":
+        mine = [k for k in res if res[k]["class"] != "timeout"]
+        timeouts = [k for k in res if res[k]["class"] == "timeout"]
+        by_box = defaultdict(list)
+        for box, key, site in wave:
+            if box != BOX:
+                by_box[box].append(key)
+        nr = [f"assigned to box {b}: " + ",".join(v) for b, v in sorted(by_box.items())]
+        nr += [f"{k} (TIMEOUT on box {BOX}, past the {res[k]['timeout']['cap_s']} s cap)" for k in timeouts]
+        nr += [f"{k[0]} (not gated on box {BOX}: unfinished)" for k in keys if k[0] not in res]
+        cov.append({
+            "step": "D3.M3",
+            "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+            "universe": len(wave),
+            "examined": len(mine),
+            "not_reached": nr,
+            "redispatched": row.get("redispatched", []),
+            "evidence": (f"the u1 full-gate wave: {len(wave)} full-net survivors (owner ruling 2026-11-22: every one gets the full gate), "
+                         f"split over boxes D3-g01..D3-g47; box {BOX} gated its {len(keys)} keys of keys.tsv, one gate at a time "
+                         f"({PY} dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>, GATE_SCOPE=full GOLDEN_MODE=drift "
+                         f"GATE_JOBS=1, driven by gate_wave.sh run), records {WREL}/gates/<key>.json, null {WREL}/gates/null.json. "
+                         "The box re-derived the wave list's box assignment from the 47 dispatch/finder-r11-D3-g<NN> refs' keys.tsv "
+                         f"({len(wave)} keys, none twice). Earlier boxes' D3.M3 rows (carried, outside this universe): D3-top6 gated 30 and D3-rem 5 of "
+                         "the 35 top-of-pre-screen survivors (REPORT-D3-top6.json, REPORT-D3-rem.json); the 8 u1 keys they already gated were "
+                         "deduplicated out of the 742. redispatched carried verbatim from REPORT-D3-u1b.json's D3.M3 row."),
+        })
+    else:
+        r = dict(row)
+        r["evidence"] = f"carried verbatim from REPORT-D3-u1b.json (box D3-u1b's row); this box's slice is D3.M3 only. {row.get('evidence', '')}"
+        r["carried"] = True
+        cov.append(r)
+
+gated, survivors, equivalents, non_findings = [], [], [], []
+for k in keys:
+    r = res.get(k[0])
+    if not r:
+        continue
+    g = r["gate"]
+    gated.append({"key": k[0], "site": r["site"], "verdict": g["verdict"], "killed_by": g.get("killed_by") or [],
+                  "class": r["class"], "gate_rc": g.get("gate_rc"), "wall_s": g.get("wall_s"),
+                  "load1": f"{g.get('load1_start')}..{g.get('load1_end')}", "record": g["record"]})
+    if r["class"] == "candidate":
+        survivors.append(r)
+    elif r["class"] == "equivalent-candidate":
+        equivalents.append(r)
+        non_findings.append(r["non_finding"])
+    elif r["class"] == "killed":
+        non_findings.append(r["non_finding"])
+    elif r["class"] == "timeout":
+        unfinished.append(f"D3.M3: {k[0]} {r['site']} TIMEOUT: full gate past the {r['timeout']['cap_s']} s cap; last script running: {r['timeout']['last_script']}")
+non_findings.append({
+    "claim": f"Box {BOX} full-gate null control (comment-only marker): gate_rc={null.get('gate_rc')}, red scripts {null.get('failed_scripts')}; a key counts KILLED only beyond it",
+    "command": f"{PY} dev/audit/rounds/round11/D3/s1/fullgate.py null",
+    "value": f"gate_rc={null.get('gate_rc')}; wall {null.get('wall_s')} s; load1 {null.get('load1_start')}..{null.get('load1_end')} (provisional)"})
+harnesses = ["dev/audit/rounds/round11/D3/s1/fullgate.py",
+             f"{WREL}/gate_wave_procedure.md"] + [f"{WREL}/probes/probe_{k[0]}.py" for k in keys]
+leads = []
+if "d128afa0c1ce3d28" in res:
+    leads.append("D16 (actuator writes against the plan) / D0: custom_components/heatpump_optimizer/optimizer.py _space_scope / "
+                 "_apply_pins_to_bounds: in probe_d128afa0c1ce3d28's capped pinned solve (space pinned on at step 36 under a 0.05 kW "
+                 "power_caps_extra), the baseline plan's step-36 total (space + DHW) is 0.1 kW, above the 0.05 kW total cap the fuse "
+                 "guard promises to hold; outside this seat's cell, not measured further")
+rep = {
+    "dimension": "D3", "baseline_sha": BASE, "box": BOX, "report_path": f"{WREL}/REPORT.md",
+    "exposure": "No docs/ or GitHub read. The box read the 47 dispatch/finder-r11-D3-g<NN> refs' keys.tsv only to name the wave's other keys by box in the D3.M3 row.",
+    "coverage": cov, "unfinished": unfinished, "findings": [], "non_findings": non_findings,
+    "harnesses": harnesses, "leads": leads, "gated": gated,
+    "gate_survivors": survivors, "equivalent_candidates": equivalents,
+}
+(W / "REPORT.json").write_text(json.dumps(rep, indent=1) + "\n")
+
+# ---- REPORT.md ----
+tally = defaultdict(int)
+kb = defaultdict(int)
+for g in gated:
+    tally[g["verdict"]] += 1
+    for s in g["killed_by"]:
+        kb[s] += 1
+md = [f"# D3-s1, box {BOX}: the full gate for 16 D3.M3 u1 full-net survivors", "",
+      f"Baseline {BASE}. Round 11, seat D3-s1, wave box {BOX} (keys.tsv: 16 keys, all optimizer.py). Counts final; every wall and load figure provisional.", "",
+      "## Machine and controls", "", "```", machine.strip(), "```", "",
+      f"Null control (comment-only marker, `{PY} dev/audit/rounds/round11/D3/s1/fullgate.py null`): gate_rc={null.get('gate_rc')}, "
+      f"red scripts {null.get('failed_scripts')}, wall {null.get('wall_s')} s, load1 {null.get('load1_start')}..{null.get('load1_end')}. "
+      "A key is KILLED only when run.sh is red and a script fails beyond this null; red with no script beyond it is RED-AS-NULL (read as survived).", "",
+      "Procedure: gate_wave.sh (out of tree, shipped on the dispatch ref; summarised in gate_wave_procedure.md here) ran `fullgate.py run --src complete --key <key>` "
+      "for each key in keys.tsv order, one gate at a time, capped at 4 h, checkpointing after every gate. Each probe applies its mutant in memory "
+      "(the function re-compiled from source with the one line replaced, in a namespace copy; production solves see it through mock.patch.object on "
+      "heatpump_optimizer.optimizer) and never touched the gate's tree.", "",
+      "Classing rule for a full-gate survivor: **candidate** when the probe's number moves on an input production can build (the probe's "
+      "production-domain subset, or one of its four production solves); **equivalent-candidate** when it moves only on inputs production never "
+      "builds (a pin of 0.5, eps 0, |x0| ~ 1e12 kW, mismatched lengths) or not at all. Every input tried is in the probe's RESULT lines.", "",
+      "## Tally", "",
+      f"- gated: {len(gated)} of {len(keys)}",
+      f"- KILLED: {tally['KILLED']}" + (" (" + ", ".join(f"{s}: {n}" for s, n in sorted(kb.items())) + ")" if kb else ""),
+      f"- SURVIVED: {tally['SURVIVED']}", f"- RED-AS-NULL: {tally['RED-AS-NULL']}", f"- TIMEOUT: {tally['TIMEOUT']}",
+      f"- candidates: {len(survivors)}", f"- equivalent-candidates: {len(equivalents)}", "",
+      "## Gate table", "", "| key | site | verdict | killed_by | class | wall s | load1 |", "|---|---|---|---|---|---|---|"]
+for g in gated:
+    md.append(f"| {g['key']} | {g['site']} | {g['verdict']} | {','.join(g['killed_by']) or '-'} | {g['class']} | {g['wall_s']} | {g['load1']} |")
+md += ["", "## Survivors: the step-4 answer and the probe's numbers", ""]
+for k in keys:
+    r = res.get(k[0])
+    if not r or r["class"] not in ("candidate", "equivalent-candidate"):
+        continue
+    p = r["probe"]
+    md.append(f"**{k[0]}** {r['site']} `{r['patch']}` ({r['function']}), full gate {r['gate']['verdict']}: **{r['class']}**. "
+              f"{r['step4']}. Example input {p['example_input']}: baseline {p['baseline_value']}, mutant {p['mutant_value']}. "
+              f"Null arm: {', '.join(p['null'])}. Should have failed: {r['should_fail']}. Probe: `{p['command']}`.")
+    if r["class"] == "candidate":
+        f = r["finding"]
+        md.append(f"Candidate: *{f['title']}* (severity claimed {f['severity_claimed']}, class guess {f['class_guess']}).")
+    md.append("")
+if unfinished:
+    md += ["## Unfinished", ""] + [f"- {u}" for u in unfinished] + [""]
+if leads:
+    md += ["## Leads", ""] + [f"- {l}" for l in leads] + [""]
+md += ["## Findings", "", "None numbered here: finding ids are assigned at the orchestrator's consolidation; candidates are under `gate_survivors` in REPORT.json.", ""]
+(W / "REPORT.md").write_text("\n".join(md))
+print("REPORT", len(gated), dict(tally), "cand", len(survivors), "equiv", len(equivalents), "unfinished", len(unfinished))

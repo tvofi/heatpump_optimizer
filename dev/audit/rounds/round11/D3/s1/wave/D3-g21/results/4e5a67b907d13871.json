@@ -1,0 +1,90 @@
+{
+ "key": "4e5a67b907d13871",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5956 CMP_BOUND",
+ "patch": "for idx in np.where(optimal_dhw > 0.1)[0][:48].tolist() -> for idx in np.where(optimal_dhw >= 0.1)[0][:48].tolist()",
+ "function": "HeatPumpOptimizer._optimize_with_dhw",
+ "cluster": "optimizer.py:HeatPumpOptimizer._optimize_with_dhw@5902-5962",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2434.7,
+  "load1_start": 0.8,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/4e5a67b907d13871.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/4e5a67b907d13871.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_4e5a67b907d13871.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_4e5a67b907d13871.py",
+  "metric": "count of hours in predictive_info.dhw_planned_heating_hours (sensor.py:1248/1350) under a 0.1 kW fuse cap",
+  "baseline_value": "0",
+  "mutant_value": "22",
+  "baseline_name": "dhw_planned_heating_hours_baseline",
+  "mutant_name": "dhw_planned_heating_hours_mutant",
+  "inputs_tried": [
+   "fuse cap min 0.1 kW (22 DHW steps at exactly 0.1 kW)",
+   "no fuse cap (null)"
+  ],
+  "results": {
+   "dhw_steps_at_0p1": "22 count",
+   "dhw_planned_heating_hours_baseline": "0",
+   "dhw_planned_heating_hours_mutant": "22",
+   "null_delta": "0 count",
+   "plan_dhw_maxabs_diff_kw": "0.0000 kW",
+   "thread_factor": "1.023",
+   "load1": "1.71",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_4e5a67b907d13871.txt"
+ },
+ "should_fail": "tests/entities.py (traced baseline executes optimizer.py:5956; block_duty, features, manual_plan, optimality, plan_view, validate too): no check publishes a plan whose DHW steps sit at exactly the 0.1 kW floor (a fuse cap <= 0.1 kW, dhw_planner.py:1138-1141)",
+ "title": "No check reads dhw_planned_heating_hours at the 0.1 kW DHW floor; > -> >= is unseen",
+ "claim": "Mutant 4e5a67b907d13871 at custom_components/heatpump_optimizer/optimizer.py:5956 (for idx in np.where(optimal_dhw > 0.1)[0][:48].tolist() -> for idx in np.where(optimal_dhw >= 0.1)[0][:48].tolist()) is not failed by the full gate (RED-AS-NULL), yet the probe's count of hours in predictive_info.dhw_planned_heating_hours (sensor.py:1248/1350) under a 0.1 kW fuse cap moves: baseline 0, mutant 22.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "dhw_planned_heating_hours lists DHW steps strictly above 0.1 kW",
+ "metric_definition": "count of hours in predictive_info.dhw_planned_heating_hours (sensor.py:1248/1350) under a 0.1 kW fuse cap",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._optimize_with_dhw",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_4e5a67b907d13871.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_4e5a67b907d13871.py",
+ "perturbation": {
+  "change": "optimizer.py:5956 for idx in np.where(optimal_dhw > 0.1)[0][:48].tolist() -> for idx in np.where(optimal_dhw >= 0.1)[0][:48].tolist(), applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4e5a67b907d13871",
+  "expected_direction": "up: 0 -> 22 listed hours"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_4e5a67b907d13871.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/entities.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}

@@ -1,0 +1,12 @@
+RESULT calls_tie_i10_baseline=1 calls_tie_i10_mutant=0 seconds=1800.0
+RESULT calls_inside_i10_baseline=1 calls_inside_i10_mutant=1 seconds=1799.0
+RESULT calls_outside_i10_baseline=0 calls_outside_i10_mutant=0 seconds=1801.0
+RESULT calls_tie_i30_baseline=1 calls_tie_i30_mutant=0 seconds=5400.0
+RESULT calls_inside_i30_baseline=1 calls_inside_i30_mutant=1 seconds=5399.0
+RESULT calls_outside_i30_baseline=0 calls_outside_i30_mutant=0 seconds=5401.0
+RESULT calls_tie_i120_baseline=1 calls_tie_i120_mutant=0 seconds=21600.0
+RESULT calls_inside_i120_baseline=1 calls_inside_i120_mutant=1 seconds=21599.0
+RESULT calls_outside_i120_baseline=0 calls_outside_i120_mutant=0 seconds=21601.0
+RESULT thread_factor=1.000
+RESULT load1=0.90
+RESULT swapins=0

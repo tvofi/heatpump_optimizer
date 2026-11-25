@@ -1,0 +1,99 @@
+{
+ "key": "8daaf4fcaf8cd897",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:11002 CMP_BOUND",
+ "patch": "if float(np.max(prices) - np.min(prices)) / mean_price < 0.15: -> if float(np.max(prices) - np.min(prices)) / mean_price <= 0.15:",
+ "function": "HeatPumpOptimizerCoordinator._record_quiet_comfort_period",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._record_quiet_comfort_period@11000-11008",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3075.8,
+  "child_cpu_s": 5098.4,
+  "load1_start": 0.88,
+  "load1_end": 0.85,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/8daaf4fcaf8cd897.json",
+ "gate_command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8daaf4fcaf8cd897  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_8daaf4fcaf8cd897.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/out_8daaf4fcaf8cd897.txt",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_8daaf4fcaf8cd897.py",
+  "metric": "RESULT calls_tie_{baseline,mutant}: record_quiet_period calls from one _record_quiet_comfort_period, prices [0.6, 0.6972972972972973] ((max-min)/mean exactly 0.15), 1.5 kWh heating",
+  "baseline_value": "calls_tie=1 (evidence -0.007292)",
+  "mutant_value": "calls_tie=0 (evidence 0.0)",
+  "inputs_tried": [
+   "spread exactly 0.15 (ulp walk)",
+   "spread ~0.10",
+   "spread 0.30"
+  ],
+  "null_control": "0.10 and 0.30 cells: equal arms",
+  "load1": 1.07,
+  "thread_factor": 1.0
+ },
+ "should_fail": "tests/features.py quiet-period block (~51783) and config_flow_steps.py: no arm puts the price spread at exactly 15 % of the mean",
+ "title": "The 15 % price-spread threshold of the quiet-comfort recorder is unpinned at its boundary (`< 0.15` -> `<= 0.15`)",
+ "claim": "HeatPumpOptimizerCoordinator._record_quiet_comfort_period (coordinator.py:11002) may be tightened from `< 0.15` to `<= 0.15` and the gate passes; at a spread of exactly 15 % of the mean the baseline records the quiet period and the mutant does not (probe). Boundary-only.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "stop_rule_class": "bug",
+ "metric_definition": "RESULT calls_tie_{baseline,mutant}: record_quiet_period calls from one _record_quiet_comfort_period, prices [0.6, 0.6972972972972973] ((max-min)/mean exactly 0.15), 1.5 kWh heating",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._record_quiet_comfort_period",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_8daaf4fcaf8cd897.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_8daaf4fcaf8cd897.py",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_8daaf4fcaf8cd897.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_8daaf4fcaf8cd897.py",
+  "value": "calls_tie=0 (evidence 0.0)",
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-g09: 4 vCPU Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB, no swap",
+  "cpu_or_wall": "count",
+  "contention_note": "one full gate running on the box (GATE_JOBS=1); the probe's numbers are counts and values, contention-immune",
+  "tolerance": "exact",
+  "load1": 1.07,
+  "thread_factor": 1.0
+ },
+ "gate_evidence": {
+  "command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8daaf4fcaf8cd897  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/8daaf4fcaf8cd897.json",
+  "verdict": "RED-AS-NULL",
+  "gate_rc": 1,
+  "null_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/null.json"
+ },
+ "perturbation": {
+  "change": "mutant 8daaf4fcaf8cd897: if float(np.max(prices) - np.min(prices)) / mean_price < 0.15: -> if float(np.max(prices) - np.min(prices)) / mean_price <= 0.15: (custom_components/heatpump_optimizer/coordinator.py:11002), applied in memory by the probe and on disk by fullgate.py",
+  "expected_direction": "to_zero",
+  "observed_value": "calls_tie=0 (evidence 0.0)",
+  "direction": "calls at the tie 1 -> 0"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_8daaf4fcaf8cd897.py",
+  "value": "0.10 and 0.30 cells: equal arms",
+  "note": "the probe's equal-arm cells; for the gate, this box's fullgate.py null (gates/null.json)"
+ },
+ "phenomenon_property": "a production line whose one-line mutant changes the value its own seam delivers on a stated input is pinned by at least one check of the closure that executes it",
+ "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivors; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g09/keys.tsv)",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "proposed_fix_scope": "tests only: add the distinguishing arm named in should_fail to the closure script that executes the line"
+}

@@ -1,0 +1,54 @@
+{
+ "key": "ea6dfc5a3c85cce3",
+ "site": "dhw_planner.py:2133 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2133,
+ "patch": "while pos < size: -> while pos <= size:",
+ "function": "DhwPlanner._dhw_raise_fits",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_raise_fits@2133-2140",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3138.9,
+  "child_cpu_s": 5206.9,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/ea6dfc5a3c85cce3.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ea6dfc5a3c85cce3",
+ "gate_provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_ea6dfc5a3c85cce3.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_ea6dfc5a3c85cce3.py",
+  "results": {
+   "inputs_tried": "116 count",
+   "baseline_refusals": "44 count  (liveness: both verdicts occur)",
+   "inputs_with_extra_pass": "60 count",
+   "outputs_differing": "0 count  (verdict, the candidate array after the call, any exception)",
+   "thread_factor": "1.000",
+   "load1": "0.95",
+   "swapins": "0"
+  },
+  "baseline_value": "see results",
+  "mutant_value": "see results",
+  "inputs_tried": "116: sizes 1/7/8/9/16/24/96 x slots 0/1/n-8/n-1/n x idle, flat-out with a high ceiling, flat-out with a tight ceiling, a ceiling breached only at the last step (60 land a pass at pos == size; 44 refused)",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "why_equivalent": "the extra pass at pos == size reads candidate[size] (it exists: n + 1 temperatures), runs extend_dhw_temps' step loop over an empty range and tests empty slices, so the verdict and the candidate are unchanged",
+ "should_fail": "none: no input found that the mutant changes (equivalent-candidate); the closure scripts executing the line (m4_source) cannot fail on it"
+}

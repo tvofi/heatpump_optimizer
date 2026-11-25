@@ -1,0 +1,9 @@
+RESULT edge_inputs=9
+RESULT edge_delta_kw=0 kW
+RESULT sweep_inputs=120
+RESULT differing_inputs=0
+RESULT sweep_max_delta_kw=0 kW
+RESULT inputs_tried=3 price shapes (flat, alternating, one cheap) x 3 demand shapes (all over, alternating, one 50 kW) at p_total_max 3; 120 random with demand 0..8
+RESULT thread_factor=1.004
+RESULT load1=1.25
+RESULT swapins=0

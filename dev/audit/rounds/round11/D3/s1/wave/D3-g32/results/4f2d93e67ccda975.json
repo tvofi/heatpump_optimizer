@@ -1,0 +1,35 @@
+{
+ "key": "4f2d93e67ccda975",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1626 GUARD_OFF",
+ "patch": "if best is not None: -> if False:",
+ "function": "SystemIdentification._size_step_power",
+ "cluster": "sysid.py:SystemIdentification._size_step_power@1573-1626",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3223.4,
+  "load1_start": 0.94,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/4f2d93e67ccda975.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4f2d93e67ccda975",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4f2d93e67ccda975.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4f2d93e67ccda975.py",
+  "baseline_value": "step power; 1 DEBUG record",
+  "mutant_value": "identical step power; 0 DEBUG records",
+  "inputs_tried": "6 argument sets x 4 houses: returned value moved 0 of 24; the block's only effect is the 'System identification sizer' DEBUG line",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4f2d93e67ccda975.out"
+ },
+ "should_fail": "none behavioural: the guarded block only computes a one-state peak for a DEBUG log"
+}

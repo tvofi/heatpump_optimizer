@@ -1,0 +1,10 @@
+RESULT tie_prices=[5e-07, 1.5e-06] mean=1e-06 ratio=1.0000
+RESULT calls_tie_baseline=0 evidence_delta=0.0
+RESULT calls_tie_mutant=1 evidence_delta=-0.007292
+RESULT calls_ordinary_baseline=1 evidence_delta=-0.007292
+RESULT calls_ordinary_mutant=1 evidence_delta=-0.007292
+RESULT calls_zero_baseline=0 evidence_delta=0.0
+RESULT calls_zero_mutant=0 evidence_delta=0.0
+RESULT thread_factor=1.086
+RESULT load1=0.90
+RESULT swapins=0

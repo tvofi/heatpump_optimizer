@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7fcaf91cced5ce41.py (+ _mutload.py): pins PeakTracker peaks after a 07:00 window of samples [2.0, X] closes (X non-finite or negative); baseline drops X (peak 2.0).

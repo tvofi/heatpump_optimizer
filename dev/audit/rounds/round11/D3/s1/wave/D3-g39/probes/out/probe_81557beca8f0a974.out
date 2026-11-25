@@ -1,0 +1,14 @@
+RESULT dt0_acc_baseline=('0.0', '0.0', '1.5')
+RESULT dt0_acc_mutant=('0.0', '0.0', '1.5')
+RESULT dtneg0_acc_baseline=('0.0', '0.0', '1.5')
+RESULT dtneg0_acc_mutant=('0.0', '0.0', '1.5')
+RESULT dt0_mixed_acc_baseline=('0.5', '0.25', '2.0')
+RESULT dt0_mixed_acc_mutant=('0.5', '0.25', '2.0')
+RESULT dt0_peaks_baseline=((1.5,), 1)
+RESULT dt0_peaks_mutant=((1.5,), 1)
+RESULT dt0_bigkw_acc_baseline=('0.0', '0.0', '5e+307')
+RESULT dt0_bigkw_acc_mutant=('0.0', '0.0', '5e+307')
+RESULT dt025_acc_baseline=('0.75', '0.5', '1.5')
+RESULT dt025_acc_mutant=('0.75', '0.5', '1.5')
+RESULT cases_moved=0
+RESULT null_cases_moved=0

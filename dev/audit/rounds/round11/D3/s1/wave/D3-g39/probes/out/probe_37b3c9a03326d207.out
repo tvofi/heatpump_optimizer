@@ -1,0 +1,8 @@
+RESULT two_undated_baseline=[(3.0, ''), (2.0, '')]
+RESULT two_undated_mutant=[(3.0, '')]
+RESULT undated_plus_dated_baseline=[(3.0, ''), (2.0, ''), (1.0, '2026-01-05')]
+RESULT undated_plus_dated_mutant=[(3.0, ''), (1.0, '2026-01-05')]
+RESULT distinct_days_baseline=[(3.0, '2026-01-04'), (2.0, '2026-01-05')]
+RESULT distinct_days_mutant=[(3.0, '2026-01-04'), (2.0, '2026-01-05')]
+RESULT cases_moved=2
+RESULT null_cases_moved=0

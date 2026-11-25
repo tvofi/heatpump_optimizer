@@ -1,0 +1,109 @@
+{
+ "key": "25fb4eaf35cfdda5",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8806 CMP_BOUND",
+ "patch": "if tariff.enabled and factor > 0.0: -> if tariff.enabled and factor >= 0.0:",
+ "function": "HeatPumpOptimizerCoordinator._on_power_event",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._on_power_event@8766-8806",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3191.7,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/25fb4eaf35cfdda5.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.out",
+  "result_lines": [
+   "RESULT factor0_peak3_nofuse_baseline=(((5.0, inf), (5.0, inf)), False, 5.0, 0.027778, 0.005556)",
+   "RESULT factor0_peak3_nofuse_mutant=(((0.0, 3.0), (0.0, 3.0)), False, 5.0, 0.027778, 0.005556)",
+   "RESULT factor0_peak3_fuse10_baseline=(((5.0, 10.0), (5.0, 10.0)), False, 5.0, 0.027778, 0.005556)",
+   "RESULT factor0_peak3_fuse10_mutant=(((0.0, 3.0), (0.0, 3.0)), False, 5.0, 0.027778, 0.005556)",
+   "RESULT factor0_peak0p3_nofuse_baseline=(((5.0, inf), (5.0, inf)), False, 5.0, 0.027778, 0.005556)",
+   "RESULT factor0_peak0p3_nofuse_mutant=(((0.0, 0.3), (0.0, 0.3)), True, 5.0, 0.027778, 0.005556)",
+   "RESULT factor0_empty_tracker_baseline=(((5.0, inf), (5.0, inf)), False, 5.0, 0.027778, 0.005556)",
+   "RESULT factor0_empty_tracker_mutant=(((0.0, inf), (0.0, inf)), False, 5.0, 0.027778, 0.005556)",
+   "RESULT null_factor1_peak3_baseline=(((5.0, 3.0), (5.0, 3.0)), True, 5.0, 0.027778, 0.005556) mutant=(((5.0, 3.0), (5.0, 3.0)), True, 5.0, 0.027778, 0.005556)",
+   "RESULT null_disabled_factor0_peak3_baseline=(((5.0, 10.0), (5.0, 10.0)), False, None, 0.0, 0.0) mutant=(((5.0, 10.0), (5.0, 10.0)), False, None, 0.0, 0.0)",
+   "RESULT cases_moved=4 count of 4",
+   "RESULT null_moved=0 count of 2"
+  ],
+  "baseline_value": "enabled tariff, window factor 0: the guard gets (projection, fuse or inf); with a 0.3 kW billed peak suppressing False",
+  "mutant_value": "the guard gets (0.0, billed threshold); with a 0.3 kW peak under the 0.5 kW margin suppressing True; cases_moved=4 of 4",
+  "inputs_tried": "factor 0 with peak 3 kW (no fuse / 10 kW fuse), peak 0.3 kW (no fuse), empty tracker; nulls factor 1 with peak 3 kW, disabled tariff with factor 0",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "an enabled capacity tariff in a month or hour its masks give factor 0 (tariff.sample_factor), with a finite billed peak; suppression moves only when that threshold is below the guard margin",
+ "related": "same line and the same factor-0 arm as D3-s1-70 (mutant 5e8d48eff7e4fa8d, and -> or); the consolidation step may merge them",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:8806)",
+  "assertion": "'in billed hours an 8 kW projection over a 5 kW threshold engages' (features.py:19598) covers factor > 0; none drives an enabled tariff with factor 0 and pins the guard's candidate"
+ },
+ "finding": {
+  "title": "No check drives the peak guard with an enabled tariff at factor 0; > 0 -> >= 0 is unseen",
+  "claim": "Mutant 25fb4eaf35cfdda5 (coordinator.py:8806 `factor > 0.0` -> `factor >= 0.0`) survives the full gate, yet an enabled tariff at factor 0 hands the guard (0.0, 3.0) instead of (5.0, inf), and with a 0.3 kW billed peak engages suppression. Full gate verdict RED-AS-NULL.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "mechanism": "Reach: an enabled capacity tariff in a month or hour its masks give factor 0 (tariff.sample_factor), with a finite billed peak; suppression moves only when that threshold is below the guard margin. Check that should have failed (D3.M4): tests/features.py (traced baseline executes coordinator.py:8806): 'in billed hours an 8 kW projection over a 5 kW threshold engages' (features.py:19598) covers factor > 0; none drives an enabled tariff with factor 0 and pins the guard's candidate.",
+  "metric_definition": "GuardState.suppressing after two 5 kW meter events, enabled tariff at window factor 0, 0.3 kW billed peak, 0.5 kW margin, no fuse",
+  "phenomenon_property": "A window the tariff does not bill (factor 0) contributes no capacity candidate to the peak guard",
+  "seam_rule": "awk -F'\\t' 'NR>1' dev/audit/rounds/round11/D3/s1/wave/D3-g08/keys.tsv (this box's full-gate survivors; the wave list: awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._on_power_event",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py",
+   "value": "True",
+   "unit": "suppressing (baseline False)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g08: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the full-gate wall and load1 are provisional"
+  },
+  "perturbation": {
+   "change": "mutant 25fb4eaf35cfdda5 at custom_components/heatpump_optimizer/coordinator.py:8806 (if tariff.enabled and factor > 0.0: -> if tariff.enabled and factor >= 0.0:), applied in memory by the probe; full gate: fullgate.py run --src complete --key 25fb4eaf35cfdda5",
+   "expected_direction": "up"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py",
+   "value": "0 count",
+   "note": "factor 1 with a 3 kW peak, and a disabled tariff at factor 0: identical under both arms (null_moved=0 of 2); full-gate null: this box's fullgate.py null (gates/null.json)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_25fb4eaf35cfdda5.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 25fb4eaf35cfdda5"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's moving input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

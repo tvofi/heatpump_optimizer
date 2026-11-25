@@ -1,0 +1,23 @@
+{
+ "5cc84148fa68bda1": {
+  "site": "grid_fee.py:383",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+  "baseline": "min_component label=fixed",
+  "mutant": "label=rules",
+  "null_delta": "0 count",
+  "value_delta": "0.0",
+  "reach": "reach_from_config_tie=1; label matters only when value<0 (coordinator.py:7628)",
+  "input": "fixed=-0.25 and a rule '= -0.25'",
+  "should_fail": "tests/features.py ~17746-17766 has no tie case"
+ },
+ "c38d53ab787ddbfa": {
+  "site": "price_model.py:252",
+  "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py",
+  "baseline": "accepted=0",
+  "mutant": "accepted=1",
+  "null_delta": "0 count",
+  "reach": "reach_real_price_days_at_boundary=0 is asserted not measured; separable only via a hand-built vector whose np.mean is exactly 1e-6 (48x0.0 + 48x2e-6)",
+  "input": "48 quarters 0.0 + 48 of 2e-6",
+  "should_fail": "tests/features.py ~18732-18792 has no zero-mean boundary case"
+ }
+}

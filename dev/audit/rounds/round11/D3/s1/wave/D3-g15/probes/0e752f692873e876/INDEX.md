@@ -1,0 +1,1 @@
+dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_0e752f692873e876.py -- pins: whether DhwPlanner._dhw_legionella_ceilings' three output arrays differ between the baseline and the mutant on a horizon of n_steps (count of inputs that differ), and the smallest n_steps a production optimize() hands the planner.

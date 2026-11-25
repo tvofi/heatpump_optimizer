@@ -1,0 +1,93 @@
+{
+ "key": "ef9a378b671791ca",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6504 CLAMP_DROP",
+ "patch": "alpha = float(np.clip(self.config.dt_hours / tau, 0.0, 1.0)) -> alpha = float((self.config.dt_hours / tau))",
+ "function": "HeatPumpOptimizer._power_to_displace_schedule",
+ "cluster": "optimizer.py:HeatPumpOptimizer._power_to_displace_schedule@6497-6509",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3829.4,
+  "load1_start": 0.81,
+  "load1_end": 0.85,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/ef9a378b671791ca.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ef9a378b671791ca",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ef9a378b.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ef9a378b.py",
+  "baseline_value": "tau 0.01 h (alpha 2.5 unclipped): [-19.6 x4, 20.0 x8, -19.6 x12]",
+  "mutant_value": "alternating -20.0 / 20.0 every step; max_abs_delta=40.0 displace, steps_moved=20 of 24",
+  "inputs_tried": [
+   "tau 0.01/0.1 h (alpha 2.5): delta 40.0, 20 steps",
+   "tau 0.2 h (alpha 1.25): delta 2.5, 10 steps",
+   "tau 0.25 h (config-flow floor, alpha 1.0): delta 0.0",
+   "tau 1.5 h (default): delta 0.0"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "moves on a set_thermal_parameters input the service admits (ecl110_pid_time_constant_hours >= 0.01 h, services.py:516, mapped at coordinator.py:2739, floored to 0.1 h at thermal_model.py:725; the step is a fixed 15 min), and the schedule is the ECL110 displace command get_current_action reads (optimizer.py:6581-6585)"
+ },
+ "should_fail": "tests/features.py: no check drives _power_to_displace_schedule with ecl110_pid_tau_hours below dt_hours (features.py:50928 sets 0.6 h, alpha 0.42; the R9-F2.1 block ~68727 uses the default 1.5 h); the assertion it lacks: with tau < dt the filtered schedule equals the clipped raw command (alpha clamped to 1), i.e. no step-to-step overshoot",
+ "title": "No check runs the ECL110 displace filter with a PID time constant below the 15-min step; dropping the alpha clamp is unseen",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "medium",
+ "stop_rule_class": "hygiene",
+ "claim": "Mutant ef9a378b671791ca at custom_components/heatpump_optimizer/optimizer.py:6504 (alpha = float(np.clip(self.config.dt_hours / tau, 0.0, 1.0)) -> alpha = float((self.config.dt_hours / tau))) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's number moves: tau 0.01 h (alpha 2.5 unclipped): [-19.6 x4, 20.0 x8, -19.6 x12] -> alternating -20.0 / 20.0 every step; max_abs_delta=40.0 displace, steps_moved=20 of 24.",
+ "mechanism": "moves on a set_thermal_parameters input the service admits (ecl110_pid_time_constant_hours >= 0.01 h, services.py:516, mapped at coordinator.py:2739, floored to 0.1 h at thermal_model.py:725; the step is a fixed 15 min), and the schedule is the ECL110 displace command get_current_action reads (optimizer.py:6581-6585). Check that should have failed (D3.M4): tests/features.py: no check drives _power_to_displace_schedule with ecl110_pid_tau_hours below dt_hours (features.py:50928 sets 0.6 h, alpha 0.42; the R9-F2.1 block ~68727 uses the default 1.5 h); the assertion it lacks: with tau < dt the filtered schedule equals the clipped raw command (alpha clamped to 1), i.e. no step-to-step overshoot.",
+ "phenomenon_property": "The ECL110 displace schedule's first-order filter gain is clamped to [0, 1], so a PID time constant below the step length tracks the command without overshoot",
+ "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv  (the wave list; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g22/keys.tsv)",
+ "metric_definition": "max |baseline - mutant| of the published displace schedule (displace units) for a 0 -> max -> 0 power step at -5 C with ecl110_pid_time_constant_hours = 0.01 h (alpha 2.5)",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._power_to_displace_schedule",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ef9a378b.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/g22_rig.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ef9a378b.py",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ef9a378b.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ef9a378b.py",
+  "value": 40.0,
+  "unit": "displace",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-g22: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython",
+  "cpu_or_wall": "n/a",
+  "tolerance": "exact (deterministic)",
+  "load1": 1.0,
+  "thread_factor": 1.0,
+  "contention_note": "deterministic value; probes ran in a clean baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional"
+ },
+ "perturbation": {
+  "change": "the mutant edit at custom_components/heatpump_optimizer/optimizer.py:6504 applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ef9a378b671791ca",
+  "expected_direction": "up",
+  "observed_value": 40.0
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ef9a378b.py",
+  "value": "tau 1.5 h (default) and 0.25 h (config-flow floor): 0.0 displace"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ef9a378b.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ef9a378b671791ca"
+ ],
+ "proposed_fix_scope": "tests only: a check at the input above pinning the baseline value",
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/features.py"
+ ]
+}

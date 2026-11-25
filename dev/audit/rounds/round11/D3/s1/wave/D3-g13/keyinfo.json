@@ -1,0 +1,217 @@
+{
+ "24d9995ccee4252e": {
+  "class_if_survived": "candidate",
+  "probe_metric": "rows_with_duty",
+  "baseline_line": "rows_with_duty_baseline",
+  "mutant_line": "rows_with_duty_mutant",
+  "inputs": [
+   "one inferred observation at 3 C / 85 % (duty_counts 0)",
+   "null: one counted duty at 3 C / 85 %",
+   "empty learner"
+  ],
+  "should_fail": "tests/features.py (its traced baseline executes defrost.py:642; the reach table also lists tests/finite_boundary.py): no assertion that a summary() row of a bucket with duty_counts == 0 carries no duty/events/duty_samples keys",
+  "title": "No check pins that an inferred-only defrost bucket's summary row omits the measured-duty block",
+  "claim": "Mutant 24d9995ccee4252e (defrost.py:642, duty_counts > 0 -> >= 0) survives the full gate, yet DefrostDerate.summary() on a learner with one inferred observation and no counted duty gains a duty=0.0 events=0 duty_samples=0 block on its row (rows_with_duty 0 -> 1).",
+  "severity": "low",
+  "class_guess": "new",
+  "metric_definition": "rows of DefrostDerate.summary() carrying a 'duty' key on a learner whose only evidence is one inferred observation (duty_counts all 0)",
+  "phenomenon_property": "A defrost bucket row in the diagnostics 'defrost_buckets' carries a measured-duty block only when that bucket has counted at least one duty sample",
+  "direction": "up",
+  "proposed_fix_scope": "tests only: a summary() check on an inferred-only learner asserting the row has no 'duty'/'events'/'duty_samples' keys",
+  "files": [
+   "custom_components/heatpump_optimizer/defrost.py",
+   "tests/features.py"
+  ],
+  "null": "a bucket with one counted duty sample carries the block in both arms (null_delta_rows=0)"
+ },
+ "7030f8259cc37dd4": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "10 observe/close sequences (on/off/dark/repeated stamp/zero length/backwards clock/carried level)",
+   "direct _accrue delta 0.0, -0.0, -5.0, 1e-9, 7.0"
+  ],
+  "should_fail": "none: at delta == 0 the mutant adds 0.0 (or -0.0) to a non-negative float accumulator, bit-identically",
+  "equiv_reason": "delta == 0 contributes += 0.0; no input separates"
+ },
+ "5941c09a9face079": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "aware UTC / aware +02:00 / naive / mixed / equal / negative / None / 1 us stamps",
+   "10 window sequences",
+   "fabricated stamps whose total_seconds() is True, Decimal('5'), '5'"
+  ],
+  "should_fail": "none through production: timedelta.total_seconds() is always a float; only fabricated non-datetime stamps (no production caller passes one) separate, by a direct _elapsed call",
+  "equiv_reason": "unreachable through production: separating inputs exist only as fabricated objects (fabricated_moved=3 of 3, production_shaped_moved=0 of 19)"
+ },
+ "b020c93535a7f9e6": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "10 window sequences",
+   "fresh window peeked with aware, naive, None, int, str stamps"
+  ],
+  "should_fail": "none: with _opened None, _elapsed(now, None) raises AttributeError inside its try and returns None, and the next guard returns the same empty DefrostObservation()",
+  "equiv_reason": "the next line's `total is None` guard returns the identical empty observation"
+ },
+ "8297234e122897ff": {
+  "class_if_survived": "candidate",
+  "baseline_line": "duty_baseline",
+  "mutant_line": "duty_mutant",
+  "inputs": [
+   "10 observe/close sequences; headline: flag ON carried over a close at 1800 s, re-observed ON at 1800 s, peek at 2400 s"
+  ],
+  "should_fail": "tests/features.py (its traced baseline executes defrost.py:802; also boost_drift_replay.py, config_flow_steps.py, entities.py): no assertion on DefrostWindow.peek(now).duty while the flag is still on at the peek (the open on-period)",
+  "title": "No check peeks a DefrostWindow while the defrost is still on; dropping the open on-period is unseen",
+  "claim": "Mutant 8297234e122897ff (defrost.py:802, the open-on-period guard -> if False) survives the full gate, yet DefrostWindow.peek() on an interval whose flag is still on reports duty 0.0 instead of 1.0, and with the level carried over a close any_defrost flips 1 -> 0, which opens the frost-band COP fold at coordinator.py:5344-5347 during a live defrost.",
+  "severity": "low",
+  "class_guess": "new",
+  "metric_definition": "DefrostWindow.peek(now).duty on an interval whose defrost flag is on at the peek (flag carried over a close at 1800 s, re-observed at 1800 s, peek at 2400 s)",
+  "phenomenon_property": "DefrostWindow.peek counts the open on-period up to now, so the duty and any_defrost it reports while a defrost is running equal what close() would settle at the same instant",
+  "direction": "down",
+  "proposed_fix_scope": "tests only: a peek() check with the flag on at the peek, asserting duty == the on fraction and any_defrost",
+  "files": [
+   "custom_components/heatpump_optimizer/defrost.py",
+   "tests/features.py"
+  ],
+  "null": "a sequence whose flag switched off before the peek (on_off_peek): same observation both arms (null_delta=0)"
+ },
+ "681130c48add1573": {
+  "class_if_survived": "candidate",
+  "baseline_line": "duty_baseline",
+  "mutant_line": "duty_mutant",
+  "inputs": [
+   "10 observe/close sequences; headline: flag ON carried over a close at 1800 s, re-observed ON at 1800 s, peek at 2400 s"
+  ],
+  "should_fail": "tests/features.py (its traced baseline executes defrost.py:804; also config_flow_steps.py): no assertion on DefrostWindow.peek(now).duty while the flag is still on at the peek (the open on-period)",
+  "title": "No check peeks a DefrostWindow mid-defrost; zeroing the open on-period's seconds is unseen",
+  "claim": "Mutant 681130c48add1573 (defrost.py:804, max(0.0, open_for) -> 0.0) survives the full gate, yet DefrostWindow.peek() on an interval whose flag is still on reports duty 0.0 instead of 1.0 and any_defrost 0 instead of 1 on the carried-level sequence: the same phenomenon as mutant 8297234e122897ff at the adjacent line.",
+  "severity": "low",
+  "class_guess": "new",
+  "metric_definition": "DefrostWindow.peek(now).duty on an interval whose defrost flag is on at the peek (flag carried over a close at 1800 s, re-observed at 1800 s, peek at 2400 s)",
+  "phenomenon_property": "DefrostWindow.peek counts the open on-period up to now, so the duty and any_defrost it reports while a defrost is running equal what close() would settle at the same instant",
+  "direction": "down",
+  "proposed_fix_scope": "tests only: the same peek() check as for 8297234e122897ff (one check kills both)",
+  "files": [
+   "custom_components/heatpump_optimizer/defrost.py",
+   "tests/features.py"
+  ],
+  "null": "a sequence whose flag switched off before the peek (on_off_peek): same observation both arms (null_delta=0)"
+ },
+ "c61a89f42607c92b": {
+  "class_if_survived": "candidate",
+  "baseline_line": "observe_duty_40C_bucket|baseline",
+  "mutant_line": "observe_duty_40C_bucket|mutant",
+  "inputs": [
+   "_bucket_index on 40.0, 101.0, -30, -31, 41, +-inf, nan, 39.999999, 3.0 for both edge sets",
+   "observe_duty at 40.0 C / 50 %",
+   "null: observe_duty at 20 C"
+  ],
+  "should_fail": "none of the closure scripts executes defrost.py:169 on its traced baseline (no traced run feeds a value on or beyond the top edge); the check that should exist: tests/features.py, beside its DefrostDerate bucket cases, asserting _bucket_index(TEMP_EDGES[-1], TEMP_EDGES) == len(TEMP_EDGES) - 2 (or an observe_duty at 40.0 C landing in the top bucket)",
+  "reach_note": "The probe reaches line 169 through the production fold DefrostDerate.observe_duty, which coordinator._settle_defrost (coordinator.py:9981) calls at ANY outdoor temperature once the defrost flag is legible: an outdoor reading of exactly 40.0 C reaches it. The line is reachable; it is a test gap, not an unreachable finding.",
+  "title": "No check feeds _bucket_index a value on the top edge; a 40.0 C duty folding into the coldest bucket is unseen",
+  "claim": "Mutant c61a89f42607c92b (defrost.py:169, value >= edges[-1] -> >) survives the full gate, yet one measured duty at exactly 40.0 C folds into bucket (0, 0) (-30..-5 C) instead of (5, 0), and ten such zero-duty settlements raise the coldest bucket's factor from 0.784729 to 0.92494.",
+  "severity": "low",
+  "class_guess": "new",
+  "metric_definition": "the (t, h) bucket DefrostDerate.observe_duty(40.0, 50.0, 0.0) increments, and factor(-17.5, 35) after ten such folds on a bucket that learned duty 0.2 at -10 C",
+  "phenomenon_property": "A value exactly on a bucket grid's top edge lands in the top bucket, like every value above it",
+  "direction": "down (bucket index 5 -> 0); cold-bucket factor up",
+  "proposed_fix_scope": "tests only: a _bucket_index top-edge check (TEMP_EDGES[-1] and HUMIDITY_EDGES[-1])",
+  "files": [
+   "custom_components/heatpump_optimizer/defrost.py",
+   "tests/features.py"
+  ],
+  "null": "a 20 C sample lands in the same bucket in both arms (null_delta=0): line 169 is not reached inside the edges"
+ },
+ "c0bd33b7c209982d": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "every temperature and humidity centre, +-1e-9 around each, its negation, +-100, 0, +-inf, nan, on 6 fully learned learners (8892 factor pairs)"
+  ],
+  "should_fail": "none: at value == centers[0] the loop's first cell returns (0, (c0 - c0)/span) = (0, 0.0), the tuple the guard returns",
+  "equiv_reason": "identical (i, u) at the boundary; factor_max_abs_delta 0.0"
+ },
+ "677019b333cfa304": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "every temperature and humidity centre, +-1e-9 around each, its negation, +-100, 0, +-inf, nan, on 6 fully learned learners (8892 factor pairs)"
+  ],
+  "should_fail": "none at the observable output: the (i, u) tuple moves at the four interior temperature centres ((i+1, 0.0) -> (i, 1.0)), but _factor_uncached, its only reader, weights the same neighbour by exactly 1.0 and the other by exactly 0.0 either way",
+  "equiv_reason": "interp tuple moves 4 of 76, factor_max_abs_delta 0.0 over 8892 pairs: equivalent at the only consumer"
+ },
+ "168e4035dbc9bb84": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "duty -1e9, -1, -0.3, -1e-12, -0.0, 0.0, 1e-12, 0.1, 0.3, 0.31, 1, 5, +-inf, nan",
+   "positive control: DERATE_MAX patched to 1.05"
+  ],
+  "should_fail": "none while DERATE_MAX == 1.0: a negative duty gives 1 + |duty|*1.5, which min(DERATE_MAX, .) caps to exactly 1.0, the baseline's value at duty 0; observe_duty also refuses duties outside [0, 1] before they reach the grid",
+  "equiv_reason": "inputs_moved 0 of 15; the harness separates under DERATE_MAX=1.05 (posctl 1.0 vs 1.05)"
+ },
+ "597d6753c0939797": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "144 production-shaped fixtures (12 seeds x 4 tank states x 3 sizes; 48 take the joint shortcut)",
+   "a slot exactly at min_run_power alone and beside a weak slot, tank with room and full",
+   "144 direct fixtures with min_run_power 1.2 > p_dhw_max 1.0"
+  ],
+  "should_fail": "none through production: a slot at exactly min_run_power is raised to the value it already holds; the plan moves only when min_run_power > p_dhw_max, which the only caller forbids (dhw_planner.py:1141 min_run_power = min(p_dhw_run, ...))",
+  "equiv_reason": "unreachable through production: production_shaped_moved 0 of 144, direct_min_run_above_pmax_moved 64 of 144"
+ },
+ "df4de55e12588fdf": {
+  "class_if_survived": "candidate",
+  "baseline_line": "slot_kw_at_1e-6_baseline",
+  "mutant_line": "slot_kw_at_1e-6_mutant",
+  "inputs": [
+   "a 24-step plan with one slot at exactly 1e-6 kW and at its float neighbours, tank with room (35 C, ceiling 55) and full (50/50)",
+   "144 production-shaped fixtures"
+  ],
+  "should_fail": "tests/features.py (its traced baseline executes dhw_planner.py:2055; also block_duty.py, manual_plan.py, optimality.py, plan_view.py, validate.py): its #1230 and min-run cases never plan a slot at exactly the 1e-6 kW weak floor",
+  "title": "No check plans a DHW slot at exactly the 1e-6 kW weak floor; moving the floor's comparison is unseen",
+  "claim": "Mutant df4de55e12588fdf (dhw_planner.py:2055, plan > 1e-6 -> plan >= 1e-6) survives the full gate, yet a slot planned at exactly 1e-6 kW is returned as a 1e-6 kW trickle on the baseline and raised to 0.6 kW (tank with room) or zeroed (tank full) under the mutant; its float neighbours agree in both arms.",
+  "severity": "low",
+  "class_guess": "new",
+  "metric_definition": "the kW _apply_dhw_min_run returns for a slot planned at exactly 1e-6 kW (min_run_power 0.6, p_dhw_max 3.0, tank 35 C under a 55 C ceiling)",
+  "phenomenon_property": "Which side of _apply_dhw_min_run's 1e-6 kW weak floor a slot exactly on it falls is pinned (a tolerance boundary: either side may be the intended one, but the suite does not say which)",
+  "direction": "up (1e-6 -> 0.6 kW)",
+  "proposed_fix_scope": "tests only, or a ruling that the floor is a tolerance whose boundary is unspecified (then equivalent-by-intent)",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ],
+  "null": "the float neighbours of 1e-6 (nextafter either side) give the same answer in both arms; the 144 production-shaped fixtures do not move"
+ },
+ "72240d3f22ceb752": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "144 production-shaped fixtures",
+   "no-weak plans: in range, a slot at 3.5 > p_max, a slot at -0.5, a nan slot"
+  ],
+  "should_fail": "none through production: the only caller feeds _plan_dhw_cheapest_first's result, whose every return is clipped to [0, p_dhw_max] (dhw_planner.py:2191-2195, 2307), so the no-weak clip is a no-op there; a direct call with an out-of-range plan separates",
+  "equiv_reason": "unreachable through production: production_shaped_moved 0 of 144, direct_no_weak_moved 2 of 4 (above_pmax, negative)"
+ },
+ "49dc3d36092b3943": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "144 production-shaped fixtures",
+   "144 direct fixtures with min_run_power 1.2 > p_dhw_max 1.0"
+  ],
+  "should_fail": "none through production: min(min_run_power, p_dhw_max) == min_run_power whenever min_run_power <= p_dhw_max, which dhw_planner.py:1141 guarantees",
+  "equiv_reason": "unreachable through production: production_shaped_moved 0 of 144, direct_min_run_above_pmax_moved 56 of 144"
+ },
+ "111763243ac44278": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "144 production-shaped fixtures, 48 of which take the joint shortcut on the baseline"
+  ],
+  "should_fail": "none at the output: when every weak slot raised jointly fits, the per-slot pass raises each slot too and returns the same plan; the shortcut is a cost saving (simulate_dhw_step 4608 -> 22560 over the 48 shortcut fixtures), which no check budgets at this site",
+  "equiv_reason": "production_shaped_moved 0 of 144; cost-only difference (4608 -> 22560 tank steps)"
+ },
+ "af8d4fddad8f298f": {
+  "class_if_survived": "equivalent-candidate",
+  "inputs": [
+   "144 production-shaped fixtures (48 joint-shortcut)",
+   "bound: the same sweep with the shortcut disabled outright"
+  ],
+  "should_fail": "none: the mutant only skips the joint shortcut on an exact float tie joint_temps == joint_limit + 1e-9, and skipping it always moves no plan (shortcut_always_off_moved 0 of 144)",
+  "equiv_reason": "production_shaped_moved 0 of 144; bounded by shortcut_always_off_moved 0 of 144"
+ }
+}

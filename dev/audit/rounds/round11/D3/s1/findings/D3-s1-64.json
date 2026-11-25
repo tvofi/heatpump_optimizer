@@ -1,0 +1,47 @@
+{
+ "id": "D3-s1-64",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "No check pins min_component's source label on a fixed/rule rate tie",
+ "severity": "low",
+ "claim": "Mutant 5cc84148fa68bda1 at grid_fee.py:383 survives the full gate (RED-AS-NULL), yet the probe's label_changed moves: baseline min_component label=fixed, mutant label=rules.",
+ "mechanism": "Reach: reach_from_config_tie=1; label matters only when value<0 (coordinator.py:7628). Check that should have failed (D3.M4): tests/features.py ~17746-17766 has no tie case.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+  "value": 1,
+  "unit": "1 when the (value, source) label of min_component differs from baseline on the fixed=-0.25 / rule=-0.25 tie",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+  "cpu_or_wall": "n/a",
+  "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+  "tolerance": "exact",
+  "load1": 1.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee:GridFeeSchedule.min_component",
+ "perturbation": {
+  "change": "the mutant edit at grid_fee.py:383 applied in memory by the probe (fixed=-0.25 and a rule '= -0.25'); full gate: fullgate.py run --key 5cc84148fa68bda1",
+  "expected_direction": "up",
+  "observed_value": 1
+ },
+ "metric_definition": "1 when the (value, source) label of min_component differs from baseline on the fixed=-0.25 / rule=-0.25 tie",
+ "phenomenon_property": "On a tie between the fixed fee and a rule, min_component keeps the first-seen (fixed) source",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+  "value": "0 count",
+  "note": "null arm where the edit cannot matter; identical floats under both arms"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5cc84148.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key 5cc84148fa68bda1"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (min_component label=fixed)",
+ "files": [
+  "custom_components/heatpump_optimizer/grid_fee.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

@@ -1,0 +1,48 @@
+{
+ "key": "85eb19919a6b995a",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1212 CMP_BOUND",
+ "patch": "hold = (baseline - r0) / (r1 - r0) if abs(r1 - r0) > 1e-12 else 0.0 -> hold = (baseline - r0) / (r1 - r0) if abs(r1 - r0) >= 1e-12 else 0.0",
+ "function": "_declared_night_halfwidth",
+ "cluster": "sysid.py:_declared_night_halfwidth@1212-1212",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3893.1,
+  "load1_start": 0.34,
+  "load1_end": 0.86,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/gates/85eb19919a6b995a.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 85eb19919a6b995a",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_85eb19919a6b995a.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_85eb19919a6b995a.py",
+  "baseline_value": "0 count",
+  "mutant_value": "0 count",
+  "results": {
+   "moved": "0 count",
+   "inputs": "12 count",
+   "min_abs_r1_minus_r0": "0.000e+00 K",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "inputs_tried": "(UA, C_r) in {(0.15,10),(0.01,1000),(5,0.001),(1e-4,1000)} x dt in {0.5, 0.0011, 2.0} h: 12 inputs, moved 0; |r1 - r0| observed 0.0 (9 inputs) or 1.8e-3 K (3), never the 1e-12 tie"
+ },
+ "should_fail": "none found: the swap differs only when |r1 - r0| == 1e-12 exactly",
+ "class": "equivalent-candidate"
+}

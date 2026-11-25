@@ -1,0 +1,110 @@
+{
+ "key": "fe3e41de6bdc640a",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5213 BOOLOP",
+ "patch": "if not _pin_is_free(pin) and pin < 0.5: -> if not _pin_is_free(pin) or pin < 0.5:",
+ "function": "HeatPumpOptimizer._safety_release_steps._preceding_off",
+ "cluster": "optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off@5211-5213",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3179.6,
+  "child_cpu_s": 5238.5,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fe3e41de6bdc640a",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/fe3e41de6bdc640a.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_fe3e41de6bdc640a.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_fe3e41de6bdc640a.py",
+  "metric": "released_space",
+  "baseline_value": "[0,1]",
+  "mutant_value": "[]",
+  "reach": "through optimize(): winter_extreme, room/slab 17.0 C, steps 0-1 off and step 2 on -> manual_released_space [0,1] -> []; first-hour space energy 4.8809 -> 3.0000 kWh",
+  "inputs_tried": [
+   "optimize() with off then on blocks at 16.9-17.6 C (7 of 54 layouts move)",
+   "steps 0-1 off only (null)"
+  ],
+  "results": [
+   "RESULT released_space_baseline=[0,1]",
+   "RESULT released_space_mutant=[]",
+   "RESULT space_kwh_first_hour_baseline=4.8809 mutant=3.0000",
+   "RESULT null_off_only_delta=0",
+   "RESULT thread_factor=1.001",
+   "RESULT load1=4.98",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "tests/block_duty.py, tests/features.py, tests/manual_plan.py execute the line; no check puts a forced-on step between a forced-off block and a later breach",
+ "finding": {
+  "title": "No check puts an on-pin between an off block and a breach; _preceding_off and->or is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "claim": "Mutant fe3e41de6bdc640a at optimizer.py:5213 (if not _pin_is_free(pin) and pin < 0.5: -> if not _pin_is_free(pin) or pin < 0.5:) leaves the full GATE_SCOPE=full GOLDEN_MODE=drift gate RED-AS-NULL on box D3-g23, yet the probe's released_space moves [0,1] -> [].",
+  "mechanism": "Reach: through optimize(): winter_extreme, room/slab 17.0 C, steps 0-1 off and step 2 on -> manual_released_space [0,1] -> []; first-hour space energy 4.8809 -> 3.0000 kWh. Check that should have failed (D3.M4): tests/block_duty.py, tests/features.py, tests/manual_plan.py execute the line; no check puts a forced-on step between a forced-off block and a later breach.",
+  "metric_definition": "released_space printed by probe_fe3e41de6bdc640a.py (baseline arm vs the mutant re-compiled in memory)",
+  "phenomenon_property": "_preceding_off walks past forced-on steps to the nearest forced-OFF step",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave list; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g23/keys.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._safety_release_steps._preceding_off",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_fe3e41de6bdc640a.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/_g23_common.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_fe3e41de6bdc640a.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_fe3e41de6bdc640a.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_fe3e41de6bdc640a.py",
+   "value": "[]",
+   "unit": "released_space",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g23: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probes ran from a scratch baseline worktree beside the box's gates; gate walls provisional",
+   "tolerance": "exact"
+  },
+  "perturbation": {
+   "change": "the mutant edit at optimizer.py:5213 applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fe3e41de6bdc640a",
+   "expected_direction": "to_zero",
+   "observed_value": "[]"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_fe3e41de6bdc640a.py",
+   "value": "0",
+   "note": "the probe's null_* RESULT line: an input where the edit cannot matter, identical under both arms"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_fe3e41de6bdc640a.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fe3e41de6bdc640a"
+  ],
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/block_duty.py, tests/features.py, tests/manual_plan.py execute the line; no check puts a forced-on step between a forced-off block and a later breach that feeds the probe's distinguishing input and asserts the baseline outcome"
+ }
+}

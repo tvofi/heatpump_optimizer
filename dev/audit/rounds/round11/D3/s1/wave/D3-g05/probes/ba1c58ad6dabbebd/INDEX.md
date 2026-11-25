@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.py: pins room lead predictions filed by _file_lead_predictions at the production dt_h, over trajectory lengths 0..200. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.py; output beside it as .out)

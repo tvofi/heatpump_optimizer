@@ -1,0 +1,110 @@
+[
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/price_model.py",
+  "line": 337,
+  "old": "        if not day_types or not np.isfinite(level) or level <= 0.0:",
+  "new": "        if not day_types or not np.isfinite(level) or level < 0.0:",
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:R10-C2 M25",
+  "c2_id": "M25"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/sysid.py",
+  "line": 1549,
+  "old": "            in_window = hour >= cfg.start_hour or hour < cfg.end_hour",
+  "new": "            in_window = hour > cfg.start_hour or hour < cfg.end_hour",
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:R10-C2 M26",
+  "c2_id": "M26"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/sysid.py",
+  "line": 2246,
+  "old": "                    if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10:",
+  "new": "                    if ua_ss > 0.0 or abs(ua_ss - ua) / ua > 0.10:",
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:R10-C2 M27",
+  "c2_id": "M27"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/sysid.py",
+  "line": 1593,
+  "old": "            return peak <= bound and final <= bound",
+  "new": "            return peak <= bound or final <= bound",
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:R10-C2 M28",
+  "c2_id": "M28"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 64,
+  "old": "    if window <= 60:",
+  "new": "    if window < 60:",
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:R10-C2 M29",
+  "c2_id": "M29"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 805,
+  "old": "    peak = np.max(x, axis=1)",
+  "new": "    peak = np.min(x, axis=1)",
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:R10-C2 M30",
+  "c2_id": "M30"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 744,
+  "old": "    if x.size == 0 or k <= 0:",
+  "new": "    if x.size == 0 or k < 0:",
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:R10-C2 M31",
+  "c2_id": "M31"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "line": 783,
+  "old": "        if flag and not self._state:",
+  "new": "        if flag or not self._state:",
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:R10-C2 M32",
+  "c2_id": "M32"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/price_model.py",
+  "line": 532,
+  "old": "            for i in range(min(known_count, len(step_start_times)))",
+  "new": "            for i in range(max(known_count, len(step_start_times)))",
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:R10-C2 M33",
+  "c2_id": "M33"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/price_model.py",
+  "line": 252,
+  "old": "        if float(np.mean(values)) <= 1e-6:",
+  "new": "        if float(np.mean(values)) < 1e-6:",
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:R10-C2 M34",
+  "c2_id": "M34"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/flow_lift.py",
+  "line": 188,
+  "old": "        if self.samples < FLOW_BIAS_MIN_SAMPLES:",
+  "new": "        if self.samples <= FLOW_BIAS_MIN_SAMPLES:",
+  "anchor": "custom_components/heatpump_optimizer/flow_lift.py:R10-C2 M35",
+  "c2_id": "M35"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/grid_fee.py",
+  "line": 355,
+  "old": "            if abs(rule.rate) > worst:",
+  "new": "            if abs(rule.rate) >= worst:",
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:R10-C2 M36",
+  "c2_id": "M36"
+ }
+]

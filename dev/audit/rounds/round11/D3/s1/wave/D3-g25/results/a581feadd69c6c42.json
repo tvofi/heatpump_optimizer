@@ -1,0 +1,84 @@
+{
+ "key": "a581feadd69c6c42",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6606 GUARD_OFF",
+ "patch": "elif p_norm < 0.9: -> elif False:",
+ "function": "HeatPumpOptimizer.get_current_action",
+ "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2822.5,
+  "child_cpu_s": 4710.8,
+  "load1_start": 0.84,
+  "load1_end": 0.96,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+ },
+ "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/a581feadd69c6c42.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a581feadd69c6c42",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+  "metric": "mode of the action get_current_action returns ('raised:<exc>' when it raises)",
+  "baseline_value": "'pre_heat'",
+  "mutant_value": "'boost'",
+  "moved": 1,
+  "null_moved": 0,
+  "inputs_tried": [
+   "space power 2.5 kW (p_norm 0.8): baseline 'pre_heat' | mutant 'boost' | moved 1",
+   "space power 2.0 kW (p_norm 0.6) [null]: baseline 'normal' | mutant 'normal' | moved 0",
+   "space power 2.25 kW (p_norm 0.7): baseline 'pre_heat' | mutant 'boost' | moved 1"
+  ],
+  "load1": 0.9,
+  "thread_factor": 1.0,
+  "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json"
+ },
+ "should_fail": "tests/features.py #1499 mode block (search 'a space step at the pump's minimum modulation reads eco'; ~L48766-48780): it grades only p_norm 0 (eco) and 1 (boost), so no step ever lands in normal or pre_heat or on the 0.4/0.7/0.9 edges; entities.py and config_flow_steps.py execute L6606 without asserting the mode. It lacks any step with p_norm in [0.7, 0.9) asserting mode 'pre_heat'",
+ "class": "candidate",
+ "finding": {
+  "title": "No check ever yields mode 'pre_heat' from get_current_action; dropping the band is unseen",
+  "claim": "Mutant a581feadd69c6c42 at optimizer.py:6606 (`elif p_norm < 0.9:` -> `elif False:`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's mode moves: baseline 'pre_heat', mutant 'boost'.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "stop_rule_class": "hygiene",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+  "metric_definition": "mode of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+  "phenomenon_property": "get_current_action's mode bands are half-open: eco [0,0.4), normal [0.4,0.7), pre_heat [0.7,0.9), boost [0.9,1]",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+  "perturbation": {
+   "change": "optimizer.py:6606 `elif p_norm < 0.9:` -> `elif False:`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a581feadd69c6c42",
+   "direction": "pre_heat -> boost",
+   "expected_direction": "up",
+   "observed_value": "'boost'"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+   "value": "null_moved=0 count",
+   "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value 'pre_heat'"
+ }
+}

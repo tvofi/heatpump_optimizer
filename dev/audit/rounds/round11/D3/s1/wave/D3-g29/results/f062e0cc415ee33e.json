@@ -1,0 +1,65 @@
+{
+ "key": "f062e0cc415ee33e",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:3186 CLAMP_DROP",
+ "patch": "return float(math.exp(-min(0.5 * ua * span / demand, 700.0))) -> return float(math.exp(-(0.5 * ua * span / demand)))",
+ "function": "stored_heat_survival",
+ "cluster": "optimizer.py:stored_heat_survival@3177-3186",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3501.2,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5853.8,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/f062e0cc415ee33e.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f062e0cc415ee33e",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_f062e0cc415ee33e.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_f062e0cc415ee33e.py",
+  "baseline_value": "9.86e-305 for every exponent above 700",
+  "mutant_value": "2.0e-313 at 720, 5e-324 at 745, 0.0 beyond; neither arm raises",
+  "inputs_tried": [
+   "exponent 720, 745, 800, 1e6, 1e301, overflow (demand 5e-324)",
+   "consumer: 30 kWh/K x survival x 40 K added to a 0.01 SEK plan cost: identical floats",
+   "null: exponent 1, 100, 700"
+  ],
+  "reach": "golden matrix: exponent_over_700 0 of 10 calls; the arms differ by at most 9.86e-305, below the ulp of any cost it is summed into",
+  "results": {
+   "exponent720_baseline": "9.85967654375977e-305 mutant=2.0322308024e-313",
+   "exponent745_baseline": "9.85967654375977e-305 mutant=5e-324",
+   "exponent800_baseline": "9.85967654375977e-305 mutant=0.0",
+   "exponent1e+06_baseline": "9.85967654375977e-305 mutant=0.0",
+   "exponent1e+301_baseline": "9.85967654375977e-305 mutant=0.0",
+   "exponent_overflow_baseline": "9.85967654375977e-305 mutant=0.0",
+   "raises_baseline": "0 raises_mutant=0 count",
+   "moved": "5 count of 5 (the float, all below 1e-304)",
+   "max_abs_survival_delta": "9.860e-305",
+   "cost_delta_after_adding": "0.0 (0.01 SEK plan cost + 30 kWh/K * survival * 40 K)",
+   "null_delta": "0 count",
+   "reach_ambient": "20.0 C reach_cop_flow_reference_default=35.0 C",
+   "reach": "skipped (pass --reach to solve the 50 golden scenarios with spies)",
+   "thread_factor": "1.000",
+   "load1": "1.05",
+   "swapins": "0 count"
+  },
+  "reach_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/reach_sweep.py",
+  "null_delta": "0 count"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "none: math.exp underflows to 0.0 without raising, so the cap changes no observable value"
+ },
+ "note": "equivalent at every observable output"
+}

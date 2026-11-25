@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.py: pins (DHW lead predictions filed, note_promise calls, kept promises) from _file_dhw_lead_predictions per dhw_temp_trajectory. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.py; output beside it as .out)

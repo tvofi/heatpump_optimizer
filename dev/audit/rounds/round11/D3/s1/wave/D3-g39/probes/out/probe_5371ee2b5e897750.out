@@ -1,0 +1,10 @@
+RESULT all_negative_baseline=0.0
+RESULT all_negative_mutant=-1.0
+RESULT all_zero_baseline=0.0
+RESULT all_zero_mutant=0.0
+RESULT nan_only_baseline=0.0
+RESULT nan_only_mutant=nan
+RESULT positive_baseline=1.9933063882612345
+RESULT positive_mutant=1.9933063882612345
+RESULT cases_moved=2
+RESULT null_cases_moved=0

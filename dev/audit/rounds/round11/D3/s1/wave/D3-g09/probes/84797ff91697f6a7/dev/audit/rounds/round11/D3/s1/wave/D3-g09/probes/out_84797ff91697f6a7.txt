@@ -1,0 +1,10 @@
+RESULT entry_max_kw=5.0 resolved_max_kw=5.0 power_normalized_baseline=0.1 power_normalized_mutant=0.1
+RESULT entry_max_kw=1.0 resolved_max_kw=1.0 power_normalized_baseline=0.5 power_normalized_mutant=0.5
+RESULT entry_max_kw=0.5 resolved_max_kw=0.5 power_normalized_baseline=1.0 power_normalized_mutant=1.0
+RESULT entry_max_kw=0.05 resolved_max_kw=0.05 power_normalized_baseline=5.0 power_normalized_mutant=10.0
+RESULT entry_max_kw=0.0 resolved_max_kw=0.0 power_normalized_baseline=5.0 power_normalized_mutant=raised ZeroDivisionError: division by zero
+RESULT differing_cells_flow_reachable=0
+RESULT differing_cells_below_flow_minimum=2
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

@@ -1,0 +1,17 @@
+RESULT amb_none_nan_baseline=np.float64(2.44125)
+RESULT amb_none_nan_mutant=np.float64(1.6275000000000002)
+RESULT amb_none_nan_mutant_finite=1
+RESULT amb_none_nan_equals_none_baseline=1
+RESULT amb_none_nan_equals_none_mutant=0
+RESULT amb_none_nan_moved=4 count (of 4 outdoor temps)
+RESULT amb_none_null_moved=0 count (of 9)
+RESULT amb80_nan_baseline=np.float64(1.7161262376237623)
+RESULT amb80_nan_mutant=np.float64(1.6275000000000002)
+RESULT amb80_nan_mutant_finite=1
+RESULT amb80_nan_equals_none_baseline=1
+RESULT amb80_nan_equals_none_mutant=0
+RESULT amb80_nan_moved=4 count (of 4 outdoor temps)
+RESULT amb80_null_moved=0 count (of 9)
+RESULT thread_factor=0.994 ratio
+RESULT load1=1.14
+RESULT swapins=0 count

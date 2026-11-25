@@ -1,0 +1,1 @@
+- probe_e3a350a3272762f1.py: Metric: ThermalModel._batch_cop COP for a NaN humidity step (a forecast's unknown step, #21) with a learned humidity-

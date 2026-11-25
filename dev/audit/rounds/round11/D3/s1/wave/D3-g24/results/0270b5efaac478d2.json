@@ -1,0 +1,63 @@
+{
+ "key": "0270b5efaac478d2",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6550 GUARD_OFF",
+ "patch": "if not result.timestamps: -> if False:",
+ "function": "HeatPumpOptimizer.get_current_action",
+ "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+ "slice": "u1a",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2750.7,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 4556.0,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/0270b5efaac478d2.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0270b5efaac478d2",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/0270b5efaac478d2.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py",
+  "metric": "mutant_cases_moved",
+  "baseline_value": 0,
+  "mutant_value": 3,
+  "extra": {
+   "reach_optimize_empty_results": "0"
+  },
+  "moving_cases": [],
+  "inputs_tried": "21 cases: a real 6 h plan, its first step alone and the plan emptied x clocks at/1 us/half a step/one step/one step + 1 s before the first start, step 1, mid step 3, last start, past the end; plus 3 degenerate optimize() calls",
+  "thread_factor": "1.000",
+  "load1": "1.15"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/config_flow_steps.py",
+   "tests/entities.py",
+   "tests/features.py"
+  ],
+  "assertion_lacking": "none through production; a direct call with an empty OptimizationResult separates"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "moves only on an empty result (IndexError instead of the idle action); the one production caller (coordinator.py:6464) passes the result optimize() just returned, and optimize raises on every degenerate input tried instead of returning an empty plan (reach_optimize_empty_results=0)",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:6550 GUARD_OFF if not result.timestamps: -> if False: survives the full gate but is equivalent on every input tried: moves only on an empty result (IndexError instead of the idle action); the one production caller (coordinator.py:6464) passes the result optimize() just returned, and optimize raises on every degenerate input tried instead of returning an empty plan (reach_optimize_empty_results=0)",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py",
+  "value": "mutant_cases_moved=3 (null 0); reach_optimize_empty_results=0"
+ }
+}

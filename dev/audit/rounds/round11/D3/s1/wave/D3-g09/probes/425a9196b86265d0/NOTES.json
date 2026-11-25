@@ -1,0 +1,18 @@
+{
+ "key": "425a9196b86265d0",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "low",
+ "class_guess": "I1",
+ "metric": "RESULT offloop_jobs_rooms_{idle,done,aborted}_{baseline,mutant}: off-loop sysid jobs (coordinator._await_off_loop: a process-worker round trip) per _run_system_identification with no active experiment, indoor and outdoor entities configured; behaviour_differs_* compares the adopted action and the experiment state",
+ "base": "offloop_jobs (idle/done/aborted) = 0; behaviour_differs = 0",
+ "mut": "offloop_jobs (idle/done/aborted) = 1 each; behaviour_differs = 0",
+ "inputs": [
+  "phases IDLE, DONE, ABORTED, ARMED x configs default (hold_reason stands down) and indoor+outdoor entities"
+ ],
+ "null": "phase ARMED (the guard not taken): 1 job in both arms; default config: 0 jobs in both arms",
+ "should": "tests/features.py ~24718 drives _run_system_identification on the executor route but never counts the off-loop dispatches of an inactive experiment; tests/deployment_shape.py checks where step_detached runs, not how often. No check asserts that an idle experiment ships nothing to the worker",
+ "title": "An idle system-identification experiment can ship a process-worker job every cycle and the gate passes",
+ "claim": "HeatPumpOptimizerCoordinator._run_system_identification (coordinator.py:11057) may lose its `if not self._sysid.active: return` guard and the full gate passes; behaviour is unchanged (SystemIdentification.step returns None and stand_down/abort return at once when inactive), but on an install with indoor and outdoor sensors every cycle then dispatches one off-loop step_detached job (probe: 0 -> 1 per cycle), a pickled experiment round trip to the process worker that the Raspberry-Pi-class host pays for nothing.",
+ "direction": "off-loop jobs per idle cycle 0 -> 1 (cost up; behaviour equal)"
+}

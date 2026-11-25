@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+# Metric: count of inputs on which DefrostWindow._elapsed (and the ten window sequences that call it) answer
+#   differently baseline vs mutant: production-shaped stamps (datetime aware/naive/mixed/None) vs fabricated stamps.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_5941c09a9face079.py
+# EXPECTED RESULT production_shaped_moved=0 of 19 ()  (timedelta.total_seconds() is always a float: `and`->`or`
+#   changes nothing for a float)
+# EXPECTED RESULT fabricated_moved=3 of 3  (bool True -> None vs 1.0; Decimal 5 -> None vs 5.0; str "5" -> None vs 5.0)
+# Count key: the value _elapsed returns (seconds or None) and the DefrostObservation the window returns.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.defrost:DefrostWindow._elapsed
+#   (line 739 `        if isinstance(raw, (int, float)) and not isinstance(raw, bool):`).
+# Perturbation: mutant 5941c09a9face079, `and` -> `or`, in memory (staticmethod recompiled from its own source onto a
+#   subclass). Direction: a non-float total_seconds() result is accepted instead of declined.
+# Reach: every caller (observe/_accrue/peek/close, coordinator dt_util.now() and state-change times) passes datetimes,
+#   whose difference is a timedelta: the separating inputs exist only as fabricated objects.
+# Null control: the production-shaped arm, which must not move.

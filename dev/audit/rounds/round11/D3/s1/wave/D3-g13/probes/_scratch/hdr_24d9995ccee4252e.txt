@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+# Metric: rows of DefrostDerate.summary() carrying a measured-duty block ("duty"/"events"/"duty_samples") on a learner
+#   whose only evidence is one INFERRED observation (duty_counts all 0), baseline vs mutant.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py
+# EXPECTED RESULT rows_with_duty_baseline=0 count
+# EXPECTED RESULT rows_with_duty_mutant=1 count  (the inferred-only row gains duty=0.0 events=0 duty_samples=0)
+# EXPECTED RESULT null_delta_rows=0 count        (a bucket with a counted duty reports it in both arms)
+# Count key: the rows summary() returns (what coordinator.py:8002 publishes as diagnostics "defrost_buckets").
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.defrost:DefrostDerate.summary
+#   (line 642 `                if self.duty_counts[t][h] > 0:`).
+# Perturbation: mutant 24d9995ccee4252e, `> 0` -> `>= 0`, applied in memory (method recompiled from its own source
+#   and called unbound for the mutant arm). Direction: rows_with_duty 0 -> 1 on an inferred-only bucket.
+# Null control: a bucket with one counted duty sample (observe_duty): its row carries the duty block in both arms.

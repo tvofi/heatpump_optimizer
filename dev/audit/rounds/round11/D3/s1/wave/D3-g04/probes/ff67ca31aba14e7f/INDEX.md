@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_ff67ca31aba14e7f.py: Metric: _dhw_mixed_water()'s litres_40c with the `40 - inlet < 1` guard removed, at inlets 39.5 and 40.0 C (span below one kelvin), and over every inlet production can resolve.

@@ -1,0 +1,68 @@
+{
+ "key": "a7dd3153718e531b",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9153 GUARD_OFF",
+ "patch": "if damp <= 1e-9: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._confidence_margins",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._confidence_margins@9153-9166",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3075.7,
+  "load1_start": 0.7,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 5003.4,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/a7dd3153718e531b.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_a7dd3153718e531b.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_a7dd3153718e531b.py",
+  "rc": 0,
+  "baseline_value": "outcome_baseline=None",
+  "mutant_value": "outcome_mutant=array[4] max=2e-09",
+  "results": {
+   "outcome_baseline": "None",
+   "outcome_mutant": "array[4] max=2e-09",
+   "differing_inputs": "2 count",
+   "null_differing": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.89",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "mae 0.25+1.75e-9 (damp 9.9999997e-10) x sigma 2, 5, 0.5, 1.0 C",
+   "null: mae 0.25, 0.1 (damp 0), mae 1.125 (damp 0.5)"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_a7dd3153718e531b.out"
+ },
+ "should_fail": "tests/features.py: the _confidence_margins block (~23988-24030) checks the fresh-install None, the cap and the trust damping, but never a damp inside (0, 1e-9] with sigma > 1 C; it lacks an assertion that a near-perfect trust returns None. tests/config_flow_steps.py executes the line without asserting on it.",
+ "finding": {
+  "title": "No check feeds _confidence_margins a damping in (0, 1e-9]; removing its early None is unseen",
+  "claim": "_confidence_margins returns None (the byte-inert no-margin answer) when 1 - trust() <= 1e-9. With that guard removed, a temperature MAE a hair above 0.25 C (damp ~1e-9) and a lead sigma above 1 C yield an array of ~2e-9 C margins instead of None. The full gate does not notice; the consequence is a non-None min_temp_margins handed to the solver with nanokelvin values.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "None-versus-array outcome of _confidence_margins(4) at mae 0.25+1.75e-9 and sigma 2 C, through the real AccuracyTracker.trust()/sigma()",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._confidence_margins (custom_components/heatpump_optimizer/coordinator.py:9153)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_a7dd3153718e531b.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_a7dd3153718e531b.py  ;  custom_components/heatpump_optimizer/coordinator.py:9153 full gate: GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a7dd3153718e531b",
+  "perturbation": "coordinator.py:9153 `if damp <= 1e-9:` -> `if False:`; None -> array max 2e-9 C",
+  "null_control": "the probe's null arm (null_delta/null_differing RESULT = 0 count) and this box's fullgate.py null gate (gates/null.json)"
+ }
+}

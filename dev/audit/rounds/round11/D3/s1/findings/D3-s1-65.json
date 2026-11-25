@@ -1,0 +1,47 @@
+{
+ "id": "D3-s1-65",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "No check pins FLOW_BIAS_ALPHA's value; doubling the flow-bias EWMA weight is unseen",
+ "severity": "low",
+ "claim": "Mutant 0c3e91a6a349409a at flow_lift.py:47 survives the full gate (SURVIVED), yet the probe's delta moves: baseline bias=3.638040 K, mutant bias=4.689280 K.",
+ "mechanism": "Reach: every fold after the 5th sample via coordinator.py:986. Check that should have failed (D3.M4): tests/doc_claims.py:1949-1956 reads the constant instead of pinning 0.1; tests/features.py exercises the symbol.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+  "value": 1.05124,
+  "unit": "learned flow bias in K after 5 residuals of +2 K then 5 of +6 K",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+  "cpu_or_wall": "n/a",
+  "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+  "tolerance": "exact",
+  "load1": 1.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.flow_lift:FLOW_BIAS_ALPHA (read in FlowCurveBias.observe)",
+ "perturbation": {
+  "change": "the mutant edit at flow_lift.py:47 applied in memory by the probe (5 residuals +2 K then 5 of +6 K); full gate: fullgate.py run --key 0c3e91a6a349409a",
+  "expected_direction": "up",
+  "observed_value": 1.05124
+ },
+ "metric_definition": "learned flow bias in K after 5 residuals of +2 K then 5 of +6 K",
+ "phenomenon_property": "The flow-bias EWMA after warm-up weights each new residual by exactly the documented 0.1",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+  "value": "0.0 K",
+  "note": "null arm where the edit cannot matter; identical floats under both arms"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src pre --key 0c3e91a6a349409a"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (bias=3.638040 K)",
+ "files": [
+  "custom_components/heatpump_optimizer/flow_lift.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

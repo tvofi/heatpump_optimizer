@@ -1,0 +1,69 @@
+{
+ "key": "1dcb273b03f63a4e",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP",
+ "patch": "guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = np.minimum((guess), headroom)",
+ "function": "HeatPumpOptimizer._solve_space",
+ "cluster": "optimizer.py:HeatPumpOptimizer._solve_space@4943-4943",
+ "slice": "u1a",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3308.6,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5498.1,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/1dcb273b03f63a4e.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1dcb273b03f63a4e",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/1dcb273b03f63a4e.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py",
+  "metric": "mutant_replay_moved",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "extra": {
+   "mutant_guess_outside_bounds_mutant": "6",
+   "mutant_whole_moved": "0"
+  },
+  "moving_cases": [],
+  "inputs_tried": "3 DHW scenarios (power_caps_extra 3/2/1 kW, 12 h/15 min): the captured _solve_space call replayed with warm_start None, init_base x2-0.5, warm = init_base x1.5, init_base + p_max, init_base - p_max/2, all -1 kW (18 replays), plus the whole optimize() per scenario",
+  "thread_factor": "1.002",
+  "load1": "1.08"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/block_duty.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/validate.py"
+  ],
+  "assertion_lacking": "a _solve_space case seeded with a warm start outside [0, p_max] asserting the returned plan/status equal the clipped-start solve (would not fail: equivalent)"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "the mutated guess leaves its bounds (guess_outside_bounds_mutant > 0) yet no returned plan, status or score moves: the starts are projected/re-scoped downstream before anything is shipped",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = np.minimum((guess), headroom) survives the full gate but is equivalent on every input tried: the mutated guess leaves its bounds (guess_outside_bounds_mutant > 0) yet no returned plan, status or score moves: the starts are projected/re-scoped downstream before anything is shipped",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py",
+  "value": "mutant_replay_moved=0 (null 0); mutant_guess_outside_bounds_mutant=6, mutant_whole_moved=0"
+ }
+}

@@ -1,0 +1,56 @@
+{
+ "key": "e02e1ac8cc0b714a",
+ "site": "coordinator.py:10223 GUARD_OFF",
+ "patch": "if not trajectory: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._file_lead_predictions",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions@10223-10231",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3630.4,
+  "child_cpu_s": 6092.4,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/e02e1ac8cc0b714a.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e02e1ac8cc0b714a",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.out",
+  "baseline_value": "empty room trajectory: 0 leads, 0 promises kept",
+  "mutant_value": "note_promise called once, still 0 promises kept",
+  "inputs_tried": [
+   "[]",
+   "[21.0]",
+   "the solved 97-point list at PROMISE_HOUR"
+  ]
+ },
+ "m4_answer": "Equivalent at the output: with the guard off an empty trajectory reaches note_promise (calls 0 -> 1), but plan_promise returns None for len(room)-1 < 1 (accuracy.py:554-556), so no promise is kept and no lead is filed (moved_kept_records=0); the solved trajectory keeps 1 promise and 5 leads in both arms.",
+ "should_fail": "none at the observable output; traced by config_flow_steps, entities, features",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "non_finding": "equivalent-candidate: Equivalent at the output: with the guard off an empty trajectory reaches note_promise (calls 0 -> 1), but plan_promise returns None for len(room)-1 < 1 (accuracy.py:554-556), so no promise is kept and no lead is filed (moved_kept_records=0); the solved trajectory keeps 1 promise and 5 leads in both arms."
+}

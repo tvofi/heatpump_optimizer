@@ -1,0 +1,11 @@
+RESULT fresh_ledger_baseline=(0.0, 0.0) mutant=(0.0, 0.0)
+RESULT other_month_only_baseline=(0.0, 0.0) mutant=(0.0, 0.0)
+RESULT other_line_only_baseline=(0.0, 0.0) mutant=(0.0, 0.0)
+RESULT restored_non_dict_entry_baseline=(0.0, 0.0) mutant=(0.0, 0.0)
+RESULT moved_production=0 count
+RESULT stub_empty_dict_baseline=None mutant=(0.0, 0.0)  (not a production ledger)
+RESULT stub_none_baseline=None mutant=AttributeError  (not a production ledger)
+RESULT null_moved=0 count
+RESULT thread_factor=1.002
+RESULT load1=0.29
+RESULT swapins=0 count

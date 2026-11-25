@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_6a75a1ff72dc1df8.py: Metric: the terminal row cost _terminal_row_cost(...)'s row_cost returns on its single-sum (cop_buffer == cop_end), no refill law branch for terms [2, 3] at a cop_end_eq_buffer below the 1e-6 floor; and the smallest CO (output probe_6a75a1ff72dc1df8.out; shared reach: reach_sweep.py)

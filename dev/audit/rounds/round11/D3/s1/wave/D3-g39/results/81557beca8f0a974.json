@@ -1,0 +1,93 @@
+{
+ "key": "81557beca8f0a974",
+ "site": "tariff.py:279 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/tariff.py",
+ "line": 279,
+ "patch": "if dt_hours is not None and np.isfinite(dt_hours) and dt_hours > 0: -> if dt_hours is not None and np.isfinite(dt_hours) and dt_hours >= 0:",
+ "function": "PeakTracker.observe",
+ "cluster": "tariff.py:PeakTracker.observe@235-279",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2741.8,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/81557beca8f0a974.json",
+ "provisional": true,
+ "machine": "box D3-g39: 4 vCPU Intel Xeon @ 2.30GHz, 16 GB (MACHINE.txt)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_81557beca8f0a974.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_81557beca8f0a974.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/out/probe_81557beca8f0a974.out",
+  "cases_moved": 0,
+  "null_cases_moved": 0,
+  "inputs_tried": {
+   "dt025_acc": {
+    "baseline": "('0.75', '0.5', '1.5')",
+    "mutant": "('0.75', '0.5', '1.5')"
+   },
+   "dt0_acc": {
+    "baseline": "('0.0', '0.0', '1.5')",
+    "mutant": "('0.0', '0.0', '1.5')"
+   },
+   "dt0_bigkw_acc": {
+    "baseline": "('0.0', '0.0', '5e+307')",
+    "mutant": "('0.0', '0.0', '5e+307')"
+   },
+   "dt0_mixed_acc": {
+    "baseline": "('0.5', '0.25', '2.0')",
+    "mutant": "('0.5', '0.25', '2.0')"
+   },
+   "dt0_peaks": {
+    "baseline": "((1.5,), 1)",
+    "mutant": "((1.5,), 1)"
+   },
+   "dtneg0_acc": {
+    "baseline": "('0.0', '0.0', '1.5')",
+    "mutant": "('0.0', '0.0', '1.5')"
+   }
+  },
+  "baseline_value": "equal on every input tried",
+  "mutant_value": "equal on every input tried"
+ },
+ "should_fail": {
+  "scripts": [
+   "tests/config_flow_steps.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/finite_boundary.py"
+  ],
+  "trace_source": "dev/audit/rounds/round11/D3/s1/state/baselines.json (fast-net traced baseline hits)",
+  "assertion": "none can: adding house_power_kw * 0.0 to _window_wsum and 0.0 to _window_weight is the identity for every finite kW the line-235 guard admits"
+ },
+ "non_finding": {
+  "claim": "tariff.py:279 CMP_BOUND mutant 81557beca8f0a974 survives the full gate but is equivalent on every input tried",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_81557beca8f0a974.py",
+  "value": "cases_moved=0 over 6 inputs (dt025_acc, dt0_acc, dt0_bigkw_acc, dt0_mixed_acc, dt0_peaks, dtneg0_acc); none can: adding house_power_kw * 0.0 to _window_wsum and 0.0 to _window_weight is the identity for every finite kW the line-235 guard admits"
+ }
+}

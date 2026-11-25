@@ -1,0 +1,13 @@
+RESULT input {'kwh': 0.0, 'sek': 0.0, 'fixed': 1.0}: differs=0
+RESULT input {'kwh': 0.0, 'sek': 5.0, 'fixed': 1.0}: differs=0
+RESULT input {'kwh': 0.0, 'sek': 0.0, 'mean': 1.0, 'fixed': 2.0}: differs=0
+RESULT input {'kwh': 0.0, 'sek': -3.0, 'mean': 0.5, 'fixed': 0.7, 'fee': 0.0}: differs=0
+RESULT input {'kwh': -1.0, 'sek': 1.0, 'fixed': 1.0}: differs=0
+RESULT input {'kwh': nan, 'sek': 1.0, 'fixed': 1.0}: differs=0
+RESULT input {'kwh': 1e-12, 'sek': 0.0, 'fixed': 1.0}: differs=0
+RESULT input {'kwh': 0.0, 'sek': 0.0, 'mean': None}: differs=0
+RESULT differing_inputs=0 count
+RESULT null_delta=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.85
+RESULT swapins=0

@@ -1,0 +1,105 @@
+{
+ "key": "bcf290164a0edeeb",
+ "site": "coordinator.py:5157 GUARD_OFF",
+ "patch": "if probe.stale: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._external_heat_override",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override@5156-5182",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3613.5,
+  "child_cpu_s": 6113.2,
+  "load1_start": 0.78,
+  "load1_end": 1.0,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/bcf290164a0edeeb.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bcf290164a0edeeb",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.out",
+  "baseline_value": "1 warning over 4 stale cycles, value None",
+  "mutant_value": "0 warnings, value None",
+  "inputs_tried": [
+   "stale flue probe (120 min old, limit 60) over 4 cycles",
+   "untimestamped fresh probe (null)"
+  ]
+ },
+ "m4_answer": "Moves in the log only: with the stale branch skipped, a stale flue probe still returns None (problem 'stale' != 'not_numeric' returns at line 5178) but the once-per-outage warning is never logged (1 -> 0 over 4 cycles).",
+ "should_fail": "tests/features.py ('a flue PROBE that stopped reporting stops suppressing (v5.3.0)', features.py:3319) asserts the None value only; nothing asserts the stale warning is logged once",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "finding": {
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "title": "No check asserts the stale flue-probe warning is logged; disabling the stale branch is unseen",
+  "severity_claimed": "low",
+  "severity": "low",
+  "claim": "Mutant bcf290164a0edeeb (coordinator.py:5157, if probe.stale -> if False) survives the full gate, yet the 'External heat override ... has not reported' warning disappears: 1 -> 0 warnings over 4 stale cycles.",
+  "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py ('a flue PROBE that stopped reporting stops suppressing (v5.3.0)', features.py:3319) asserts the None value only; nothing asserts the stale warning is logged once.",
+  "class_guess": "I1",
+  "stop_rule_class": "hygiene",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._external_heat_override",
+  "metric_definition": "_LOGGER.warning calls from _external_heat_override over 4 cycles of a flue probe 120 min stale (limit 60)",
+  "perturbation": {
+   "change": "the mutant edit 'if probe.stale:' -> 'if False:' at custom_components/heatpump_optimizer/coordinator.py:5157, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bcf290164a0edeeb",
+   "expected_direction": "to_zero",
+   "observed_value": 0
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+   "value": "unchanged",
+   "note": "an untimestamped (fresh) probe: (True, 0 warnings) in both arms"
+  },
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+  "phenomenon_property": "A flue probe that stops reporting is warned about exactly once per outage, and ignored",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "tests only: assert one warning across consecutive stale cycles",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+   "value": 0,
+   "unit": "_LOGGER.warning calls from _external_heat_override over 4 cycles of a flue probe 120 min stale (limit 60)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bcf290164a0edeeb"
+  ]
+ }
+}

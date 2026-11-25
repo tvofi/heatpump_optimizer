@@ -1,0 +1,104 @@
+{
+ "key": "21a2563e1beb213f",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9486 CMP_BOUND",
+ "patch": "if count >= COP_BASELINE_MIN_SAMPLES and baseline > 0.5: -> if count > COP_BASELINE_MIN_SAMPLES and baseline > 0.5:",
+ "function": "HeatPumpOptimizerCoordinator._observe_cop_health",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._observe_cop_health@9486-9500",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3124.9,
+  "load1_start": 0.84,
+  "load1_end": 0.86,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/21a2563e1beb213f.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.out",
+  "result_lines": [
+   "RESULT n_then_drop_baseline=stat 0.323333333 baseline_cop 2.98 count 21 issues 0",
+   "RESULT n_then_drop_mutant=stat 0.0 baseline_cop 2.98 count 21 issues 0",
+   "RESULT n_then_two_drops_baseline=stat 0.642192394 baseline_cop 2.9604 count 22 issues 0",
+   "RESULT n_then_two_drops_mutant=stat 0.31885906 baseline_cop 2.9604 count 22 issues 0",
+   "RESULT n_minus_1_then_drop_baseline=stat 0.0 baseline_cop 2.95 count 20 issues 0",
+   "RESULT n_minus_1_then_drop_mutant=stat 0.0 baseline_cop 2.95 count 20 issues 0",
+   "RESULT seqs_moved=2 count of 3",
+   "RESULT null_moved=0 count of 2"
+  ],
+  "baseline_value": "CUSUM stat 0.323333 after 20 samples of COP 3.0 then 2.0 (the 21st is judged)",
+  "mutant_value": "stat 0.0 (the 21st is not judged); after two drops 0.318859 vs 0.642192 (seqs_moved=2 of 3)",
+  "inputs_tried": "20x3.0 then 2.0; 20x3.0 then 2.0, 2.0; 19x3.0 then 2.0; nulls 25x3.0 then 2.0, 23x3.0",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "every COP-health bucket's 21st vetted sample (COP_BASELINE_MIN_SAMPLES = 20)",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:9486)",
+  "assertion": "the watch checks at features.py:21710-21861 feed long sequences; none pins that the sample after exactly COP_BASELINE_MIN_SAMPLES moves the statistic"
+ },
+ "finding": {
+  "title": "No check pins that the COP-health watch judges the sample after exactly 20; >= -> > is unseen",
+  "claim": "Mutant 21a2563e1beb213f (coordinator.py:9486 `count >= COP_BASELINE_MIN_SAMPLES` -> `>`) survives the full gate, yet after 20 samples of 3.0 a 2.0 sample leaves the health CUSUM at 0.0 instead of 0.3233. Full gate verdict RED-AS-NULL.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "mechanism": "Reach: every COP-health bucket's 21st vetted sample (COP_BASELINE_MIN_SAMPLES = 20). Check that should have failed (D3.M4): tests/features.py (traced baseline executes coordinator.py:9486): the watch checks at features.py:21710-21861 feed long sequences; none pins that the sample after exactly COP_BASELINE_MIN_SAMPLES moves the statistic.",
+  "metric_definition": "COP-health Cusum.stat after 20 samples of COP 3.0 then one of 2.0, one outdoor bucket",
+  "phenomenon_property": "The COP-health watch judges every sample once its bucket holds COP_BASELINE_MIN_SAMPLES",
+  "seam_rule": "awk -F'\\t' 'NR>1' dev/audit/rounds/round11/D3/s1/wave/D3-g08/keys.tsv (this box's full-gate survivors; the wave list: awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._observe_cop_health",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py",
+   "value": 0.0,
+   "unit": "Cusum.stat (baseline 0.323333)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g08: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the full-gate wall and load1 are provisional"
+  },
+  "perturbation": {
+   "change": "mutant 21a2563e1beb213f at custom_components/heatpump_optimizer/coordinator.py:9486 (if count >= COP_BASELINE_MIN_SAMPLES and baseline > 0.5: -> if count > COP_BASELINE_MIN_SAMPLES and baseline > 0.5:), applied in memory by the probe; full gate: fullgate.py run --src complete --key 21a2563e1beb213f",
+   "expected_direction": "down"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py",
+   "value": "0 count",
+   "note": "25 warm-up samples then the drop, and a steady sequence: identical under both arms (null_moved=0 of 2); full-gate null: this box's fullgate.py null (gates/null.json)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 21a2563e1beb213f"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's moving input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

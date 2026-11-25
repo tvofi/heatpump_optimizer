@@ -1,0 +1,62 @@
+{
+ "key": "f2894b5754c254fe",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5248 CLAMP_DROP",
+ "patch": "for i in range(min(len(result.dhw_power_schedule), len(req))): -> for i in range((len(result.dhw_power_schedule))):",
+ "function": "HeatPumpOptimizer._safety_release_steps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._safety_release_steps@5222-5250",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3451.2,
+  "child_cpu_s": 5792.5,
+  "load1_start": 0.79,
+  "load1_end": 0.96,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f2894b5754c254fe",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/f2894b5754c254fe.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_f2894b5754c254fe.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_f2894b5754c254fe.py",
+  "metric": "direct_short_req",
+  "baseline_value": "([],[])",
+  "mutant_value": "IndexError",
+  "reach": "unreachable through production: 0 of 11 release calls over 7 manual-plan solves carry a DHW requirement shorter than the DHW schedule",
+  "inputs_tried": [
+   "requirement of 2 for a 4-step DHW schedule (direct)",
+   "requirement as long as the schedule (null)",
+   "reach count over the 7 REACH_SCENARIOS"
+  ],
+  "results": [
+   "RESULT direct_short_req_baseline=([],[])",
+   "RESULT direct_short_req_mutant=IndexError",
+   "RESULT null_full_req_delta=0",
+   "RESULT reach_short_requirement_calls=0 of 11 (over 7 manual-plan solves)",
+   "RESULT thread_factor=1.001",
+   "RESULT load1=4.92",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "none through production; only a direct call with a short requirement separates"
+}

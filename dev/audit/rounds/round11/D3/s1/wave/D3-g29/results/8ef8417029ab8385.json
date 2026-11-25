@@ -1,0 +1,57 @@
+{
+ "key": "8ef8417029ab8385",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:3177 CMP_BOUND",
+ "patch": "if span <= 0.0: -> if span < 0.0:",
+ "function": "stored_heat_survival",
+ "cluster": "optimizer.py:stored_heat_survival@3177-3186",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3276.2,
+  "load1_start": 0.93,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5477.5,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/8ef8417029ab8385.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8ef8417029ab8385",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_8ef8417029ab8385.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_8ef8417029ab8385.py",
+  "baseline_value": "1.0 at span 0 with demand 0 or -1",
+  "mutant_value": "0.0 there; identical at span 0 with demand > 0 and at span > 0",
+  "inputs_tried": [
+   "span 0, demand 0.0 and -1.0",
+   "null: span 0 demand 2; span 30 demand 2 and 0"
+  ],
+  "reach": "the only caller (optimizer.py:3593) passes caps['buffer'] = min(buffer_max_temp, max(ceiling, initial)), the ceiling bisected in [max(20, cop_flow_reference_temp=35), buffer_max_temp] and the config flow bounds buffer_max_temperature to 40..90 C, so span = cap - 20 >= 15 K; golden matrix span_zero 0 of 10 calls",
+  "results": {
+   "span0_demand0.0_baseline": "1.0 mutant=0.0",
+   "span0_demand-1.0_baseline": "1.0 mutant=0.0",
+   "moved": "2 count",
+   "null_delta": "0 count",
+   "reach_ambient": "20.0 C reach_cop_flow_reference_default=35.0 C",
+   "reach": "skipped (pass --reach to solve the 50 golden scenarios with spies)",
+   "thread_factor": "1.000",
+   "load1": "1.05",
+   "swapins": "0 count"
+  },
+  "reach_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/reach_sweep.py",
+  "null_delta": "0 count"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "none through production; a direct stored_heat_survival call with cap == ambient and demand <= 0 separates the arms"
+ },
+ "note": "unreachable through production"
+}

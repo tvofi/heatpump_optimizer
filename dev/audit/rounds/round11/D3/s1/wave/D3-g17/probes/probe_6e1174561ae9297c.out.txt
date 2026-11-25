@@ -1,0 +1,10 @@
+RESULT tie_premium=1e-09
+RESULT tie_inputs=3
+RESULT tie_delta_kw=0 kW
+RESULT sweep_inputs=80
+RESULT differing_inputs=0
+RESULT sweep_max_delta_kw=0 kW
+RESULT inputs_tried=3 tie layouts (full step at price 0 beside spare steps at 1e-9); 80 random
+RESULT thread_factor=1.006
+RESULT load1=1.25
+RESULT swapins=0

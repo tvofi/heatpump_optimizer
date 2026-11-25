@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_88d911d796fdd71d.py (saved as .py.txt while gates run; rename on restore): pins hours covered by the learned DHW demand windows from a mean-1 pattern with a plateau sitting exactly on the threshold (8 h at 0.5, 16 h at 1.25).

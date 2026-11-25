@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_ea0b9abd.py: pins HeatPumpOptimizer._power_to_displace_schedule's output length (count) for a power schedule one step longer (shared: g22_rig.py, reach_scan.py)

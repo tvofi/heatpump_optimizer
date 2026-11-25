@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_09e80cfe3036223e.py: pins max abs difference of the start schedule over 20000 random (prices, energy, p_max, dt) draws, and of the solved plan on three golden scenarios (mutant `if remaining <= 0:` -> `if False:`, optimizer.py:2130); output out_09e80cfe3036223e.txt

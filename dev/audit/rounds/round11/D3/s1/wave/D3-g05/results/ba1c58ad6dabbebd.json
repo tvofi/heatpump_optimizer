@@ -1,0 +1,55 @@
+{
+ "key": "ba1c58ad6dabbebd",
+ "site": "coordinator.py:10231 CMP_BOUND",
+ "patch": "if 0 < idx < len(trajectory): -> if 0 <= idx < len(trajectory):",
+ "function": "HeatPumpOptimizerCoordinator._file_lead_predictions",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions@10223-10231",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3723.8,
+  "child_cpu_s": 6209.0,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/ba1c58ad6dabbebd.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ba1c58ad6dabbebd",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.out",
+  "baseline_value": "room leads identical over lengths 0..200 at dt_h 0.25",
+  "mutant_value": "identical; off-grid 180-min step: 4 -> 5",
+  "inputs_tried": [
+   "trajectory lengths 0..200 at the production dt_h 0.25",
+   "off-grid time_step_minutes 180"
+  ]
+ },
+ "m4_answer": "Equivalent in production: time_step_minutes is a fixed 15, so the 1 h lead rounds to idx 4 and idx 0 never occurs (moved 0 of 201 lengths); only an off-grid 180-min step separates (4 -> 5 leads).",
+ "should_fail": "none reachable: the distinction needs a step over 2 h, which no configuration produces",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "non_finding": "equivalent-candidate: Equivalent in production: time_step_minutes is a fixed 15, so the 1 h lead rounds to idx 4 and idx 0 never occurs (moved 0 of 201 lengths); only an off-grid 180-min step separates (4 -> 5 leads)."
+}

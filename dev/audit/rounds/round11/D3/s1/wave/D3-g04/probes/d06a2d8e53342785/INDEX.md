@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_d06a2d8e53342785.py: Metric: The monthly-average-spot keys of _contract_comparison() (monthly_avg_spot_sek, load_profile_value_per_kwh) and its 'cheapest' verdict, on a month of 10 kWh at 12 SEK hourly spot, mean spot 1

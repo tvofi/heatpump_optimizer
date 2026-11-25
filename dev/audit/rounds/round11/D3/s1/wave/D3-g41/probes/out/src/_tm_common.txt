@@ -1,0 +1,17 @@
+from custom_components.heatpump_optimizer import thermal_model as tm, defrost as dfr  # noqa: E402
+TM = tm.ThermalModel
+T_BUF = np.array([25.0, 35.0, 40.0, 50.0, 60.0])
+OUTS = (-25.0, -10.0, -2.0, 0.0, 7.0, 15.0, 20.0, 26.9, 27.0, 27.5, 30.0, 35.0)
+
+
+def batch(model, fn, out, hum, tb, elig):
+    with mock.patch.object(TM, "_batch_cop", fn):
+        return outcome(model._batch_cop, out, hum, tb, elig)
+
+
+def derate(grid_fn, n=100):
+    d = dfr.DefrostDerate(factors=dfr._grid(1.0), counts=dfr._grid(n))
+    for i in range(len(d.factors)):
+        for j in range(len(d.factors[i])):
+            d.factors[i][j] = grid_fn(i, j)
+    return d

@@ -1,0 +1,50 @@
+
+import logging
+
+ha_dt.freeze(NOW)
+t0, t1 = time.process_time(), time.thread_time()
+# zero-argument super() needs a class cell a recompiled function lacks: the explicit two-argument form is identical here
+MUT = mutate(CLS.async_shutdown, OLD, NEW)
+_g = MUT.__globals__
+exec(compile(textwrap.dedent(inspect.getsource(CLS.async_shutdown)).replace(OLD, NEW, 1).replace("super()", "super(HeatPumpOptimizerCoordinator, self)"), co.__file__, "exec"), _g)
+MUT = _g["async_shutdown"]
+
+
+class _Count(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.WARNING)
+        self.hits = 0
+
+    def emit(self, record):
+        if "did not finish within 5 s" in record.getMessage():
+            self.hits += 1
+
+
+def shut(fn, task_s):
+    _, c = make("sd")
+    h = _Count()
+    co._LOGGER.addHandler(h)
+
+    async def main():
+        task = asyncio.get_running_loop().create_task(asyncio.sleep(task_s))
+        if task_s == 0:
+            await task  # the null: a task already finished before the unload
+        c._background_tasks.add(task) if isinstance(c._background_tasks, set) else c._background_tasks.append(task)
+        await fn(c)
+        done = task.done()
+        task.cancel()
+        return done
+
+    try:
+        return asyncio.run(main()), h.hits
+    finally:
+        co._LOGGER.removeHandler(h)
+
+
+b, m = shut(CLS.async_shutdown, TASK_S), shut(MUT, TASK_S)
+print(f"RESULT {CASE}_baseline=task_done:{b[0]} warnings:{b[1]} mutant=task_done:{m[0]} warnings:{m[1]}")
+print(f"RESULT {METRIC}_baseline={b[IDX]} mutant={m[IDX]}")
+b, m = shut(CLS.async_shutdown, NULL_S), shut(MUT, NULL_S)
+print(f"RESULT null_moved={int(b[IDX] != m[IDX])} count  ({NULL_NAME}: baseline {b}, mutant {m})")
+ha_dt.freeze(None)
+tail_results(t0, t1)

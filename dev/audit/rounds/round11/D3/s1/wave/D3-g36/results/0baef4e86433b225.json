@@ -1,0 +1,98 @@
+{
+ "key": "0baef4e86433b225",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1752 GUARD_OFF",
+ "patch": "if not self.active: -> if False:",
+ "function": "SystemIdentification.step",
+ "cluster": "sysid.py:SystemIdentification.step@1752-1792",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4111.2,
+  "load1_start": 0.86,
+  "load1_end": 1.05,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/gates/0baef4e86433b225.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0baef4e86433b225",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0baef4e86433b225.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0baef4e86433b225.py",
+  "baseline_value": "0 count",
+  "mutant_value": "2 count",
+  "results": {
+   "baseline_idle_samples": "0 count",
+   "mutant_idle_samples": "2 count",
+   "baseline_done_samples": "0 count",
+   "mutant_done_samples": "2 count",
+   "return_moved": "0 count",
+   "null_moved": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.14",
+   "swapins": "0"
+  },
+  "inputs_tried": "never-armed idle experiment [moves 0 -> 2]; finished (done) experiment [moves 0 -> 2]; active settling [null]"
+ },
+ "should_fail": "tests/features.py / tests/entities.py (execute sysid.py:1752) lack an assertion that step() on an inactive experiment records no sample and returns None",
+ "class": "candidate",
+ "finding": {
+  "title": "step()'s inactive early-return can be deleted unnoticed: idle experiments accumulate samples",
+  "claim": "Disabling `if not self.active: return None` makes each step() call on an idle or finished experiment append a SysIdSample (0 -> 2 after two calls) while still returning None, and the full gate stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "severity_reason": "if the coordinator calls step() every cycle, samples grow without bound while idle (memory on a Pi); the call cadence was not measured",
+  "stop_rule_class": "bug",
+  "metric_definition": "len(samples) after two step() calls on an inactive SystemIdentification",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.step",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0baef4e86433b225.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0baef4e86433b225.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0baef4e86433b225.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0baef4e86433b225.py",
+   "value": "2 count",
+   "unit": "outcome",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g36: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, alone on the box",
+   "cpu_or_wall": "count",
+   "contention_note": "final re-take after the last gate, nothing else running (counts; first takes ran beside the gates with the same values)",
+   "tolerance": "exact",
+   "load1": 0.14,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "sysid.py:1752 `if not self.active:` -> `if False:`",
+   "expected_direction": "up",
+   "observed_value": "2 count"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0baef4e86433b225.py",
+   "value": "0 count",
+   "note": "null_moved counts the probe's null-arm inputs where baseline and mutant differ; full-gate null in gates/null.json + null-note.txt"
+  },
+  "phenomenon_property": "every behaviour-changing one-line mutant of sysid.py:SystemIdentification.step fails at least one check of the full gate",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "a test in tests/features.py pinning the outcome the probe moves (the assertion named in should_fail)"
+ }
+}

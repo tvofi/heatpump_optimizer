@@ -1,0 +1,33 @@
+from custom_components.heatpump_optimizer import freq_control as fc  # noqa: E402
+
+MUT = mutant(CLS._command_frequency, 10855, "        target = float(np.clip(target, hz_min, hz_max))",
+             "        target = float((target))")
+
+
+def drive(fn, hz_max):
+    fmap = fc.FrequencyMap()
+    fmap.buckets = {d: [0.05, fc.FREQ_MIN_SAMPLES] for d in range(10)}  # 0.05 kW/Hz: at most ~2.5 kW
+    wd = fc.FrequencyWatchdog()
+    writes = []
+
+    async def call(domain, service, data, blocking=False):
+        writes.append(data["value"])
+
+    me = SimpleNamespace(
+        _config=SimpleNamespace(compressor_freq_entity="number.freq"), _mode="auto",
+        _freq_mode=lambda: co.FREQ_MODE_CONTROL, _freq_entity_reading=lambda: (None, 20.0, hz_max, "number"),
+        _freq_map=fmap, _commanded_power=lambda: 9.0, _freq_last_write=None, _freq_watchdog=wd,
+        hass=SimpleNamespace(services=SimpleNamespace(async_call=call)),
+    )
+    run(fn(me))
+    for _ in range(4):
+        wd.note_report(45.08)
+    return (writes[0] if writes else None), wd.commanded, wd.tripped
+
+
+for arm, fn in (("baseline", CLS._command_frequency), ("mutant", MUT)):
+    w, c, t = drive(fn, 50.06)
+    print(f"RESULT written_{arm}={w}")
+    print(f"RESULT commanded_{arm}={c} Hz")
+    print(f"RESULT tripped_{arm}={t}")
+print(f"RESULT null_delta={int(drive(CLS._command_frequency, 50.0) != drive(MUT, 50.0))} count")

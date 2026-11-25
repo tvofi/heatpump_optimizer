@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c1e66052b2d8090c.py: pins c1e66052b2d8090c (equivalent-candidate if the full gate survives): moves only for x0 outside its box or a negative fallback step at |x0| ~ 1e17; 0 of 4685 production-domain inputs, 0 production calls, gradients or plan kW move

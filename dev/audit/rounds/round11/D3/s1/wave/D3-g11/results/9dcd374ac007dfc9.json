@@ -1,0 +1,100 @@
+{
+ "key": "9dcd374ac007dfc9",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:11271 BOOLOP",
+ "patch": "if \"power_cap_kw\" in overrides and simulated.predictive_info -> if \"power_cap_kw\" in overrides or simulated.predictive_info",
+ "function": "HeatPumpOptimizerCoordinator.async_simulate",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator.async_simulate",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2674.0,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/9dcd374ac007dfc9.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9dcd374ac007dfc9",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py",
+  "rc": 0,
+  "results": [
+   "RESULT no_cap_breach_key_baseline=0 mutant=1 (mutant value 0.0)",
+   "RESULT no_cap_empty_breach_key_baseline=0 mutant=1 (mutant value 0.0)",
+   "RESULT null_moved=0 count  (capped: (1, 0.0))",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.87",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "0",
+  "mutant_value": "1",
+  "inputs_tried": [
+   "RESULT no_cap_breach_key_baseline=0 mutant=1 (mutant value 0.0)",
+   "RESULT no_cap_empty_breach_key_baseline=0 mutant=1 (mutant value 0.0)",
+   "RESULT null_moved=0 count  (capped: (1, 0.0))",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.87",
+   "RESULT swapins=0 count"
+  ]
+ },
+ "should_fail": "tests/features.py and tests/config_flow_steps.py execute line 11271; the T2 power-cap what-if checks assert the key when capped but no check asserts its absence for an uncapped what-if",
+ "class": "candidate",
+ "finding": {
+  "title": "No check asserts an uncapped what-if omits power_cap_breach_c; and -> or adds it to every simulate answer",
+  "claim": "The what-if payload async_simulate returns for {\"target_temperature\": 22.0} carries no power_cap_breach_c on the baseline (0); with `and` -> `or` it carries power_cap_breach_c=0.0 though no power cap was asked (1).",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "presence of power_cap_breach_c in async_simulate's payload for a what-if without power_cap_kw",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_simulate",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py",
+   "value": "1",
+   "baseline_value": "0",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g11: Linux x86_64, nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "tolerance": "exact",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "mutant 9dcd374ac007dfc9 at custom_components/heatpump_optimizer/coordinator.py:11271: `if \"power_cap_kw\" in overrides and simulated.predictive_info` -> `if \"power_cap_kw\" in overrides or simulated.predictive_info`, applied in memory by the probe",
+   "expected_direction": "up",
+   "observed_value": "0 -> 1"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py",
+   "value": "null_moved=0 count  (capped: (1, 0.0))",
+   "note": "the probe's null arm (inputs where both arms must agree); the full-gate null is PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)"
+  },
+  "gate_null_control": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)",
+  "phenomenon_property": "the what-if payload carries power_cap_breach_c only when the what-if capped power",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9dcd374ac007dfc9",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "proposed_fix_scope": "a check in the closure script named in should_fail that drives HeatPumpOptimizerCoordinator.async_simulate on the probe's distinguishing input and asserts the baseline value",
+  "should_have_failed": "tests/features.py and tests/config_flow_steps.py execute line 11271; the T2 power-cap what-if checks assert the key when capped but no check asserts its absence for an uncapped what-if"
+ }
+}

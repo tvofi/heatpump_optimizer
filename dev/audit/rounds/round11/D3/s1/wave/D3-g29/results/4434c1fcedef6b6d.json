@@ -1,0 +1,67 @@
+{
+ "key": "4434c1fcedef6b6d",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2286 GUARD_OFF",
+ "patch": "if n_steps == 0: -> if False:",
+ "function": "classify_space_steps",
+ "cluster": "optimizer.py:classify_space_steps@2286-2309",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3221.2,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5207.4,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/4434c1fcedef6b6d.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4434c1fcedef6b6d",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_4434c1fcedef6b6d.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_4434c1fcedef6b6d.py",
+  "baseline_value": "[] for n_steps == 0",
+  "mutant_value": "[] for all 6 in-contract inputs; TypeError only for power=None (out of the np.ndarray contract)",
+  "inputs_tried": [
+   "all-empty arrays",
+   "length-4 arrays",
+   "empty prices",
+   "nan prices",
+   "surplus given",
+   "empty room_temps",
+   "out of contract: power=None",
+   "null: n_steps=4"
+  ],
+  "reach": "golden matrix: n_steps_zero 0 of 52 classify_space_steps calls",
+  "results": {
+   "n0_all_empty_baseline": "[] mutant=[]",
+   "n0_four_long_baseline": "[] mutant=[]",
+   "n0_prices_empty_baseline": "[] mutant=[]",
+   "n0_prices_nan_baseline": "[] mutant=[]",
+   "n0_surplus_given_baseline": "[] mutant=[]",
+   "n0_room_empty_baseline": "[] mutant=[]",
+   "moved_in_contract": "0 count of 6 inputs",
+   "power_none_baseline": "[] mutant='raises TypeError' (out of contract: the annotations say np.ndarray)",
+   "null_delta": "0 count",
+   "reach": "skipped (pass --reach to solve the 50 golden scenarios with spies)",
+   "thread_factor": "1.000",
+   "load1": "1.05",
+   "swapins": "0 count"
+  },
+  "reach_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/reach_sweep.py",
+  "null_delta": "0 count"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "none: with n_steps == 0 the loop and idle_codes both return [] without the guard"
+ },
+ "note": "equivalent for every in-contract input"
+}

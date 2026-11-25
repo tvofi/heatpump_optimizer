@@ -1,0 +1,1 @@
+- probe_8fd14c249b86abf7.py (+ _g23_common.py): pins space release list _safety_release_steps returns when a forced-off step ends at floor+0.1 (inside the pinned-off breach band, above the free-step band); and optimize()'s plan signature over short off blocks. Output of the recorded run: probe_output.txt.

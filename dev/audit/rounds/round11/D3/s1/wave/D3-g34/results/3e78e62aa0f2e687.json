@@ -1,0 +1,50 @@
+{
+ "key": "3e78e62aa0f2e687",
+ "site": "sysid.py:2126 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/sysid.py",
+ "line": 2126,
+ "patch": "if one_over_c <= 1e-6 or ua_over_c <= 1e-6: -> if one_over_c < 1e-6 or ua_over_c <= 1e-6:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 4288.5,
+  "child_cpu_s": 7203.0,
+  "load1_start": 0.79,
+  "load1_end": 1.01,
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/3e78e62aa0f2e687.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/3e78e62aa0f2e687.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3e78e62aa0f2e687",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_3e78e62a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_3e78e62a.py",
+  "first_case": "negative_ua",
+  "baseline_value": "[refused:fit gave implausible signs]",
+  "mutant_value": "[refused:fit gave implausible signs]",
+  "cases_differing": "0 count (of 1602)",
+  "null_differing": "0 count (of 1)",
+  "inputs_tried": [
+   "negative_ua (differs=0)",
+   "plant (differs=0)",
+   "1601 tie-search inputs (ulp-300..+300, rand0..999), 0 differ"
+  ],
+  "thread_factor": "1.000 ratio",
+  "load1": "0.80",
+  "run_in": "a clean detached worktree of the baseline ($HOME/probe-tree), never the gate tree"
+ },
+ "should_fail": "tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks none found: no input tried lands the fitted value on 1e-6",
+ "equivalence": "the mutant differs only when the fitted 1/C equals 1e-6 exactly; 1602 inputs (+-300 floats around 1e-6 as the true coefficient, 1000 random exact-model series, a negative-UA plant) never land on it, and at the tie the result would still be a refusal (C = 1e6 fails the plausible-bounds box)",
+ "class": "equivalent-candidate"
+}

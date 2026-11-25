@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_fc4fe0f49de831a8.py: step-4 probe for fc4fe0f49de831a8; pins the derate derate_from_duty returns over a grid of measured duties 0..1 (step 0.01), and the derate DefrostDerate.factor publishes for a bucket trusted at duty  (output beside it, .out)

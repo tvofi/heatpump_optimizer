@@ -1,0 +1,110 @@
+
+# ---- _apply_pins_to_bounds: a boundary grid plus a production reach count ----
+F = "_apply_pins_to_bounds"
+base = opt._apply_pins_to_bounds
+mut = mutant(F, OLD, NEW)
+PIN_VALUES = [0.0, 1.0, float("nan"), 0.5, 0.49999999999999994, 0.5000000000000001, -1.0, 2.0, float("inf")]
+HIGHS = [0.0, 0.3, 0.8, 1.0, 3.0]
+MIN_ON = [0.0, 0.8, 1.0, 5.0]
+
+
+def inverted(bounds):
+    return sum(1 for lo, hi in bounds if lo > hi)
+
+
+tried = moved = dom_tried = dom_moved = 0
+example = dom_example = None
+for pin in PIN_VALUES:
+    for hi in HIGHS:
+        for mo in MIN_ON:
+            b_in = [(0.0, hi)]
+            ob, om = base(list(b_in), np.array([pin]), mo), mut(list(b_in), np.array([pin]), mo)
+            tried += 1
+            # the production domain: pins are PIN_ON 1.0 / PIN_OFF 0.0 / PIN_FREE NaN
+            # (manual_plan.channel_pins, optimizer.py:565's np.where); bounds and floor >= 0
+            dom = pin in (0.0, 1.0) or pin != pin
+            dom_tried += dom
+            if ob != om:
+                moved += 1
+                ex = (pin, hi, mo, ob[0], om[0])
+                example = example or ex
+                if dom:
+                    dom_moved += 1
+                    dom_example = dom_example or ex
+direct_inv_base = direct_inv_mut = 0
+for hi in HIGHS:
+    for mo in MIN_ON:
+        direct_inv_base += inverted(base([(0.0, hi)], np.array([1.0]), mo))
+        direct_inv_mut += inverted(mut([(0.0, hi)], np.array([1.0]), mo))
+
+# production reach: every call of the production solves, both arms on the same input
+calls = diff_calls = inv_calls = 0
+odd_pins = 0
+
+
+def _rec(bounds, pins, min_on):
+    global calls, diff_calls, inv_calls, odd_pins
+    calls += 1
+    ob_ = base(list(bounds), pins, min_on)
+    om_ = mut(list(bounds), pins, min_on)
+    if pins is not None:
+        odd_pins += sum(1 for p in np.asarray(pins, dtype=float) if not (p in (0.0, 1.0) or p != p))
+    if ob_ != om_:
+        diff_calls += 1
+    if inverted(om_):
+        inv_calls += 1
+    return ob_
+
+
+mp = load_mp()
+run_arms(mp, (F, _rec))
+plans_b, full, p_max = production_solves(mp)
+err = "none"
+try:
+    plans_m = run_arms(mp, (F, mut))[0]
+    plan_delta = max(float(np.max(np.abs(np.asarray(plans_b[k].power_schedule) - np.asarray(plans_m[k].power_schedule))))
+                     for k in plans_b)
+    obj_delta = max(abs(float(plans_b[k].objective_value) - float(plans_m[k].objective_value)) for k in plans_b)
+
+    def total36(plans):
+        r = plans["capped_pinned"]
+        return float(r.power_schedule[36]) + float(np.asarray(r.dhw_power_schedule)[36] if len(r.dhw_power_schedule) else 0.0)
+    cap36_b, cap36_m = total36(plans_b), total36(plans_m)
+except Exception as exc:  # the mutant arm's solve raising is itself the number
+    plan_delta = obj_delta = cap36_b = cap36_m = float("nan")
+    err = type(exc).__name__
+
+if dom_example is not None:
+    example = dom_example
+if example is not None:
+    pin, hi, mo, b0, m0 = example
+    result("example_input", f"pin={pin!r},bounds=(0.0,{hi!r}),min_on_power={mo!r}")
+    result("bounds_baseline", f"({b0[0]!r},{b0[1]!r})")
+    result("bounds_mutant", f"({m0[0]!r},{m0[1]!r})")
+result("grid_inputs_tried", tried, "count")
+result("grid_inputs_moved", moved, "count")
+result("domain_inputs_tried", dom_tried, "count")
+result("domain_inputs_moved", dom_moved, "count")
+result("inverted_boxes_on_pins_baseline", direct_inv_base, "count")
+result("inverted_boxes_on_pins_mutant", direct_inv_mut, "count")
+result("production_calls", calls, "count")
+result("production_calls_moved", diff_calls, "count")
+result("production_calls_inverted_under_mutant", inv_calls, "count")
+result("production_pins_not_0_1_nan", odd_pins, "count")
+result("production_low_headroom_dhw_steps_pinned_on", len(full), "count")
+result("production_mutant_solve_error", err)
+result("production_plan_max_abs_delta_kw", f"{plan_delta:.6g}", "kW")
+result("production_objective_max_abs_delta", f"{obj_delta:.6g}")
+result("capped_step36_total_kw_baseline", f"{cap36_b:.6g}", "kW")
+result("capped_step36_total_kw_mutant", f"{cap36_m:.6g}", "kW")
+result("capped_step36_cap_kw", "0.05", "kW")
+
+# null arm: the same function re-compiled with the line unchanged moves nothing, on the grid or the plans
+nul = mutant(F, OLD, OLD)
+null_moved = sum(base([(0.0, hi)], np.array([pin]), mo) != nul([(0.0, hi)], np.array([pin]), mo)
+                 for pin in PIN_VALUES for hi in HIGHS for mo in MIN_ON)
+plans_n = run_arms(mp, (F, nul))[0]
+null_plan = max(float(np.max(np.abs(np.asarray(plans_b[k].power_schedule) - np.asarray(plans_n[k].power_schedule))))
+                for k in plans_b)
+result("null_inputs_moved", null_moved, "count")
+result("null_plan_max_abs_delta_kw", f"{null_plan:.6g}", "kW")

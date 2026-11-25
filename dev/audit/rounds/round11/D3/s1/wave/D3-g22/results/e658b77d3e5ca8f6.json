@@ -1,0 +1,43 @@
+{
+ "key": "e658b77d3e5ca8f6",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4879 CMP_BOUND",
+ "patch": "if steps > 0: -> if steps >= 0:",
+ "function": "HeatPumpOptimizer._publish_breach_reports",
+ "cluster": "optimizer.py:HeatPumpOptimizer._publish_breach_reports@4876-4917",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3883.1,
+  "load1_start": 0.78,
+  "load1_end": 0.98,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/e658b77d3e5ca8f6.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e658b77d3e5ca8f6",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_e658b77d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_e658b77d.py",
+  "baseline_value": "empty temp_min_bounds: power_cap_breach_c=0.0",
+  "mutant_value": "ValueError (np.max of an empty array)",
+  "inputs_tried": [
+   "temp_min_bounds [] with n 0 (moves)",
+   "4-step plan with bounds (null_delta=0)",
+   "7 real solves (reach_scan.py: tmin 48, traj 49)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "unreachable through production: steps = min(n, n) >= 1 in every solve"
+ },
+ "should_fail": "none reachable: steps == 0 needs an empty horizon"
+}

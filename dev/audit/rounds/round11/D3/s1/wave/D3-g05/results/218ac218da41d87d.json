@@ -1,0 +1,107 @@
+{
+ "key": "218ac218da41d87d",
+ "site": "coordinator.py:5156 CMP_BOUND",
+ "patch": "return probe.value > 30.0 -> return probe.value >= 30.0",
+ "function": "HeatPumpOptimizerCoordinator._external_heat_override",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override@5156-5182",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3532.2,
+  "child_cpu_s": 5856.3,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/218ac218da41d87d.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 218ac218da41d87d",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.out",
+  "baseline_value": "override False at 30.0 C",
+  "mutant_value": "override True at 30.0 C",
+  "inputs_tried": [
+   "29.9 C",
+   "30.0 C",
+   "30.1 C",
+   "400 C"
+  ]
+ },
+ "m4_answer": "Moves at the boundary only: a fresh flue probe reading exactly 30.0 C gives override False on the baseline and True under the mutant (moved_inputs=1); 29.9, 30.1 and 400 C are unchanged.",
+ "should_fail": "tests/features.py ('a flue probe still uses its own threshold, not the shared numeric rule', features.py:3366) checks 45 and 20 C only; no case at the 30.0 C boundary",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "finding": {
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "title": "No check pins the flue-probe threshold at exactly 30.0 C; > -> >= in the override is unseen",
+  "severity_claimed": "low",
+  "severity": "low",
+  "claim": "Mutant 218ac218da41d87d (coordinator.py:5156, probe.value > 30.0 -> >= 30.0) survives the full gate, yet a fresh flue probe at exactly 30.0 C flips the external-heat override False -> True.",
+  "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py ('a flue probe still uses its own threshold, not the shared numeric rule', features.py:3366) checks 45 and 20 C only; no case at the 30.0 C boundary.",
+  "class_guess": "I1",
+  "stop_rule_class": "hygiene",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._external_heat_override",
+  "metric_definition": "_external_heat_override's return for a fresh numeric flue probe reading 30.0 C",
+  "perturbation": {
+   "change": "the mutant edit 'return probe.value > 30.0' -> 'return probe.value >= 30.0' at custom_components/heatpump_optimizer/coordinator.py:5156, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 218ac218da41d87d",
+   "expected_direction": "up",
+   "observed_value": "True"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+   "value": "unchanged",
+   "note": "29.9, 30.1 and 400 C: identical in both arms"
+  },
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+  "phenomenon_property": "A numeric flue probe suppresses heating only strictly above 30.0 C",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "tests only: add a 30.0 C case to the flue-threshold check",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+   "value": "True",
+   "unit": "_external_heat_override's return for a fresh numeric flue probe reading 30.0 C",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 218ac218da41d87d"
+  ]
+ }
+}

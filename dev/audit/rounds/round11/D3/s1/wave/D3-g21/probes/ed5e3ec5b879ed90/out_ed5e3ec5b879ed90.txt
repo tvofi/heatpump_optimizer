@@ -1,0 +1,8 @@
+RESULT dhw_steps_at_0p1=22 count
+RESULT dhw_preheat_hours_baseline=0.0
+RESULT dhw_preheat_hours_mutant=13.0
+RESULT null_delta=0 count
+RESULT plan_dhw_maxabs_diff_kw=0.0000 kW
+RESULT thread_factor=1.041
+RESULT load1=1.71
+RESULT swapins=0

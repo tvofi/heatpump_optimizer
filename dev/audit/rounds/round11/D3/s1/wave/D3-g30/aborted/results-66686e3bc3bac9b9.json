@@ -1,0 +1,28 @@
+{
+ "key": "66686e3bc3bac9b9",
+ "site": "custom_components/heatpump_optimizer/price_model.py:81 CONST",
+ "patch": "QUARTER_CONFIDENCE_DAYS = 5 -> QUARTER_CONFIDENCE_DAYS = 10",
+ "function": "<module>",
+ "cluster": "price_model.py:<module>@66-90",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "TIMEOUT",
+  "killed_by": null,
+  "gate_rc": null,
+  "wall_s": null,
+  "load1_start": null,
+  "load1_end": null,
+  "failed_scripts": null,
+  "more_fails_than_null": null,
+  "command": null,
+  "cap_s": 14400,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/66686e3bc3bac9b9.json",
+  "provisional_timing": true
+ },
+ "class": "timeout",
+ "timeout": {
+  "cap_s": 14400,
+  "last_script_line": "     153s  python3 tests/harness_headers.py"
+ }
+}

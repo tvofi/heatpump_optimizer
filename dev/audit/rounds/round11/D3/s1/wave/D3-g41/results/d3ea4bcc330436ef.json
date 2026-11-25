@@ -1,0 +1,44 @@
+{
+ "key": "d3ea4bcc330436ef",
+ "site": "custom_components/heatpump_optimizer/tariff.py:1196 CMP_BOUND",
+ "patch": "above = np.flatnonzero(np.any(excess > 0, axis=1)) -> above = np.flatnonzero(np.any(excess >= 0, axis=1))",
+ "function": "peak_cost_batch",
+ "cluster": "tariff.py:peak_cost_batch@1196-1196",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/structure.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 2833.0,
+  "load1_start": 0.78,
+  "load1_end": 0.91,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/structure.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/d3ea4bcc330436ef.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d3ea4bcc330436ef",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "killed",
+ "failing_check_lines": [
+  "tests/structure.py: 1 metric(s) IMPROVED and not yet recorded: duplication_copies budget 8 measured 7 delta -1 (gates/d3ea4bcc330436ef.log:12426-12448)",
+  "(the other FAIL lines in the log, a8:register_once and hb:positive_control, sit inside scripts the null also has red or that stayed green; not the kill)"
+ ],
+ "kill_mechanism": "structural ratchet, not a behaviour check: the one-line edit makes tariff.py:1196 differ from its duplicated twin, so structure.py's duplication_copies drops 8 -> 7 and the ratchet demands a --record. Any edit of the line would trip it; no assertion read the cost.",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_d3ea4bcc330436ef.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_d3ea4bcc330436ef.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_d3ea4bcc330436ef.txt",
+  "metric": "nan_row_cost",
+  "baseline_value": "0.0",
+  "mutant_value": "nan",
+  "inputs_tried": "14904 batch inputs; 896 moved, all rows holding a NaN window with no finite window above the threshold; scalar peak_cost_smooth on that row 0.0"
+ },
+ "lead": "value change the gate's behaviour checks did not read: peak_cost_batch costs a [nan,1,1,1] kW row at NaN under the mutant (baseline 0.0, scalar twin 0.0); tests/features.py reaches tariff.py:1196 but no check feeds a NaN window to peak_cost_batch"
+}

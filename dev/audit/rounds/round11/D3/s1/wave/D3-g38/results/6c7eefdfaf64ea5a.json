@@ -1,0 +1,58 @@
+{
+ "key": "6c7eefdfaf64ea5a",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1279 CMP_BOUND",
+ "patch": "if not base_u > 1e-6: -> if not base_u >= 1e-6:",
+ "function": "adoption_decision",
+ "cluster": "sysid.py:adoption_decision@1279-1279",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4001.3,
+  "load1_start": 0.85,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g38/gates/6c7eefdfaf64ea5a.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; null control gates/null.json (closure.py selftest, entities.py, harness_headers.py red as artefact checks)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/probe_6c7eefdfaf64ea5a.py",
+  "command": "cd <clean baseline checkout> && HPO_PROBE_ROOT=$PWD PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 <box tree>/dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/probe_6c7eefdfaf64ea5a.py",
+  "baseline": "admit[one_zone_1e-6]=0; admit[two_zone_5e-7+5e-7]=0; admit[null_0]=0; admit[null_2e-6]=1; admit[null_0.2]=1",
+  "mutant": "admit[one_zone_1e-6]=1; admit[two_zone_5e-7+5e-7]=1; admit[null_0]=0; admit[null_2e-6]=1; admit[null_0.2]=1",
+  "summary": "inputs_differing=2 of 5",
+  "output": [
+   "RESULT admit[one_zone_1e-6] baseline=0 mutant=1 reasons='no configured heat-loss coefficient to scale'|'adopted'",
+   "RESULT admit[two_zone_5e-7+5e-7] baseline=0 mutant=1 reasons='no configured heat-loss coefficient to scale'|'adopted'",
+   "RESULT admit[null_0] baseline=0 mutant=0 reasons='no configured heat-loss coefficient to scale'|'no configured heat-loss coefficient to scale'",
+   "RESULT admit[null_2e-6] baseline=1 mutant=1 reasons='adopted'|'adopted'",
+   "RESULT admit[null_0.2] baseline=1 mutant=1 reasons='adopted'|'adopted'",
+   "RESULT inputs_differing=2 of 5"
+  ],
+  "inputs_tried": "one zone UA=1e-6, two zones 5e-7+5e-7, null 0.0, null 2e-6, null 0.2"
+ },
+ "should_fail": "tests/features.py _p5_tracer (features.py:67198, the #1525 every-return cases) drives the 'no configured heat-loss coefficient to scale' return but with no case at base UA == 1e-6 exactly",
+ "title": "No check pins adoption_decision's base-UA > 1e-6 floor at its tie",
+ "claim": "Full GATE_SCOPE=full GOLDEN_MODE=drift gate verdict RED-AS-NULL (no script red beyond this box's null) on the one-line mutant `if not base_u > 1e-6:` -> `if not base_u >= 1e-6:` at custom_components/heatpump_optimizer/sysid.py:1279 (adoption_decision), yet the probe moves: a configured base UA of exactly 1e-6 kW/K is adopted with a scale of 5e5 instead of refused 'no configured heat-loss coefficient to scale'.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "metric_definition": "admit (1) or refuse (0) of adoption_decision(SysIdResult(completed, ua_profile_halfwidth=0.01, heat_loss 0.5), ThermalParameters(base UA), SysIdConfig()) per configured base UA; inputs_differing counts inputs whose admit differs.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/probe_6c7eefdfaf64ea5a.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/_mutlib.py"
+ ],
+ "evidence_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6c7eefdfaf64ea5a  (gate); cd <clean baseline checkout> && HPO_PROBE_ROOT=$PWD PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 <box tree>/dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/probe_6c7eefdfaf64ea5a.py  (probe)",
+ "perturbation": "key 6c7eefdfaf64ea5a: if not base_u > 1e-6: -> if not base_u >= 1e-6: (applied in memory by the probe, committed by fullgate.py for the gate); direction: admit at base UA == 1e-6 rises 0 -> 1",
+ "null_control": "gate: this box's fullgate.py null (gates/null.json), same three red scripts and FAIL counts; probe: the null inputs listed in inputs_tried, where both arms agree"
+}

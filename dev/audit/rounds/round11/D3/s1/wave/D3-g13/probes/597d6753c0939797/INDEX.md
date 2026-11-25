@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_597d6753c0939797.py: mutant 597d6753c0939797; pins: count of _apply_dhw_min_run inputs whose returned plan differs baseline vs mutant: 144 production-shaped fixtures, a slot exactly at min_run_power, and (direct only) 144 fixtures with min_run_power > p_dhw_max.

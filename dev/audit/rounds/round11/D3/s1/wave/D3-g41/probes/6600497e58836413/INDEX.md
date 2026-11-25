@@ -1,0 +1,1 @@
+- probe_6600497e58836413.py: Metric: (a) tariff.window_factors' return for n_windows = 0 with an active #13 mask (None vs an array); (b) count of

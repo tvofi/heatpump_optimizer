@@ -1,0 +1,75 @@
+{
+ "key": "f06caefa38815e4f",
+ "site": "custom_components/heatpump_optimizer/price_model.py:141 CMP_BOUND",
+ "patch": "`if low > 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):` -> `if low > 0.0 and high < low * (hi / lo) * (1.0 + 1e-9):`",
+ "function": "_in_domain",
+ "cluster": "price_model.py:_in_domain@141-141",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3040.4,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5031.5,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/gates/f06caefa38815e4f.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f06caefa38815e4f",
+ "machine": "box D3-g31: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB (walls and loads provisional)",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_f06caefa38815e4f.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_f06caefa38815e4f.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_f06caefa38815e4f.out",
+  "baseline_value": "profile [0.5]*23+[bound] restored unchanged, 0 warnings; guessed 17:00 price at level 1.0 = 0.5",
+  "mutant_value": "clipped and renormalised (max |delta| 2.53448), 1 warning; guessed 17:00 price = 0.827586",
+  "inputs_tried": "persisted weekday shapes: all zero, one zero bin, a negative bin, exactly at the guard's bound, nextafter above/below it, flat ones, the learner's cone edge [0.2]*23+[3.0]"
+ },
+ "should_fail": "tests/features.py and tests/finite_boundary.py (restore PriceShapeModel via from_dict on the traced baseline) lack a restore of a profile whose max/min ratio sits exactly at the guard's bound asserting it is returned unchanged and unwarned",
+ "finding": {
+  "title": "No check restores a price profile exactly at _in_domain's ratio bound; <= -> < there is unseen",
+  "claim": "With price_model.py:141 `high <= bound` -> `high < bound`, PriceShapeModel.from_dict clips and renormalises a persisted profile whose max sits exactly at low*(hi/lo)*(1+1e-9) (max |delta| 2.53448, warnings 0 -> 1) and the full gate stays green",
+  "metric_definition": "max |restored shape delta| and warning count for a persisted shape [0.5]*23+[0.5*(3.0/0.2)*(1+1e-9)]",
+  "perturbation": {
+   "change": "price_model.py:141 `high <= low * (hi / lo) * (1.0 + 1e-9)` -> `high < ...`",
+   "expected_direction": "up",
+   "observed_value": 2.53448
+  },
+  "null_control": {
+   "command": "the same probe's nextafter-below, flat and cone-edge cases",
+   "value": "max_abs_shape_delta=0",
+   "note": "one ulp below the bound both arms keep the profile"
+  },
+  "phenomenon_property": "A persisted profile inside the learner's cone, its bound included, is adopted unchanged",
+  "files": [
+   "custom_components/heatpump_optimizer/price_model.py"
+  ],
+  "proposed_fix_scope": "tests/features.py: from_dict at the exact bound asserting no clip and no warning",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:_in_domain",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_f06caefa38815e4f.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_f06caefa38815e4f.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f06caefa38815e4f",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list), each key's fullgate.py verdict",
+  "full_gate": "RED-AS-NULL gate_rc=1 (null control: dev/audit/rounds/round11/D3/s1/wave/D3-g31/gates/null.json)"
+ }
+}

@@ -1,0 +1,89 @@
+{
+ "key": "206a570d8cc784e3",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5800 GUARD_OFF",
+ "patch": "if not np.isfinite(residual): -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._async_learn_house_heat_loss",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss@5782-5810",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3537.4,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/206a570d8cc784e3.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 206a570d8cc784e3",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_206a570d8cc784e3.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_206a570d8cc784e3.py",
+  "baseline_value": "inputs_moved=0 of 9",
+  "mutant_value": "identical on all 9; nonfinite_residuals_past_guard=6",
+  "inputs_tried": [
+   "observed_nan",
+   "observed_inf",
+   "observed_minus_inf",
+   "observed_nan_two_zone",
+   "observed_nan_sustained_power0",
+   "outdoor_nan_predicted_nan",
+   "power_nan",
+   "room0_nan",
+   "finite_null"
+  ],
+  "result_lines": [
+   "RESULT observed_nan_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_nan_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_nan_moved=0 count",
+   "RESULT observed_inf_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_inf_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_inf_moved=0 count",
+   "RESULT observed_minus_inf_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_minus_inf_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_minus_inf_moved=0 count",
+   "RESULT observed_nan_two_zone_baseline_scale=1.0002884615384615 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_nan_two_zone_mutant_scale=1.0002884615384615 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_nan_two_zone_moved=0 count",
+   "RESULT observed_nan_sustained_power0_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_nan_sustained_power0_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT observed_nan_sustained_power0_moved=0 count",
+   "RESULT outdoor_nan_predicted_nan_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT outdoor_nan_predicted_nan_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT outdoor_nan_predicted_nan_moved=0 count",
+   "RESULT power_nan_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT power_nan_mutant_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT power_nan_moved=0 count",
+   "RESULT room0_nan_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT room0_nan_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT room0_nan_moved=0 count",
+   "RESULT finite_null_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT finite_null_mutant_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT finite_null_moved=0 count",
+   "RESULT nonfinite_residuals_past_guard=6 count (mutant arm, all inputs)",
+   "RESULT inputs_moved=0 count of 9",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.89",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "none",
+  "assertion_it_lacks": "none possible on a reachable input: the mutant lets 6 non-finite residuals past the line, but drift.Cusum.update refuses non-finite residuals and _loss_residual_rejected rejects nan/inf (abs(nan) <= bound is False), so no learner state, save or return value moves"
+ },
+ "m4_carried": null,
+ "equivalent_reason": "the mutant lets 6 non-finite residuals past the line, but drift.Cusum.update refuses non-finite residuals and _loss_residual_rejected rejects nan/inf (abs(nan) <= bound is False), so no learner state, save or return value moves"
+}

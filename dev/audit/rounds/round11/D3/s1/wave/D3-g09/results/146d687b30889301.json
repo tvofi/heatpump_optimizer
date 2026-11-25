@@ -1,0 +1,50 @@
+{
+ "key": "146d687b30889301",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:10504 GUARD_OFF",
+ "patch": "if closed: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._roll_month",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._roll_month@10504-10504",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3266.3,
+  "child_cpu_s": 5334.6,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/146d687b30889301.json",
+ "gate_command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 146d687b30889301  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_146d687b30889301.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/out_146d687b30889301.txt",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_146d687b30889301.py",
+  "metric": "RESULT settle_saves_* and receipt_frozen_at_last_save: ledger saves per _accumulate_energy settlement crossing into February (the only caller of _roll_month, coordinator.py:10306), and whether the frozen receipt precedes the last save",
+  "baseline_value": "direct _roll_month: saves_close=1; settlement: 2 saves, receipt frozen at last save 1",
+  "mutant_value": "direct: saves_close=0; settlement: 1 save, receipt frozen at last save 1 (same stored state)",
+  "inputs_tried": [
+   "direct _roll_month across Jan->Feb",
+   "direct within January",
+   "settlement energy 2 kW",
+   "settlement energy 0",
+   "settlement with an injected fault after the roll"
+  ],
+  "null_control": "the within-January cell",
+  "load1": 1.06,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none on a reachable path: the settlement saves the ledger unconditionally after the roll (coordinator.py:10332 for energy <= 0, 10401 otherwise), so the receipt is persisted by the same settlement; only a settlement that raises after the roll separates the arms (fault arm: 1 save vs 0)"
+}

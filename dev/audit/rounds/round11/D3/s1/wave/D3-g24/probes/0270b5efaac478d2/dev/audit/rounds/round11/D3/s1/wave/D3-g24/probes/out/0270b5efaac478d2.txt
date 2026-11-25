@@ -1,0 +1,14 @@
+RESULT null_cases_moved=0 count
+RESULT null_cases_tried=21 count
+CASE empty/at_start: baseline=ok {'power': 1.0, 'setpoint': 21.0, 'mode': 'idle', 'price': 0.0, 'heat_pump_on': False, 'dis | mutant=raise IndexError
+CASE empty/1us_before_start: baseline=ok {'power': 1.0, 'setpoint': 21.0, 'mode': 'idle', 'price': 0.0, 'heat_pump_on': False, 'dis | mutant=raise IndexError
+CASE empty/half_step_before: baseline=ok {'power': 1.0, 'setpoint': 21.0, 'mode': 'idle', 'price': 0.0, 'heat_pump_on': False, 'dis | mutant=raise IndexError
+RESULT mutant_cases_moved=3 count
+RESULT mutant_cases_tried=21 count
+INFO reach horizon0: optimize raises IndexError before any action is read
+INFO reach prices_empty: optimize raises IndexError before any action is read
+INFO reach horizon_lt_step: optimize raises IndexError before any action is read
+RESULT reach_optimize_empty_results=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.15
+RESULT swapins=0 count

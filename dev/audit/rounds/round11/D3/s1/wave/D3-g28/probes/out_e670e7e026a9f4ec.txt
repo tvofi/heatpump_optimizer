@@ -1,0 +1,16 @@
+RESULT over_pct_baseline=100.000 %
+RESULT over_pct_mutant=200.000 %
+RESULT under_pct_baseline=-100.000 %
+RESULT under_pct_mutant=-300.000 %
+RESULT null_inside_band_diff=0.000 %
+RESULT cell_summer_typical_dhw_pct_baseline_mutant=22.67,22.67
+RESULT cell_summer_typical_nodhw_pct_baseline_mutant=26.17,26.17
+RESULT cell_summer_negative_dhw_pct_baseline_mutant=16.17,16.17
+RESULT cell_summer_negative_nodhw_pct_baseline_mutant=0.00,0.00
+RESULT cell_shoulder_nodhw_pct_baseline_mutant=45.95,45.95
+RESULT cell_winter_typical_dhw_pct_baseline_mutant=50.62,50.62
+RESULT golden_cells=6
+RESULT golden_cells_moved=0 []
+RESULT thread_factor=1.003
+RESULT load1=1.49
+RESULT swapins=0

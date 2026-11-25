@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT band_refused=1\nRESULT band_refused_inside=0\nRESULT band_refused_scan=00011\nRESULT thread_factor=1.000\nRESULT load1=37.94\nRESULT swapins=0\n", "stderr": ""}

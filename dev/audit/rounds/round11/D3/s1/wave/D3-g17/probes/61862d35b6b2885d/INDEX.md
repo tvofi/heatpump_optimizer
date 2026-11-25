@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_61862d35b6b2885d.py (stored as .py.txt):  max planned DHW power (kW) DhwPlanner._plan_dhw_cheapest_first returns, against ctx.p_dhw_max.

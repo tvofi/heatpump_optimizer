@@ -1,0 +1,29 @@
+
+ha_dt.freeze(NOW)
+t0, t1 = time.process_time(), time.thread_time()
+MUT = mutate(CLS.async_run_optimization, OLD, NEW)
+
+
+def left_after(fn, fails):
+    hass, c = make("sf")
+    real = c._forecast_arrays
+
+    def boom(*_a):
+        raise RuntimeError("injected forecast failure")
+
+    c._forecast_arrays = boom
+    for _ in range(fails):
+        run(fn, c)
+    raised = sum(1 for i in getattr(hass, "issues", []) if i[1] == "solve_failures")
+    c._forecast_arrays = real
+    assert run(fn, c) is None and c._solve_failures == 0
+    left = sum(1 for i in getattr(hass, "issues", []) if i[1] == "solve_failures")
+    return raised, left
+
+
+b, m = left_after(CLS.async_run_optimization, FAILS), left_after(MUT, FAILS)
+print(f"RESULT issues_left_after_recovery_{FAILS}_failures_baseline={b[1]} mutant={m[1]}  (raised {b[0]} / {m[0]})")
+b, m = left_after(CLS.async_run_optimization, NULL_FAILS), left_after(MUT, NULL_FAILS)
+print(f"RESULT null_moved={int(b != m)} count  ({NULL_FAILS} failures: baseline {b}, mutant {m})")
+ha_dt.freeze(None)
+tail_results(t0, t1)

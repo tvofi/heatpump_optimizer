@@ -1,0 +1,92 @@
+{
+ "key": "3067ff76235329e4",
+ "site": "optimizer.py:1871 CMP_BOUND",
+ "patch": "if np.isfinite(score) and (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale: -> if np.isfinite(score) and (prior - score) >= _LBFGSB_RESTART_KEEP_REL * scale:",
+ "function": "_lbfgsb_restart",
+ "cluster": "optimizer.py:_lbfgsb_restart@1870-1871",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3433.5,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/3067ff76235329e4.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3067ff76235329e4",
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_3067ff76235329e4.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_3067ff76235329e4.py",
+  "baseline_value": "best",
+  "mutant_value": "polished",
+  "example_input": "prior=0.0,score=-2e-17",
+  "results": [
+   "example_input=prior=0.0,score=-2e-17",
+   "kept_baseline=best",
+   "kept_mutant=polished",
+   "grid_inputs_tried=269 count",
+   "grid_inputs_moved=3 count",
+   "domain_inputs_tried=245 count",
+   "domain_inputs_moved=3 count",
+   "production_decisions=16 count",
+   "production_decisions_moved=0 count",
+   "production_prior_exactly_zero=0 count",
+   "production_min_abs_gap_to_threshold=0.00127121",
+   "null_inputs_moved=0 count"
+  ],
+  "inputs_tried": "production domain: any finite (prior, score) objective pair; grid_inputs_tried=269 count; domain_inputs_tried=245 count",
+  "null": [
+   "null_inputs_moved=0 count"
+  ]
+ },
+ "step4": "moves on 3 of 245 finite grid pairs, all at exact threshold equality; 0 of 12 production decisions",
+ "should_fail": "tests/features.py::_d0_restart_keeps_only_a_real_drop (features.py ~6800-6850: an ftol-tick restart is not adopted, a 5e-2 relative drop is) has no case at a drop of exactly the keep threshold",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "finding": {
+  "title": "No check restarts with a drop of exactly the keep threshold; > -> >= in _lbfgsb_restart is unseen",
+  "claim": "Mutant 3067ff76235329e4 at optimizer.py:1871 (`>` -> `>=`) survives the full gate, yet where prior - score equals _LBFGSB_RESTART_KEEP_REL x scale exactly the polish is adopted (prior=0.0, score=-2e-17: best -> polished); 3 of 245 finite grid pairs move, 0 of 12 production decisions (closest gap to the threshold 1.39e-3). Full gate: RED-AS-NULL, gate_rc=1.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "which plan _lbfgsb_restart keeps (best/polished), counted over the finite (prior, score) grid",
+  "phenomenon_property": "_lbfgsb_restart adopts a polish only for a drop strictly above the keep threshold",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this key's row) with the full gate's verdict in gates/<key>.json",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:_lbfgsb_restart",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_3067ff76235329e4.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_3067ff76235329e4.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_3067ff76235329e4.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_3067ff76235329e4.py",
+   "value": 3,
+   "unit": "finite (prior, score) pairs whose kept plan flips",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+   "tolerance": "exact (counts); solver floats to 1e-3 relative",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "the one-line mutant `if np.isfinite(score) and (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale:` -> `if np.isfinite(score) and (prior - score) >= _LBFGSB_RESTART_KEEP_REL * scale:` at custom_components/heatpump_optimizer/optimizer.py:1871, in memory by the probe; on disk by fullgate.py run --key 3067ff76235329e4",
+   "expected_direction": "up",
+   "observed_value": 3
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_3067ff76235329e4.py",
+   "value": "null_inputs_moved=0 count",
+   "note": "the function re-compiled with the line unchanged: no grid input, production call or plan moves; the box's full-gate null is gates/null.json"
+  },
+  "should_fail": "tests/features.py::_d0_restart_keeps_only_a_real_drop (features.py ~6800-6850: an ftol-tick restart is not adopted, a 5e-2 relative drop is) has no case at a drop of exactly the keep threshold",
+  "proposed_fix_scope": "tests only: the check named in should_fail, at the input the probe's example_input names"
+ }
+}

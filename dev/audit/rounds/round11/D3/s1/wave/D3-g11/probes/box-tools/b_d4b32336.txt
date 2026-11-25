@@ -1,0 +1,42 @@
+
+import time
+from datetime import datetime, timezone
+from types import SimpleNamespace
+from unittest import mock
+from custom_components.heatpump_optimizer.ledger import MonthlyLedger
+
+CLS = co.HeatPumpOptimizerCoordinator
+MUT = mutate(CLS.month_channel_totals, "if not entry:", "if False:")
+NOW = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+
+
+def call(fn, ledger, line="space"):
+    me = SimpleNamespace(_ledger=ledger)
+    with mock.patch.object(co.dt_util, "now", lambda: NOW):
+        try:
+            return fn(me, line)
+        except Exception as err:  # noqa: BLE001
+            return type(err).__name__
+
+
+t0, t1 = time.process_time(), time.thread_time()
+fresh = MonthlyLedger()
+other_month = MonthlyLedger()
+other_month.add(datetime(2025, 12, 15, tzinfo=timezone.utc), "space", kwh=1.0, sek=1.0)
+other_line = MonthlyLedger()
+other_line.add(NOW, "dhw", kwh=1.0, sek=1.0)
+restored_junk = MonthlyLedger.from_dict({"months": {"2026-01": {"lines": {"space": "junk"}, "meta": {}}}})
+moved = 0
+for name, led in {"fresh_ledger": fresh, "other_month_only": other_month, "other_line_only": other_line,
+                  "restored_non_dict_entry": restored_junk}.items():
+    b, m = call(CLS.month_channel_totals, led), call(MUT, led)
+    moved += int(b != m)
+    print(f"RESULT {name}_baseline={b} mutant={m}")
+print(f"RESULT moved_production={moved} count")
+for name, entry in {"stub_empty_dict": {}, "stub_none": None}.items():
+    stub = SimpleNamespace(line=lambda month, line, e=entry: e)
+    print(f"RESULT {name}_baseline={call(CLS.month_channel_totals, stub)} mutant={call(MUT, stub)}  (not a production ledger)")
+booked = MonthlyLedger()
+booked.add(NOW, "space", kwh=3.5, sek=4.2)
+print(f"RESULT null_moved={int(call(CLS.month_channel_totals, booked) != call(MUT, booked))} count")
+tail_results(t0, t1)

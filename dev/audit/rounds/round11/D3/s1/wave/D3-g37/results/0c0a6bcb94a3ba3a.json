@@ -1,0 +1,83 @@
+{
+ "key": "0c0a6bcb94a3ba3a",
+ "site": "custom_components/heatpump_optimizer/sysid.py:129 CMP_BOUND",
+ "patch": "if ua <= 1e-9 or capacity <= 1e-9: -> if ua < 1e-9 or capacity <= 1e-9:",
+ "function": "_predict_step_excursion",
+ "cluster": "sysid.py:_predict_step_excursion@129-139",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3561.5,
+  "child_cpu_s": 5937.6,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/0c0a6bcb94a3ba3a.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/0c0a6bcb94a3ba3a.log",
+ "provisional": true,
+ "machine": "box D3-g37: nproc 4, Intel Xeon @ 2.10GHz, 16 GB; walls and load provisional",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_0c0a6bcb94a3ba3a.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_0c0a6bcb94a3ba3a.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_0c0a6bcb94a3ba3a.txt",
+  "results": {
+   "unit_ua_1e-9_baseline": "(inf, inf)",
+   "unit_ua_1e-9_mutant": "(0.9199996590614319, 0.9199996590614319)",
+   "unit_ua_1e-9_moved": "1 count",
+   "null_ua_5e-10_baseline": "(inf, inf)",
+   "null_ua_5e-10_mutant": "(inf, inf)",
+   "null_ua_5e-10_moved": "0 count",
+   "null_ua_2e-9_baseline": "(0.9200001358985901, 0.9200001358985901)",
+   "null_ua_2e-9_mutant": "(0.9200001358985901, 0.9200001358985901)",
+   "null_ua_2e-9_moved": "0 count",
+   "unit_moved": "1 count",
+   "null_moved": "0 count",
+   "reach_runs": "168 count",
+   "reach_calls": "40 count",
+   "reach_calls_separating": "0 count",
+   "reach_outcomes_differ": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.99",
+   "swapins": "0"
+  },
+  "answer": "Unit: ua exactly 1e-9 returns (0.92, 0.92) instead of (inf, inf); 5e-10 and 2e-9 do not move. Production: the only caller (sysid.py:1627) logs a debug line and is reached only after _predict_step_excursion_plant found a fitting step, which its own guard (sysid.py:315-316, ua <= 1e-9) refuses first; 40 calls over the sweep, 0 separating, 0 outcomes differ",
+  "harness": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_mut.py (in-memory mutant), dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_drive.py (production sweep)",
+  "baseline_value": {
+   "unit_ua_1e-9_baseline": "(inf, inf)",
+   "null_ua_5e-10_baseline": "(inf, inf)",
+   "null_ua_2e-9_baseline": "(0.9200001358985901, 0.9200001358985901)"
+  },
+  "mutant_value": {
+   "unit_ua_1e-9_mutant": "(0.9199996590614319, 0.9199996590614319)",
+   "null_ua_5e-10_mutant": "(inf, inf)",
+   "null_ua_2e-9_mutant": "(0.9200001358985901, 0.9200001358985901)"
+  },
+  "inputs_tried": [
+   "null_ua_2e-9",
+   "null_ua_5e-10",
+   "unit_ua_1e-9",
+   "production sweep: 168 count runs (_drive.sweep / slab sweep)"
+  ]
+ },
+ "should_fail": "none through production; tests/features.py:29790/29796/29811/59718 call it directly with ua 0.20"
+}

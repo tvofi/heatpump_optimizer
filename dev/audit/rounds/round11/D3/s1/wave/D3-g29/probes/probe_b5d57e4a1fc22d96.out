@@ -1,0 +1,11 @@
+RESULT span-10.0_demand2.0_baseline=1.0 mutant=3.4903429574618414
+RESULT span-10.0_demand0.0_baseline=1.0 mutant=0.0
+RESULT span+0.0_demand0.0_baseline=1.0 mutant=0.0
+RESULT span-0.5_demand50.0_baseline=1.0 mutant=1.0025031276057952
+RESULT moved=4 count of 4
+RESULT null_delta=0 count
+RESULT reach_ambient=20.0 C reach_cop_flow_reference_default=35.0 C
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "# tie: d=4.3103448277292955e-06 K c_dhw=0.2319999999922984 d*c_dhw=1e-06\nRESULT step0_kw_baseline=0.0000 kW\nRESULT step0_kw_mutant=0.1000 kW\nRESULT off_tie_inputs_moved=0 of 4 (-)\nRESULT thread_factor=1.000\nRESULT load1=35.17\nRESULT swapins=0\n", "stderr": "", "key": "50ae25437a296deb", "box": "D3-g16", "wall_s": 4.2, "load1": 35.1650390625}

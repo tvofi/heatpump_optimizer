@@ -1,0 +1,100 @@
+{
+ "key": "68cc141bf2c3493a",
+ "site": "grid_fee.py:388 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/grid_fee.py",
+ "line": 388,
+ "patch": "and float(entity_value) < lowest -> and float(entity_value) <= lowest",
+ "function": "min_component",
+ "cluster": "grid_fee.py:min_component@383-388",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "reach_carried": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3741.2,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/68cc141bf2c3493a.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/68cc141bf2c3493a.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 68cc141bf2c3493a",
+ "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz, box D3-g19 alone on its machine",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68cc141bf2c3493a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68cc141bf2c3493a.py",
+  "results": [
+   "RESULT label_baseline=fixed",
+   "RESULT label_mutant=entity",
+   "RESULT label_changed=1 count",
+   "RESULT value_delta=0.0",
+   "RESULT zero_tie_label=fixed->entity",
+   "RESULT null_label_delta=0 count",
+   "RESULT wall=0.07 s (provisional)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.74",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": "Inputs tried: tie -0.20/-0.20; tie at 0.0/0.0 (fixed 0, entity 0); the three null inputs.",
+  "load1": "0.74",
+  "thread_factor": "1.000",
+  "baseline_value": "fixed",
+  "mutant_value": "entity",
+  "metric_key": "label"
+ },
+ "reach": "executed on the traced baseline (tests/features.py); the tie is reachable from a negative fixed component equal to the fee entity's state",
+ "should_fail": "tests/features.py (traced baseline executes grid_fee.py:388): its min_component checks at tests/features.py:17749-17766 cover rules mode, a positive fixed and MODE_NONE; it lacks an entity-mode tie, e.g. min_component(GridFeeSchedule(mode='entity', fixed=-0.20), -0.20) == (-0.20, 'fixed')",
+ "finding": {
+  "title": "No check pins min_component's source label on a fixed/entity rate tie (grid_fee.py:388 < -> <=)",
+  "claim": "Changing grid_fee.py:388 `< lowest` to `<= lowest` survives the full gate and moves min_component's source label on a fixed/entity tie from 'fixed' to 'entity' (value unchanged)",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "source label min_component returns in entity mode for fixed=-0.20, entity=-0.20",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee:min_component",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68cc141bf2c3493a.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68cc141bf2c3493a.py",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/grid_fee.py:388 and float(entity_value) < lowest -> and float(entity_value) <= lowest (in memory)",
+   "expected_direction": "sign_flip",
+   "observed_value": "fixed -> entity"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68cc141bf2c3493a.py",
+   "value": "{\"null_label_delta\": \"0 count\"}",
+   "note": "inputs where the arms must agree; full-gate null on this box: gates/null.json"
+  },
+  "phenomenon_property": "min_component keeps the first holder (fixed) on an exact rate tie in every mode",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68cc141bf2c3493a.py",
+  "proposed_fix_scope": "tests: an entity-mode tie case beside tests/features.py:17749",
+  "files": [
+   "custom_components/heatpump_optimizer/grid_fee.py",
+   "tests/features.py"
+  ]
+ }
+}

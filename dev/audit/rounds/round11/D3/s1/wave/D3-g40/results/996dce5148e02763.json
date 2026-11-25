@@ -1,0 +1,86 @@
+{
+ "key": "996dce5148e02763",
+ "site": "custom_components/heatpump_optimizer/tariff.py:806 CLAMP_DROP",
+ "patch": "scale = np.maximum(tau * peak, 1e-9) -> scale = (tau * peak)",
+ "function": "_smooth_topk_sum_batch",
+ "cluster": "tariff.py:_smooth_topk_sum_batch@801-832",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4402.0,
+  "load1_start": 0.78,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/gates/996dce5148e02763.json",
+  "provisional": true
+ },
+ "machine": "box D3-g40, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (MACHINE.txt); wall/load provisional",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_996dce5148e02763.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_996dce5148e02763.py",
+  "metric": "max_delta_reachable_caller",
+  "baseline_value": 0.0,
+  "mutant_value": 5.6932e-10,
+  "unit": "kW",
+  "observed": "reachable differing 0 -> 67; max delta 5.69e-10 kW; RuntimeWarnings 0 -> 1356",
+  "inputs_tried": "same corpus (batch mode)",
+  "run_output": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/996dce5148e02763/RUN.txt",
+  "probe_class": "candidate"
+ },
+ "should_fail": {
+  "scripts": {
+   "line_executing_per_carried_m4": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ],
+   "full_net_scripts_run_green": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  "assertion_lacking": "a batch-vs-scalar bit-parity unit on a tied plateau row with peak below 2e-8 kW"
+ },
+ "finding": {
+  "title": "Dropping _smooth_topk_sum_batch's 1e-9 temperature floor moves sub-2e-8 kW plateau rows, and no check fails",
+  "claim": "Under the mutant at tariff.py:806 the batch smooth top-k (through _plateau_aware_topk_sum_batch) differs on 67 caller-reachable rows (45 tiny single rows, 22 stacked), max |delta| 5.7e-10 kW, with 1356 RuntimeWarnings; ordinary plateaus are bit-identical. The scalar twin keeps its floor, so the batch/scalar bit-parity the docstring promises breaks on these rows.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "metric_definition": "max_delta_reachable_caller (kW) printed by the probe, baseline arm vs one-line-mutant arm",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:_smooth_topk_sum_batch (custom_components/heatpump_optimizer/tariff.py:806)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_996dce5148e02763.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_996dce5148e02763.py",
+  "perturbation": {
+   "change": "scale = np.maximum(tau * peak, 1e-9) -> scale = (tau * peak)",
+   "expected_direction": "up",
+   "observed_value": "reachable differing 0 -> 67; max delta 5.69e-10 kW; RuntimeWarnings 0 -> 1356"
+  },
+  "null_control": "the box's fullgate.py null gate (gates/null.json) for the gate; inside the probe the baseline arm run twice (null_differing 0) or an unaffected input (null_delta 0)",
+  "files": [
+   "custom_components/heatpump_optimizer/tariff.py"
+  ]
+ }
+}

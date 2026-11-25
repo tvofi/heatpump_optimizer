@@ -1,0 +1,28 @@
+{
+ "cls": "candidate",
+ "base": "all-zero persisted weekday shape restored as all 1.0 (one warning); guessed 17:00 price at level 1.0 = 1.0",
+ "mut": "restored as all 0.0 (no warning); guessed 17:00 price = 0.0",
+ "inputs": "persisted weekday shapes: all zero, one zero bin, a negative bin, exactly at the guard's bound, nextafter above/below it, flat ones, the learner's cone edge [0.2]*23+[3.0]",
+ "should_fail": "tests/features.py and tests/finite_boundary.py (carried should_have_failed; both restore PriceShapeModel via from_dict on the traced baseline) lack a restore of an all-zero persisted shape asserting the D1-s5-02 clip (shape renormalised to 1.0, a warning); tests/entities.py:42270 only counts _in_domain's call sites",
+ "finding": {
+  "title": "No check restores an all-zero persisted price shape; letting _in_domain accept low == 0 is unseen",
+  "claim": "With price_model.py:141 `low > 0.0` -> `low >= 0.0`, PriceShapeModel.from_dict keeps an all-zero persisted shape (max |shape delta| 1.0, warning count 1 -> 0) so every guessed price past the published horizon is 0.0 instead of the level, and the full gate stays green",
+  "severity": "low",
+  "metric_definition": "max |restored shape - mutant restored shape| for a persisted all-zero weekday shape, and predict(Wed 17:00, level 1.0)",
+  "perturbation": {
+   "change": "price_model.py:141 `if low > 0.0 and ...` -> `if low >= 0.0 and ...`",
+   "expected_direction": "to_zero",
+   "observed_value": 0.0
+  },
+  "null_control": {
+   "command": "the same probe's flat-ones and learner-cone-edge cases",
+   "value": "max_abs_shape_delta=0",
+   "note": "profiles the learner can write are identical in both arms"
+  },
+  "phenomenon_property": "A persisted price profile with a non-positive bin is never adopted unclipped",
+  "files": [
+   "custom_components/heatpump_optimizer/price_model.py"
+  ],
+  "proposed_fix_scope": "tests/features.py: from_dict of an all-zero shape asserting the renormalised shape and a warning"
+ }
+}

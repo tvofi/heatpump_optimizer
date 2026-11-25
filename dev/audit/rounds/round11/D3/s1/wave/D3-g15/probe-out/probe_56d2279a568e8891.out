@@ -1,0 +1,12 @@
+RESULT moved_in_range=0 count
+RESULT n0_hours_since_20_baseline=(False, None, None)
+RESULT n0_hours_since_20_mutant=(False, None, None)
+RESULT n0_hours_since_168_baseline=(False, None, None)
+RESULT n0_hours_since_168_mutant=(False, None, None)
+RESULT n0_hours_since_400_baseline=(False, None, None)
+RESULT n0_hours_since_400_mutant=raises ValueError
+RESULT reach_n0_optimize_baseline=['optimize raised IndexError']
+RESULT reach_n0_optimize_mutant=['optimize raised ValueError']
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.18
+RESULT swapins=0 count

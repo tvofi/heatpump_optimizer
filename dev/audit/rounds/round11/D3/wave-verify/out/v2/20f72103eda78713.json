@@ -1,0 +1,1 @@
+{"key": "20f72103eda78713", "box": "D3-g34", "file": "custom_components/heatpump_optimizer/sysid.py", "line": 2018, "old": "                if h_prev <= 1e-6:", "new": "                if False:", "applied": true, "rc": 1, "stdout": "", "stderr": "REFUSE sysid.py:2018 is '                if False:\\n', not '                if h_prev <= 1e-6:'\n", "wall_s": 0.8, "load1": 42.3}

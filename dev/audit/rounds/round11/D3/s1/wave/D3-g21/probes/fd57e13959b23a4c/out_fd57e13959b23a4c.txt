@@ -1,0 +1,9 @@
+RESULT tie_baseline=original
+RESULT tie_mutant=replanned
+RESULT moved=1 count
+RESULT null_delta=0 count
+RESULT below_tie=replanned|replanned
+RESULT above_tie=original|original
+RESULT thread_factor=1.000
+RESULT load1=1.42
+RESULT swapins=0

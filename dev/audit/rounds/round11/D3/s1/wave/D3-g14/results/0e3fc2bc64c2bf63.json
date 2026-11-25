@@ -1,0 +1,80 @@
+{
+ "key": "0e3fc2bc64c2bf63",
+ "site": "dhw_planner.py:1649 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1649,
+ "patch": "if pin >= 0.5: -> if pin > 0.5:",
+ "function": "DhwPlanner._apply_dhw_pins",
+ "cluster": "dhw_planner.py:DhwPlanner._apply_dhw_pins@1645-1649",
+ "slice": "u1a",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2729.2,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/0e3fc2bc64c2bf63.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0e3fc2bc64c2bf63"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0e3fc2bc64c2bf63.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0e3fc2bc64c2bf63.py",
+  "baseline_value": "baseline_kw_at_pin_0p5=0.600000 kW",
+  "mutant_value": "mutant_kw_at_pin_0p5=0.000000 kW",
+  "inputs_tried": [
+   "pin exactly 0.5 (separates)",
+   "pins 0, 1, NaN, 0.49999, 0.50001 (null: identical)",
+   "ordinary day with pins {0,1,NaN} (realistic_delta 0.0 kW)"
+  ],
+  "production_reach": "unit only: manual_plan.channel_pins emits only PIN_ON 1.0, PIN_OFF 0.0 and NaN (manual_plan.py:41-42, 215-220); a 0.5 pin needs a SolveInputs caller passing fractional pins"
+ },
+ "should_fail": {
+  "script": "tests/manual_plan.py / tests/features.py (traced baseline executes dhw_planner.py:1649)",
+  "assertion": "no check pins the force-on threshold at exactly 0.5 (a 0.5 pin must force the step on)"
+ },
+ "finding": {
+  "title": "No check pins _apply_dhw_pins' force-on boundary at a pin of exactly 0.5",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant 0e3fc2bc64c2bf63 at dhw_planner.py:1649 (if pin >= 0.5: -> if pin > 0.5:) survives the full gate (RED-AS-NULL, gate_rc 1, no script beyond this box's null control), yet the probe's number moves: baseline baseline_kw_at_pin_0p5=0.600000 kW, mutant mutant_kw_at_pin_0p5=0.000000 kW. Reach: unit only: manual_plan.channel_pins emits only PIN_ON 1.0, PIN_OFF 0.0 and NaN (manual_plan.py:41-42, 215-220); a 0.5 pin needs a SolveInputs caller passing fractional pins.",
+  "metric_definition": "plan value (kW) _apply_dhw_pins returns at a 0 kW step pinned exactly 0.5 (min_run_power 0.6)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_pins line 1649",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0e3fc2bc64c2bf63.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/_g14lib.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0e3fc2bc64c2bf63.py",
+  "perturbation": {
+   "change": "the one-line mutant 0e3fc2bc64c2bf63 (if pin >= 0.5: -> if pin > 0.5:) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0e3fc2bc64c2bf63",
+   "direction": "down (0.6 -> 0.0 kW)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0e3fc2bc64c2bf63.py",
+   "value": "null arm delta 0 (see the probe's null_* RESULT lines)",
+   "gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/manual_plan.py"
+  ]
+ }
+}

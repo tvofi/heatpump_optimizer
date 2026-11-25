@@ -1,0 +1,104 @@
+{
+ "key": "84eb14f49ff66736",
+ "site": "dhw_planner.py:2232 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2232,
+ "patch": "j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j) -> j for j in range((0), k + 1) if usable(j)",
+ "function": "DhwPlanner._plan_dhw_cheapest_first",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first@2232-2307",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3210.1,
+  "child_cpu_s": 5272.9,
+  "load1_start": 0.86,
+  "load1_end": 0.85,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/84eb14f49ff66736.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 84eb14f49ff66736",
+ "gate_provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py",
+  "results": {
+   "first_charge_step_baseline": "10",
+   "first_charge_step_mutant": "0",
+   "charge_steps_outside_lead_window_mutant": "1 count",
+   "null_inputs_moved": "0 of 3 (-)",
+   "thread_factor": "1.000",
+   "load1": "0.69",
+   "swapins": "0"
+  },
+  "baseline_value": "10",
+  "mutant_value": "0",
+  "inputs_tried": "12 h horizon, need 55 C at step 10, cheapest price at step 0, max_lead_steps 2 (moves: step 10 -> 0); lead 24, flat prices, the cheapest step inside the lead window (do not move)",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "reach": "production: ctx.max_lead_steps is ceil(ThermalModel.dhw_hold_hours() / dt) (dhw_planner.py:1173, 1214), the hours the tank holds heat, under the horizon whenever the tank's standby loss is material",
+ "should_fail": "tests/features.py: the cheapest-first cases (~63622 with max_lead_steps=6, ~82539 _pli_greedy) never put the cheapest step outside the lead window; none asserts that no charge lands before k - max_lead_steps when a usable step exists inside it",
+ "finding": {
+  "title": "No check holds the cheapest-first DHW planner inside its lead window; dropping the lead clamp is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 84eb14f49ff66736 at dhw_planner.py:2232 (j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j) -> j for j in range((0), k + 1) if usable(j)) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet probe_84eb14f49ff66736.py moves: first_charge_step_baseline=10 vs first_charge_step_mutant=0.",
+  "mechanism": "Reach: production: ctx.max_lead_steps is ceil(ThermalModel.dhw_hold_hours() / dt) (dhw_planner.py:1173, 1214), the hours the tank holds heat, under the horizon whenever the tank's standby loss is material. Check that should have failed (D3.M4): tests/features.py: the cheapest-first cases (~63622 with max_lead_steps=6, ~82539 _pli_greedy) never put the cheapest step outside the lead window; none asserts that no charge lands before k - max_lead_steps when a usable step exists inside it.",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_cheapest_first",
+  "metric_definition": "the first step DhwPlanner._plan_dhw_cheapest_first charges at on a 12 h horizon, need at step 10, max_lead_steps 2, cheapest price at step 0",
+  "phenomenon_property": "DhwPlanner._plan_dhw_cheapest_first buys a shortfall at step k only in [k - max_lead_steps, k] while a usable step exists there",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list), each key's fullgate.py verdict SURVIVED or RED-AS-NULL and its probe moving",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py"
+  ],
+  "proposed_fix_scope": "tests only: a check with the cheapest price outside the lead window asserting the charge stays inside it",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py",
+   "value": "0",
+   "unit": "first_charge_step_mutant",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 0.69,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant 84eb14f49ff66736 applied in memory by the probe (method re-compiled from its source); full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 84eb14f49ff66736",
+   "expected_direction": "charge moves earlier than the configured lead limit allows (step 10 -> step 0)",
+   "observed_value": "0"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py",
+   "value": "a lead covering the horizon, flat prices, the cheapest step inside the lead window: 0 moved",
+   "note": "arms where the edit cannot matter, identical outputs under baseline and mutant; the full-gate null is gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_84eb14f49ff66736.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 84eb14f49ff66736"
+  ]
+ }
+}

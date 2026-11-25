@@ -1,0 +1,7 @@
+RESULT previous_plan_warm_plan_len_baseline=96 count
+RESULT previous_plan_warm_plan_len_mutant=0 count
+RESULT cold_start_warm_plan_len_baseline=0 count
+RESULT cold_start_warm_plan_len_mutant=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.19
+RESULT swapins=0

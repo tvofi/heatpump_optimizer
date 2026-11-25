@@ -1,0 +1,59 @@
+{
+ "key": "ad7a177d7ca99cad",
+ "site": "sysid.py:1545 CMP_BOUND",
+ "patch": "if cfg.start_hour <= cfg.end_hour: -> if cfg.start_hour < cfg.end_hour:",
+ "function": "SystemIdentification.conditions_met",
+ "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3500.8,
+  "load1_start": 0.8,
+  "load1_end": 0.96,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ad7a177d7ca99cad",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/ad7a177d7ca99cad.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_ad7a177d7ca99cad.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_ad7a177d7ca99cad.py [--mutant]",
+  "metric": "open_hours_tie",
+  "baseline_value": "0",
+  "mutant_value": "24",
+  "null_metric": "open_hours_default",
+  "null_baseline": "6",
+  "null_mutant": "6",
+  "all_results_baseline": {
+   "open_hours_default": "6",
+   "open_hours_tie": "0",
+   "open_hours_tie0": "0",
+   "open_hours_flat": "4",
+   "open_hours_wrap2": "4",
+   "thread_factor": "1.000",
+   "load1": "1.14",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "open_hours_default": "6",
+   "open_hours_tie": "24",
+   "open_hours_tie0": "24",
+   "open_hours_flat": "4",
+   "open_hours_wrap2": "4",
+   "thread_factor": "1.000",
+   "load1": "1.14",
+   "swapins": "0"
+  },
+  "inputs_tried": "windows (23,5) default, (3,3) tie, (0,0), (1,5) non-wrapping, (22,2); each over hours 0..23",
+  "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+ },
+ "reach": "unreachable through production (open_hours_default 6 under both arms)",
+ "should_fail": "none through production: coordinator.py:4044 builds SysIdConfig without start_hour/end_hour, so the window is always (23, 5) and start_hour == end_hour never occurs; a direct unit call with start_hour == end_hour separates"
+}

@@ -1,0 +1,1 @@
+- exp1..exp8.py: exploratory scratch runs (simulator sanity, boundary hunts, prior fixed point, tau==200 random search seed 1) that found the probe inputs; not harnesses

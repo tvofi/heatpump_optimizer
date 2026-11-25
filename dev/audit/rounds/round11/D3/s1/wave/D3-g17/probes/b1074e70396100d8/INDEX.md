@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_b1074e70396100d8.py (stored as .py.txt):  DHW plan (kW per step) and its price-weighted cost DhwPlanner._plan_dhw_min_cost returns on a 16-step horizon whose refill window (6 h) is shorter than the horizon.

@@ -1,0 +1,70 @@
+{
+ "key": "b247841f5466162d",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:2539 CMP_BOUND",
+ "patch": "if now_s < starts[0]: -> if now_s <= starts[0]:",
+ "function": "_open_loop_plan_value",
+ "cluster": "coordinator.py:_open_loop_plan_value",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2901.5,
+  "load1_start": 0.86,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/b247841f5466162d.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b247841f5466162d",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_b247841f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_b247841f.py",
+  "rc": 0,
+  "results": [
+   "RESULT tie_96_steps_baseline=50.0 mutant=50.0",
+   "RESULT tie_1_step_baseline=50.0 mutant=50.0",
+   "RESULT tie_2_steps_baseline=50.0 mutant=50.0",
+   "RESULT tie_plus_1us_baseline=50.0 mutant=50.0",
+   "RESULT tie_minus_1us_baseline=50.0 mutant=50.0",
+   "RESULT before_600s_baseline=50.0 mutant=50.0",
+   "RESULT before_901s_baseline=None mutant=None",
+   "RESULT mid_baseline=62.0 mutant=62.0",
+   "RESULT past_end_baseline=None mutant=None",
+   "RESULT moved_valid=0 count",
+   "RESULT dup_head_baseline=51.0 mutant=50.0  (malformed plan, not a production state)",
+   "RESULT thread_factor=1.004",
+   "RESULT load1=0.78",
+   "RESULT swapins=0 count"
+  ],
+  "inputs_tried": [
+   "RESULT tie_96_steps_baseline=50.0 mutant=50.0",
+   "RESULT tie_1_step_baseline=50.0 mutant=50.0",
+   "RESULT tie_2_steps_baseline=50.0 mutant=50.0",
+   "RESULT tie_plus_1us_baseline=50.0 mutant=50.0",
+   "RESULT tie_minus_1us_baseline=50.0 mutant=50.0",
+   "RESULT before_600s_baseline=50.0 mutant=50.0",
+   "RESULT before_901s_baseline=None mutant=None",
+   "RESULT mid_baseline=62.0 mutant=62.0",
+   "RESULT past_end_baseline=None mutant=None",
+   "RESULT moved_valid=0 count",
+   "RESULT dup_head_baseline=51.0 mutant=50.0  (malformed plan, not a production state)",
+   "RESULT thread_factor=1.004",
+   "RESULT load1=0.78",
+   "RESULT swapins=0 count"
+  ]
+ },
+ "should_fail": "tests/entities.py and tests/features.py execute line 2539; none can fail on a valid plan: at the tie both arms return trajectory[0]; only a malformed plan with a duplicated head timestamp separates them",
+ "class": "equivalent-candidate"
+}

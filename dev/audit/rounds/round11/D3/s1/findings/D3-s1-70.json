@@ -1,0 +1,47 @@
+{
+ "id": "D3-s1-70",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "No check covers _on_power_event with the tariff disabled or its factor 0; and->or is unseen",
+ "severity": "low",
+ "claim": "Mutant 5e8d48eff7e4fa8d at coordinator.py:8806 survives the full gate (SURVIVED), yet the probe's caseA_threshold_mutant moves: baseline (5.0,10.0) suppressing=False in both cases, mutant enabled,factor0: (0.0,3.0); disabled,factor1: (5.0,3.0) suppressing=True.",
+ "mechanism": "Reach: tariff enabled with factor 0 (months mask excluding the current month, tariff.py:138); tariff disabled while the tracker holds peaks restored by from_dict (coordinator.py:8378). Check that should have failed (D3.M4): tests/features.py, tests/dst_checks.py, tests/entities.py reference _on_power_event but cover neither case.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+  "value": 3.0,
+  "unit": "guard threshold kW (baseline 10.0 = fuse) with tariff disabled and a 3 kW restored tracker peak",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+  "cpu_or_wall": "n/a",
+  "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+  "tolerance": "exact",
+  "load1": 1.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._on_power_event",
+ "perturbation": {
+  "change": "the mutant edit at coordinator.py:8806 applied in memory by the probe (10 kW fuse, 5 kW meter, 3 kW tracker peak); full gate: fullgate.py run --key 5e8d48eff7e4fa8d",
+  "expected_direction": "down",
+  "observed_value": 3.0
+ },
+ "metric_definition": "guard threshold kW (baseline 10.0 = fuse) with tariff disabled and a 3 kW restored tracker peak",
+ "phenomenon_property": "The peak-tariff threshold caps the power guard only when the tariff is enabled and its factor is positive",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+  "value": "0 count",
+  "note": "null arm where the edit cannot matter; identical floats under both arms"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_5e8d48ef.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c3c6 --key 5e8d48eff7e4fa8d"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value ((5.0,10.0) suppressing=False in both cases)",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

@@ -1,0 +1,103 @@
+{
+ "key": "ad8a02e5c07428ab",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4538 GUARD_OFF",
+ "patch": "if params.two_zone_enabled: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps@4497-4538",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3451.5,
+  "load1_start": 0.86,
+  "load1_end": 0.96,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/ad8a02e5c07428ab.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ad8a02e5c07428ab",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_ad8a02e5c07428ab.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_ad8a02e5c07428ab.py",
+  "baseline_value": "turn_on (two-zone, plan off now/next, room average 21.4 C, upper floor 15 C; likewise lower floor 15 C)",
+  "mutant_value": "turn_off; turn_off",
+  "inputs_tried": [
+   "upper_cold_room_warm",
+   "lower_cold_room_warm",
+   "zones_warm_null",
+   "single_zone_upper_cold_null",
+   "room_cold_null"
+  ],
+  "result_lines": [
+   "RESULT upper_cold_room_warm_baseline=turn_on",
+   "RESULT upper_cold_room_warm_mutant=turn_off",
+   "RESULT upper_cold_room_warm_moved=1 count",
+   "RESULT lower_cold_room_warm_baseline=turn_on",
+   "RESULT lower_cold_room_warm_mutant=turn_off",
+   "RESULT lower_cold_room_warm_moved=1 count",
+   "RESULT zones_warm_null_baseline=turn_off",
+   "RESULT zones_warm_null_mutant=turn_off",
+   "RESULT zones_warm_null_moved=0 count",
+   "RESULT single_zone_upper_cold_null_baseline=turn_off",
+   "RESULT single_zone_upper_cold_null_mutant=turn_off",
+   "RESULT single_zone_upper_cold_null_moved=0 count",
+   "RESULT room_cold_null_baseline=turn_on",
+   "RESULT room_cold_null_mutant=turn_on",
+   "RESULT room_cold_null_moved=0 count",
+   "RESULT inputs_moved=2 count of 5",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.06",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "check_area": "the space-pump rail checks ('rail: a zone near its floor forces the space pump on', features.py:~20340) and the coordinator pump glue",
+  "executes_line": true,
+  "why_it_passes": "the zone rail is asserted on pump_schedule.space_pump_should_run called directly with zone_temps=[19.2]; no check drives _async_drive_pumps in a two-zone house, so the coordinator's assembly of the zone list is never read",
+  "assertion_it_lacks": "a two-zone coordinator with a warm room average and one floor below the comfort floor + SPACE_PUMP_FLOOR_MARGIN_C, plan off now and next, asserting turn_on"
+ },
+ "m4_carried": null,
+ "finding": {
+  "title": "No check fails when the space pump ignores a cold floor in a two-zone house (coordinator.py:4538)",
+  "claim": "With coordinator.py:4538 `if params.two_zone_enabled:` disabled, _async_drive_pumps turns the space pump OFF while a floor sits at 15 C under a 21.4 C room average (baseline turn_on via the comfort-floor rail), and the full gate stays green beyond its null.",
+  "class_guess": "new",
+  "severity_claimed": "high",
+  "metric_definition": "the homeassistant service _async_drive_pumps issues for the space pump in a two-zone house, plan off now and next, room average 21.4 C, one floor at 15 C",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps",
+  "perturbation": {
+   "change": "coordinator.py:4538 `if params.two_zone_enabled:` -> `if False:`",
+   "expected_direction": "turn_on -> turn_off"
+  },
+  "mechanism": "the comfort-floor rail is pinned only at pump_schedule level; the coordinator-side zone list (room + upper + lower in two-zone mode) has no check",
+  "stop_rule_class": "hygiene",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "phenomenon_property": "every guard/branch of this function changes an observable output on some reachable input, and the suite asserts that output on that input",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list) restricted to the function's cluster; each SURVIVED key is a seam",
+  "proposed_fix_scope": "tests only: add the missing assertion to the named closure script; no production change",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_ad8a02e5c07428ab.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_ad8a02e5c07428ab.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ad8a02e5c07428ab",
+  "null_control": "Probe nulls: both floors warm (OFF both arms), a single-zone house with a cold upper reading (OFF both: the branch is two-zone only), a cold room (ON both). Gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/null.json (gate_rc 1 on artefact checks only: closure.py selftest, entities.py, harness_headers.py; the mutant gate is red on no script beyond them)."
+ }
+}

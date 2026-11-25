@@ -1,0 +1,54 @@
+{
+ "key": "fc4fe0f49de831a8",
+ "site": "custom_components/heatpump_optimizer/defrost.py:142 CONST",
+ "patch": "DEFROST_DUTY_MAX = 0.30 -> DEFROST_DUTY_MAX = 0.6",
+ "function": "<module>",
+ "cluster": "defrost.py:<module>@124-142",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3231.1,
+  "load1_start": 0.72,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/gates/fc4fe0f49de831a8.json",
+  "provisional_timing": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_fc4fe0f49de831a8.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_fc4fe0f49de831a8.out",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_fc4fe0f49de831a8.py",
+  "baseline_value": "points_differ=0 count",
+  "mutant_value": "max_abs_diff=0.0",
+  "inputs_tried": "derate_from_duty over duties 0..1 step 0.01 plus 0.299999, 0.300001, 0.3666667, 2.0, -0.1 (106); a bucket trusted at duty 0.5 (factor and summary)",
+  "results": {
+   "derate_min": "0.55",
+   "one_minus_loss_x_cap": "0.55",
+   "grid_points": "106 count",
+   "points_differ": "0 count",
+   "points_differ_beyond_1e-12": "0 count",
+   "max_abs_diff": "0.0",
+   "published_factor_duty0.5_baseline": "0.6785714285714286",
+   "summary_derate_duty0.5_baseline": "[0.55]",
+   "published_factor_duty0.5_mutant": "0.6785714285714286",
+   "summary_derate_duty0.5_mutant": "[0.55]",
+   "thread_factor": "1.000",
+   "load1": "1.19",
+   "swapins": "0"
+  }
+ },
+ "should_fail": "none can: derate_from_duty clamps its output at DERATE_MIN = 0.55, which equals 1 - 1.5 * DEFROST_DUTY_MAX exactly, so the duty cap binds nowhere the floor does not",
+ "class": "equivalent-candidate",
+ "equivalence": "derate_from_duty returns min(DERATE_MAX, max(DERATE_MIN, 1 - duty*1.5)) with duty clamped to DEFROST_DUTY_MAX; DERATE_MIN=0.55 equals 1 - 1.5*0.30=0.55, so a duty above 0.30 lands on the floor under either cap: 0 count of 106 count duties differ (max |diff| 0.0); the published factor and summary at duty 0.5 are identical"
+}

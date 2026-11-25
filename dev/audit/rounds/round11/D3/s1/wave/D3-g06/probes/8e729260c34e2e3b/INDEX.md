@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_8e729260c34e2e3b.py: baseline vs in-memory mutant 8e729260c34e2e3b on the production symbol; pins: No check folds internal gains at a zone mass of exactly 1e-6; the capacity boundary is unpinned

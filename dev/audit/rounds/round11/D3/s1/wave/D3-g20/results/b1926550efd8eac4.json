@@ -1,0 +1,78 @@
+{
+ "key": "b1926550efd8eac4",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:3969 CMP_BOUND",
+ "patch": "pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3) -> pinned = (dhw_power >= 1e-6) & (space_power >= headroom - 1e-3)",
+ "function": "HeatPumpOptimizer._co_optimize",
+ "cluster": "optimizer.py:HeatPumpOptimizer._co_optimize@3969-3997",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2961.5,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/b1926550efd8eac4.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.30GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_b1926550efd8eac4.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_b1926550efd8eac4.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=42 count",
+   "RESULT inputs_moved=3 count",
+   "RESULT moved dhw=1e-06 space=tie head-1e-3 (4.9989989999999995): baseline(status,pinned)=('ok', 0) mutant=('replanned', 1)",
+   "RESULT moved dhw=1e-06 space=above tie (4.998999): baseline(status,pinned)=('ok', 0) mutant=('replanned', 1)",
+   "RESULT moved dhw=1e-06 space=head (4.999999): baseline(status,pinned)=('ok', 0) mutant=('replanned', 1)",
+   "RESULT focus dhw=1e-06 space=head (4.999999): baseline(status,pinned)=('ok', 0) mutant=('replanned', 1)",
+   "RESULT null_delta=0 count (dhw=1.0 space=1.0: far from both edges)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.80",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "(ok, 0) at dhw exactly 1e-6 kW with space at its headroom",
+  "mutant_value": "(replanned, 1): the step is pinned and the DHW re-plan runs",
+  "inputs_tried": "42 (as 3652dbb5); moved 3, exactly the dhw == 1e-6 rows with space >= headroom - 1e-3"
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py (one of tests/block_duty, doc_claims, entities, env_drift, features, manual_plan, optimality, plan_view, validate.py) has no co-optimize case with hot-water power exactly 1e-6 kW",
+ "finding": {
+  "title": "DHW co-optimize pin test `dhw > 1e-6` is unpinned at its threshold",
+  "claim": "With > made >=, HeatPumpOptimizer._co_optimize pins a step with hot-water power exactly 1e-6 kW and runs the DHW re-plan (status ok -> replanned), and the full gate stays green.",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "metric_definition": "(status, pinned steps handed to the DHW re-plan) from _co_optimize on a one-step input, recording planner stand-in",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._co_optimize",
+  "perturbation": {
+   "change": "the key's one-line mutant, applied in memory by the probe",
+   "expected_direction": "(ok, 0) -> (replanned, 1) under the mutant"
+  },
+  "null_control": "dhw 1.0, space 1.0: null_delta 0",
+  "stop_rule_class": "bug",
+  "proposed_fix_scope": "tests: a threshold case; measure-zero in production",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_b1926550efd8eac4.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_b1926550efd8eac4.py"
+ }
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py: pins _external_heat_override's value for a fresh numeric flue probe at 29.9, 30.0, 30.1 and 400 C; moved_inputs = readings whose override differs. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py; output beside it as .out)

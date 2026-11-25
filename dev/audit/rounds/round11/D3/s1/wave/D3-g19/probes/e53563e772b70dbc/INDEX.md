@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_e53563e772b70dbc.py: step-4 probe for e53563e772b70dbc. Metric: number of solar_peak_indices _analyze_forecast_trajectory returns for an 8-step forecast with exactly 200.0 W/m2 at step 3.

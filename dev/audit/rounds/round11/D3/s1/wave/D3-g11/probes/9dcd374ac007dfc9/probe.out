@@ -1,0 +1,6 @@
+RESULT no_cap_breach_key_baseline=0 mutant=1 (mutant value 0.0)
+RESULT no_cap_empty_breach_key_baseline=0 mutant=1 (mutant value 0.0)
+RESULT null_moved=0 count  (capped: (1, 0.0))
+RESULT thread_factor=1.000
+RESULT load1=0.29
+RESULT swapins=0 count

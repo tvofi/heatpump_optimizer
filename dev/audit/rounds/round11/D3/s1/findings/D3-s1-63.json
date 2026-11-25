@@ -1,0 +1,47 @@
+{
+ "id": "D3-s1-63",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "No check pins max_abs_component's source label on a fixed/rule |rate| tie",
+ "severity": "low",
+ "claim": "Mutant 95779f9d6d71c50d at grid_fee.py:355 survives the full gate (SURVIVED), yet the probe's label_changed moves: baseline max_abs_component source label=fixed, mutant label=rules.",
+ "mechanism": "Reach: reach_from_config_tie=1: from_config builds the fixed/rule tie; the label feeds the repair-issue placeholder at coordinator.py:7623. Check that should have failed (D3.M4): tests/features.py has no fixed/rule tie case for max_abs_component.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+  "value": 1,
+  "unit": "1 when the (value, source) label of max_abs_component differs from baseline on the fixed=0.25 / rule=0.25 tie",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+  "cpu_or_wall": "n/a",
+  "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+  "tolerance": "exact",
+  "load1": 1.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee:GridFeeSchedule.max_abs_component",
+ "perturbation": {
+  "change": "the mutant edit at grid_fee.py:355 applied in memory by the probe (fixed=0.25 and a rule '= 0.25'); full gate: fullgate.py run --key 95779f9d6d71c50d",
+  "expected_direction": "up",
+  "observed_value": 1
+ },
+ "metric_definition": "1 when the (value, source) label of max_abs_component differs from baseline on the fixed=0.25 / rule=0.25 tie",
+ "phenomenon_property": "On a tie between the fixed fee and a rule, max_abs_component keeps the first-seen (fixed) source",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+  "value": "0 count (rule-rule tie and untied)",
+  "note": "null arm where the edit cannot matter; identical floats under both arms"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_95779f9d.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src c2 --key 95779f9d6d71c50d"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (max_abs_component source label=fixed)",
+ "files": [
+  "custom_components/heatpump_optimizer/grid_fee.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

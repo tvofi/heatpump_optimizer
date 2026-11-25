@@ -1,0 +1,35 @@
+{
+ "key": "75d5865af3eceda7",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1604 CMP_BOUND",
+ "patch": "while hi - lo > 0.01: -> while hi - lo >= 0.01:",
+ "function": "SystemIdentification._size_step_power",
+ "cluster": "sysid.py:SystemIdentification._size_step_power@1573-1626",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3258.6,
+  "load1_start": 0.65,
+  "load1_end": 0.99,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/75d5865af3eceda7.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 75d5865af3eceda7",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_75d5865af3eceda7.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_75d5865af3eceda7.py",
+  "baseline_value": "step power",
+  "mutant_value": "identical step power",
+  "inputs_tried": "216 tie inputs (q_max = 0.01*2^k, k 6..11, cop 1/2/4, outdoor 2/-5/8, 4 houses; 45 of them bisect) moved 0; 360 generic inputs moved 0: the extra halving at hi - lo == 0.01 only narrows the bracket and never changes best's value at the returned precision",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_75d5865af3eceda7.out"
+ },
+ "should_fail": "none found: the tie input bisects and returns the same power"
+}

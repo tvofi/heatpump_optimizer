@@ -1,0 +1,20 @@
+{
+ "key": "104db258fed59c2d",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "low",
+ "class_guess": "I1",
+ "metric": "RESULT calls_tie_{baseline,mutant}: record_quiet_period calls from one _record_quiet_comfort_period on a flat plan, prices [5e-07, 1.5e-06] (float64 mean exactly 1e-6), 1.5 kWh heating",
+ "base": "calls_tie=0 (evidence 0.0)",
+ "mut": "calls_tie=1 (evidence -0.007292)",
+ "inputs": [
+  "mean exactly 1e-6 (tie)",
+  "ordinary 0.5/1.0/1.5",
+  "all-zero prices"
+ ],
+ "null": "ordinary and zero cells: equal arms",
+ "should": "tests/features.py, the quiet-period block (~51783-51882): it covers swinging prices, flat prices and no plan, but no arm sits at mean_price == 1e-6, the near-zero-price guard's boundary",
+ "title": "The near-zero mean-price guard of the quiet-comfort recorder is unpinned at its boundary (`<= 1e-6` -> `< 1e-6`)",
+ "claim": "HeatPumpOptimizerCoordinator._record_quiet_comfort_period (coordinator.py:11000) may be weakened from `mean_price <= 1e-6` to `< 1e-6` and the gate passes; at a float64 mean of exactly 1e-6 the mutant records a quiet period (evidence -0.0073) the baseline skips (probe). Boundary-only.",
+ "direction": "calls at the tie 0 -> 1"
+}

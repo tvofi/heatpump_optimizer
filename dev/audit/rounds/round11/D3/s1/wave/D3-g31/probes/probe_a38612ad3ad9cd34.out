@@ -1,0 +1,12 @@
+RESULT all_zero max_abs_shape_delta=1 warnings baseline=1 mutant=0 tail_price_17h baseline=1 mutant=0
+RESULT one_zero max_abs_shape_delta=0 warnings baseline=1 mutant=1 tail_price_17h baseline=1.03448 mutant=1.03448
+RESULT negative_bin max_abs_shape_delta=0 warnings baseline=1 mutant=1 tail_price_17h baseline=1.03448 mutant=1.03448
+RESULT at_edge max_abs_shape_delta=0 warnings baseline=0 mutant=0 tail_price_17h baseline=0.5 mutant=0.5
+RESULT edge_nextafter_up max_abs_shape_delta=0 warnings baseline=1 mutant=1 tail_price_17h baseline=0.827586 mutant=0.827586
+RESULT edge_nextafter_down max_abs_shape_delta=0 warnings baseline=0 mutant=0 tail_price_17h baseline=0.5 mutant=0.5
+RESULT flat_ones(null) max_abs_shape_delta=0 warnings baseline=0 mutant=0 tail_price_17h baseline=1 mutant=1
+RESULT learner_cone_max max_abs_shape_delta=0 warnings baseline=0 mutant=0 tail_price_17h baseline=0.2 mutant=0.2
+RESULT cases_moved=1 count (of 8)
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

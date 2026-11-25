@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_aa338654e7801916.py (+ shared helpers _ceiling.py _mutant.py): _buffer_charge_ceiling:6070 hi<=lo guard off; ceiling with buffer_max below 35 C

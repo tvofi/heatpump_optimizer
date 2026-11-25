@@ -1,0 +1,56 @@
+{
+ "key": "8e9a502f439ceeeb",
+ "site": "dhw_planner.py:807 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 807,
+ "patch": "if temp <= everyday: -> if temp < everyday:",
+ "function": "DhwPlanner._dhw_legionella_ceilings",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3251.5,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5389.3,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/8e9a502f439ceeeb.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8e9a502f439ceeeb"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8e9a502f439ceeeb.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8e9a502f439ceeeb.py",
+  "baseline_value": "ties_exact=8 count",
+  "mutant_value": "ties_moved=0 count",
+  "results": {
+   "ties_exact": "8 count",
+   "ties_moved": "0 count",
+   "random_moved": "0 count",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.46",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "cycle at step 40 of 96, everyday limit set to the exact coast-down value k = 1..8 steps after it; 40 seeded random cooling rates, limits and steps",
+  "reading": "8 exact ties temp == everyday (everyday set to the coast-down value 1..8 steps after the cycle); at every one both arms agree (max(everyday, everyday) into a ceiling already at everyday, and the next decay falls below it); 40 random inputs agree: equivalent",
+  "thread_factor": 1.0,
+  "load1": 3.46
+ },
+ "should_fail": "none: equivalent at the tie by construction"
+}

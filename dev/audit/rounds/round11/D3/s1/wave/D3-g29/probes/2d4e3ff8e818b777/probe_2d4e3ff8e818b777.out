@@ -1,0 +1,12 @@
+RESULT moved_default_threshold=0 count of 7 inputs
+RESULT reasons_zeros_threshold_0_baseline=['idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting']
+RESULT reasons_zeros_threshold_0_mutant=['cheap_price', 'cheap_price', 'cheap_price', 'scheduled', 'scheduled', 'scheduled', 'scheduled', 'terminal_value']
+RESULT reasons_half_kw_threshold_half_baseline=['idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting']
+RESULT reasons_half_kw_threshold_half_mutant=['cheap_price', 'cheap_price', 'cheap_price', 'scheduled', 'scheduled', 'scheduled', 'scheduled', 'terminal_value']
+RESULT moved_nondefault_threshold=2 count of 2 inputs
+RESULT draws_equal_threshold=0 count of 56 draws
+RESULT null_delta=0 count (the default-threshold arm above is the null: no production caller passes threshold)
+RESULT reach=skipped (pass --reach to solve the 50 golden scenarios with spies)
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0 count

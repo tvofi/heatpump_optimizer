@@ -1,0 +1,53 @@
+{
+ "key": "eae8cfee2ddbd16d",
+ "site": "custom_components/heatpump_optimizer/dhw_planner.py:2285 CMP_BOUND",
+ "patch": "if 0.0 < plan[j] < min_run_power: -> if 0.0 <= plan[j] < min_run_power:",
+ "function": "DhwPlanner._plan_dhw_cheapest_first",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first@2232-2307",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3252.4,
+  "load1_start": 0.82,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/gates/eae8cfee2ddbd16d.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key eae8cfee2ddbd16d",
+ "provisional_walls": true,
+ "machine": "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+ "class": "equivalent-candidate",
+ "m4_carried_from": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_eae8cfee2ddbd16d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_eae8cfee2ddbd16d.py",
+  "results": {
+   "edge_inputs": "9",
+   "edge_delta_kw": "0",
+   "sweep_inputs": "160",
+   "differing_inputs": "0",
+   "sweep_max_delta_kw": "0",
+   "null_delta_kw": "0",
+   "inputs_tried": "derate 0/0.2/0.9 x prices (falling, all-zero, one NaN) at min_run_power 1.5; 160 random",
+   "thread_factor": "1.000",
+   "load1": "1.36",
+   "swapins": "0"
+  },
+  "inputs_tried": "derate 0/0.2/0.9 x prices (falling, all-zero, one NaN) at min_run_power 1.5; 160 random"
+ },
+ "reach": "executed",
+ "should_fail": "none: the line runs only after a take > 1e-6 was added, so plan[j] > 0 and 0.0 < / 0.0 <= agree"
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_e880fd35.py: key e880fd3537006726, repair-registry writes (ir.async_delete_issue + _create_issue calls) HeatPumpOptimizerCoordinator. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_e880fd35.py)

@@ -1,0 +1,10 @@
+# Metric: the operation score (EMA, prior 40.0) HeatPumpOptimizerCoordinator._close_score_day leaves after closing
+#   a day book of exactly 0.2 kWh bought at 0.8x the day's mean spot over 2 priced hours (the `<`/`<=` tie).
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_134126ee.py
+# EXPECTED RESULT score_tie_baseline=43.0 (the day is scored) ; score_tie_mutant=40.0 (skipped, score unmoved)
+# EXPECTED RESULT null_delta=0 count (0.1999 kWh and 0.2001 kWh, either side of the tie: arms agree)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._close_score_day,
+#   line 10561 `if kwh < 0.2 or hours < 1.0:`; real driving_grade.fold.
+# Perturbation: key 134126ee4914191f CMP_BOUND -> `if kwh <= 0.2 or hours < 1.0:`, in memory. Direction: scored -> skipped.
+# Null control: kWh either side of 0.2.

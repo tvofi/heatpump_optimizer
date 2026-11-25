@@ -1,0 +1,8 @@
+{
+ "key": "64629e9b22df0c16",
+ "class_provisional": "candidate",
+ "probe_direction": "up: 0.5 -> 0.75 (graded against max power instead of the band)",
+ "inputs": "min/max 0.1/0.2 kW at 0.15 kW; null: 0.0/0.1 kW at 0.05 kW (both branches agree) and 0.6/3.0 kW at 1.2 kW",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

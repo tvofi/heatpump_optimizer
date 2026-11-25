@@ -1,0 +1,55 @@
+{
+ "key": "c39bf88e7fd0066f",
+ "site": "coordinator.py:5259 CMP_BOUND",
+ "patch": "return arr if bool(np.any(arr > 0.0)) else None -> return arr if bool(np.any(arr >= 0.0)) else None",
+ "function": "HeatPumpOptimizerCoordinator._external_heat_forecast",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_forecast@5248-5259",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "reach": "not-hit-unproven",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3490.6,
+  "child_cpu_s": 5804.7,
+  "load1_start": 0.88,
+  "load1_end": 1.0,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/c39bf88e7fd0066f.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c39bf88e7fd0066f",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c39bf88e7fd0066f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c39bf88e7fd0066f.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c39bf88e7fd0066f.out",
+  "baseline_value": "None (symbol); None (solve input)",
+  "mutant_value": "zeros[96] (symbol); None (solve input)",
+  "inputs_tried": [
+   "override on, no wood/outlet probes (displacement 0)",
+   "override on, wood tank below the pump tank + margin"
+  ]
+ },
+ "m4_answer": "Reachable but equivalent at the output: the probe executes line 5259 through production states (the user's override flag on with free heat 0), and the symbol's return moves None -> an all-zero array of 96 (moved_at_symbol=2), but its only reader, optimizer._horizon_weather (optimizer.py:3046-3050), maps an all-zero series to None, so the solve sees identical input (moved_at_solve_input=0). The line is reachable, not dead; no traced baseline executes it.",
+ "should_fail": "none at the observable output; a direct unit check on _external_heat_forecast's return (None for an all-zero forecast) would separate the arms, but no consumer behaviour depends on it",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "non_finding": "equivalent-candidate: Reachable but equivalent at the output: the probe executes line 5259 through production states (the user's override flag on with free heat 0), and the symbol's return moves None -> an all-zero array of 96 (moved_at_symbol=2), but its only reader, optimizer._horizon_weather (optimizer.py:3046-3050), maps an all-zero series to None, so the solve sees identical input (moved_at_solve_input=0). The line is reachable, not dead; no traced baseline executes it."
+}

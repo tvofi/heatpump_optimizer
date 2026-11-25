@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_cb58757b91fa48c4.py: whether _derive_hold_schedule proposes a schedule when p85 == 1.05 * p25 exactly; through optimize() the proposals and solve CPU (out_cb58757b91fa48c4.txt = executed output; source_cb58757b91fa48c4.py = the template it is assembled from)

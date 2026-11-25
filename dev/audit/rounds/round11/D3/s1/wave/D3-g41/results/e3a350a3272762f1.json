@@ -1,0 +1,58 @@
+{
+ "key": "e3a350a3272762f1",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4458 GUARD_OFF",
+ "patch": "if hum_i is not None and not np.isfinite(hum_i): -> if False:",
+ "function": "ThermalModel._batch_cop",
+ "cluster": "thermal_model.py:ThermalModel._batch_cop@4453-4482",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2833.6,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/e3a350a3272762f1.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e3a350a3272762f1",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_e3a350a3272762f1.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_e3a350a3272762f1.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_e3a350a3272762f1.txt",
+  "metric": "nan_humidity_cop",
+  "baseline_value": "2.44125",
+  "mutant_value": "1.6275",
+  "inputs_tried": "humidity-dependent derate (0.9 dry bucket, 0.6 humid), NaN humidity at -10/-2/0/3 C with ambient_humidity None and 80: 8 of 8 moved; mutant stays finite but no longer equals the no-humidity COP the #21 contract names; finite humidity / None: 0 of 18 moved"
+ },
+ "should_fail": "tests/features.py `_grad_parity` (features.py:6394, check 'batched simulation is bitwise-identical: <label>' at features.py:6454): its 16 cells run outdoor -16..16 C at a constant 78 % RH with no defrost_derate, no ambient_humidity, no cop_flow_carnot and no NaN humidity, so it lacks a cell with a NaN humidity step (#21: a forecast's unknown step) and a learned derate, asserting it falls back exactly like an absent humidity",
+ "title": "_batch_cop's NaN-humidity fallback is pinned by no check: without it a NaN step derates as if at a humid bucket",
+ "claim": "Mutant e3a350a3272762f1 (thermal_model.py:4458 NaN-humidity -> None guard off) survives the full gate; under it ThermalModel._batch_cop at -2 C with a NaN humidity step returns 1.6275 where the baseline returns the no-humidity value 2.44125 (ambient_humidity None) or 1.716 (ambient 80 %), on 8 of 8 NaN inputs.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "medium",
+ "metric_definition": "ThermalModel._batch_cop COP at -2 C outdoor, humidity NaN, DefrostDerate 0.9 dry / 0.6 humid buckets, ambient_humidity None",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_e3a350a3272762f1.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_e3a350a3272762f1.py",
+ "perturbation": {
+  "change": "`if hum_i is not None and not np.isfinite(hum_i):` -> `if False:` at thermal_model.py:4458 (in memory)",
+  "expected_direction": "down",
+  "observed_value": "1.6275"
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:ThermalModel._batch_cop",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "null_control": "probe null rows (see dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_e3a350a3272762f1.txt) and the box null gate dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/null.json (gate_rc 1, failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'])"
+}

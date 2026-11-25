@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_539e5aeaccf156f3.py (stored as .py.txt):  max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_min_cost when every refill premium is 0, and the count of differing inputs.

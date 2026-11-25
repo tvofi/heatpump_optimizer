@@ -1,0 +1,1 @@
+- probe_d6023ebc83ac4317.py: Metric: count of inputs on which ThermalModel._batch_cop's COP differs between `T_buf > ref` and `T_buf >= ref`,

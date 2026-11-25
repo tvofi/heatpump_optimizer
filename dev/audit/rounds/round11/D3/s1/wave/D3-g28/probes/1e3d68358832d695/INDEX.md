@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py: pins calls of time.sleep(0.002), the GIL yield between consecutive L-BFGS-B starts, during one multi-start (direct: 3 starts) and during one golden winter_typical HeatPumpOptimizer.optimize (mutant `if solve_index:` -> `if False:`, optimizer.py:1957); output out_1e3d68358832d695.txt

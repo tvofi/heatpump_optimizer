@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py: pins PeakTracker open-window mean (window_snapshot) after meter events of 2, 6, 4 kW at 0, 900, 1000 s (baseline vs mutant b283779946540c3d in memory); provisional class candidate

@@ -1,0 +1,67 @@
+{
+ "key": "f54d3d4c7351ac76",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4069 CLAMP_DROP",
+ "patch": "return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6)))) -> return max(0, int(round((window - phase) / (dt * 60.0))))",
+ "function": "HeatPumpOptimizer._window_offset_steps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._window_offset_steps@4067-4069",
+ "slice": "u1d",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2638.5,
+  "load1_start": 0.72,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 4370.9,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/f54d3d4c7351ac76.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f54d3d4c7351ac76",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/f54d3d4c7351ac76.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py",
+  "metric": "mutant_downstream_moved",
+  "baseline_value": 0,
+  "mutant_value": 1,
+  "extra": {
+   "mutant_return_moved": "3",
+   "reach_optimize_dt0_raises_before": "1",
+   "reach_offset_calls_at_dt0": "0"
+  },
+  "moving_cases": [
+   "CASE window=60 dt=0.0 start=2026-01-15 12:15:00 masked=False: offset ('ok', 45000000) -> ('raise', 'ZeroDivisionError'); downstream moved=1"
+  ],
+  "inputs_tried": "the 127 _window_core cases (dt 1e-9, 0, -0.25 included) plus optimize(time_step_minutes=0)",
+  "thread_factor": "1.000",
+  "load1": "1.15"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/boost_drift_replay.py",
+   "tests/entities.py",
+   "tests/features.py"
+  ],
+  "assertion_lacking": "none through production; a direct _window_offset_steps(dt=0) call separates"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "moves only at dt == 0 (ZeroDivisionError), and optimize with time_step_minutes=0 already raises on the baseline before any offset is computed: unreachable through production",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:4069 CLAMP_DROP return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6)))) -> return max(0, int(round((window - phase) / (dt * 60.0)))) survives the full gate but is equivalent on every input tried: moves only at dt == 0 (ZeroDivisionError), and optimize with time_step_minutes=0 already raises on the baseline before any offset is computed: unreachable through production",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py",
+  "value": "mutant_downstream_moved=1 (null 0); mutant_return_moved=3, reach_optimize_dt0_raises_before=1, reach_offset_calls_at_dt0=0"
+ }
+}

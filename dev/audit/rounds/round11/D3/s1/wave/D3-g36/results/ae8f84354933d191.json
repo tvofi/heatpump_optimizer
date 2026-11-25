@@ -1,0 +1,98 @@
+{
+ "key": "ae8f84354933d191",
+ "site": "custom_components/heatpump_optimizer/sysid.py:2375 CLAMP_DROP",
+ "patch": "np.log(max(ua0, 1e-3)), -> np.log((ua0)),",
+ "function": "SystemIdentification.identify_slab",
+ "cluster": "sysid.py:SystemIdentification.identify_slab@2315-2381",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3639.6,
+  "load1_start": 0.87,
+  "load1_end": 1.05,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/gates/ae8f84354933d191.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ae8f84354933d191",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_ae8f84354933d191.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_ae8f84354933d191.py",
+  "baseline_value": "ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.404527057 hw=4.08162515e-15",
+  "mutant_value": "raises:ValueError",
+  "results": {
+   "baseline": "ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.404527057 hw=4.08162515e-15",
+   "mutant": "raises:ValueError",
+   "moved": "1 count",
+   "null_moved": "0 count",
+   "small_prior_baseline": "ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.404527057 hw=4.08162515e-15",
+   "small_prior_mutant": "ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.404527057 hw=2.51379852e-15",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "inputs_tried": "UA prior 0.0 [moves: ValueError]; 5e-4 [moves: hw 4.08e-15 -> 2.51e-15]; 1e-3, 0.15 [null]"
+ },
+ "should_fail": "tests/features.py (executes sysid.py:2375) lacks an identify_slab call on a declared plant whose UA prior is <= 1e-3 kW/K",
+ "class": "candidate",
+ "finding": {
+  "title": "identify_slab's UA-seed floor is unpinned: dropping it raises ValueError on a zero UA prior",
+  "claim": "Dropping `max(ua0, 1e-3)` from identify_slab's multi-start seed makes a night with a 0.0 kW/K UA prior raise an uncaught ValueError (log(0) seeds NaN into the rollout) where the baseline completes a fit, and the full gate stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "P1",
+  "severity_claimed": "low",
+  "severity_reason": "needs a declared UA prior <= 1e-3 kW/K at arm time; reachability through arm() not measured",
+  "stop_rule_class": "bug",
+  "metric_definition": "identify_slab outcome with arm-time prior (UA, C_r) = (0.0, 10.0)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify_slab",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_ae8f84354933d191.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_ae8f84354933d191.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_ae8f84354933d191.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_ae8f84354933d191.py",
+   "value": "raises:ValueError",
+   "unit": "outcome",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g36: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, alone on the box",
+   "cpu_or_wall": "count",
+   "contention_note": "final re-take after the last gate, nothing else running (counts; first takes ran beside the gates with the same values)",
+   "tolerance": "exact",
+   "load1": 0.87,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "sysid.py:2375 `np.log(max(ua0, 1e-3)),` -> `np.log((ua0)),`",
+   "expected_direction": "to_zero",
+   "observed_value": "raises:ValueError"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_ae8f84354933d191.py",
+   "value": "0 count",
+   "note": "null_moved counts the probe's null-arm inputs where baseline and mutant differ; full-gate null in gates/null.json + null-note.txt"
+  },
+  "phenomenon_property": "every behaviour-changing one-line mutant of sysid.py:SystemIdentification.identify_slab fails at least one check of the full gate",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "a test in tests/features.py pinning the outcome the probe moves (the assertion named in should_fail)"
+ }
+}

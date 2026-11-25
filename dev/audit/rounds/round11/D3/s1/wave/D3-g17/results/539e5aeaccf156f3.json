@@ -1,0 +1,52 @@
+{
+ "key": "539e5aeaccf156f3",
+ "site": "custom_components/heatpump_optimizer/dhw_planner.py:1546 GUARD_OFF",
+ "patch": "if not np.any(premium > 1e-9): -> if False:",
+ "function": "DhwPlanner._plan_dhw_min_cost",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_min_cost@1510-1627",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3134.2,
+  "load1_start": 0.89,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/gates/539e5aeaccf156f3.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 539e5aeaccf156f3",
+ "provisional_walls": true,
+ "machine": "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+ "class": "equivalent-candidate",
+ "m4_carried_from": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_539e5aeaccf156f3.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_539e5aeaccf156f3.py",
+  "results": {
+   "edge_inputs": "9",
+   "edge_delta_kw": "0",
+   "sweep_inputs": "120",
+   "differing_inputs": "0",
+   "sweep_max_delta_kw": "0",
+   "inputs_tried": "3 price shapes (flat, falling, zero) x 3 demand shapes (all full, all spare, alternating); 120 random",
+   "thread_factor": "1.004",
+   "load1": "1.18",
+   "swapins": "0"
+  },
+  "inputs_tried": "3 price shapes (flat, falling, zero) x 3 demand shapes (all full, all spare, alternating); 120 random"
+ },
+ "reach": "executed",
+ "should_fail": "none: with every premium 0 the kept displacement columns cost nothing and the headroom rows never bind"
+}

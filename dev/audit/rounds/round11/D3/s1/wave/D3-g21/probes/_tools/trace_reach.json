@@ -1,0 +1,154 @@
+{
+ "3997": [
+  "tests/edge.py",
+  "tests/features.py",
+  "tests/stress.py"
+ ],
+ "5044": [
+  "tests/features.py",
+  "tests/stress.py"
+ ],
+ "5054": [
+  "tests/features.py",
+  "tests/stress.py"
+ ],
+ "5059": [
+  "tests/features.py",
+  "tests/stress.py"
+ ],
+ "5074": [
+  "tests/features.py"
+ ],
+ "4033": [
+  "tests/backtest.py",
+  "tests/block_duty.py",
+  "tests/boost_drift_replay.py",
+  "tests/card.mjs",
+  "tests/card_drift.mjs",
+  "tests/config_flow_steps.py",
+  "tests/doc_claims.py",
+  "tests/edge.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/stress.py",
+  "tests/validate.py"
+ ],
+ "5271": [
+  "tests/features.py",
+  "tests/manual_plan.py"
+ ],
+ "5016": [
+  "tests/block_duty.py",
+  "tests/features.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/stress.py"
+ ],
+ "5478": [
+  "tests/backtest.py",
+  "tests/boost_drift_replay.py",
+  "tests/config_flow_steps.py",
+  "tests/doc_claims.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/stress.py",
+  "tests/validate.py"
+ ],
+ "5902": [
+  "tests/block_duty.py",
+  "tests/card.mjs",
+  "tests/card_drift.mjs",
+  "tests/doc_claims.py",
+  "tests/edge.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/stress.py",
+  "tests/validate.py"
+ ],
+ "5945": [
+  "tests/block_duty.py",
+  "tests/card.mjs",
+  "tests/card_drift.mjs",
+  "tests/doc_claims.py",
+  "tests/edge.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/stress.py",
+  "tests/validate.py"
+ ],
+ "5956": [
+  "tests/block_duty.py",
+  "tests/card.mjs",
+  "tests/card_drift.mjs",
+  "tests/doc_claims.py",
+  "tests/edge.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/stress.py",
+  "tests/validate.py"
+ ],
+ "5962": [
+  "tests/block_duty.py",
+  "tests/card.mjs",
+  "tests/card_drift.mjs",
+  "tests/doc_claims.py",
+  "tests/edge.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/stress.py",
+  "tests/validate.py"
+ ],
+ "5283": [
+  "tests/backtest.py",
+  "tests/block_duty.py",
+  "tests/boost_drift_replay.py",
+  "tests/card.mjs",
+  "tests/card_drift.mjs",
+  "tests/config_flow_steps.py",
+  "tests/doc_claims.py",
+  "tests/edge.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/guard_pins.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/stress.py",
+  "tests/validate.py"
+ ],
+ "5284": [
+  "tests/backtest.py",
+  "tests/block_duty.py",
+  "tests/boost_drift_replay.py",
+  "tests/card.mjs",
+  "tests/card_drift.mjs",
+  "tests/config_flow_steps.py",
+  "tests/doc_claims.py",
+  "tests/edge.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/guard_pins.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/stress.py",
+  "tests/validate.py"
+ ]
+}

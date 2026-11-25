@@ -1,0 +1,9 @@
+# Metric: over the event sequence fail, fail, recover on a live coordinator: the WARNING / INFO / DEBUG records the
+#   coordinator logger emits about the weather fetch, then _weather_outage_cycles and whether _weather_stale_since is set.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py
+# Expected: (1, 1, 1, 0, False) -> (0, 1, 2, 0, False); state_moved=0; null_moved=0
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g10, 4 vCPU Intel Xeon @ 2.30GHz, 16 GB.
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._weather_fetch_failed (coordinator.py:7118 `if not self._weather_outage_cycles:`)
+# Perturbation: mutant aa6b718c979bf831, the guard -> `if False:`, in memory (the method recompiled from its own source and attached with
+#   mock.patch.object for the mutant arm only). Direction: the first failure's WARNING (plans continue on a stale forecast) is demoted to DEBUG: warnings 1 -> 0; counter and staleness unchanged.
+# Null control: a lone recover (no failure: neither arm reaches the guarded log).

@@ -1,0 +1,112 @@
+{
+ "key": "473508040d23cc21",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4528 CLAMP_DROP",
+ "patch": "idx = int(max(0.0, since0 / 3600.0 / dt_hours)) -> idx = int((0.0))",
+ "function": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps@4497-4538",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3408.9,
+  "load1_start": 0.93,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/473508040d23cc21.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 473508040d23cc21",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_473508040d23cc21.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_473508040d23cc21.py",
+  "baseline_value": "turn_on (step 5 and step 6 of a plan heating only in steps 4-7); turn_off (step 10 of a plan heating only in step 0)",
+  "mutant_value": "turn_off; turn_off; turn_on",
+  "inputs_tried": [
+   "step5_heat_only_4_7",
+   "step6_heat_only_4_7",
+   "step10_heat_only_step0",
+   "step0_null",
+   "plan_in_future_clamp",
+   "all_off_null",
+   "cold_rail_null"
+  ],
+  "result_lines": [
+   "RESULT step5_heat_only_4_7_baseline=turn_on",
+   "RESULT step5_heat_only_4_7_mutant=turn_off",
+   "RESULT step5_heat_only_4_7_moved=1 count",
+   "RESULT step6_heat_only_4_7_baseline=turn_on",
+   "RESULT step6_heat_only_4_7_mutant=turn_off",
+   "RESULT step6_heat_only_4_7_moved=1 count",
+   "RESULT step10_heat_only_step0_baseline=turn_off",
+   "RESULT step10_heat_only_step0_mutant=turn_on",
+   "RESULT step10_heat_only_step0_moved=1 count",
+   "RESULT step0_null_baseline=turn_off",
+   "RESULT step0_null_mutant=turn_off",
+   "RESULT step0_null_moved=0 count",
+   "RESULT plan_in_future_clamp_baseline=turn_on",
+   "RESULT plan_in_future_clamp_mutant=turn_on",
+   "RESULT plan_in_future_clamp_moved=0 count",
+   "RESULT all_off_null_baseline=turn_off",
+   "RESULT all_off_null_mutant=turn_off",
+   "RESULT all_off_null_moved=0 count",
+   "RESULT cold_rail_null_baseline=turn_on",
+   "RESULT cold_rail_null_mutant=turn_on",
+   "RESULT cold_rail_null_moved=0 count",
+   "RESULT inputs_moved=3 count of 7",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.98",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "tests/dst_checks.py and tests/features.py",
+  "check_area": "dst_checks.py _pump_command ('the pump walks the plan by TRUE elapsed steps across the fold' / 'and that agreement is the OFF the true index commands'); features.py coordinator pump glue (features.py:20356-20410) and the T5 _async_drive_pumps block (features.py:55432-)",
+  "executes_line": true,
+  "why_it_passes": "dst_checks drives the space pump with a plan ON only in steps 4-7 and reads it 2 h in (step 8: OFF) -- step 0 is OFF too, so an index stuck at 0 commands the same OFF; the features.py glue checks drive only the VVC pump or assert transitions/caching, never which plan step the space pump follows",
+  "assertion_it_lacks": "a space-pump tick with `now` inside a plan step whose heat differs from step 0 (e.g. heat only in steps 4-7, tick at 1.25 h) asserting turn_on (and the mirror: heat only in step 0, tick at 2.5 h, asserting turn_off)"
+ },
+ "m4_carried": null,
+ "finding": {
+  "title": "No check fails when the space pump's plan-step index is pinned to 0 (coordinator.py:4528)",
+  "claim": "With coordinator.py:4528 `idx = int(max(0.0, since0 / 3600.0 / dt_hours))` replaced by `idx = int((0.0))`, _async_drive_pumps follows the plan's first step at every tick (turn_off at 1.25 h into a plan heating in steps 4-7, baseline turn_on) and the full gate stays green beyond its null.",
+  "class_guess": "new",
+  "severity_claimed": "high",
+  "metric_definition": "the homeassistant service _async_drive_pumps issues for the configured space pump at a tick 1.25 h into a quarter-grid plan heating only in steps 4-7",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps",
+  "perturbation": {
+   "change": "coordinator.py:4528 `idx = int(max(0.0, since0 / 3600.0 / dt_hours))` -> `idx = int((0.0))`",
+   "expected_direction": "turn_on -> turn_off at step 5 and 6; turn_off -> turn_on at step 10 of a step-0-only plan"
+  },
+  "mechanism": "same seam as 4525: the computed index is never asserted against a plan whose current step differs from step 0; the max(0, .) clamp itself is equivalent on a plan stamped in the future (idx 0 both arms)",
+  "stop_rule_class": "hygiene",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/dst_checks.py",
+   "tests/features.py"
+  ],
+  "phenomenon_property": "every guard/branch of this function changes an observable output on some reachable input, and the suite asserts that output on that input",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list) restricted to the function's cluster; each SURVIVED key is a seam",
+  "proposed_fix_scope": "tests only: add the missing assertion to the named closure script; no production change",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_473508040d23cc21.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_473508040d23cc21.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 473508040d23cc21",
+  "null_control": "Probe nulls: a tick inside step 0, a plan stamped 0.6 h in the future (the clamp's own case), an all-off plan and a cold-room rail (moved=0). Gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/null.json (gate_rc 1 on artefact checks only: closure.py selftest, entities.py, harness_headers.py; the mutant gate is red on no script beyond them)."
+ }
+}

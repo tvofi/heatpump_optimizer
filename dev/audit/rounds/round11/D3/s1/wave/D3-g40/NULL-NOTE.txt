@@ -1,0 +1,1 @@
+null gate: gate_rc 1, red only on closure.py selftest (2 shrink pins), entities.py (1), harness_headers.py (3: round4/D6/claims.py header drift in the stripped tree) -- the stripped-tree artefact profile D3-rem's null had (same three scripts); wall 3969 s, load1 0.93->1.0; usable, not re-taken

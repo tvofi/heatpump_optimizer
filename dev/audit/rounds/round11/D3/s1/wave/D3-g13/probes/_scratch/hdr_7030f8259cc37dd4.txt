@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: count of DefrostWindow observe/close sequences (10) plus direct _accrue calls (delta 0.0, -0.0, -5, 1e-9, 7)
+#   whose peek()/close() observation or accumulated seconds differ between baseline and mutant.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_7030f8259cc37dd4.py
+# EXPECTED RESULT sequences_moved=0 of 15 ()  (delta == 0 adds 0.0 to a float: equivalent; -0.0 >= 0 adds -0.0,
+#   which leaves a positive or zero accumulator bit-identical)
+# Count key: the (duty, events, observed, seconds) DefrostObservation peek/close return, and _seconds_on itself.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.defrost:DefrostWindow._accrue
+#   (line 746 `            if delta is not None and delta > 0:`).
+# Perturbation: mutant 7030f8259cc37dd4, `delta > 0` -> `delta >= 0`, in memory (_accrue recompiled from its own source
+#   onto a subclass). Direction if it were not equivalent: seconds_on up at delta == 0 (it is not: += 0.0).
+# Null control: the baseline arm against itself (sequences are deterministic); nothing to move.

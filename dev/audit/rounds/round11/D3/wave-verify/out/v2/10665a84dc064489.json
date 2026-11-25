@@ -1,0 +1,1 @@
+{"key": "10665a84dc064489", "box": "D3-g34", "file": "custom_components/heatpump_optimizer/sysid.py", "line": 2114, "old": "            if rank < 2:", "new": "            if False:", "applied": true, "rc": 1, "stdout": "", "stderr": "REFUSE sysid.py:2114 is '            if False:\\n', not '            if rank < 2:'\n", "wall_s": 0.8, "load1": 42.3}

@@ -1,0 +1,33 @@
+OLD = "if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):"
+NEW = "if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):"
+MUT = mutant_method("_dhw_planning_prices", OLD, NEW)
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig  # noqa: E402
+
+CFG = OptimizationConfig(horizon_hours=4, time_step_minutes=60)  # pv_export_price default 0.0
+MODEL = ThermalModel(ThermalParameters(dhw_enabled=True))
+
+
+def planning_prices(prices, surplus, space_demand=None, p_run=3.0, fn=None):
+    """DhwPlanner._dhw_planning_prices: the per-step prices the DHW planners rank steps by."""
+    planner = DhwPlanner(MODEL, CFG, None if surplus is None else np.asarray(surplus, dtype=float), None)
+    return (fn or DhwPlanner._dhw_planning_prices)(planner, np.asarray(prices, dtype=float), p_run, space_demand)
+
+prices = [2.0, 1.0, 1.5, 0.5]
+b = planning_prices(prices, [1e-6, 0.0, 0.0, 0.0])
+m = planning_prices(prices, [1e-6, 0.0, 0.0, 0.0], fn=MUT)
+print(f"RESULT step0_price_baseline={b[0]:.9f} per-kWh")
+print(f"RESULT step0_price_mutant={m[0]:.9f} per-kWh")
+print(f"RESULT max_abs_delta={float(np.max(np.abs(m - b))):.3e} per-kWh")
+print(f"RESULT rank_changed={int(not np.array_equal(np.argsort(b, kind='stable'), np.argsort(m, kind='stable')))}")
+inputs = {"no_surplus_None": None, "zero_surplus": [0.0] * 4, "surplus_2e-6": [2e-6, 0, 0, 0],
+          "surplus_1kW": [1.0, 0, 0, 0], "surplus_just_below_1e-6": [np.nextafter(1e-6, 0), 0, 0, 0],
+          "all_steps_1e-6": [1e-6] * 4}
+moved = []
+for name, s in inputs.items():
+    bb, mm = planning_prices(prices, s), planning_prices(prices, s, fn=MUT)
+    print(f"# input {name}: max|delta|={float(np.max(np.abs(mm - bb))):.3e}")
+    if not np.array_equal(bb, mm):
+        moved.append(name)
+print(f"RESULT inputs_moved={len(moved)} of {len(inputs)} ({','.join(moved) or '-'})")
+footer()

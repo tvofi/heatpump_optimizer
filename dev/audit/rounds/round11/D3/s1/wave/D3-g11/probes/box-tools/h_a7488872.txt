@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+# Metric: per price input, the forecast horizon length HeatPumpOptimizerCoordinator._forecast_arrays delivers
+#   (len(prices)) and the outcome of async_run_optimization on it (None = solved and published, "no_prices" = refused),
+#   baseline arm against mutant arm.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a7488872.py
+# Expected: lengths_seen={0, 96} (the price series is either empty or padded to opt_config.n_steps = 24 h / 15 min);
+#   moved_production=0 count; only a non-production 1 h horizon (n_steps = 4, set by replace on _opt_config; no
+#   config path sets horizon_hours, optimizer.py:2666 default 24.0) moves: baseline None -> mutant "no_prices".
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g11 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_run_optimization
+#   (line 6379, `            if len(prices) < 4:`), driven on tests/features.py:_r9f13_make's rig (injected hourly
+#   prices, flat weather, frozen clock 2026-01-15 06:00Z), solving in process (features.py's _r9f13_inline transport).
+# Perturbation: mutant a7488872387d5ca7, `len(prices) < 4` -> `len(prices) <= 4`, in memory (the method recompiled from its
+#   own source in the module namespace). Direction: none on production horizons (equivalent-candidate); the 1 h arm is
+#   the sensitivity control showing the probe can move.
+# Null control: the 5-step (1.25 h) horizon, where both arms solve.

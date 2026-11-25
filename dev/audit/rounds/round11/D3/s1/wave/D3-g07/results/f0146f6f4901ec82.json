@@ -1,0 +1,91 @@
+{
+ "key": "f0146f6f4901ec82",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:7491 GUARD_OFF",
+ "patch": "if rh is not None: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._forecast_arrays",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays@7477-7492",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3813.1,
+  "child_cpu_s": 6495.2,
+  "load1_start": 0.91,
+  "load1_end": 0.92,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/f0146f6f4901ec82.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f0146f6f4901ec82",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "candidate",
+ "red_as_null": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py",
+  "rc": 0,
+  "baseline_value": "95.0",
+  "mutant_value": "85.0",
+  "baseline_result": "humidity_mean_baseline",
+  "mutant_result": "humidity_mean_mutant",
+  "all_results": {
+   "humidity_mean_baseline": "95.0",
+   "humidity_mean_mutant": "85.0",
+   "null_baseline": "85.0",
+   "null_mutant": "85.0",
+   "thread_factor": "1.000",
+   "load1": "0.80",
+   "swapins": "0"
+  },
+  "inputs_tried": "weather entity 85 % for 48 h, Open-Meteo hourly relative_humidity_2m 95 % for 72 h built by the production _parse_block, clock frozen at golden.START in UTC; null: Open-Meteo 85 %"
+ },
+ "traced_reach": [
+  "tests/entities.py",
+  "tests/solar_alignment.py"
+ ],
+ "should_fail": "tests/entities.py and tests/solar_alignment.py execute coordinator.py:7491 on the traced baseline, yet neither asserts that ForecastArrays.humidity carries Open-Meteo's humidity where the client has it",
+ "finding": {
+  "title": "No check pins Open-Meteo's humidity overlay onto the forecast horizon",
+  "claim": "Disabling coordinator.py:7491 `if rh is not None:` drops Open-Meteo's hourly humidity from the horizon (mean 95 % -> the entity's 85 %) and the full gate stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "metric_definition": "mean of ForecastArrays.humidity over the 96-step horizon from _forecast_arrays (%)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._forecast_arrays",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f0146f6f4901ec82  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py  (humidity_mean_baseline=95.0, humidity_mean_mutant=85.0)",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/coordinator.py:7491 `if rh is not None:` -> `if False:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+   "expected_direction": "down",
+   "observed_value": "95.0 -> 85.0"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py",
+   "value": "null_baseline=85.0, null_mutant=85.0",
+   "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+  },
+  "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._forecast_arrays that changes its returned value has a check that fails when the guard is mutated",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/entities.py",
+   "tests/solar_alignment.py"
+  ],
+  "proposed_fix_scope": "a check in tests/entities.py driving HeatPumpOptimizerCoordinator._forecast_arrays on the probe's input and asserting the baseline value"
+ }
+}

@@ -1,0 +1,10 @@
+RESULT direct_n0_baseline=None
+RESULT direct_n0_mutant=[]
+RESULT null_moved=0 count (of 3: n_windows 1, 24, -1)
+RESULT grid_peak_baseline=0.0 kW
+RESULT grid_peak_mutant=0.0 kW
+RESULT downstream_tried=6 count
+RESULT downstream_moved=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.06
+RESULT swapins=0 count

@@ -1,0 +1,67 @@
+{
+ "key": "3351754da55a2896",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5940 GUARD_OFF",
+ "patch": "if not np.isfinite(residual): -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss@5940-5940",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3078.0,
+  "load1_start": 0.72,
+  "load1_end": 0.86,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/3351754da55a2896.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/3351754da55a2896.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3351754da55a2896",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3351754d.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3351754d.py",
+  "rc": 0,
+  "results": [
+   "RESULT state_nan_observed_baseline=(1.0, 0, 0, 0, True)",
+   "RESULT state_nan_observed_mutant=(1.0, 0, 0, 0, True)",
+   "RESULT state_pos_inf_residual_baseline=(1.0, 0, 0, 0, True)",
+   "RESULT state_pos_inf_residual_mutant=(1.0, 0, 0, 0, True)",
+   "RESULT state_neg_inf_residual_baseline=(1.0, 0, 0, 0, True)",
+   "RESULT state_neg_inf_residual_mutant=(1.0, 0, 0, 0, True)",
+   "RESULT states_moved=0 count",
+   "RESULT debug_log_baseline=0 count",
+   "RESULT debug_log_mutant=3 count",
+   "RESULT positive_control_state_baseline=(1.01, 1, 1, 0, True)",
+   "RESULT positive_control_moved=1 count",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.98",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "(1.0, 0, 0, 0, True) for NaN, +inf, -inf residuals",
+  "mutant_value": "identical; only +3 DEBUG 'Ignoring lower floor loss sample' records",
+  "inputs_tried": "residual NaN (observed NaN), +inf (predicted -inf), -inf (predicted +inf); positive control residual -0.2 K folds alike in both arms",
+  "machine": "box D3-g03: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython"
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss",
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "none needed: _loss_residual_rejected (`abs(residual) <= HOUSE_LOSS_MAX_RESIDUAL` is False for NaN and inf) refuses every non-finite residual the guard would, so the learner state cannot differ"
+ },
+ "provisional": "gate wall_s and load1 are provisional; counts are final"
+}

@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+# Metric: DefrostWindow.peek(now).duty (and events, any_defrost) on an interval whose defrost flag is still ON at the
+#   peek, over nine observe/close sequences; headline: flag ON carried over a close at 1800 s, re-observed ON at 1800 s (the per-cycle level read), peek at 2400 s.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_8297234e122897ff.py
+# EXPECTED RESULT duty_baseline=1.0          (the pump has defrosted the whole 600 s of the open interval)
+# EXPECTED RESULT duty_mutant=0.0            (the open on-period is dropped from the peek)
+# EXPECTED RESULT observed_baseline=1 mutant=1
+# EXPECTED RESULT any_defrost_baseline=1 mutant=0  (coordinator.py:5345-5347 then stops refusing the COP fold)
+# EXPECTED RESULT null_delta=0 count         (flag switched off before the peek: same answer both arms)
+# Count key: the DefrostObservation peek() returns (what coordinator._learn_measured_cop reads at coordinator.py:5345).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.defrost:DefrostWindow.peek
+#   (line 802 `        if self._state and self._since is not None:`).
+# Perturbation: mutant 8297234e122897ff, that guard -> `if False:`, applied in memory (peek recompiled from its own
+#   source, called unbound for the mutant arm). Direction: peek duty down to the closed part only.
+# Null control: sequences whose flag is off at the peek (on_off_peek, never-on): identical in both arms.

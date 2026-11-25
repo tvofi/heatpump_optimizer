@@ -1,0 +1,26 @@
+{"ev": "pool", "n": 258, "t": 1794858560.6}
+{"ev": "pool", "n": 258, "t": 1794858560.6}
+{"ev": "run", "script": "tests/arch_score_head.py", "tree": "w2", "rc": 0, "failed": 0, "seconds": 318.1, "timed_out": false, "t": 1794858895.1}
+{"ev": "baseline", "script": "tests/arch_score_head.py", "rc": 0, "failed": 0, "seconds": 318.1, "reach": true, "t": 1794858895.2}
+{"ev": "run", "script": "tests/arch_score_head.py", "tree": "w2", "rc": 0, "failed": 0, "seconds": 392.3, "timed_out": false, "t": 1794859287.4}
+{"ev": "run", "script": "tests/env_drift.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 713.5, "timed_out": false, "t": 1794859290.6}
+{"ev": "run", "script": "tests/env_drift.py", "tree": "w0", "rc": 0, "failed": 0, "seconds": 719.5, "timed_out": false, "t": 1794859296.5}
+{"ev": "baseline", "script": "tests/env_drift.py", "rc": 0, "failed": 0, "seconds": 719.5, "reach": true, "t": 1794859296.6}
+{"ev": "run", "script": "tests/block_duty.py", "tree": "w2", "rc": 0, "failed": 0, "seconds": 57.2, "timed_out": false, "t": 1794859344.6}
+{"ev": "baseline", "script": "tests/block_duty.py", "rc": 0, "failed": 0, "seconds": 57.2, "reach": true, "t": 1794859344.7}
+{"ev": "run", "script": "tests/block_duty.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 55.8, "timed_out": false, "t": 1794859346.4}
+{"ev": "run", "script": "tests/config_flow_steps.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 152.8, "timed_out": false, "t": 1794859499.2}
+{"ev": "baseline", "script": "tests/config_flow_steps.py", "rc": 0, "failed": 0, "seconds": 152.8, "reach": true, "t": 1794859499.3}
+{"ev": "run", "script": "tests/config_flow_steps.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 149.9, "timed_out": false, "t": 1794859649.2}
+{"ev": "run", "script": "tests/debug_collect.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 9.0, "timed_out": false, "t": 1794859658.2}
+{"ev": "baseline", "script": "tests/debug_collect.py", "rc": 0, "failed": 0, "seconds": 9.0, "reach": true, "t": 1794859658.3}
+{"ev": "run", "script": "tests/debug_collect.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 5.9, "timed_out": false, "t": 1794859664.2}
+{"ev": "run", "script": "tests/deployment_shape.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 13.3, "timed_out": false, "t": 1794859677.5}
+{"ev": "baseline", "script": "tests/deployment_shape.py", "rc": 0, "failed": 0, "seconds": 13.3, "reach": true, "t": 1794859677.6}
+{"ev": "run", "script": "tests/deployment_shape.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 11.8, "timed_out": false, "t": 1794859689.4}
+{"ev": "run", "script": "tests/doc_claims.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 68.3, "timed_out": false, "t": 1794859757.6}
+{"ev": "baseline", "script": "tests/doc_claims.py", "rc": 0, "failed": 0, "seconds": 68.3, "reach": true, "t": 1794859757.8}
+{"ev": "run", "script": "tests/doc_claims.py", "tree": "w1", "rc": 0, "failed": 0, "seconds": 57.8, "timed_out": false, "t": 1794859815.5}
+{"ev": "run", "script": "tests/boost_drift_replay.py", "tree": "w0", "rc": 124, "failed": 0, "seconds": 1200.2, "timed_out": true, "t": 1794860496.8}
+{"ev": "baseline", "script": "tests/boost_drift_replay.py", "rc": 124, "failed": 0, "seconds": 1200.2, "reach": false, "t": 1794860497.0}
+{"ev": "run", "script": "tests/boost_drift_replay.py", "tree": "w2", "rc": 124, "failed": 0, "seconds": 1200.1, "timed_out": true, "t": 1794860544.8}

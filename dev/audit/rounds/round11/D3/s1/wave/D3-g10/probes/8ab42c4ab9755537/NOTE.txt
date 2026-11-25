@@ -1,0 +1,1 @@
+probe written+run on baseline worktree: two-tank INFO count and format errors (2,0 -> 4,1); class pending gate verdict (probe moves -> candidate if SURVIVED/RED-AS-NULL)

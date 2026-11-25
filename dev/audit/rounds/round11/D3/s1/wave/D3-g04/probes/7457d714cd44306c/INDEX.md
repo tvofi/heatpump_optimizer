@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_7457d714cd44306c.py: Metric: Whether _confidence_margins(4) returns None or an array when every margin equals 1e-9 exactly (sigma*damp == 1e-9: sigma 2e-9 C at damp 0.5, mae 1.125). Count = inputs whose None/array outco

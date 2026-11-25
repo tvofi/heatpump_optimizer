@@ -1,0 +1,51 @@
+{
+ "key": "3918ca4fedbfc5bb",
+ "site": "sysid.py:1979 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/sysid.py",
+ "line": 1979,
+ "patch": "dof = max(len(rows) - n_cols, 1) -> dof = (len(rows) - n_cols)",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3273.4,
+  "child_cpu_s": 5480.2,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/3918ca4fedbfc5bb.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/3918ca4fedbfc5bb.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3918ca4fedbfc5bb",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_3918ca4f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_3918ca4f.py",
+  "first_case": "rows5_exact",
+  "baseline_value": "[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]",
+  "mutant_value": "[completed ua=0.19999999999957135 C=5.050166665555526 conf=0.23485492174384634]",
+  "cases_differing": "0 count (of 5)",
+  "null_differing": "0 count (of 0)",
+  "inputs_tried": [
+   "rows5_exact (differs=0)",
+   "rows5_noisy (differs=0)",
+   "rows6 (differs=0)",
+   "gap_4rows_guarded (differs=0)",
+   "plant (differs=0)"
+  ],
+  "thread_factor": "1.000 ratio",
+  "load1": "0.93"
+ },
+ "should_fail": "tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks none reachable: an input with rows <= 4 is refused at :1942 before :1979",
+ "equivalence": "the rows >= 5 guard at sysid.py:1942 precedes the line, so len(rows) - n_cols >= 1 and the max(.., 1) clamp is the identity on every input that reaches it",
+ "class": "equivalent-candidate"
+}

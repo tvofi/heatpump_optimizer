@@ -1,0 +1,39 @@
+
+import time
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+
+T0 = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+MUT = mutate(co._open_loop_plan_value, "if now_s < starts[0]:", "if now_s <= starts[0]:")
+
+
+def plan(n, dup=False):
+    ts = [T0 + timedelta(minutes=15 * i) for i in range(n)]
+    if dup:
+        ts = [T0] + ts
+    return SimpleNamespace(timestamps=ts, slab_temp_trajectory=[50.0 + i for i in range(len(ts))])
+
+
+t0, t1 = time.process_time(), time.thread_time()
+cases = {
+    "tie_96_steps": (plan(96), T0),
+    "tie_1_step": (plan(1), T0),
+    "tie_2_steps": (plan(2), T0),
+    "tie_plus_1us": (plan(96), T0 + timedelta(microseconds=1)),
+    "tie_minus_1us": (plan(96), T0 - timedelta(microseconds=1)),
+    "before_600s": (plan(96), T0 - timedelta(seconds=600)),
+    "before_901s": (plan(96), T0 - timedelta(seconds=901)),
+    "mid": (plan(96), T0 + timedelta(hours=3)),
+    "past_end": (plan(4), T0 + timedelta(hours=3)),
+}
+moved = 0
+for name, (p, now) in cases.items():
+    b = co._open_loop_plan_value(p, "slab_temp_trajectory", now)
+    m = MUT(p, "slab_temp_trajectory", now)
+    moved += int(b != m)
+    print(f"RESULT {name}_baseline={b} mutant={m}")
+print(f"RESULT moved_valid={moved} count")
+p = plan(4, dup=True)
+print(f"RESULT dup_head_baseline={co._open_loop_plan_value(p, 'slab_temp_trajectory', T0)} "
+      f"mutant={MUT(p, 'slab_temp_trajectory', T0)}  (malformed plan, not a production state)")
+tail_results(t0, t1)

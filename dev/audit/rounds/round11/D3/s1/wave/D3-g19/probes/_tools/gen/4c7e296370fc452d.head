@@ -1,0 +1,14 @@
+# Metric: rain_anticipation_factor _analyze_forecast_trajectory returns when the decay-weighted mean precipitation is exactly 0.1 mm/h (a 1-step forecast of 0.1 mm/h).
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_4c7e296370fc452d.py
+# EXPECTED RESULT rain_anticipation_baseline=1.0
+# EXPECTED RESULT rain_anticipation_mutant=1.0075  (1 + (1.15-1) * 0.05)
+# EXPECTED RESULT moved=1 count
+# EXPECTED RESULT null_delta=0 count  (0.09 and 0.2 mm/h)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._analyze_forecast_trajectory (line 4271
+#   `if avg_future_precip > 0.1:`), called once per solve at optimizer.py:4377; its dict shapes the initial guess and is
+#   published as the plan's predictive_info (solar_reduction_factor, pre_heat_urgency, ...).
+# Perturbation: `if avg_future_precip > 0.1:` -> `if avg_future_precip >= 0.1:` (CMP_BOUND 4c7e296370fc452d), applied in memory (method recompiled from its own
+#   source, called on the same optimizer instance for the mutant arm only). Direction: rain_anticipation 1.0 -> 1.0075 at exactly 0.1 mm/h.
+# Null control: 0.09 and 0.2 mm/h.
+# Inputs tried: 0.1 mm/h at n=1, 2, 4, 24 (n>=4 sums to 0.10000000000000002 and both arms fire); 0.09; 0.2.

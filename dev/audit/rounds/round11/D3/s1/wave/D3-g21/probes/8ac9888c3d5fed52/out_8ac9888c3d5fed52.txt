@@ -1,0 +1,13 @@
+RESULT edge_differ=0 count
+RESULT edge_no_charging=None|None
+RESULT edge_nan_prices_no_expensive=None|None
+RESULT edge_all_nan_prices=None|None
+RESULT edge_zero_power=None|None
+RESULT edge_max_power_cheap_only_after_peak=None|None
+RESULT edge_length_one=None|None
+RESULT fuzz_differ=0 count
+RESULT fuzz_guard_true=1113 count
+RESULT reach_plan_maxabs_diff_kw=0.0000 kW
+RESULT thread_factor=1.000
+RESULT load1=1.55
+RESULT swapins=0

@@ -1,0 +1,1 @@
+- probes/probe_e72d16a241bfa7be.py (output probes/probe_e72d16a241bfa7be.out): pins prod_differ=0 of 840; direct var 0, level inf -> 0.0 vs mutant prod_differ=0 of 840; direct var 0, level inf -> nan; provisional class if the gate survives: equivalent-candidate

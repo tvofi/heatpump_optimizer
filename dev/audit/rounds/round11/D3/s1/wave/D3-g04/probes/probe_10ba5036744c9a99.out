@@ -1,0 +1,11 @@
+RESULT production_step_minutes=15.0
+RESULT max_abs_delta_production=0.0 C
+RESULT input step=0.0 delta=0.15
+RESULT input step=0.25 delta=0.15
+RESULT input step=0.5 delta=0.15
+RESULT input step=0.999 delta=0.0
+RESULT max_abs_delta_subminute=0.15 C
+RESULT null_max_abs_delta=0.0 C
+RESULT thread_factor=1.000
+RESULT load1=0.88
+RESULT swapins=0

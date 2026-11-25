@@ -1,0 +1,15 @@
+exec(open('/root/probe-src/common.py').read().replace('repo_root(__file__)','repo_root("/root/probe-tree/x")'))
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig
+cfg=OptimizationConfig(horizon_hours=4,time_step_minutes=60); print('export',cfg.pv_export_price)
+M8=mutant_method("_dhw_planning_prices","if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):","if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):")
+M7=mutant_method("_dhw_planning_prices","surplus = np.clip(surplus - space_demand[: len(prices)], 0.0, None)","surplus = (surplus - space_demand[: len(prices)])")
+model=ThermalModel(ThermalParameters(dhw_enabled=True))
+prices=np.array([2.0,1.0,1.5,0.5])
+def f(sur,fn=None,sd=None):
+    pl=DhwPlanner(model,cfg,None if sur is None else np.asarray(sur,float),None)
+    return (fn or DhwPlanner._dhw_planning_prices)(pl,prices,3.0,sd)
+for s in ([1e-6,0,0,0],[1e-6]*4,[2e-6,0,0,0],[0]*4,None):
+    print('M8',s,f(s),f(s,M8))
+for s,sd in (([1,1,0,0],np.array([3.,0,0,0])),([1,1,1,1],np.zeros(4)),([1,1,1,1],np.array([.5]*4))):
+    print('M7',s,sd,f(s,None,sd),f(s,M7,sd), 'rank',np.argsort(f(s,None,sd)),np.argsort(f(s,M7,sd)))

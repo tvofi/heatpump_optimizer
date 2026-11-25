@@ -1,0 +1,32 @@
+RESULT tests/plan_view.py wall_s=1.5 cpu_s=1.2 solves=1 checks=0 rc=0 load1=6.88 provisional=true
+RESULT tests/arch_score_head.py wall_s=80.4 cpu_s=52.0 solves=0 checks=18 rc=0 load1=8.21 provisional=true
+RESULT tests/backtest.py wall_s=112.9 cpu_s=62.7 solves=11 checks=25 rc=0 load1=8.9 provisional=true
+RESULT tests/block_duty.py wall_s=14.0 cpu_s=7.9 solves=6 checks=153 rc=0 load1=8.92 provisional=true
+RESULT tests/boost_drift_replay.py wall_s=465.7 cpu_s=198.5 solves=789 checks=46 rc=0 load1=12.41 provisional=true
+RESULT tests/card.mjs wall_s=294.7 cpu_s=128.7 solves=0 checks=0 rc=0 load1=12.13 provisional=true
+RESULT tests/card_drift.mjs wall_s=19.2 cpu_s=8.1 solves=0 checks=0 rc=0 load1=12.39 provisional=true
+RESULT tests/config_flow_steps.py wall_s=54.4 cpu_s=23.8 solves=1 checks=586 rc=0 load1=12.31 provisional=true
+RESULT tests/debug_collect.py wall_s=2.8 cpu_s=1.2 solves=0 checks=163 rc=0 load1=12.31 provisional=true
+RESULT tests/deployment_shape.py wall_s=6.2 cpu_s=2.7 solves=0 checks=0 rc=0 load1=12.26 provisional=true
+RESULT tests/doc_claims.py wall_s=26.4 cpu_s=11.5 solves=2 checks=410 rc=0 load1=12.25 provisional=true
+RESULT tests/edge.py wall_s=52.2 cpu_s=22.9 solves=21 checks=0 rc=0 load1=12.25 provisional=true
+RESULT tests/entities.py wall_s=1197.7 cpu_s=493.9 solves=33 checks=2744 rc=0 load1=13.8 provisional=true
+RESULT tests/env_drift.py wall_s=324.2 cpu_s=219.3 solves=0 checks=0 rc=0 load1=10.62 provisional=true
+RESULT tests/features.py wall_s=1093.2 cpu_s=782.5 solves=725 checks=5917 rc=0 load1=9.23 provisional=true
+RESULT tests/finite_boundary.py wall_s=110.3 cpu_s=98.8 solves=0 checks=114 rc=0 load1=9.34 provisional=true
+RESULT tests/frontend.py wall_s=0.2 cpu_s=0.1 solves=0 checks=0 rc=0 load1=9.31 provisional=true
+RESULT tests/golden.py wall_s=None cpu_s=None solves=None checks=None rc=None load1=None provisional=true
+RESULT tests/guard_pins.py wall_s=5.4 cpu_s=4.5 solves=0 checks=91 rc=0 load1=9.45 provisional=true
+RESULT tests/harness_headers.py wall_s=167.3 cpu_s=144.7 solves=0 checks=115 rc=0 load1=10.93 provisional=true
+RESULT tests/manual_plan.py wall_s=8.6 cpu_s=5.6 solves=31 checks=132 rc=0 load1=10.78 provisional=true
+RESULT tests/open_meteo.py wall_s=0.2 cpu_s=0.2 solves=0 checks=0 rc=0 load1=10.78 provisional=true
+RESULT tests/optimality.py wall_s=149.7 cpu_s=110.0 solves=23 checks=84 rc=0 load1=9.93 provisional=true
+RESULT tests/solar_alignment.py wall_s=1.1 cpu_s=0.8 solves=0 checks=0 rc=0 load1=9.93 provisional=true
+RESULT tests/stress.py wall_s=None cpu_s=None solves=None checks=None rc=None load1=None provisional=true
+RESULT tests/structure.py wall_s=32.5 cpu_s=21.6 solves=0 checks=0 rc=0 load1=10.45 provisional=true
+RESULT tests/typing_ruler.py wall_s=36.9 cpu_s=22.8 solves=0 checks=0 rc=0 load1=11.0 provisional=true
+RESULT tests/validate.py wall_s=33.1 cpu_s=22.3 solves=22 checks=0 rc=0 load1=10.83 provisional=true
+RESULT tests/wood_advisor.py wall_s=1.2 cpu_s=0.8 solves=0 checks=25 rc=0 load1=10.84 provisional=true
+RESULT thread_factor=0.61
+RESULT load1=10.47
+RESULT swapins=0

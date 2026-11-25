@@ -1,0 +1,21 @@
+
+ha_dt.freeze(NOW)
+t0, t1 = time.process_time(), time.thread_time()
+MUT = mutate(CLS.async_run_optimization, 'recording a re-run")\n        return None', 'recording a re-run")\n        pass')
+
+
+def reentrant(fn, in_flight):
+    _, c = make("rr")
+    c._optimization_running = in_flight
+    SOLVES.clear()
+    r = run(fn, c)
+    return len(SOLVES), c._optimization_running, r
+
+
+b, m = reentrant(CLS.async_run_optimization, True), reentrant(MUT, True)
+print(f"RESULT reentrant_solves_baseline={b[0]} mutant={m[0]}")
+print(f"RESULT inflight_flag_after_baseline={b[1]} mutant={m[1]}")
+b, m = reentrant(CLS.async_run_optimization, False), reentrant(MUT, False)
+print(f"RESULT null_moved={int(b != m)} count  (no solve in flight: baseline {b}, mutant {m})")
+ha_dt.freeze(None)
+tail_results(t0, t1)

@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+# Metric: the (temperature, humidity) bucket one measured defrost duty folds into through DefrostDerate.observe_duty
+#   at outdoor 40.0 C (TEMP_EDGES[-1]) and the coldest bucket's resulting factor, baseline vs mutant.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_c61a89f42607c92b.py
+# EXPECTED RESULT bucket_temp_at_top_edge baseline=5 mutant=0
+# EXPECTED RESULT direct_inputs_moved=2 of 20 (temp:40.0,hum:101.0)  (only a value exactly on the top edge moves)
+# EXPECTED RESULT observe_duty_40C_bucket baseline=(5, 0) mutant=(0, 0)
+# EXPECTED RESULT cold_bucket_factor baseline=0.7 mutant>0.7  (ten 40 C zero duties dilute the -30..-5 C bucket)
+# EXPECTED RESULT null_delta=0 count
+# Count key: DefrostDerate.duty_counts (which bucket the production fold incremented) and factor() at the cold centre.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g13 (4 vCPU Intel Xeon @ 2.30GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.defrost:_bucket_index
+#   (line 169 `    return len(edges) - 2 if value >= edges[-1] else 0`), reached by DefrostDerate._bucket <- observe_duty
+#   <- coordinator._settle_defrost (coordinator.py:9981, every temperature once the defrost flag is legible).
+# Perturbation: mutant c61a89f42607c92b, `>=` -> `>`, in memory (function recompiled from its own source and patched
+#   onto the module with mock.patch.object). Direction: a 40.0 C (or 101 % RH) sample moves from the top bucket to 0.
+# Null control: a 20 C sample (inside the edges: line 169 is not reached), same bucket both arms.

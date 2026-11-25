@@ -1,0 +1,60 @@
+import json, re
+from pathlib import Path
+SP = Path(__file__).parent
+D = Path.home() / "audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1"
+meta = json.loads((SP / "meta.json").read_text())
+METRIC = {
+ "fd.py": ("whether optimizer._fd_steps's steps differ between baseline and mutant where the gradient reads them "
+           "(the free mask, or a free variable's step), counted over a crafted boundary grid, its production-domain subset "
+           "(eps=_LBFGSB_FD_EPS, 0<=lb<=x0<=ub<=100 kW) and 20000 seeded random inputs; plus, over four production solves "
+           "(tests/manual_plan.py's winter house: plain, space-pinned, DHW-pinned, capped-pinned), the _fd_steps calls and "
+           "batched gradients that move and the largest plan power delta (kW)",
+           "the step vector h (and free mask) _fd_steps returns, read only where _fd_divide reads it"),
+ "pins.py": ("whether optimizer._apply_pins_to_bounds's (lower, upper) box differs between baseline and mutant over a "
+             "pin x upper-bound x on-power grid and its production-domain subset (pins 1.0/0.0/NaN), the inverted boxes "
+             "(lower > upper) each arm builds for on-pins, and over four production solves the calls that move, the plan "
+             "power delta (kW) and the objective delta",
+             "the bounds list _apply_pins_to_bounds returns, and the optimize() result built from it"),
+ "reasons.py": ("whether optimizer._mark_manual_reasons's relabelled reasons differ between baseline and mutant over a "
+                "reason x pin grid (with length mismatches) and its production-domain subset (equal lengths, pins "
+                "1.0/0.0/NaN), and over four production solves the published space/DHW reasons equal to REASON_MANUAL "
+                "and the reason labels that change",
+                "the reason list _mark_manual_reasons returns, and the published space_reasons/dhw_reasons"),
+ "better.py": ("which of two plans optimizer._better_objective keeps (left/right) over an objective-value grid and its "
+               "finite subset, the kept objective for left=10 against right=5, and the production calls that move",
+               "the OptimizationResult _better_objective returns (by identity)"),
+ "restart.py": ("which plan optimizer._lbfgsb_restart keeps (the start 'best' or the 'polished' one) over a (prior, "
+                "score) grid built around the keep threshold and its finite subset, with only the polish run "
+                "(_lbfgsb_run) faked; plus every keep decision of four production solves, recorded at the decision line",
+                "the object _lbfgsb_restart returns (by identity)"),
+}
+DIRECTION = {
+ "fd.py": "a moved step is the mutant's; any production gradient or plan delta is the mutant's direction",
+ "pins.py": "moved inputs and inverted boxes rise from 0 under the mutant",
+ "reasons.py": "moved inputs and changed labels rise from 0 under the mutant",
+ "better.py": "moved inputs rise from 0 under the mutant",
+ "restart.py": "moved inputs rise from 0 under the mutant",
+}
+out = {}
+for key, m in meta.items():
+    mut = json.loads((D / "state/results/complete" / f"{key}.json").read_text())["mutant"]
+    fn = mut["anchor"].split(":")[1].split()[0]
+    res = [l for l in (SP / f"out_{key}.txt").read_text().splitlines() if l.startswith("RESULT ")]
+    exp = [l for l in res if not re.match(r"RESULT (thread_factor|load1|swapins)=", l)]
+    metric, ckey = METRIC[m["body"]]
+    h = [f"# Metric: {metric}.",
+         f"# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_{key}.py",
+         "#   (from the repository root; $HOME/venv-ci on this box is /opt/hpo/venv-ci)"]
+    h += [f"# EXPECTED {l}" for l in exp]
+    h += ["#   (counts are exact and deterministic, the random grid seeded; kW and objective deltas are solver floats, re-taken to 1e-3 relative on another BLAS build; thread_factor, load1, swapins quoted, not expected)",
+          "# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g27 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14).",
+          f"# Instrumented symbol: heatpump_optimizer.optimizer:{fn}, custom_components/heatpump_optimizer/optimizer.py:{mut['line']} `{mut['old'].strip()}`.",
+          f"# Perturbation: key {key} ({mut['kind']}), `{mut['old'].strip()}` -> `{mut['new'].strip()}`, applied in memory: the function is",
+          "#   re-compiled from its own source with the one line replaced, in a copy of the module namespace; the production solves",
+          f"#   see it through mock.patch.object on the module the suite imports (heatpump_optimizer.optimizer). Direction: {DIRECTION[m['body']]}.",
+          "# Null control: the same function re-compiled with the line unchanged (the null_* RESULT lines), expected 0 moved.",
+          f"# Count key: {ckey}, never an input attribute.",
+          "# Out of the D3-g27 full-gate wave (round 11, seat D3-s1): the key's full gate is gates/<key>.json in this wave dir."]
+    out[key] = h
+(SP / "headers.json").write_text(json.dumps(out, indent=1))
+print(len(out))

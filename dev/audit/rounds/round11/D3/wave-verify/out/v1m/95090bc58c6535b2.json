@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT reached_fit_5=0\nRESULT reached_fit_6=0\nRESULT reached_fit_7=1\nRESULT reached_fit_21=1\nRESULT reason_6='not enough samples'\nRESULT thread_factor=1.000\nRESULT load1=37.94\nRESULT swapins=0\n", "stderr": ""}

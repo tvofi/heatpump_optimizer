@@ -1,0 +1,11 @@
+#!/bin/bash
+# exit when the wave dir gains a gate record beyond $1 records, or the driver exits
+W=/root/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates
+n0=${1:-0}
+while true; do
+  n=$(ls $W/*.json 2>/dev/null | wc -l)
+  [ "$n" -gt "$n0" ] && { echo "records=$n"; ls -t $W/*.json | head -1; tail -3 /root/gate_wave.log; exit 0; }
+  grep -q "RUN-EXIT\|GATES-DONE" /root/gate_wave.log && { echo DRIVER-EXITED; tail -5 /root/gate_wave.log; exit 0; }
+  pgrep -f gate_wave.sh >/dev/null || { echo DRIVER-GONE; tail -5 /root/gate_wave.log; exit 0; }
+  sleep 30
+done

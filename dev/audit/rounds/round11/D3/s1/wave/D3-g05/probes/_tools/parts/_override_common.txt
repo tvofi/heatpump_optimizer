@@ -1,0 +1,16 @@
+from custom_components.heatpump_optimizer.inputs import InputReader
+NOW = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+ENT = "sensor.flue"
+
+
+def override(fn, state, cycles=1):
+    """_external_heat_override over `cycles` update cycles on one coordinator; (last value, warnings logged)."""
+    c = coord({ENT: state} if state is not None else {}, external_heat_entity=ENT if state is not None else "")
+    warns = []
+    val = None
+    with mock.patch.object(co._LOGGER, "warning", lambda *a, **k: warns.append(a[0])):
+        for i in range(cycles):
+            now = NOW + timedelta(minutes=30 * i)
+            reader = InputReader(c.hass, c._config, enabled=True, scale=1.0, now=lambda now=now: now)
+            val = fn(c, reader)
+    return val, len(warns)

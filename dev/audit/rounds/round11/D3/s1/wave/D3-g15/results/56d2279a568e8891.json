@@ -1,0 +1,62 @@
+{
+ "key": "56d2279a568e8891",
+ "site": "dhw_planner.py:598 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 598,
+ "patch": "and n_steps > 0 -> and n_steps >= 0",
+ "function": "DhwPlanner._dhw_legionella_due",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3794.8,
+  "load1_start": 0.94,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 6399.5,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/56d2279a568e8891.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 56d2279a568e8891"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_56d2279a568e8891.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_56d2279a568e8891.py",
+  "baseline_value": "n0_hours_since_400_baseline=(False, None, None)",
+  "mutant_value": "n0_hours_since_400_mutant=raises ValueError",
+  "results": {
+   "moved_in_range": "0 count",
+   "n0_hours_since_20_baseline": "(False, None, None)",
+   "n0_hours_since_20_mutant": "(False, None, None)",
+   "n0_hours_since_168_baseline": "(False, None, None)",
+   "n0_hours_since_168_mutant": "(False, None, None)",
+   "n0_hours_since_400_baseline": "(False, None, None)",
+   "n0_hours_since_400_mutant": "raises ValueError",
+   "reach_n0_optimize_baseline": "['optimize raised IndexError']",
+   "reach_n0_optimize_mutant": "['optimize raised ValueError']",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.18",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "n_steps 0/1/2/96 x hours_since 0/20/150/167.9/168/400 h; optimize() on a 0-step horizon, both arms",
+  "reading": "identical on n_steps >= 1 (15 inputs); at n_steps 0 an overdue clock separates (baseline no cycle, mutant ValueError from an empty argmin), but optimize() at n_steps 0 already fails in the baseline (IndexError; mutant ValueError) and coordinator.py:6379 refuses any solve with fewer than 4 price steps: unreachable through production",
+  "thread_factor": 1.0,
+  "load1": 3.18
+ },
+ "should_fail": "none through production; only a direct call at n_steps 0 separates"
+}

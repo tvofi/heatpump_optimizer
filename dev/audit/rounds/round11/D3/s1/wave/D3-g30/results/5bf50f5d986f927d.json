@@ -1,0 +1,85 @@
+{
+ "key": "5bf50f5d986f927d",
+ "site": "custom_components/heatpump_optimizer/price_model.py:84 CONST",
+ "patch": "QUARTER_FACTOR_MIN = 0.25 -> QUARTER_FACTOR_MIN = 0.5",
+ "function": "<module>",
+ "cluster": "price_model.py:<module>@66-90",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3468.2,
+  "load1_start": 1.0,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/5bf50f5d986f927d.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py",
+  "baseline": {
+   "qf_h6q0_quarter_at_0p2_of_hour": "0.246914",
+   "stored_q0_stored_ratio_9": "0.2"
+  },
+  "mutant": {
+   "qf_h6q0_quarter_at_0p2_of_hour": "0.465116",
+   "stored_q0_stored_ratio_9": "0.465116"
+  },
+  "moved": {
+   "qf_h6q0_inputs_moved": "2 count",
+   "stored_q0_inputs_moved": "1 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "stored_ratio_9,stored_ratio_2",
+  "all_results": {
+   "qf_h6q0_quarter_at_0p2_of_hour_baseline": "0.246914",
+   "qf_h6q0_quarter_at_0p2_of_hour_mutant": "0.465116",
+   "qf_h6q0_negative_quarter_baseline": "0.211838",
+   "qf_h6q0_negative_quarter_mutant": "0.402367",
+   "null_qf_h6q0_ramp_0p9_1p1_baseline": "0.9",
+   "null_qf_h6q0_ramp_0p9_1p1_mutant": "0.9",
+   "qf_h6q0_inputs_moved": "2 count",
+   "null_delta": "0 count",
+   "inputs_tried": "stored_ratio_9,stored_ratio_2",
+   "stored_q0_stored_ratio_9_baseline": "0.2",
+   "stored_q0_stored_ratio_9_mutant": "0.465116",
+   "null_stored_q0_stored_ratio_2_baseline": "0.7",
+   "null_stored_q0_stored_ratio_2_mutant": "0.7",
+   "stored_q0_inputs_moved": "1 count",
+   "thread_factor": "1.000",
+   "load1": "0.82",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "Doubling the lower quarter clip raises a learned 06:00 quarter that sat at 0.2x its hour mean from 0.246914 to 0.465116 through PriceShapeLearner.fold, and a stored factor row with ratio 9 loads as 0.465116 instead of 0.2 through from_dict; no gated script feeds a quarter below 0.5x its hour.",
+ "should_fail": "tests/features.py quarter clip check 'a clipped quarter still leaves its hour's factors at mean 1.0' (~18748-18760, traced executing the np.clip): its _spiked hour [0.2,0.2,0.2,20] puts the low quarters at 0.034x, clipped by either bound, and it asserts only the hour mean and max < 4.5; it lacks min(_h6) == QUARTER_FACTOR_MIN / renormaliser as a literal (0.25-based) value.",
+ "finding": {
+  "title": "price_model.py:84 QUARTER_FACTOR_MIN 0.25 -> 0.5 survives the full gate: the lower quarter clip is unpinned",
+  "claim": "Doubling the lower quarter clip raises a learned 06:00 quarter that sat at 0.2x its hour mean from 0.246914 to 0.465116 through PriceShapeLearner.fold, and a stored factor row with ratio 9 loads as 0.465116 instead of 0.2 through from_dict; no gated script feeds a quarter below 0.5x its hour.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "learned quarter factor of hour 6 quarter 0 after one quarter day folded; and the stored factor after PriceShapeModel.from_dict; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 5bf50f5d986f927d",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:84",
+  "perturbation": "the one-line mutant 5bf50f5d986f927d: `QUARTER_FACTOR_MIN = 0.25` -> `QUARTER_FACTOR_MIN = 0.5`; direction qf_h6q0_quarter_at_0p2_of_hour: 0.246914 -> 0.465116; stored_q0_stored_ratio_9: 0.2 -> 0.465116",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}

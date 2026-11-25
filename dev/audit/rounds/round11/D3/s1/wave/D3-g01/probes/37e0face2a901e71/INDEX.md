@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_37e0face2a901e71.py: pins irradiance series (or exception) for a 6-step horizon, a 3-entry weather solar list and Open-Meteo covering 2 steps; baseline [100.0, 101.0, 7.0, 0.0, 0.0, 0.0], mutant IndexError (candidate)

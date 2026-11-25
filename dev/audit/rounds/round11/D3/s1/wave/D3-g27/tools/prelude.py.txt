@@ -1,0 +1,57 @@
+import os
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+import inspect, math, sys, textwrap, time
+from pathlib import Path
+from unittest import mock
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents, Path.cwd()):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+sys.path.insert(0, str(ROOT / "custom_components"))
+import numpy as np  # noqa: E402
+import harness  # noqa: E402,F401  (the suite's stub wiring, as tests/manual_plan.py imports it)
+# the package path the suite's solves import (heatpump_optimizer.*), so a patch reaches them
+from heatpump_optimizer import optimizer as opt  # noqa: E402
+
+_T0 = (time.process_time(), time.thread_time())
+
+
+def mutant(fn_name, old, new):
+    """``fn_name`` re-compiled from its own source with the one mutated line, in a copy of
+    the module namespace (the module itself is untouched)."""
+    fn = getattr(opt, fn_name)
+    src = textwrap.dedent(inspect.getsource(fn))
+    assert src.count(old.strip()) == 1, (fn_name, old)
+    src = src.replace(old.strip(), new.strip())
+    ns = dict(opt.__dict__)
+    exec(compile(src, opt.__file__, "exec"), ns)
+    return ns[fn_name]
+
+
+def result(name, value, unit=""):
+    print(f"RESULT {name}={value}{(' ' + unit) if unit else ''}")
+
+
+def tail():
+    cpu, thr = time.process_time() - _T0[0], time.thread_time() - _T0[1]
+    result("thread_factor", f"{cpu / thr:.3f}" if thr > 0 else "1.000")
+    result("load1", f"{os.getloadavg()[0]:.2f}")
+    try:
+        sw = [l for l in open("/proc/vmstat") if l.startswith("pswpin")][0].split()[1]
+    except Exception:
+        sw = "na"
+    result("swapins", sw)

@@ -1,0 +1,1 @@
+_shared: out-of-tree generator (probe_template.py.tmpl, a .tmpl so no Python parser reads its placeholders; spec.py; gen_probes.py), the should-fail map (sf.py), the results writer (write_result.py) and its loop (autoresult.sh); they generate and record every probe_<key>.py

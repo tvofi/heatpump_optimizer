@@ -1,0 +1,117 @@
+{
+ "key": "24d9995ccee4252e",
+ "site": "defrost.py:642 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/defrost.py",
+ "line": 642,
+ "patch": "if self.duty_counts[t][h] > 0: -> if self.duty_counts[t][h] >= 0:",
+ "function": "DefrostDerate.summary",
+ "cluster": "defrost.py:DefrostDerate.summary@642-642",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 2823.1,
+  "child_cpu_s": 4713.7,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/24d9995ccee4252e.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 24d9995ccee4252e",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+  "answer": {
+   "answer": "defrost.py:642 summary(): duty_counts > 0 -> >= 0, so every bucket reports a measured duty, even with no duty samples. Should fail: a DefrostDerate.summary() test on a fresh learner asserting no measured-duty field in uncounted buckets (the diagnostics/attribute it feeds).",
+   "kind": "gap"
+  }
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py",
+  "rc": 0,
+  "results": [
+   "RESULT rows_total_baseline=1 count",
+   "RESULT rows_with_duty_baseline=0 count",
+   "RESULT rows_with_duty_mutant=1 count",
+   "RESULT mutant_row_fields=['duty', 'duty_samples', 'events']",
+   "RESULT mutant_row_duty=0.0 events=0 duty_samples=0",
+   "RESULT null_delta_rows=0 count",
+   "RESULT empty_rows_baseline=0 mutant=0 count",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.80",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "one inferred observation at 3 C / 85 % (duty_counts 0)",
+   "null: one counted duty at 3 C / 85 %",
+   "empty learner"
+  ],
+  "baseline_value": "0",
+  "mutant_value": "1",
+  "load1": 0.8,
+  "thread_factor": 1.0
+ },
+ "should_fail": "tests/features.py (its traced baseline executes defrost.py:642; the reach table also lists tests/finite_boundary.py): no assertion that a summary() row of a bucket with duty_counts == 0 carries no duty/events/duty_samples keys",
+ "finding": {
+  "title": "No check pins that an inferred-only defrost bucket's summary row omits the measured-duty block",
+  "claim": "Mutant 24d9995ccee4252e (defrost.py:642, duty_counts > 0 -> >= 0) survives the full gate (RED-AS-NULL), yet DefrostDerate.summary() on a learner with one inferred observation and no counted duty gains a duty=0.0 events=0 duty_samples=0 block on its row (rows_with_duty 0 -> 1).",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "rows of DefrostDerate.summary() carrying a 'duty' key on a learner whose only evidence is one inferred observation (duty_counts all 0)",
+  "phenomenon_property": "A defrost bucket row in the diagnostics 'defrost_buckets' carries a measured-duty block only when that bucket has counted at least one duty sample",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list); this key's row",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.defrost:DefrostDerate.summary",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py",
+   "value": "1",
+   "unit": "rows of DefrostDerate.summary() carrying a 'duty' key on a learner whose only evidence is one inferred observation (duty_counts all 0)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g13: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probe ran on the box while its own full gates ran (GATE_JOBS=1)",
+   "tolerance": "exact",
+   "load1": 0.8,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "mutant 24d9995ccee4252e (if self.duty_counts[t][h] > 0: -> if self.duty_counts[t][h] >= 0:) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 24d9995ccee4252e",
+   "expected_direction": "up",
+   "observed_value": "1"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py",
+   "note": "a bucket with one counted duty sample carries the block in both arms (null_delta_rows=0)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 24d9995ccee4252e"
+  ],
+  "proposed_fix_scope": "tests only: a summary() check on an inferred-only learner asserting the row has no 'duty'/'events'/'duty_samples' keys",
+  "files": [
+   "custom_components/heatpump_optimizer/defrost.py",
+   "tests/features.py"
+  ],
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py (its traced baseline executes defrost.py:642; the reach table also lists tests/finite_boundary.py): no assertion that a summary() row of a bucket with duty_counts == 0 carries no duty/events/duty_samples keys"
+ }
+}

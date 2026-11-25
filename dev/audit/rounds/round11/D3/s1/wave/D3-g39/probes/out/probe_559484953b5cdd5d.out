@@ -1,0 +1,10 @@
+RESULT boundary_k_s_baseline=0.0
+RESULT boundary_k_s_mutant=1200000000.0
+RESULT just_above_k_s_baseline=600000000.0
+RESULT just_above_k_s_mutant=600000000.0
+RESULT zero_k_s_baseline=0.0
+RESULT zero_k_s_mutant=0.0
+RESULT ordinary_baseline=2.4
+RESULT ordinary_mutant=2.4
+RESULT cases_moved=1
+RESULT null_cases_moved=0

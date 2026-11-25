@@ -1,0 +1,1 @@
+- probe_ce686724ef107650.py (+ _g23_common.py): pins space release list _safety_release_steps returns when a pinned-ON step sits at floor+0.1 after a forced-off step; and optimize()'s plan signature over manual-plan inputs with on-blocks. Output of the recorded run: probe_output.txt.

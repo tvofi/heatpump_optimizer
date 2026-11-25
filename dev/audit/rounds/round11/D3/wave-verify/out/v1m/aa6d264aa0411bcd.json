@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT reached_fit_6=0\nRESULT reached_fit_7=1\nRESULT reached_fit_7_gap=0\nRESULT reason_6='not enough usable intervals'\nRESULT thread_factor=1.000\nRESULT load1=40.35\nRESULT swapins=0\n", "stderr": ""}

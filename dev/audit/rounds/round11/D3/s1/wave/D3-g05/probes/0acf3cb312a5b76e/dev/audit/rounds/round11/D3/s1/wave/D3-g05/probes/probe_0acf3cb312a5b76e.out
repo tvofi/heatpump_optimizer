@@ -1,0 +1,9 @@
+RESULT entity_state['sensor.absent'] baseline=(None, {}) mutant=(None, {})
+RESULT entity_state['sensor.present'] baseline=('on', {'a': 1}) mutant=('on', {'a': 1})
+RESULT entity_state['sensor.bare'] baseline=('x', {}) mutant=('x', {})
+RESULT entity_state[''] baseline=(None, {}) mutant=(None, {})
+RESULT entity_state[None] baseline=(None, {}) mutant=(None, {})
+RESULT moved_inputs=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.10
+RESULT swapins=0 count

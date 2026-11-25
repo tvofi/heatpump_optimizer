@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py: pins keys of _fuse_advisor after one _maybe_run_fuse_advisor run whose what-if fails, advisor initially empty, 25 A fuse (baseline vs mutant ceee24404849933e in memory); provisional class candidate

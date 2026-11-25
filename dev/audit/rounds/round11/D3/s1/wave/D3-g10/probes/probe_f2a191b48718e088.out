@@ -1,0 +1,7 @@
+RESULT active_baseline=(debugs,flag)(1, False)
+RESULT active_mutant=(debugs,flag)(0, False)
+RESULT null_moved=0 count (detector inactive)
+RESULT probe_cpu_s=0.01 s provisional
+RESULT thread_factor=0.993
+RESULT load1=1.12
+RESULT swapins=0

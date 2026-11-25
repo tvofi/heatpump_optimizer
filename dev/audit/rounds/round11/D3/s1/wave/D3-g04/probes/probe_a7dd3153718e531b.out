@@ -1,0 +1,11 @@
+RESULT input mae=0.25000000175 sigma=2.0: baseline=None mutant=array[4] max=2e-09
+RESULT input mae=0.25000000175 sigma=5.0: baseline=None mutant=array[4] max=5e-09
+RESULT input mae=0.25000000175 sigma=0.5: baseline=None mutant=None
+RESULT input mae=0.25000000175 sigma=1.0: baseline=None mutant=None
+RESULT outcome_baseline=None
+RESULT outcome_mutant=array[4] max=2e-09
+RESULT differing_inputs=2 count
+RESULT null_differing=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.89
+RESULT swapins=0

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_ddf4602569b157b1.py (stored as .py.txt):  DHW power (kW) DhwPlanner._plan_dhw_min_cost plans at a step whose space demand is exactly p_total_max - 1e-6.

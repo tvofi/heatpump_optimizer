@@ -1,0 +1,122 @@
+# Per-key step-3 analysis for box D3-g01 (probe numbers executed in $HOME/probe-tree at the baseline).
+P = "dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_{}.py"
+CMD = "PYTHONPATH=tests/hastub python3 " + P
+A = {}
+def add(key, **kw): A[key] = kw
+
+add("fafb0d2c15e72efb", function="<module> (read by _note_solve_failure)", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:_note_solve_failure",
+    metric="repair issues 'solve_failures' raised after 3 consecutive failed solves (and the failure count at which the first is raised)",
+    base="issues_after_3=1, first_issue_at=3", mut="issues_after_3=0, first_issue_at=6",
+    inputs=["3 and 8 consecutive failures at counts 3 and 6", "null: 2 failures (0 issues either way)"],
+    should="tests/features.py and tests/entities.py execute coordinator.py:705 on the traced baseline but never line 706: no check drives three consecutive failed solves and asserts the solve_failures issue is created on the third",
+    title="No check drives three failed solves to the solve_failures repair issue; SOLVE_FAILURE_ISSUE_COUNT 3 -> 6 is unseen",
+    sev="medium", direction="down", unit="issues after 3 failures",
+    prop="The solve_failures repair issue is raised exactly at the third consecutive failed solve")
+add("676e8bfb416ff635", function="<module> (read by _await_optimize)", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:_await_optimize",
+    metric="in-process (GIL-holding) solves _await_optimize carries while the process worker is unusable before it raises UpdateFailed",
+    base="3", mut="6", inputs=["10 cycles with ProcessWorkerUnavailable", "null: healthy worker, 0 fallbacks either way"],
+    should="tests/features.py and tests/entities.py execute coordinator.py:2331-2332 on the traced baseline; neither counts the in-process fallbacks before the skip (no assertion that the fourth consecutive fallback raises process_worker_unusable)",
+    title="No check counts the in-process fallbacks before the worker cap skips the solve; WORKER_FALLBACK_CAP 3 -> 6 is unseen",
+    sev="medium", direction="up", unit="in-process solves before the skip",
+    prop="After WORKER_FALLBACK_CAP=3 consecutive in-process fallbacks the next cycle keeps the last plan instead of solving under the GIL")
+add("622996d751dca0c4", function="<module> (read by _async_learn_buffer_cooling)", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+    metric="buffer-cooling samples folded from one quiet 0.2 h interval 40.0 -> 39.8 degC",
+    base="1 (rate +0.017208 degC/h)", mut="0 (rate unchanged)",
+    inputs=["dt_h 0.1 (both 0)", "0.15 (1 vs 0)", "0.2 (1 vs 0)", "0.29 (1 vs 0)", "0.3 (both 1)", "null 0.5 h (identical)"],
+    should="tests/features.py executes coordinator.py:5654 on the traced baseline but feeds no quiet interval between 0.15 h and 0.3 h asserting it is folded",
+    title="No check folds a 0.15-0.3 h quiet buffer interval; BUFFER_COOLING_MIN_SAMPLE_HOURS 0.15 -> 0.3 is unseen",
+    sev="low", direction="down", unit="samples folded",
+    prop="A quiet buffer interval of at least 0.15 h is a usable cooling sample")
+add("0e6080e5385399cb", function="<module> (read by _async_learn_buffer_cooling)", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+    metric="buffer-cooling samples folded from one quiet 1 h interval 27.0 -> 26.8 degC (7.0 -> 6.8 K above ambient)",
+    base="1 (rate +0.006576 degC/h)", mut="0",
+    inputs=["24.0->23.9 (both 0)", "27.0->26.8 (1 vs 0)", "28.0->27.9 (1 vs 0)", "28.1->28.0 (both 1)", "null 40.0->39.8 (identical)"],
+    should="tests/features.py executes coordinator.py:5663-5665 on the traced baseline but never folds an interval whose tank-to-ambient delta lies between 4 and 8 K",
+    title="No check folds a buffer interval 4-8 K above ambient; BUFFER_COOLING_MIN_DELTA 4.0 -> 8.0 is unseen",
+    sev="low", direction="down", unit="samples folded",
+    prop="A quiet buffer interval with both deltas at least 4 K above the 20 degC ambient is a usable cooling sample")
+add("021dc21415f3229e", function="<module> (read by _reanchor_house_heat_loss_scale)", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale",
+    metric="learned house heat-loss scale after restoring a store fitted against a nameplate UA 7 % off today's (scale 1.2, 200 samples)",
+    base="(re-anchored, 1.279005)", mut="(kept verbatim, 1.2)",
+    inputs=["frac 0.049/0.051 (both kept)", "0.07 (moved)", "0.099 (moved)", "0.101 (1.315551 vs 1.2)", "-0.07 (1.11396 vs 1.2)", "null 0.03 and 0.12 (identical)"],
+    should="tests/features.py, tests/boost_drift_replay.py and tests/finite_boundary.py execute coordinator.py:5572 on the traced baseline; none restores a store whose nameplate moved between 5 % and 10 % and asserts the re-anchored scale",
+    title="No check re-anchors a 5-10 % nameplate edit; HOUSE_LOSS_MAX_STEP 0.05 -> 0.1 is unseen",
+    sev="medium", direction="down", unit="learned scale",
+    prop="A nameplate UA edit of 5 % or more re-expresses the learned heat-loss scale against the new UA")
+add("1165914e57f5bd08", function="<module> (read by _fold_cop_evidence)", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_cop_evidence",
+    metric="learned COP scale after one outlier interval (target scale 6.0) from scale 1.0",
+    base="1.05", mut="1.1",
+    inputs=["electrical 1.0 kW (1.05 vs 1.06)", "0.5 (1.05 vs 1.1)", "0.3 / 0.1 (1.05 vs 1.1)", "60 kW (0.9715 both)", "null 2.0 and 5.0 kW (identical)"],
+    should="tests/features.py and tests/boost_drift_replay.py execute coordinator.py:5399 on the traced baseline; no check folds one outlier ratio and asserts the move is capped at 5 % of the scale",
+    title="No check pins the 5 % per-sample cap of the COP learner; COP_LEARNING_MAX_STEP 0.05 -> 0.1 is unseen",
+    sev="low", direction="up", unit="COP scale",
+    prop="One COP interval moves the learned COP scale by at most 5 % of its value")
+for key, fld, b, m, what in (
+        ("cf7be12db1a662c4", "price_shape00", "1.3", "1.0", "price-shape model"),
+        ("031dba68286ccfbf", "comfort_learned_weight", "8.0", "5.0", "comfort learner"),
+        ("22205dc8a4a6e79b", "defrost_factor00", "0.8", "1.0", "defrost derate")):
+    line = {"cf7be12db1a662c4": 9613, "031dba68286ccfbf": 9622, "22205dc8a4a6e79b": 9628}[key]
+    add(key, function="HeatPumpOptimizerCoordinator._apply_learner_payloads", cls="candidate",
+        symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._apply_learner_payloads",
+        metric=f"{fld} after _apply_learner_payloads restores a snapshot whose {what} differs from the fresh state",
+        base=b, mut=m + " (the snapshot's " + what + " is ignored)",
+        inputs=["a snapshot from the producers' own as_dict() with one field changed", "null: non-dict entries, empty snapshot, snapshot equal to the fresh state (identical)"],
+        should=f"tests/features.py, tests/boost_drift_replay.py and tests/finite_boundary.py execute coordinator.py:{line}-{line + 1} on the traced baseline (the restore branch runs) but none asserts the restored {what}'s state afterwards",
+        title=f"No check asserts the {what} a snapshot restore adopts; skipping that branch of _apply_learner_payloads is unseen",
+        sev="medium", direction="down" if float(m.split()[0]) < float(b) else "up", unit=fld,
+        prop=f"A learner snapshot restore adopts the snapshot's {what}")
+add("37e0face2a901e71", function="HeatPumpOptimizerCoordinator._apply_open_meteo", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._apply_open_meteo",
+    metric="irradiance series (or exception) for a 6-step horizon, a 3-entry weather solar list and Open-Meteo covering 2 steps",
+    base="[100.0, 101.0, 7.0, 0.0, 0.0, 0.0]", mut="IndexError",
+    inputs=["solar [] n 4 cover 0 (IndexError)", "solar 3 n 6 cover 3 (IndexError)", "cover 4 (identical)", "n 3 cover 0 (identical)", "null: solar as long as the horizon; full coverage (identical)"],
+    should="tests/solar_alignment.py executes coordinator.py:7419 on the traced baseline but never with an Open-Meteo gap at a step index equal to the weather series' length (a weather forecast shorter than the horizon)",
+    title="No check feeds _apply_open_meteo a weather series shorter than the horizon with an Open-Meteo gap; i < len -> <= is unseen",
+    sev="medium", direction="up", unit="series or exception",
+    prop="An Open-Meteo gap past the end of the weather-entity series falls back without indexing past it")
+add("68c8ce175dcfa839", function="HeatPumpOptimizerCoordinator._apply_open_meteo", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._apply_open_meteo",
+    metric="DEBUG records 'Open-Meteo irradiance covered %d/%d steps' emitted when Open-Meteo covers 2 of 6 steps",
+    base="1", mut="0 (returned series identical)",
+    inputs=["cover 2/6 and 5/6 and 0/4 (1 vs 0 each)", "null: full coverage (0 both)"],
+    should="tests/solar_alignment.py executes coordinator.py:7422-7423 on the traced baseline but asserts no log record; the only observable the guard gates is this DEBUG line",
+    title="No check reads the Open-Meteo partial-coverage debug line; dropping its guard is unseen",
+    sev="low", direction="down", unit="debug records", prop="A partially covered Open-Meteo horizon is logged once at DEBUG")
+for key, new in (("ab918806fc8b4af6", "if False:"), ("db9b59ec36304943", "if energy < 0:")):
+    add(key, function="HeatPumpOptimizerCoordinator._accumulate_energy", cls="candidate",
+        symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._accumulate_energy",
+        metric="ledger lines booked for one settled 0.25 h interval with 0 kW drawn (energy == 0)",
+        base="0 lines []", mut="3 lines ['dhw', 'space', 'spot'] at 0 kWh / 0 SEK (energy and cost totals unchanged)",
+        inputs=["0 kW measured (0 vs 3)", "no meter, zero plan (0 vs 3)", "no price (0 vs 1 'spot')", "null: 2 kW (identical)"],
+        should="tests/features.py, tests/entities.py and tests/boost_drift_replay.py execute coordinator.py:10331-10332 on the traced baseline but none asserts the ledger is untouched by a zero-energy interval",
+        title="No check pins that a zero-energy interval books no ledger line; the energy <= 0 gate of _accumulate_energy is unseen",
+        sev="low", direction="up", unit="ledger lines",
+        prop="A settled interval with zero energy books no dhw/space/spot ledger line (energy is clamped >= 0, so <= 0 means == 0)")
+add("97628f4b14aec1b9", function="HeatPumpOptimizerCoordinator._async_drive_pumps", cls="equivalent-candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps",
+    metric="pump service calls (and any exception) in one tick with no VVC pump and no drivable space pump",
+    base="[] for every input", mut="[] for every input (moved 0 of 6)",
+    inputs=["no pumps", "no pumps in mode off", "no pumps with a fresh plan", "space pump held by a stale plan", "no pumps with DHW windows", "no pumps at midnight", "positive control: a VVC pump issues 1 command"],
+    should="none: both branches after the early return are gated on the same two entities, so the guard only saves a dt_util.now() read")
+add("20f57d1eea0a5a1d", function="HeatPumpOptimizerCoordinator._async_drive_pumps", cls="candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps",
+    metric="VVC pump command at 12:00 with a 06:00-08:30 DHW window and DHW disabled",
+    base="[('turn_on', 'switch.vvc')]", mut="[('turn_off', 'switch.vvc')]",
+    inputs=["DHW disabled, schedule on, 12:00 (on vs off)", "DHW enabled, schedule off, 12:00 (on vs off)", "DHW disabled at 07:00 inside the window (both on)", "null: both operands true / both false (identical)"],
+    should="tests/features.py and tests/config_flow_steps.py execute coordinator.py:4508 on the traced baseline but no check drives the VVC pump with exactly one of dhw_enabled / dhw_windows_active true and asserts it is left on",
+    title="No check drives the VVC pump with DHW disabled but windows configured; and -> or switches the loop off unseen",
+    sev="medium", direction="down", unit="VVC command",
+    prop="With DHW disabled or its schedule off, the VVC circulation loop is left on (no window frame applies)")
+add("e0bd801049aba41a", function="HeatPumpOptimizerCoordinator._async_drive_pumps", cls="equivalent-candidate",
+    symbol="custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps",
+    metric="space-pump service calls with a fresh plan, across plan step lengths",
+    base="[('turn_on', 'switch.space')] at the production 15-min step", mut="identical (moved 0 at every production step)",
+    inputs=["production dt_hours 0.25 for configs {}, time_step_minutes 0 / 5, horizon 48 (time_step_minutes is never read from config)",
+            "direct frozen-ctx writes: step 15, 5, 1, 1e-5, 6e-5, 1e-6 min (identical)", "step 0 min (baseline turn_on, mutant ZeroDivisionError: unreachable)"],
+    should="none through production: OptimizationConfig.time_step_minutes is the 15.0 default (optimizer.py:2667) and no config key sets it")

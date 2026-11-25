@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_1165914e57f5bd08.py: pins learned COP scale after one outlier interval (target scale 6.0) from scale 1.0; baseline 1.05, mutant 1.1 (candidate)

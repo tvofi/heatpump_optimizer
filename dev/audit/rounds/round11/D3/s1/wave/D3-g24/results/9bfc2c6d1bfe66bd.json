@@ -1,0 +1,64 @@
+{
+ "key": "9bfc2c6d1bfe66bd",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF",
+ "patch": "if refused is None: -> if False:",
+ "function": "HeatPumpOptimizer._tighten_buffer_caps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._tighten_buffer_caps@5120-5145",
+ "slice": "u1c",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2790.4,
+  "load1_start": 0.44,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 4582.3,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/9bfc2c6d1bfe66bd.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9bfc2c6d1bfe66bd",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/9bfc2c6d1bfe66bd.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py",
+  "metric": "mutant_cases_moved",
+  "baseline_value": 0,
+  "mutant_value": 1,
+  "extra": {
+   "reach_refused_is_none": "0"
+  },
+  "moving_cases": [
+   "CASE refused_none: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('raise', 'TypeError') moved=1"
+  ],
+  "inputs_tried": "12 refused vectors (None, zeros, the 1e-9 tie, 1 ulp either side, NaN, negative, cap ties) via a stubbed simulate_trajectory, plus the real ThermalModel.simulate_trajectory's refused slot",
+  "thread_factor": "1.000",
+  "load1": "1.15"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/features.py",
+   "tests/validate.py"
+  ],
+  "assertion_lacking": "a stubbed refused=None case would fail, but no production caller can produce one: the guard is dead code"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "moves only for refused None (TypeError), which ThermalModel.simulate_trajectory never returns (np.zeros(n_steps) at thermal_model.py:4370; reach_refused_is_none=0): unreachable through production",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF if refused is None: -> if False: survives the full gate but is equivalent on every input tried: moves only for refused None (TypeError), which ThermalModel.simulate_trajectory never returns (np.zeros(n_steps) at thermal_model.py:4370; reach_refused_is_none=0): unreachable through production",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py",
+  "value": "mutant_cases_moved=1 (null 0); reach_refused_is_none=0"
+ }
+}

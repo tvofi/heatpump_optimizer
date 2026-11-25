@@ -1,0 +1,74 @@
+[
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 730,
+  "old": "        return max(self.slab_heat_transfer, 1e-6)",
+  "new": "        return min(self.slab_heat_transfer, 1e-6)",
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M01",
+  "c2_id": "M01"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 835,
+  "old": "        if swing <= 0.0:",
+  "new": "        if swing < 0.0:",
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M03",
+  "c2_id": "M03"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "line": 8806,
+  "old": "        if tariff.enabled and factor > 0.0:",
+  "new": "        if tariff.enabled or factor > 0.0:",
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:R10-C3C6 M04",
+  "c2_id": "M04"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 2593,
+  "old": "        ) / max(dt_hours, 1e-6)",
+  "new": "        ) / min(dt_hours, 1e-6)",
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M07",
+  "c2_id": "M07"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "line": 6995,
+  "old": "                                        not auth and self._known_prices_for([plan_step_start(dt_util.now())])):",
+  "new": "                                        not auth or self._known_prices_for([plan_step_start(dt_util.now())])):",
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:R10-C3C6 M08",
+  "c2_id": "M08"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+  "line": 1559,
+  "old": "            shortfall_price = 1000.0 * (float(np.max(np.abs(prices))) + 1.0)",
+  "new": "            shortfall_price = 1000.0 * (float(np.min(np.abs(prices))) + 1.0)",
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:R10-C3C6 M19",
+  "c2_id": "M19"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/grid_fee.py",
+  "line": 383,
+  "old": "            if rule.rate < lowest:",
+  "new": "            if rule.rate <= lowest:",
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:R10-C3C6 M21",
+  "c2_id": "M21"
+ },
+ {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 595,
+  "old": "    return bool(tariff.months) or (",
+  "new": "    return bool(tariff.months) and (",
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:R10-C3C6 M22",
+  "c2_id": "M22"
+ }
+]

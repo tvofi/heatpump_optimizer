@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_ea6dfc5a3c85cce3.py (saved as .py.txt while gates run; rename on restore): pins count of inputs on which DhwPlanner._dhw_raise_fits's verdict, the candidate array after the call, or an exception differ, over every size/slot pair that lands a pass at pos == size.

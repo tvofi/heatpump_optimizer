@@ -1,0 +1,106 @@
+{
+ "key": "b4f7503c6959449d",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1073 CMP_BOUND",
+ "patch": "if solution.shape[0] >= 4: -> if solution.shape[0] > 4:",
+ "function": "_one_state_ua_halfwidth",
+ "cluster": "sysid.py:_one_state_ua_halfwidth@1073-1073",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3362.7,
+  "child_cpu_s": 5600.8,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/b4f7503c6959449d.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/b4f7503c6959449d.log",
+ "provisional": true,
+ "machine": "box D3-g37: nproc 4, Intel Xeon @ 2.10GHz, 16 GB; walls and load provisional",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_b4f7503c6959449d.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_b4f7503c6959449d.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_b4f7503c6959449d.txt",
+  "results": {
+   "unit_solution_size": "4 count",
+   "unit_halfwidth_seed1000_baseline": "0.31963411254337787",
+   "unit_halfwidth_seed1000_mutant": "0.14199610074430277",
+   "unit_halfwidth_seed1000_moved": "1 count",
+   "null_fallback_size2_baseline": "0.14199610074430277",
+   "null_fallback_size2_mutant": "0.14199610074430277",
+   "null_fallback_size2_moved": "0 count",
+   "unit_moved": "1 count",
+   "null_moved": "0 count",
+   "reach_runs": "168 count",
+   "reach_calls": "61 count",
+   "reach_calls_separating": "61 count",
+   "reach_outcomes_differ": "8 count",
+   "reach_differ_case": "heavy_old,decl=False,truth={'room_thermal_mass': 0.25},noise=0.0,seed=0,cad=0.5: baseline[completed=True reason='ok' ua=0.314743668121 conf=0.581574036504 hw=0.405171013021] mutant[completed=True reason='ok' ua=0.314743668121 conf=0.581574036504 hw=0.0857335070259 | ua_profile_halfwidth: 0.40517101302093167 -> 0.08573350702588453]",
+   "adoption_differ_case": "heavy_old,decl=False,truth={'room_thermal_mass': 0.25},noise=0.0,seed=0,cad=0.5: baseline=(False, 0.0, 0.0, 'heat-loss interval (+-50 %) is wider than the +-10 % adoption bar') mutant=(True, 0.10047901282005389, 1.0153021552303072, 'adopted')",
+   "adoption_admitted_baseline": "10 count",
+   "adoption_admitted_mutant": "11 count",
+   "adoption_decisions_differ": "8 count",
+   "thread_factor": "1.000",
+   "load1": "0.97",
+   "swapins": "0"
+  },
+  "answer": null,
+  "harness": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_mut.py (in-memory mutant), dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_drive.py (production sweep)",
+  "baseline_value": {
+   "unit_halfwidth_seed1000_baseline": "0.31963411254337787",
+   "null_fallback_size2_baseline": "0.14199610074430277",
+   "adoption_admitted_baseline": "10 count"
+  },
+  "mutant_value": {
+   "unit_halfwidth_seed1000_mutant": "0.14199610074430277",
+   "null_fallback_size2_mutant": "0.14199610074430277",
+   "adoption_admitted_mutant": "11 count"
+  },
+  "inputs_tried": [
+   "adoption_admitted",
+   "null_fallback_size2",
+   "unit_halfwidth_seed1000",
+   "production sweep: 168 count runs (_drive.sweep / slab sweep)"
+  ]
+ },
+ "should_fail": "tests/features.py: the one-state drives (_drift_drive, tests/features.py:54735, which executes sysid.py:1073 through SystemIdentification.identify) read only completed/confidence/heat_loss_kw_per_c; no check reads a one-state result's ua_profile_halfwidth or its adoption_decision. The assertion it lacks: a completed one-state fit's ua_profile_halfwidth equals the delta-method width from the full normal-equation inverse (seed 1000: 0.3196), or adoption_decision refuses a fit whose interval is wider than the +-10 % bar",
+ "title": "No check reads the one-state fit's UA interval: dropping its main-path covariance branch is unseen",
+ "claim": "The one-state fit's published UA 95 % half-width (SysIdResult.ua_profile_halfwidth, the adoption gate's input) is computed by sysid.py:_one_state_ua_halfwidth, whose main-path branch (line 1073, a four-column solution with the drift column) no check pins: replacing it by the two-column fallback covariance (`if solution.shape[0] >= 4:` -> `if solution.shape[0] > 4:`) passes the full GATE_SCOPE=full GOLDEN_MODE=drift gate while the published half-width shrinks by 36-79 % on every completed one-state fit and adoption_decision flips a refused fit (+-50 % interval) to adopted.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "medium",
+ "severity_reason": "a mutant that narrows the interval adopts a fit the +-10 % bar exists to refuse (wrong heat-loss scale learned, wrong comfort/money downstream); the defect is the missing check, with a workaround (the bar still refuses most fits)",
+ "metric_definition": "RESULT unit_halfwidth_seed1000_{baseline,mutant}: _one_state_ua_halfwidth on the arguments a completed one-state fit (tests/features.py:_drift_drive shape, seed 1000) passes at sysid.py:2134; RESULT adoption_decisions_differ / adoption_admitted_*: adoption_decision over the 168-run production sweep, baseline vs mutant",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_b4f7503c6959449d.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_mut.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_drive.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_b4f7503c6959449d.py",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:_one_state_ua_halfwidth (sysid.py:1073)",
+ "perturbation": "sysid.py:1073 `if solution.shape[0] >= 4:` -> `if solution.shape[0] > 4:`, in memory; direction: half-width DOWN (seed 1000: 0.3196 -> 0.1420), adoption admitted count UP (10 -> 11 of 168)",
+ "null_control": "the two-column fallback arguments (size-2 solution) take the else branch either way: RESULT null_fallback_size2_moved=0; and the full gate's own null on this box (dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/null.json)",
+ "property": "every branch of the published UA interval is pinned by a check that reads the published interval or the adoption verdict on it",
+ "enumerator": "awk -F'\\t' '$5==\"_one_state_ua_halfwidth\"' dev/audit/rounds/round11/D3/s1/wave/D3-g37/keys.tsv"
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_8fa714bbb756e11e.py: Metric: DhwPlan.external_heat_suppressed_steps and the kWh planned in steps 0-7 by _build_dhw_requirements with external heat active and the tank coasting above its requirement. (needs _g14lib.py beside it; _mk.py regenerates the probes)

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0a40fc8d3d37f2ba.py: pins 0a40fc8d3d37f2ba (candidate if the full gate survives): moves on production inputs: 51 of 121 finite value pairs flip; the kept objective for (10, 5) goes 5.0 -> 10.0. The probe's four manual_plan solves never call it (0 calls); features.py reaches it

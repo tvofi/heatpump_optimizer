@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.py: pins (room lead predictions filed, note_promise calls, day promises kept) from _file_lead_predictions per room trajectory, solve at PROMISE_HOUR. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.py; output beside it as .out)

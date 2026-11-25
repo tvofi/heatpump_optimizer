@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_2e4d4a89570a1b24.py: baseline vs in-memory mutant 2e4d4a89570a1b24 on the production symbol; pins: No check folds the solar aperture at exactly 150 W/m2; the irradiance threshold boundary is unpinned
