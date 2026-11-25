@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:served_leg CMP_BOUND d5548b0f",
+  "killed_by": "tests/features.py",
+  "old": "        duty = legs[i][0][0] if now - start < timedelta(minutes=legs[i][0][1]) else legs[i][-1][0]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`duty = legs[i][0][0] if now - start <= timedelta(minutes=legs[i][0][1]) else legs[i][-1][0]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

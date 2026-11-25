@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:_with_minimums CMP_BOUND 70943e07",
+  "killed_by": "tests/features.py",
+  "old": "        sandwich = two & (space_run < heat_min) & (left[..., s_slot] == DHW) & (right[..., s_slot] == DHW)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`sandwich = two & (space_run <= heat_min) & (left[..., s_slot] == DHW) & (right[..., s_slot] == DHW)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

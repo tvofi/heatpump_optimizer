@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:_kept_leg BOOLOP d7e66a4a",
+  "killed_by": "tests/features.py",
+  "old": "    if 0.0 <= age_min < keep or (need > 0 and _kept_minutes(legs, start, now, wanted) < need):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if 0.0 <= age_min < keep or (need > 0 or _kept_minutes(legs, start, now, wanted) < need):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}
