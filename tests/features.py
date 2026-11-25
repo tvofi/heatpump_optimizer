@@ -20432,6 +20432,8 @@ _c6._thermal_params.dhw_schedule_enabled = True
 from heatpump_optimizer.dhw_schedule import parse_windows as _parse_w
 
 _c6._thermal_params.dhw_windows = _parse_w("06:00-08:30")
+# The pump entity exists: a write to one with no state is never sent (D16-s1-05, inputs.delivers_to).
+_c6.hass.states.set("switch.vvc", "off")
 _asyncio.run(_c6._async_drive_pumps())
 _first_calls = len(_c6.hass.services.calls)
 _asyncio.run(_c6._async_drive_pumps())
