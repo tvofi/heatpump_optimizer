@@ -1,0 +1,86 @@
+{
+ "key": "505422349a01c3ff",
+ "site": "sysid.py:1922 CMP_BOUND",
+ "patch": "if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h < 1e-3 or dt_h > 2.0:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2777.2,
+  "load1_start": 0.78,
+  "load1_end": 0.86,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 505422349a01c3ff",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/505422349a01c3ff.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py [--mutant]",
+  "metric": "reached_fit_tie",
+  "baseline_value": "0",
+  "mutant_value": "1",
+  "null_metric": "reached_fit_null",
+  "null_baseline": "1",
+  "null_mutant": "1",
+  "all_results_baseline": {
+   "reached_fit_tie": "0",
+   "reached_fit_below": "0",
+   "reached_fit_above": "1",
+   "reached_fit_zero": "0",
+   "reached_fit_null": "1",
+   "ua_31": "None reason='fitted gains outside plausible bounds'",
+   "ua_31_null": "0.11999999998433901 reason='ok'",
+   "thread_factor": "1.000",
+   "load1": "0.96",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "reached_fit_tie": "1",
+   "reached_fit_below": "0",
+   "reached_fit_above": "1",
+   "reached_fit_zero": "0",
+   "reached_fit_null": "1",
+   "ua_31": "None reason='fit gave implausible signs'",
+   "ua_31_null": "0.11999999998433901 reason='ok'",
+   "thread_factor": "1.000",
+   "load1": "0.96",
+   "swapins": "0"
+  },
+  "inputs_tried": "interval 0.001 h (the tie), 0.0009 h, 0.0011 h, 0.0 h; null all 0.25 h; ua_31 on tests/features.py's 31-sample series with one 3.6 s interval",
+  "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+ },
+ "reach": "reachable only when two samples land exactly 3.6 s apart: a float tie a coordinator cycle rarely produces",
+ "should_fail": "tests/features.py (traced, executes sysid.py:{line}): no identify check with an interval exactly 1e-3 h asserting it is dropped as unusable",
+ "title": "No check pins identify's exclusive 1e-3 h minimum interval at the tie; <= -> < is unseen",
+ "claim": "Mutant 505422349a01c3ff at sysid.py:1922 CMP_BOUND (if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h < 1e-3 or dt_h > 2.0:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's reached_fit_tie moves 0 -> 1 while its null reached_fit_null stays 1 -> 1. reachable only when two samples land exactly 3.6 s apart: a float tie a coordinator cycle rarely produces.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+ "metric_definition": "reached_fit_tie = 1 when identify gets past the usable-interval gate on six samples whose third interval is exactly 1e-3 h, the others 15 min.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py --mutant",
+ "perturbation": {
+  "change": "the one-line mutant at sysid.py:1922 (if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h < 1e-3 or dt_h > 2.0:), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 505422349a01c3ff",
+  "expected_direction": "up",
+  "baseline_value": "0",
+  "observed_value": "1"
+ },
+ "null_control": {
+  "probe_arm": "reached_fit_null (all 15-min intervals): 1 -> 1",
+  "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+ }
+}
