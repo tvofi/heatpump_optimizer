@@ -47,7 +47,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - V3 class: I2 (measured closure diverges from the real dependency graph); class_guess 'new' corrected
 - V3 seam_rule: demonstrated seam only: --select-only enumerates the 12 D3-s1 cell files (11 select card_drift), not every closure _widen unions
 - attacks: null (no edit: moved 0); positive control (card edit: 44 moved, so the harness can move); payload doubled (still 0): the finder's claim holds
-- at head: seam52/m5 harness at head not re-run separately; the _widen union is unchanged by the late-D3 landings (no closure.py change in e3cb5c019b's D3 commits) -- routing should re-run m5_card_drift_payload.py at head
+- at head: in the evidence tree e3cb5c019b: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py --select-only` -> card_drift_cell_closure_edges 11, cell_diffs_selecting_card_drift 11 (load1 2.22, thread_factor 1.00): the over-selection stands at head; the full harness refuses at head (rc 1, AssertionError: its card-edit anchor `ha-card { padding: 12px 12px 8px 12px; }` has moved in heatpump-optimizer-card.js), so the 0-of-45 half was not re-measured at head
 
 ## D3-s1-62
 
