@@ -1,18 +1,13 @@
-diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/heatpump_optimizer/store.py
-index a3ed10d0c4..17895e87e8 100644
---- a/custom_components/heatpump_optimizer/store.py
-+++ b/custom_components/heatpump_optimizer/store.py
-@@ -299,11 +299,11 @@ _ACCURACY: dict[str, Domain | str] = {
-     "samples/#/t": _AT, "samples/#/predicted_power_kw": _Z0,
-     # predicted_cost: None for an interval no price covered (#2229).
-     **{f"samples/#/{k}": _N for k in (
--        "actual_power_kw", "predicted_temp", "actual_temp", "predicted_cost", "actual_cost",
-+        "actual_power_kw", "predicted_temp", "actual_temp", "actual_cost",
-         "outdoor_temp", "humidity", "solar_radiation", "cop_residual")},
-     # #1935: whether a boost overlay governed the interval -- the exclusion
-     # tag a post-drift recommendation reads.
--    "samples/#/boost_space": _FLAG,
-+    "samples/#/boost_space": _FLAG, "samples/#/predicted_cost": _R,
-     "lead_sigma/~": Domain("choice", choices=_LEADS), "lead_sigma/*": _Z,
-     "lead_counts/~": Domain("choice", choices=_LEADS), "lead_counts/*": Domain("int", 1),
-     # A promise falls due at its lead: up to the longest bucket ahead (D1-s2-01).
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 390c789ef5..cb030803b6 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -490,7 +490,7 @@ def _learned_pair(entry: Any, least: int = 1) -> list[Any]:
+     else ValueError: the entry is dropped, not installed.
+     """
+     value, count = float(entry[0]), _storable_sample_count(entry[1])
+-    if not (np.isfinite(value) and value > 0 and count >= least):
++    if False:
+         raise ValueError(f"stored fold {entry!r} is not one a fold wrote")
+     return [value, count]
+ 

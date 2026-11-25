@@ -94,64 +94,44 @@ RESULT class_unseeded_sections=30 count
   UNSEEDED thermal_learning:cop_baseline_measured
   UNSEEDED thermal_learning:cop_health_cusum_measured/evidence
   UNSEEDED thermal_learning:vent_cusum/evidence
-RESULT class_arm_seconds=512.3
+RESULT class_arm_seconds=61.7
   ok   the class sweep drove every seeded store (it cannot go green by skipping)
   ok   the healthy populated stores load clean through every loader and consumer (null control)
   ok   no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)
-  DOMAIN accuracy:accuracy/draw/ceiling/#/# held -0.75 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/draw/floor_kw held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/draw/floor_since held -1 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/draw/idle/# held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/draw/overdraws held -1 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/draw/samples/#/# held -0.75 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/lead_counts/3.0 held 0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/lead_counts/3.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/lead_counts/6.0 held 0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/lead_counts/6.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/lead_sigma/3.0 held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/lead_sigma/3.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/lead_sigma/6.0 held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/lead_sigma/6.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:accuracy/samples/#/predicted_power_kw held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:comfort/configured_weight held -18.5 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:comfort/configured_weight held 59.5 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:comfort/learned_weight held -18.5 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:comfort/learned_weight held 59.5 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:comfort/overrides held -1 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/counts/#/# held -1 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/duty/#/# held -0.5 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/duty/#/# held 1.5 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/duty_counts/#/# held -1 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/duty_events/#/# held -1 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/factors/#/# held 0.32500000000000007 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/factors/#/# held 1.225 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/version held 1 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:defrost/version held 3 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/lead_counts/3.0 held 0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/lead_counts/3.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/lead_counts/6.0 held 0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/lead_counts/6.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/lead_sigma/3.0 held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/lead_sigma/3.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/lead_sigma/6.0 held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/lead_sigma/6.0~ held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:dhw_accuracy/samples/#/predicted_power_kw held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:mode held 'zz-no-such-choice' out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:peaks/peaks/# held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:peaks/window_factor held -0.5 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:peaks/window_factor held 1.5 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:peaks/window_samples held -1 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:peaks/window_sum held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:peaks/window_weight held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
-  DOMAIN accuracy:peaks/window_wsum held -1.0 out of domain: ['accuracy/samples/0/predicted_cost']
 RESULT domain_stores=18 count
-RESULT domain_fields=1426 count
+RESULT domain_fields=1427 count
 RESULT domain_probes=1088 count
-RESULT domain_refused=46 count
+RESULT domain_refused=0 count
 RESULT domain_unreached=0 count
   COST accuracy:accuracy/draw/ceiling/#/# 1 other leaves (whole)
   COST accuracy:accuracy/draw/config/# 17 other leaves (whole)
   COST accuracy:accuracy/draw/samples/#/# 9 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/actual_cost 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/actual_power_kw 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/actual_temp 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/boost_space 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/cop_residual 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/humidity 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/outdoor_temp 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/predicted_cost 28 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/predicted_power_kw 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/predicted_temp 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/solar_radiation 29 other leaves (whole)
+  COST debug:rows/#/accuracy_sample/t 28 other leaves (whole)
+  COST debug:rows/#/action_kw 29 other leaves (whole)
+  COST debug:rows/#/action_mode 29 other leaves (whole)
+  COST debug:rows/#/dhw_temp 29 other leaves (whole)
+  COST debug:rows/#/heat_pump_on 29 other leaves (whole)
+  COST debug:rows/#/indoor_temp 29 other leaves (whole)
+  COST debug:rows/#/mode 29 other leaves (whole)
+  COST debug:rows/#/outdoor_temp 29 other leaves (whole)
+  COST debug:rows/#/payload_solve_time_ms 29 other leaves (whole)
+  COST debug:rows/#/prices_rows 29 other leaves (whole)
+  COST debug:rows/#/solve_failures 29 other leaves (whole)
+  COST debug:rows/#/solve_wall_ms 29 other leaves (whole)
+  COST debug:rows/#/t 28 other leaves (whole)
+  COST debug:rows/#/version 29 other leaves (whole)
+  COST debug:rows/#/weather_stale_h 29 other leaves (whole)
   COST dhw_profile:hourly_profile/# 23 other leaves (whole)
   COST dhw_profile:profile_weekday/# 23 other leaves (whole)
   COST dhw_profile:profile_weekend/# 23 other leaves (whole)
@@ -176,6 +156,8 @@ RESULT domain_unreached=0 count
   COST duty_switch:directions/space_dhw/stopped 6 other leaves (whole)
   COST duty_switch:directions/space_dhw/usable 6 other leaves (whole)
   COST duty_switch:directions/space_dhw/void 6 other leaves (whole)
+  COST off_restore:armed/stand_in/entity_id 2 other leaves (whole)
+  COST off_restore:armed/stand_in/value 2 other leaves (whole)
   COST price_model:model/days/# 1 other leaves (whole)
   COST price_model:model/quarter_days/# 1 other leaves (whole)
   COST price_model:model/quarter_factors/#/# 96 other leaves (whole)
@@ -193,39 +175,8 @@ RESULT domain_unreached=0 count
   COST room_history:rooms/sensor.b/target 2 other leaves (whole)
   COST room_history:times 10 other leaves (whole)
   COST thermal_learning:internal_gains_profile/# 26 other leaves (whole)
-RESULT domain_whole_fields=44 count
+RESULT domain_whole_fields=72 count
 RESULT domain_whole_unused=0 count
-  CELL debug:final costs 26 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/actual_cost costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/actual_power_kw costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/actual_temp costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/boost_space costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/cop_residual costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/humidity costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/outdoor_temp costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/predicted_cost costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/predicted_power_kw costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/predicted_temp costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/solar_radiation costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/accuracy_sample/t costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/action_kw costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/action_mode costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/dhw_temp costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/heat_pump_on costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/indoor_temp costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/mode costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/outdoor_temp costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/payload_solve_time_ms costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/prices_rows costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/solve_failures costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/solve_wall_ms costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/t costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/version costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:rows/#/weather_stale_h costs 51 other leaves, declared cell-only (recorded 0)
-  CELL debug:snapshots/#/cycle costs 28 other leaves, declared cell-only (recorded 2)
-  CELL debug:snapshots/#/data costs 28 other leaves, declared cell-only (recorded 2)
-  CELL debug:snapshots/#/t costs 28 other leaves, declared cell-only (recorded 2)
-  CELL off_restore:armed/stand_in costs 2 other leaves, declared cell-only (recorded 0)
   CELL thermal_learning:buffer_cooling_rate costs 2 other leaves, declared cell-only (recorded 0)
   CELL thermal_learning:buffer_cooling_samples costs 2 other leaves, declared cell-only (recorded 0)
   CELL thermal_learning:capacity_envelope/3/# costs 3 other leaves, declared cell-only (recorded 1)
@@ -281,20 +232,20 @@ RESULT domain_whole_unused=0 count
   CELL thermal_learning:vent_cusum/reference_cov costs 2 other leaves, declared cell-only (recorded 0)
   CELL thermal_learning:vent_cusum/stat costs 2 other leaves, declared cell-only (recorded 0)
   CELL thermal_learning:vent_cusum/tripped costs 2 other leaves, declared cell-only (recorded 0)
-RESULT domain_cell_fields=235 count
-RESULT domain_cell_spent=157 count
-RESULT domain_cell_refused=86 count
-RESULT domain_arm_seconds=174.6
-  FAIL every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)  [stores=['accuracy', 'away', 'boost', 'debug', 'dhw_draws', 'dhw_legionella', 'dhw_profile', 'duty_switch', 'energy', 'ledger', 'manual_plan', 'notifier', 'off_restore', 'price_model', 'pump_duty', 'room_history', 'snapshots', 'thermal_learning'] off=['accuracy/samples/0/predicted_cost', 'armed/stand_in', 'capacity_envelope/-1/1', 'rows/1/accuracy_sample/predicted_cost', 'snapshots/0/learners/accuracy/samples/0/predicted_cost', 'snapshots/0/learners/thermal_learning/capacity_envelope/-1/1']]
-  FAIL an earlier release's COP watch keys, in its document and the ring's snapshots of it, are declared, and the loader reads none of them (D15-s1-04)  [fields=16 off=['capacity_envelope/-1/1', 'cop_baseline~', 'cop_baseline/4~', 'cop_baseline/4/0', 'cop_baseline/4/1', 'cop_baseline/4:dhw~'] escaped=[]]
+RESULT domain_cell_fields=208 count
+RESULT domain_cell_spent=129 count
+RESULT domain_cell_refused=55 count
+RESULT domain_arm_seconds=22.3
+  ok   every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)
+  FAIL an earlier release's COP watch keys, in its document and the ring's snapshots of it, are declared, and the loader reads none of them (D15-s1-04)  [fields=10 off=[] escaped=[]]
   ok   a planted undeclared field is refused (the coverage check's own control)
-  FAIL the healthy rich seed round-trips unchanged through every loader and saver (null control)  [changed=['debug', 'thermal_learning']]
+  FAIL the healthy rich seed round-trips unchanged through every loader and saver (null control)  [changed=['thermal_learning']]
   ok   a day-less score_day book (the free-day close's streak) survives a reload (#908)
   ok   the domain sweep drove every bounded field (it cannot go green by skipping)
-  FAIL no stored field substituted just outside its declared domain is held live, and no one bad grid cell costs its neighbours (class P1, card C1)  [refused=46]
+  ok   no stored field substituted just outside its declared domain is held live, and no one bad grid cell costs its neighbours (class P1, card C1)
   ok   every whole= declaration is used: some bad value of the field costs more than its own cell through the real loader (R11-OUTSIDE-HONEST-METERED-FLOOR carry 2)
   ok   the whole sweep refuses a whole planted on a cell-only leaf (the overdraw count), and measures a cost on the configuration that keys the draw record (its own control)
-  FAIL no cell-only declaration costs another leaf beyond its recorded entry: a bad value the declaration says costs only its cell keeps every other leaf (#3714 review)  [cell=235 refused=['debug:final costs 26 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/actual_cost costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/actual_power_kw costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/actual_temp costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/boost_space costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/cop_residual costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/humidity costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/outdoor_temp costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/predicted_cost costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/predicted_power_kw costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/predicted_temp costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/solar_radiation costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/accuracy_sample/t costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/action_kw costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/action_mode costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/dhw_temp costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/heat_pump_on costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/indoor_temp costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/mode costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/outdoor_temp costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/payload_solve_time_ms costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/prices_rows costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/solve_failures costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/solve_wall_ms costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/t costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/version costs 51 other leaves, declared cell-only (recorded 0)', 'debug:rows/#/weather_stale_h costs 51 other leaves, declared cell-only (recorded 0)', 'debug:snapshots/#/cycle costs 28 other leaves, declared cell-only (recorded 2)', 'debug:snapshots/#/data costs 28 other leaves, declared cell-only (recorded 2)', 'debug:snapshots/#/t costs 28 other leaves, declared cell-only (recorded 2)', 'off_restore:armed/stand_in costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:buffer_cooling_rate costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:buffer_cooling_samples costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:capacity_envelope/3/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:cop_baseline_measured/4/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:cop_baseline_measured/4:dhw/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:cop_health_cusum_measured/evidence/# costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_health_cusum_measured/last_fed costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_health_cusum_measured/stat costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_health_cusum_measured/tripped costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_samples costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_scale costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/bias costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/comfortable_days costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/last_day costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/last_step_at costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/resets costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:flow_bias/bias_k costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:flow_bias/samples costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:freq_fallback costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:freq_map/2/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:freq_map/3/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:freq_map/4/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:freq_map/6/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:heat_loss_zone_entities/indoor_temp_entity costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:heat_loss_zone_entities/lower_floor_temp_entity costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:house_heat_loss_anchor costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:house_heat_loss_basis costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:house_heat_loss_samples costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:house_heat_loss_scale costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:immersion_events/# costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:last_heavy_snow costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:lower_floor_loss_anchor costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:lower_floor_loss_ratio costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:lower_floor_loss_samples costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:measured_cop/at costs 5 other leaves, declared cell-only (recorded 3)', 'thermal_learning:measured_cop/cop costs 5 other leaves, declared cell-only (recorded 3)', 'thermal_learning:measured_cop/curve_dhw costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:measured_cop/dhw_temp costs 5 other leaves, declared cell-only (recorded 3)', 'thermal_learning:measured_cop/scale_base costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:measured_cop/scale_response costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:snow_accum_cm costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:snow_accum_last costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/cov costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/mx costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/my costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/n costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/scale costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/var costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:updated_at costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/evidence/# costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/last_fed costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/reference costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/reference_cov costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/stat costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/tripped costs 2 other leaves, declared cell-only (recorded 0)']]
+  FAIL no cell-only declaration costs another leaf beyond its recorded entry: a bad value the declaration says costs only its cell keeps every other leaf (#3714 review)  [cell=208 refused=['thermal_learning:buffer_cooling_rate costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:buffer_cooling_samples costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:capacity_envelope/3/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:cop_baseline_measured/4/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:cop_baseline_measured/4:dhw/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:cop_health_cusum_measured/evidence/# costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_health_cusum_measured/last_fed costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_health_cusum_measured/stat costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_health_cusum_measured/tripped costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_samples costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:cop_scale costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/bias costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/comfortable_days costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/last_day costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/last_step_at costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:curve_learner/resets costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:flow_bias/bias_k costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:flow_bias/samples costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:freq_fallback costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:freq_map/2/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:freq_map/3/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:freq_map/4/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:freq_map/6/# costs 3 other leaves, declared cell-only (recorded 1)', 'thermal_learning:heat_loss_zone_entities/indoor_temp_entity costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:heat_loss_zone_entities/lower_floor_temp_entity costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:house_heat_loss_anchor costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:house_heat_loss_basis costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:house_heat_loss_samples costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:house_heat_loss_scale costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:immersion_events/# costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:last_heavy_snow costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:lower_floor_loss_anchor costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:lower_floor_loss_ratio costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:lower_floor_loss_samples costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:measured_cop/at costs 5 other leaves, declared cell-only (recorded 3)', 'thermal_learning:measured_cop/cop costs 5 other leaves, declared cell-only (recorded 3)', 'thermal_learning:measured_cop/curve_dhw costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:measured_cop/dhw_temp costs 5 other leaves, declared cell-only (recorded 3)', 'thermal_learning:measured_cop/scale_base costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:measured_cop/scale_response costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:snow_accum_cm costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:snow_accum_last costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/cov costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/mx costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/my costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/n costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/scale costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:solar_aperture/var costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:updated_at costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/evidence/# costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/last_fed costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/reference costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/reference_cov costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/stat costs 2 other leaves, declared cell-only (recorded 0)', 'thermal_learning:vent_cusum/tripped costs 2 other leaves, declared cell-only (recorded 0)']]
   ok   the cell sweep refuses the configuration that keys the draw record when it is planted cell-only (its own control)
   ok   every in-domain probe reaches live state (the out-probes are not vacuous)
   ok   the DHW profile's declared ceiling is dhw_learning's own (a literal, since that module imports the store)
@@ -302,7 +253,9 @@ RESULT domain_arm_seconds=174.6
   ok   every finite-float coercion is const.finite_float or a dispositioned site, and the census reaches the owner and a planted sibling (D7-s2-58)
   ok   const.finite_float reads a real number or numeric text, and nothing else -- not a bool, bytes, NaN, an infinity or an int past a double
 RESULT finite_float_coercers=1 count
-  FAIL each kind's shape and parse conjuncts decide alone  [['real refuses a value that spells a number', 'int refuses a value that spells an integer']]
+  ok   each kind's shape and parse conjuncts decide alone
+  ok   the debug row declares exactly the accuracy sample's own fields under accuracy_sample
+  FAIL a stored fold with a zero or negative value is dropped and the least positive one is kept  [{((0.0, 5), 1): False, ((0.0, 0), 0): False, ((-1.0, 5), 1): False, ((5e-324, 1), 1): True, ((5e-324, 0), 0): False}]
   ok   a store key names its DOMAINS entry, and a foreign key names none
   ok   the off-domain diagnostic logs an out-of-domain field and stays silent on a clean one
   ok   every sensor entity publishes finite values from non-finite input (#1541)
@@ -371,5 +324,4 @@ RESULT number_state_escapes=0 count
   ok   a task whose read has landed saves after another task's read in flight, not before it (#1869)
 RESULT store_version_unsurfaced=0 count
 
-6 of 120 FINITE BOUNDARY CHECKS FAILED
-rc=1
+4 of 122 FINITE BOUNDARY CHECKS FAILED

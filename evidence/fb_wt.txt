@@ -94,7 +94,7 @@ RESULT class_unseeded_sections=30 count
   UNSEEDED thermal_learning:cop_baseline_measured
   UNSEEDED thermal_learning:cop_health_cusum_measured/evidence
   UNSEEDED thermal_learning:vent_cusum/evidence
-RESULT class_arm_seconds=841.6
+RESULT class_arm_seconds=61.3
   ok   the class sweep drove every seeded store (it cannot go green by skipping)
   ok   the healthy populated stores load clean through every loader and consumer (null control)
   ok   no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)
@@ -180,7 +180,7 @@ RESULT domain_whole_unused=0 count
 RESULT domain_cell_fields=208 count
 RESULT domain_cell_spent=86 count
 RESULT domain_cell_refused=0 count
-RESULT domain_arm_seconds=180.5
+RESULT domain_arm_seconds=20.7
   ok   every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)
   ok   an earlier release's COP watch keys, in its document and the ring's snapshots of it, are declared, and the loader reads none of them (D15-s1-04)
   ok   a planted undeclared field is refused (the coverage check's own control)
@@ -199,6 +199,8 @@ RESULT domain_arm_seconds=180.5
   ok   const.finite_float reads a real number or numeric text, and nothing else -- not a bool, bytes, NaN, an infinity or an int past a double
 RESULT finite_float_coercers=1 count
   ok   each kind's shape and parse conjuncts decide alone
+  ok   the debug row declares exactly the accuracy sample's own fields under accuracy_sample
+  ok   a stored fold with a zero or negative value is dropped and the least positive one is kept
   ok   a store key names its DOMAINS entry, and a foreign key names none
   ok   the off-domain diagnostic logs an out-of-domain field and stays silent on a clean one
   ok   every sensor entity publishes finite values from non-finite input (#1541)
@@ -267,4 +269,4 @@ RESULT number_state_escapes=0 count
   ok   a task whose read has landed saves after another task's read in flight, not before it (#1869)
 RESULT store_version_unsurfaced=0 count
 
-ALL 120 FINITE BOUNDARY CHECKS PASSED
+ALL 122 FINITE BOUNDARY CHECKS PASSED

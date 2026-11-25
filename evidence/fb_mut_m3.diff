@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/heatpump_optimizer/store.py
+index a3ed10d0c4..2db0e15fe7 100644
+--- a/custom_components/heatpump_optimizer/store.py
++++ b/custom_components/heatpump_optimizer/store.py
+@@ -607,7 +607,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
+             **{k: _COUNT for k in ("solve_failures", "prices_rows")},
+             # The accuracy tracker's own sample declarations.
+             **{f"accuracy_sample/{k[len('samples/#/'):]}": d
+-               for k, d in _ACCURACY.items() if k.startswith("samples/#/") and isinstance(d, Domain)},
++               for k, d in _ACCURACY.items() if k.startswith("samples/#/") or isinstance(d, Domain)},
+             # #2271: the release that wrote the row (#2209's forward-carry).
+             "version": _TEXT,
+         }.items()},
