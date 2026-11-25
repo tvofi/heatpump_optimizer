@@ -1,0 +1,59 @@
+{
+ "key": "7452dcf280ce931f",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6070 CMP_BOUND",
+ "patch": "if hi <= lo: -> if hi < lo:",
+ "function": "HeatPumpOptimizer._buffer_charge_ceiling",
+ "cluster": "optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling@6069-6097",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3737.4,
+  "load1_start": 0.95,
+  "load1_end": 0.9,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/7452dcf280ce931f.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_7452dcf280ce931f.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_7452dcf280ce931f.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=117 count (ties constructed: 9)",
+   "RESULT inputs_moved=0 count",
+   "RESULT focus hi=35.0 out=-30.0 ua=None: baseline=35.0 mutant=35.0",
+   "RESULT null_delta=0 C",
+   "RESULT from_config_buffer_max_30=30.0",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.84",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "ceiling == buffer_max_temp when hi == lo (35 C)",
+  "mutant_value": "same value via net(hi)>0 -> hi, else net(lo)<=0 -> lo == hi",
+  "inputs_tried": "117 (grid incl. buffer_max 35 C at every out_mean, + 9 exact ties); moved 0"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none (executed by tests/env_drift, features, validate.py)",
+ "non_finding": {
+  "claim": "7452dcf280ce931f (custom_components/heatpump_optimizer/optimizer.py:6070 CMP_BOUND) is an equivalent-candidate: at hi == lo every remaining return path yields hi (== lo)",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_7452dcf280ce931f.py",
+  "value": "RESULT inputs_tried=117 count (ties constructed: 9); RESULT inputs_moved=0 count; RESULT focus hi=35.0 out=-30.0 ua=None: baseline=35.0 mutant=35.0"
+ }
+}
