@@ -1,0 +1,121 @@
+{
+ "key": "681130c48add1573",
+ "site": "defrost.py:804 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/defrost.py",
+ "line": 804,
+ "patch": "seconds_on += max(0.0, open_for) if open_for is not None else 0.0 -> seconds_on += (0.0) if open_for is not None else 0.0",
+ "function": "DefrostWindow.peek",
+ "cluster": "defrost.py:DefrostWindow.peek@795-804",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 2845.4,
+  "child_cpu_s": 4726.3,
+  "load1_start": 0.72,
+  "load1_end": 0.94,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/681130c48add1573.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 681130c48add1573",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+  "answer": "defrost.py:804 DefrostWindow.peek CLAMP_DROP: `seconds_on += max(0.0, open_for) if open_for is not None else 0.0` -> `seconds_on += (0.0) if open_for is not None else 0.0`. Ran 12 closure scripts, none killed. Should fail: tests/config_flow_steps.py, tests/features.py each execute line 804 on the traced baseline yet no check of theirs reads an outcome the mutation changes."
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py",
+  "rc": 0,
+  "results": [
+   "RESULT on_then_peek: baseline=(1.0, 1, True, 600.0) mutant=(0.0, 1, True, 600.0)",
+   "RESULT off_on_peek: baseline=(0.666666666667, 1, True, 900.0) mutant=(0.0, 1, True, 900.0)",
+   "RESULT on_off_peek: baseline=(0.333333333333, 1, True, 900.0) mutant=(0.333333333333, 1, True, 900.0)",
+   "RESULT repeat_same_stamp: baseline=(1.0, 1, True, 300.0) mutant=(1.0, 1, True, 300.0)",
+   "RESULT zero_length: baseline=(0.0, 1, True, 0.0) mutant=(0.0, 1, True, 0.0)",
+   "RESULT backwards_clock: baseline=(0.0, 1, True, 0.0) mutant=(0.0, 1, True, 0.0)",
+   "RESULT dark_then_on: baseline=(0.8, 1, False, 600.0) mutant=(0.0, 1, False, 600.0)",
+   "RESULT carried_level_after_close: baseline=(1.0, 0, False, 600.0) mutant=(0.0, 0, False, 600.0)",
+   "RESULT carried_level_reobserved: baseline=(1.0, 0, True, 600.0) mutant=(0.0, 0, True, 600.0)",
+   "RESULT none_observed: baseline=(0.0, 0, False, 0.0) mutant=(0.0, 0, False, 0.0)",
+   "RESULT duty_baseline=1.0",
+   "RESULT duty_mutant=0.0",
+   "RESULT observed_baseline=1 mutant=1",
+   "RESULT any_defrost_baseline=1 mutant=0",
+   "RESULT sequences_moved=5 of 10 (on_then_peek,off_on_peek,dark_then_on,carried_level_after_close,carried_level_reobserved)",
+   "RESULT null_delta=0 count",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.97",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "10 observe/close sequences; headline: flag ON carried over a close at 1800 s, re-observed ON at 1800 s, peek at 2400 s"
+  ],
+  "baseline_value": "1.0",
+  "mutant_value": "0.0",
+  "load1": 0.97,
+  "thread_factor": 1.0
+ },
+ "should_fail": "tests/features.py (its traced baseline executes defrost.py:804; also config_flow_steps.py): no assertion on DefrostWindow.peek(now).duty while the flag is still on at the peek (the open on-period)",
+ "finding": {
+  "title": "No check peeks a DefrostWindow mid-defrost; zeroing the open on-period's seconds is unseen",
+  "claim": "Mutant 681130c48add1573 (defrost.py:804, max(0.0, open_for) -> 0.0) survives the full gate (RED-AS-NULL), yet DefrostWindow.peek() on an interval whose flag is still on reports duty 0.0 instead of 1.0 and any_defrost 0 instead of 1 on the carried-level sequence: the same phenomenon as mutant 8297234e122897ff at the adjacent line.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "DefrostWindow.peek(now).duty on an interval whose defrost flag is on at the peek (flag carried over a close at 1800 s, re-observed at 1800 s, peek at 2400 s)",
+  "phenomenon_property": "DefrostWindow.peek counts the open on-period up to now, so the duty and any_defrost it reports while a defrost is running equal what close() would settle at the same instant",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list); this key's row",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.defrost:DefrostWindow.peek",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py",
+   "value": "0.0",
+   "unit": "DefrostWindow.peek(now).duty on an interval whose defrost flag is on at the peek (flag carried over a close at 1800 s, re-observed at 1800 s, peek at 2400 s)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g13: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probe ran on the box while its own full gates ran (GATE_JOBS=1)",
+   "tolerance": "exact",
+   "load1": 0.97,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "mutant 681130c48add1573 (seconds_on += max(0.0, open_for) if open_for is not None else 0.0 -> seconds_on += (0.0) if open_for is not None else 0.0) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 681130c48add1573",
+   "expected_direction": "down",
+   "observed_value": "0.0"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py",
+   "note": "a sequence whose flag switched off before the peek (on_off_peek): same observation both arms (null_delta=0)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 681130c48add1573"
+  ],
+  "proposed_fix_scope": "tests only: the same peek() check as for 8297234e122897ff (one check kills both)",
+  "files": [
+   "custom_components/heatpump_optimizer/defrost.py",
+   "tests/features.py"
+  ],
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py (its traced baseline executes defrost.py:804; also config_flow_steps.py): no assertion on DefrostWindow.peek(now).duty while the flag is still on at the peek (the open on-period)"
+ }
+}

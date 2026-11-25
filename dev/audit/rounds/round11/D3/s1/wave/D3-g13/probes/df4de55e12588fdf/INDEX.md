@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py: mutant df4de55e12588fdf; pins: the power (kW) _apply_dhw_min_run returns for a slot planned at exactly 1e-6 kW (the weak-slot floor), tank with room and tank full, plus the 144-fixture production-shaped sweep.

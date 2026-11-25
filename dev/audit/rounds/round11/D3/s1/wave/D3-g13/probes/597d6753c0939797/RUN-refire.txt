@@ -1,0 +1,10 @@
+# re-fire run 2026-11-25T00:48:48Z, baseline scratch copy (git archive 92d38ecb), nproc 4,  Intel(R) Xeon(R) Processor @ 2.10GHz, load1 1.02
+RESULT production_shaped_moved=0 of 144 []
+RESULT baseline_paths joint_shortcut=48 per_slot=96 count
+RESULT tie_at_min_run_moved=0 of 2
+RESULT direct_min_run_above_pmax_moved=64 of 144
+RESULT reach_caller_min_run_le_pmax=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.10
+RESULT swapins=0
+rc=0
