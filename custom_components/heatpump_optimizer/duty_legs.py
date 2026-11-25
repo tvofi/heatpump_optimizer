@@ -65,7 +65,7 @@ def leg_rule(
     one step and is not dropped. With no latched stop this is
     :data:`DEFAULT_RULE`.
     """
-    stops = [p > 0 and not free for p, free in zip(stop_probability, unlatched)]
+    stops = [p > 0 for p in stop_probability]
     first = "space" if stops[0] and not stops[1] else "dhw"
     into = 0 if first == "dhw" else 1
     return first, (off_seconds[into] / 60.0 if stops[into] else None)
