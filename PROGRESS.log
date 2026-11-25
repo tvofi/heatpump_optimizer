@@ -3,3 +3,4 @@
 1795585367 CKPT resumed at f614bb7364; reviewing predecessor diff snapshot c6bc41971f49
 1795585387 CKPT measured: cloud transcript readable in-container only snapshot e865e018c53d
 1795585952 HB alive
+1795586272 CKPT pushed check_scopes wiring arm snapshot 6427112b5cca
