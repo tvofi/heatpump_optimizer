@@ -99,7 +99,7 @@ scope_mutant "the scratch clone keeps no working-tree change" '    for rel in so
 scope_mutant "the scratch clone skips a staged file" 'listed += "" if rev else git("diff", "--cached"' 'listed += "" if True else git("diff", "--cached"'
 scope_mutant "trace_steps traces over an unsettled index" 'if settle_index(tree):' 'if False:'
 scope_mutant "an undecorated path resolved against the instrument's own checkout" 'path = os.path.join(base or str(root), raw)' 'path = os.path.join(base or str(ROOT), raw)'
-scope_mutant "absorb carries a step recorded under another run text" 'if live.get(sid) != got.get("run_sha"):' 'if sid not in live:'
+scope_mutant "absorb carries a step recorded under another run text" 'if live.get(sid) == got.get("run_sha")}' 'if sid in live}'
 scope_mutant "absorb carries a read that names nothing at this head" 'if here(k, x)] for k in LIST_KINDS' 'if True] for k in LIST_KINDS'
 scope_mutant "absorb carries a probe that is ignored or retired" 'probe_path(item, tracked_dirs) and item not in gone' 'probe_path(item, tracked_dirs)'
 scope_mutant "absorb rewrites a table it added nothing to" '    if added:

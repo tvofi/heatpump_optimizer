@@ -16,7 +16,7 @@
     "aliases": [
       "new: a post-review main merge reddens the head and no local instrument sees it"
     ],
-    "non_round_note": "Process incidents measured by the RCA seat over 2026-10-08..10-10, not audit findings, not in register_rows.tsv, not counted in total. Each row: the merge SHA and the checks the merge reddened (green at the reviewed parent).",
+    "non_round_note": "Process incidents measured by the RCA seat over 2026-10-08..10-10, not audit findings, not in register_rows.tsv, not counted in total. Each row: the merge SHA and the checks the merge reddened (green at the reviewed parent). Rows from R11-RCA-BOTMERGE-ROW: a budget key only the branch measures, breached by a merge of main (module_excess_loc on #3735), each the merge head and its tests / fast job.",
     "non_round_instances": [
       "03f7be4d3 instrument-self-tests, pr-contract",
       "0cff5a993 budget-raise-gate",
@@ -32,10 +32,17 @@
       "dc1abe654 fast (3.14), pr-contract",
       "574345d95 mutation, pr-contract",
       "4f0bde165 fast (3.14)",
-      "78a067541 budget-raise-gate"
+      "78a067541 budget-raise-gate",
+      "382df86816 fast (3.14) (job 135436031929, module_excess_loc -13 unrecorded gain)",
+      "011a463926 fast (3.14) (job 135520088877, module_excess_loc +22)",
+      "f50a75b4f7 fast (3.14) (job 135603189444, module_excess_loc +62)",
+      "430bc6bfad fast (3.14) (job 136821033342, module_excess_loc +61)",
+      "5e4a4a6a24 fast (3.14) (job 136990440813, module_excess_loc +98)",
+      "d4bd8ed29e fast (3.14) (job 137012722292, module_excess_loc +61)"
     ],
     "rca": [
-      "R9-RC-POSTREVIEW-MERGE"
+      "R9-RC-POSTREVIEW-MERGE",
+      "R11-RCA-BOTMERGE-ROW"
     ],
     "rules": [],
     "rca_planned": [],
@@ -5302,12 +5309,28 @@
       "status": "landed",
       "parts_missing": [],
       "process_state": "(d) the re-record was sound against the table it was taken from and its precondition, that the base had not moved, changed underneath it",
-      "countermeasure": "record unions over the committed entry, and a read leaves the table only by the named `prune` operation. R11-PRE-SHARED-FILES part 1 adds the seat's detector (`selftest_scope.py precheck`, run by ci_predict.py's `selftest-scope` arm in prepr.sh: the gated steps whose own script a diff changes, traced in a scratch clone and graded as main's drift step grades them; a refusal the merge base draws too is a note), the scratch clone `record` traces in, and the table half of part A (`selftest_scope.py absorb`: main's own artifact unioned over the live table). The job that runs `absorb` on a red drift step and opens the pull request is not built: its write set and identity wait on the owner's ruling of design decisions D1 and D2 (design/R11-PRE-SHARED-FILES)",
+      "countermeasure": "record unions over the committed entry, and a read leaves the table only by the named `prune` operation. R11-PRE-SHARED-FILES part 1 adds the seat's detector (`selftest_scope.py precheck`, run by ci_predict.py's `selftest-scope` arm in prepr.sh: the gated steps whose own script a diff changes, traced in a scratch clone and graded as main's drift step grades them; a refusal the merge base draws too is a note), the scratch clone `record` traces in, and the table half of part A (`selftest_scope.py absorb`: main's own artifact unioned over the live table). Main's drift step runs `absorb` over its own measurement (#3708, under the owner's ruling of 2026-11-18 on design decisions D1 and D2, option (b): a read-only job that commits nothing); the actor that commits it is the beatd row selftest-absorb (tools/audit/seat/selftest_absorb.py, class R11-SELFTEST-TABLE-ADDITIONS)",
       "landed": "R10-SELFTEST-SCOPE-UNION-GUARD",
       "in_tree_home": "dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md",
       "doc": [
         "dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md",
         "dev/audit/rca/R10-RCA-FAMILY-SELFTEST-SCOPE-DRIFT.md"
+      ]
+    },
+    "R11-RCA-SELFTEST-TABLE-DRIFT": {
+      "class": "R11-SELFTEST-TABLE-ADDITIONS",
+      "level": "class",
+      "subject": "main's self-test read-set table lags the merges that add reads: 13 hotfix re-records to 2026-11-16, each outrun by the next merge that added a read",
+      "trigger": "class (13 instances by the root-cause seat)",
+      "date": "2026-11-16",
+      "status": "landed",
+      "parts_missing": [],
+      "process_state": "(c) main measures every push and computes the repaired table, and the repair's last step, the commit, had no actor: the `selftest-absorbed` artifact was uploaded and nothing consumed it",
+      "countermeasure": "C5 (P-R11-41), completed by P-R11-SELFTEST-ABSORB: main's drift step absorbs its own measurement and a red that absorb repairs is a note; the beatd row selftest-absorb absorbs main's red or owed runs at main's tip into one standing ref, whose review is the mechanical `selftest_absorb.py verify`; the tick routes the drift step's red to that row",
+      "landed": "R11-SELFTEST-ABSORB",
+      "in_tree_home": "dev/audit/rca/R11-RCA-SELFTEST-TABLE-DRIFT.md",
+      "doc": [
+        "dev/audit/rca/R11-RCA-SELFTEST-TABLE-DRIFT.md"
       ]
     },
     "R10-RCA-FEATURES-WEEKEND-CLOCK": {
@@ -5824,6 +5847,24 @@
       "in_tree_home": "dev/audit/rca/R11-RCA-3729-OPEN-AXIS.md",
       "doc": [
         "dev/audit/rca/R11-RCA-3729-OPEN-AXIS.md"
+      ]
+    },
+    "R11-RCA-BOTMERGE-ROW": {
+      "class": "N-postreview-merge-red",
+      "level": "instance-or-process",
+      "subject": "a tests/structure_budgets.json key only the branch measures is carried unchanged by the ledgermerge driver across every merge of main while main's code moves the quantity: 6 tests / fast reds on #3735 (module_excess_loc) in round 11, 1 in round 10 (#2340)",
+      "trigger": "red-check: tests / fast (3.14) at six merge-of-main heads of #3735",
+      "date": "2026-11-22",
+      "status": "proposed",
+      "parts_missing": [
+        "barrier not built: P-R11-BOTMERGE-ROW, an amendment of R11-PRE-SHARED-FILES parts 2 and 3 (tooling freeze)"
+      ],
+      "process_state": "(d) the driver's base-plus-both-deltas rule keeps a row current only while main measures it; a key added on the branch removes main's side and nothing notices",
+      "countermeasure": "proposed narrow arm: ratchet prices a key absent at the merge base at head budget plus (merge-base measurement minus recorded_at measurement); about 11 min per such PR against about 420 min a round",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R11-RCA-BOTMERGE-ROW.md",
+      "doc": [
+        "dev/audit/rca/R11-RCA-BOTMERGE-ROW.md"
       ]
     }
   },
@@ -6678,6 +6719,55 @@
     ],
     "rca": [
       "R10-RCA-SELFTEST-SCOPE-DRIFT"
+    ],
+    "rules": [],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "R11-SELFTEST-TABLE-ADDITIONS": {
+    "kind": "instrument",
+    "mechanism": "A merge adds a read a gated instrument-self-tests step makes (a new file or edge under its probes, dirs or files) that tools/ci/selftest_closures.json does not name. Only main's push run measures reads, so no pull request sees it, and main's drift step is red until the table is re-recorded; the repaired table main computed on each red push had no consumer, so each red became a hand hotfix measured at one sha and outrun by the next merge that added a read",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 -I tools/ci/selftest_scope.py check, main's drift step on every push: an UNDER-SCOPED step line for each read the committed table misses",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/selftest_absorb.py as the beatd row selftest-absorb: the selftest-closures artifacts of main's red or owed runs absorbed at main's tip and force-pushed as the one standing ref handoff/selftest-absorb, reviewed by its `verify` (dev/governance/roles/fix-review.md); main's drift step (`check --absorb-out`) makes a red the absorbed table repairs a note, and tools/audit/seat/orchestrator_tick.py routes the drift step's red to the row, never a fixer",
+    "status": "barriered",
+    "nearest_existing": "R10-SELFTEST-TABLE-SHRINK",
+    "mechanism_difference": "R10-SELFTEST-TABLE-SHRINK is a re-record that drops reads the table held; here no read is dropped: the table lags reads a merge adds, and the measured repair waits on an actor",
+    "aliases": [
+      "main's self-test drift step red on reads a merge added"
+    ],
+    "non_round_note": "Process defect from R11-RCA-SELFTEST-TABLE-DRIFT and the root-cause seat beside #3832, not an audit finding, not counted in total. Instances: the selftest-table hotfix pull requests merged on main from 2026-11-10 to 2026-11-19.",
+    "non_round_instances": [
+      "#3375",
+      "#3409",
+      "#3419",
+      "#3487",
+      "#3506",
+      "#3535",
+      "#3557",
+      "#3589",
+      "#3595",
+      "#3606",
+      "#3629",
+      "#3652",
+      "#3671",
+      "#3698",
+      "#3707",
+      "#3718",
+      "#3801"
+    ],
+    "rca": [
+      "R11-RCA-SELFTEST-TABLE-DRIFT"
     ],
     "rules": [],
     "rca_planned": [],

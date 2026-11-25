@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:baseline_row RETURN_DEL 79ad55c5",
+  "killed_by": "tests/features.py",
+  "old": "    return replace(desired(coord, replace(inp, disinfecting=False, action=action), None, now), space_setpoint=None)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=24."
+}

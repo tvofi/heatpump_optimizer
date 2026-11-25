@@ -21,7 +21,7 @@ What the unmodified tree does.
 `none`, or one line per figure with the command that printed it; name the
 instrument, not what it prints. `pr-contract` refuses a command that does not
 resolve, never re-runs one. Gate rise: explain under `## Architecture score`.
-Registered: empty `<!-- figure-block: scope-line -->`..`<!-- /figure-block -->`, `body_push.sh` fills it.
+Registered figures: `pr-contract` renders them; the body stores no figure block.
 
 ## Red checks
 
