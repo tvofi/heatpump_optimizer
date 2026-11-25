@@ -298,7 +298,7 @@ def dup(day: str) -> int:
 
 
 def _log(job_id: int) -> str:
-    r = subprocess.run(["gh", "api", "--allow-escape-sequences", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
+    r = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
                        capture_output=True, text=True)
     return r.stdout
 
