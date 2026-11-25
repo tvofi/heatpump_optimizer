@@ -1,0 +1,1 @@
+(empty above = VERSION, notes, custom_components untouched)
