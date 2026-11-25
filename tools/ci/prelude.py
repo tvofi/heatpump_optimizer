@@ -4,10 +4,10 @@
     python3 -I tools/ci/prelude.py [--changed-from FILE] >> "$GITHUB_OUTPUT"
     python3 -I tools/ci/prelude.py --self-test
 
-Prints `key=value` lines: kind, pr, base, head, scope, legs, workset,
-machinery, selftests. It reads
-the event from GITHUB_EVENT_NAME / GITHUB_EVENT_PATH and nothing else of the
-run. `derive` and `title` are also the gate's (gate.py derives the event's kind
+Prints `key=value` lines: kind, pr, base, head, scope, range_base, light,
+stand_down, legs, workset, machinery, selftests. It reads the event from
+GITHUB_EVENT_NAME / GITHUB_EVENT_PATH, and on a push the runs listing and the
+checkout (`push_range`), and nothing else of the run. `derive` and `title` are also the gate's (gate.py derives the event's kind
 itself and only cross-checks this job's outputs) and `run-name`'s: ci.yml's
 title is the string `title` returns, `sha=` token included (rev2 item 5).
 
@@ -100,6 +100,32 @@ LANE_GATE = {("tests.yml", "arch-instrument"): "machinery_rowblind",
              ("governance.yml", "env-matrix"): "machinery",
              ("governance.yml", "instrument-self-tests"): "machinery"}
 CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
+# #3885 (owner, 2026-11-25): a change that touches no PRODUCTION file is graded
+# LIGHT. Production is what an install receives or what HACS reads to publish it:
+# the package, and the root files validate-hacs reads -- its ten checks in run
+# 45328796343 (job 138271567259) are hacsjson, information (the README), license,
+# integration_manifest and six read from the repository's API, not its tree;
+# hassfest reads the package alone. `.github/` holds the lanes themselves, so a
+# change there is never light: it grades every lane it can change.
+PRODUCTION_PREFIXES = ("custom_components/",)
+PRODUCTION_FILES = frozenset({"hacs.json", "README.md", "LICENSE"})
+NEVER_LIGHT = (".github/",)
+# The required lanes that grade only the product, so a light run stands them down
+# at the step level and they report success -- unless the change reaches a file
+# the lane itself reads: the measured closure of its driver script in
+# tests/closures.json, plus the inputs no closure can record (`browser`'s node
+# lane, which is NOT_A_TEST; `typing`'s mypy configuration, typing_ruler.py's
+# CONFIG_BASENAMES; the pinned installs both lanes make).
+LIGHT_LANES = {
+    "browser": ("tests/plan_view.py", ("tests/card_browser.mjs", "tests/pwlane/", "tests/requirements-")),
+    "typing": ("tests/typing_ruler.py", ("tests/requirements-", "mypy.ini", ".mypy.ini", "setup.cfg",
+                                         "pyproject.toml")),
+    "hassfest": (None, ()),
+    "validate": (None, ()),
+}
+# On a light PUSH the full re-measurements its pull requests already made per
+# diff stand down as well: the closures re-record and the environment matrix.
+LIGHT_PUSH_LANES = ("closures", "env-matrix")
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
     "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
@@ -367,15 +393,27 @@ def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON, 
     return not files or is_product is None or not all(map(is_product, files))
 
 
+#: (workflow, job) -> the `stand_down` lane name its steps gate on; `light_gates` pins it.
+LIGHT_GATE = {("tests.yml", "browser"): "browser", ("tests.yml", "typing"): "typing",
+              ("tests.yml", "closures"): "closures", ("governance.yml", "env-matrix"): "env-matrix",
+              ("hassfest.yml", "hassfest"): "hassfest", ("validate.yml", "validate-hacs"): "validate"}
+
+
+def _job_text(workflows: Path, wf: str, job: str) -> str:
+    m = re.search(rf"\n  {re.escape(job)}:\n(.*?)(?=\n  [A-Za-z][\w-]*:\n|\Z)", (workflows / wf).read_text(), re.S)
+    return m.group(1) if m else ""
+
+
+def light_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> dict:
+    """(workflow, job) -> the lane names its text reads from `inputs.stand_down`."""
+    pat = r"contains\(format\(' \{0\} ', inputs\.stand_down\), ' ([\w-]+) '\)"
+    return {k: set(re.findall(pat, _job_text(workflows, *k))) for k in LIGHT_GATE}
+
+
 def lane_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> dict:
     """(workflow, job) -> the set of machinery inputs the job's text names
     (`inputs.machinery`, `inputs.machinery_rowblind`), for each LANE_GATE job."""
-    got = {}
-    for wf, job in LANE_GATE:
-        text = (workflows / wf).read_text()
-        m = re.search(rf"\n  {re.escape(job)}:\n(.*?)(?=\n  [A-Za-z][\w-]*:\n|\Z)", text, re.S)
-        got[(wf, job)] = set(re.findall(r"inputs\.(machinery\w*)", m.group(1))) if m else set()
-    return got
+    return {k: set(re.findall(r"inputs\.(machinery\w*)", _job_text(workflows, *k))) for k in LANE_GATE}
 
 
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
@@ -449,8 +487,74 @@ def dispatch_diff(ctx: dict, cwd: Path = HERE.parents[1]) -> "tuple[str, list[st
         return None
 
 
+def light(changed: "list[str] | None") -> bool:
+    """#3885: whether a run's changed list is graded light -- readable, non-empty, and
+    holding no production file and nothing under NEVER_LIGHT."""
+    files = [f for f in (changed or []) if f.strip()]
+    return bool(files) and not any(f.startswith(PRODUCTION_PREFIXES + NEVER_LIGHT) or f in PRODUCTION_FILES
+                                   for f in files)
+
+
+def stand_down(changed: "list[str] | None", push: bool, closures_json: Path = CLOSURES_JSON) -> list[str]:
+    """The lanes a run stands down: none unless `light(changed)`; then every LIGHT_LANES
+    lane the change does not reach (and LIGHT_PUSH_LANES on a push). An unreadable
+    script table stands nothing down."""
+    if not light(changed):
+        return []
+    try:
+        closures = json.loads(closures_json.read_text())["closures"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return []
+    lanes = []
+    for lane, (driver, extra) in LIGHT_LANES.items():
+        reads = set(closures.get(driver) or ()) if driver else set()
+        if driver and not reads:
+            return []                        # the driver's closure is unrecorded: nothing is proven
+        if not any(f in reads or f.startswith(extra) or Path(f).name in extra for f in changed):
+            lanes.append(lane)
+    return sorted(lanes + (list(LIGHT_PUSH_LANES) if push else []))
+
+
+def _is_ancestor(base: str, head: str, cwd: Path) -> bool:
+    return subprocess.run(["git", "merge-base", "--is-ancestor", base, head], cwd=cwd,
+                          capture_output=True).returncode == 0
+
+
+def push_range(ctx: dict, get, diff=None, ancestor=None,
+               cwd: Path = HERE.parents[1]) -> "tuple[str, list[str]] | None":
+    """(base, the files changed base..head) for a push to main, or None (graded in full).
+    The base is the head of the newest EARLIER push run on main that completed, was not
+    cancelled and whose prelude succeeded, so its units ran: CI-5's `CI-main` group
+    replaces a pending run, so HEAD^1 would leave the replaced run's commits graded by no
+    run, and a production commit among them must never fall into a light range. A run
+    whose prelude failed graded nothing, and its range stays in ours. None when the
+    listing is unreadable, no such run is on its first page, or its head is not an
+    ancestor of this one."""
+    st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
+                     {"branch": "main", "event": "push", "per_page": 100})
+    if st != 200 or not isinstance(doc, dict):
+        return None
+    for r in sorted(doc.get("workflow_runs") or [], key=lambda r: -r["id"]):
+        if (r["id"] >= ctx["run_id"] or r.get("event") != "push" or r.get("head_branch") != "main"
+                or r.get("status") != "completed" or r.get("conclusion") == "cancelled"):
+            continue
+        try:
+            if run_jobs(get, ctx["repo"], r["id"]).get("prelude") != ("completed", "success"):
+                continue
+        except ghapi.ApiError:
+            return None
+        base = r.get("head_sha") or ""
+        if not base or not (ancestor or _is_ancestor)(base, ctx["head"], cwd):
+            return None
+        try:
+            return base, (diff or _codeql_scope().changed_files)(base, ctx["head"])
+        except subprocess.CalledProcessError:
+            return None
+    return None
+
+
 def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
-            selftests=selftest_scope, dispatch_diff=dispatch_diff) -> tuple[dict, str]:
+            selftests=selftest_scope, dispatch_diff=dispatch_diff, push_range=push_range) -> tuple[dict, str]:
     """(the outputs, '' or why the prelude fails)."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
@@ -470,11 +574,25 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
         got = dispatch_diff(ctx)
         if got and got[1]:
             scoped, changed, ctx = "pull_request", got[1], {**ctx, "base_sha": got[0]}
+    # #3885: a push is graded over its RANGE (push_range). A light range is graded as a pull
+    # request over it would be -- scoped, its legs, machinery and self-tests from that list --
+    # and every other push in full, as before: `range_base` alone feeds the coverage restore.
+    out["range_base"], out["light"] = "", "false"
+    if ev == "push":
+        rng = push_range(ctx, get)
+        if rng:
+            out["range_base"] = rng[0]
+            if light(rng[1]):
+                scoped, changed, ctx, out["scope"] = "pull_request", rng[1], {**ctx, "base_sha": rng[0]}, "auto"
+    if scoped == "pull_request" and light(changed):
+        out["light"] = "true"
+    out["stand_down"] = " ".join(stand_down(changed, ev == "push") if out["light"] == "true" else [])
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
     out["machinery"] = "true" if scoped != "pull_request" or machinery(changed) else "false"
-    # R10-CI-SELFTEST-SCOPE: only a pull request is scoped; every other event,
-    # a push to main above all, runs every step and re-measures them.
+    # R10-CI-SELFTEST-SCOPE: only a pull request (and a light push, graded as one) is
+    # scoped; every other event, a push touching production above all, runs every step
+    # and re-measures them.
     out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
     out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
@@ -812,7 +930,7 @@ def self_test() -> int:
 
         def get(path, params=None):
             if path.endswith("ci.yml/runs"):
-                return 200, {}, {"workflow_runs": runs.get(params["head_sha"], [])}
+                return 200, {}, {"workflow_runs": runs.get((params or {}).get("head_sha"), [])}
             return 200, {}, {"jobs": jobs[int(path.split("/runs/")[1].split("/")[0])]}
         return get
     all3 = ("actions", "javascript-typescript", "python")
@@ -872,6 +990,96 @@ def self_test() -> int:
                                  .replace("inputs.machinery ", "inputs.machinery_rowblind "))
         check("C7a-row: ... and a row-reading lane moved to the row-blind input is seen (null control)",
               lane_gates(wd)[("tests.yml", "closures")] >= {"machinery_rowblind"}, True)
+    # #3885: light grading. The production predicate, and NEVER_LIGHT beside it.
+    rec = "dev/programme/delivery/3884.md"
+    check("#3885: a records-only list is light", light([rec, "tools/ci/gate.py", "tests/entities.py"]), True)
+    for f in ("custom_components/heatpump_optimizer/const.py", "hacs.json", "README.md", "LICENSE",
+              ".github/workflows/tests.yml"):
+        check(f"#3885: ... and {f} beside it is not light (null control)", light([rec, f]), False)
+    check("#3885: an empty or unread list is not light (fail closed)", (light([]), light(None), light([" "])),
+          (False, False, False))
+    with tempfile.TemporaryDirectory() as td:
+        cj = Path(td) / "closures.json"
+        cj.write_text(json.dumps({"closures": {"tests/plan_view.py": ["tests/harness.py", "tests/plan_view.py"],
+                                               "tests/typing_ruler.py": ["tests/typing_budgets.json"]}}))
+        prod_lanes = ["browser", "hassfest", "typing", "validate"]
+        check("#3885: a light pull request stands the product lanes down",
+              stand_down([rec], False, cj), prod_lanes)
+        check("#3885: a light push also stands down the re-measurements its pull requests made",
+              stand_down([rec], True, cj), sorted(prod_lanes + ["closures", "env-matrix"]))
+        for f, lane in (("tests/harness.py", "browser"), ("tests/card_browser.mjs", "browser"),
+                        ("tests/pwlane/package.json", "browser"), ("tests/typing_budgets.json", "typing"),
+                        ("pyproject.toml", "typing"), ("tests/requirements-ci.txt", "typing")):
+            check(f"#3885: {f}, a file {lane} reads, keeps {lane} grading", lane in stand_down([rec, f], False, cj),
+                  False)
+        check("#3885: a file no lane reads keeps none (null control)", stand_down([rec, "tests/other.py"], False, cj),
+              prod_lanes)
+        check("#3885: a production file stands nothing down", stand_down([rec, "hacs.json"], True, cj), [])
+        check("#3885: an unreadable script table stands nothing down", stand_down([rec], True, Path(td) / "x"), [])
+        cj.write_text(json.dumps({"closures": {"tests/plan_view.py": ["tests/plan_view.py"]}}))
+        check("#3885: a lane driver with no recorded closure stands nothing down", stand_down([rec], True, cj), [])
+    # The push range. Run 50 is this one; GitHub lists the newest first.
+    pctx0 = context("push", {}, {**env, "GITHUB_REF": "refs/heads/main"})
+
+    def listing(*runs, prelude="success", jobs_status=200):
+        def get(path, params=None):
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": [{"event": "push", "head_branch": "main", "status": "completed", **r}
+                                                   for r in runs]}
+            if jobs_status != 200:
+                return jobs_status, {}, {"message": "boom"}
+            rid = int(path.split("/runs/")[1].split("/")[0])
+            pre = prelude.get(rid, "success") if isinstance(prelude, dict) else prelude
+            return 200, {}, {"jobs": [{"name": "prelude", "status": "completed", "conclusion": pre}]}
+        return get
+    files_since = {"B": [rec, "custom_components/heatpump_optimizer/const.py"], "P": [rec], "Q": [rec]}
+    rng = lambda get, anc=True: push_range(pctx0, get, lambda b, h: files_since[b], lambda b, h, c: anc)  # noqa: E731
+    replaced = listing({"id": 49, "head_sha": "P", "conclusion": "cancelled"},
+                       {"id": 48, "head_sha": "B", "conclusion": "failure"})
+    check("#3885: a replaced (cancelled) pending run is no base: its production commit stays in the range",
+          (rng(replaced), light(rng(replaced)[1])), (("B", files_since["B"]), False))
+    check("#3885: ... null control: had it run, its head is the base and the range is light",
+          rng(listing({"id": 49, "head_sha": "P", "conclusion": "failure"},
+                      {"id": 48, "head_sha": "B", "conclusion": "failure"})), ("P", [rec]))
+    check("#3885: a run whose prelude failed graded nothing and is no base",
+          rng(listing({"id": 49, "head_sha": "P", "conclusion": "failure"}, {"id": 48, "head_sha": "B",
+                       "conclusion": "success"}, prelude={49: "failure"}))[0], "B")
+    check("#3885: a later run, this run and an unfinished one are no base",
+          rng(listing({"id": 51, "head_sha": "Q", "conclusion": "success"},
+                      {"id": 50, "head_sha": "Q", "conclusion": "success"},
+                      {"id": 49, "head_sha": "Q", "conclusion": None, "status": "in_progress"},
+                      {"id": 47, "head_sha": "B", "conclusion": "success"}))[0], "B")
+    for name, got in (("an unreadable listing", rng(lambda p, q=None: (502, {}, None))),
+                      ("no earlier run", rng(listing({"id": 51, "head_sha": "Q", "conclusion": "success"}))),
+                      ("an unreadable jobs listing", rng(listing({"id": 48, "head_sha": "B", "conclusion": "success"},
+                                                                 jobs_status=502))),
+                      ("a base that is no ancestor", rng(listing({"id": 48, "head_sha": "P", "conclusion": "success"}),
+                                                         anc=False))):
+        check(f"#3885: {name} leaves the push unranged (graded in full)", got, None)
+
+    def push_out(r):
+        return outputs(pctx0, None, lambda p, q=None: (200, {}, live), push_range=lambda c, g: r,
+                       selftests=lambda c: f"sel {c['base_sha']}..{c['head']}")[0]
+    o = push_out(("P", [rec]))
+    check("#3885: a light push is graded as a pull request over its range",
+          (o["scope"], o["light"], o["range_base"], o["selftests"], o["stand_down"], set(json.loads(o["legs"]).values())),
+          ("auto", "true", "P", "sel P..H", "browser closures env-matrix hassfest typing validate", {"skip"}))
+    o = push_out(("B", files_since["B"]))
+    check("#3885: a push whose range holds production is graded in full, its range base kept (null control)",
+          (o["scope"], o["light"], o["range_base"], o["selftests"], o["stand_down"], set(json.loads(o["legs"]).values())),
+          ("full", "false", "B", "all", "", {"analyze"}))
+    o = push_out(None)
+    check("#3885: an unranged push is graded in full", (o["scope"], o["light"], o["range_base"]), ("full", "false", ""))
+    o = outputs(ctx("pull_request", action="synchronize", pull_request=pr), [rec], g(live))[0]
+    check("#3885: a light pull request keeps its scope and stands only the product lanes down",
+          (o["scope"], o["light"], o["stand_down"]), ("auto", "true", "browser hassfest typing validate"))
+    o = outputs(ctx("merge_group", merge_group={"head_ref": "refs/heads/gh-readonly-queue/main/pr-12-" + "a" * 40}),
+                [rec], g(live))[0]
+    check("#3885: a merge-queue run is never light", (o["light"], o["stand_down"]), ("false", ""))
+    check("#3885: each light lane's job reads exactly its own stand_down name",
+          light_gates(), {k: {v} for k, v in LIGHT_GATE.items()})
+    check("#3885: the light lanes are exactly LIGHT_LANES and LIGHT_PUSH_LANES",
+          sorted(LIGHT_GATE.values()), sorted(set(LIGHT_LANES) | set(LIGHT_PUSH_LANES)))
     print(f"prelude self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 

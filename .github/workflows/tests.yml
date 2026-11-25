@@ -44,12 +44,16 @@ name: Tests
 #   are run, decided from the measured dependency closures in
 #   tests/closures.json, and so does every workflow_dispatch of this file
 #   (an autofix retrigger or the batch proof, against main's merge base).
-#   On a PUSH TO MAIN GATE_SCOPE is forced to full and every script
-#   runs regardless of what changed. That asymmetry is the whole safety
-#   argument: if a closure is ever wrong, the scoped PR gate may miss it,
-#   but the very next gate, the unscoped one on main, does not. main goes
-#   red within one merge instead of never. Every scoped-out script is
-#   printed with its reason in the run log, twice.
+#   A PUSH TO MAIN whose range touches production (custom_components/ or
+#   a root file HACS reads; tools/ci/prelude.py's `light` and `push_range`,
+#   #3885) runs GATE_SCOPE=full, every script regardless of what changed.
+#   That asymmetry is the whole safety argument: if a closure is ever
+#   wrong, the scoped PR gate may miss it, but the next production push,
+#   unscoped on main, does not: main goes red at that push instead of
+#   never. A LIGHT push -- a range since the last graded push run that
+#   touches no production file -- is graded as a pull request over that
+#   range is: GATE_SCOPE=auto against the range base. Every scoped-out
+#   script is printed with its reason in the run log, twice.
 #
 # * closures — push to main, and on any pull request that can
 #   move a closure. Re-records closures by running the suite under
@@ -58,7 +62,9 @@ name: Tests
 #   wall clock. This is what stops the closures rotting the way a
 #   hand-written dependency table would.
 #
-#   On a push it re-records EVERYTHING. On a pull request
+#   On a push it re-records EVERYTHING, but a light push (#3885), whose
+#   pull requests each re-derived what their own diff intersects, stands
+#   the re-record down. On a pull request
 #   `closure-scope` decides, from the diff and the same table:
 #   full when a gate file or a file in no recorded closure is touched,
 #   and otherwise re-derive only the closures the diff intersects. A
@@ -140,6 +146,18 @@ on:
         default: ""
       machinery_rowblind:
         description: "The prelude's machinery decision with the pull request's own delivery row ignored, for a machinery lane that reads no row (arch-instrument; R10-CI-OWN-DELIVERY-ROW); anything but 'false' runs it"
+        type: string
+        default: ""
+      light:
+        description: "The prelude's: 'true' on a run whose changed list holds no production file (#3885); on a push, the scope is auto against range_base"
+        type: string
+        default: ""
+      stand_down:
+        description: "The prelude's light-run stand-downs (#3885): each lane it names (browser, typing, closures) skips its steps and reports success"
+        type: string
+        default: ""
+      range_base:
+        description: "The prelude's push range base (prelude.push_range): the head of the newest earlier push run on main whose units ran; empty on every other event or when unread"
         type: string
         default: ""
     # The autofix jobs' push token and the run-approver App, until M-3.
@@ -273,6 +291,9 @@ jobs:
 
       - name: Resolve the golden comparison ref
         if: needs.closure-scope.outputs.fast_skip != 'skip'
+        env:
+          LIGHT: ${{ inputs.light }}
+          RANGE_BASE: ${{ inputs.range_base }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # The PR's merge-base with its target: exactly the code this
@@ -301,6 +322,10 @@ jobs:
             # parent), so leftover drift vs main cannot hide.
             git fetch --no-tags origin main
             REF=$(git merge-base origin/main HEAD)
+          elif [ "$LIGHT" = "true" ] && [ -n "$RANGE_BASE" ]; then
+            # A light push (#3885): scoped against its range base, so the drift
+            # comparison spans every commit the scope does.
+            REF=$(git rev-parse --verify --quiet "${RANGE_BASE}^{commit}") || REF=""
           else
             # Push to main: compare against the state before this push.
             REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
@@ -375,9 +400,10 @@ jobs:
           HPO_CI_METRICS: ${{ runner.temp }}/ci-metrics-fast.tsv
           GOLDEN_MODE: drift
           # The scope is the prelude's (its "Decide" step moved there, U5):
-          # `auto` on a pull request, the merge queue and a dispatch, against
-          # the comparison ref resolved above; anything else -- a push to main
-          # above all, or an empty input -- runs the whole suite.
+          # `auto` on a pull request, the merge queue, a dispatch and a light
+          # push (#3885), against the comparison ref resolved above; anything
+          # else -- a push touching production above all, or an empty input --
+          # runs the whole suite.
           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
           GATE_SCOPE_BASE: ${{ env.GOLDEN_REF }}
           # The architecture-score pair is `arch-instrument`'s, below (U5b):
@@ -489,13 +515,14 @@ jobs:
         run: python3 tests/host_probe.py
 
       # The scope `fast` takes: the prelude's, diffed from the merge base with
-      # the PR's base (origin/main on a dispatch naming none); full on push.
+      # the PR's base (origin/main on a dispatch naming none), or from a light
+      # push's range base (#3885); full on every other push.
       - name: Run the architecture-score pair
         if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         env:
           RUN_PART: arch
           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
-          GATE_SCOPE_BASE: origin/${{ inputs.base || 'main' }}
+          GATE_SCOPE_BASE: ${{ inputs.range_base || format('origin/{0}', inputs.base || 'main') }}
         run: ./tests/run.sh
 
   # The real-browser layout lane (issue #96): positions, sizes and
@@ -519,6 +546,10 @@ jobs:
       )
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # One decision every step below reads: the lane-skip's, or a light run's
+    # stand-down (prelude.stand_down, #3885).
+    env:
+      STAND_DOWN: ${{ needs.closure-scope.outputs.browser_skip == 'skip' || contains(format(' {0} ', inputs.stand_down), ' browser ') }}
     steps:
       # Unconditional (DESIGN-P2 4.2: no required job ever skips): a required
       # `tests / browser` skipped at the job level FAILs the gate as SKIPPED,
@@ -531,31 +562,35 @@ jobs:
             echo "A recorded green run at this exact base and diff stands in for this"
             echo "rerun; every step below is skipped and this job reports success."
           fi
+          if [ "${{ contains(format(' {0} ', inputs.stand_down), ' browser ') }}" = "true" ]; then
+            echo "No production file changed and none this lane reads (prelude.stand_down, #3885):"
+            echo "every step below is skipped and this job reports success."
+          fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         with:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: tests/requirements-*.txt
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         with:
           node-version: "22"
 
       - name: Install pinned test dependencies
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
       - name: Cache the lane's Chromium
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pw-browsers
@@ -565,7 +600,7 @@ jobs:
           key: pw-chromium-${{ hashFiles('tests/pwlane/package-lock.json') }}
 
       - name: Install playwright and Chromium
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/pwlane"
           cp tests/pwlane/package.json tests/pwlane/package-lock.json \
@@ -575,13 +610,13 @@ jobs:
             "$RUNNER_TEMP/pwlane/node_modules/.bin/playwright" install chromium
 
       - name: Write the plan payload
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         env:
           PYTHONPATH: tests/hastub
         run: python tests/plan_view.py
 
       - name: Run the layout lane
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         # PLAYWRIGHT_BROWSERS_PATH in the run command, not the step env:
         # a `~` in a workflow env var is a literal tilde, which Playwright
         # resolves relative to the repository -- the shell expands $HOME.
@@ -689,6 +724,10 @@ jobs:
       )
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # One decision every step below reads: the lane-skip's, or a light run's
+    # stand-down (prelude.stand_down, #3885).
+    env:
+      STAND_DOWN: ${{ needs.closure-scope.outputs.typing_skip == 'skip' || contains(format(' {0} ', inputs.stand_down), ' typing ') }}
     steps:
       # Unconditional (DESIGN-P2 4.2: no required job ever skips): a required
       # `tests / typing` skipped at the job level FAILs the gate as SKIPPED,
@@ -701,9 +740,13 @@ jobs:
             echo "A recorded green run at this exact base and diff stands in for this"
             echo "rerun; every step below is skipped and this job reports success."
           fi
+          if [ "${{ contains(format(' {0} ', inputs.stand_down), ' typing ') }}" = "true" ]; then
+            echo "No production file changed and none this lane reads (prelude.stand_down, #3885):"
+            echo "every step below is skipped and this job reports success."
+          fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: needs.closure-scope.outputs.typing_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
 
       # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
       # the two halves constrain each other: homeassistant-stubs 2026.9.3
@@ -712,7 +755,7 @@ jobs:
       # would either fail to install or measure something else and call it
       # the same number.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        if: needs.closure-scope.outputs.typing_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         with:
           python-version: "3.14"
           cache: pip
@@ -727,7 +770,7 @@ jobs:
       # --no-deps: the lock overrides homeassistant's cryptography pin (see
       # its header), and it is already the complete resolution.
       - name: Install the pinned toolchain
-        if: needs.closure-scope.outputs.typing_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         run: |
           python3 -m venv .venv-typing
           .venv-typing/bin/python -m pip install --require-hashes --no-deps \
@@ -737,7 +780,7 @@ jobs:
       # Run BY the pinned interpreter, so the ruler introspects the
       # environment it is measuring in rather than being told about it.
       - name: Run the ruler and ratchet its three numbers
-        if: needs.closure-scope.outputs.typing_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         run: |
           .venv-typing/bin/python tests/typing_ruler.py --mypy \
             --emit "$RUNNER_TEMP/typing-census.json"
@@ -745,7 +788,7 @@ jobs:
       # Kept on a failure too: the run that refuses because the census is not
       # yet recorded is exactly the run whose numbers are wanted.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && needs.closure-scope.outputs.typing_skip != 'skip'
+        if: always() && env.STAND_DOWN != 'true'
         with:
           name: typing-census
           path: ${{ runner.temp }}/typing-census.json
@@ -803,10 +846,15 @@ jobs:
       # since the tracer's data is the platform's (#1822 review, R9-F10.9c).
       - name: Key the per-script coverage
         id: covkey
+        env:
+          RANGE_BASE: ${{ inputs.range_base }}
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             BASE=$(git rev-parse HEAD)
-            RESTORE_BASE=$(git rev-parse HEAD^1)
+            # The range base (#3885) where the prelude read one: the head of the
+            # last push run whose units ran, so the entry it saved. HEAD^1's run
+            # may have been replaced while pending (CI-5) and saved none.
+            RESTORE_BASE=$(git rev-parse "${RANGE_BASE:-HEAD^1}")
           else
             BASE=$(git merge-base origin/main HEAD)
             RESTORE_BASE=$BASE
@@ -1765,7 +1813,7 @@ jobs:
       # moved, and Level 1's byte-identical argument must not ride on that.
       # Pull requests and the recheck dispatch only -- the events whose
       # re-runs a recorded green can stand in for. A push to main (CLAUDE.md
-      # rule 1: forced full), the merge queue, the nightly and every other
+      # rule 1: full, or a light push's own scope), the merge queue, the nightly and every other
       # dispatch leave these outputs unset and every lane runs.
       - name: Identify the diff and base the heavy lanes would judge
         id: laneskip
@@ -2009,8 +2057,10 @@ jobs:
       # R10-CI-SLIM C7(a): 'true' on a pull request whose every changed file is
       # product (prelude.machinery): the recording and its check stand down and
       # the job reports success; the push the merge makes records in full
-      # (CLAUDE.md rule 1). The no-copies scan below still runs.
-      MACHINERY_IDLE: ${{ github.event_name == 'pull_request' && inputs.machinery == 'false' }}
+      # (CLAUDE.md rule 1). And on a light push (prelude.stand_down, #3885): no
+      # production file moved, and each pull request in its range re-derived
+      # the closures its own diff intersects. The no-copies scan below still runs.
+      MACHINERY_IDLE: ${{ (github.event_name == 'pull_request' && inputs.machinery == 'false') || contains(format(' {0} ', inputs.stand_down), ' closures ') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

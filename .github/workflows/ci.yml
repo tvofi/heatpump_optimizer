@@ -99,6 +99,11 @@ jobs:
       selftests: ${{ steps.derive.outputs.selftests }}
       # R10-CI-OWN-DELIVERY-ROW: the same with the PR's own delivery row ignored (arch-instrument).
       machinery_rowblind: ${{ steps.derive.outputs.machinery_rowblind }}
+      # #3885: 'true' on a run whose changed list holds no production file; the lanes
+      # it stands down; a push's range base (prelude.light, stand_down, push_range).
+      light: ${{ steps.derive.outputs.light }}
+      stand_down: ${{ steps.derive.outputs.stand_down }}
+      range_base: ${{ steps.derive.outputs.range_base }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -198,6 +203,9 @@ jobs:
       no-skip: ${{ inputs.no-skip }}
       machinery: ${{ needs.prelude.outputs.machinery }}
       machinery_rowblind: ${{ needs.prelude.outputs.machinery_rowblind }}
+      light: ${{ needs.prelude.outputs.light }}
+      stand_down: ${{ needs.prelude.outputs.stand_down }}
+      range_base: ${{ needs.prelude.outputs.range_base }}
     # Until M-3 decides the approve steps.
     secrets:
       CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
@@ -213,6 +221,7 @@ jobs:
     uses: ./.github/workflows/codeql.yml
     with:
       legs: ${{ needs.prelude.outputs.legs }}
+      range_base: ${{ needs.prelude.outputs.range_base }}
     permissions:
       contents: read
       security-events: write
@@ -224,6 +233,8 @@ jobs:
       base: ${{ needs.prelude.outputs.base }}
       machinery: ${{ needs.prelude.outputs.machinery }}
       selftests: ${{ needs.prelude.outputs.selftests }}
+      light: ${{ needs.prelude.outputs.light }}
+      stand_down: ${{ needs.prelude.outputs.stand_down }}
     permissions:
       contents: read
       pull-requests: read
@@ -232,12 +243,16 @@ jobs:
     needs: prelude
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' hassfest ')
     uses: ./.github/workflows/hassfest.yml
+    with:
+      stand_down: ${{ needs.prelude.outputs.stand_down }}
     permissions:
       contents: read
   validate:
     needs: prelude
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' validate ')
     uses: ./.github/workflows/validate.yml
+    with:
+      stand_down: ${{ needs.prelude.outputs.stand_down }}
     permissions:
       contents: read
   kernel-points:

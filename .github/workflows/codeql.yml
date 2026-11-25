@@ -35,8 +35,11 @@ name: CodeQL
 #     `.github/workflows/codeql.yml:analyze` while every umbrella run uploads
 #     under `.github/workflows/ci.yml:analyze`: a second configuration per
 #     category on main, refreshed weekly, closing its alerts only weekly. Every
-#     push to main analyzes every leg in full, which is what the weekly cadence
-#     existed to guarantee on a quiet default branch.
+#     push to main whose range touches production analyzes every leg in full,
+#     which is what the weekly cadence existed to guarantee on a quiet default
+#     branch. A light push (#3885: no production file in its range,
+#     tools/ci/prelude.py) decides each leg as a pull request over that range
+#     does: a leg it skips is analyzed by the next push that is not light.
 #
 # A pull request's python leg also ignores tests/ and dev/ (r10-codeql-pr-paths,
 # orchestrator ruling under mandate 6715477401, scope all, not tvofi in person):
@@ -99,6 +102,12 @@ on:
       # (a prelude that printed nothing) analyzes every leg.
       legs:
         description: "JSON object mapping each leg to skip or analyze"
+        type: string
+        default: ""
+      # A light push's range base (prelude.push_range, #3885): where a leg it
+      # skips takes main's stand-in analysis from. Empty elsewhere.
+      range_base:
+        description: "The prelude's push range base; empty on every other event"
         type: string
         default: ""
 
@@ -188,7 +197,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           LEG: ${{ matrix.language }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ github.event.pull_request.base.sha || inputs.range_base }}
         run: |
           set -uo pipefail
           if python3 -I tools/pr/codeql_scope.py stand-in --language "$LEG" \
@@ -227,14 +236,14 @@ jobs:
           category: "/language:${{ matrix.language }}"
 
       # D-5. O17's INERT list is an allow-list of what an extractor never
-      # reads, not a measurement, so every push run (which analyzes in full)
+      # reads, not a measurement, so every push run's analyzed leg (in full)
       # reads the extractor's own source archive and fails when it holds a file
       # whose suffix the leg's INERT list calls inert: a pull request touching
       # only such files would have skipped a leg that reads them. The database
       # directory is the CodeQL language id (javascript-typescript is
       # `javascript`). A missing or empty archive fails too: nothing checked.
       - name: Check the extracted files against the INERT list (D-5)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.standin.outputs.ok != 'true'
         env:
           LEG: ${{ matrix.language }}
         run: |

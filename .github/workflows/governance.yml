@@ -45,6 +45,14 @@ on:
         description: "The prelude's: instrument-self-tests' step ids this pull request's diff reaches, 'none', or 'all'; empty (a prelude predating it) runs every step (R10-CI-SELFTEST-SCOPE)"
         type: string
         default: ""
+      light:
+        description: "The prelude's: 'true' on a run whose changed list holds no production file (#3885); a light push scopes instrument-self-tests as a pull request does and traces nothing"
+        type: string
+        default: ""
+      stand_down:
+        description: "The prelude's light-run stand-downs (#3885): when it names `env-matrix` (a light push) that job's steps skip and it reports success"
+        type: string
+        default: ""
   # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
   # clock: a merge with no disposition is not detectable from any one pull
   # request, so nothing on the `pull_request` path can ever find it, and a
@@ -310,7 +318,9 @@ jobs:
     timeout-minutes: ${{ github.event_name == 'push' && 90 || 30 }}
     env:
       HPO_JOB_GRADES: nothing
-      SELFTEST_TRACE: ${{ github.event_name == 'push' && '1' || '' }}
+      # A light push (#3885) is scoped as a pull request is and traces nothing: its
+      # range touched no production file, and the next push that does re-measures.
+      SELFTEST_TRACE: ${{ github.event_name == 'push' && inputs.light != 'true' && '1' || '' }}
     defaults:
       run:
         shell: bash --noprofile --norc tools/ci/selftest_step.sh {0}
@@ -1750,9 +1760,10 @@ jobs:
     # had none. Rule: ceil(2 x p95 before x policy-docs lint-step growth / 60).
     timeout-minutes: 26
     # R10-CI-SLIM C7(a): a required name, so it stands down at the step level on
-    # a pull request whose every changed file is product and reports success.
+    # a pull request whose every changed file is product and reports success; and
+    # on a light push (#3885), whose pull requests each ran it over their own diff.
     env:
-      MACHINERY_IDLE: ${{ inputs.machinery == 'false' }}
+      MACHINERY_IDLE: ${{ inputs.machinery == 'false' || contains(format(' {0} ', inputs.stand_down), ' env-matrix ') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.MACHINERY_IDLE != 'true'
