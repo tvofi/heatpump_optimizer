@@ -1,0 +1,114 @@
+{
+ "key": "18fe89552892dc4b",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:7130 GUARD_OFF",
+ "patch": "if self._weather_outage_cycles: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._weather_fetch_recovered",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._weather_fetch_recovered@7130-7130",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3043.3,
+  "load1_start": 0.85,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5072.0,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/gates/18fe89552892dc4b.json",
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 18fe89552892dc4b",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_18fe89552892dc4b.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_18fe89552892dc4b.py",
+  "baseline": "(1, 1, 1, 0, False)",
+  "mutant": "(1, 0, 1, 0, False)",
+  "inputs_tried": [
+   "fail,fail,recover",
+   "recover alone (null)"
+  ],
+  "result_lines": [
+   "RESULT weather_baseline=(warnings,infos,debugs,outage_cycles,stale)(1, 1, 1, 0, False)",
+   "RESULT weather_mutant=(warnings,infos,debugs,outage_cycles,stale)(1, 0, 1, 0, False)",
+   "RESULT state_moved=0 count (outage counter and staleness)",
+   "RESULT null_moved=0 count (null sequence ('recover',))",
+   "RESULT probe_cpu_s=0.01 s provisional",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.97",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": {
+  "scripts_executing_line": [
+   "tests/entities.py",
+   "tests/features.py"
+  ],
+  "source": "dev/audit/rounds/round11/D3/s1/state/reach.tsv (traced baseline, exec= column)",
+  "assertion_lacking": "tests/features.py ~56179-56195 checks that recovery clears the outage count and the staleness (both arms do: the carried M4 claim that the counter is not cleared does not hold, the reset sits outside the guard) but not the recovery INFO"
+ },
+ "carried_m4": "see m4_source; re-answered here with the executed probe",
+ "finding": {
+  "title": "No check reads the weather-recovery INFO; disabling it is unseen (outage reset unaffected)",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "claim": "Mutant 18fe89552892dc4b at coordinator.py:7130 (if self._weather_outage_cycles: -> if False:) turns the full GATE_SCOPE=full GOLDEN_MODE=drift gate red only on the null control scripts (RED-AS-NULL: no script beyond the null), yet the probe's number moves: baseline (1, 1, 1, 0, False), mutant (1, 0, 1, 0, False).",
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py ~56179-56195 checks that recovery clears the outage count and the staleness (both arms do: the carried M4 claim that the counter is not cleared does not hold, the reset sits outside the guard) but not the recovery INFO. Executing scripts (traced baseline): tests/entities.py, tests/features.py.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "WARNING/INFO/DEBUG weather-fetch records, outage cycles and staleness over fail, fail, recover",
+  "phenomenon_property": "A recovery after an outage logs one INFO with the failed-cycle count",
+  "seam_rule": "for f in dev/audit/rounds/round11/D3/s1/wave/*/results/*.json; do python3 -c \"import json,sys;d=json.load(open(sys.argv[1]));print(d['key'],d['site']) if d['class']=='candidate' else None\" $f; done",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._weather_fetch_recovered",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_18fe89552892dc4b.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_18fe89552892dc4b.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_18fe89552892dc4b.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_18fe89552892dc4b.py",
+   "value": 0,
+   "unit": "INFO records",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g10: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the probe ran in a separate baseline worktree while this box's gates ran; gate walls provisional"
+  },
+  "perturbation": {
+   "change": "mutant 18fe89552892dc4b applied in memory by the probe; full gate: fullgate.py run --src complete --key 18fe89552892dc4b",
+   "expected_direction": "down",
+   "observed_value": 0
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_18fe89552892dc4b.py",
+   "value": "0 count (null sequence ('recover',))",
+   "note": "a lone recover with no outage: null_moved=0"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_18fe89552892dc4b.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 18fe89552892dc4b"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/features.py at the input above that pins the baseline value ((1, 1, 1, 0, False))",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}
