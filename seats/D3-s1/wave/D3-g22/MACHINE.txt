@@ -18,3 +18,4 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  17% /
 load1: 0.42
 python3: /opt/hpo/venv-ci/bin/python3 (symlinked at $HOME/venv-ci, out of tree)
+note: the container restarted at ~01:08Z during gate 6ab21fd9f9fe4953; that gate was re-taken from the baseline at 01:09:11Z (the recorded one). Gates 6ab21fd9..af94ce8b ran on this machine.

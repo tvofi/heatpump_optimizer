@@ -25,6 +25,7 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  17% /
 load1: 0.42
 python3: /opt/hpo/venv-ci/bin/python3 (symlinked at $HOME/venv-ci, out of tree)
+note: the container restarted at ~01:08Z during gate 6ab21fd9f9fe4953; that gate was re-taken from the baseline at 01:09:11Z (the recorded one). Gates 6ab21fd9..af94ce8b ran on this machine.
 ```
 
 Null control (`fullgate.py null`, comment-only marker): gate_rc 1, red scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'], FAIL counts {'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 1, 'python3 tests/harness_headers.py': 4}, wall 4325.5 s (load1 0.91 -> 0.98). Walls and loads are provisional.
