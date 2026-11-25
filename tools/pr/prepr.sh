@@ -653,7 +653,7 @@ predict_line() { # base ref, [file the unpinned site keys are written to], [body
   fi
   local bf=""; [ -n "${3:-}" ] && [ -f "$3" ] && bf=$3   # pr-contract's carry check, when a body exists
   [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not every arm's
-  [ -n "${5:-}" ] && rec="--record-self-tests"   # 6d itself: the one arm that runs code (SELF-TEST READS)
+  [ -n "${5:-}" ] && rec="--record-self-tests"   # 6d itself: the gated arms, which run code (`GATED_ARMS`, above)
   # shellcheck disable=SC2086 # $only is empty or exactly "--only <arm>"; $rec is empty or one flag
   out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} $only $rec 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
