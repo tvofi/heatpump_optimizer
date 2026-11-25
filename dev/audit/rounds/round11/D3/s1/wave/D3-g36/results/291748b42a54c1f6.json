@@ -1,0 +1,98 @@
+{
+ "key": "291748b42a54c1f6",
+ "site": "custom_components/heatpump_optimizer/sysid.py:846 BOOLOP",
+ "patch": "if np.isfinite(next_cost) and next_cost < cost: -> if np.isfinite(next_cost) or next_cost < cost:",
+ "function": "_lm_solve",
+ "cluster": "sysid.py:_lm_solve@835-852",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3861.5,
+  "load1_start": 0.92,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/gates/291748b42a54c1f6.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 291748b42a54c1f6",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_291748b42a54c1f6.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_291748b42a54c1f6.py",
+  "baseline_value": "ua=0.690204524 cap=16.767321976 tau=24.293265833 conf=0.998410774 hw=inf",
+  "mutant_value": "ua=0.690204566 cap=16.767323052 tau=24.293265908 conf=0.998410774 hw=inf",
+  "results": {
+   "baseline": "ua=0.690204524 cap=16.767321976 tau=24.293265833 conf=0.998410774 hw=inf",
+   "mutant": "ua=0.690204566 cap=16.767323052 tau=24.293265908 conf=0.998410774 hw=inf",
+   "moved": "1 count",
+   "null_moved": "0 count",
+   "noisy_baseline": "ua=0.097862713 cap=15.431340222 tau=157.683552920 conf=0.501584191 hw=inf",
+   "noisy_mutant": "ua=0.097862712 cap=15.431340284 tau=157.683553806 conf=0.501584191 hw=inf",
+   "thread_factor": "1.000",
+   "load1": "0.21",
+   "swapins": "0"
+  },
+  "inputs_tried": "identify_slab night with gains -8 kW [moves ua 0.690204524 -> 0.690204566]; gains 1.5 kW noise 0.1 [moves 1e-9]; default night [null]; direct _lm_solve on a 3-residual quadratic [equal]"
+ },
+ "should_fail": "tests/features.py (executes sysid.py:846) lacks an assertion that _lm_solve's returned cost is no higher than any accepted iterate's (monotone acceptance) or a fit pinned to 1e-9 on a poorly-seeded night",
+ "class": "candidate",
+ "finding": {
+  "title": "_lm_solve's step-acceptance test is unpinned: `and` -> `or` accepts cost-raising steps",
+  "claim": "With `np.isfinite(next_cost) and next_cost < cost` -> `or`, LM accepts any finite step, and identify_slab's UA on a noise-free night with gains -8 kW moves from 0.690204524 to 0.690204566 kW/K; the full gate stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "severity_reason": "the moved UA is ~4e-8 kW/K on the nights tried",
+  "stop_rule_class": "bug",
+  "metric_definition": "identify_slab UA on a noise-free night with gains -8 kW",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:_lm_solve",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_291748b42a54c1f6.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_291748b42a54c1f6.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_291748b42a54c1f6.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_291748b42a54c1f6.py",
+   "value": "ua=0.690204566 cap=16.767323052 tau=24.293265908 conf=0.998410774 hw=inf",
+   "unit": "outcome",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g36: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, alone on the box",
+   "cpu_or_wall": "count",
+   "contention_note": "final re-take after the last gate, nothing else running (counts; first takes ran beside the gates with the same values)",
+   "tolerance": "exact",
+   "load1": 0.21,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "sysid.py:846 `if np.isfinite(next_cost) and next_cost < cost:` -> `if np.isfinite(next_cost) or next_cost < cost:`",
+   "expected_direction": "up",
+   "observed_value": "ua=0.690204566 cap=16.767323052 tau=24.293265908 conf=0.998410774 hw=inf"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_291748b42a54c1f6.py",
+   "value": "0 count",
+   "note": "null_moved counts the probe's null-arm inputs where baseline and mutant differ; full-gate null in gates/null.json + null-note.txt"
+  },
+  "phenomenon_property": "every behaviour-changing one-line mutant of sysid.py:_lm_solve fails at least one check of the full gate",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "a test in tests/features.py pinning the outcome the probe moves (the assertion named in should_fail)"
+ }
+}

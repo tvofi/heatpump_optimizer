@@ -1,0 +1,97 @@
+{
+ "key": "373207a8e12c37c5",
+ "site": "custom_components/heatpump_optimizer/sysid.py:842 CLAMP_DROP",
+ "patch": "np.clip(candidate[clip[0]], clip[1], clip[2]) -> (candidate[clip[0]])",
+ "function": "_lm_solve",
+ "cluster": "sysid.py:_lm_solve@835-852",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3751.3,
+  "load1_start": 0.45,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/gates/373207a8e12c37c5.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 373207a8e12c37c5",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_373207a8e12c37c5.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_373207a8e12c37c5.py",
+  "baseline_value": "10.000000",
+  "mutant_value": "20.000000",
+  "results": {
+   "baseline_x1": "10.000000",
+   "mutant_x1": "20.000000",
+   "moved": "1 count",
+   "null_moved": "0 count",
+   "slab_hw_moved": "0 count  # identify_slab nights: default, noise 0.05, gains -8 kW",
+   "thread_factor": "1.000",
+   "load1": "0.21",
+   "swapins": "0"
+  },
+  "inputs_tried": "direct _lm_solve clip=(1,-5,10), optimum 20.0 [moves 10 -> 20]; optimum 3.0 [null]; identify_slab default / noise 0.05 / gains -8 kW [hw equal]"
+ },
+ "should_fail": "tests/features.py (executes sysid.py:842 through _slab_ua_profile_halfwidth) lacks a profile solve whose intercept optimum leaves [-5, 10] kW asserting it is held at the band",
+ "class": "candidate",
+ "finding": {
+  "title": "_lm_solve's single-parameter clip is unpinned: the profiled intercept leaves its band unnoticed",
+  "claim": "Dropping the `np.clip(candidate[clip[0]], clip[1], clip[2])` projection makes _lm_solve with clip=(1, -5.0, 10.0) return 20.0 for an optimum at 20.0 instead of the band edge 10.0, and the full gate stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "severity_reason": "the identify_slab nights tried never push the profiled intercept to the band; reached only through the UA profile half-width",
+  "stop_rule_class": "bug",
+  "metric_definition": "clipped component _lm_solve returns with clip=(1,-5,10) for an optimum at 20.0",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:_lm_solve",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_373207a8e12c37c5.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_373207a8e12c37c5.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_373207a8e12c37c5.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_373207a8e12c37c5.py",
+   "value": "20.000000",
+   "unit": "outcome",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g36: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, alone on the box",
+   "cpu_or_wall": "count",
+   "contention_note": "final re-take after the last gate, nothing else running (counts; first takes ran beside the gates with the same values)",
+   "tolerance": "exact",
+   "load1": 0.21,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "sysid.py:842 `np.clip(candidate[clip[0]], clip[1], clip[2])` -> `(candidate[clip[0]])`",
+   "expected_direction": "up",
+   "observed_value": "20.000000"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_373207a8e12c37c5.py",
+   "value": "0 count",
+   "note": "null_moved counts the probe's null-arm inputs where baseline and mutant differ; full-gate null in gates/null.json + null-note.txt"
+  },
+  "phenomenon_property": "every behaviour-changing one-line mutant of sysid.py:_lm_solve fails at least one check of the full gate",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "a test in tests/features.py pinning the outcome the probe moves (the assertion named in should_fail)"
+ }
+}
