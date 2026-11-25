@@ -62174,7 +62174,12 @@ def _g5_restart(old, **over):
 def _g5_tick(coord, reason):
     """One observation cycle through the coordinator's own update path."""
     coord._current_action = {"dhw_reason": reason}
-    _asyncio.run(coord._update_current_state())
+    async def _cycle():
+        await coord._update_current_state()
+        # The follower runs in the step tail since observe stopped driving it.
+        await coord._legionella.async_track_cycle(coord._legionella.tank_c)
+
+    _asyncio.run(_cycle())
 
 
 def _g5_writes(coord):
