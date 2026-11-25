@@ -17,3 +17,4 @@
 1795617406 DONE head 71af14b6d88998d59cef37e629dfde9ff5d05622; delta 91cfc89fdade..71af14b6d889; merge d3d66c4040 + verdict/3872 9b11d200 unload-row-written fixed; body handoff-body c8699d78d4
 1795632245 INBOX acked through 2
 1795632253 CKPT start: stale dispatch; resuming from mm/3872 per NOTE 2 snapshot 9d48c5ad128e
+1795632352 CKPT structure.py PASSED on merged tree 0c8d0bd4 snapshot 7b8b97977de6
