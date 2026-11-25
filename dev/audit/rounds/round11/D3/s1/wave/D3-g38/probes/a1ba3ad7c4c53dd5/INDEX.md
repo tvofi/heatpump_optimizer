@@ -1,0 +1,1 @@
+- probe_a1ba3ad7c4c53dd5.py: Metric: whether _slab_series(usable) returns the series (1) or None (0) for N SysIdSample rows 30 min apart; inputs_differing counts N who [needs _mutlib.py beside it]

@@ -1,0 +1,13 @@
+nproc 4
+               total        used        free      shared  buff/cache   available
+Mem:           16087         802       14042          12        1513       15284
+Swap:              0           0           0
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1 0.47
+Wed Nov 25 00:53:24 UTC 2026
+
+null control (fullgate.py null, 2026-11-25 00:53-01:56Z): gate_rc 1, failed_scripts closure.py selftest (2 FAIL lines), entities.py (1), harness_headers.py (4); wall 3736 s, child CPU 6152 s, load1 0.34 -> 1.06.
+Identical scripts and FAIL-line counts to box D3-rem's null (state/gates-prior/null-D3-rem.json): artefact checks of the stripped finder tree, not the machine; usable, not re-taken.
+- 2026-11-25 ~13:47Z the agent session restarted (machine kept running): the comms loop and gate driver kept the old proxy port, pushes failed and left a stale comms lock; the loop was restarted at 13:52Z and the driver after 990cdd83373504ad was recorded (16:01Z). Its just-started d0f2d18b2b49232c attempt (16:01:05Z) was interrupted within 30 s and re-run from scratch at 16:01:36Z; no gate verdict was affected.
