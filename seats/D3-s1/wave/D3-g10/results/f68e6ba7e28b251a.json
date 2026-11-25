@@ -31,6 +31,8 @@
  "class": "timeout",
  "timeout": {
   "cap_s": 14400,
-  "last_script_seen": "tests/gate_lock.py"
+  "last_script_seen": "tests/features.py",
+  "last_section": "-- #1754 \u2014 a refresh during an in-flight solve is honoured, and releases land on the override the solve pinned (log line 3284)",
+  "note": "gate log: the last '##########' header is python3 tests/features.py (line 152); after the #1754 section it prints nothing until the cap's SIGINT (KeyboardInterrupt in os.waitpid; tests/gate_lock.py appears only in that traceback, as run.sh's lease wrapper). Same hang as the u1d full net (features.py timed out at 2759 s there). Neither KILLED nor SURVIVED; no probe written (unfinished)."
  }
 }
