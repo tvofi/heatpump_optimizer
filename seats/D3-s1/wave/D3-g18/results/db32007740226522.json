@@ -1,0 +1,60 @@
+{
+ "key": "db32007740226522",
+ "site": "grid_fee.py:187 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/grid_fee.py",
+ "line": 187,
+ "patch": "if not token: -> if False:",
+ "function": "_parse_rule",
+ "cluster": "grid_fee.py:_parse_rule@187-187",
+ "slice": "u1d",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "m4_carried": "db32007740226522 (u1d): tokens come from body.split() and strip(), which never yields an empty string; equivalent (dead guard).",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3264.5,
+  "load1_start": 0.85,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/db32007740226522.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/db32007740226522.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key db32007740226522",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_db32007740226522.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_db32007740226522.py",
+  "baseline_value": "differing_lines=0 of 15; empty_tokens_seen=0",
+  "mutant_value": "differing_lines=0 of 15; positive control (split(' ')) differs on 6",
+  "inputs_tried": "ordinary rules, empty body, doubled spaces, tabs, NBSP, EM SPACE, \\x1c-\\x1f separators, trailing newline, a whitespace-only rule before '=', three malformed lines (error text compared)",
+  "reach": "str.split() never yields a token strip() empties, so the guard is dead; the positive control shows the probe sees the guard when empty tokens exist.",
+  "result_lines": [
+   "RESULT lines_tried=15 count",
+   "RESULT differing_lines=0 count",
+   "RESULT empty_tokens_seen=0 count",
+   "RESULT positive_control_differing=6 count",
+   "RESULT thread_factor=1.000 ratio",
+   "RESULT load1=1.65",
+   "RESULT swapins=0 count"
+  ],
+  "run": "re-fire 2026-11-25, clean probe worktree at the baseline (never the gate tree), nice 19"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none: the mutant is equivalent."
+}
