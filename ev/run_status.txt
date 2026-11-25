@@ -1,0 +1,9 @@
+DONE deployment_shape rc=0
+DONE debug_collect rc=0
+DONE guard_pins rc=0
+DONE manual_plan rc=0
+DONE structure rc=0
+DONE doc_claims rc=0
+DONE config_flow_steps rc=1
+DONE finite_boundary rc=0
+DONE entities rc=0
