@@ -894,11 +894,11 @@ def fold(
 
     First, whatever this interval: the map runs closed since the last fold
     become rows (``MapRows.commit_runs``) unless ``frozen`` or ``distorted``;
-    they never reach the window. Then, with ``span`` (the interval's start
+    they never reach the window. Then, given a ``span`` (the interval's start
     and end, epoch seconds), the approach learner folds it
-    (:func:`note_approach`): a wind-down is no idle reading, and a sample
-    inside the learned approach adds no pair to the window, where it would read
-    as a pump that ignores its ask. A ``span.charged`` interval (a dwell that
+    (:func:`note_approach`). A wind-down is no idle reading. A sample inside
+    the learned approach adds no pair to the window, where it would read as a
+    pump that ignores its ask. A ``span.charged`` interval (a dwell that
     saw hot water) moves only the approach's run clock: a charge before a space
     run leaves the run an entry.
     """

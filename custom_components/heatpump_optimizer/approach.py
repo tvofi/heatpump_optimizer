@@ -2,15 +2,16 @@
 
 The finding and its series are Bankaifan's (comment 6944433306 on pull
 request 3670). An on/off install holds its running floor, but a space run
-entered from a higher compressor state -- off, or a hot-water charge -- draws
-well above the floor for most of an hour before it settles there; and once the
-gate is written the compressor winds down for minutes while the plan books the
-step as off. The plan booked the floor; the meter read more.
+entered from a higher compressor state (off, or a hot-water charge) draws well
+above the floor for most of an hour before it settles there. Once the gate is
+written, the compressor winds down for minutes while the plan books the step
+as off. The plan booked the floor; the meter read more.
 
-:class:`ApproachProfile` keeps that evidence: per age bin since a **space-run
-entry** (a step with a space level after one with none), the draw while the
-space ask sat at the floor in force; per age bin since a space run's end, the
-draw while nothing was asked; and the live run's age. :func:`entry_levels`
+:class:`ApproachProfile` keeps that evidence. Per age bin since a
+**space-run entry** (a step with a space level after one with none) it keeps
+the draw while the space ask sat at the floor in force. Per age bin since a
+space run's end it keeps the draw while nothing was asked. It keeps the live
+run's age too. :func:`entry_levels`
 and :func:`ramp_levels` read it as levels by bin, which ``runs.received``
 reads as the draw a plan's run takes. Nothing here books a fee: the heat the
 excess buys is delivered, so the plan reads it as received draw.
@@ -85,8 +86,8 @@ class ApproachProfile:
         ``sample`` is ``draw_range.is_running_space`` for a space interval
         and the learners' gates (not frozen, not distorted, no defrost) for
         one asking nothing. An entry sample is a running space interval whose
-        ask sits at or under ``floor_kw`` by ``tolerance`` (a higher ask draws
-        more by asking more); a ramp-down sample is the first interval after
+        ask sits at or under ``floor_kw`` by ``tolerance``: a higher ask draws
+        more by asking more. A ramp-down sample is the first interval after
         a space run, asking nothing, metered above ``standby_kw``. A changed
         ``config`` drops the evidence, as ``DrawRange.observe`` drops its own.
         A gap since the last interval longer than this one (a restart, a

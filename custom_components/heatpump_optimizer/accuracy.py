@@ -1290,9 +1290,9 @@ class MeasuredCop:
         ceiling probe; the action that governed it was the
         system-identification override, the action ``asked_kw`` is read from):
         an experiment's ask is not the plan's, so drawn over asked is no
-        efficiency reading; so for an interval inside a run's learned
-        ``approach`` (``draw_range.expected_draw``), where the pump draws above
-        its ask by its own wind-down. Where heat is metered the COP is heat over the
+        efficiency reading. The same holds inside a run's learned ``approach``
+        (``draw_range.expect``): the pump draws above its ask by its own
+        wind-down. Where heat is metered the COP is heat over the
         draw, and the reason is the scale's. It is one scalar on a law of lift
         alone, learned where the plan runs the compressor. An experiment
         drives it to its band ends, where an inverter's efficiency departs from

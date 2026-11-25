@@ -99931,7 +99931,7 @@ R.check(
     and _mf_set_attrs == _mf_cfg_attrs
     and _mf_min_attrs == {
         "pump_min_power": {"configured_min_kw": 0.53, "planned_min_kw": 1.1,
-                           "learned_min_kw": 1.1, "samples": 0},
+                           "learned_min_kw": 1.1, "samples": 0, "approach_kwh": None},
         "pump_min_power_source": "metered", "pump_min_power_reason": "measured"}
     and _mf_sensor._pump_min_power(_mf_within.as_dict())["pump_min_power"]["samples"]
     == _mf_within.min_samples != _mf_within.samples
@@ -103754,8 +103754,8 @@ R.check(
     f"idle {_sa_idle0}->{len(_sa_r2.idle)}, null idle {len(_sa_r.idle)}->{len(_sa_r3.idle)}",
 )
 
-# The received draw: a 15-minute run at the floor from off takes the mean of
-# the profile's first three bins; a live run of unknown age books no entry; a
+# The received draw. A 15-minute run at the floor from off takes the mean of
+# the profile's first three bins. A live run of unknown age books no entry. A
 # charge before a space run leaves it an entry (2: the space edge, not the start).
 _sa_plan = np.array([0.0, 0.53, 0.0, 0.0])
 _sa_got = _sa_runs.received(_sa_plan, 0.0, _sa_a, dt=0.25, p_max=3.0)

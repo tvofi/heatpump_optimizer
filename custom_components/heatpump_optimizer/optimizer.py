@@ -338,9 +338,9 @@ def _shipped_and_received(
     """The level each circuit ships at, and the space draw the house receives.
 
     The two differ where a run's first steps or a pause's draw the learned
-    approach (``runs.received``, true objective only), and where a priced stop
-    then keeps the compressor off for part of a step
-    (``duty_legs.delivered_space``); with neither the received draw is the
+    approach (``runs.received``, true objective only). They differ too where a
+    priced stop then keeps the compressor off for part of a step
+    (``duty_legs.delivered_space``). With neither, the received draw is the
     shipped array itself, the same object. Space is
     scored as it stands, and what stands is a committed plan
     (:func:`_commit_runs`); hot water is its planner's, so a clamped install's

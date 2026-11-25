@@ -146,15 +146,15 @@ def _mean_excess(levels: np.ndarray, bin_h: float, age_h: float, dt: float, ship
 
 def received(space: Any, dhw: Any, approach: Approach | None, *, dt: float, p_max: float) -> Any:
     """The space draw the pump takes for a shipped space plan, kW per step,
-    or for each row of a ``[B, n]`` batch of them (row by row, so each row is
-    the one-row answer bit for bit), given the learned ``approach``.
+    given the learned ``approach``. A ``[B, n]`` batch is read row by row, so
+    each row is the one-row answer bit for bit.
 
     A space run is read off the space plan alone (``MIN_RUNNING_DRAW_KW``): a
     charge beside a run is no entry, a charge before one leaves it one. A step
     inside a run at age ``a`` takes the shipped level plus the mean of
-    ``approach.entry`` above it over ``[a, a + dt)`` -- ``max(shipped,
-    entry)`` at bin resolution; a pause's steps after a run's end take
-    ``approach.ramp`` alike; elsewhere the shipped level. What is added never
+    ``approach.entry`` above it over ``[a, a + dt)``: ``max(shipped, entry)``
+    at bin resolution. A pause's steps after a run's end take
+    ``approach.ramp`` alike, and every other step the shipped level. What is added never
     takes the step above ``p_max`` less its hot water. ``approach.age_h`` is
     the live run's age at step 0: ``0.0`` with no run live, ``None`` unknown,
     which books no entry and no ramp until the plan's next edge. No approach

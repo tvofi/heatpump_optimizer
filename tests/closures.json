@@ -172,6 +172,7 @@
   "tests/arch_score_head.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -366,6 +367,7 @@
   "tests/block_duty.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -500,6 +502,7 @@
   "tests/boost_drift_replay.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -616,6 +619,7 @@
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -746,6 +750,7 @@
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -872,6 +877,7 @@
   "tests/config_flow_steps.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -1024,6 +1030,7 @@
   "tests/cycle_lane.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -1138,6 +1145,7 @@
   "tests/debug_collect.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -1263,6 +1271,7 @@
   "tests/deployment_shape.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -1421,6 +1430,7 @@
    "blueprints/automation/notify_wood_cheaper_window.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -1810,6 +1820,7 @@
    "blueprints/automation/notify_wood_cheaper_window.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -2362,6 +2373,7 @@
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -2580,6 +2592,7 @@
    "blueprints/automation/notifications.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -2748,6 +2761,7 @@
   "tests/finite_boundary.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -2897,6 +2911,7 @@
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -3116,6 +3131,7 @@
   "tests/guard_pins.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -3290,6 +3306,7 @@
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -3703,6 +3720,7 @@
   "tests/manual_plan.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -3896,6 +3914,7 @@
   "tests/plan_view.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -4013,6 +4032,7 @@
   "tests/solar_alignment.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -4175,6 +4195,7 @@
   "tests/structure.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -4284,6 +4305,7 @@
   "tests/typing_ruler.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -4436,6 +4458,7 @@
    "blueprints/automation/notify_wood_cheaper_window.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/battery.py",
@@ -6296,7 +6319,7 @@
   },
   "tests/cycle_lane.py": {
    "rc": 0,
-   "seconds": 475.2
+   "seconds": 63.6
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -6319,7 +6342,7 @@
    "seconds": 60.2
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 1338.1
   },
   "tests/env_drift.py": {
@@ -6327,11 +6350,11 @@
    "seconds": 1.0
   },
   "tests/features.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 1616.7
   },
   "tests/finite_boundary.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 193.8
   },
   "tests/frontend.py": {
@@ -6344,14 +6367,14 @@
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 18.2
+   "seconds": 8.7
   },
   "tests/ha_contract.py": {
    "rc": 0,
    "seconds": 0.5
   },
   "tests/harness_headers.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 159.7
   },
   "tests/layout.py": {
