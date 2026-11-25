@@ -17,7 +17,7 @@ Behaviour change to note: in Cooling + DHW the plan's hot-water steps no longer 
 
 ## Head
 
-Code head aebf62c45732f0114a7d8f50ec853c2aba8c34d0: ee4c34cd9c (the previous handoff, reviewed `Fix review: blocked ee4c34cd release-unaccepted`) plus two commits. a90d7bc9da repairs the verdict's three items: `pump_arbiter.cooling_mode`'s fallback and `supply_tick`'s release, and five checks in the cooling block. aebf62c457 deletes the three `tests/mutation_ledger/killed_by/pump_arbiter.py/supply_tick.*` pins (BOOLOP 9ee1f223, GUARD_OFF 9ee1f223, GUARD_OFF f40363d6) whose old lines that commit replaced, which prepr's ci predict named as stale; no production line. Merge base unchanged; `git merge-tree --write-tree origin/main HEAD` against origin/main e3cb5c019b at 2026-11-22T20:48Z reports no conflict, so no merge was taken.
+Code head a586328d783add963d40173d9660a1b5afb21e6a: aebf62c457 plus the PR's `ci: merge main` and `ci: pin killed mutants` commits plus a586328d78, which adds the ledger pin for `supply_hold.py:181 RETURN_DEL` alone. Before those, aebf62c457 was ee4c34cd9c (the previous handoff, reviewed `Fix review: blocked ee4c34cd release-unaccepted`) plus two commits. a90d7bc9da repairs the verdict's three items: `pump_arbiter.cooling_mode`'s fallback and `supply_tick`'s release, and five checks in the cooling block. aebf62c457 deletes the three `tests/mutation_ledger/killed_by/pump_arbiter.py/supply_tick.*` pins (BOOLOP 9ee1f223, GUARD_OFF 9ee1f223, GUARD_OFF f40363d6) whose old lines that commit replaced, which prepr's ci predict named as stale; no production line. Merge base unchanged; `git merge-tree --write-tree origin/main HEAD` against origin/main e3cb5c019b at 2026-11-22T20:48Z reports no conflict, so no merge was taken.
 
 Earlier rounds, kept as written:
 
@@ -111,7 +111,7 @@ Earlier rounds:
 
 ## Red checks
 
-At ee4c34cd, the set `merge_train.py owed-reds` prints holds one red: `tests / mutation` (both runs, 19:28Z and 19:30Z), red by construction on the added sites under `## Unpinned sites`, whose pins are `tests / mutation-autofix`'s (skipped at that head). No cheaper detector is owed, as for the same check below. `tests / fast (3.14)` was green at ee4c34cd. The `gate` red at 18:55Z and the cancelled runs are outside the owed set.
+At a586328d78, `tests / mutation` is `pinned`: at the PR head a56c67a363 it went red on one added unpinned site, `supply_hold.py:181 RETURN_DEL` (1920 against main's 1919), and `mutation-autofix` skipped because that head was a bot pin. `python3 tests/mutation_table.py --pin-killed --base origin/main` ran on a56c67a363 and killed the site by `tests/typing_ruler.py`; a586328d78 is that run's pin commit alone, so the site is pinned. The `gate` red and the cancelled runs are outside the owed set.
 
 Earlier rounds:
 
