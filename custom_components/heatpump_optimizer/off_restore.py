@@ -13,6 +13,15 @@ reach it and a restart's new coordinator finds the same persisted record. A seco
 arbiter's space set-point (R10-ARBITER-OFF-RESTORE) -- registers its own
 factory and edits nothing here.
 
+**Every written entity** (ADR-004; D16 owner ruling, tvofi, 2026-11-15: each
+written entity is returned to its baseline once). A writer of several
+entities whose baseline is a computed row registers a release function
+instead (:func:`register_release`), armed as a neutral entry. Restores run
+in registration order, and :func:`async_cycle` runs them from every cycle:
+all of them while the mode is Off, which retries a restore that failed and
+catches a write that raced the mode change, and those registered
+``stale=True`` while the plan is stale, when the cycle stops actuating.
+
 **Baseline.** A consumer with a fixed ``neutral`` (the heat curve's offset
 kind: 0) is restored to it, on the entity its current config names; its armed
 entry is ``None``. One without (``neutral=None``: the heat curve's persistent
@@ -40,6 +49,7 @@ integration may already be gone, which is a failure like any other.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
@@ -70,6 +80,10 @@ class Restorer:
     ``restored(entry, entity_id, value)``, when given, is told each restore
     write that succeeded, so the consumer's own write record names what the
     entity was last told; the restore never edits that record itself.
+    ``write_unread``: an unreadable baseline arms a restore of nothing, and
+    the write proceeds rather than waiting for a person to act. That entry is
+    kept until a restore drops it, so the optimizer's own write is never
+    captured as the baseline.
     """
 
     entity_id: str
@@ -77,23 +91,42 @@ class Restorer:
     neutral: float | None = None
     baseline_of: Callable[[HomeAssistant, str], float | None] | None = None
     restored: Callable[[Any, str, float], None] | None = None
+    write_unread: bool = False
 
 
 Factory = Callable[[Any], "Restorer | None"]
 Writer = Callable[[HomeAssistant, str, float], Awaitable[Any]]
+#: ``release(hass, entry, config, reason)``: hand a consumer's entities back;
+#: True once nothing is owed, False keeps the key armed for the next cycle.
+Release = Callable[[HomeAssistant, Any, Any, str], Awaitable[bool]]
 
 #: Consumer key -> its factory. Filled at import by each consumer module.
 _CONSUMERS: dict[str, Factory] = {}
 #: Consumer key -> the write that restores a baseline entry once its factory
 #: answers None (rule R: the entity was cleared from the config).
 _WRITERS: dict[str, Writer] = {}
+#: Consumer key -> its release function, for a consumer registered with one.
+_RELEASES: dict[str, Release] = {}
+#: Every registered key in registration order, the order restores run in ->
+#: whether a stale plan restores it too.
+_STALE: dict[str, bool] = {}
 
 
-def register_consumer(key: str, factory: Factory, write: Writer | None = None) -> None:
-    """Make ``key`` restorable: ``factory(config)`` is its restorer, or None unconfigured."""
+def register_consumer(key: str, factory: Factory, write: Writer | None = None, *, stale: bool = False) -> None:
+    """Make ``key`` restorable: ``factory(config)`` is its restorer, or None unconfigured.
+
+    ``stale``: restored on a stale plan too, for an entity whose command is cut from the plan.
+    """
     _CONSUMERS[key] = factory
+    _STALE[key] = stale
     if write is not None:
         _WRITERS[key] = write
+
+
+def register_release(key: str, release: Release) -> None:
+    """Make ``key`` restorable by ``release``, which owns what it writes and to which entities."""
+    _RELEASES[key] = release
+    _STALE[key] = False
 
 
 @dataclass
@@ -109,6 +142,10 @@ class _Held:
     consumers: dict[str, dict[str, Any]] = field(default_factory=dict)
     restores: int = 0
     last_restore: str | None = None
+    #: Held across the record's first read, so no caller sees it before it lands (D1-s2-04).
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    #: Keys whose restore is in flight: not restored twice, and not written over.
+    busy: set[str] = field(default_factory=set)
 
 
 _RECORDS: WeakKeyDictionary[HeatPumpOptimizerConfigEntry, _Held] = WeakKeyDictionary()
@@ -122,15 +159,18 @@ async def _armed_record(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry
     held = _RECORDS.get(entry)
     if held is None:
         held = _RECORDS[entry] = _Held(_store(hass, entry.entry_id))
-    if not held.loaded:
-        held.loaded = True
-        raw = await load_mapping(held.store, "off-restore store") or {}
-        armed = raw.get("armed")
-        if isinstance(armed, Mapping):
-            held.armed = {str(k): _entry_of(v) for k, v in armed.items()}
-        state = raw.get("state")
-        if isinstance(state, Mapping):
-            held.consumers = {str(k): dict(v) for k, v in state.items() if isinstance(v, Mapping)}
+    if held.loaded:
+        return held
+    async with held.lock:
+        if not held.loaded:
+            raw = await load_mapping(held.store, "off-restore store") or {}
+            armed = raw.get("armed")
+            if isinstance(armed, Mapping):
+                held.armed = {str(k): _entry_of(v) for k, v in armed.items()}
+            state = raw.get("state")
+            if isinstance(state, Mapping):
+                held.consumers = {str(k): dict(v) for k, v in state.items() if isinstance(v, Mapping)}
+            held.loaded = True
     return held
 
 
@@ -162,38 +202,61 @@ async def async_arm(
     The first arm captures the baseline of a consumer with no ``neutral`` and
     persists it with its entity: ``baseline_c`` where the consumer knows the
     reading is no baseline (its own last write), else the reading. A later
-    arm, in this run or after a restart, keeps it. An unreadable baseline refuses the write: what it would restore
-    is unknown. A baseline entry for another entity, or under a neutral
+    arm, in this run or after a restart, keeps it. An unreadable baseline refuses the write, what it would restore
+    being unknown, unless the restorer is ``write_unread``. A baseline entry for another entity, or under a neutral
     restorer, is restored first (rule R), and a failure refuses the write; a
     neutral entry under a baseline restorer is dropped unwritten, so a neutral
-    is never written to a target that has none.
+    is never written to a target that has none. A key whose restore is in
+    flight refuses the write, which would land over the restore's.
     """
     factory = _CONSUMERS.get(key)
     restorer = factory(config) if factory is not None else None
-    if restorer is None:
-        return False
+    if restorer is None and key not in _RELEASES:
+        return False  # unregistered or unconfigured: no record is made for it
     held = await _armed_record(hass, entry)
+    if key in held.busy:
+        return False
+    if restorer is not None:
+        return await _arm_restorer(hass, entry, held, key, restorer, baseline_c)
+    if key not in held.armed:  # a release consumer: a neutral entry, armed once
+        held.armed[key] = None
+        await _save(held)
+    return True
+
+
+async def _arm_restorer(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, held: _Held, key: str,
+    restorer: Restorer, baseline_c: float | None,
+) -> bool:
+    """:func:`async_arm` for a consumer with a restorer: keep, replace or capture its entry."""
     if key in held.armed:
         current = held.armed[key]
         if not isinstance(current, dict):
-            if current is not None or restorer.neutral is not None:
+            if current is not None or restorer.neutral is not None or restorer.write_unread:
                 return True  # #3299's entry, unchanged
             # A neutral entry under a baseline restorer: replaced below, never written.
         elif restorer.neutral is None and current["entity_id"] == restorer.entity_id:
             return True
         elif not await _restore_baseline(hass, entry, held, key, restorer, "rearm"):
             return False  # latched, still armed: nothing to save
-    baseline = None
-    if restorer.neutral is None:
-        baseline = baseline_c if baseline_c is not None else (
-            restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None)
-        if log_held(entry, f"off_restore_baseline_{key}", baseline is None,
-                    "No baseline readable from %s: not written, nothing to restore it to",
-                    restorer.entity_id):
-            return False
+    baseline = None if restorer.neutral is not None else _captured(hass, entry, key, restorer, baseline_c)
+    if baseline is None and restorer.neutral is None and not restorer.write_unread:
+        return False
     held.armed[key] = None if baseline is None else {"entity_id": restorer.entity_id, "value": baseline}
     await _save(held)
     return True
+
+
+def _captured(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, key: str, restorer: Restorer, baseline_c: float | None,
+) -> float | None:
+    """The baseline a first arm captures, or None unreadable (logged once, written or not)."""
+    baseline = baseline_c if baseline_c is not None else (
+        restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None)
+    log_held(entry, f"off_restore_baseline_{key}", baseline is None,
+             "No baseline readable from %s: %s, nothing to restore it to", restorer.entity_id,
+             "written" if restorer.write_unread else "not written")
+    return baseline
 
 
 async def _restore_baseline(
@@ -212,8 +275,20 @@ async def _restore_baseline(
                         key, entity_id, value)
         held.armed.pop(key)
         return False
+    return await _land(entry, held, key, restorer, entity_id, value, reason, write(hass, entity_id, value), True)
+
+
+async def _land(
+    entry: HeatPumpOptimizerConfigEntry, held: _Held, key: str, restorer: Restorer | None,
+    entity_id: str, value: float, reason: str, write: Awaitable[Any], refusable: bool,
+) -> bool:
+    """Await one restore write and settle it: latched and still armed, or told and disarmed.
+
+    A write that raises is a failure; so is one answering False where
+    ``refusable`` (a set-point write to a domain that takes none).
+    """
     try:
-        sent = await write(hass, entity_id, value) is not False
+        sent = await write is not False or not refusable
         err: Any = "the entity takes no set-point write"
     except Exception as exc:  # noqa: BLE001 - a restore never raises into off or unload
         sent, err = False, exc
@@ -227,42 +302,74 @@ async def _restore_baseline(
     return True
 
 
-async def async_restore(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, reason: str) -> int:
-    """Restore every armed consumer; the number of restore writes sent.
+async def async_restore(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, reason: str,
+    *, stale_only: bool = False,
+) -> int:
+    """Restore every armed consumer; the number of restores that landed.
 
-    Called on the transition into ``MODE_OFF`` and from ``async_unload_entry``.
-    A consumer no longer configured is disarmed unwritten: its entity is no
-    longer the optimizer's to write.
+    Called on the transition into ``MODE_OFF``, from ``async_unload_entry``
+    and by :func:`async_cycle`; ``stale_only`` keeps it to the consumers a
+    stale plan restores. In registration order, one attempt per key, a key
+    whose restore is in flight left to that restore; saved only when the
+    armed set changed. A consumer no longer configured is disarmed
+    unwritten: its entity is no longer the optimizer's to write.
     """
     held = await _armed_record(hass, entry)
-    sent = 0
-    for key, baseline in list(held.armed.items()):
-        factory = _CONSUMERS.get(key)
-        restorer = factory(config) if factory is not None else None
-        if isinstance(baseline, dict):
-            sent += await _restore_baseline(hass, entry, held, key, restorer, reason)
+    before, sent = dict(held.armed), 0
+    for key in [k for k in _STALE if k in before] + [k for k in before if k not in _STALE]:
+        if key in held.busy or key not in held.armed or (stale_only and not _STALE.get(key)):
             continue
-        value = None if restorer is None else (
-            restorer.neutral if restorer.neutral is not None else baseline)
-        if restorer is None or value is None:
-            held.armed.pop(key)
-            continue
+        held.busy.add(key)
         try:
-            await restorer.write(hass, restorer.entity_id, value)
-        except Exception as err:  # noqa: BLE001 - a restore never raises into off or unload
-            log_held(entry, f"off_restore_{key}", True,
-                     "Restore of %s to %s on %s failed: %s", restorer.entity_id, value, reason, err)
-            continue
-        log_held(entry, f"off_restore_{key}", False)
-        if restorer.restored is not None:
-            restorer.restored(entry, restorer.entity_id, value)
-        held.armed.pop(key)
-        sent += 1
-        _LOGGER.info("Restored %s to %s (%s)", restorer.entity_id, value, reason)
+            sent += await _restore_key(hass, entry, config, held, key, reason)
+        finally:
+            held.busy.discard(key)
     held.restores += sent
     held.last_restore = reason if sent else held.last_restore
-    await _save(held)
+    if held.armed != before:
+        await _save(held)
     return sent
+
+
+async def _restore_key(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, held: _Held, key: str, reason: str,
+) -> bool:
+    """One armed key's restore; True when it landed and the key is disarmed."""
+    baseline = held.armed[key]
+    factory = _CONSUMERS.get(key)
+    restorer = factory(config) if factory is not None else None
+    if isinstance(baseline, dict):
+        return await _restore_baseline(hass, entry, held, key, restorer, reason)
+    if restorer is not None and (restorer.neutral is not None or baseline is not None):
+        value = restorer.neutral if restorer.neutral is not None else baseline
+        return await _land(entry, held, key, restorer, restorer.entity_id, value, reason,
+                           restorer.write(hass, restorer.entity_id, value), False)
+    release = _RELEASES.get(key)
+    try:
+        # A release answering False still owes a write: armed, and tried again next cycle.
+        done = release is None or await release(hass, entry, config, reason)
+    except Exception as err:  # noqa: BLE001 - a restore never raises into off or unload
+        done = not log_held(entry, f"off_restore_{key}", True, "Release of %s on %s failed: %s", key, reason, err)
+    if done:
+        held.armed.pop(key)
+        log_held(entry, f"off_restore_{key}", False)
+    return done and release is not None
+
+
+async def async_cycle(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, off: bool, stale: bool
+) -> int:
+    """Once per cycle: restore what is still armed while the optimizer has let go.
+
+    ``off`` (the mode is Off) restores every armed key, which retries a
+    restore that failed at the mode change (D16-s3-04); ``stale`` (the plan
+    is stale in a plan mode) restores the ``stale=True`` keys (D16-s1-04);
+    neither writes nothing. Nothing armed is a dictionary test.
+    """
+    if not (off or stale) or not (await _armed_record(hass, entry)).armed:
+        return 0
+    return await async_restore(hass, entry, config, "mode_off" if off else "plan_stale", stale_only=not off)
 
 
 async def async_mode_change(
@@ -338,6 +445,8 @@ async def async_forget(hass: HomeAssistant, entry_id: str) -> None:
         if isinstance(current, dict):
             _LOGGER.warning("Removed with %s still displaced by %s: set it to %s by hand",
                             current["entity_id"], key, current["value"])
+        else:
+            _LOGGER.warning("Removed with %s still armed: what it wrote keeps the optimizer's value", key)
     try:
         await store.async_remove()
     except Exception as err:  # noqa: BLE001

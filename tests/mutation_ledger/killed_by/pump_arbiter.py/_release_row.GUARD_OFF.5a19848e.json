@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_release_row GUARD_OFF 5a19848e",
+  "killed_by": "tests/structure.py",
+  "old": "    if not await _command(coord, inp, baseline_row(coord, inp, now), now, release=True):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}
