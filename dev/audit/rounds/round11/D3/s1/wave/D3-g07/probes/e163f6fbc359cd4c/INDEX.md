@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py): the learned solar-aperture scale after one fold whose EWMA variance update lands EXACTLY on 1e-6 (the tie of

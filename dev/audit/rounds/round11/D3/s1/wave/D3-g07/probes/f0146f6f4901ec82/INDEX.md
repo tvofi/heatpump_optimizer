@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py, dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fa_common.py): mean of ForecastArrays.humidity (%) over the 96-step horizon from _forecast_arrays(), with the weather entity
