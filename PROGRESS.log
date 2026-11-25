@@ -4,3 +4,4 @@
 1795613574 HB alive
 1795613642 CKPT merge resolved (coordinator, features, frost_hold log moved into gate); max_class_loc +1 over main budget; features rerun snapshot c019037314d9
 1795614178 HB alive
+1795614506 CKPT BLOCKED pushed handoff-wip 76d5d1e3: merge 7b4fc720 green (features 6226, 19/19 mutants die) but max_class_loc 7835 > main 7834, owner raise ruling needed snapshot 4ce4f6ddf943
