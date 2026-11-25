@@ -23003,7 +23003,8 @@ _D5 = [st for st in _CODEQL_STEPS
        if "codeql_scope.py extracted" in str(st.get("run"))]
 R.check(
     "codeql.yml carries the D-5 extracted-files check, on push, after the analysis",
-    len(_D5) == 1 and _D5[0].get("if") == "github.event_name == 'push'"
+    # A light push's skipped leg uploads main's stand-in (#3885): it extracted nothing to check.
+    len(_D5) == 1 and _D5[0].get("if") == "github.event_name == 'push' && steps.standin.outputs.ok != 'true'"
     and _CODEQL_STEPS.index(_D5[0]) > max(
         i for i, st in enumerate(_CODEQL_STEPS)
         if str(st.get("uses", "")).startswith("github/codeql-action/analyze@")),
@@ -29991,7 +29992,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery", "selftests"],
+    == ["base", "light", "machinery", "selftests", "stand_down"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.

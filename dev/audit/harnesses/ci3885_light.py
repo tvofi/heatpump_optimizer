@@ -5,6 +5,7 @@
     python3 dev/audit/harnesses/ci3885_light.py gaps [--since 2026-11-10] [--ref origin/main]
     python3 dev/audit/harnesses/ci3885_light.py cost RUN_ID [RUN_ID...]
     python3 dev/audit/harnesses/ci3885_light.py share DAY [--event workflow_dispatch]
+    python3 dev/audit/harnesses/ci3885_light.py dup DAY
 
 `mutants` reverts one production line of the fix at a time, in place, runs
 `tools/ci/prelude.py --self-test` and prints the checks that fail; the file is
@@ -17,7 +18,10 @@ predicate with PRODUCTION_FILES emptied (`--prefixes-only`).
 `cost` sums runner minutes per job of a run, every attempt (`gh api`;
 started_at to completed_at, skipped jobs excluded), the job table a light run's
 cost is read from. `share` splits one day's runs of an event into light and full by
-prelude.light over the named PR's final file list, with their runner minutes.
+prelude.light over the named PR's final file list (a push: its first-parent diff), with
+their runner minutes, and prices each light run's jobs against the lanes this tree's
+prelude would stand down for that list. `dup` counts the day's PR-naming dispatches
+that followed a pull_request run which had already graded the same head.
 """
 from __future__ import annotations
 
@@ -26,10 +30,26 @@ import collections
 import datetime as dt
 import json
 import subprocess
+import time
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 sys.path.insert(0, str(ROOT / "tools" / "ci"))
 import prelude  # noqa: E402
 
@@ -164,16 +184,29 @@ def cost(run_ids: list[str]) -> int:
     return 0
 
 
+def api(path: str) -> list:
+    """Every page of one `gh api` listing; a transient refusal is retried, the eighth raised.
+    A run's jobs listing of several hundred jobs answers HTTP 502 at 100 per page on some
+    pages, so a retry asks for smaller pages."""
+    for attempt in range(8):
+        page = path if attempt < 2 else path.replace("per_page=100", "per_page=30")
+        r = subprocess.run(["gh", "api", "--paginate", page], capture_output=True, text=True)
+        if r.returncode == 0:
+            return json.loads(r.stdout.replace("}{", "},{").join(("[", "]")))
+        time.sleep(5 * (attempt + 1))
+    r.check_returncode()
+    return []
+
+
 def share(day: str, event: str) -> int:
     """Runs of ci.yml for `event` created on `day`, split by prelude.light over the file list of
     the PR the title names (its final list: a per-head list is not kept); a run naming no PR is
-    full. Minutes as `cost` sums them (every attempt's latest jobs listing, filter=all). The light
-    runs' minutes are then split per job whose name carries a lane the fix stands down."""
-    lanes = ("python", "coverage", "browser", "typing", "hassfest", "validate", "closures", "env-matrix")
-    per = collections.Counter()
-    def api(path):
-        return json.loads(subprocess.run(["gh", "api", "--paginate", path], capture_output=True, text=True,
-                                         check=True).stdout.replace("}{", "},{").join(("[", "]")))
+    full. Minutes as `cost` sums them (every attempt's latest jobs listing, filter=all). Each light
+    run's jobs are then priced against what this tree's prelude would stand down for that list
+    (`stand_down` over tests/closures.json, plus the python leg): the minutes a job of a lane in
+    that set spent are the run's saving, per job name."""
+    job_lane = {job: lane for (_wf, job), lane in prelude.LIGHT_GATE.items()}
+    per, saved = collections.Counter(), collections.Counter()
     runs = [r for page in api(f"repos/{{owner}}/{{repo}}/actions/workflows/ci.yml/runs?event={event}"
                               f"&created={day}&per_page=100") for r in page["workflow_runs"]]
     cls, tot = {}, collections.Counter()
@@ -183,23 +216,65 @@ def share(day: str, event: str) -> int:
         if pr and pr not in cls:
             files = [f["filename"] for page in api(f"repos/{{owner}}/{{repo}}/pulls/{pr}/files?per_page=100")
                      for f in page]
-            cls[pr] = "light" if prelude.light(files) else "full"
-        c = cls.get(pr, "full")
+            cls[pr] = files
+        if r.get("event") == "push":  # a push names no PR: its own first-parent diff
+            pr = r["id"]
+            cls[pr] = subprocess.run(["git", "diff", "--name-only", f"{r['head_sha']}^1", r["head_sha"]],
+                                     cwd=ROOT, capture_output=True, text=True).stdout.split()
+        files = cls.get(pr) or []
+        c = "light" if prelude.light(files) else "full"
+        down = set(prelude.stand_down(files, r.get("event") == "push")) if c == "light" else set()
+        down |= {"python"} & set(prelude.LIGHT_SKIP_LEGS) if c == "light" else set()
         m = 0.0
         for page in api(f"repos/{{owner}}/{{repo}}/actions/runs/{r['id']}/jobs?filter=all&per_page=100"):
             for j in page["jobs"]:
                 if j.get("conclusion") != "skipped" and j.get("started_at") and j.get("completed_at"):
                     s, e = (dt.datetime.fromisoformat(j[k].replace("Z", "+00:00")) for k in ("started_at", "completed_at"))
                     m += max((e - s).total_seconds() / 60, 0)
-                    hit = [x for x in lanes if x in j["name"]]
-                    if c == "light" and hit:
-                        per[j["name"]] += max((e - s).total_seconds() / 60, 0)
+                    jm = max((e - s).total_seconds() / 60, 0)
+                    short = j["name"].split(" / ")[-1]
+                    lane = "python" if short == "Analyze (python)" else job_lane.get(short)
+                    if c == "light" and lane:
+                        per[j["name"]] += jm
+                        if lane in down:
+                            saved[j["name"]] += jm
         tot[c, "runs"] += 1
         tot[c, "min"] += m
     for c in ("light", "full"):
         print(f"{event} {day} {c}: {tot[c, 'runs']} runs, {tot[c, 'min']:.0f} runner-min")
     for name, m in per.most_common():
-        print(f"{event} {day} light job {name}: {m:.0f} runner-min")
+        print(f"{event} {day} light job {name}: {m:.0f} runner-min, stood down {saved[name]:.0f}")
+    print(f"{event} {day} stood down in all: {sum(saved.values()):.0f} runner-min")
+    return 0
+
+
+def dup(day: str) -> int:
+    """ci.yml workflow_dispatch runs created on `day` that name a PR, split by whether a
+    pull_request run at the same head had already COMPLETED with a conclusion other than
+    cancelled, action_required or skipped (a run that graded the head) before the dispatch was
+    created. Their unit sets are not compared: a duplicate here is an upper bound on what reusing
+    the earlier run's verdict could save. Minutes as `cost` sums them."""
+    base = "repos/{owner}/{repo}/actions"
+    runs = [r for page in api(f"{base}/workflows/ci.yml/runs?event=workflow_dispatch&created={day}&per_page=100")
+            for r in page["workflow_runs"] if prelude.parse_title(r.get("display_title") or "")]
+    tot = collections.Counter()
+    for r in runs:
+        prior = [p for page in api(f"{base}/workflows/ci.yml/runs?head_sha={r['head_sha']}&event=pull_request"
+                                   "&per_page=100") for p in page["workflow_runs"]
+                 if p["status"] == "completed" and p["conclusion"] not in ("cancelled", "action_required", "skipped")
+                 and p["created_at"] < r["created_at"]]
+        m = 0.0
+        for page in api(f"{base}/runs/{r['id']}/jobs?filter=all&per_page=100"):
+            for j in page["jobs"]:
+                if j.get("conclusion") != "skipped" and j.get("started_at") and j.get("completed_at"):
+                    a, e = (dt.datetime.fromisoformat(j[k].replace("Z", "+00:00")) for k in ("started_at", "completed_at"))
+                    m += max((e - a).total_seconds() / 60, 0)
+        k = "duplicate" if prior else "sole"
+        tot[k, "runs"] += 1
+        tot[k, "min"] += m
+        print(f"{r['id']} {r['head_sha'][:10]} prior_pr_runs={len(prior)} {m:.0f}min")
+    print(f"dispatch {day}: duplicate (a graded pull_request run at the head first): {tot['duplicate', 'runs']} runs, "
+          f"{tot['duplicate', 'min']:.0f} runner-min; sole grader: {tot['sole', 'runs']} runs, {tot['sole', 'min']:.0f}")
     return 0
 
 
@@ -216,7 +291,11 @@ def main(argv: list[str]) -> int:
     sh = sub.add_parser("share")
     sh.add_argument("day")
     sh.add_argument("--event", default="workflow_dispatch")
+    du = sub.add_parser("dup")
+    du.add_argument("day")
     a = ap.parse_args(argv)
+    if a.cmd == "dup":
+        return dup(a.day)
     if a.cmd == "share":
         return share(a.day, a.event)
     if a.cmd == "mutants":
