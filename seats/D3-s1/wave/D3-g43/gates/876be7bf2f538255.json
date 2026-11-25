@@ -1,0 +1,35 @@
+{
+ "key": "876be7bf2f538255",
+ "mutant": {
+  "kind": "BOOLOP",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 4578,
+  "old": "        if p.two_zone_enabled and throttled:",
+  "new": "        if p.two_zone_enabled or throttled:",
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP afe9dcd9"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3663.5,
+ "child_cpu_s": 6091.8,
+ "load1_start": 1.07,
+ "load1_end": 0.92,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}
