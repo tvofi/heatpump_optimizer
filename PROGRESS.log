@@ -32,3 +32,4 @@
 1795616522 INIT r11-rev-3835
 1795616621 HB alive
 1795616869 CKPT mutants T1/T2/R/O/P/X running; E1-E3 retaken at 3be37247 snapshot 1aa851aa3d4c
+1795617033 CKPT 14/14 own mutants killed; ratchet/claims/brief_lint ok; harnesses running snapshot 03548fa2748c
