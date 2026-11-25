@@ -51,7 +51,7 @@ The base for every figure is 11-25. Each lever ships as its own small PR, and ev
 | # | lever | measured cost today | expected saving | effort |
 |---|---|---|---|---|
 | L1 | supersede at creation | 655 runner-min ran after a newer head's run existed; 106 jobs started after it (null, same-head code twins: 1/1) | ~650 runner-min/day; slots freed at creation instead of after `cancel-superseded` waits its own queue (p90 24 min) | S |
-| L2 | stop duplicate verified dispatches (carry 1) | `ci3885_light.py dup`: 6 runs, 2,252 runner-min (null 11-24: 0/0); sole graders 6/1,140 | ≤2,252 runner-min/day (upper bound, unit sets not yet compared) | M |
+| L2 | stop duplicate verified dispatches (carry 1) | `ci3885_light.py dup`: 6 runs, 2,252 runner-min (null 11-24: 0/0); sole graders 6/1,140 | ≤1,214 runner-min/day: `stalepin` attributes all 6 to `sweep.py` STALE-PIN, and this tree's `code_red` already leaves 3 (1,038) | M |
 | L3 | no runner held while waiting (owner rule, §4) | wait-bearing jobs: excess over their own p10 floor is about 570 runner-min (NULL `typing` reads 165, so that is noise) | about 400-570 runner-min/day; edit/review e2e p90 (66/76) bounded by the decider rather than by a slot | M |
 | L4 | record-branch runs | 16 runs, 456 runner-min (null 11-24: 4 runs, 93) | ≤456 runner-min/day | S |
 | L5 | fold `refresh` into the `cancel-superseded` job | 329 + 143 runner-min over 254 + about 150 jobs | about 150-200 runner-min/day (one allocation and checkout fewer per PR event) | S |
@@ -83,8 +83,8 @@ In that case `cancel-in-progress` is true. Every other run keeps its run-id grou
 
 ### L2. Duplicate verified dispatches (carry 1)
 
-All 11 of the day's PR-naming dispatches had `github-actions[bot]` as actor. That makes the dispatcher either `sweep.py` STALE-PIN or a `tests.yml` autofix. The carry's brief is followed as written:
-1. First attribute each duplicate with `ci3885_light.py stalepin DAY` and stop it at its source.
+All 11 of the day's PR-naming dispatches had `github-actions[bot]` as actor. That makes the dispatcher either `sweep.py` STALE-PIN or a `tests.yml` autofix. `ci3885_light.py stalepin 2026-11-25` attributes all 6 duplicates to STALE-PIN and none elsewhere (unattributed 0). This tree's `code_red` leaves 3 of them and still dispatches 3 (1,214 runner-min, each with `tests / fast` red or cancelled at the head). The carry's brief is followed as written:
+1. Narrow STALE-PIN at its source, in `sweep.py` (for example, no dispatch while a code-unit job at the head is still running or was cancelled), with a `sweep_selftest.py` row per case.
 2. Compare unit sets before counting.
 
 Reusing another run's verdict in `gate.py` is a trust-model change. It stays out of this group unless step 1 finds the dispatch necessary.
