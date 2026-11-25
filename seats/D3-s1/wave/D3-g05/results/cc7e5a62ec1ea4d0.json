@@ -1,0 +1,63 @@
+{
+ "key": "cc7e5a62ec1ea4d0",
+ "site": "coordinator.py:5182 GUARD_OFF",
+ "patch": "if not reading.ok or reading.text is None: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._external_heat_override",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override@5156-5182",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3325.4,
+  "child_cpu_s": 5550.6,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/cc7e5a62ec1ea4d0.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cc7e5a62ec1ea4d0",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_cc7e5a62ec1ea4d0.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_cc7e5a62ec1ea4d0.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_cc7e5a62ec1ea4d0.out",
+  "baseline_value": "per-state override identical",
+  "mutant_value": "identical",
+  "inputs_tried": [
+   "'on'",
+   "'off'",
+   "'burning?'",
+   "''",
+   "'  '",
+   "'on' 14 days old",
+   "'on' stamped 2 h in the future",
+   "'400' with an unknown unit",
+   "unavailable",
+   "not configured"
+  ]
+ },
+ "m4_answer": "Equivalent: line 5182 is reached only when read() classed a present, valued state 'not_numeric', and read_state with UNBOUNDED on the same state then has no age limit and no 'valid' filter, so reading.ok is True and text is set; parse_bool returns what the baseline would (moved_inputs=0 of 10).",
+ "should_fail": "none: no state reaching the line separates the arms; traced by tests/features.py only",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "non_finding": "equivalent-candidate: Equivalent: line 5182 is reached only when read() classed a present, valued state 'not_numeric', and read_state with UNBOUNDED on the same state then has no age limit and no 'valid' filter, so reading.ok is True and text is set; parse_bool returns what the baseline would (moved_inputs=0 of 10)."
+}
