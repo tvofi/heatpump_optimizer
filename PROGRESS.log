@@ -1,3 +1,4 @@
 1795601590 INIT r11-merge-3845
 1795601598 HB alive
 1795601706 CKPT merge committed dcdb80d974; features.py union snapshot 7d0845a97db0
+1795601736 CKPT recording closures for features/entities/doc_claims (partial) snapshot bbbc2442a802
