@@ -12,3 +12,4 @@
 1795621973 CKPT archscore NULL, structure re-recorded down; full features + mutants running snapshot 2e79eb8deb9f
 1795622546 HB alive
 1795622687 CKPT mutants 26/27 killed; full features + entities running snapshot 0099ca558562
+1795622866 CKPT closure recording for 28 scripts reaching draw_range.py running snapshot 35d870542457
