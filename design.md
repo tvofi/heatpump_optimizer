@@ -55,7 +55,7 @@ The base for every figure is 11-25. Each lever ships as its own small PR, and ev
 | L3 | no runner held while waiting (owner rule, §4) | wait-bearing jobs: excess over their own p10 floor is about 570 runner-min (NULL `typing` reads 165, so that is noise) | about 400-570 runner-min/day; edit/review e2e p90 (66/76) bounded by the decider rather than by a slot | M |
 | L4 | record-branch runs | 16 runs, 456 runner-min (null 11-24: 4 runs, 93) | ≤456 runner-min/day | S |
 | L5 | fold `refresh` into the `cancel-superseded` job | 329 + 143 runner-min over 254 + about 150 jobs | about 150-200 runner-min/day (one allocation and checkout fewer per PR event) | S |
-| L6 | cheaper Gate sweep | 408 runs, 403 jobs, 204 runner-min, queue p90 48 min | ≤204 runner-min/day; its value is re-judge latency (p90 48 min) | S (a); M (b) |
+| L6 | cheaper Gate sweep: (a) dropped at revise 1; (b) coalescing, design only | 408 runs, 403 jobs, 204 runner-min, queue p90 48 min | ≤204 runner-min/day, (b) only; its value is re-judge latency (p90 48 min) | M (b), not built here |
 | L7 | failed-only re-runs | re-executed jobs that had succeeded before: 4 jobs, 5 runner-min (null attempt-1: 0; `--keep-copies` perturbation reads the 1,307/6,636 copies) | ≤5 runner-min/day | S |
 
 ### L1. Supersede at creation
@@ -66,7 +66,9 @@ The base for every figure is 11-25. Each lever ships as its own small PR, and ev
 - the run attempt is 1;
 - the sender is not `github-actions[bot]`.
 
-In that case `cancel-in-progress` is true. Every other run keeps its run-id group, and `CI-main` stays unchanged.
+In that case `cancel-in-progress` is true. Every other run keeps its run-id group. That includes every push to main, once `handoff/r11-ci-3885-ci5-drop` removes the `CI-main` group (see §6). L1 is written against that tree.
+
+The same PR rewrites the comment at `.github/workflows/ci.yml:66-68` ("Supersession is cancel-superseded's alone") and the `tests/entities.py` concurrency pin, which today refuses any `cancel-in-progress` (`concurrency ... cancels in progress`). The new pin has one row per event, action, attempt and sender, and keeps push and re-runs in run-id groups.
 
 **Why it is safe.**
 - A `synchronize` run always heads a new SHA, so the same-SHA twin rule (R9-CI-2a) holds.
@@ -103,7 +105,9 @@ The `record/*` PR runs stay graded, because `gate` is required. Extend the `prel
 
 ### L6. Gate sweep
 
-(a) Add `github.event.workflow_run.conclusion != 'cancelled'` to the job `if:`. With L1, cancelled runs grow. The sweep acts only on a run whose own gate is green, and `gate` is the last unit. The fixer adds a `sweep_selftest.py` row proving a cancelled V re-runs nothing, which justifies the skip.
+(a) **Dropped** (design review, revise 1). A `workflow_run.conclusion != 'cancelled'` skip would also drop `settle` (`tools/ci/sweep.py` `settle`). `settle` acts on a decider that ended red or cancelled at the live head, for example a cancel by hand, or a priority-held run that `cancel_superseded.py` drops unrun after `HELD_MAX_AGE_S`. The gates that deferred to that decider would stay red until a new event.
+
+The narrower skip (a cancelled V whose head is no longer the PR's head) cannot be decided in a job `if:`. `workflow_run.pull_requests[].head.sha` is not the live head, so deciding it needs the runner the skip was meant to save. Every completed CI run therefore keeps its sweep, including runs L1 cancels. That is the hook W1 relies on (§4).
 
 (b) Coalescing. A `sweep-<workflow_run.head_sha>` group with `cancel-in-progress: false` would let GitHub replace pending sweeps at one head. That needs `sweep.py` to judge from the head's state (the newest green covering gate) instead of from V, which changes R4-4. It is a separate design-review item and is not built in this group. The coalescable count is unmeasured, because a sweep run's `head_sha` is main's. The fixer reads the trigger id from the first log line.
 
@@ -123,7 +127,7 @@ Inventory: `grep -n "sleep\|POLL\|WAIT_MAX" tools/ci/*.py .github/workflows/*.ym
 
 | wait | bound today | runner-min (excess) | replacement holding no runner | cap kept |
 |---|---|---|---|---|
-| W1 `prelude.wait_sources` (edit run beside a code run whose pr-contract started) | 8,700 s | prelude 486 (300); edit max 19 min; review p90 28, max 97 | Read once. If busy, the prelude step `Defer: sources still running` fails at once and names the runs. On a decider's completion, `sweep.py` POSTs `rerun-failed-jobs` on each run at the head whose prelude failed on that step and which is no longer busy. That replays the same event at the same head and re-runs prelude, pr-contract and gate. | `ATTEMPT_CAP` 45; an API error or rate limit fails closed (prelude red, so gate red); acyclic because code runs never wait (`waits_on`) |
+| W1 `prelude.wait_sources` (edit run beside a code run whose pr-contract started) | 8,700 s | prelude 486 (300); edit max 19 min; review p90 28, max 97 | Read once. If busy, the prelude step `Defer: sources still running` fails at once and names the runs. On a decider's completion, whether it concluded success, failure or cancelled (no sweep skip exists; L6a dropped), `sweep.py` takes each run at the head whose prelude failed on that step and which is no longer busy. It routes each one through the stale-pin rule (`stale_pin`, then `fresh`): a pin where the base has changed `tools/ci/*.py` gets ONE `STALE-PIN` dispatch and no re-run; a current pin gets `rerun-failed-jobs`, which replays the same event at the same head and re-runs prelude, pr-contract and gate. | `ATTEMPT_CAP` 45; an API error or rate limit fails closed (prelude red, so gate red); acyclic because code runs never wait (`waits_on`) |
 | W1, API vs sleep (#3885 ask) | — | each poll does 1 run listing plus 2 job reads per busy run, then sleeps `POLL_S` 60 s, so sleep is ≥95% by construction | the replacement removes the sleep; the fixer prints per-poll API seconds from step timestamps | — |
 | W2 sweep/sweep-self poll and settle | 600 s | 204 (124) + 39 (11) | Symmetric completion arm: the sweep of a run whose gate completed red re-runs that gate when another run at the head holds a green gate covering the newest event. The polled run's own completion then does what the poll did. Settle polls are removed the same way. | once per source change (`settled`); `ATTEMPT_CAP` |
 | W3 gate own-jobs listing lag | 120 s absent / 720 s | 368 (85), 1 job >5 min | **Irreducible**: GitHub lists a job about 20 s late (41289450679). Cap: lower `GATE_WAIT_MAX_S` to `GATE_ABSENT_MAX_S` (120 s) once W1 removes every source wait. | 120 s |
@@ -137,13 +141,15 @@ Inventory: `grep -n "sleep\|POLL\|WAIT_MAX" tools/ci/*.py .github/workflows/*.ym
 **Tests.**
 - W1: `prelude.py --self-test` rows. A busy head returns the defer reason with no sleep. The null row, an idle head, returns `''`.
 - W1: `sweep_selftest.py` rows. The deferred run is re-run once per decider completion and never past `ATTEMPT_CAP`.
+- W1 stale pin: a deferred run whose base pin predates a `tools/ci/*.py` change on the base gets one `workflow_dispatch` POST and no `rerun-failed-jobs`. Its null row is the same run at a current pin, which gets the `rerun-failed-jobs` POST and no dispatch.
+- W1 cancelled decider: a decider cancelled at the live head still triggers the W1 re-run of the run that deferred to it. Beside it, the existing `settle` row stays green: a decider cancelled at the live head still has the gate that deferred to it re-run.
 - W2: the existing poll rows become completion rows, with the same POST set.
 
 ## 5. Order, PRs, hot files
 
-**Ship order:** L1, L7, L6a, L5 and L4 as five small separate PRs. L2 next, attribution first. Then L3 W1+W2, one PR touching `tools/ci/prelude.py`, `sweep.py` and `sweep_selftest.py`.
+**Ship order:** L1 (after `handoff/r11-ci-3885-ci5-drop` merges, since both edit `ci.yml` `concurrency`), L7, L5 and L4, as four small separate PRs. L2 next. Then L3 W1+W2, one PR touching `tools/ci/prelude.py`, `sweep.py` and `sweep_selftest.py`.
 
-**Hot files:** `ci.yml` and `tests/entities.py` (L1, L5, L6a, which go serially) and `tools/ci/sweep.py` (L2, L3, L6a).
+**Hot files:** `ci.yml` and `tests/entities.py` (the CI-5 drop, then L1, then L5, serially) and `tools/ci/sweep.py` (L2, then L3).
 
 The sharding fixer owns `tests.yml`, and none of these levers edits it.
 
@@ -157,9 +163,20 @@ The carries in `dev/programme/carries/carry-3885.json` are owed here:
   Carry: R11-CI-3885-QUEUE (item sweep-head)
 - Long review preludes after c0dcc352f9 (2026-11-25T00:21Z) are consistent with PR base pins that predate it. Check each run's `base.sha` before counting it against W1.
   Carry: R11-CI-3885-QUEUE (item stale-pin-preludes)
+- L1 rewrites the `ci.yml:66-68` comment and its `tests/entities.py` pin in the same PR.
+  Carry: R11-CI-3885-QUEUE (item l1-comment)
 - A one-job re-run lists every job again under the new attempt. Count a job as executed only when its timestamps differ from the previous attempt's.
   Carry: R11-CI-3885-QUEUE (item rerun-copies)
 
-## Ruling needed
+## 6. CI-5 (settled)
 
-The owner must rule on main's CI-5 serialization (2026-11-21). It adds p50 27 / p90 65 min of pending before any runner on main. Main can meet ≤40 min only if sharding brings FULL under about 20 min, or if a ruling changes CI-5. No lever here changes it.
+The owner has made CI-5 obsolete. `handoff/r11-ci-3885-ci5-drop` removes the `CI-main` group, so main push runs are no longer serialized. The pending term in §1 (p50 27 / p90 65 min) goes away, and every main push is graded at its own tip.
+
+No lever here assumes serialization:
+- L1's group applies to `pull_request synchronize` only. Push runs keep run-id groups.
+- `cancel_superseded.py` never touches main except through its by-hand `main` mode.
+- `gate-sweep.yml` already skips push runs.
+- L4 and L5 act on PR events.
+- L2 and W1 key on a PR head.
+
+What changes is main's share of runner demand. 11 main pushes cost 3,783 runner-min on 11-25. Without coalescing, a burst of merges now runs one run per tip, but a light push still stands down its lanes (`prelude.light`). The fixer re-reads the harness `census` and `queue` arms on the first busy day after the drop, before counting L1-L5's savings against the queue. Main reaches ≤40 min end to end only when the sharding fixer brings the FULL run's longest job under 40 min.
