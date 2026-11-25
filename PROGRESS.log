@@ -14,3 +14,4 @@
 1795579691 HB alive
 1795579982 CKPT pinned 6 killed mutants, pushed 4e338c3ee9 snapshot dd2a00950414
 1795580044 CKPT merged main 5594a34a49 at 78d1c22d8a snapshot 328207358fc3
+1795580111 CKPT body updated; scoped prepr running at merge head snapshot 142617988abe
