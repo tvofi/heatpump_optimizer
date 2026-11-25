@@ -23,3 +23,4 @@
 1795632233 INBOX acked through 1
 1795632420 CKPT merge committed 74b8502f; running gate snapshot ebd8f6d543f5
 1795632836 HB alive
+1795632841 CKPT merge re-done on 0708c57bbf: head a15a05b799, tree = gated tree snapshot 9ba4522dc0e7
