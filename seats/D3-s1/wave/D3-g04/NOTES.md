@@ -16,3 +16,8 @@
 - feed2751f4116bd1: candidate -- No check ties a sweep candidate's usable energy to the heaviest window; `>=` -> `>` moves the advice unseen
 - 29bad645ca2c2438: candidate -- No check pins the sweep's tie-break; `<` -> `<=` hands a cost tie to the hotter setpoint unseen
 - 640a1a68b6c1eb23: candidate -- The _entity_state 'before any lookup' check cannot see a lookup; removing the guard is unseen and raises under HA's states contract
+
+## resume seat (fire 2)
+- 2026-11-25 00:46Z resumed from wip 31bc0f0c (6/16 gated, d06a2d8e53342785 had been running when the predecessor stalled; no record, re-run).
+- 01:32Z container restart killed gate d06a2d8e53342785 at 46 min (no record). Stale gate_lock lease D3-s1-r11 and slot run.sh-1224 released (owner pids gone); partial state/gates log removed; re-started 01:33Z. The gate counts only the completed run.
+- probe toolchain (_tools) restored to $HOME/pgen; probes run from a clean baseline worktree $HOME/probe-tree, never the gate tree.
