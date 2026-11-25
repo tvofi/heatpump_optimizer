@@ -1,0 +1,3 @@
+45090151615 fix/r11-owner-extheat-override failure 13min dispatched 
+45089976684 fix/r11-seam-cycle-solve failure 292min dispatched 
+stalepin 2026-11-23: STALE-PIN duplicates 2, of which this tree leaves 0 (0 runner-min) and still dispatches 2 (304); unattributed 0 (0); job listings unread 0
