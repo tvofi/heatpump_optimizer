@@ -1,0 +1,119 @@
+{
+ "key": "f2a191b48718e088",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5234 GUARD_OFF",
+ "patch": "if state.active: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._update_external_heat_detection",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._update_external_heat_detection@5234-5234",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3495.1,
+  "load1_start": 0.4,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5733.7,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/gates/f2a191b48718e088.json",
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f2a191b48718e088",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py",
+  "baseline": "(1, False)",
+  "mutant": "(0, False)",
+  "inputs_tried": [
+   "detector active",
+   "detector inactive (null)"
+  ],
+  "result_lines": [
+   "RESULT active_baseline=(debugs,flag)(1, False)",
+   "RESULT active_mutant=(debugs,flag)(0, False)",
+   "RESULT null_moved=0 count (detector inactive)",
+   "RESULT probe_cpu_s=0.01 s provisional",
+   "RESULT thread_factor=0.993",
+   "RESULT load1=1.12",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": {
+  "scripts_executing_line": [
+   "tests/block_duty.py",
+   "tests/boost_drift_replay.py",
+   "tests/config_flow_steps.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/finite_boundary.py",
+   "tests/manual_plan.py",
+   "tests/solar_alignment.py"
+  ],
+  "source": "dev/audit/rounds/round11/D3/s1/state/reach.tsv (traced baseline, exec= column)",
+  "assertion_lacking": "none of the eight executing scripts reads the coordinator's DEBUG log; the line only chooses whether a debug record is emitted"
+ },
+ "carried_m4": "see m4_source; re-answered here with the executed probe",
+ "finding": {
+  "title": "No check reads the external-heat DEBUG record; disabling it is unseen (detector state unaffected)",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "claim": "Mutant f2a191b48718e088 at coordinator.py:5234 (if state.active: -> if False:) turns the full GATE_SCOPE=full GOLDEN_MODE=drift gate red only on the null control scripts (RED-AS-NULL: no script beyond the null), yet the probe's number moves: baseline (1, False), mutant (0, False).",
+  "mechanism": "Check that should have failed (D3.M4): none of the eight executing scripts reads the coordinator's DEBUG log; the line only chooses whether a debug record is emitted. Executing scripts (traced baseline): tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/entities.py, tests/features.py, tests/finite_boundary.py, tests/manual_plan.py, tests/solar_alignment.py.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "DEBUG 'External heat source active' records and _external_heat_active after one _update_external_heat_detection call whose detector reports active",
+  "phenomenon_property": "An active external heat source is logged at DEBUG with its source and evidence",
+  "seam_rule": "for f in dev/audit/rounds/round11/D3/s1/wave/*/results/*.json; do python3 -c \"import json,sys;d=json.load(open(sys.argv[1]));print(d['key'],d['site']) if d['class']=='candidate' else None\" $f; done",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_external_heat_detection",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py",
+   "value": 0,
+   "unit": "DEBUG records",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g10: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the probe ran in a separate baseline worktree while this box's gates ran; gate walls provisional"
+  },
+  "perturbation": {
+   "change": "mutant f2a191b48718e088 applied in memory by the probe; full gate: fullgate.py run --src complete --key f2a191b48718e088",
+   "expected_direction": "down",
+   "observed_value": 0
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py",
+   "value": "0 count (detector inactive)",
+   "note": "detector inactive: null_moved=0"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f2a191b48718e088"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/features.py at the input above that pins the baseline value ((1, False))",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}
