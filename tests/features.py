@@ -65650,9 +65650,9 @@ async def _r11ar_drive(c, null=False, duties="dd--dd--", disinfect=False, idle=T
 
 
 def _r11ar_window(start_h, end_h):
-    """A circulation window from T0+start_h to T0+end_h on the wall clock of the stub's zone (HASTUB_TZ):
-    windows are local text and T0 a fixed instant, so a literal window misses the clock in another zone
-    (the nightly runs this under Asia/Kolkata)."""
+    """A circulation window from T0+start_h to T0+end_h on the wall clock of the stub's zone (HASTUB_TZ).
+    Windows are local text and T0 a fixed instant: a literal window misses the clock in another zone, and the
+    nightly runs this under Asia/Kolkata."""
     from homeassistant.util import dt as zone
 
     def at(h):
@@ -79141,8 +79141,8 @@ R.check(
 
 # ---- R11-SEAM-actuation-writes G (design notes 5, 7, 10) ----
 # Note 5: the disinfection notice stands or clears with the confirmed cycle within one cycle, whatever order the
-# follower and check_overdue run in; note 7: the map folds a sent value into the bucket of the value on the entity's
-# grid; note 10: a tick queued across a solve changes nothing in a step, writes the newer step's action across a
+# follower and check_overdue run in. Note 7: the map folds a sent value into the bucket of the value on the entity's
+# grid. Note 10: a tick queued across a solve changes nothing in a step, writes the newer step's action across a
 # boundary, and the gate refuses it over an experiment's override. A symbol the base lacks fails its check by name.
 _R11AWG_PLANT = (_R11AWB_PLANT, _R11AWB_DISPLACE, _r11awb_coord, _r11awb_plan, _r11awb_cycle, _r11awb_tick, _r11awb_vals, _r11awb_Opt, _r11ar_aio, _r11ar_dt,
                  _r11ar_pa, _r11ar_try, _r11ar_ok, _r11ar_settle, _r11ar_replace, _r11ar_Reader, _r11ar_states, boost_mod,

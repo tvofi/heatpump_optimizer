@@ -7635,7 +7635,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             np.clip(displace_value, self._ecl110_displace_min, self._ecl110_displace_max)
         )
         displace_int = int(round(displace))
-        last_on = (self._ecl110_last_payload.get("command") or {}).get("heat_pump_on")
+        last_on = self._ecl110_last_payload.get("command", {}).get("heat_pump_on")
         if boundary and float(displace_int) == self._ecl110_current_displace and last_on == bool(heat_pump_on):
             return
 
@@ -7665,9 +7665,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _cut_action(self, by: HeatPumpOptimizer | None = None) -> None:
         """The one cut of the live plan, stamping the step; a re-cut (no ``by``) re-lays a boost."""
-        now = dt_util.now()
-        cutter = by or HeatPumpOptimizer(self._thermal_model, _ctx_of(self)._opt_config)
-        boost.adopt_plan(self, cutter.get_current_action(self._optimization_result, now))
+        plan, now = self._optimization_result, dt_util.now()
+        if plan is not None:
+            boost.adopt_plan(self, (by or HeatPumpOptimizer(self._thermal_model, _ctx_of(self)._opt_config)).get_current_action(plan, now))
         pump_arbiter.stamp_step(pump_arbiter.state_for(self), now)
         if by is None:
             self._overlay_boost()
@@ -10793,7 +10793,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._freq_map.observe(
             reported, float(self._measured_power), hz_min, hz_max
         )
-    async def _command_frequency(self) -> bool | None:
+    async def _command_frequency(self) -> bool:
         """The control stage's single write path — every rail in one place.
 
         Rate-limited to one write per five minutes, clamped to the
@@ -10804,13 +10804,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entity_id = getattr(self, "_ctx", self)._config.compressor_freq_entity
         if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or _plan_let_go(self) \
                 or not delivers_to(self.hass.states.get(entity_id)):  # a skipped write is never recorded (D16-s1-05)
-            return
+            return False
         _reported, hz_min, hz_max, _source = self._freq_entity_reading()
         target = self._freq_map.recommend(
             self._commanded_power() or 0.0, hz_min, hz_max
         )
         if target is None:
-            return
+            return False
         # On the entity's step and range before the dedup: the record is the value sent (D16-s1-01).
         target = on_entity_grid(self.hass, entity_id, float(np.clip(target, hz_min, hz_max)))
         now = dt_util.now()
@@ -10826,14 +10826,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 lambda hz: self.hass.services.async_call(
                     "number", "set_value", {"entity_id": entity_id, "value": hz}, blocking=True),
             ):
-                return
+                return False
         except Exception as err:  # noqa: BLE001 - never break the cycle
             _LOGGER.error("Error commanding compressor frequency: %s", err)
-            return
+            return False
         self._freq_last_write = now
-        _LOGGER.info(
-            "Commanded compressor frequency %.1f Hz via %s", target, entity_id
-        )
+        _LOGGER.info("Commanded compressor frequency %.1f Hz via %s", target, entity_id)
+        return False
 
     def _freq_view(self) -> FreqControl:
         """#61's publication: the map, the stage, and what control WOULD do.

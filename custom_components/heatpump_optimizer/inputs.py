@@ -750,9 +750,9 @@ def quantise_setpoint_c(
 async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     """Write ``value``, already in the entity's own unit, to a set-point entity.
 
-    The one service call every set-point write goes through, so the value
+    The one service call every set-point write goes through. The value
     sent is on the entity's step inside its range (:func:`on_entity_grid`,
-    whole degrees where it states no step) -- a whole one as an integer, which a pump that takes no
+    whole degrees where it states no step); a whole one is sent as an integer, which a pump that takes no
     decimals accepts. ``False``, and nothing called, for a domain with no
     set-point service.
     """

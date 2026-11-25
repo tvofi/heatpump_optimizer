@@ -193,9 +193,9 @@ from .arbiter_record import (
     OWN_MODES as _OWN_MODES,
     SLOTS as _SLOTS,
     STATES as _STATES,
-    ArbiterState,
+    ArbiterState as ArbiterState,
     FeedbackRun,
-    state_for,
+    state_for as state_for,
     store_of,
 )
 
@@ -2119,11 +2119,11 @@ async def _step_writes(held: ArbiterState, wiring: SupplyWiring, now: datetime, 
     (a mode, a stale plan, an experiment, a released entry) refused: Off and a
     stale plan are the release's (D16-s2-01, D16-s2-02)."""
     step, inp = plan_step_start(now), wiring.inputs()
-    ran = not inp.entry_released and step_gate(inp, now) and wiring.tail is not None
-    if ran and held.step_cut != step:
+    run = wiring.tail if not inp.entry_released and step_gate(inp, now) else None
+    if run is not None and held.step_cut != step:
         wiring.recut()
-    held.step_cut, held.step_pending = step, bool(ran and await wiring.tail(**tail))
-    return ran
+    held.step_cut, held.step_pending = step, bool(run is not None and await run(**tail))
+    return run is not None
 
 
 async def step_transition(

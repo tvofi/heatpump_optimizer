@@ -1173,6 +1173,14 @@ def hysteresis_checks() -> None:
     stray, bad_calls, sites = [], [], 0
     for path in sorted(root.glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
+        # A module's own one-line reader of the lift (pump_arbiter._floor_lift_k, read by the floor write and
+        # the full-draw set-point alike, class P3) is the owner's call one level down: its body is only
+        # ``return start_flow_min_lift_k(...)``.
+        owners = {"start_flow_min_lift_k"} | {
+            f.name for f in tree.body if isinstance(f, ast.FunctionDef)
+            and [type(x) for x in f.body if not isinstance(x, ast.Expr)] == [ast.Return]
+            and isinstance(f.body[-1].value, ast.Call)
+            and getattr(f.body[-1].value.func, "id", None) == "start_flow_min_lift_k"}
         for node in ast.walk(tree):
             names = {getattr(node, "id", None), getattr(node, "attr", None)}
             if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -1189,7 +1197,7 @@ def hysteresis_checks() -> None:
                 (k.value for k in node.keywords if k.arg == "lift_k"), None)
             callee = None if not isinstance(third, ast.Call) else (
                 getattr(third.func, "id", None) or getattr(third.func, "attr", None))
-            if callee != "start_flow_min_lift_k":
+            if callee not in owners:
                 bad_calls.append((path.name, node.lineno))
     check("precondition: the census finds a call of modulation_floor_flow_c outside thermal_model",
           lambda: sites >= 1)
