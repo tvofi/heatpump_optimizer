@@ -1,0 +1,9 @@
+head ef591eaa117c9fb901cdb2f37844a94e921a35d3, full tests/features.py (6159 checks) per mutant, each in its own worktree under /root/mut.
+base: 1 of 6159 FAILED -- "_bootstrap drops the package directory so datetime is stdlib" (worktree path environmental; same row in every run, subtracted below)
+m1 _settle drops `_return_unit(inp.config) or`: KILLED (+3: STEP-KICK T6, the learner-gate margin row, the R11-OWNER-STEP-KICK flow-swap gate check)
+m2 _settle drops `or _experiment_kw(inp) is not None`: KILLED (+1: STEP-KICK T6, probe=44.0)
+m3 _pass_record `_settle(held, inp)` -> `held.served`: SURVIVED (1 of 6159, the environmental row only)
+m4 desired() `settle=_settle(state_for(coord) if flow else None, inp)` -> `state_for(coord).served if flow else None`: KILLED (+2)
+Non-equivalence of m3 (probe, ev/probe_pass_record.diff, appended to the STEP-KICK block, run with features_block.py):
+  head: experiment step (flow) floor_c (settled, unsettled) = (59.0, 59.0); return target (59.0, 59.0); null control plain flow (34.0, 59.0)
+  m3:   experiment step (flow) (34.0, 59.0); return target (34.0, 59.0); plain flow (34.0, 59.0)
