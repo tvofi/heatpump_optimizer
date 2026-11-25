@@ -7658,7 +7658,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         nudge = PEAK_GUARD_DISPLACE_NUDGE_C if self._peak_guard.suppressing else 0.0
         await self.async_publish_ecl110_command(
-            float(action.get("displace_value", 0.0)) - nudge, self._cycle_on(), reason, boundary)
+            displace_value=float(action.get("displace_value", 0.0)) - nudge,
+            heat_pump_on=self._cycle_on(), reason=reason, boundary=boundary)
 
     def _cycle_on(self) -> bool:
         return pump_arbiter.cycle_supply(self.arbiter_inputs(), boost.held_for(self), bool((self._current_action or {}).get("heat_pump_on", False)))

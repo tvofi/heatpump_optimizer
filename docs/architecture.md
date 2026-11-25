@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 101 modules, of which 36 import the
+knows nothing about Home Assistant: 102 modules, of which 37 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -199,6 +199,8 @@ custom_components/heatpump_optimizer/
 │                         #   integration asks
 ├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
 │                         #   plan step, and stands down on a manual change
+├── arbiter_record.py     # The arbiter's held record per coordinator and
+│                         #   its store: what it wrote, reloaded on restart
 ├── duty_ledger.py        # The arbiter's step verdicts: what the pump did
 │                         #   over one step against the plan
 ├── supply_hold.py        # The supply switch's minimum run and pause, held
@@ -292,10 +294,10 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-36 of the 101 modules import `homeassistant` at module level: `__init__`,
+37 of the 102 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
-and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
+and the supporting modules `accuracy`, `arbiter_record`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
 `dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `number_restore`, `off_restore`, `pump_arbiter`, `repairs`, `room_record`, `running_signal`, `services`,
 `store`, `supply_hold`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
