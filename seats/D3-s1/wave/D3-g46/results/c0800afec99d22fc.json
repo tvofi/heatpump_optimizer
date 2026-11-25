@@ -1,0 +1,29 @@
+{
+ "key": "c0800afec99d22fc",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND",
+ "patch": "if drawn > delivered > 0.0: -> if drawn >= delivered > 0.0:",
+ "function": "_valve_two_zone_delivery",
+ "cluster": "thermal_model.py:_valve_two_zone_delivery@2554-2598",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3384.7,
+  "load1_start": 0.85,
+  "load1_end": 0.92
+ },
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "provisional": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c0800afec99d22fc.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c0800afec99d22fc.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 0,
+  "n_inputs": null,
+  "null_n_differing": null,
+  "first_difference": null,
+  "inputs_tried": "grid in probes/_mut.py (see generator for the function), ties and zero/non-finite-adjacent values included"
+ },
+ "class": "equivalent-candidate",
+ "why": "drawn==delivered gives scale 1.0 (identity); delivered==0 gives scale 0.0 and the emitters are zeroed exactly as the elif branch does"
+}
