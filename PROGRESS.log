@@ -21,3 +21,4 @@
 1795632414 CKPT ci_predict re-measured: 42 sites, 7 relocated keys snapshot 09d1961196d6
 1795633687 CKPT entities 2766 PASSED; mutants 41/0; gate running snapshot 164f06619250
 1795635930 CKPT pushed handoff 0c8d0bd41e6b and body c9e58bb9 snapshot 418632fc0baf
+1795635943 DONE returned: handoff/r11-owner-fault-hold 0c8d0bd41e6ba209371052fb874129d2ec1cbc1a (mm/3872 merge of main 91773476), body c9e58bb9; resolution delta git diff 3c89b84f7bd8 0c8d0bd41e6b; entities 2766 PASSED, structure flat, mutants 41/0, scoped gate green, 42 unpinned sites re-keyed (7 moved)
