@@ -11221,10 +11221,10 @@ _u_up = _m_dp.effective_heat_loss_coefficient(
 _u_lo = _m_dp.effective_heat_loss_coefficient(
     _p_dp.lower_floor_heat_loss_learned, 0.0, 0.0
 )
-_fs_c = _mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-5.0,
-    heat_loss_coefficient=_u_up + _u_lo, emitter_ua=_ua_tot,
-)
+# The plant's own curve (R11-SEAM-two-zone-slab: the slab in series, the gains),
+# read from production rather than re-derived here.
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _vdc_c  # noqa: E402
+_fs_c = _vdc_c(_m_dp, _st_c, -5.0, 0.0, 0.0)[0][1]
 _tmix_c = min(50.0, _fs_c)
 _q_del = _mv.emitter_delivery(
     mix_temp=_tmix_c, zone_temp=21.0, ua=_ua_rad
@@ -11252,6 +11252,9 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     _Horizon,
     _price_ranked_start,
 )
+
+
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _valve_draw_circuits_s  # noqa: E402
 
 
 def _storage_plan(price_profile, two_zone=True):
@@ -11296,6 +11299,7 @@ def _storage_plan(price_profile, two_zone=True):
     pw = np.asarray(r.power_schedule)
     _, _, _, _, buf, _, _ = m.simulate_trajectory(
         st, pw, _WS(outdoor, zeros, zeros, zeros), dt_hours=0.25)
+    _storage_plan.curve = _valve_draw_circuits_s(m, st, -10.0, 0.0, 0.0)[0][1]
     night = float(pw[hours < 5].sum() * 0.25)
     peaks = float(
         pw[((hours >= 7) & (hours < 10)) | ((hours >= 16) & (hours < 20))].sum()
@@ -11305,16 +11309,20 @@ def _storage_plan(price_profile, two_zone=True):
 
 
 _night_s, _peak_s, _buf_s = _storage_plan("spread")
+_curve_s = _storage_plan.curve
 _night_f, _peak_f, _buf_f = _storage_plan("flat")
 R.check(
     "with a price spread the optimizer charges through the cheap night",
     _night_s > 22.0,
     f"bought {_night_s:.1f} kWh of a possible 30 in the 00-05 trough",
 )
+# Above the curve it feeds, the tank holds heat the emitters do not take yet:
+# a margin over the 25 C start encoded the curve in force when it was written
+# (R11-SEAM-two-zone-slab's curve sits higher and drains the tank lower).
 R.check(
-    "and deliberately lifts the tank to do it",
-    float(_buf_s.max()) > 25.0 + 8.0,
-    f"tank peaked at {float(_buf_s.max()):.1f} C from a 25 C start",
+    "and deliberately lifts the tank to do it, above the curve it feeds",
+    float(_buf_s.max()) > max(25.0, _curve_s) + 1.0,
+    f"tank peaked at {float(_buf_s.max()):.1f} C from a 25 C start, curve {_curve_s:.2f} C",
 )
 R.check(
     "and coasts both price peaks on stored heat",
@@ -13611,10 +13619,7 @@ _ff = _write_coord(
 )
 _ff._current_state.outdoor_temperature = -5.0
 _asyncio.run(_ff._command_valve_target())
-_expected_flow = _mv.flow_setpoint(
-    target_temp=23.5, outdoor_temp=-5.0,
-    heat_loss_coefficient=0.20, emitter_ua=10.0 / 15.0,
-)
+_expected_flow = _ff._thermal_model.flow_target_for_indoor(23.5, -5.0)
 R.check(
     "'flow' commands the flow curve's temperature, not the raw indoor target",
     bool(_ff.hass.services.calls)
@@ -16410,18 +16415,9 @@ _w2t_ua_tot = (
 )
 _w2t_ua_rad = _w2t_p_c.radiator_power_fraction * _w2t_ua_tot
 _w2t_ua_floor = (1.0 - _w2t_p_c.radiator_power_fraction) * _w2t_ua_tot
-_w2t_fs = _w2t_mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-15.0,
-    heat_loss_coefficient=(
-        _w2t_m_c.effective_heat_loss_coefficient(
-            _w2t_p_c.upper_floor_heat_loss
-        )
-        + _w2t_m_c.effective_heat_loss_coefficient(
-            _w2t_p_c.lower_floor_heat_loss_learned
-        )
-    ),
-    emitter_ua=_w2t_ua_tot,
-)
+# The plant's own curve, read from production (R11-SEAM-two-zone-slab).
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _w2t_vdc  # noqa: E402
+_w2t_fs = _w2t_vdc(_w2t_m_c, _w2t_s0, -15.0, 0.0, 0.0)[0][1]
 _w2t_tmix = min(
     max(_w2t_s0.wood_tank_temperature, _w2t_s0.buffer_tank_temperature),
     _w2t_fs,
@@ -47989,7 +47985,7 @@ _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
     # The literal is the persisted stamp this release writes: a bump is deliberate.
-    _sb_meta == {"sum": 4.0, "count": 1} and _SB_NOW == 4 and _sb_row["old_basis"] is False
+    _sb_meta == {"sum": 5.0, "count": 1} and _SB_NOW == 5 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
@@ -48012,9 +48008,11 @@ R.check(
 # two-zone reference at the valve top: a month it opened mixes two references
 # once it books on under this code. A stamp 3.0 held a single-zone valved house
 # short of its setpoint, before R11-VALVE-REFERENCE's curve reached it. A stamp
-# 4.0, this release's, keeps its saving.
+# 4.0 held a two-zone house whose valve feeds the slab short of its setpoint,
+# before R11-SEAM-two-zone-slab's curve reached it. A stamp 5.0, this release's,
+# keeps its saving.
 _sb_by_stamp = {}
-for _sb_stamp in (2.0, 3.0, 4.0):
+for _sb_stamp in (2.0, 3.0, 4.0, 5.0):
     _sb_s = _sb_copy.deepcopy(_sb_led.as_dict())
     _sb_s["months"]["2026-02"]["meta"][_SB_META] = {"sum": _sb_stamp, "count": 1}
     _sb_s_led = _SavLedger.from_dict(_sb_s)
@@ -48038,10 +48036,18 @@ R.check(
 )
 _sb_v4_row, _sb_v4_meta = _sb_by_stamp[4.0]
 R.check(
-    "a month stamped 4, the reference in force, keeps stating its saving as it books on",
-    _sb_v4_row["old_basis"] is False and _sb_v4_row["savings_sek"] is not None
-    and _sb_v4_row["savings_pct"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
+    "a month stamped 4, booked before the two-zone valve-fed slab reached its setpoint, states no saving after the change",
+    _sb_v4_row["old_basis"] is True and _sb_v4_row["savings_sek"] is None
+    and _sb_v4_row["savings_pct"] is None and _sb_v4_row["baseline_sek"] is not None
+    and _sb_v4_row["actual_sek"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
     repr(_sb_by_stamp[4.0]),
+)
+_sb_v5_row, _sb_v5_meta = _sb_by_stamp[5.0]
+R.check(
+    "a month stamped 5, the reference in force, keeps stating its saving as it books on",
+    _sb_v5_row["old_basis"] is False and _sb_v5_row["savings_sek"] is not None
+    and _sb_v5_row["savings_pct"] is not None and _sb_v5_meta == {"sum": 5.0, "count": 1},
+    repr(_sb_by_stamp[5.0]),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
@@ -48165,14 +48171,164 @@ R.check(
     "the booked reference reproduces its recorded digest on every pinned install "
     "(a change re-records it and bumps REFERENCE_BASIS)",
     _vr_digests == {
-        "install +5": "2f088060f8fe63dd",
-        "install -15": "35cc1d0d71a4414b",
+        "install +5": "b7300f2dfadef8eb",
+        "install -15": "c94024cf8a5fa259",
         "one-tank +5": "ba516c4bb8328b78",
         "one-tank -15": "cb3e0ea30949c952",
         "no valve +5": "514d1532f1b30760",
         "no valve -15": "0e396b7d1cc59e1a",
     },
     repr(_vr_digests),
+)
+# R11-SEAM-two-zone-slab (#3713): a two-zone valve feeds the radiators and the
+# slab, which reaches the lower floor through `slab_heat_transfer` in series.
+# One flow feeds two unequal paths, so the curve holds what the thermostat reads,
+# the area-weighted room; the house's `internal_gains` are in it, as in the
+# single-zone branch. (a) to (d) on the owner's replay install, whose valve is
+# `manual` at 21 C; the law uses `slab_heat_transfer_floored`, which equals
+# `slab_heat_transfer` on every install above 1e-6 kW/K, this one included.
+# The install's upper-floor area ratio is 0.5, where the law's r and 1 - r arms
+# are interchangeable. So (a), (b) and (d) also run it at 0.3/0.7 and 0.7/0.3,
+# where gains or losses weighted to the wrong floor miss 21 C.
+def _tz_install(**over):
+    return ThermalParameters.from_config(_tz_replay(**over))
+
+
+_TZ_SPLITS = (("install", {}),
+              ("split 0.3/0.7", {"upper_floor_area_ratio": 0.3, "radiator_power_fraction": 0.7}),
+              ("split 0.7/0.3", {"upper_floor_area_ratio": 0.7, "radiator_power_fraction": 0.3}))
+
+
+def _tz_split(over):
+    _tz_q = _tz_install()
+    for _tz_k, _tz_v in over.items():
+        setattr(_tz_q, _tz_k, _tz_v)
+    return _tz_q
+
+
+from profiles import replay_install as _tz_replay  # noqa: E402
+
+
+def _tz_holds():
+    from heatpump_optimizer.optimizer import _thermostat_held_state as _tz_held
+
+    _tz_n = 960
+    _tz_out = {}
+    for (_tz_name, _tz_over), _tz_outdoor in (
+            (_s, _o) for _s in _TZ_SPLITS for _o in (5.0, -5.0, -15.0)):
+        _tz_p = _tz_split(_tz_over)
+        _tz_model = ThermalModel(_tz_p)
+        _tz_start = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_tz_outdoor,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _tz_w = WeatherSeries(
+            outdoor_temps=np.full(_tz_n, _tz_outdoor), wind_speeds=np.full(_tz_n, 3.0),
+            precipitation=np.zeros(_tz_n), solar_radiation=np.zeros(_tz_n))
+        _tz_h = _tz_held(_tz_model, _tz_start, _tz_w, 21.0)
+        _tz_s = _tz_h
+        for _ in range(_tz_n):
+            _tz_s = _tz_model.simulate_step(
+                _tz_s, _tz_p.max_electrical_power, _tz_outdoor, 3.0, 0.0, 0.0, 0.25)
+        _tz_b = _tz_model.simulate_trajectory_batch(
+            _tz_h, np.full((1, _tz_n), _tz_p.max_electrical_power), _tz_w, dt_hours=0.25)
+        _tz_out[(_tz_name, _tz_outdoor)] = (
+            _tz_h.room_temperature, _tz_s.room_temperature, float(_tz_b["room"][0, -1]))
+    return _tz_out
+
+
+_tz_p = _tz_install()
+_tz_holds_out = _tz_holds()
+R.check(
+    "two-zone valve-fed slab: the plant at its pump, settled, holds the room at the "
+    "valve's 21 C within 0.02 K, scalar step and batch twin",
+    _tz_p.two_zone_enabled and not _tz_p.slab_fed_direct and _tz_p.mixing_valve_target == 21.0
+    and all(abs(_tz_sc - 21.0) < 0.02 and abs(_tz_bt - 21.0) < 0.02
+            for _, _tz_sc, _tz_bt in _tz_holds_out.values()),
+    ", ".join(f"{n} {o:+.0f} C scalar {sc:.4f} batch {bt:.4f}"
+              for (n, o), (_, sc, bt) in _tz_holds_out.items()),
+)
+R.check(
+    "two-zone valve-fed slab: a thermostat set to 21 C holds 21 C behind it",
+    all(abs(_tz_room - 21.0) < 1e-3 for _tz_room, _, _ in _tz_holds_out.values()),
+    ", ".join(f"{n} {o:+.0f} C {r:.4f}" for (n, o), (r, _, _) in _tz_holds_out.items()),
+)
+
+
+def _tz_unchanged():
+    from heatpump_optimizer.thermal_model import _valve_draw_circuits
+    from profiles import house as _tz_house
+
+    _tz_carnot = ThermalParameters.from_config({
+        **_tz_house(), "flow_curve_cop_enabled": True, "heat_pump_max_power": 3.0,
+        "upper_floor_heat_loss": 0.2, "lower_floor_heat_loss": 0.2})
+    _tz_carnot.flow_curve_bias = 5.0
+    _tz_cases = {
+        "direct_flow_carnot": _tz_carnot,
+        "install direct slab": _tz_install(
+            topology_layout="valve_upper_direct_slab",
+            wood_tank_top_entity=None, wood_tank_bottom_entity=None),
+    }
+    _tz_out = {}
+    for _tz_name, _tz_q in _tz_cases.items():
+        _tz_m = ThermalModel(_tz_q)
+        _tz_st = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=-5.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _tz_row = [_tz_m.flow_target_for_indoor(21.0, o) for o in (5.0, -5.0, -15.0)]
+        if _tz_q.slab_fed_direct:
+            _tz_row.append(_valve_draw_circuits(_tz_m, _tz_st, -5.0, 3.0, 0.0)[0][1])
+            _tz_s = _tz_st
+            for _ in range(96):
+                _tz_s = _tz_m.simulate_step(
+                    _tz_s, _tz_q.max_electrical_power, -5.0, 3.0, 0.0, 0.0, 0.25)
+            _tz_row += [_tz_s.upper_floor_temperature, _tz_s.lower_floor_temperature,
+                        _tz_s.slab_temperature, _tz_s.buffer_tank_temperature]
+        _tz_out[_tz_name] = tuple(_tz_row)
+    return _tz_out
+
+
+# Literals recorded at 78d3b4022154 (R11-SEAM-two-zone-slab's base): the
+# unvalved curve and the direct slab's curve and 96-step day keep their bits.
+_tz_same = _tz_unchanged()
+R.check(
+    "two-zone valve curve: an unvalved install's curve and a direct slab's curve and day keep their bits",
+    _tz_same == {
+        "direct_flow_carnot": (30.142857142857146, 35.85714285714286, 41.57142857142857),
+        "install direct slab": (
+            23.1, 24.4125, 25.725, 24.631875, 30.367533973730524, 35.368439723147205,
+            44.028566572860214, 56.0),
+    },
+    repr(_tz_same),
+)
+
+
+def _tz_curve_agrees():
+    from heatpump_optimizer.thermal_model import _valve_draw_circuits
+
+    _tz_out = {}
+    for _tz_name, _tz_over in _TZ_SPLITS:
+        _tz_q = _tz_split(_tz_over)
+        _tz_m = ThermalModel(_tz_q)
+        _tz_st = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=0.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        for _tz_outdoor in (5.0, -5.0, -15.0):
+            _tz_out[(_tz_name, _tz_outdoor)] = (
+                _tz_m.flow_target_for_indoor(21.0, _tz_outdoor),
+                _valve_draw_circuits(_tz_m, _tz_st, _tz_outdoor, 0.0, 0.0)[0][1])
+    return _tz_out
+
+
+# Within 1e-9 K, not bitwise: the plant passes its circuits' two conductances
+# summed, the reporter the nameplate's one, which differ by an ulp.
+_tz_agree = _tz_curve_agrees()
+R.check(
+    "two-zone valve curve: the curve the model reports is the plant's own, at zero wind and rain",
+    all(abs(_tz_rep - _tz_plant) < 1e-9 for _tz_rep, _tz_plant in _tz_agree.values()),
+    repr(_tz_agree),
 )
 # R11-VALVE-REFERENCE (carries 0, 1): a single-zone valve feeds the slab, which
 # reaches the room through `slab_heat_transfer` in series, and the house's own
@@ -65427,6 +65583,206 @@ R.check(
     and 90 > _PA_FLOW_HEAT_C_MAX,
     f"{_pa_bl_offer=}",
 )
+# R11-OWNER-FLOWCAP (tvofi, 2026-11-22: "add an option to manually configure the
+# high-limit if there is no such sensor"). The space water set-point's high limit is
+# flow_limit's: the controller's sensor and the manual option, each judged alone (a
+# limit under the lowest heating write is dropped, one equal to it kept), then the
+# lower of the two. The gate is bounded up to the entity's minimum, so a limit under
+# that minimum is under the lowest heating write too, and dropped. Heating
+# writes, a boost and the feedback loop stay under it; the gate, the draw-range
+# ceiling and an indoor unit do not read it. Synthetic numbers throughout; 48 is
+# the fixture's hot-water write, so no limit here is 48.
+from heatpump_optimizer import flow_limit as _fl  # noqa: E402
+from heatpump_optimizer import draw_range as _fl_dr  # noqa: E402
+from heatpump_optimizer.const import CONF_SPACE_SETPOINT_HIGH_LIMIT_C as _FL_KEY  # noqa: E402
+
+_fl_pure = {
+    "both, option lower": _fl.high_limit(52.0, 46.0, 27.0),
+    "both, sensor lower": _fl.high_limit(52.0, 58.0, 27.0),
+    "option only": _fl.high_limit(None, 46.0, 27.0),
+    "neither": _fl.high_limit(None, None, 27.0),
+    "sensor under lowest": _fl.high_limit(26.0, 46.0, 27.0),
+    "option under lowest": _fl.high_limit(52.0, 26.0, 27.0),
+    "sensor at lowest": _fl.high_limit(27.0, None, 27.0),
+}
+R.check(
+    "R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is "
+    "dropped and named with the other in force, one equal to it kept; null control: neither source is no limit",
+    {k: tuple(v) for k, v in _fl_pure.items()} == {
+        "both, option lower": (46.0, ()), "both, sensor lower": (52.0, ()),
+        "option only": (46.0, ()), "neither": (None, ()),
+        "sensor under lowest": (46.0, ("sensor",)), "option under lowest": (52.0, ("option",)),
+        "sensor at lowest": (27.0, ()),
+    },
+    f"{_fl_pure=}",
+)
+_fl_opts = [_fl.option_c(v) for v in (29.5, 30, 70, 70.5, "x", None, "46")]
+R.check(
+    "R11-OWNER-FLOWCAP: the option reads only inside the 30-70 degC the options flow offers; "
+    "outside it, not a number, or unset is no option",
+    _fl_opts == [None, 30.0, 70.0, None, None, None, 46.0],
+    f"{_fl_opts=}",
+)
+
+
+def _fl_coord(kw=1.0, how=None, attrs=None, option=None, sensor=None, low_sensor=None, unit="flow"):
+    """One pass on a two-step space plan at ``kw`` of a 0.4-2.0 kW band; the space writes."""
+    coord = _PaCoord(_PA_TUYA, duties="ss")
+    coord.hass.states.set("number.water_set", FakeState("40", attributes=attrs or {"min": 25, "max": 70}))
+    coord._optimization_result.power_schedule = [kw, kw]
+    coord._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None,
+                                  min_electrical_power=0.4, max_electrical_power=2.0)
+    extra = {"space_setpoint_unit": unit}
+    if option is not None:
+        extra[_FL_KEY] = option
+    for key, entity, value in (("space_setpoint_high_limit_entity", "sensor.fl_hi", sensor),
+                               ("space_setpoint_low_limit_entity", "sensor.fl_lo", low_sensor)):
+        if value is not None:
+            extra[key] = entity
+            coord.hass.states.set(entity, FakeState(str(value), unit="°C"))
+    with_config(coord, extra)
+    if how == "channel":
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    _pa_run(coord, 1)
+    return coord, [v for d, _sv, v in coord.writes() if d == "number" and v != 48.0]
+
+
+_fl_boost = {
+    name: _fl_coord(how="channel", **kw)[1]
+    for name, kw in {
+        "option 46": {"option": 46}, "sensor 52, option 46": {"sensor": 52, "option": 46},
+        "sensor 52, option 58": {"sensor": 52, "option": 58},
+        "sensor unavailable, option 46": {"sensor": "unavailable", "option": 46},
+        "crossed pair, option 58": {"sensor": 52, "low_sensor": 60, "option": 58},
+        "option 70 over a 60 maximum": {"option": 70, "attrs": {"min": 25, "max": 60}},
+        "neither": {},
+    }.items()
+}
+R.check(
+    "R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, "
+    "the option where the sensor is unavailable or its pair crossed, and never above the entity's "
+    "maximum; null control: with neither it writes the entity's maximum, 70",
+    _fl_boost == {
+        "option 46": [46], "sensor 52, option 46": [46], "sensor 52, option 58": [52],
+        "sensor unavailable, option 46": [46], "crossed pair, option 58": [58],
+        "option 70 over a 60 maximum": [60], "neither": [70],
+    },
+    f"{_fl_boost=}",
+)
+_fl_top = {o: _fl_coord(kw=2.0, option=o)[1] for o in (46, 58, None)}
+R.check(
+    "R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating "
+    "ceiling; null controls: an option above the ceiling and no option both write the ceiling",
+    _fl_top == {46: [46], 58: [55], None: [55]},
+    f"{_fl_top=}",
+)
+_fl_min = {}
+for _name, _attrs in (("min 40", {"min": 40, "max": 70}), ("min 41, step 5", {"min": 41, "max": 70, "step": 5})):
+    _c, _w = _fl_coord(how="channel", option=35, attrs=_attrs)
+    _fl_min[_name] = (_w, _pa.state_for(_c).written["space_setpoint"][0])
+_c, _w = _fl_coord(how="channel", option=45, attrs={"min": 40, "max": 70})
+_fl_min["option 45 over min 40"] = (_w, _pa.state_for(_c).written["space_setpoint"][0])
+R.check(
+    "R11-OWNER-FLOWCAP: an option under the entity's minimum (35 under 40, and under 41 on a 5-degree step) "
+    "is under the gate the minimum lifts, so it is dropped and a boost writes the entity's maximum, never a "
+    "value under the minimum, with the record equal to what was sent; null control: an option over the "
+    "minimum is written as itself",
+    _fl_min == {"min 40": ([70], 70.0), "min 41, step 5": ([70], 70.0), "option 45 over min 40": ([45], 45.0)},
+    f"{_fl_min=}",
+)
+def _fl_ceiling_coord(option):
+    coord = _PaCoord(_PA_TUYA, duties="ss")
+    coord.hass.states.set("number.water_set", FakeState("40", attributes={"min": 25, "max": 60}))
+    coord._optimization_result.power_schedule = [2.0, 2.0]
+    coord._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None,
+                                  min_electrical_power=0.4, max_electrical_power=2.0)
+    extra = {"space_setpoint_unit": "flow", "flow_heat_c": 70}
+    if option is not None:
+        extra[_FL_KEY] = option
+    with_config(coord, extra)
+    _pa_run(coord, 1)
+    return [v for d, _sv, v in coord.writes() if d == "number" and v != 48.0], \
+        _pa.state_for(coord).written["space_setpoint"][0]
+
+
+_fl_over = {o: _fl_ceiling_coord(o) for o in (65, 50, None)}
+R.check(
+    "R11-OWNER-FLOWCAP: a limit above the entity's own maximum never lifts a heating write past it: a "
+    "band-top step under a 70 degC heating ceiling with option 65 on a 60 maximum writes and records 60, "
+    "not 65 (which the entity would read back as 60, an edit); option 50 writes 50; null control: no "
+    "option writes the maximum, 60",
+    _fl_over == {65: ([60], 60.0), 50: ([50], 50.0), None: ([60], 60.0)},
+    f"{_fl_over=}",
+)
+_fl_part = {o: _fl_coord(kw=1.2, option=o)[1] for o in (46, None)}
+R.check(
+    "R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the "
+    "limit and the unlimited level's value, not on the limit itself; null control: no option maps on 55",
+    len(_fl_part[46]) == 1 and len(_fl_part[None]) == 1
+    and _fl_part[46][0] < min(46, _fl_part[None][0]),
+    f"{_fl_part=}",
+)
+_fl_hold = {}
+for _o in (30, None):
+    _c = _fl_coord(option=_o)[0]
+    _fl_hold[_o] = _pa._flow_target(_c.arbiter_inputs(), None, _PA_T0)
+R.check(
+    "R11-OWNER-FLOWCAP: the fallback's hold stays under the limit (option 30 holds 30); null control: no "
+    "option holds above it",
+    _fl_hold[30] == 30.0 and _fl_hold[None] is not None and _fl_hold[None] > 30.0,
+    f"{_fl_hold=}",
+)
+_fl_room = {}
+for _o in (46, None):
+    _c, _w = _fl_coord(option=_o, unit="indoor", attrs={"min": 5, "max": 30})
+    _fl_room[_o] = (_w, _pa._space_limit_c(_c.arbiter_inputs()))
+_fl_flow_limit = _pa._space_limit_c(_fl_coord(option=46)[0].arbiter_inputs())
+R.check(
+    "R11-OWNER-FLOWCAP: an indoor unit reads no high limit and writes the same room value with the option "
+    "stored as without; null control: the same option on a flow unit is its limit, 46",
+    _fl_room[46] == (_fl_room[None][0], None) and _fl_room[None][1] is None and _fl_flow_limit == 46.0,
+    f"{_fl_room=} {_fl_flow_limit=}",
+)
+_fl_cmd = {o: _pa.flow_command(_fl_coord(kw=2.0, option=o)[0]) for o in (46, None)}
+_fl_at_top = {o: c is not None and c.written_c >= c.ceiling_c - _fl_dr.CEILING_TOLERANCE_K for o, c in _fl_cmd.items()}
+R.check(
+    "R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top "
+    "draw (written 46 under the 55 ceiling draw_range keys on); null control: with no option the band-top "
+    "write is the ceiling",
+    _fl_at_top == {46: False, None: True}
+    and (_fl_cmd[46].written_c, _fl_cmd[46].ceiling_c) == (46.0, 55.0),
+    f"{_fl_cmd=}",
+)
+
+
+def _fl_loop_hi(**kw):
+    coord = _fl_coord(**kw)[0]
+    run = _pa.FeedbackRun(_PA_T0, 40.0, _PA_T0)
+    return _pa._feedback_bounds(_pa.state_for(coord), run, coord.arbiter_inputs(), 35.0)[1]
+
+
+_fl_loop = {"option 46": _fl_loop_hi(option=46), "sensor 52, option 58": _fl_loop_hi(sensor=52, option=58),
+            "neither": _fl_loop_hi()}
+R.check(
+    "R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); "
+    "null control: with neither it is the 55 degC heating ceiling",
+    _fl_loop == {"option 46": 46.0, "sensor 52, option 58": 52.0, "neither": 55.0},
+    f"{_fl_loop=}",
+)
+_fl_row = [row for row in _pa_cf._OPTION_FIELDS if row.key == _FL_KEY]
+_fl_fit = _pa_cf._fit_stored_values(__import__("voluptuous").Schema(
+    {__import__("voluptuous").Optional(_FL_KEY, description={"suggested_value": 80.0}): _fl_row[0].widget}))[1]
+_fl_fit_in = _pa_cf._fit_stored_values(__import__("voluptuous").Schema(
+    {__import__("voluptuous").Optional(_FL_KEY, description={"suggested_value": 46.0}): _fl_row[0].widget}))[1]
+R.check(
+    "R11-OWNER-FLOWCAP: the option row offers 30 to 70 degC with no default, and a stored 80 widens it and "
+    "is named for stored_value_out_of_range; null control: a stored 46 widens nothing",
+    len(_fl_row) == 1 and (_fl_row[0].widget.config["min"], _fl_row[0].widget.config["max"]) == (30.0, 70.0)
+    and _fl_row[0].default is _pa_cf._STORED and _fl_fit == [_FL_KEY] and _fl_fit_in == [],
+    f"{_fl_row=} {_fl_fit=} {_fl_fit_in=}",
+)
+
+
 _pa_bl_fb, _ = _pa_boost_level("ss", 1.0, "channel", power_meter=True)
 _pa_bl_fb_on = _pa._feedback_on(_pa_bl_fb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
                                 boost_mod.held_for(_pa_bl_fb))
@@ -71071,7 +71427,7 @@ def _f21_ms_no_continuation(objective, starts, bounds, *a, **kw):
 
 
 def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
-    # The two-zone cell's tank starts at 35 C. The seeds anchor on the
+    # The two-zone cell's tank starts at 55 C. The seeds anchor on the
     # reference, so each reference change moves which start temperature the
     # plain solve reaches the storage basin from unaided: R10-BUFFER-STORE's
     # moved it off 25 C, and R10-HOTFIX-SAV-ESTIMATE's valved reference made
@@ -71079,7 +71435,11 @@ def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
     # kernel class and positive on another. At 35 C the gain is positive on
     # each of four kernel classes measured (OPENBLAS_CORETYPE Haswell,
     # Sandybridge, SkylakeX, Prescott; SkylakeX reproduces CI's figures), and
-    # the shipped objective is the same basin on each.
+    # the shipped objective is the same basin on each. R11-SEAM-two-zone-slab's
+    # curve moved it again: at 35 C the continuation lost 0.043 to 0.057 on each
+    # of SkylakeX, Haswell, Sandybridge and Nehalem, and of 35, 38, 40, 42, 45,
+    # 50 and 55 C only 55 C gains on all four (+0.189 to +0.469; 38 and 50 C
+    # gain exactly zero there).
     cfg = _f21_house(
         two_zone=two_zone, dhw=False, buffer_tank_volume=750.0,
         buffer_max_temperature=70.0, mixing_valve_mode="manual",
@@ -71098,7 +71458,7 @@ def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
     state = _f21_State(
         room_temperature=20.0, upper_floor_temperature=20.0,
         lower_floor_temperature=20.0, slab_temperature=21.0,
-        buffer_tank_temperature=35.0 if two_zone else 25.0,
+        buffer_tank_temperature=55.0 if two_zone else 25.0,
         outdoor_temperature=float(out[0]),
     )
     inputs = solve_inputs(
@@ -72615,15 +72975,18 @@ R.check(
     f"valve {_z1524_admitted['manual']}, no valve {_z1524_admitted[True]} "
     f"of {len(_b942)}",
 )
-# R8-P5c: a valve target at the held 21 C sits the valve at its curve, where
+# R8-P5c: a valve target under the held 21 C sits the valve at its curve, where
 # every tank charge above it reads alike and a step only charges the tank. The
 # fit raised a singular Jacobian there ("fit raised"); it is refused by name.
+# 20.5 C, not 21 C: the curve holds the area-weighted room at its target, with
+# the radiator floor the sensor reads above it (R11-SEAM-two-zone-slab), so a
+# 21 C target opens the valve wide at a held 21 C upper floor on every preset.
 for _z1524_name in _b942:
     _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
-        _z1524_name, True, valve="manual", valve_target=21.0
+        _z1524_name, True, valve="manual", valve_target=20.5
     )
     R.check(
-        f"R8-P5c: {_z1524_name} behind a valve regulating at the held "
+        f"R8-P5c: {_z1524_name} behind a valve regulating under the held "
         "temperature is refused by name, inside the 0.8 K allowance",
         _z1524_peak <= 0.8
         and _z1524_d.reason == _SysIdModule.VALVE_REGULATES_REASON,
@@ -80866,7 +81229,7 @@ from heatpump_optimizer import inputs as _bst_in  # noqa: E402
 def _bst_sent(value, attrs=None, unit="°C", entity="number.bst_q"):
     hass = FakeHass({entity: FakeState("40", unit=unit, attributes=attrs or {})})
     _bst_aio.run(_bst_in.write_setpoint(hass, entity, value))
-    return [data["value" if not entity.startswith("climate") else "temperature"]
+    return [data["value" if entity.startswith("number") else "temperature"]
             for _d, _s, data in hass.services.calls]
 
 
@@ -80882,6 +81245,69 @@ R.check(
 R.check(
     "null control: an already-whole write sends the same whole number",
     _bst_sent(35.0) == [35] and _bst_sent(35) == [35],
+)
+# The entity's own range binds at that same one call, read at write time,
+# whatever the caller (owner item: a flow set-point written above the pump's
+# maximum). A number's ``min``/``max``, a climate or water heater's
+# ``min_temp``/``max_temp``, in the entity's own unit; the maximum rounds
+# down onto the step and the minimum up, so the value sent is one the
+# entity accepts. A range with its ends crossed is clamped to the maximum.
+R.check(
+    "a set-point above the entity's maximum is sent as the maximum, below its "
+    "minimum as the minimum: a number's min/max and a climate's min_temp/max_temp",
+    _bst_sent(65.0, {"min": 5, "max": 62}) == [62]
+    and _bst_sent(3.0, {"min": 5, "max": 62}) == [5]
+    and _bst_sent(65.0, {"min_temp": 5, "max_temp": 62}, entity="climate.bst_q") == [62]
+    and _bst_sent(65.0, {"min_temp": 5, "max_temp": 62}, entity="water_heater.bst_q") == [62],
+    f"{_bst_sent(65.0, {'min': 5, 'max': 62})} {_bst_sent(3.0, {'min': 5, 'max': 62})} "
+    f"{_bst_sent(65.0, {'min_temp': 5, 'max_temp': 62}, entity='climate.bst_q')}",
+)
+R.check(
+    "the range ends land on the step the entity accepts: a maximum off the step "
+    "rounds down, a minimum off it rounds up; crossed ends send the maximum",
+    _bst_sent(65.0, {"max": 63, "step": 5}) == [60]
+    and _bst_sent(10.0, {"min": 22, "step": 5}) == [25]
+    and _bst_sent(50.0, {"min": 60, "max": 40}) == [40],
+    f"{_bst_sent(65.0, {'max': 63, 'step': 5})} {_bst_sent(10.0, {'min': 22, 'step': 5})} "
+    f"{_bst_sent(50.0, {'min': 60, 'max': 40})}",
+)
+R.check(
+    "null control: a value inside the range, an entity stating no range, a "
+    "non-numeric bound and an entity with no state are sent unchanged",
+    _bst_sent(45.0, {"min": 5, "max": 62}) == [45]
+    and _bst_sent(65.0) == [65]
+    and _bst_sent(65.0, {"max": "unknown"}) == [65]
+    and (lambda h: (_bst_aio.run(_bst_in.write_setpoint(h, "number.bst_none", 65.0)),
+                    [d["value"] for _d, _s, d in h.services.calls])[1])(FakeHass({})) == [65],
+)
+
+
+def _bst_c_sent(value_c, attrs, unit):
+    hass = FakeHass({"number.bst_q": FakeState("100", unit=unit, attributes=attrs)})
+    _bst_aio.run(_bst_in.write_setpoint_c(hass, "number.bst_q", value_c))
+    return [data["value"] for _d, _s, data in hass.services.calls]
+
+
+R.check(
+    "a degC write to a Fahrenheit entity is clamped in the entity's own unit: "
+    "65 degC (149 degF) to a 140 degF maximum sends 140",
+    _bst_c_sent(65.0, {"max": 140}, "°F") == [140],
+    f"{_bst_c_sent(65.0, {'max': 140}, '°F')}",
+)
+
+
+def _bst_valve_sent(target_c, attrs):
+    from heatpump_optimizer import coordinator as _bst_cmod
+    hass = FakeHass({"number.bst_valve": FakeState("40", unit="°C", attributes=attrs)})
+    _bst_aio.run(_bst_cmod._valve_write_problem(hass, "number.bst_valve", target_c))
+    return [data["value"] for _d, _s, data in hass.services.calls]
+
+
+R.check(
+    "a production caller that bounds nothing itself, the mixing-valve write, is "
+    "held inside the entity's maximum by the one call",
+    _bst_valve_sent(65.0, {"max": 62}) == [62] and _bst_valve_sent(45.0, {"max": 62}) == [45],
+    f"{_bst_valve_sent(65.0, {'max': 62})} {_bst_valve_sent(45.0, {'max': 62})}",
 )
 
 
@@ -87335,6 +87761,40 @@ R.check(
     f"{_bt_cc_in} {_bt_cc_held}",
 )
 
+# ADR-005: boost answers "is the global boost mode live" from what it was told,
+# so a restart that restores the boost mode tells it. Restarted in boost: live,
+# and leaving owes the unseen start's full tail. Null control: a restart in auto.
+_bt_rs_seen = {}
+for _bt_rs_mode in (boost_mod.MODE_BOOST, _fb_const.MODE_AUTO):
+    _bt_rs_entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"bt_rs_{_bt_rs_mode}")
+    _bt_asyncio.run(Coord(FakeHass(), _bt_rs_entry).async_set_mode(_bt_rs_mode, refresh=False))
+    _bt_rs = Coord(FakeHass(), _bt_rs_entry)
+    _bt_asyncio.run(_bt_rs._async_load_accuracy())
+    _bt_rs_live = boost_mod.space_boost_active(_bt_rs, NOW)
+    _bt_asyncio.run(_bt_rs.async_set_mode(_fb_const.MODE_AUTO, refresh=False))
+    _bt_rs_held = boost_mod.held_for(_bt_rs)
+    _bt_rs_seen[_bt_rs_mode] = (_bt_rs_live, _bt_rs_held.space_boosted, _bt_rs_held.space_settle_until is None)
+R.check(
+    "a restart restoring the boost mode reads it live, and leaving it owes the unseen start's tail",
+    _bt_rs_seen == {boost_mod.MODE_BOOST: (True, None, False), _fb_const.MODE_AUTO: (False, timedelta(0), True)},
+    f"{_bt_rs_seen}",
+)
+# The unseen sum stays unknown whichever restore runs first: a persisted tail
+# restored after the mode does not replace it. Null control: no mode restored.
+_bt_ro = {}
+for _bt_ro_mode in (boost_mod.MODE_BOOST, _fb_const.MODE_AUTO):
+    _bt_ro_coord = _BtCoord()
+    boost_mod.note_mode_change(_bt_ro_coord, None, _bt_ro_mode, NOW)
+    _bt_ro_held = boost_mod.held_for(_bt_ro_coord)
+    boost_mod._restore_settle(_bt_ro_held, {"space_settle": {
+        "until": (NOW + timedelta(hours=1)).isoformat(), "boosted_h": 0.5}}, NOW)
+    _bt_ro[_bt_ro_mode] = (_bt_ro_held.mode_since, _bt_ro_held.space_boosted)
+R.check(
+    "a persisted tail restored after the boost mode keeps its boosted sum unknown",
+    _bt_ro == {boost_mod.MODE_BOOST: (NOW, None), _fb_const.MODE_AUTO: (None, timedelta(hours=0.5))},
+    f"{_bt_ro}",
+)
+
 
 # A hot-water charge inside a counter span (the dwell saw it): the cycle has no
 # space interval, yet the span stays clean where the counter is declared to see
@@ -93415,10 +93875,10 @@ def _svh_case(two_zone, outdoor, **over):
     return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
 
 
-# -10 and -15 C sag far on two zones; at 14 C the two-zone house falls just short
-# of the target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
-# A single-zone curve holds its target through the slab (R11-VALVE-REFERENCE), so
-# its held room is the setpoint at every row.
+# -15 C sags far on two zones, the 4 kW pump against the 56 C cap; at -10 C the
+# two-zone curve holds the room since R11-SEAM-two-zone-slab, and at 14 C and
+# 16 C on a need under 1 kW. A single-zone curve holds its target through the
+# slab (R11-VALVE-REFERENCE), so its held room is the setpoint at every row.
 _svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0, 14.0, 16.0)}
 R.check(
     "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
@@ -93428,7 +93888,8 @@ R.check(
     "from a deep shortfall to a mild day the curve holds; a single-zone curve "
     "holds the setpoint itself",
     all(abs(ds) < 0.02 for h, ds, _ in _svh_rows.values())
-    and all(_svh_rows[(True, t)][0].room_temperature < 21.0 - 0.1 for t in (-10.0, -15.0))
+    and _svh_rows[(True, -15.0)][0].room_temperature < 21.0 - 0.1
+    and all(abs(_svh_rows[(True, t)][0].room_temperature - 21.0) < 1e-3 for t in (-10.0, 14.0, 16.0))
     and all(abs(_svh_rows[(False, t)][0].room_temperature - 21.0) < 1e-3
             for t in (-10.0, -15.0, 14.0, 16.0)),
     {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
@@ -93541,11 +94002,12 @@ R.check(
 )
 
 # Carry 9: on an install's own parameters (the owner replay's entry: two
-# zones, valve ``manual`` at 21 C, a 4 kW pump) the curve cannot hold 21 C,
-# and the plant at its pump settles with the floors apart -- radiators above,
-# slab-fed floor below. The held state is that ceiling, floor by floor, so a
-# thermostat's day starts and ends there: a held state with the floors forced
-# level sat below it and the day's reference warmed to it, booking the warming.
+# zones, valve ``manual`` at 21 C, a 4 kW pump) the plant at its pump settles
+# with the floors apart -- radiators above, slab-fed floor below. The held state
+# is that ceiling, floor by floor, so a thermostat's day starts and ends there:
+# a held state with the floors forced level sat below it and the day's
+# reference warmed to it, booking the warming. Since R11-SEAM-two-zone-slab the
+# curve holds the room at 21 C there; the 25 C cap row cannot.
 from profiles import replay_install as _c9_install  # noqa: E402
 
 
@@ -93576,14 +94038,16 @@ def _c9_zones(s):
 _c9_rows = {**{t: _c9_case(t) for t in (5.0, -5.0, -15.0)},
             "-15, cap 25": _c9_case(-15.0, buffer_max_temperature=25.0)}
 R.check(
-    "R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve "
-    "cannot hold the setpoint, the thermostat reference's held state is the "
-    "plant's own ceiling floor by floor (the pump driving it for three days "
-    "moves no floor 0.02 K), and its day ends where it started",
+    "R10-SAV-VALUATION-RESIDUE Carry 9: on a two-zone install behind its valve "
+    "the thermostat reference's held state is the plant's own ceiling floor by "
+    "floor (the pump driving it for three days moves no floor 0.02 K), and its "
+    "day ends where it started; the curve holds the room at 21 C, the 25 C cap "
+    "cannot",
     all(max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(pl))) < 0.02
         and max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(e))) < 0.02
-        and h.room_temperature < 21.0 - 0.1
-        for h, pl, e in _c9_rows.values()),
+        for h, pl, e in _c9_rows.values())
+    and all(abs(_c9_rows[t][0].room_temperature - 21.0) < 1e-3 for t in (5.0, -5.0, -15.0))
+    and _c9_rows["-15, cap 25"][0].room_temperature < 21.0 - 0.1,
     {t: tuple(tuple(round(v, 3) for v in _c9_zones(s)) for s in row) for t, row in _c9_rows.items()},
 )
 _c9_off = {t: _c9_case(t, mixing_valve_mode="none")[0] for t in (5.0, -15.0)}
@@ -93946,11 +94410,27 @@ R.check(
     "the loop",
     _fb_sim(limits=(None, _fb_old), **_FB_STEP_UP)["writes"] == _fb_limit_hi["writes"],
 )
-# The limits act on the loop alone (I1, I3): today's target is not moved by
-# them, so an install the loop does not act on writes the same with them.
+# The limits act on the loop alone (I1, I3), but for the high limit. Today's
+# target is not moved by the low one. R11-OWNER-FLOWCAP (owner ruling,
+# 2026-11-22) holds every heating write at or under the high one, which is the
+# most the pump accepts. So an install the loop does not act on writes the same
+# with both sensors as with neither wherever that write sits under the high
+# limit, and the limit where it sat above; an indoor unit writes the same.
+
+
+def _fb_capped(limited, blind, high):
+    """``limited`` is ``blind`` with every value above ``high`` held at it, a
+    held value that repeats the last one sent not sent again."""
+    want = []
+    for minute, sent, _ret in blind:
+        if not want or want[-1][1] != min(sent, high):
+            want.append((minute, min(sent, high)))
+    return bool(blind) and [(m, v) for m, v, _r in limited] == want
+
+
 _fb_limit_cells = {
-    label: _fb_sim(minutes=60, limits=(27.0, 27.6), **kw)["writes"]
-    == _fb_sim(minutes=60, **kw)["writes"]
+    label: _fb_capped(_fb_sim(minutes=60, limits=(27.0, 27.6), **kw)["writes"],
+                      _fb_sim(minutes=60, **kw)["writes"], 99.0 if label == "indoor" else 27.6)
     for label, kw in (
         ("indoor", {"unit": "indoor"}),
         ("no power entity", {"power_entity": False}),
@@ -93958,8 +94438,9 @@ _fb_limit_cells = {
     )
 }
 R.check(
-    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: an indoor unit, no power entity or the option "
-    "off writes the same with both limit sensors as with neither",
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: an indoor unit writes the same with both limit "
+    "sensors as with neither; no power entity or the option off writes the same but held "
+    "at the 27.6 degC high limit (R11-OWNER-FLOWCAP)",
     all(_fb_limit_cells.values()),
     f"same: {_fb_limit_cells}",
 )
@@ -94060,8 +94541,9 @@ R.check(
 )
 # The sibling write paths of the space set-point (the indoor target, today's
 # open-loop target with the loop off or unmetered, the gate of a step that
-# does not heat, the start hold) read neither sensor: a high limit that binds
-# the loop, and one at the gate, change none of their writes.
+# does not heat, the start hold) read no loop bound: a high limit at the gate,
+# or below it, changes none of their writes, and one that binds the loop holds
+# a heating write at it and changes nothing under it (R11-OWNER-FLOWCAP).
 _FB_SIBLINGS = (
     ("indoor", {"unit": "indoor", "minutes": 60}),
     ("no power entity", {"power_entity": False, "minutes": 60}),
@@ -94071,13 +94553,15 @@ _FB_SIBLINGS = (
 )
 _fb_sibling_blind = {label: _fb_sim(**kw)["writes"] for label, kw in _FB_SIBLINGS}
 _fb_sibling_same = {
-    (label, high): _fb_sim(limits=(None, high), **kw)["writes"] == _fb_sibling_blind[label]
+    (label, high): _fb_capped(_fb_sim(limits=(None, high), **kw)["writes"],
+                              _fb_sibling_blind[label], high if label != "indoor" and high > 20.0 else 99.0)
     for label, kw in _FB_SIBLINGS for high in (24.0, 20.0, 15.0)
 }
 R.check(
     "R10-WATER-SETPOINT-FEEDBACK part 3 I1: the indoor target, an unmetered or switched-off "
     "loop, a step that does not heat and the start hold each write the same under a high "
-    "limit that binds the loop, one at the gate and one below it as with no sensor",
+    "limit at the gate or below it as with no sensor, and under one that binds the loop the "
+    "same but held at it (R11-OWNER-FLOWCAP)",
     all(_fb_sibling_same.values()) and all(_fb_sibling_blind.values()),
     f"same: {_fb_sibling_same}, writes { {k: len(v) for k, v in _fb_sibling_blind.items()} }",
 )
@@ -94470,6 +94954,33 @@ R.check(
     and _fb_cuts == (26.5, 27.6),
     f"stop {_fb_stop_lo}, gate {_fb_gate_lo}, cuts {_fb_cuts}",
 )
+# The upper bound's filter is closed at the lowest heating write
+# (_heating_floor_c). A return-limit cut or an upper-limit sensor
+# (_space_limit_c) exactly on it is kept and bounds the loop there. One a step
+# under it leaves no heating value, so the 32 degC ceiling binds: each arm's
+# null control.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_lowest = _fb_pa._heating_floor_c(_fb_i)[1]
+_fb_edge_cut = {
+    off: _fb_pa._feedback_bounds(
+        _fb_h, _fb_running(3600, 0, cut_hi_c=round(_fb_lowest - off, 2)), _fb_i, 26.0)[1]
+    for off in (0.0, 0.1)
+}
+_fb_edge_sensor = {}
+for _fb_off in (0.0, 0.1):
+    _fb_c, _fb_h, _fb_i = _fb_unit(limits=(None, round(_fb_lowest - _fb_off, 2)))
+    _fb_edge_sensor[_fb_off] = (_fb_pa._space_limit_c(_fb_i), _fb_pa._feedback_bounds(
+        _fb_h, _fb_running(3600, 0), _fb_i, 26.0)[1])
+R.check(
+    "R11-OWNER-FLOWCAP: a return-limit cut or an upper-limit sensor exactly on the "
+    "lowest heating write bounds the loop there; one a 0.1 K step under it is set "
+    "aside and the 32 degC heating ceiling binds",
+    abs(_fb_edge_cut[0.0] - _fb_lowest) < 1e-9 and _fb_edge_cut[0.1] == 32.0
+    and _fb_edge_sensor[0.0][0] is not None
+    and abs(_fb_edge_sensor[0.0][1] - _fb_lowest) < 1e-9
+    and _fb_edge_sensor[0.1] == (None, 32.0),
+    f"lowest {_fb_lowest}, cut {_fb_edge_cut}, sensor {_fb_edge_sensor}",
+)
 # R1's bracket is closed at both ends: a reading exactly SETPOINT_TOLERANCE
 # under the replaced record, or over the write, is a cut.
 def _fb_bracket(observed):
@@ -94723,9 +95234,11 @@ R.check(
     f"{_p3_none} {_p3_live} {_p3_cancel} {_p3_press}",
 )
 class _P3Coord:
-    mode = "auto"
+    pass
 _p3_c = _P3Coord()
-_p3_mode = type("C", (), {"mode": boost_mod.MODE_BOOST})()
+_p3_mode = _P3Coord()
+# Boost reads the mode it was told (ADR-005), not an attribute of the coordinator.
+boost_mod.note_mode_change(_p3_mode, "auto", boost_mod.MODE_BOOST, NOW)
 # Both hold a running tail, so only the global mode can make the end unknown.
 boost_mod.held_for(_p3_c).space_settle_until = NOW + _p3_td(hours=5)
 boost_mod.held_for(_p3_mode).space_settle_until = NOW + _p3_td(hours=5)
