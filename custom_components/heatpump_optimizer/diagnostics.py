@@ -339,7 +339,7 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     except Exception:  # noqa: BLE001 -- diagnostics never breaks
         state = None
     snap: dict[str, Any] = {
-        "mode": getattr(coord, "mode", None),
+        "mode": state.mode if state else None,
         "tibber_outage_cycles": state.tibber_outage_cycles if state else None,
         "tibber_reauth_started": state.tibber_reauth_started if state else None,
         "weather_stale_hours": coord.weather_stale_hours()

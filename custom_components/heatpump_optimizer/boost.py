@@ -141,9 +141,11 @@ class BoostState:
     #: baseline is gone after a restart, but the slab heat is not, so every
     #: replay after the first one would fold it.
     space_settle_until: datetime | None = None
-    #: When the space overlay, and the global boost mode, went live; ``None``
-    #: unseen (a mode restored as boost), which makes ``space_boosted`` unknown.
+    #: When the space overlay went live; ``None`` unseen.
     space_since: datetime | None = None
+    #: When the global boost mode went live, ``None`` while it is not: the one
+    #: answer to "is the mode live" (ADR-005). A mode restored as boost reads
+    #: its restore, and its unseen start makes ``space_boosted`` unknown.
     mode_since: datetime | None = None
 
     #: The boosted time, over both surfaces, that ended since the learners
@@ -199,11 +201,17 @@ class BoostState:
                 and CHANNEL_SPACE not in self.until and self.mode_since is None):
             self.space_settle_until, self.space_boosted = None, timedelta(0)
 
-    def note_mode(self, live: bool, now: datetime) -> None:
-        """The global boost mode was entered (``live``) or left: leaving starts its tail."""
+    def note_mode(self, live: bool, now: datetime, *, seen: bool = True) -> None:
+        """The global boost mode was entered (``live``) or left: leaving starts its tail.
+
+        An entry not ``seen`` is a restart restoring the mode: its start, and so
+        the boosted sum, is unknown.
+        """
         if live:
             self._clear_spent(now)
             self.mode_since = now
+            if not seen:
+                self.space_boosted = None
         else:
             self.settle(now, self.mode_since)
             self.mode_since = None
@@ -363,8 +371,8 @@ def space_boost_active(coord: Any, now: datetime | None = None) -> bool:
 
 
 def _mode_live(coord: Any) -> bool:
-    """Is the global boost mode selected?"""
-    return getattr(coord, "mode", None) == MODE_BOOST
+    """Is the global boost mode selected? Read from what ``note_mode_change`` was told."""
+    return held_for(coord).mode_since is not None
 
 
 def space_learning_frozen(coord: Any, now: datetime | None = None) -> bool:
@@ -431,13 +439,13 @@ def note_mode_change(coord: Any, old: str | None, new: str, now: datetime | None
 
     The mode surface diverges the replayed plant state exactly as the
     channel overlay does -- same actuation, same mechanism -- so it owes
-    the same tail, for the time the mode ran.
+    the same tail, for the time the mode ran. ``old`` ``None`` is a restart
+    restoring ``new``, whose start nobody saw (ADR-005).
     """
     if (old == MODE_BOOST) != (new == MODE_BOOST):
-        held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now())
+        held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now(), seen=old is not None)
         if old == MODE_BOOST:
             _schedule_persist(coord)
-
 
 def overlay(
     action: CurrentAction,
@@ -625,8 +633,10 @@ def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) -> 
         # Boosted time outside its declaration -- unreadable, or longer than any
         # run between two instants -- reads as a start nobody saw: unknown (D1-s2-06).
         hours = tail.get("boosted_h")
+        # A restored boost mode's unknown sum stays unknown, whichever restore ran first.
         held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
-                              and admitted("boost", {"space_settle": {"boosted_h": hours}}) else None)
+                              and admitted("boost", {"space_settle": {"boosted_h": hours}})
+                              and held.space_boosted is not None else None)
     space = raw.get(CHANNEL_SPACE)
     since = _parse_until(space.get("since")) if isinstance(space, Mapping) else None
     if since is not None and CHANNEL_SPACE in held.until:
