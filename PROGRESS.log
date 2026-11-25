@@ -17,3 +17,4 @@
 1795581404 HB alive
 1795582008 HB alive
 1795582535 CKPT handoff pushed fa76fdc4, body 2847d9a9 snapshot 0d0c3821775f
+1795582539 DONE returned: handoff fa76fdc4b0, body 2847d9a9ea; 2 duty_legs:68 mutants pinned (killed by tests/features.py)
