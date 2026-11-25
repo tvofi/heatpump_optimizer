@@ -18,3 +18,4 @@
 1795616412 CKPT delta read; M6/M7/M8/M12/M13 killed; full features.py running snapshot 4d14a0e92a89
 1795616709 INBOX acked through 1
 1795616717 HB alive
+1795616950 CKPT CI RED at b53176: tests/mutation, 5 added survivors; awaiting full features.py snapshot ffbd23832b17
