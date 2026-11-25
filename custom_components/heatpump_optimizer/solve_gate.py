@@ -96,7 +96,6 @@ def begin_solve(gate: SolveGate, mode: str = "") -> bool:
     if absorb_request(gate, False):
         return False
     gate.solving = True
-    gate.entry_mode = mode
     gate.background_taken = False
     return True
 
