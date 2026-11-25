@@ -17,10 +17,18 @@ failed=0. A pattern not found exactly once aborts.
   M-event      a main run of any event is read, not only `push`.
   M-branch     a push run on any branch is read, not only main.
   M-dry        `--dry-run` posts the cancels.
+  #3885, the arm fired by a push (main-cancel.yml):
+  M-scope      a push graded light (any scope but `full`) cancels.
+  M-health     a run whose job sits queued past pause_queued_min is cancelled.
+  M-health-age the queued age is not compared, only read.
+  M-health-read an unreadable jobs listing or setting reads as healthy.
+  M-listed     a push whose own run is not listed cancels.
+  M-newest-push a push whose run is not the newest main run cancels.
+  M-poll       the arm lists once, never waiting for the push's run.
 
     python3 dev/audit/harnesses/r11_main_cancel_mutants.py
 
-EXPECTED RESULT mutants=11
+EXPECTED RESULT mutants=18
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -58,8 +66,15 @@ PLANTS = {
     "M-event": ('r.get("head_branch") == "main" and r.get("event") == "push"),', 'r.get("head_branch") == "main"),'),
     "M-branch": ('r.get("head_branch") == "main" and r.get("event") == "push"),', 'r.get("event") == "push"),'),
     "M-dry": ('            if a.dry_run:\n                print(f"cancel_superseded: would cancel {rid}")\n            else:\n'
-              "                post_cancel(api, a.repo, rid, {}, time.time())\n        print(f\"CANCEL-MAIN",
-              "            post_cancel(api, a.repo, rid, {}, time.time())\n        print(f\"CANCEL-MAIN"),
+              "                post_cancel(api, a.repo, rid, {}, now())\n        print(f\"CANCEL-MAIN",
+              "            post_cancel(api, a.repo, rid, {}, now())\n        print(f\"CANCEL-MAIN"),
+    "M-scope": ('        if scope is not None and scope != "full":\n', "        if False:\n"),
+    "M-health": ("            if why:\n                p = {", "            if False:\n                p = {"),
+    "M-health-age": ('    if age is not None and age >= setting["pause_queued_min"]:\n', "    if False:\n"),
+    "M-health-read": ('        return "its jobs or the health setting cannot be read"\n', '        return ""\n'),
+    "M-listed": ("            if not any(r.get(\"head_sha\") == head for r in mine):\n", "            if False:\n"),
+    "M-newest-push": ('            if newest.get("head_sha") != head:\n', "            if False:\n"),
+    "M-poll": ("        for attempt in range(MAIN_POLLS if head else 1):\n", "        for attempt in range(1):\n"),
 }
 
 
@@ -78,6 +93,8 @@ def main() -> int:
             copy = Path(tmp) / name / "tools" / "pr" / "cancel_superseded.py"
             copy.parent.mkdir(parents=True)
             copy.write_text(text)
+            # #3885: the health read imports ci_pause / ci_priority from tools/audit/seat.
+            (Path(tmp) / name / "tools" / "audit").symlink_to(ROOT / "tools" / "audit")
             r = subprocess.run([sys.executable, str(copy), "--self-test"], capture_output=True, text=True)
             failed = sum(1 for l in r.stdout.splitlines() if l.strip().startswith("FAIL"))
             if name == "M0":
