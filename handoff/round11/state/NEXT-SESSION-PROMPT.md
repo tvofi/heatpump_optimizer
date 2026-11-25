@@ -13,6 +13,7 @@ git show origin/handoff/audit-r11-roster:dev/programme/rosters/wave-r11-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
+- R11-PRE-TOKEN-LEDGER (stage in-progress, branch `handoff/r11-pre-token-ledger`): `git fetch origin handoff/r11-pre-token-ledger && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SHARED-FILES (stage carries-open, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -31,7 +32,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SEAM-two-zone-slab (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-ROOMS-3B (stage in-progress, branch `handoff/r11-outside-rooms-3b`): `git fetch origin handoff/r11-outside-rooms-3b && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-CARD-EXTERNAL-HEAT (stage carries-open, branch `handoff/r11-owner-card-external-heat`): `git fetch origin handoff/r11-owner-card-external-heat && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OWNER-FLOWCAP (stage in-progress, branch `handoff/r11-owner-flowcap`): `git fetch origin handoff/r11-owner-flowcap && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OWNER-FLOWCAP (stage carries-open, branch `handoff/r11-owner-flowcap`): `git fetch origin handoff/r11-owner-flowcap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FROST-HOLD (stage in-progress, branch `handoff/r11-owner-frost-hold`): `git fetch origin handoff/r11-owner-frost-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-HOLD (stage in-progress, branch `handoff/r11-owner-fault-hold`): `git fetch origin handoff/r11-owner-fault-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-MODE-LEGS (stage in-progress, branch `handoff/r11-owner-mode-legs`): `git fetch origin handoff/r11-owner-mode-legs && git worktree add --detach $SEAT/wt FETCH_HEAD`

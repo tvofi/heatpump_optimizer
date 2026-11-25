@@ -79,7 +79,7 @@ gantt
 | R11-PRE-TOOLCHAIN-PIN | IN | 1 | done | - | fable/fable | - | Owner ruling 2026-11-13 on decision card P1 (yes): seats and the beat run their tools from a promoted stable ref instead of the tip of main, main reports pro... |  |
 | R11-PRE-MACHINERY-LIMITER | IN | 1 | done | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P2 (declining cap, one in one out, severity route narrowed): the machinery ratchet becomes a target that declines ov... |  |
 | R11-PRE-ROUND-METRICS | IN | 1 | done | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P3 and P8 (yes): the scorecard gets a producer for its inputs and a row in the running job list, with lead-time perc... |  |
-| R11-PRE-TOKEN-LEDGER | IN | 1 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P4 (yes, local and cloud): every dispatch writes group, role and model in a header, and a daily job sums token usage... |  |
+| R11-PRE-TOKEN-LEDGER | IN | 1 | in-progress | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P4 (yes, local and cloud): every dispatch writes group, role and model in a header, and a daily job sums token usage... |  |
 | R11-PRE-RULINGS-FILE | IN | 1 | done | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P6 (yes) and R3 (core in full, instrument pages by change): a file of the owner s standing rulings, verbatim and dat... |  |
 | R11-PRE-SHARED-FILES | IN | 1 | carries-open | - | fable/fable | - | Owner ruling 2026-11-13 on decision card P9 (yes, design first): shared files stop coupling every pull request. |  |
 | R11-PRE-HANDOFF-BOOKKEEPING | IN | 1 | carries-open | #3313 | opus/opus | - | Owner ruling 2026-11-13 on decision card P10 (yes): carry, body and red-check items are decided mechanically at the handoff, and a reviewer blocks only on pr... |  |
@@ -184,7 +184,7 @@ gantt
 | R11-HOTFIX-CODEQL-PERMS | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
 | R11-OUTSIDE-ROOMS-3B | IN | 1 | in-progress | #3616 | fable/fable | - | Owner item from #3616 (outside reporter), placed by the orchestrator under mandate 6893738184: the room lift made visible. |  |
 | R11-OWNER-CARD-EXTERNAL-HEAT | CORE | 2 | carries-open | - | opus/opus | - | Owner item (tvofi, 2026-11-21), folded into round 11: the card's header status pill, which reads "Heating now" or "Idle", says "External heat detected" or si... |  |
-| R11-OWNER-FLOWCAP | CORE | 1 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
+| R11-OWNER-FLOWCAP | CORE | 1 | carries-open | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-FROST-HOLD | CORE | 2 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-FAULT-HOLD | CORE | 3 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-MODE-LEGS | CORE | 5 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
