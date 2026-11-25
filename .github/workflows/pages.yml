@@ -61,11 +61,13 @@ jobs:
     outputs:
       enabled: ${{ steps.probe.outputs.enabled }}
     steps:
+      # One commit, no tags (#3885 closeout audit U2: the full-history checkout was 139.8 of the
+      # build's 181.8 runner-minutes over 171 dispatches in 48 h). Nothing here reads history:
+      # the site build lists `git ls-files`, and the release step fetches its one tag itself.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
+          fetch-depth: 1
 
       - name: Ask whether Pages is enabled
         id: probe
@@ -107,11 +109,12 @@ jobs:
         if: github.ref_type != 'tag'
         run: |
           set -euo pipefail
-          tag=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
+          tag=$(git ls-remote --tags --refs --sort=-v:refname origin 'refs/tags/v*' | head -n 1 | sed 's#.*refs/tags/##')
           if [ -z "$tag" ]; then
             echo "::warning title=No release tag::no v* tag; the docs are the dispatched ref's"
             exit 0
           fi
+          git fetch --quiet --no-tags --depth 1 origin "+refs/tags/$tag:refs/tags/$tag"
           git -c advice.detachedHead=false checkout --quiet "$tag"
           echo "docs from $tag"
 
