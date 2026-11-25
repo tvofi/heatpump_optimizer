@@ -61,6 +61,18 @@ _INNER = False
 
 _OPAQUE = frozenset({"exec", "eval", "globals", "vars", "locals", "setattr", "delattr"})
 
+# A module-scope call of one of these methods mutates its receiver, so it
+# counts as a store into the receiver's root (``L.append(1)`` stores into L,
+# ``os.environ.update(...)`` into os, ``random.seed(7)`` into random). A side
+# effect inside a function the section calls is not seen: the push to main,
+# which runs every section, is the backstop for that residue.
+_MUTATORS = frozenset({
+    "append", "extend", "insert", "pop", "popitem", "remove", "clear", "sort", "reverse",
+    "update", "setdefault", "add", "discard", "difference_update", "intersection_update",
+    "symmetric_difference_update", "__setitem__", "__delitem__",
+    "seed", "shuffle", "setstate", "putenv", "unsetenv", "chdir", "tzset",
+})
+
 
 def fraction(env=None) -> float | None:
     """The sampling fraction in force, or None for the full set."""
@@ -267,6 +279,9 @@ def _effects(stmts) -> tuple[set[str], str | None]:
                     roots.add(_root(n) or "")
         if isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
             roots.add(node.target.id)
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr in _MUTATORS):
+            roots.add(_root(node.func.value) or "")
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in _OPAQUE:
             return roots, f"calls {node.func.id}() at line {node.lineno}"
     return roots, None
@@ -518,6 +533,16 @@ def _self_test() -> int:
     o_h, o_s, o_t = plan('R = 1\nR.section("a")\nsetattr(R, "x", 1)\nR.section("b")\nz = 1\n0\n')[1:]
     o_v = choose(o_h, o_s, o_t, None, 0.3)
     check("an opaque call (setattr, exec, globals ...) always runs", "setattr" in str(o_v[0]), str(o_v))
+    # The review's fixture (scope-long, c8384e95): a section that appends to a
+    # list another section built, and one that updates os.environ, each ahead
+    # of a section that reads what they changed.
+    m_h, m_s, m_t = plan('import os\nR = 1\nR.section("mk")\nL = []\nR.section("mut")\nL.append(1)\n'
+                         'R.section("env")\nos.environ.update({"K": "1"})\n'
+                         'R.section("rd")\nR.check("rd", L == [1] and os.environ.get("K") == "1")\n0\n')[1:]
+    m_v = dict(zip([x.title for x in m_s], choose(m_h, m_s, m_t, None, 0.3)))
+    check("a section that mutates through a method call (L.append, os.environ.update) a later reader sees "
+          "always runs",
+          "L" in str(m_v["mut"]) and "os" in str(m_v["env"]) and m_v["rd"] == free_, str(m_v))
     h_h, h_s, h_t = plan('R = 1\nbox = {}\nR.section("a")\nbox["k"] = 1\nR.section("b")\nz = 1\n0\n')[1:]
     check("a store into an object the header binds always runs",
           "box" in str(choose(h_h, h_s, h_t, None, 0.3)[0]))
