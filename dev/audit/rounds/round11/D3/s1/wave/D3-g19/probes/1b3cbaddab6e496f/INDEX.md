@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_1b3cbaddab6e496f.py: step-4 probe for 1b3cbaddab6e496f. Metric: max |weight_baseline - weight_mutant| of HeatPumpOptimizer._anticipatory_weights over a sweep of step lengths,

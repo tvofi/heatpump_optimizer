@@ -1,0 +1,15 @@
+# Metric: rain_anticipation_factor _analyze_forecast_trajectory returns for 4.0 mm/h of rain all day (intensity 2, past the 1.0 cap), 24 x 1 h.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py
+# EXPECTED RESULT rain_anticipation_baseline=1.15
+# EXPECTED RESULT rain_anticipation_mutant=1.3  (intensity 2.0 uncapped)
+# EXPECTED RESULT abs_delta=0.15
+# EXPECTED RESULT pre_heat_urgency_moved=1 count (0.75 -> 1.0)
+# EXPECTED RESULT null_delta=0 count  (1.0 mm/h: intensity 0.5 under the cap)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._analyze_forecast_trajectory (line 4272
+#   `rain_intensity = min(avg_future_precip / 2.0, 1.0)`), called once per solve at optimizer.py:4377; its dict shapes the initial guess and is
+#   published as the plan's predictive_info (solar_reduction_factor, pre_heat_urgency, ...).
+# Perturbation: `rain_intensity = min(avg_future_precip / 2.0, 1.0)` -> `rain_intensity = (avg_future_precip / 2.0)` (CLAMP_DROP 9644a454ac8f288b), applied in memory (method recompiled from its own
+#   source, called on the same optimizer instance for the mutant arm only). Direction: rain_anticipation rises above 1 + (multiplier - 1) for precipitation > 2 mm/h.
+# Null control: 1.0 mm/h.
+# Inputs tried: 4.0 mm/h; 2.0 mm/h (at the cap: identical); null 1.0 mm/h.

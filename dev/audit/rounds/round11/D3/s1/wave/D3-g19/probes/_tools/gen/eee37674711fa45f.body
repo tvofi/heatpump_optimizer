@@ -1,0 +1,25 @@
+import numpy as np  # noqa: E402
+from custom_components.heatpump_optimizer import optimizer as O  # noqa: E402
+
+NEW = 0.002e-3
+assert O.PRICE_MEAN_GUESS_EPS == 1e-3
+
+
+def both(p):
+    p = np.asarray(p, dtype=float)
+    b = O._price_guess_weights(p)
+    with mock.patch.object(O, "PRICE_MEAN_GUESS_EPS", NEW):
+        m = O._price_guess_weights(p)
+    return b, m
+
+
+b, m = both([0.0, 0.0004, 0.0008, 0.0012])
+b24, m24 = both(np.linspace(0.0, 0.0012, 24))
+nb1, nm1 = both([0.2, 0.4, 0.6, 0.8])
+nb2, nm2 = both([-0.2, -0.1, 0.0, -0.1])
+print(f"RESULT weights_baseline={[round(float(x), 4) for x in b]}")
+print(f"RESULT weights_mutant={[round(float(x), 4) for x in m]}")
+print(f"RESULT max_abs_delta={float(np.max(np.abs(b - m))):.4f}")
+print(f"RESULT max_abs_delta_24step={float(np.max(np.abs(b24 - m24))):.4f}")
+print(f"RESULT null_max_abs_delta={max(float(np.max(np.abs(nb1 - nm1))), float(np.max(np.abs(nb2 - nm2))))}")
+tail()

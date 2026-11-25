@@ -1,0 +1,14 @@
+# Metric: solar_reduction_factor _analyze_forecast_trajectory returns when the mean outdoor temperature equals the target (typical heat loss exactly 0) with 500 W/m2 sun all day, 24 x 1 h.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_24ef8e54dad20484.py
+# EXPECTED RESULT solar_reduction_baseline=1.0  (no heating to reduce: solar_fraction 0)
+# EXPECTED RESULT solar_reduction_mutant=0.6  (solar_fraction = min(x/0.1, 1) = 1)
+# EXPECTED RESULT abs_delta=0.4
+# EXPECTED RESULT null_delta=0 count  (outdoor 20.0 and 22.0 C: loss strictly positive / negative)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._analyze_forecast_trajectory (line 4249
+#   `if typical_heat_loss > 0:`), called once per solve at optimizer.py:4377; its dict shapes the initial guess and is
+#   published as the plan's predictive_info (solar_reduction_factor, pre_heat_urgency, ...).
+# Perturbation: `if typical_heat_loss > 0:` -> `if typical_heat_loss >= 0:` (CMP_BOUND 24ef8e54dad20484), applied in memory (method recompiled from its own
+#   source, called on the same optimizer instance for the mutant arm only). Direction: solar_reduction 1.0 -> 0.6 at zero typical heat loss.
+# Null control: outdoor 20.0 C and 22.0 C.
+# Inputs tried: outdoor == target 21.0 C (sun 500, sun 0); outdoor 20.0 and 22.0 C.

@@ -1,0 +1,16 @@
+# Metric: pre_heat_urgency HeatPumpOptimizer._analyze_forecast_trajectory returns for an EMPTY forecast (n = 0).
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_be95c184bf4746ff.py
+# EXPECTED RESULT pre_heat_urgency_baseline=0.5
+# EXPECTED RESULT pre_heat_urgency_mutant=0.0  (the empty-weight sums are 0, so urgency clamps to 0)
+# EXPECTED RESULT moved=1 count
+# EXPECTED RESULT extra_keys_mutant=3 count  (avg_future_wind_ms, avg_future_precip_mmh, future_solar_6_12h_kwh appear)
+# EXPECTED RESULT null_delta=0 count  (a non-empty 24-step forecast)
+# EXPECTED RESULT reach_optimize_empty: whether optimize() reaches the method with n=0 (no; see the reach line)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._analyze_forecast_trajectory (line 4211
+#   `if n == 0:`), called once per solve at optimizer.py:4377; its dict shapes the initial guess and is
+#   published as the plan's predictive_info (solar_reduction_factor, pre_heat_urgency, ...).
+# Perturbation: `if n == 0:` -> `if False:` (GUARD_OFF be95c184bf4746ff), applied in memory (method recompiled from its own
+#   source, called on the same optimizer instance for the mutant arm only). Direction: pre_heat_urgency 0.5 -> 0.0 for n = 0.
+# Null control: a 24-step forecast (sun 300 W/m2, rain 0.5 mm/h).
+# Inputs tried: n=0 (all six summary keys compared); the 24-step null; optimize() with horizon_hours=0 and 0.1 for reach.

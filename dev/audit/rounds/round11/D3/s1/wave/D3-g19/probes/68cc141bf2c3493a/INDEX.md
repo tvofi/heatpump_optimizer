@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68cc141bf2c3493a.py: step-4 probe for 68cc141bf2c3493a. Metric: the SOURCE label grid_fee.min_component returns in entity mode when the entity value ties the fixed

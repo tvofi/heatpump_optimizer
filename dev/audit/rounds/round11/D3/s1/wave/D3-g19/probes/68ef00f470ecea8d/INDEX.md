@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68ef00f470ecea8d.py: step-4 probe for 68ef00f470ecea8d. Metric: how many times HeatPumpOptimizer.optimize consults _safety_release_steps (repair rounds + the final check) on a

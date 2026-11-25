@@ -1,0 +1,46 @@
+import logging  # noqa: E402
+from custom_components.heatpump_optimizer import grid_fee as gf  # noqa: E402
+
+mut = mutated(gf, gf, "parse_rules", 219, "    if not spec:", "    if False:")
+
+
+def run(fn, spec):
+    try:
+        return fn(spec)
+    except gf.GridFeeError as exc:
+        return type(exc).__name__
+
+
+b, m = run(gf.parse_rules, None), run(mut, None)
+sb = gf.spec_problem(None)
+with mock.patch.object(gf, "parse_rules", mut):
+    sm = gf.spec_problem(None)
+empty = sum(int(repr(run(gf.parse_rules, s)) != repr(run(mut, s))) for s in ("", " ", "\n", ";", ",", "Mon = 0.5"))
+
+
+class Count(logging.Handler):
+    n = 0
+
+    def emit(self, record):
+        if record.levelno >= logging.WARNING:
+            Count.n += 1
+
+
+h = Count()
+gf._LOGGER.addHandler(h)
+cfg = {"grid_fee_mode": gf.MODE_RULES, "grid_fee_fixed": 0.1, "grid_fee_rules": None}
+rb = gf.GridFeeSchedule.from_config(cfg).rules
+w0 = Count.n
+with mock.patch.object(gf, "parse_rules", mut):
+    rm = gf.GridFeeSchedule.from_config(cfg).rules
+wm = Count.n - w0
+print(f"RESULT parse_none_baseline={b}")
+print(f"RESULT parse_none_mutant={m}")
+print(f"RESULT spec_problem_none_baseline={sb}")
+print(f"RESULT spec_problem_none_mutant={sm}")
+print(f"RESULT moved={int(repr(b) != repr(m))} count")
+print(f"RESULT empty_string_delta={empty} count")
+print(f"RESULT from_config_rules_delta={int(rb != rm)} count")
+print(f"RESULT from_config_warnings_baseline={w0} count")
+print(f"RESULT from_config_warnings_mutant={wm} count")
+tail()
