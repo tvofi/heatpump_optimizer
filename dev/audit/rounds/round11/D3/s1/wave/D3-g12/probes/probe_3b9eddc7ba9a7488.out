@@ -1,0 +1,15 @@
+RESULT ratio0.8_factor_after_1_baseline=0.990000
+RESULT ratio0.8_factor_after_12_baseline=0.908072
+RESULT ratio0.8_published_factor_after_12_baseline=0.934337
+RESULT ratio0.8_factor_after_1_mutant=0.980000
+RESULT ratio0.8_factor_after_12_mutant=0.856486
+RESULT ratio0.8_published_factor_after_12_mutant=0.897490
+RESULT ratio1.0_factor_after_1_baseline=1.000000
+RESULT ratio1.0_factor_after_12_baseline=1.000000
+RESULT ratio1.0_published_factor_after_12_baseline=1.000000
+RESULT ratio1.0_factor_after_1_mutant=1.000000
+RESULT ratio1.0_factor_after_12_mutant=1.000000
+RESULT ratio1.0_published_factor_after_12_mutant=1.000000
+RESULT thread_factor=1.000
+RESULT load1=1.12
+RESULT swapins=0

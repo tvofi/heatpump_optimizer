@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3b9eddc7ba9a7488.py: step-4 probe for 3b9eddc7ba9a7488; pins the inferred derate factor a fresh DefrostDerate bucket holds after one observe(0 C, 90 % RH, delivered_ratio=0.8) and after 12 such observations. (output beside it, .out)

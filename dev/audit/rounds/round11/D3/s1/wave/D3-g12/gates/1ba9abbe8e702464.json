@@ -1,0 +1,35 @@
+{
+ "key": "1ba9abbe8e702464",
+ "mutant": {
+  "kind": "CMP_BOUND",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "line": 537,
+  "old": "            return 0.0 <= v <= 1.0  # observe_duty's gate; NaN fails it",
+  "new": "            return 0.0 <= v < 1.0  # observe_duty's gate; NaN fails it",
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict._unit CMP_BOUND 257d42d3"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 4
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3273.3,
+ "child_cpu_s": 5457.0,
+ "load1_start": 0.72,
+ "load1_end": 1.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}

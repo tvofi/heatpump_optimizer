@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_0e3569fef6b39497.py: step-4 probe for 0e3569fef6b39497; pins INFO 'takes over from the inferred estimate' records DefrostDerate.observe_duty logs when a bucket's duty count reaches DERATE_CONFIDENCE_SAMPLES, for a bucket  (output beside it, .out)

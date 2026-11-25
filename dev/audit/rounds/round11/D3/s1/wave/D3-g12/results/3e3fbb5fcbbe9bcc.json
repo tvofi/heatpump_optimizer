@@ -1,0 +1,87 @@
+{
+ "key": "3e3fbb5fcbbe9bcc",
+ "site": "custom_components/heatpump_optimizer/defrost.py:566 GUARD_OFF",
+ "patch": "if instance.migrated: -> if False:",
+ "function": "DefrostDerate.from_dict",
+ "cluster": "defrost.py:DefrostDerate.from_dict@566-566",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3221.5,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/gates/3e3fbb5fcbbe9bcc.json",
+  "provisional_timing": true,
+  "note": "red, but no script beyond the null control: read as survived"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e3fbb5fcbbe9bcc.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e3fbb5fcbbe9bcc.out",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e3fbb5fcbbe9bcc.py",
+  "baseline_value": "v1_store_upgrade_log_records_baseline=1 count",
+  "mutant_value": "v1_store_upgrade_log_records_mutant=0 count",
+  "inputs_tried": "a v1 store (factors/counts) and a v2 store",
+  "results": {
+   "v1_store_upgrade_log_records_baseline": "1 count",
+   "v1_store_migrated_baseline": "True",
+   "v1_store_factors_equal_source_baseline": "1",
+   "v1_store_upgrade_log_records_mutant": "0 count",
+   "v1_store_migrated_mutant": "True",
+   "v1_store_factors_equal_source_mutant": "1",
+   "v2_store_upgrade_log_records_baseline": "0 count",
+   "v2_store_migrated_baseline": "False",
+   "v2_store_factors_equal_source_baseline": "1",
+   "v2_store_upgrade_log_records_mutant": "0 count",
+   "v2_store_migrated_mutant": "False",
+   "v2_store_factors_equal_source_mutant": "1",
+   "thread_factor": "1.000",
+   "load1": "1.12",
+   "swapins": "0"
+  }
+ },
+ "should_fail": "tests/features.py (traced baseline executes defrost.py:566): no check loads a v1 defrost store and asserts the upgrade INFO record",
+ "class": "candidate",
+ "finding": {
+  "title": "Defrost v1-store upgrade log is unpinned: deleting its guard passes the full gate",
+  "claim": "With `if instance.migrated:` -> `if False:` at defrost.py:566 the full gate stays green while a pre-v5.3.0 store upgrade logs 0 INFO records instead of 1; migrated flag and factors are unchanged.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "INFO records 'a pre-v5.3.0 store was upgraded' DefrostDerate.from_dict logs for a v1 store (factors/counts only), plus the restored `migrated` flag and factor grid (state the diagnostics publish).",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.defrost:DefrostDerate.from_dict, line 566",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e3fbb5fcbbe9bcc.py"
+  ],
+  "evidence_command": "(gate) cd <tree> && python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3e3fbb5fcbbe9bcc  -> RED-AS-NULL, gate_rc 1; (probe) PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e3fbb5fcbbe9bcc.py",
+  "perturbation": {
+   "change": "key 3e3fbb5fcbbe9bcc GUARD_OFF, `if instance.migrated:` -> `if False:`, in memory (the classmethod re-compiled and patched onto the class). Direction: 1 -> 0 log records; state unchanged.",
+   "expected_direction": "to_zero",
+   "observed_value": "1 count -> 0 count"
+  },
+  "null_control": {
+   "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (this box)",
+   "value": "see gates/null.json",
+   "note": "gate null: comment-only marker on the same box; probe null: a v2 store (duty grids present), where `migrated` is False and the guard is false either way."
+  },
+  "phenomenon_property": "a production line whose one-line mutant changes the value its symbol delivers must turn the full GATE_SCOPE=full GOLDEN_MODE=drift gate red",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/defrost.py"
+  ]
+ }
+}
