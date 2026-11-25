@@ -2,3 +2,4 @@
 1795566936 INIT r11-outside-3848
 1795566955 HB alive
 1795566991 CKPT merged origin/main 0f63320c onto 72ea4049 clean -> b45c72ba; pushed handoff-wip snapshot 94bf1d4b1ea5
+1795567141 CKPT doc count fix committed; prepr run 2 started snapshot 2f3f99b51a4e
