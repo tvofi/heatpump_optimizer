@@ -171,7 +171,7 @@ gantt
 | R11-SEAM-entity-service | CORE | 1 | in-progress | #3744, #3758, #3763, #3783, #3791 | opus/opus | - | Published metadata and outcomes: state_class and device_class match the value, a refused press raises, availability and value share a predicate, selectors si... |  |
 | R11-SEAM-card | CORE | 1 | done | #3747, #3759, #3795, #3798 | opus/opus | - | Card: 24/44 px hit targets, the 12 px type floor, one colour per status role and type and spacing read from the token scales (card_rule_copies 70 at the fork... |  |
 | R11-SEAM-product-text | CORE | 2 | not-started | #3746, #3747, #3780, #3798 | opus/opus | - | User-facing strings state what the code does after this round's behaviour groups have merged; placeholders match across languages; copy style is one convention. |  |
-| R11-SEAM-tests | CORE | 1 | in-progress | #3746, #3755 | opus/opus | - | What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory chan... |  |
+| R11-SEAM-tests | CORE | 1 | carries-open | #3746, #3755 | opus/opus | - | What the suite exercises: a flow test follows each rendered error to its recovery, the coverage register row states the measured tier, the stress memory chan... |  |
 | R11-SEAM-ratchets | CORE | 1 | done | #3779, #3782 | opus/opus | - | Ratchet rows and barriers that see what they name: a rule written twice in one function, a package import nothing loads, and an unlatched .exception or .crit... |  |
 | R11-SEAM-ratchet-raise | CORE | 1 | done | #3779 | opus/opus | yes: owner decision: D7-s1-04's limit, confirmed by the owner before the push (ADR-009 part 2; budget-raise-gate) | The two rows whose value the owner sets: const fan-out read through a module binding (the corrected row reads 4 against a budget of 3) and module lines outsi... |  |
 | R11-SEAM-docs | DOCS | 3 | not-started | #3746, #3778, #3792 | opus/opus | - | Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. |  |
@@ -195,7 +195,7 @@ gantt
 | R11-OWNER-FAULT-TEXT | CORE | 4 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-EXTHEAT-OVERRIDE | CORE | 1 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OUTSIDE-3849 | CORE | 1 | in-progress | **#3849** | opus/opus | - | Outside issue #3849 (Bankaifan), owner high priority 2026-11-22, fixer above the cap. |  |
-| R11-HOTFIX-REPLAN-ROSTER-REF | IN | 1 | not-started | - | opus/opus | - | Hotfix, S (owner-raised 2026-11-22, instruments are round-generic). |  |
+| R11-HOTFIX-REPLAN-ROSTER-REF | IN | 1 | in-progress | - | opus/opus | - | Hotfix, S (owner-raised 2026-11-22, instruments are round-generic). |  |
 | R11-OWNER-COOLING-AUTORETURN | CORE | 4 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-LATE-P1-OPTIONS | CORE | 1 | not-started | #3757 | opus/opus | - | Late class sweep P1 (finder box SW7, landed on main by 5680abbb85 on 2026-11-21, after the register fold and the P3 plan; report `dev/audit/rounds/round11/sw... |  |
 | R11-LATE-P2-ZONE-GATE | CORE | 1 | not-started | #3744 | opus/opus | - | Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on... |  |
