@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold BOOLOP dd8037c4",
-  "killed_by": "tests/features.py",
-  "old": "        return any(t is not None and float(t) < floor for t in temps)",
-  "reason": "Recorded by `mutation_table.py --drain` against e8c67e1d3df151a8f273443a5ac5f736fb543782: BOOLOP (`return any(t is not None or float(t) < floor for t in temps)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_window_floors CLAMP_DROP ae7084dd",
-  "killed_by": "tests/features.py",
-  "old": "            ready_idx = max(0, start_idx - 1)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`ready_idx = (0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=18."
-}

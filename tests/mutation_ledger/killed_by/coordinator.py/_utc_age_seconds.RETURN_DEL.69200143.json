@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_utc_age_seconds RETURN_DEL 69200143",
-  "killed_by": "tests/solar_alignment.py",
-  "old": "    return (dt_util.as_utc(newer) - dt_util.as_utc(older)).total_seconds()",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
-}

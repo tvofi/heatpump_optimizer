@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/store.py:_poisoned CMP_BOUND 1f9ba660",
-  "killed_by": "tests/finite_boundary.py",
-  "old": "        return not math.isfinite(value) or abs(value) >= ABSURD",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`return not math.isfinite(value) or abs(value) > ABSURD`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=2."
-}

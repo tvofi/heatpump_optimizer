@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_comparable_ts BOOLOP 1d5b23bb",
-  "killed_by": "tests/solar_alignment.py",
-  "old": "    if ts.tzinfo is not None and reference.tzinfo is None:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if ts.tzinfo is not None or reference.tzinfo is None:`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
-}

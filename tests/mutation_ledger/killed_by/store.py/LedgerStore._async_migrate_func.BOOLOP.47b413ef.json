@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/store.py:LedgerStore._async_migrate_func BOOLOP 47b413ef",
-  "killed_by": "tests/finite_boundary.py",
-  "old": "        if old_major_version == 1 and isinstance(old_data, dict):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if old_major_version == 1 or isinstance(old_data, dict):`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
-}
