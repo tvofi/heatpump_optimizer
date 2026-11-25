@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_limit.py:high_limit RETURN_DEL 01297469",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return HighLimit(min(kept) if kept else None, tuple(dropped))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
