@@ -24,3 +24,4 @@
 1795634733 HB alive
 1795635337 HB alive
 1795635941 HB alive
+1795636135 CKPT gate FULL: 2 failed (entities, doc_claims: HA-free 66->67 merge miss), fixed; entities rerun snapshot 90742c40c779
