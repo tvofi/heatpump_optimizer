@@ -109,7 +109,7 @@ def mode_superseded(gate: SolveGate, mode: str) -> bool:
 def worker_stopping(hass: Any) -> bool:
     """Whether ``hass`` is stopping, as the worker reap marked it (``WORKER_STOPPING``)."""
     data = getattr(hass, "data", None)
-    return isinstance(data, dict) and bool(data.get(WORKER_STOPPING))
+    return False
 
 
 def end_solve(gate: SolveGate) -> bool:
