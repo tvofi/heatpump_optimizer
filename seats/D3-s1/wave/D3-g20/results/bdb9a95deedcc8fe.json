@@ -1,0 +1,59 @@
+{
+ "key": "bdb9a95deedcc8fe",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6093 CMP_BOUND",
+ "patch": "if net(lo) <= 0.0: -> if net(lo) < 0.0:",
+ "function": "HeatPumpOptimizer._buffer_charge_ceiling",
+ "cluster": "optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling@6069-6097",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2796.7,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/bdb9a95deedcc8fe.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.30GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_bdb9a95deedcc8fe.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_bdb9a95deedcc8fe.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=117 count (ties constructed: 9)",
+   "RESULT inputs_moved=0 count",
+   "RESULT focus tie net(lo)==0 hi=55.0 out=-19.70698956145862: baseline=35.0 mutant=35.0",
+   "RESULT null_delta=0 C",
+   "RESULT from_config_buffer_max_30=30.0",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.90",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "ceiling 35.0 C at a constructed exact tie net(35 C) == 0.0",
+  "mutant_value": "35.0 C",
+  "inputs_tried": "117 (as c40e66fc, incl. 3 exact net(lo)==0.0 ties); moved 0"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none (executed by tests/features.py)",
+ "non_finding": {
+  "claim": "bdb9a95deedcc8fe (custom_components/heatpump_optimizer/optimizer.py:6093 CMP_BOUND) is an equivalent-candidate: at net(lo) == 0.0 the mutant bisects, every net(mid) < 0, and the loop returns lo unchanged",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_bdb9a95deedcc8fe.py",
+  "value": "RESULT inputs_tried=117 count (ties constructed: 9); RESULT inputs_moved=0 count; RESULT focus tie net(lo)==0 hi=55.0 out=-19.70698956145862: baseline=35.0 mutant=35.0"
+ }
+}
