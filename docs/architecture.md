@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 103 modules, of which 36 import the
+knows nothing about Home Assistant: 104 modules, of which 36 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -221,6 +221,8 @@ custom_components/heatpump_optimizer/
 │                         #   interval once the room passes its threshold
 ├── flow_lift.py          # Supply and return water: how far the real supply
 │                         #   sits from the model's own weather curve
+├── flow_limit.py         # The space water set-point's high limit: the lower
+│                         #   of the maximum set-point sensor and option
 ├── flow_meter.py         # The water flow sensor: thermal output from flow,
 │                         #   supply and return, when no power or frequency
 │                         #   signal exists
@@ -294,7 +296,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-36 of the 103 modules import `homeassistant` at module level: `__init__`,
+36 of the 104 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
