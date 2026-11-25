@@ -1,0 +1,24 @@
+KILLED  version-sort
+    FAIL the Pages workflow stages the round's plan page before it checks out the newest release, and adds it under plan/ only when one was staged  -- the release checkout took 'v1.9.0' (rc=0), not v1.10.0
+    FAIL and a release step that sorts tags as strings is refused (null control)  -- string sort: ["the release checkout took 'v1.9.0' (rc=0), not v1.10.0"]
+    RESULT: 4 checks, 2 failed at wt-f7aec2be
+KILLED  no-v-filter
+    FAIL the Pages workflow stages the round's plan page before it checks out the newest release, and adds it under plan/ only when one was staged  -- the release checkout took 'x9' (rc=0), not v1.10.0
+    FAIL and a release step that sorts tags as strings is refused (null control)  -- string sort: ["the release checkout took 'x9' (rc=0), not v1.10.0"]
+    RESULT: 4 checks, 2 failed at wt-f7aec2be
+KILLED  local-tags
+    FAIL the Pages workflow stages the round's plan page before it checks out the newest release, and adds it under plan/ only when one was staged  -- the release checkout took 'x9' (rc=0), not v1.10.0
+    FAIL and a release step that sorts tags as strings is refused (null control)  -- string sort: ["the release checkout took 'x9' (rc=0), not v1.10.0"]
+    RESULT: 4 checks, 2 failed at wt-f7aec2be
+KILLED  no-fetch
+    FAIL the Pages workflow stages the round's plan page before it checks out the newest release, and adds it under plan/ only when one was staged  -- the release checkout took 'x9' (rc=1), not v1.10.0
+    FAIL and a release step that sorts tags as strings is refused (null control)  -- string sort: ["the release checkout took 'x9' (rc=1), not v1.10.0"]
+    RESULT: 4 checks, 2 failed at wt-f7aec2be
+KILLED  no-checkout
+    FAIL the Pages workflow stages the round's plan page before it checks out the newest release, and adds it under plan/ only when one was staged  -- the release checkout took 'x9' (rc=0), not v1.10.0
+    FAIL and a release step that sorts tags as strings is refused (null control)  -- string sort: ["the release checkout took 'x9' (rc=0), not v1.10.0"]
+    RESULT: 4 checks, 2 failed at wt-f7aec2be
+KILLED  oldest-tag
+    FAIL the Pages workflow stages the round's plan page before it checks out the newest release, and adds it under plan/ only when one was staged  -- the release checkout took 'v1.9.0' (rc=0), not v1.10.0
+    FAIL and a release step that sorts tags as strings is refused (null control)  -- string sort: []
+    RESULT: 4 checks, 2 failed at wt-f7aec2be

@@ -1,0 +1,19 @@
+== wt-e04a759e e04a759e943b5fcf01dfd39487d2454c47dd927b
+Traceback (most recent call last):
+  File "/tmp/tmp.9gnpujpxeO/h/pages_section.py", line 41, in <module>
+    exec(compile(src, "entities.py[pages]", "exec"), g); break
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "entities.py[pages]", line 205, in <module>
+  File "entities.py[pages]", line 148, in _pg_defects
+NameError: name '_RC_CONTEXTS' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/tmp.9gnpujpxeO/h/pages_section.py", line 46, in <module>
+    exec(defs[n], g)
+    ~~~~^^^^^^^^^^^^
+  File "<string>", line 1, in <module>
+NameError: name 'json' is not defined. Did you forget to import 'json'?
+rc=1
+== wt-92d719ab 92d719ab7f746bd985b8a139fe169e8dbed9d1bd
