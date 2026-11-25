@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_cd6eee1c9c175e5f.py: pins COP-health bucket baseline (entry[0]) after 20 samples of COP 3.0 then one of 2.0 (baseline vs mutant cd6eee1c9c175e5f in memory); provisional class candidate

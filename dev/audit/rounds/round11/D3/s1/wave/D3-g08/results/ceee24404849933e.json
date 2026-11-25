@@ -1,0 +1,106 @@
+{
+ "key": "ceee24404849933e",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9010 GUARD_OFF",
+ "patch": "if \"candidate_kw\" not in self._fuse_advisor: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor@8966-9030",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3479.8,
+  "load1_start": 1.04,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/ceee24404849933e.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.out",
+  "result_lines": [
+   "RESULT fresh_error_baseline=((('candidate_fuse_a', 20), ('error', 'solver_failed'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)",
+   "RESULT fresh_error_mutant=((), '2026-07-09T12:00:00+00:00', 1)",
+   "RESULT fresh_no_echo_baseline=((('candidate_fuse_a', 20), ('error', 'rate_limited'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)",
+   "RESULT fresh_no_echo_mutant=((), '2026-07-09T12:00:00+00:00', 1)",
+   "RESULT stale_error_record_then_error_baseline=((('candidate_fuse_a', 20), ('error', 'x'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)",
+   "RESULT stale_error_record_then_error_mutant=((('candidate_fuse_a', 20), ('error', 'old'), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1)",
+   "RESULT null_prior_verdict_error_baseline=((('candidate_kw', 13.8), ('feasible', True), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1) mutant=((('candidate_kw', 13.8), ('feasible', True), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1)",
+   "RESULT null_success_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1) mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT cases_moved=3 count of 3",
+   "RESULT null_moved=0 count of 2"
+  ],
+  "baseline_value": "a failed what-if on an advisor with no verdict publishes {month: 2026-07, candidate_fuse_a: 20, error: <reason>}",
+  "mutant_value": "_fuse_advisor stays {} (fresh) or keeps last month's error record with the old reason (stale error record): cases_moved=3 of 3",
+  "inputs_tried": "fresh advisor + error answer; fresh + answer that does not echo the cap (rate_limited); stale error record + error; nulls: prior real verdict + error, a successful what-if",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "the first fuse-advisor run on an install with a main fuse configured whose what-if fails (solver error, or an answer not echoing the cap)",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:9010)",
+  "assertion": "'an errored what-if keeps last month's real verdict' (features.py:19709) covers only the arm with a prior verdict; no check runs a failed what-if on a fresh advisor and asserts the published {candidate_fuse_a, error} record"
+ },
+ "finding": {
+  "title": "No check runs a failed fuse what-if on a fresh advisor; dropping its error record is unseen",
+  "claim": "Mutant ceee24404849933e (coordinator.py:9010 `if \"candidate_kw\" not in self._fuse_advisor:` -> `if False:`) survives the full gate, yet a failed what-if on an advisor with no verdict publishes nothing instead of {candidate_fuse_a: 20, error}. Full gate verdict RED-AS-NULL.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "mechanism": "Reach: the first fuse-advisor run on an install with a main fuse configured whose what-if fails (solver error, or an answer not echoing the cap). Check that should have failed (D3.M4): tests/features.py (traced baseline executes coordinator.py:9010): 'an errored what-if keeps last month's real verdict' (features.py:19709) covers only the arm with a prior verdict; no check runs a failed what-if on a fresh advisor and asserts the published {candidate_fuse_a, error} record.",
+  "metric_definition": "keys of _fuse_advisor after one _maybe_run_fuse_advisor run whose what-if fails, advisor initially empty, 25 A fuse",
+  "phenomenon_property": "A failed fuse what-if publishes an error record with the candidate fuse unless a real verdict already exists",
+  "seam_rule": "awk -F'\\t' 'NR>1' dev/audit/rounds/round11/D3/s1/wave/D3-g08/keys.tsv (this box's full-gate survivors; the wave list: awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py",
+   "value": 0,
+   "unit": "keys in the published _fuse_advisor after a failed what-if on a fresh advisor (baseline 3: month, candidate_fuse_a, error)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g08: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the full-gate wall and load1 are provisional"
+  },
+  "perturbation": {
+   "change": "mutant ceee24404849933e at custom_components/heatpump_optimizer/coordinator.py:9010 (if \"candidate_kw\" not in self._fuse_advisor: -> if False:), applied in memory by the probe; full gate: fullgate.py run --src complete --key ceee24404849933e",
+   "expected_direction": "down"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py",
+   "value": "0 count",
+   "note": "a prior real verdict and a successful what-if: identical under both arms (null_moved=0 of 2); full-gate null: this box's fullgate.py null (gates/null.json)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ceee24404849933e"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's moving input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

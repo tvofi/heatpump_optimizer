@@ -1,0 +1,19 @@
+RESULT utc_tank55_exact_baseline=False mutant=True
+RESULT utc_tank55_minus_1us_baseline=True mutant=True
+RESULT utc_tank55_plus_1s_baseline=False mutant=False
+RESULT utc_tank55_minus_1h_baseline=True mutant=True
+RESULT utc_tank30_exact_baseline=False mutant=False
+RESULT utc_tank30_minus_1us_baseline=False mutant=False
+RESULT utc_tank30_plus_1s_baseline=False mutant=False
+RESULT utc_tank30_minus_1h_baseline=False mutant=False
+RESULT stockholm_tank55_exact_baseline=False mutant=True
+RESULT stockholm_tank55_minus_1us_baseline=True mutant=True
+RESULT stockholm_tank55_plus_1s_baseline=False mutant=False
+RESULT stockholm_tank55_minus_1h_baseline=True mutant=True
+RESULT stockholm_tank30_exact_baseline=False mutant=False
+RESULT stockholm_tank30_minus_1us_baseline=False mutant=False
+RESULT stockholm_tank30_plus_1s_baseline=False mutant=False
+RESULT stockholm_tank30_minus_1h_baseline=False mutant=False
+RESULT exact_moved=2 count of 2
+RESULT null_moved=0 count of 14
+RESULT dhw_min_temp=45.0 degC

@@ -1,0 +1,15 @@
+RESULT removal_then_reading_tariff_baseline=(((4.0, inf),), False, 4.0, 0.0, 0.0)
+RESULT removal_then_reading_tariff_mutant=(((4.0, inf),), False, 4.0, 0.0, 0.0)
+RESULT reading_removal_reading_tariff_baseline=(((4.0, inf), (6.0, inf)), False, 6.0, 0.066667, 0.011111)
+RESULT reading_removal_reading_tariff_mutant=(((4.0, inf), (6.0, inf)), False, 6.0, 0.066667, 0.011111)
+RESULT missing_key_then_reading_fuse_baseline=(((4.0, 10.0),), False, None, 0.0, 0.0)
+RESULT missing_key_then_reading_fuse_mutant=(((4.0, 10.0),), False, None, 0.0, 0.0)
+RESULT removal_only_tariff_peaks_baseline=((), False, None, 0.0, 0.0)
+RESULT removal_only_tariff_peaks_mutant=((), False, None, 0.0, 0.0)
+RESULT removal_disabled_nofuse_baseline=((), False, None, 0.0, 0.0)
+RESULT removal_disabled_nofuse_mutant=((), False, None, 0.0, 0.0)
+RESULT removal_forced_reach_baseline=(((4.0, 10.0), (6.0, 10.0)), False, 6.0, 0.066667, 0.011111)
+RESULT removal_forced_reach_mutant=(((4.0, 10.0), (6.0, 10.0)), False, 6.0, 0.066667, 0.011111)
+RESULT null_readings_only_baseline=(((4.0, inf), (6.0, inf)), False, 6.0, 0.066667, 0.011111) mutant=(((4.0, inf), (6.0, inf)), False, 6.0, 0.066667, 0.011111)
+RESULT cases_moved=0 count of 6
+RESULT null_moved=0 count of 1

@@ -1,0 +1,13 @@
+RESULT same_instant_pair_baseline=(((4.0, inf),), False, 4.0, 0.0, 0.0)
+RESULT same_instant_pair_mutant=(((4.0, inf),), False, 4.0, 0.0, 0.0)
+RESULT same_instant_after_weighted_baseline=(((2.0, inf), (4.0, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)
+RESULT same_instant_after_weighted_mutant=(((2.0, inf), (4.0, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)
+RESULT same_instant_forced_reach_baseline=(((2.0, inf), (4.0, inf), (7.933333, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)
+RESULT same_instant_forced_reach_mutant=(((2.0, inf), (4.0, inf), (7.933333, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)
+RESULT same_instant_fuse_forced_baseline=(((9.0, 10.0), (9.8, 10.0), (9.9, 10.0)), True, 9.566667, 0.0, 0.0)
+RESULT same_instant_fuse_forced_mutant=(((9.0, 10.0), (9.8, 10.0), (9.9, 10.0)), True, 9.566667, 0.0, 0.0)
+RESULT backwards_clock_forced_baseline=(((4.0, inf), (8.0, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)
+RESULT backwards_clock_forced_mutant=(((4.0, inf), (8.0, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)
+RESULT null_spaced_60s_baseline=(((4.0, inf), (6.0, inf), (7.966667, inf)), False, 7.0, 0.233333, 0.033333) mutant=(((4.0, inf), (6.0, inf), (7.966667, inf)), False, 7.0, 0.233333, 0.033333)
+RESULT cases_moved=0 count of 5
+RESULT null_moved=0 count of 1

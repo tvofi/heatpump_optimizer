@@ -1,0 +1,60 @@
+{
+ "key": "2e20bf308c37e0e5",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8966 GUARD_OFF",
+ "patch": "if fuse is None: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor@8966-9030",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3469.2,
+  "load1_start": 0.86,
+  "load1_end": 0.94,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/2e20bf308c37e0e5.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_2e20bf308c37e0e5.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_2e20bf308c37e0e5.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_2e20bf308c37e0e5.out",
+  "result_lines": [
+   "RESULT amps_0_baseline=((), None, 0)",
+   "RESULT amps_0_mutant=((), None, 0)",
+   "RESULT amps_negative_baseline=((), None, 0)",
+   "RESULT amps_negative_mutant=((), None, 0)",
+   "RESULT amps_nan_baseline=((), None, 0)",
+   "RESULT amps_nan_mutant=((), None, 0)",
+   "RESULT amps_0_prior_verdict_baseline=((('candidate_kw', 13.8), ('month', '2026-06')), None, 0)",
+   "RESULT amps_0_prior_verdict_mutant=((('candidate_kw', 13.8), ('month', '2026-06')), None, 0)",
+   "RESULT null_amps_25_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1) mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)",
+   "RESULT cases_moved=0 count of 4",
+   "RESULT null_moved=0 count of 1"
+  ],
+  "baseline_value": "no fuse (amps 0, -5, NaN): advisor untouched, _fuse_advisor_at None, 0 what-if calls",
+  "mutant_value": "identical in all 4 cases (cases_moved=0 of 4)",
+  "inputs_tried": "main_fuse_amperes 0, -5, NaN, 0 with a prior verdict; null 25 A",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "every install without a main fuse configured (the default 0 A)",
+ "equivalence": "_fuse_kw() is None exactly when main_fuse_amperes is not > 0 (entry_config.py:263-266; effective_config is ctx._config, coordinator.py:4222); then no FUSE_LADDER_A rung (16..63 A, const.py:576) is below amps, so the mutant returns at `if smaller is None` before any read or write",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:8966; also config_flow_steps, entities)",
+  "assertion": "none: the next guard (smaller is None) makes the mutant behave identically for every fuse-less config"
+ }
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_2e20bf308c37e0e5.py: pins no fuse (amps 0, -5, NaN): advisor untouched, _fuse_advisor_at None, 0 what-if calls (baseline vs mutant 2e20bf308c37e0e5 in memory); provisional class equivalent-candidate
