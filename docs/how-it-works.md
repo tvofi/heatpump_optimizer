@@ -517,7 +517,8 @@ learners freeze for an interval in which a held pump ran, and, without a
 power sensor, for every held interval. The diagnostics name the hold, its
 cause (cold, or no reading), the threshold and the reading. With the
 *Frost hold* option off, an idle step switches the pump off whatever the
-outdoor temperature.
+outdoor temperature. **Warning:** off, the pump can then stay off for hours in
+freezing weather, and the heat pump and water-filled pipework can freeze.
 
 ### How the schedule is produced
 
