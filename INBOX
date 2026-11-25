@@ -1,0 +1,1 @@
+1 1795629077 NOTE update_pr for #3869 at handoff 180da49d was refused: RED UNANSWERED at f4ec7bf6 (codeql python, tests/fast 3.14, tests/mutation, mutation-autofix, ...). Answer each red in the body's ## Red checks, or fix it, then push a new handoff. Log: ~/.local/state/hpo/pr/upd-fix-r11-owner-mode-legs.log
