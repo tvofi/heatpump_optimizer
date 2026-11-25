@@ -15,3 +15,4 @@
 - 94c2cc27ea61db25: equivalent-candidate; baseline inputs_separating=0 of 321; mutant inputs_separating=0 of 321; reach: none found: when coasting covers the legionella step (>= requirement - 0.5) the planners leave that step unpowered, so the mask has nothing to remove there
 - defeacb89de279a1: equivalent-candidate; baseline inputs_separating=0 of 144; slots_in_0_1e-5_kw=0; mutant inputs_separating=0 of 144; reach: none found: the min-run repair and the clamp zero every slot below min_run_power, so no slot in (0, 1e-5] kW reaches line 1348 (0 seen over 144 plans)
 - c9404a6ea551b041: equivalent-candidate; baseline typed_inputs_separating=0 of 20; mutant typed_inputs_separating=0 of 20; reach: none on the declared domain; only an out-of-type initial_temp=None separates (TypeError in the mutant)
+- build_report.py (held as build_report.py.pending until the last gate ends, so no new .py enters the gate tree mid-gate): assembles REPORT.json/REPORT.md
