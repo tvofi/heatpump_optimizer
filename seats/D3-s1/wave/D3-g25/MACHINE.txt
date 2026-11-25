@@ -8,3 +8,13 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 load1: 0.65
 python3: /opt/hpo/venv-ci/bin/python3 (/root/venv-ci absent; venv-ci at /opt/hpo/venv-ci is first on PATH per cloud-setup --check)
+
+## re-fire 2026-11-25T00:51:55Z (successor seat, new container)
+nproc 4
+               total        used        free      shared  buff/cache   available
+Mem:           16087         747       14050          12        1561       15339
+Swap:              0           0           0
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1 0.40
