@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_8611ebe645da9f19.py (+ _mutload.py): pins PeakTracker.threshold_kw with len(peaks) == peaks_averaged (the only length the swap re-routes); baseline peaks[n-1].

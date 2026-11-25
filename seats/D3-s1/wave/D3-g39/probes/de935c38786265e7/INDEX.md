@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_de935c38786265e7.py (+ _mutload.py): pins PeakTracker.from_dict of a mid-window payload (window_sum 2.0, 1 sample) whose window_factor is 'nan'/'inf': the restored window state, and the peaks after the next window closes it.

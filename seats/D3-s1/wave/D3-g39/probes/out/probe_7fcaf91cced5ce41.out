@@ -1,0 +1,10 @@
+RESULT nan_peaks_baseline=((2.0,), 1)
+RESULT nan_peaks_mutant=(('nan',), 1)
+RESULT inf_peaks_baseline=((2.0,), 1)
+RESULT inf_peaks_mutant=(('inf',), 1)
+RESULT neg_peaks_baseline=((2.0,), 1)
+RESULT neg_peaks_mutant=((0.5,), 1)
+RESULT ok_peaks_baseline=((1.5,), 1)
+RESULT ok_peaks_mutant=((1.5,), 1)
+RESULT cases_moved=3
+RESULT null_cases_moved=0

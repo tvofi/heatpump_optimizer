@@ -1,0 +1,18 @@
+Persisted capacity-tariff window is outside what the tracker writes; restarting that window empty
+RESULT nan_state_baseline=('2026-01-10T07:00:00|60', 2.0, 1, 1.0)
+RESULT nan_state_mutant=('', 0.0, 0, 1.0)
+Persisted capacity-tariff window is outside what the tracker writes; restarting that window empty
+RESULT inf_state_baseline=('2026-01-10T07:00:00|60', 2.0, 1, 1.0)
+RESULT inf_state_mutant=('', 0.0, 0, 1.0)
+Persisted capacity-tariff window is outside what the tracker writes; restarting that window empty
+RESULT nan_peaks_baseline=(2.0, 1.0)
+RESULT nan_peaks_mutant=(1.0,)
+Persisted capacity-tariff window is outside what the tracker writes; restarting that window empty
+RESULT inf_peaks_baseline=(2.0, 1.0)
+RESULT inf_peaks_mutant=(1.0,)
+RESULT f1_state_baseline=('2026-01-10T07:00:00|60', 2.0, 1, 1.0)
+RESULT f1_state_mutant=('2026-01-10T07:00:00|60', 2.0, 1, 1.0)
+RESULT f05_peaks_baseline=(1.0, 1.0)
+RESULT f05_peaks_mutant=(1.0, 1.0)
+RESULT cases_moved=4
+RESULT null_cases_moved=0

@@ -1,0 +1,10 @@
+RESULT peaks0_baseline=0.0
+RESULT peaks0_mutant=raises ZeroDivisionError
+RESULT peaks3_baseline=16.666666666666668
+RESULT peaks3_mutant=16.666666666666668
+RESULT peaksneg1_baseline=0.0
+RESULT peaksneg1_mutant=0.0
+RESULT disabled0_baseline=0.0
+RESULT disabled0_mutant=0.0
+RESULT cases_moved=1
+RESULT null_cases_moved=0

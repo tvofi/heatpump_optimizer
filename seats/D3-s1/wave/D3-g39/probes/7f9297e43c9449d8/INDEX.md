@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7f9297e43c9449d8.py (+ _mutload.py): pins _one_per_day output on same-day ties (equal kW, incl. 0.0 vs -0.0 and nan); baseline keeps the first.

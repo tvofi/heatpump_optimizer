@@ -1,0 +1,12 @@
+RESULT all_zero_baseline=0.0
+RESULT all_zero_mutant=0.0
+RESULT zero_and_negative_baseline=0.0
+RESULT zero_and_negative_mutant=-2.6269532288089563e-26
+RESULT zero_and_neg_k2_baseline=0.0
+RESULT zero_and_neg_k2_mutant=-6.665187755269336e-13
+RESULT zero_and_tiny_neg_baseline=0.0
+RESULT zero_and_tiny_neg_mutant=-4.875026045493982e-11
+RESULT positive_baseline=1.9933063882612345
+RESULT positive_mutant=1.9933063882612345
+RESULT cases_moved=3
+RESULT null_cases_moved=0

@@ -1,0 +1,16 @@
+RESULT len_eq_n3_baseline=1.0
+RESULT len_eq_n3_mutant=1.0
+RESULT len_eq_n1_baseline=3.0
+RESULT len_eq_n1_mutant=3.0
+RESULT len_eq_n0_baseline=3.0
+RESULT len_eq_n0_mutant=3.0
+RESULT len_eq_unsorted_baseline=2.0
+RESULT len_eq_unsorted_mutant=2.0
+RESULT len_eq_nan_baseline=nan
+RESULT len_eq_nan_mutant=nan
+RESULT len_lt_baseline=2.0
+RESULT len_lt_mutant=2.0
+RESULT len_gt_baseline=2.0
+RESULT len_gt_mutant=2.0
+RESULT cases_moved=0
+RESULT null_cases_moved=0

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_37b3c9a03326d207.py (+ _mutload.py): pins len(_one_per_day(ranked)) for a ranking holding two undated ('') peaks; baseline keeps both (#1512: undated entries are never merged).

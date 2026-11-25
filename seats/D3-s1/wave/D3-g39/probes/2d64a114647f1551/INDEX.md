@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_2d64a114647f1551.py (+ _mutload.py): pins _smooth_topk_sum(x, k, 0.05) on series with no positive entry but some zero entry (all-zero; zeros mixed with negatives); baseline 0.0.

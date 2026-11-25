@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_6536ff6b094f971d.py (+ _mutload.py): pins _smooth_topk_sum(x, k, 0.05) at k <= 0 and at an empty x; baseline 0.0.
