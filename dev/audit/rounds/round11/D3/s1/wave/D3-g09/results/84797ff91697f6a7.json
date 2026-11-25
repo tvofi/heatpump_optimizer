@@ -1,0 +1,46 @@
+{
+ "key": "84797ff91697f6a7",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:11091 CLAMP_DROP",
+ "patch": "override / max(ctx._thermal_params.max_electrical_power, 0.1) -> override / (ctx._thermal_params.max_electrical_power)",
+ "function": "HeatPumpOptimizerCoordinator._run_system_identification",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._run_system_identification@11057-11091",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3404.1,
+  "child_cpu_s": 5689.4,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/84797ff91697f6a7.json",
+ "gate_command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 84797ff91697f6a7  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_84797ff91697f6a7.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/out_84797ff91697f6a7.txt",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_84797ff91697f6a7.py",
+  "metric": "RESULT differing_cells_flow_reachable: arms that disagree on the adopted action's power_normalized (override 0.5 kW) at a resolved max_electrical_power >= 1.0 (the options flow minimum)",
+  "baseline_value": "differing_cells_flow_reachable=0 (5.0: 0.1/0.1, 1.0: 0.5/0.5, 0.5: 1.0/1.0)",
+  "mutant_value": "differing_cells_below_flow_minimum=2 (0.05: 5.0 vs 10.0; 0.0: ZeroDivisionError)",
+  "inputs_tried": [
+   "heat_pump_max_power 5.0, 1.0, 0.5, 0.05, 0.0 through the coordinator's config path"
+  ],
+  "null_control": "the 5.0 and 1.0 cells",
+  "load1": 1.07,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none on a flow-validated entry: config_flow.py:1851 bounds heat_pump_max_power to [1, 20] kW, so the 0.1 floor never binds; a hand-edited entry below 0.1 kW would separate the arms (the coordinator passes it through unclamped)"
+}

@@ -1,0 +1,16 @@
+RESULT production_time_step_minutes=15.0
+RESULT differ interval=10 time_step=0.5 baseline=21.0 mutant=22.0
+RESULT differ interval=10 time_step=0.0 baseline=21.0 mutant=raised ZeroDivisionError
+RESULT differ interval=15 time_step=0.5 baseline=21.5 mutant=23.0
+RESULT differ interval=15 time_step=0.0 baseline=21.5 mutant=raised ZeroDivisionError
+RESULT differ interval=30 time_step=0.5 baseline=23.0 mutant=26.0
+RESULT differ interval=30 time_step=0.0 baseline=23.0 mutant=raised ZeroDivisionError
+RESULT differ interval=60 time_step=0.5 baseline=26.0 mutant=29.6
+RESULT differ interval=60 time_step=0.0 baseline=26.0 mutant=raised ZeroDivisionError
+RESULT differ interval=120 time_step=0.0 baseline=29.6 mutant=raised ZeroDivisionError
+RESULT differing_cells_reachable=0
+RESULT differing_cells_subminute_step=9
+RESULT inputs_tried=25 (interval/time_step: 10/15.0 10/5.0 10/1.0 10/0.5 10/0.0 15/15.0 15/5.0 15/1.0 15/0.5 15/0.0 30/15.0 30/5.0 30/1.0 30/0.5 30/0.0 60/15.0 60/5.0 60/1.0 60/0.5 60/0.0 120/15.0 120/5.0 120/1.0 120/0.5 120/0.0)
+RESULT thread_factor=1.000
+RESULT load1=0.99
+RESULT swapins=0
