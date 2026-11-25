@@ -25,8 +25,8 @@ prelude would stand down for that list. `dup` counts the day's PR-naming dispatc
 that followed a pull_request run which had already graded the same head.
 `stalepin` attributes each of those duplicates to tools/ci/sweep.py's STALE-PIN arm
 when a job log prints the dispatch on its branch: a job of a gate-sweep.yml run
-created at most 15 minutes before it, or a `sweep-self` job that was running when
-it was created. It then replays this tree's `Sweep.code_red` over the
+created in the hour before it and last updated at most 5 minutes before it, or a
+`sweep-self` job that was running when it was created. It then replays this tree's `Sweep.code_red` over the
 head's other ci.yml runs, as their latest jobs stood at the dispatch's creation.
 `left` is a dispatch the tree's sweep would not fire. A tree without `code_red`
 (main before #3885's second group) is the null control and leaves none.
@@ -307,9 +307,22 @@ def _ts(s: str) -> dt.datetime:
     return dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
+def _soft(path: str) -> list:
+    """`api`, with a listing GitHub keeps refusing read as empty (a run whose jobs answer 502 past
+    every retry): one unreadable run must not void the day; its line says jobs_unread."""
+    try:
+        return api(path)
+    except subprocess.CalledProcessError:
+        _soft.unread += 1
+        return []
+
+
+_soft.unread = 0
+
+
 def _minutes(run_id) -> float:
     m = 0.0
-    for page in api(f"repos/{{owner}}/{{repo}}/actions/runs/{run_id}/jobs?filter=all&per_page=100"):
+    for page in _soft(f"repos/{{owner}}/{{repo}}/actions/runs/{run_id}/jobs?filter=all&per_page=100"):
         for j in page["jobs"]:
             if j.get("conclusion") != "skipped" and j.get("started_at") and j.get("completed_at"):
                 m += max((_ts(j["completed_at"]) - _ts(j["started_at"])).total_seconds() / 60, 0)
@@ -331,18 +344,18 @@ def stalepin(day: str) -> int:
         if not any(p["event"] == "pull_request" and p["status"] == "completed"
                    and p["conclusion"] not in ("cancelled", "action_required", "skipped") for p in at_head):
             continue                                    # a sole grader, not a duplicate (`dup`)
-        lo = (_ts(t) - dt.timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        lo = (_ts(t) - dt.timedelta(minutes=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
         sweeps = [x for page in api(f"{base}/workflows/gate-sweep.yml/runs?created={lo}..{t}&per_page=100")
-                  for x in page["workflow_runs"]]
-        jobs = [j["id"] for x in sweeps for page in api(f"{base}/runs/{x['id']}/jobs?per_page=100") for j in page["jobs"]]
-        jobs += [j["id"] for p in at_head for page in api(f"{base}/runs/{p['id']}/jobs?filter=all&per_page=100")
+                  for x in page["workflow_runs"] if _ts(x["updated_at"]) >= _ts(t) - dt.timedelta(minutes=5)]
+        jobs = [j["id"] for x in sweeps for page in _soft(f"{base}/runs/{x['id']}/jobs?per_page=100") for j in page["jobs"]]
+        jobs += [j["id"] for p in at_head for page in _soft(f"{base}/runs/{p['id']}/jobs?filter=all&per_page=100")
                  for j in page["jobs"]
                  if j["name"] == "sweep-self" and (j.get("started_at") or "~") <= t <= (j.get("completed_at") or "~")]
         mark = f"dispatched on {r['head_branch']} "
         stale = any("STALE-PIN" in ln and mark in ln for jid in jobs for ln in _log(jid).splitlines())
         latest = {}
         for p in at_head:
-            js = [j for page in api(f"{base}/runs/{p['id']}/jobs?filter=latest&per_page=100") for j in page["jobs"]]
+            js = [j for page in _soft(f"{base}/runs/{p['id']}/jobs?filter=latest&per_page=100") for j in page["jobs"]]
             latest[p["id"]] = [j if (j.get("completed_at") or "~") <= t else dict(j, status="in_progress", conclusion=None)
                                for j in js if (j.get("started_at") or "~") <= t]
 
@@ -358,7 +371,7 @@ def stalepin(day: str) -> int:
     print(f"stalepin {day}: STALE-PIN duplicates {tot['left', 'runs'] + tot['dispatched', 'runs']}, of which this tree "
           f"leaves {tot['left', 'runs']} ({tot['left', 'min']:.0f} runner-min) and still dispatches "
           f"{tot['dispatched', 'runs']} ({tot['dispatched', 'min']:.0f}); unattributed {tot['unattributed', 'runs']} "
-          f"({tot['unattributed', 'min']:.0f})")
+          f"({tot['unattributed', 'min']:.0f}); job listings unread {_soft.unread}")
     return 0
 
 
