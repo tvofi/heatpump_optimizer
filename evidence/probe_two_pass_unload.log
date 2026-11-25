@@ -75,11 +75,32 @@ binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: t
 sensor.fault_code has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
   ok   a raw fault bitmap holds on non-zero and not on zero
 binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
-  ok   unload under the hold writes no baseline row
+  FAIL unload under the hold writes no baseline row, and drops the latch  [([('select', 'select.pump_mode', 'Heating + DHW')], False)]
   ok   null control: unload with no fault writes the baseline row
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   Off ends the hold: entering Off under it writes the baseline row at the mode change, and Off's pass clears the latch
+  ok   null control: with no fault the same mode change writes the baseline row
+binary_sensor.pump_fault has reported a fault since 2026-01-10T06:31:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a stale plan under the hold hands nothing back: no supply, frequency or valve write
+  ok   null control: the same stale cycle with no fault writes the supply switch back
   ok   fault_hold off: a 60-minute fault holds nothing and raises nothing
   ok   fault_hold off: the control pass writes as today
   ok   the options flow offers fault_hold on the pump page, on by default, after the fault alarm
   ok   the option and the repair are translated in every shipped language
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   a pass queued before the unload (entry_released) with a 30-minute fault raises no fault repair
+  ok   null control: the same pass on a loaded entry raises the fault repair
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   an Optimizer Off pass after a held pass clears the latch and the fault repair
+  ok   null control: the same next pass in auto keeps the latch and the repair
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the Off displace under a held latch is published, and clears the latch and the fault repair
+  ok   null control: the same second displace outside Off is not published and the hold stays
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:30:00+00:00: the optimizer stops actuating the pump until it clears
+binary_sensor.pump_fault has reported a fault since 2026-01-10T05:15:00+00:00: the optimizer stops actuating the pump until it clears
+  ok   the diagnostics row's since is the latch's start, the alarm's last change
+  ok   null control: with no fault the diagnostics row's since is empty
 
-ALL 47 FEATURES BLOCK PASSED
+1 of 59 FEATURES BLOCK FAILED
