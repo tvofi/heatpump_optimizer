@@ -87,7 +87,7 @@ ST=$(gh pr view "$N" -R $R --json mergeStateStatus -q .mergeStateStatus 2>/dev/n
 MAIN=""
 git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || MAIN=1
 [ "$ST" != DIRTY ] || MAIN=1
-[ -z "$MAIN" ] || $G merge -q --no-edit origin/main
+[ -z "$MAIN" ] || $G merge -q --no-edit origin/main || { [ -n "${UPD_RESOLVE:-}" ] && bash "$UPD_RESOLVE" && $G commit -q --no-edit; } || pr_refuse "main merge conflicted and UPD_RESOLVE did not resolve it"  # LOCAL OVERLAY v3: a verified union resolver
 # Keys taken at the code sha, or at the previous head when none was given, re-keyed where the merges
 # only shifted their lines (ci_predict.py --rekey-body; open_pr.sh's why).
 python3 "$PRT/ci_predict.py" --rekey-body "$B" --from "$([ "$C" = - ] && echo "$OLD" || echo "$C")" || echo "update_pr: the unpinned-site re-key did not run; prepr reads the body as written" >&2
@@ -102,8 +102,8 @@ M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 # before either. A body with no block is untouched; a failed refresh refuses, pushing and patching nothing.
 upd_figures() { # <where>
   grep -q '^<!-- figure-block: ' "$B" || return 0
-  local fb=origin/main
-  fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
+  local fb=origin/main  # LOCAL OVERLAY figure-base-overlay v2: a pushed head moves GitHub's base.sha to merge-base(main, head), which pr-contract then verifies and prepr verifies now
+  [ "$1" = "at the head to push" ] || fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
   python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
   pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
 $(tail -n 20 $WT.fig.log)"
