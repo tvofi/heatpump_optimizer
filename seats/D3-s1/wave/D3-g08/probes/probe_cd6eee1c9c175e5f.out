@@ -1,0 +1,8 @@
+RESULT n_then_drop_baseline=stat 0.323333333 baseline_cop 2.98 count 21 issues 0
+RESULT n_then_drop_mutant=stat 0.323333333 baseline_cop 2.952380952 count 21 issues 0
+RESULT n_then_rise_baseline=stat 0.0 baseline_cop 3.02 count 21 issues 0
+RESULT n_then_rise_mutant=stat 0.0 baseline_cop 3.047619048 count 21 issues 0
+RESULT n_then_drop_then_more_baseline=stat 0.241100301 baseline_cop 2.981921584 count 26 issues 0
+RESULT n_then_drop_then_more_mutant=stat 0.195898079 baseline_cop 2.956956153 count 26 issues 0
+RESULT seqs_moved=3 count of 3
+RESULT null_moved=0 count of 2
