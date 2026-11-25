@@ -142,3 +142,14 @@
 1795645281 HB resumed after restart; gating fdf5872fd576c405 14/15
 1795645360 HB resumed after container restart; gate 14/15 fdf5872fd576c405 running
 1795645365 CKPT D3-s1 65 file(s)
+1795645517 HB alive
+1795646139 HB alive
+1795646760 HB alive
+1795647382 HB alive
+1795648004 HB alive
+1795648288 CKPT D3-s1 67 file(s)
+1795648288 HB gate done: fdf5872fd576c405 RED-AS-NULL | gated 14/15 left 1 KILLED=2 RED-AS-NULL=12
+1795648288 HB gate started: 39041ccf21eedba6
+1795648377 CKPT D3-s1 68 file(s)
+1795648443 CKPT D3-s1 68 file(s)
+1795648518 CKPT D3-s1 68 file(s)
