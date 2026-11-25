@@ -16,18 +16,25 @@ Alternatives lost: D10-s1-02's other shape, making the sysid button unavailable 
 
 ## Head
 
-7f2e1ee90c4f330aca0e05166fc066d684c2da79, measured against merge base baa9a467ac518bc3f8733d2603ea8ae406b235af (`origin/main` at 2026-11-22T17:44Z, `git fetch origin main`; `git merge-tree --write-tree origin/main HEAD` reports no conflict). The head is dispatch head 555a9403d0 with `origin/main` baa9a467ac merged in (`b09a9bf4f7`, no content conflict; the ledger driver resolved `tests/closures.json`), then:
-- `ccec83b423` PayloadFlagMixin key path, five sensors (pays `module_excess_loc`).
-- `baef452006`, `bb605f43f4` re-record `tests/structure_budgets.json` down, each with its reason in the commit message; no row rises.
-- `31dec615fa` deletes the six pins `ccec83b423` stales (`ci_predict.py` STALE PIN lines).
-- `e540c76da4` `cyclic_span` in `_dhw_next_window_hours` (P2 red).
-- `e99d8a05f4` killing checks for the diff's survivors; the mixin's flag has no default.
-- `831f6e9f4f` the consumers-census null control re-anchored to the one-line call.
-- `7f2e1ee90c` splits four comment sentences over the 40-word ratchet.
+190e7f811abe51320f1c19cd49de9463beaf230b, measured against merge base 3210fcd7334af9a870a8a7c23322fcaead7e14eb (`origin/main` at 2026-11-25T01:56Z, `git fetch origin main`). The head is the reviewed head b0ee904f74 (verdict/3841: blocked, tests-red) plus the lane's `5ed002a6df` ("ci: pin killed mutants"), then:
+- `bd9ef5b5d5` drives "a step past short holiday flags gets the ordinary DHW windows" through `dhw_planner._dhw_windows_at`'s five-argument signature (`params` carries `dhw_holiday_windows`, `dhw_weekly_windows` and `dhw_day_windows` None), both halves kept; and adds "the in-window flag, boost and the VVC pump take the holiday tier from the holiday calendar (D17-s3-51)", which drives a holiday date through the three readers the verdict's M6, M7 and M8 mutated.
+- `b0deb70783` merges `origin/main` 24e3f37620 (`tests/deployment_shape.py` conflicted).
+- `9ee96030d9` the holiday-tier VVC arm reads the on/off the coordinator hands `circulation.command`, which 24e3f37620 made the pump write's owner.
+- `223066161b` merges `origin/main` 3210fcd733 (PR CONFLICTING). `tests/deployment_shape.py`: the closure-pair note is the union of both sides' histories, its count re-derived on the merged `tests/closures.json`. `tests/ci_budgets.json`: each row the lower side, `script_runs_per_push` main's 56. `tests/structure_budgets.json` and `tests/closures.json`: the ledger driver's resolution, re-measured (Figures).
+- `190e7f811a` deletes the `tests/mutation_ledger` pin `sensor.py:PowerHeadroomSensor.available RETURN_DEL 7455907d`, which main's nightly 97026ed8cf recorded and the merge stales: the override is folded into `PayloadFlagMixin` here, and `ci_predict.py` refused it as `STALE PIN` on the ledger arm.
 
-The evidence below 555a9403d0's sections (the finder harnesses, the earlier mutation proof) was measured by the previous fixer at 2a50c826b4/4eae78de/96d8a05b2159 and is carried unchanged; what this run re-executed at its own head is marked with the head it ran at.
+Delta for review: `git diff b0ee904f74 9ee96030d9 -- tests/features.py` minus main's 24e3f37620 changes is the tests-red repair; `git diff 9ee96030d9 223066161b -- tests/deployment_shape.py tests/ci_budgets.json tests/structure_budgets.json tests/closures.json` against `git diff 9ee96030d9...origin/main` on the same paths is the merge resolution. The repair commits touch no production file: `git diff --quiet <a> <b> -- custom_components` exits 0 for b0ee904f74..5ed002a6df, 5ed002a6df..bd9ef5b5d5 and b0deb70783..9ee96030d9. The 3210fcd733 merge's production lines are main's own: the sorted changed lines of `git diff 9ee96030d9 223066161b -- custom_components` equal those of `git diff $(git merge-base 9ee96030d9 origin/main) origin/main -- custom_components` (`diff` exits 0; it would print the lines of any side's edit).
+
+The evidence below this section's earlier heads (the finder harnesses, the earlier mutation proof) was measured at 7f2e1ee90c and before and is carried unchanged; what this run re-executed at 223066161b is marked with that head.
 
 ## Mutation proof
+
+At 223066161b (scratch worktree, `tools/audit/seat/features_block.py` block `# T3 — hot water` to `_SAFE = dict(`, prelude from its own `--emit-prelude`, each file restored with `git checkout`). Unmutated: `ALL 61 FEATURES BLOCK PASSED`, rc 0. The verdict's three survivors:
+- M6 `boost.py` `_window_open`: `windows_in_force(snap.params, snap.plan, now, holidays)` -> `windows_in_force(snap.params, snap.plan, now)`: KILLED, `1 of 61 FEATURES BLOCK FAILED`, "the in-window flag, boost and the VVC pump take the holiday tier from the holiday calendar (D17-s3-51)" reading `holiday: (True, False, [True])`.
+- M7 `coordinator.py` `_dhw_effective_windows`: `holidays` -> `()`: KILLED, same check, `holiday: (False, True, [True])`.
+- M8 `coordinator.py` the VVC call's holiday argument `away_mode.holiday_dates(...)` -> `()`: KILLED, same check, `holiday: (True, True, [False])`.
+The null control is the check's ordinary Saturday, `(False, False, [False])` under every mutant and unmutated: each mutant moves only its own reader's element.
+
 
 Each mutant applied to a detached copy of a branch commit whose mutated code is identical at the head (`b2a465a0` for the first group, `4eae78de` for the second), the named script or `tools/audit/seat/features_block.py` block run, the source restored. The mutant text is quoted.
 - `button.SystemIdentificationButton.async_press`: `if refused == sysid.ARM_REFUSED_DISABLED:` -> `if False:` -> `tests/features.py` block (D10-s1-02) red on "a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)".
@@ -54,6 +61,8 @@ This run, survivors of the diff's added lines. `tools/audit/seat/mutant_run.py -
 - `dhw_planner._dhw_next_window_hours` `cyclic_span(int(d), int(d) + 1, 7)` -> `+ 2`: `The window grammar round-trips` block red on "the planner's published next window reads the day's windows, today's and the next day's, in every census cell" (1 of 58 cells wrong).
 
 ## Unpinned sites
+
+At 190e7f811a against 3210fcd733, `python3 tools/pr/ci_predict.py` (through `prepr.sh`) lists 17 `ADDED UNPINNED` sites, each one in the list below with its disposition; the list's other four (`config_flow.py:846`, `debugger.py:337`, `entity.py:458 BOOLOP`, `sensor.py:551`) are pinned by the lane's `5ed002a6df`.
 
 `python3 tools/pr/ci_predict.py --base baa9a467ac51` at e99d8a05f4 lists 21 added unpinned sites (rule: the predictor's `ADDED UNPINNED` lines; its last line reads "21 unpinned site(s) the diff adds"). Each is under `custom_components/`, which the `mutation-autofix` lane mutates, and none is a survivor of this run's diff mutants above, so each is left to that lane's `--pin-killed` (`ci-autofix.md`):
 - custom_components/heatpump_optimizer/config_flow.py:846 CMP_BOUND: if value == declared or base is None or not isinstance(step,: pinned by `mutation-autofix` (its lane mutates `custom_components/`)
@@ -119,8 +128,17 @@ This run, at the head named, with `PYTHONPATH=tests/hastub`:
 - Gate scope at the head: `python3 tests/closure.py select --diff baa9a467ac51` printed its `MODE: SCOPED` line (a body stores no figure; `pr-contract` renders it at the head). This run executed `entities.py`, `harness_headers.py`, `config_flow_steps.py`, `typing_ruler.py`, `doc_claims.py` and `structure.py` from it, plus the features blocks named above (not `features.py` whole). The rest is left to CI.
 
 
+This run, at 223066161b (the merge of 3210fcd733), with `PYTHONPATH=tests/hastub`, under `tests/gate_lock.py take`:
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; every row reads its recorded value at zero headroom. The ledger driver's sums equal the measurement, and each row is at or under main's (`class_excess_loc` 17301 -> 17264, `dead_top_level_symbols` 1 -> 0, `duplication_copies` 5 -> 3, `max_class_loc` 7844 -> 7833, `module_excess_loc` 21775 -> 21774, `unloaded_package_imports` 14 -> 5, main's value first; `git diff origin/main -- tests/structure_budgets.json`). No row rises.
+- `tests/ci_budgets.json`: `ci_ratchet.archscore_metrics()` on the merged tree reads every `archscore.*` row at or under both sides' budget (`dead_members` 0, `public_unused` 0, which main records at 1); `script_runs_per_push` is main's 56 (R11-SEAM-tests's `cycle_lane.py`), which this diff does not move. `git diff origin/main -- tests/ci_budgets.json` moves only those two rows down, `reason` and `recorded_at`.
+- `tests/deployment_shape.py` closure-pair note: the rule is the Jaccard index of two scripts' `custom_components/` closures in `tests/closures.json`, >= 0.80, over all pairs. It reads 182 of 561 at `origin/main` and 167 of 528 at 9ee96030d9, the two sides' recorded figures (the rule's null control: it reproduces both before the merge), and 180 of 561, all among 435 non-empty pairs, on the merged tree.
+- `tests/entities.py` `ALL 2770 ENTITY CHECKS PASSED`; `tests/features.py` in full `ALL 6128 FEATURE CHECKS PASSED`, among them "a step past short holiday flags gets the ordinary DHW windows" and the holiday-tier check; `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`.
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints its `MODE: SCOPED` line; the other scoped scripts are left to CI.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` at 190e7f811a: rc 0. Its previous run at the same head predicted `governance / instrument-self-tests` red on the `bus.sh --self-test` step replay (rc 1 at the head, 0 at the base); `bash tools/audit/seat/bus.sh --self-test` run alone at the head reads `bus self-test: 245 checks, 0 failed`, `ci_predict.py --only step-replay` predicts no governance red, `git diff --quiet origin/main HEAD -- tools/audit/seat/` exits 0, and the next full run is the clean one above. It is recorded as a host-load replay result, not a red of this diff.
+
 ## Red checks
 
+- `tests / fast (3.14)` at b0ee904f74 (job 137338983550): `1 of 6045 FEATURE CHECKS FAILED`, "a step past short holiday flags gets the ordinary DHW windows" calling `_dhw_windows_at` with the pre-ab029edde6 six-argument signature (`TypeError`). Repaired at `bd9ef5b5d5`; `tests/features.py` in full at 223066161b reads `ALL 6128 FEATURE CHECKS PASSED`. Cheaper detector: `git grep -n _dhw_windows_at -- tests tools dev/audit/harnesses` after a signature change, seconds against `features.py`'s run; the scoped gate already names `features.py` for this diff, and the earlier run executed features blocks only, not the script whole. No new detector is built: the existing one, `features.py` in the scoped gate, catches it when run whole, as it was here.
 - Ancestry reds (`prepr.sh` step 7c, read from the PR's pushed commits' check runs; logs through the Actions job logs of runs 44974355771, 44983234599, 44983240711 and 44996038359):
   - `tests / fast (3.14)` at 7b76b17f49 and 8b127c6d85: `FAILED python3 tests/entities.py (479s)`. The P2 `cyclic_range_wrap` red above, plus "the lane's docstring records those measured numbers as the selection-cost note (#1218)" (missing marker `165 of the 528`), which 555a9403d0 repaired. Both are green at 831f6e9f4f (`ALL 2757 ENTITY CHECKS PASSED`). Cheaper detector: `tests/entities.py` in the scoped gate, 545 s here; none cheaper is known to this seat.
   - `tests / mutation` at a139b341f8, 7b76b17f49, 8b127c6d85, c6cb6d936f and da1689bb07: `MUTATION TABLE REFUSED -- 1934 unpinned site(s) against 1923 at the ratchet base 40e513eea4, 16 of them added by this diff`, the added unpinned sites `mutation-autofix` pins (`ci-autofix.md`). Cheaper detector: `ci_predict.py`'s `ADDED UNPINNED` lines, which `prepr.sh` runs before every handoff; they are listed under Unpinned sites.
