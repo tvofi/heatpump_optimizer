@@ -40,7 +40,7 @@ M = [
  ("same-hass filter", "fault_hold.py", "other.holding and other.hass is hass", "other.holding"),
  ("gate False-only", "fault_hold.py", "    if value is not False or not consult(entry, inp):", "    if value is None or not consult(entry, inp):"),
  ("gate held mark", "fault_hold.py", "    held_state.supply_held = True\n", ""),
- ("release clears", "fault_hold.py", "    if was:\n        _clear(hass)\n", ""),
+ ("release clears", "fault_hold.py", "        _RELEASED_HOLDING.add(entry)\n        _clear(hass)\n", "        _RELEASED_HOLDING.add(entry)\n"),
  ("apply consult", "pump_arbiter.py", "faulted = fault_hold.consult(coord.entry, inp, now)", "faulted = False"),
  ("_arbitrate return", "pump_arbiter.py", " or _fault_stands(inp.hass, held, faulted):", ":"),
  ("retry drop", "pump_arbiter.py", "        held.retry.clear()\n", ""),
