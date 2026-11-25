@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/off_restore.py:_armed_record GUARD_OFF ce8acfd6",
+  "old": "    if held.loaded:",
+  "reason": "Survival measured by CI's tests / mutation-autofix at b3f0f7d676 (job 136624655408, `9 added site(s) left alive`), over every recorded driver. The guard is the fast path of a double-checked load: with it off, every call takes `held.lock` and re-tests `held.loaded` inside it, which is True once any load has landed, so the same `held` is returned with nothing read or written. The lock is taken nowhere else (`grep -n '.lock' off_restore.py` names this one `async with`), so no caller holds it while asking and the extra acquire cannot deadlock. An unlocked `asyncio.Lock` is acquired without yielding, and a locked one is held only by a first load that sets `loaded` before releasing it. The mutant differs only in when that wait ends, never in what is returned or stored.",
+  "verdict": "equivalent"
+}
