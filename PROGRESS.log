@@ -52,3 +52,4 @@
 1795573455 HB alive
 1795574059 HB alive
 1795574527 CKPT handed off cfe3dfce, body 7273b8ad snapshot e4d5580f881c
+1795574559 DONE returned: handoff cfe3dfce, body 7273b8ad; step-ref delete refused 403 by proxy
