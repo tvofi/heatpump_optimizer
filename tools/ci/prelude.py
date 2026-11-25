@@ -405,9 +405,21 @@ def _job_text(workflows: Path, wf: str, job: str) -> str:
 
 
 def light_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> dict:
-    """(workflow, job) -> the lane names its text reads from `inputs.stand_down`."""
-    pat = r"contains\(format\(' \{0\} ', inputs\.stand_down\), ' ([\w-]+) '\)"
-    return {k: set(re.findall(pat, _job_text(workflows, *k))) for k in LIGHT_GATE}
+    """(workflow, job) -> the lane names its job-level `env:` reads from `inputs.stand_down`,
+    and for a LIGHT_LANES job whether every step past its first reads that variable."""
+    pat = r"\n      (\w+): \$\{\{[^\n]*contains\(format\(' \{0\} ', inputs\.stand_down\), ' ([\w-]+) '\)"
+    got = {}
+    for k, lane in LIGHT_GATE.items():
+        text = _job_text(workflows, *k)
+        env = re.search(r"\n    env:\n((?:      [^\n]*\n)+)", "\n" + text)
+        reads = re.findall(pat, "\n" + env.group(1)) if env else []
+        names = {n for _, n in reads}
+        if lane in LIGHT_LANES:
+            steps = re.split(r"\n      - ", text.split("\n    steps:\n", 1)[-1])[2:]
+            var = reads[0][0] if reads else "-"
+            names |= {"every step reads it"} if steps and all(f"env.{var} != 'true'" in s for s in steps) else set()
+        got[k] = names
+    return got
 
 
 def lane_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> dict:
@@ -1076,8 +1088,10 @@ def self_test() -> int:
     o = outputs(ctx("merge_group", merge_group={"head_ref": "refs/heads/gh-readonly-queue/main/pr-12-" + "a" * 40}),
                 [rec], g(live))[0]
     check("#3885: a merge-queue run is never light", (o["light"], o["stand_down"]), ("false", ""))
-    check("#3885: each light lane's job reads exactly its own stand_down name",
-          light_gates(), {k: {v} for k, v in LIGHT_GATE.items()})
+    check("#3885: each light lane's job env reads exactly its own stand_down name, and every step of a "
+          "product lane past its first reads that variable",
+          light_gates(), {k: {v} | ({"every step reads it"} if v in LIGHT_LANES else set())
+                          for k, v in LIGHT_GATE.items()})
     check("#3885: the light lanes are exactly LIGHT_LANES and LIGHT_PUSH_LANES",
           sorted(LIGHT_GATE.values()), sorted(set(LIGHT_LANES) | set(LIGHT_PUSH_LANES)))
     print(f"prelude self-test: {n} checks, {fails} failed")
