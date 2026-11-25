@@ -1,2 +1,3 @@
 1795613198 INIT r11-fix-extheat
 1795613258 CKPT two checks committed b4b8d88a; head and mutant runs started snapshot e6297166a65e
+1795614783 CKPT mutation proof: both survivors killed, head passes; gate started snapshot 5fdf0937dbad
