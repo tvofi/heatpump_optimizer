@@ -1,2 +1,3 @@
 1795609494 INIT r11-recut-3835
 1795609503 HB alive
+1795609545 CKPT read verdicts; fab2d371 class-open fixed in bd7e21777b; running mutation proof at coordinator.py:1121 snapshot 978240dbaf89
