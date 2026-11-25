@@ -95,7 +95,7 @@ md = [f"# D3-s1, box D3-g36: full gate for 16 u1 full-net survivors (sysid.py), 
       f"- candidates (survived, probe moves): {len(surv)}; equivalent-candidates: {len(equiv)}; TIMEOUT: {len(timeouts)}", "",
       "| key | site | patch | verdict | class | probe baseline | probe mutant |", "|---|---|---|---|---|---|---|"]
 for k, r in R.items():
-    md.append(f"| {k} | {r['site']} | `{r['patch']}` | {r['gate']['verdict']} | {r['class']} | {r['probe']['baseline_value']} | {r['probe']['mutant_value']} |")
+    md.append(f"| {k} | {r['site']} | `{r['patch'].replace('|', chr(92) + '|')}` | {r['gate']['verdict']} | {r['class']} | {r['probe']['baseline_value']} | {r['probe']['mutant_value']} |")
 md += ["", "## Survivors: the step-4 answer and the probe numbers", ""]
 for k, r in R.items():
     if r["class"] in ("candidate", "equivalent-candidate"):
