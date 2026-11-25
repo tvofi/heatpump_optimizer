@@ -1,0 +1,33 @@
+{
+  "id": "D15-s1-05",
+  "scope": "D15-s1",
+  "step": "D15.M4",
+  "title": "A capacity-envelope bucket the fold writes with count 0 is dropped by its own loader at every restart",
+  "severity": "medium",
+  "claim": "_fold_capacity_envelope seeds a bucket as [heat_kw, 0] for a measured heat sample at partial load, _thermal_learning_payload stores it, and _load_t4b_learners refuses it through _learned_pair (count < 1): 1 bucket written, 0 reloaded; the owner's live thermal-learning store holds 1 such bucket and the loader restores 0 of it.",
+  "mechanism": "One fact decided twice: the fold (#1955 fold e) treats a measured delivered-heat sample as a floor that 'never counts towards capping' and so keeps count 0, while the loader's _learned_pair (and DOMAINS 'capacity_envelope/*/1': int >= 1) holds that a fold writes an entry only at its first counted sample. The floor learned between restarts is discarded at each load (and at a snapshot restore, which shares the parser); the next nameplate sample then starts from max(thermal_kw, nothing) instead of the remembered floor.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py --bundle B",
+    "harness_path": "dev/audit/rounds/round11/D15/s1/capacity_envelope.py",
+    "value": "fold_written=1, fold_written_count_zero=1, reloaded=0, lost=1; bundle_stored=1, bundle_zero_count=1, bundle_reloaded=0; bundle_snapshot_zero_count_buckets=2",
+    "unit": "buckets",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, box B8 (shared), CI venv python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 22.21,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._load_t4b_learners",
+  "perturbation": {"change": "--loader-accepts-zero: coordinator._learned_pair accepts a count of 0 (the one-line loader edit)", "expected_direction": "to_zero", "observed_value": "lost 1 -> 0; bundle_reloaded 0 -> 1"},
+  "null_control": {"command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py --bundle B --nameplate", "value": "fold_written_count_zero=0, lost=0", "note": "a sample at nameplate counts, so the loader keeps the bucket: the loss is confined to the partial-load floor"},
+  "metric_definition": "Buckets of _capacity_envelope the fold wrote minus those a fresh coordinator holds after _load_t4b_learners reads _thermal_learning_payload's JSON.",
+  "phenomenon_property": "Every [value, count] pair a fold writes is restored by its loader: a fold's stored count domain equals its loader's.",
+  "seam_rule": "grep -nE \"setdefault\\([^)]*\\[[^]]*, *0\\]\\)\" custom_components/heatpump_optimizer/*.py, each seeded pair against the loader its store key reaches (baseline: coordinator.py capacity_envelope, a seam; freq_control.py buckets, increments before any save and its loader accepts count >= 0, not a seam)",
+  "stop_rule_class": "bug",
+  "class_guess": "P2",
+  "files": ["custom_components/heatpump_optimizer/coordinator.py", "custom_components/heatpump_optimizer/store.py"],
+  "proposed_fix_scope": "Decide the count's meaning once: either the loader (a capacity-envelope-specific parse) and DOMAINS accept count 0 for the measured floor, or the fold stores the floor apart from the counted envelope; a round-trip regression arm through _thermal_learning_payload and _load_t4b_learners.",
+  "reproduction_steps": ["PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/capacity_envelope.py", "same with --loader-accepts-zero, and with --nameplate"]
+}

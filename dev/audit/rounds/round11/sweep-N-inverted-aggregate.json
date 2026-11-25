@@ -1,0 +1,3 @@
+{"class": "N-inverted-aggregate", "instances": 0, "barriered": false,
+ "enumerator": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep_n_inverted_aggregate.py",
+ "instance_list": [{"file": "custom_components/heatpump_optimizer/tariff.py", "symbol": "_one_per_day", "probe": "sweep_n_inverted_aggregate.py --perturb oneperday: _one_per_day([(1,d1),(5,d1)]) must keep 5.0; fails on the planted copy only (tree and baseline 92d38ec read kw > best)", "beyond_finding": false}]}

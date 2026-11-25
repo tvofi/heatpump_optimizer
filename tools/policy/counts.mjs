@@ -93,9 +93,14 @@ function read(rel) {
   }
 }
 
-function git(args) {
-  return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+// Every git read that can return a tree-sized listing goes through here: Node's
+// default execFileSync maxBuffer (1 MiB) is below the repository's own
+// `git ls-files` output, and over it the call dies with ENOBUFS.
+export const GIT_MAX_BUFFER = 64 * 1024 * 1024
+export function gitRead(args, opts = {}) {
+  return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: GIT_MAX_BUFFER, ...opts })
 }
+const git = (args) => gitRead(args)
 
 // ---------------------------------------------------------------------------
 // Derivations. Every count a policy file is allowed to state is computed here

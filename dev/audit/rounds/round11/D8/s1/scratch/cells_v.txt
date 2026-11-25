@@ -1,0 +1,46 @@
+  missing: de climate.heat_pump_optimizer attr=preset_mode
+  missing: en climate.heat_pump_optimizer attr=preset_mode
+  missing: sv climate.heat_pump_optimizer attr=preset_mode
+  same_as_en: de climate.heat_pump_optimizer attr=preset_mode:state=auto = 'Auto'
+  unbuilt: de datetime.away_return name
+  unbuilt: en datetime.away_return name
+  unbuilt: sv datetime.away_return name
+  unreached: en sensor.heat_pump_action state=boost
+  unreached: en sensor.heat_pump_action state=comfort
+  unreached: en sensor.heat_pump_action state=idle
+  unreached: en sensor.heat_pump_action state=normal
+  unreached: en sensor.heat_pump_action state=pre_heat
+  unreached: en sensor.heat_pump_action state=system_identification
+  unreached: en sensor.heat_pump_action state=unknown
+  unreached: en sensor.learning_model_status state=attention
+  unreached: en sensor.learning_model_status state=learned
+  unreached: en sensor.optimization_mode state=boost
+  unreached: en sensor.optimization_mode state=comfort
+  unreached: en sensor.optimization_mode state=economy
+  unreached: en sensor.optimization_mode state=off
+  unreached: en sensor.optimization_mode state=unknown
+  unreached: en sensor.plan_narrative state=dhw_preheat
+  unreached: en sensor.plan_narrative state=dhw_ready
+  unreached: en sensor.plan_narrative state=idle
+  unreached: en sensor.plan_narrative state=idle_dearer
+  unreached: en sensor.plan_narrative state=idle_fuse
+  unreached: en sensor.plan_narrative state=idle_other_channel
+  unreached: en sensor.plan_narrative state=idle_solar
+  unreached: en sensor.plan_narrative state=legionella
+  unreached: en sensor.plan_narrative state=manual_plan
+  unreached: en sensor.plan_narrative state=preheat_weather
+  unreached: en sensor.plan_narrative state=pump_mode
+  unreached: en sensor.plan_narrative state=scheduled
+  unreached: en sensor.plan_narrative state=solar_surplus
+  unreached: en sensor.plan_narrative state=terminal_value
+  unreached: en sensor.plan_narrative state=untagged
+RESULT d8_cells=396 count
+RESULT built_translation_keys=81 count
+RESULT missing=3 count
+RESULT same_as_en=1 count
+RESULT unbuilt=3 count
+RESULT option_gap=0 count
+RESULT unreached=29 count
+RESULT thread_factor=1.000
+RESULT load1=191.45
+RESULT swapins=0

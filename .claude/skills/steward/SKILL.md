@@ -39,9 +39,8 @@ files runs only in a clone that installed it, and a runner is not one.
 This happens without anyone touching your branch: a merge to the default
 branch that moves a claim file flips every open pull request at once.
 
-Confirm a conflict is real before treating it as one:
-
-    git merge-tree --write-tree origin/main HEAD
+Confirm a conflict is real before treating it as one, by the `merge-tree`
+check `claim-files.md` gives.
 
 Install the driver once per clone; a worktree shares its checkout's config.
 

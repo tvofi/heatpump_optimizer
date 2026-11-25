@@ -18,7 +18,7 @@ A load decodes the way upstream's does, with ``orjson.loads`` semantics for
 numbers: a bare ``NaN``/``Infinity`` token or a number that overflows a double
 is a decode error, and an integer outside orjson's i64/u64 range is a float.
 A document that fails to decode is moved aside and loads as ``None``, as
-upstream's ``_async_load_data`` renames a corrupt file and returns ``None``
+upstream's ``_async_load_data`` renames a corrupt file and returns ``None``.
 (round-9 D1-s1-51: stdlib ``json`` loaded all six hostile documents with their
 healthy siblings, where Home Assistant drops the file). Only numbers are
 modelled; orjson's other refusals (a lone surrogate, a control character) are
@@ -75,7 +75,7 @@ _DISK: dict[str, str] = {}
 _VERSIONS: dict[str, int] = {}
 
 # Writes per storage key, counted in ``async_save`` itself so a test can prove
-# not just what a store holds but how often it was actually written — a save
+# not just what a store holds but how often it was actually written. A save
 # that should have been skipped leaves the same bytes behind either way.
 SAVE_COUNTS: dict[str, int] = {}
 

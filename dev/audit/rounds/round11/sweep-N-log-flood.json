@@ -1,0 +1,6 @@
+{"class": "N-log-flood", "instances": 0, "barriered": true,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep_logflood.py",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._async_update_data", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s3/log_flood.py (3 ERROR records over 3 refreshes after an already-failed update; expect 0 after the transition)", "beyond_finding": false},
+  {"file": "tests/entities.py", "symbol": "_r10_unlatched_logs", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/s2/logflood_shape.py (planted unlatched _LOGGER.exception/critical/log/alias count 0; expect 1 each)", "beyond_finding": false}
+ ]}

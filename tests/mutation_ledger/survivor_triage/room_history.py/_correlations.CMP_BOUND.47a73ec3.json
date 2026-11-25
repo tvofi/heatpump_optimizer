@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_correlations CMP_BOUND 47a73ec3",
+  "old": "    ok = (n >= 3) & (var > 1e-12) & (var.T > 1e-12)",
+  "reason": "Three mutants share this anchor. (n > 3) is killed by tests/features.py's 'three common rows are enough to read a correlation' check. The two variance flips (var >= 1e-12, var.T >= 1e-12) are equivalent: a calling share is a whole number of centi-units over FULL_SHARE (10000), and a ring holds at most HISTORY_LENGTH (672) rows, so a column that moves at all has variance at least d^2 (n-1)/n^2 with d = 1e-4, n = 672, i.e. 1.49e-11, while a constant column leaves a rounding residue of at most 6.0e-15 (enumerated over every share value 0..10000 at ring sizes 3..672, the residue max and the one-step minimum measured by evaluating this line's own formula). No reachable variance lies at 1e-12, so > and >= agree on every input.",
+  "verdict": "equivalent"
+}

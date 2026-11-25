@@ -33,7 +33,7 @@ RESULT lines, each a sum over the 18 solves:
   dhw_cost                               the planned hot-water energy at the day's prices
   plan_sha1                              sha1 over the 18 hot-water schedules and trajectories
   repair_rounds_max / placements         the most floor-repair calls one placement under a start
-                                         condition made (``dhw_planner.place_startable``), and
+                                         condition made (``dhw_charges.place_startable``), and
                                          how many placements were counted; "none" with no condition
 Null control: ``--hysteresis`` unset and ``--hysteresis 0`` print the
 plan_sha1 the merge base prints; a hysteresis of 4 prints

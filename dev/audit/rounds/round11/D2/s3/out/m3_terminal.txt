@@ -1,0 +1,61 @@
+CELL terminal-credit golden=winter_single_dhw T_E=16.6855 T_Estar=0.00e+00 dC=19.0892 dJ=17.6259 r_C=0.874 r_J=0.947 deficit_K slab=1.65 room=3.05 buffer=0.00 OK
+CELL terminal-credit golden=winter_two_zone_dhw T_E=15.3969 T_Estar=0.00e+00 dC=18.8142 dJ=16.7971 r_C=0.818 r_J=0.917 deficit_K slab=2.00 room=3.37 buffer=0.00 OK
+CELL terminal-credit golden=winter_single_no_dhw T_E=16.5480 T_Estar=0.00e+00 dC=19.9135 dJ=16.8442 r_C=0.831 r_J=0.982 deficit_K slab=1.64 room=3.06 buffer=0.00 OK
+CELL terminal-credit golden=winter_two_zone_no_dhw T_E=15.0977 T_Estar=0.00e+00 dC=18.5739 dJ=16.1854 r_C=0.813 r_J=0.933 deficit_K slab=1.95 room=3.33 buffer=0.00 OK
+CELL terminal-credit golden=summer_dhw_only T_E=0.0000 T_Estar=0.00e+00 dC=0.0000 dJ=0.0000 r_C=nan r_J=nan deficit_K slab=0.00 room=0.00 buffer=0.00 OK
+CELL terminal-credit golden=shoulder T_E=0.0812 T_Estar=0.00e+00 dC=0.0000 dJ=-0.0234 r_C=nan r_J=-3.470 deficit_K slab=0.00 room=0.12 buffer=0.00 FAIL
+CELL terminal-credit golden=shoulder_two_zone T_E=0.5838 T_Estar=0.00e+00 dC=0.1762 dJ=0.1998 r_C=3.313 r_J=2.922 deficit_K slab=0.12 room=0.00 buffer=0.00 FAIL
+CELL terminal-credit golden=extreme_prices T_E=14.4419 T_Estar=0.00e+00 dC=17.0207 dJ=17.1934 r_C=0.848 r_J=0.840 deficit_K slab=0.43 room=1.74 buffer=0.00 OK
+CELL terminal-credit golden=negative_prices T_E=0.0000 T_Estar=0.00e+00 dC=0.0000 dJ=0.0000 r_C=nan r_J=nan deficit_K slab=0.00 room=0.00 buffer=0.00 OK
+CELL terminal-credit golden=flat_prices T_E=7.9269 T_Estar=0.00e+00 dC=8.4156 dJ=7.2323 r_C=0.942 r_J=1.096 deficit_K slab=0.00 room=1.45 buffer=0.00 OK
+CELL terminal-credit golden=mild_windy_rain T_E=5.7979 T_Estar=0.00e+00 dC=3.6089 dJ=3.6261 r_C=1.607 r_J=1.599 deficit_K slab=0.20 room=1.48 buffer=0.00 FAIL
+CELL terminal-credit golden=cool_rainy_summer T_E=0.2024 T_Estar=0.00e+00 dC=0.1195 dJ=0.0027 r_C=1.694 r_J=75.808 deficit_K slab=0.33 room=0.42 buffer=0.00 FAIL
+CELL terminal-credit golden=legionella_due T_E=16.6855 T_Estar=0.00e+00 dC=19.0892 dJ=17.6259 r_C=0.874 r_J=0.947 deficit_K slab=1.65 room=3.05 buffer=0.00 OK
+CELL terminal-credit golden=legionella_off T_E=16.3479 T_Estar=0.00e+00 dC=18.7488 dJ=17.0321 r_C=0.872 r_J=0.960 deficit_K slab=1.59 room=2.99 buffer=0.00 OK
+CELL terminal-credit golden=legionella_due_low_setpoint T_E=16.3653 T_Estar=0.00e+00 dC=16.6529 dJ=16.9861 r_C=0.983 r_J=0.963 deficit_K slab=1.64 room=3.07 buffer=0.00 OK
+CELL terminal-credit golden=dhw_schedule_off T_E=17.2890 T_Estar=0.00e+00 dC=20.6077 dJ=18.0484 r_C=0.839 r_J=0.958 deficit_K slab=1.74 room=3.14 buffer=0.00 OK
+CELL terminal-credit golden=dhw_learned_windows T_E=15.6833 T_Estar=0.00e+00 dC=18.2169 dJ=15.9501 r_C=0.861 r_J=0.983 deficit_K slab=1.44 room=2.83 buffer=0.00 OK
+CELL terminal-credit golden=dhw_cold_tank T_E=16.4594 T_Estar=0.00e+00 dC=17.4427 dJ=16.7490 r_C=0.944 r_J=0.983 deficit_K slab=1.57 room=2.94 buffer=0.00 OK
+CELL terminal-credit golden=dhw_large_tank T_E=16.6202 T_Estar=0.00e+00 dC=17.8064 dJ=18.2385 r_C=0.933 r_J=0.911 deficit_K slab=1.59 room=2.98 buffer=0.00 OK
+CELL terminal-credit golden=start_below_band T_E=18.7946 T_Estar=0.00e+00 dC=20.4688 dJ=20.0838 r_C=0.918 r_J=0.936 deficit_K slab=1.90 room=3.20 buffer=0.00 OK
+CELL terminal-credit golden=start_above_band T_E=16.5458 T_Estar=0.00e+00 dC=18.7666 dJ=17.4119 r_C=0.882 r_J=0.950 deficit_K slab=1.66 room=3.02 buffer=0.00 OK
+CELL terminal-credit golden=narrow_band T_E=0.8884 T_Estar=0.00e+00 dC=-0.0347 dJ=0.9366 r_C=-25.620 r_J=0.949 deficit_K slab=0.00 room=0.60 buffer=0.00 OK
+CELL terminal-credit golden=wide_band T_E=25.8519 T_Estar=0.00e+00 dC=0.0000 dJ=22.1977 r_C=nan r_J=1.165 deficit_K slab=2.96 room=4.23 buffer=0.00 OK
+CELL terminal-credit golden=horizon_48h T_E=16.9065 T_Estar=0.00e+00 dC=17.7366 dJ=18.4868 r_C=0.953 r_J=0.915 deficit_K slab=1.64 room=3.06 buffer=0.00 OK
+CELL terminal-credit golden=horizon_6h T_E=9.6377 T_Estar=0.00e+00 dC=7.2748 dJ=8.5299 r_C=1.325 r_J=1.130 deficit_K slab=2.11 room=3.04 buffer=0.00 OK
+CELL terminal-credit golden=capacity_tariff T_E=16.3952 T_Estar=0.00e+00 dC=24.6906 dJ=19.7795 r_C=0.664 r_J=0.829 deficit_K slab=1.61 room=3.02 buffer=0.00 OK
+CELL terminal-credit golden=capacity_tariff_15min T_E=15.4724 T_Estar=0.00e+00 dC=16.8085 dJ=16.5252 r_C=0.921 r_J=0.936 deficit_K slab=1.41 room=2.79 buffer=0.00 OK
+CELL terminal-credit golden=cycling_cost T_E=17.1522 T_Estar=0.00e+00 dC=18.1029 dJ=15.6586 r_C=0.947 r_J=1.095 deficit_K slab=1.76 room=3.18 buffer=0.00 OK
+CELL terminal-credit golden=external_heat_active T_E=16.3403 T_Estar=0.00e+00 dC=18.2307 dJ=16.6746 r_C=0.896 r_J=0.980 deficit_K slab=1.61 room=3.02 buffer=0.00 OK
+CELL terminal-credit golden=cop_scale_learned T_E=10.3773 T_Estar=0.00e+00 dC=8.6898 dJ=7.7011 r_C=1.194 r_J=1.348 deficit_K slab=1.09 room=2.50 buffer=0.00 OK
+CELL terminal-credit golden=away_setback T_E=0.7407 T_Estar=0.00e+00 dC=-0.4606 dJ=0.8533 r_C=-1.608 r_J=0.868 deficit_K slab=0.00 room=0.50 buffer=0.00 OK
+CELL terminal-credit golden=building_preset T_E=16.8860 T_Estar=0.00e+00 dC=10.5868 dJ=16.6735 r_C=1.595 r_J=1.013 deficit_K slab=0.86 room=2.85 buffer=0.00 OK
+CELL terminal-credit golden=valve_storage T_E=38.0906 T_Estar=0.00e+00 dC=40.5765 dJ=49.8362 r_C=0.939 r_J=0.764 deficit_K slab=4.83 room=3.72 buffer=46.78 OK
+CELL terminal-credit golden=valve_storage_low_target T_E=33.5795 T_Estar=0.00e+00 dC=35.3969 dJ=42.8709 r_C=0.949 r_J=0.783 deficit_K slab=4.04 room=3.04 buffer=48.52 OK
+CELL terminal-credit golden=valve_storage_flat_prices T_E=29.2560 T_Estar=0.00e+00 dC=37.4749 dJ=37.7815 r_C=0.781 r_J=0.774 deficit_K slab=1.79 room=0.86 buffer=46.18 OK
+CELL terminal-credit golden=valve_storage_small_tank T_E=20.6466 T_Estar=0.00e+00 dC=18.1149 dJ=18.5763 r_C=1.140 r_J=1.111 deficit_K slab=3.97 room=2.93 buffer=0.00 OK
+CELL terminal-credit golden=valve_storage_smart_write T_E=30.5914 T_Estar=0.00e+00 dC=30.1341 dJ=38.7969 r_C=1.015 r_J=0.788 deficit_K slab=3.59 room=2.55 buffer=43.74 OK
+CELL terminal-credit golden=wood_two_tank T_E=32.6201 T_Estar=0.00e+00 dC=32.7987 dJ=37.7277 r_C=0.995 r_J=0.865 deficit_K slab=4.04 room=2.99 buffer=43.37 OK
+CELL terminal-credit golden=wood_two_tank_smart_write T_E=34.4666 T_Estar=0.00e+00 dC=34.9856 dJ=43.6846 r_C=0.985 r_J=0.789 deficit_K slab=4.13 room=3.16 buffer=49.39 OK
+CELL terminal-credit golden=wood_coil T_E=33.6961 T_Estar=0.00e+00 dC=30.7495 dJ=42.5439 r_C=1.096 r_J=0.792 deficit_K slab=4.11 room=3.06 buffer=46.24 OK
+CELL terminal-credit golden=valve_upper_direct_slab T_E=40.5429 T_Estar=0.00e+00 dC=47.6092 dJ=51.3580 r_C=0.852 r_J=0.789 deficit_K slab=5.17 room=4.07 buffer=49.93 OK
+CELL terminal-credit golden=tariff_plus_two_zone T_E=6.5737 T_Estar=0.00e+00 dC=6.1320 dJ=6.8207 r_C=1.072 r_J=0.964 deficit_K slab=0.29 room=1.74 buffer=0.00 OK
+CELL terminal-credit golden=everything_on T_E=11.9279 T_Estar=0.00e+00 dC=13.0828 dJ=12.6263 r_C=0.912 r_J=0.945 deficit_K slab=1.64 room=3.00 buffer=0.00 OK
+CELL terminal-credit golden=peak_masked T_E=15.8911 T_Estar=0.00e+00 dC=16.6462 dJ=17.4037 r_C=0.955 r_J=0.913 deficit_K slab=1.54 room=2.96 buffer=0.00 OK
+CELL terminal-credit golden=price_risk T_E=21.6886 T_Estar=0.00e+00 dC=25.6687 dJ=25.2533 r_C=0.845 r_J=0.859 deficit_K slab=2.84 room=4.46 buffer=0.00 OK
+CELL terminal-credit golden=fuse_guard T_E=19.4528 T_Estar=0.00e+00 dC=29.3362 dJ=33.7070 r_C=0.663 r_J=0.577 deficit_K slab=2.24 room=3.67 buffer=0.00 OK
+CELL terminal-credit golden=capacity_curve T_E=19.1271 T_Estar=0.00e+00 dC=19.9080 dJ=20.5506 r_C=0.961 r_J=0.931 deficit_K slab=2.19 room=3.64 buffer=0.00 OK
+CELL terminal-credit golden=precip_snow T_E=5.7187 T_Estar=0.00e+00 dC=3.5324 dJ=3.5748 r_C=1.619 r_J=1.600 deficit_K slab=0.19 room=1.45 buffer=0.00 FAIL
+CELL terminal-credit golden=confidence_margins T_E=4.9805 T_Estar=0.00e+00 dC=2.5417 dJ=1.1878 r_C=1.959 r_J=4.193 deficit_K slab=0.01 room=1.60 buffer=0.00 FAIL
+CELL terminal-credit golden=direct_flow_carnot T_E=61.7069 T_Estar=0.00e+00 dC=0.0000 dJ=266386.4022 r_C=nan r_J=0.000 deficit_K slab=10.24 room=10.26 buffer=0.00 FAIL
+RESULT terminal_failures=7 count
+RESULT cells=50 count
+RESULT over_credit_max=3.7927 currency
+RESULT r_J_median=0.946 ratio
+RESULT r_J_min=-3.470 ratio
+RESULT r_J_max=75.808 ratio
+RESULT r_J_cells=48 count
+RESULT thread_factor=1.0000
+RESULT load1=4.29
+RESULT swapins=0
+EXIT 0

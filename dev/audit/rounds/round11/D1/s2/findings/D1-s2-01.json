@@ -1,0 +1,44 @@
+{
+  "id": "D1-s2-01",
+  "scope": "D1-s2",
+  "step": "D1.M2",
+  "title": "Store-load boundary passes NaN: a \"NaN\" leaf reaches the live model and makes the next save undecodable",
+  "severity": "high",
+  "claim": "store._poisoned returns False for float('nan') and for the string \"NaN\" (abs(nan) >= ABSURD is False), so QuarantiningStore.async_load hands those leaves to the loaders; in 3 of 515 single-leaf \"NaN\" substitutions over every d1-stores healthy payload the NaN reaches the live thermal model or the published payload, and in the same 3 the next save writes a bare NaN token that the following restart's orjson load refuses, dropping the whole accuracy and snapshots documents.",
+  "mechanism": "_poisoned's float branch is `abs(value) >= ABSURD`; NaN compares False, so _sanitize keeps it although the module and _poisoned's own docstring say non-finite is quarantined. comfort_learning's from_dict reads `float(np.clip(float('NaN'), lo, hi))` = nan (np.clip propagates NaN) into learned_weight/evidence, published as data['comfort_learning']; DhwProfileLearner.apply_cooling_rate does the same into ThermalParameters.dhw_cooling_rate (the solver's input). The accuracy and snapshot savers then json.dumps the NaN as a bare token; Home Assistant's orjson load refuses it and moves the whole file aside, so the learned accuracy history and the snapshots are lost at the next restart. tests/finite_boundary.py's own module-level checks 'the boundary quarantines nan at every depth' and 'str-nan' print FAIL on this tree.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s2/nan_boundary.py",
+    "value": 3,
+    "unit": "leaves (of 515) whose NaN reaches the live model/published payload; same 3 make a stored document undecodable",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 (orchestrator box B4, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other finder seats and this seat's fuzz shards running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 30.7,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/store.py:_poisoned (via QuarantiningStore.async_load, the real loaders, HeatPumpOptimizerCoordinator._async_update_data)",
+  "perturbation": {
+    "change": "--fix: store._poisoned also returns True for a non-finite float or a string whose float() is non-finite (one line: `return not math.isfinite(value) or abs(value) >= ABSURD`), patched in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "leaves_reaching_live=0, leaves_making_disk_undecodable=0, nan_boundary_passes=0 (accuracy+dhw_profile, 148 leaves)"
+  },
+  "metric_definition": "Count of single numeric leaves which, set to the string \"NaN\" and loaded through the real loaders plus one cycle, leave a non-finite value live/published or an undecodable store document.",
+  "phenomenon_property": "No store load hands a loader a non-finite number in any spelling (float NaN/inf, or a string float() turns into one); every non-finite leaf is quarantined at QuarantiningStore.async_load, so nothing non-finite is installed live or re-saved.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py  (every numeric leaf of every d1-stores payload; the seam is store._poisoned, one function)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py --stores accuracy,dhw_profile --sub Infinity",
+    "value": 0,
+    "note": "the spelling the boundary does scrub (\"Infinity\") over the same 148 leaves reaches nothing; the effect is NaN-specific"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/nan_boundary.py --stores accuracy,dhw_profile   -> leaves_reaching_live=3, leaves_making_disk_undecodable=3",
+    "... --sub Infinity -> 0 (null control); ... --fix -> 0 (perturbation)"
+  ],
+  "proposed_fix_scope": "store.py:_poisoned refuses non-finite floats (math.isfinite); add a NaN arm to tests/finite_boundary.py's run (its own module-level check already fails).",
+  "files": ["custom_components/heatpump_optimizer/store.py", "custom_components/heatpump_optimizer/comfort_learning.py", "custom_components/heatpump_optimizer/dhw_learning.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P1"
+}

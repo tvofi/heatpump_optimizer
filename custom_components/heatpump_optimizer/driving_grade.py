@@ -3,9 +3,9 @@
 The grade replays each priced day's energy against that day's flat
 time-mean spot price: buying ``FULL_SAVING`` below flat scores 100, at or
 above flat scores 0, folded over days by ``SCORE_ALPHA``. Its drivers split
-the day's saving against the flat replay exactly in two -- the energy bought
-below the day's running mean as it was bought (``tally``), and the rest --
-each weighed against the day's own mean, and fold with the grade's own EMA,
+the day's saving against the flat replay exactly in two: the energy bought
+below the day's running mean as it was bought (``tally``), and the rest.
+Each is weighed against the day's own mean and folds with the grade's EMA,
 so they sum to it (``REFERENCE``: flat buying scores 0).
 
 The coordinator owns the day book and the grade; the drivers ride this
@@ -46,9 +46,9 @@ def tally(day: Mapping[str, Any], kwh: float, sek: float, spot: float, hours: fl
     """The day book with one priced interval booked in it, as a new book.
 
     The kWh and the SEK paid for them (SIGNED: a paid negative-price hour
-    lowers the day's mean paid price), the time-weighted spot price, and --
-    for an interval bought below the day's running mean, ``spot_sum /
-    spot_h`` with this interval already in it -- the cheap side's share.
+    lowers the day's mean paid price), and the time-weighted spot price. For
+    an interval bought below the day's running mean (``spot_sum /
+    spot_h`` with this interval already in it), also the cheap side's share.
     """
     book = dict(day)
     if np.isfinite(sek):

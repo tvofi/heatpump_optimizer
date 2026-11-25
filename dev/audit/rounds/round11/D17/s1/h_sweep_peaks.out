@@ -1,0 +1,23 @@
+volatile: ['last_optimization', 'next_optimization', 'solve_time_ms']
+ROW away.holiday_calendar_entity EFFECT saved=('menu', 'init', None, 'calendar.hol') moved={'weekday': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'ecl110_last_payload', 'insight', 'projected_peak_kw', 'savings_percentage']"], 'weekend': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'ecl110_last_payload', 'insight', 'projected_peak_kw', 'savings_percentage']"]}
+ROW grid.peak_tariff_distinct_days EFFECT saved=('menu', 'init', None, False) moved={'peaks': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'insight', 'power_headroom', 'savings_percentage']"]}
+ROW grid.peak_tariff_enabled EFFECT saved=('menu', 'init', None, True) moved={'weekday': ['publish', "keys=['peak_month', 'peak_tariff', 'power_headroom']"], 'weekend': ['publish', "keys=['peak_month', 'peak_tariff', 'power_headroom']"], 'peaks': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'ecl110_last_payload', 'insight', 'peak_tariff', 'power_headroom', 'projected_peak_kw', 'savings_percentage']"]}
+ROW grid.peak_tariff_hours EFFECT saved=('menu', 'init', None, '07:00-19:00') moved={'peaks': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'insight', 'power_headroom', 'savings_percentage']"]}
+ROW grid.peak_tariff_months EFFECT saved=('menu', 'init', None, 'Jun-Aug') moved={'weekday': ['publish', "keys=['power_headroom', 'projected_peak_kw']"], 'weekend': ['publish', "keys=['power_headroom', 'projected_peak_kw']"], 'peaks': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'ecl110_last_payload', 'insight', 'power_headroom', 'projected_peak_kw', 'savings_percentage']"]}
+ROW grid.peak_tariff_offpeak_factor EFFECT saved=('menu', 'init', None, 0.5) moved={'peaks': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'insight', 'power_headroom', 'savings_percentage']"]}
+ROW grid.peak_tariff_peaks_averaged EFFECT saved=('menu', 'init', None, 1) moved={'weekday': ['publish', "keys=['peak_tariff']"], 'weekend': ['publish', "keys=['peak_tariff']"], 'peaks': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'insight', 'peak_tariff', 'power_headroom', 'savings_percentage']"]}
+ROW grid.peak_tariff_price_per_kw EFFECT saved=('menu', 'init', None, 150.0) moved={'weekday': ['publish', "keys=['peak_tariff']"], 'weekend': ['publish', "keys=['peak_tariff']"], 'peaks': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'insight', 'peak_tariff', 'power_headroom', 'savings_percentage']"]}
+ROW grid.peak_tariff_weekdays_only EFFECT saved=('menu', 'init', None, True) moved={'weekend': ['publish', "keys=['power_headroom', 'projected_peak_kw']"]}
+ROW grid.peak_tariff_window_minutes EFFECT saved=('menu', 'init', None, 15) moved={'weekday': ['publish', "keys=['peak_tariff', 'projected_peak_kw']"], 'weekend': ['publish', "keys=['peak_tariff', 'projected_peak_kw']"], 'peaks': ['plan', 'publish', "keys=['deferred_energy_cost', 'ecl110_displace', 'ecl110_last_payload', 'insight', 'peak_tariff', 'power_headroom', 'projected_peak_kw', 'savings_percentage']"]}
+ROW grid_connection.peak_guard_enabled NOEFFECT saved=('menu', 'advanced', None, True) moved={}
+ROW grid_connection.peak_guard_margin_kw NOEFFECT saved=('menu', 'advanced', None, 2.5) moved={}
+ROW grid_fees.dso_product EFFECT saved=('menu', 'advanced', None, 'ellevio_villa_effekt_2026') moved={'weekday': ['plan', 'publish', "keys=['current_grid_fee', 'current_price', 'deferred_energy_cost', 'dhw_heating_cost', 'dhw_schedule', 'ecl110_last_payload', 'insight', 'peak_month']"], 'weekend': ['plan', 'publish', "keys=['current_grid_fee', 'current_price', 'deferred_energy_cost', 'dhw_heating_cost', 'dhw_schedule', 'ecl110_last_payload', 'insight', 'peak_month']"], 'peaks': ['plan', 'publish', "keys=['current_grid_fee', 'current_price', 'deferred_energy_cost', 'dhw_heating_cost', 'dhw_schedule', 'ecl110_displace', 'ecl110_last_payload', 'insight']"]}
+RESULT options_universe=88
+RESULT options_examined=13
+RESULT options_without_case=0 []
+RESULT options_noeffect=2
+RESULT options_save_refused=0 []
+NOEFFECT grid_connection.peak_guard_enabled grid_connection.peak_guard_margin_kw
+RESULT thread_factor=1.0
+RESULT load1=3.8720703125
+RESULT swapins=0

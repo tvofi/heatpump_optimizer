@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:RoomSeparabilitySensor.extra_state_attributes RETURN_DEL cf834070",
+  "killed_by": "tests/features.py",
+  "old": "        return {\"rooms\": view.get(\"rooms\"), \"house\": view.get(\"house\"), \"rows\": view.get(\"rows\")}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

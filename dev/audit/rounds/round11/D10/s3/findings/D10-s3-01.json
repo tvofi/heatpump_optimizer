@@ -1,0 +1,50 @@
+{
+ "id": "D10-s3-01",
+ "scope": "D10-s3",
+ "step": "D10.M1",
+ "title": "strict-typing row reads done while manifest requirement threadpoolctl ships no py.typed and has no stub package",
+ "severity": "low",
+ "claim": "quality_scale.yaml marks strict-typing done, but one of the three manifest requirements, threadpoolctl, ships no py.typed (3.7.0 installed, 3.8.0 as pinned in tests/requirements-typing.txt) and has no types-/-stubs distribution, which the rule (no exceptions) and its hassfest check require.",
+ "mechanism": "The row's comment reads the rule's py.typed half as the integration's own marker (qs_py_typed_files=1), but the rule page says 'Its library must be typed as well, and ship a py.typed file' and hassfest checks 'every requirement in its manifest must ship a py.typed file, or have a separate types- stubs package'. optimizer.py:1447 itself records that threadpoolctl publishes no py.typed and no stub distribution exists, and resolves it by importlib to dodge import-untyped. tests/entities.py derives the manifest tier from these rows, so the manifest's quality_scale: platinum rests on the false row. Fails D10-criteria Q2.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+  "harness_path": "dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+  "value": 1,
+  "unit": "requirements",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "macOS arm64, orchestrator box B3, venv-ci python 3.14.7",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box under heavy finder load (load1 147-260); counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 260.47,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/manifest.json:requirements (via quality_scale.yaml:rules.strict-typing)",
+ "perturbation": {
+  "change": "--perturb req (threadpoolctl dropped from the manifest requirements in memory) or --perturb row (strict-typing read as todo)",
+  "expected_direction": "to_zero",
+  "observed_value": "0 under either perturbation"
+ },
+ "metric_definition": "untyped_requirements_under_done_row: manifest requirements with no py.typed and no types-/-stubs dist (installed or typing-lock pinned) while strict-typing is done",
+ "phenomenon_property": "A done strict-typing row holds only if every manifest requirement is typed (py.typed in the distribution, or a stub distribution).",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py | grep '^REQ'   (add --pinned to judge the typing lock's versions)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb row",
+  "value": 0,
+  "note": "with the row at todo the claim vanishes; numpy (py.typed) and scipy (scipy-stubs pinned) count 0 at baseline"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --pinned",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb req",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb row"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "I5",
+ "files": [
+  "custom_components/heatpump_optimizer/quality_scale.yaml",
+  "custom_components/heatpump_optimizer/manifest.json",
+  "custom_components/heatpump_optimizer/optimizer.py"
+ ],
+ "proposed_fix_scope": "Either make the requirement typed (upstream py.typed / a stub package, or drop threadpoolctl for a typed equivalent) or set strict-typing to todo with the reason, letting tests/entities.py re-derive the manifest tier (gold). Correct the row comment's reading of the py.typed half."
+}

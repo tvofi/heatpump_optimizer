@@ -1,0 +1,37 @@
+{
+ "scope": "D5-s9",
+ "step": "D5.M4",
+ "severity": "low",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of over the tracked tree at the ref (git ls-tree); the code literals tests/entities.py:_handovers check and tests/entities.py:_preflight",
+ "metric_definition": "(unit, cited path) pairs where a D5 comment unit names a docs/ tools/ dev/ .claude/ .github/ path not tracked at the ref",
+ "phenomenon_property": "Every repository path a D5 comment unit in tests/ names under docs/, tools/, dev/, .claude/ or .github/ is a tracked file or directory at the ref; a move updates the comments that cite the moved path.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo <repo-with-baseline> | grep ^STALE",
+ "id": "D5-s9-02",
+ "title": "tests/run.sh comments cite 3 moved paths (coverage_tree.sh, docs/backlog.md, docs/audit-2026-09.md)",
+ "claim": "At 92d38ecb, 2 comment units in tests/run.sh cite 3 paths absent from the tree, each moved: tools/audit/w5-partition/coverage_tree.sh (now tools/coverage/), docs/backlog.md (now dev/archive/), docs/audit-2026-09.md (now dev/programme/register/).",
+ "mechanism": "run.sh:515 explains the coverage_ratchet.py exemption by the instrument's old path; run.sh:726 explains why claims.py stays run_always by the INERT docs it opens, naming their pre-move paths, so the stated reason now names files no closure or reader can find. Criterion C2.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/stale_paths.py --repo /home/user/heatpump_optimizer --perturb",
+  "harness_path": "dev/audit/rounds/round11/D5/s9/stale_paths.py",
+  "value": 3,
+  "unit": "stale path refs (FILE tests/run.sh stale_refs=3)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 container, 4 vCPU",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.03,
+  "thread_factor": 1.0
+ },
+ "perturbation": {
+  "change": "--perturb restore (cited paths tracked again) or the comments edited to the current paths",
+  "expected_direction": "to_zero",
+  "observed_value": "17->0 (all files)"
+ },
+ "proposed_fix_scope": "Edit tests/run.sh lines 515 and 726 to tools/coverage/coverage_tree.sh, dev/archive/backlog.md and dev/programme/register/audit-2026-09.md (re-check that claims.py still opens them).",
+ "files": [
+  "tests/run.sh"
+ ]
+}

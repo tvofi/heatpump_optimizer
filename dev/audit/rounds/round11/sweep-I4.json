@@ -1,0 +1,62 @@
+{
+ "class": "I4",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "bash dev/audit/rounds/round11/D14/sweep/i4_enum.sh [--perturb]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "device_prefill error re-render (dhw/silent windows)",
+   "probe": "D4-flow unfilled_placeholders_total=8 must be 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "device_prefill refusal description placeholders",
+   "probe": "D6-prefill config_refusal_changed_vs_preview=3 must be 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "tibber_info description placeholder",
+   "probe": "D4-dead unrendered_placeholders=1 with 0 rendering strings",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/audit/enumerate.py",
+   "symbol": "d17 option universe (sections.*.data)",
+   "probe": "D17-enum option_fields_missing=156 must be 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/replay/debug_ingest.py",
+   "symbol": "export.violations scope whole vs replay",
+   "probe": "D15-privacy synthetic_violations=72 must be 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/replay/dbg_bundle_gen.py",
+   "symbol": "null-control row vs debugger.cycle_row",
+   "probe": "D15-rows rows_diverging_from_cycle_row=48 must be 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/replay/debug_replay.py",
+   "symbol": "main judge tuple vs tests/replay.py run_fixture",
+   "probe": "D15-judges tuple present (5 of 8 judges); m5_judges.py unreported_ must be 0",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/replay/debug_replay.py",
+   "symbol": "run_seeded store entity ids vs masked replay half",
+   "probe": "m5_seed_ids.py --bundle B --list (owner bundle; local re-run owed)",
+   "beyond_finding": false
+  },
+  {
+   "file": "tools/replay/debug_replay.py",
+   "symbol": "run_seeded store age vs replay clock",
+   "probe": "m5_seed_age.py --bundle B --list (owner bundle; local re-run owed)",
+   "beyond_finding": false
+  }
+ ]
+}

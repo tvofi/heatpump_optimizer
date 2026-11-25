@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_close_period CLAMP_DROP a8ec1c29",
+  "killed_by": "tests/features.py",
+  "old": "        for start in range(max(history.times[-1] + PERIOD_MIN, cut), period.start, PERIOD_MIN):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`for start in range((history.times[-1] + PERIOD_MIN), period.start, PERIOD_MIN):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

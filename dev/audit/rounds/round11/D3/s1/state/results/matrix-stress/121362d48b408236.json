@@ -1,0 +1,1 @@
+{"mutant": {"kind": "GUARD_OFF", "file": "custom_components/heatpump_optimizer/grid_fee.py", "line": 173, "old": "    if not sep:", "new": "    if False:", "anchor": "custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF f8c4994a"}, "runs": {}, "skipped": [], "killed_by": [], "started": 1795019498.8221252, "wall": 0.0, "verdict": "SURVIVED"}

@@ -6,15 +6,14 @@ real lane reaches for it, and which refusal saves you. The obligations live in
 runs offline. Each linked line below indexes one instrument; its text is
 `instruments/<name>.md`, beside this file.
 
-Directories here that are records, not instruments: `round3/`..`round9/`,
-`round5-fix/`, `round7-fix/`, `round8-fix/`, `handoff/`, `rca/`,
-`w5-partition/`, `w5-g5-195-coverage/`, `briefs/` (the seat contracts and
-dimension briefs), `archscore/`, `ci-version-edit/`, `ledger-layout/`,
-`record-predicate/` (sub-tools with their own READMEs), and the JSON/schema
-files (`bugclasses.json`, `scopes.json`, `rotation.json`,
-`finding.schema.json`), which the instruments read. `harnesses/` holds the
-re-runnable measurement harnesses a fixer or judge lands with a PR — its
-`README.md` indexes them; anything a later seat must rerun belongs there
+The records are not here: round evidence is under `dev/audit/rounds/`,
+root-cause analyses under `dev/audit/rca/`, the seat contracts and dimension
+briefs under `dev/governance/`, the architecture score under
+`tools/audit/archscore/`, and the JSON and schema files the instruments read
+(`bugclasses.json`, `scopes.json`, `rotation.json`, `finding.schema.json`)
+under `dev/audit/config/`. `dev/audit/harnesses/` holds the
+re-runnable measurement harnesses a fixer or judge lands with a PR — 
+`dev/audit/README.md` indexes them; anything a later seat must rerun belongs there
 (fixer contract step 18), not in a session's scratch.
 
 ## tools/audit/
@@ -23,7 +22,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`app_comment.sh`](instruments/app_comment.sh.md) — posts one fix-review verdict on a PR as `hpo-approver` and reads the posted comment back byte-identical
 - [`app_push.sh`](instruments/app_push.sh.md) — pushes a branch and opens or re-bodies its pull request as the `hpo-author` App
 - [`depgraph.py` (tools/pr/)](instruments/depgraph.py.md) — compares GitHub's dependency graph with the tree's pins
-- [`figure_block.py` (tools/pr/)](instruments/figure_block.py.md) — renders/refreshes/verifies registered figure blocks in a PR body
+- [`figure_block.py` (tools/pr/)](instruments/figure_block.py.md) — renders the registered figures and refuses a PR body that stores a figure block
 - [`head_note.py` (tools/pr/)](instruments/head_note.py.md) — prefixes a note under a body's `## Head` heading, found as `checkPrBody`'s `sections()` reads it (outside a fence, `##`, whitespace, `Head`)
 - [`outside.py` (tools/pr/)](instruments/outside.py.md) — the outside-contributor contract (decision 0017): admission, the three path classes, the class-O check and its one mandated approval writer
 - [`role_pack.py` (tools/policy/)](instruments/role_pack.py.md) — renders one seat's policy pack: its role contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim, in one file
@@ -96,6 +95,8 @@ standing-seat liveness step keep the seats alive.
 - [`ci_probe.py`](instruments/ci_probe.py.md) — the writes a CI-layout probe needs
 - [`ci_priority.py`](instruments/ci_priority.py.md) — the one CI-priority tier and rank rule over the roster's mapping
 - [`ci_pause.py`](instruments/ci_pause.py.md) — the merge train's pause and resume of the worst-ranked PR's CI while the head's job queues
+- [`ci_rerun.py`](instruments/ci_rerun.py.md) — reruns only the failed required jobs of a PR head's newest runs, capped at attempt 6
+- [`ci_supersede.sh`](instruments/ci_supersede.sh.md) — the cancel-sweep of superseded PR runs, once or on a loop with a STOP file
 - [`closeout.py`](instruments/closeout.py.md) — the round's final act: archive, prune and clean up, a dry plan by default and refused while any other group is open
 - [`prune_refs.py`](instruments/prune_refs.py.md) — reconciles the remote branch refs down to main plus a few development branches at programme closure, archive-as-tags first
 - [`pulse.py`](instruments/pulse.py.md) — says whether the programme is still being driven
@@ -124,6 +125,7 @@ standing-seat liveness step keep the seats alive.
 - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
 - [`plan_public.py`](instruments/plan_public.py.md) — stages the ongoing round's plan page from the newest state ref for the public site, refusing a page that would publish a host path or a tool's attribution
 - [`bottleneck_check.py`](instruments/bottleneck_check.py.md) — prints one `BOTTLENECK:` line per flow metric past the owner's threshold, with a suggested action the orchestrator decides on, and nothing when none is
+- [`selftest_absorb.py`](instruments/selftest_absorb.py.md) — the actor half of main's self-test table repair: absorbs the `selftest-closures` artifacts of main's red or owed push runs at main's tip and force-pushes the one standing ref `handoff/selftest-absorb` (beatd row `selftest-absorb`); `verify` is that pull request's mechanical review
 - [`scorecard.py`](instruments/scorecard.py.md) — report-only convergence lines (gate and run health, first-verdict yield, machinery blocks, train skips, hotfix share, size, escapes, detection delay, seat cost, and round_metrics.py's reads over the open round), each but the hotfix naming measure held to a null control, written daily to `S/beatd/scorecard.txt`
 - [`round_metrics.py`](instruments/round_metrics.py.md) — decision 0018's flow reads per round and per week (merges by class, lead_time from the roster-entry commit per class, product_green with the gate's check count, restore, runner seconds and tokens per merge), unread on no input, and the producer of the scorecard's inputs
 - [`toolchain.py`](instruments/toolchain.py.md) — the stable tools ref `toolchain/stable`: `behind` counts what the ref holds over a checkout on the seat paths, `promote` moves it along main to the newest commit whose push run reads MACHINERY green, and prints `PROMOTE-HELD` when the newest three past it do not

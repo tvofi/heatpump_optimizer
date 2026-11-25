@@ -33,7 +33,7 @@
 # step it left unmeasured, by name, instead of every step dying unexplained.
 set -u
 SYSCALLS=%file
-UNTRACED=" scope strace launch drift unread "
+UNTRACED=" scope strace launch drift absorb unread "
 traced() { # <trace file> <command...>: run the command under strace into the file
   if ! command -v strace > /dev/null 2>&1; then
     echo "selftest_step: SELFTEST_TRACE is set and no strace is on PATH: $1 not written, running untraced" >&2

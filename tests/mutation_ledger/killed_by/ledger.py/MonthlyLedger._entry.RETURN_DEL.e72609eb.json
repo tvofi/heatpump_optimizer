@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._entry RETURN_DEL e72609eb",
+  "killed_by": "tests/features.py",
+  "old": "        return cast(dict[str, Any], self._month(month_key(when))[section].setdefault(name, zero))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

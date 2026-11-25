@@ -1,0 +1,61 @@
+SEAM away.py:estimate_recovery_hours:simulate_step
+SEAM coordinator.py:_replay_step:simulate_step
+SEAM coordinator.py:_whatif_solve:simulate_wood_slots
+SEAM dhw_planner.py:_clamp_dhw_to_capacity:simulate_dhw_step
+SEAM dhw_planner.py:_dhw_coil_wood_forecast:simulate_trajectory_with_dhw
+SEAM dhw_planner.py:_dhw_plan_temps:simulate_dhw_only
+SEAM dhw_planner.py:_plan_dhw_min_cost:linprog
+SEAM diagnosis.py:_room_after:simulate_step
+SEAM drift.py:_positive_definite:cholesky
+SEAM optimizer.py:_combi_dhw_exo:simulate_dhw_only
+SEAM optimizer.py:_combi_flux_exchange:simulate_trajectory
+SEAM optimizer.py:_compute_baseline_power:simulate_step
+SEAM optimizer.py:_optimize_with_dhw:simulate_trajectory_with_dhw
+SEAM optimizer.py:_replay_end_state:simulate_step
+SEAM optimizer.py:_scoped_minimize:minimize
+SEAM optimizer.py:_solve_objectives._space_traj:simulate_trajectory
+SEAM optimizer.py:_solve_objectives.objective_batch:simulate_trajectory_batch
+SEAM optimizer.py:_tighten_buffer_caps:simulate_trajectory
+SEAM sysid.py:_held_state:lstsq
+SEAM sysid.py:_lm_solve:solve
+SEAM sysid.py:_one_state_ua_halfwidth:inv
+SEAM sysid.py:_slab_ua_profile_halfwidth:inv
+SEAM sysid.py:_valve_drive:simulate_step
+SEAM sysid.py:identify:lstsq
+SEAM sysid.py:identify:solve
+SEAM thermal_model.py:extend_dhw_temps:simulate_step
+SEAM thermal_model.py:simulate_trajectory:simulate_step
+SEAM thermal_model.py:simulate_trajectory_with_dhw:simulate_dhw_step
+SEAM thermal_model.py:simulate_trajectory_with_dhw:simulate_step
+SEAM thermal_model.py:valve_top_equilibrium:solve
+SEAM topology.py:_advisor_replay:simulate_step
+LOOP away.py:estimate_recovery_hours:simulate_step  via coordinator.py:_recovery_off_loop.estimate / [_await_off_loop] away.py:estimate_recovery_hours
+LOOP coordinator.py:_replay_step:simulate_step  via coordinator.py:_replay_interval / [_await_off_loop] coordinator.py:_replay_step
+LOOP coordinator.py:_whatif_solve:simulate_wood_slots  via coordinator.py:async_simulate / coordinator.py:async_simulate._scratch / coordinator.py:_whatif_solve
+LOOP dhw_planner.py:_clamp_dhw_to_capacity:simulate_dhw_step  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_with_dhw / optimizer.py:_dhw_build / dhw_planner.py:_build_dhw_requirements / dhw_planner.py:_ctx_clamp / dhw_planner.py:_clamp_dhw_to_capacity
+LOOP dhw_planner.py:_dhw_coil_wood_forecast:simulate_trajectory_with_dhw  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_with_dhw / dhw_planner.py:_dhw_coil_wood_forecast
+LOOP dhw_planner.py:_dhw_plan_temps:simulate_dhw_only  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_with_dhw / optimizer.py:_dhw_build / dhw_planner.py:_build_dhw_requirements / dhw_planner.py:_dhw_plan_temps
+LOOP dhw_planner.py:_plan_dhw_min_cost:linprog  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_with_dhw / optimizer.py:_dhw_build / dhw_planner.py:_build_dhw_requirements / dhw_planner.py:_plan_dhw_min_cost
+LOOP diagnosis.py:_room_after:simulate_step  via coordinator.py:async_diagnose_interval / [_await_process] diagnosis.py:diagnose_record / diagnosis.py:attribute / diagnosis.py:_room_after
+LOOP drift.py:_positive_definite:cholesky  via coordinator.py:_async_load_thermal_learning / drift.py:load / drift.py:_positive_definite
+LOOP optimizer.py:_combi_dhw_exo:simulate_dhw_only  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_with_dhw / optimizer.py:_optimize_with_dhw.solve_space / optimizer.py:_combi_dhw_exo
+LOOP optimizer.py:_combi_flux_exchange:simulate_trajectory  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_with_dhw / optimizer.py:_co_optimize / optimizer.py:_combi_flux_exchange
+LOOP optimizer.py:_compute_baseline_power:simulate_step  via coordinator.py:async_simulate / whatif.py:schedule_days / optimizer.py:reference_day / optimizer.py:_compute_baseline_power
+LOOP optimizer.py:_optimize_with_dhw:simulate_trajectory_with_dhw  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_with_dhw
+LOOP optimizer.py:_replay_end_state:simulate_step  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_space_only / optimizer.py:_replay_end_state
+LOOP optimizer.py:_scoped_minimize:minimize  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_space_only / optimizer.py:_multi_start_minimize / optimizer.py:_lbfgsb_run / optimizer.py:_scoped_minimize
+LOOP optimizer.py:_solve_objectives._space_traj:simulate_trajectory  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_space_only / optimizer.py:_solve_objectives._space_traj
+LOOP optimizer.py:_tighten_buffer_caps:simulate_trajectory  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:_repair_throttled_buffer_caps / optimizer.py:_tighten_buffer_caps
+LOOP sysid.py:_held_state:lstsq  via coordinator.py:_sysid_step_off_loop / [_await_off_loop] sysid.py:step_detached / sysid.py:step / sysid.py:_begin_step_phase / sysid.py:_valve_regulates / sysid.py:_held_state
+LOOP sysid.py:_lm_solve:solve  via coordinator.py:_sysid_step_off_loop / [_await_off_loop] sysid.py:step_detached / sysid.py:step / sysid.py:_finish / sysid.py:identify_slab / sysid.py:_lm_solve
+LOOP sysid.py:_one_state_ua_halfwidth:inv  via coordinator.py:_sysid_step_off_loop / [_await_off_loop] sysid.py:step_detached / sysid.py:step / sysid.py:_finish / sysid.py:identify / sysid.py:_one_state_ua_halfwidth
+LOOP sysid.py:_slab_ua_profile_halfwidth:inv  via coordinator.py:_sysid_step_off_loop / [_await_off_loop] sysid.py:step_detached / sysid.py:step / sysid.py:_finish / sysid.py:identify_slab / sysid.py:_slab_outcome / sysid.py:_slab_ua_profile_halfwidth
+LOOP sysid.py:_valve_drive:simulate_step  via coordinator.py:_sysid_step_off_loop / [_await_off_loop] sysid.py:step_detached / sysid.py:step / sysid.py:_begin_step_phase / sysid.py:_unadoptable / sysid.py:_declared_night_halfwidth / sysid.py:_valve_drive
+LOOP sysid.py:identify:lstsq  via coordinator.py:_sysid_step_off_loop / [_await_off_loop] sysid.py:step_detached / sysid.py:step / sysid.py:_finish / sysid.py:identify
+LOOP sysid.py:identify:solve  via coordinator.py:_sysid_step_off_loop / [_await_off_loop] sysid.py:step_detached / sysid.py:step / sysid.py:_finish / sysid.py:identify
+LOOP thermal_model.py:extend_dhw_temps:simulate_step  via coordinator.py:async_simulate._held_solve / [_await_off_loop] optimizer.py:optimize_in_process / optimizer.py:optimize / optimizer.py:optimize._solve / optimizer.py:_optimize_with_dhw / optimizer.py:_dhw_build / dhw_planner.py:_build_dhw_requirements / dhw_planner.py:_apply_dhw_min_run / thermal_model.py:extend_dhw_temps
+LOOP thermal_model.py:valve_top_equilibrium:solve  via coordinator.py:async_simulate / whatif.py:schedule_days / optimizer.py:reference_day / optimizer.py:_compute_baseline_power / optimizer.py:_thermostat_held_state / optimizer.py:_held_at_valve_top / thermal_model.py:valve_top_equilibrium
+LOOP topology.py:_advisor_replay:simulate_step  via coordinator.py:_with_sensor_advisor / [_await_off_loop] topology.py:rank_sensor_advisor / topology.py:_advisor_spread_c / topology.py:_advisor_replay
+RESULT kernel_seams=31
+RESULT loop_reachable_seams=27
+unresolved generic names (> fanout): 12

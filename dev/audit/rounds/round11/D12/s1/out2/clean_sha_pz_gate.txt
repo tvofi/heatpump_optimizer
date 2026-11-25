@@ -1,0 +1,20 @@
+PLANT minimal	two_zone_enabled=False	zone_rows=0/96	split_rows=0
+PLANT dhw	two_zone_enabled=False	zone_rows=0/96	split_rows=0
+PLANT dhw+pv	two_zone_enabled=False	zone_rows=0/96	split_rows=0
+PLANT wood	two_zone_enabled=False	zone_rows=0/96	split_rows=0
+PLANT valve	two_zone_enabled=False	zone_rows=0/96	split_rows=0
+PLANT dhw+valve+pv	two_zone_enabled=False	zone_rows=0/96	split_rows=0
+PLANT zone keys, mode off	two_zone_enabled=False	zone_rows=0/96	split_rows=0
+PLANT minimal, mode off	two_zone_enabled=False	zone_rows=0/96	split_rows=0
+CONTROL two-zone	two_zone_enabled=True	zone_rows=96/96	split_rows=96
+RESULT arm=gate
+RESULT single_zone_plants=8 count
+RESULT zone_plants=0 count
+RESULT zone_rows=0 count
+RESULT loo_cells=8 range=0..0 drop_most_favourable=0 rows
+RESULT control_two_zone_enabled=True
+RESULT control_two_zone_rows=96 count
+RESULT control_split_rows=96 count
+RESULT thread_factor=1.000
+RESULT load1=4.68
+RESULT swapins=0

@@ -1,3 +1,103 @@
+## v10.1.3
+
+**Patch stamp: 25 merges since v10.1.2 (`git log --first-parent --merges --format=%h v10.1.2..HEAD | wc -l`): the dashboard card's hit targets, type and spacing scales, status colours, failure text and history retention are reworked; values entering the integration are tested finite and in domain, and numeric options an earlier release stored as non-numbers are repaired on the first start; one plan-step kernel and one value each for water's heat capacity, a naive timestamp's zone and a finite number; the draw map records its part A (pass record and map rows); the rest is tooling, audit records and dependency bumps.**
+
+### Action needed
+
+Nothing asks you to act: no option is added, no entity id changes and no option default changes. On the first start after the update, a numeric option an earlier release stored as a non-number is repaired in the config entry (numeric text is stored as its number, `None` is dropped, anything else is stored as its default), and the integration logs one warning naming the keys it repaired (#3734, below). Two changes you may notice without acting: a stored negative wood-lighting lead, which used to be clamped to 0, now reads as the default 60 minutes, and the flow meter's kW falls 0.04 % (#3728).
+
+### #3821 Dashboard card: hit targets, type and spacing scale, status colours, failure text, history retention (R11-SEAM-card)
+
+While the layout editor is open, each pipe has an invisible hit area at least the touch-target size wide, so a pipe is easier to select and remove; the fold header takes the touch-target height. Every font size in the card reads a `--hpo-text-*` step and every padding, margin and gap a `--hpo-space-*` step. Error, success and warning text use one colour per status role (`--hpo-crit`, `--hpo-ok`, `--hpo-warn`), and a filled error control under white text uses a new `--hpo-crit-fill` at 6.54:1. A failed service call shows the backend's translated message where Home Assistant resolves one, and otherwise the error's own text. The card's in-memory history is pruned to its window instead of growing.
+
+### #3734 Input guards (R11-SEAM-inputs-guards)
+
+Every value entering through `inputs.py` is tested finite and in domain. The boolean parser no longer reads `nan`, `inf` or `1e309` as a fault and a defrost; an Open-Meteo irradiance series keeps only samples whose span is representable, so a year-1 timestamp no longer makes every step raise; entity slots accept only text. The wood-lighting lead and the re-solve interval are parsed inside a domain (lead 0 to a day, interval above 0 up to a day; outside it reads as the default). Numeric options an earlier release stored as non-numbers, which failed setup or every cycle, are repaired at migration across 106 keys. Three further findings did not reproduce at main and get regression pins only.
+
+### #3737 Draw map, part A (R11-CARRY-DRAWMAP, part 1 of 3)
+
+The measured-COP learner records a pass record and steady-run map rows beside the running-draw window, and refuses an experiment cycle at `MeasuredCop.judge_floor`; a closed space run is committed as a map row only when its interval is neither frozen nor distorted. The store gains the map-row columns under `draw/map_rows/`, and a record without them reads empty. An experiment cycle now reads as no interval for the dither. Parts B and F follow in their own pull requests.
+
+### #3728 One plan step kernel (R11-SEAM-kernel-step)
+
+Each small rule of the shared kernel has one owner and its copies read it: the plan step covering an instant (`plan_step.covering_index`), the evidence note, water's specific heat (the flow meter's kW falls 0.04 %, to the tank model's value), a naive timestamp's zone (read as UTC; Open-Meteo's parse used the host's zone, 9 h off under a Tokyo host) and a finite number (`entity.payload_number` and `replay_doc.numeric` refuse NaN and infinity). The wood-fuel window times read a plan stamp through the same owner.
+
+### Ratchets (#3729, #3735)
+
+#3729 (R11-SEAM-ratchets) adds two structure rows (`in_function_copies`, `unloaded_package_imports`) and a barrier that refuses a logger binding or call the log-flood check does not read; the one live site it found, `sysid.py` `_finish`, now joins the once-per-event log group. #3735 (R11-SEAM-ratchet-raise) makes `const_modules_over_50` count the names a module reads and adds `module_excess_loc`.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3847 (CI cards CI-1, CI-2, CI-5 workflow part, CI-7 cap, CI-17: one run per bot-pushed head, scoped dispatches, coalesced main pushes, pins capped at 4, pip cached), #3846 (CI-4 reading, CI-5 rule text, CI-6: introduced self-test reds read by the diff's scope), #3865 (corpus mirror reads a zip member's directory-ness from its name), #3840 (one `gitRead` with a 64 MiB buffer for tree-sized git reads), #3832 (selftest closure table absorbs main's measured reads), #3839 (axis block and repeat-axis escalation), #3837 (shared-file ownership part 2: no figure block in a pull-request body, claim file after a stamp, brief line re-pin), #3850, #3843 and #3842 (root-cause records for a branch-only budget key, PR-local ratchet rows and the brief-lint buffer), #3836 (round-11 roster), #3822, #3824 and #3814 (round-11 audit finder boxes D3-u1a, D3-u1c and D3-top6), #3852, #3853 and #3851 (dependency bumps: `actions/create-github-app-token` 3.3.0 to 3.4.0, 13 test requirements, `playwright` 1.65.0 to 1.65.1), #3833 and #3844 (delivery rows, autofix).
+
+## v10.1.2
+
+**Patch stamp: 26 merges since v10.1.1 (`git log --first-parent --merges --format=%h v10.1.1..HEAD | wc -l`): settings live in one place in each config entry (entry version 7.2); the plan's start set brackets the all-off and wood-covered optima and the risk premium stays out of published money figures; an install with a room list records a room history and reports whether each room is separable; the comment ratchet reads production modules; the rest is tooling and records.**
+
+### Action needed
+
+Settings now live in one place in each config entry (entry version 7.2), and the entry is migrated on the first start after the update (#3742, below). Downgrading to an earlier release still loads with the same settings, but a reconfigure or re-authentication saved under that earlier release is shadowed by the options until the next save under this one. Nothing else asks anything of you: no option is added, no entity id changes and no option default changes. One change you may notice without acting: on an install with a room list, a Room Separability sensor appears (#3711).
+
+### #3742 One place per config entry key, entry version 7.2 (R11-SEAM-config)
+
+Each config entry key is stored in one place: the first-screen keys no options page edits stay in the entry's data and every other setting is in its options, with the effective mapping unchanged. Setup, reconfigure, re-authentication, the factory reset and its undo write that placement, and an entry below version 7.2 is migrated on start, keeping the options value where a key was on both sides. A computed default is judged over the save rather than the stored configuration, the two pre-fill pages share one builder, and a kept night-mode schedule whose power fraction in force is 1.0 or more is refused with a translated message.
+
+### #3711 Room history and the identifiability report (R11-OUTSIDE-ROOMS-P3, part of #3616)
+
+On an install with a room list, the integration records per half hour each room's temperature, target and share of samples calling for heat, beside the outdoor and floor-return temperatures, the measured power and the share of cycles on space heating, 14 days deep. The report names, per room, whether its response is separable from the outdoor temperature (`separable`, or `no_action`, `short_history`, `never_calling`, `always_calling`, `collinear`, `no_response`). It is published in diagnostics and in the new Room Separability sensor, and nothing in the plan reads it. A factory reset keeps the history.
+
+### #3736 The solver's start set and the risk premium (R11-SEAM-solver)
+
+Both solve paths now start from the all-off plan, so a plan no longer ships that the true objective scores above all-off; a wood-covered reference draws its price-ranked seeds at the reference's own energy; the risk premium stays in the objective and out of every published money figure (plan cost, reference cost, settlement prices); and a slot's reason tie goes to its first code. Plans on some installs change slightly where the all-off start is the better optimum.
+
+### #3820 and #3831 Comments: the ratchet reads production (R11-SEAM-comments-production, R11-SEAM-comments-tests part 2)
+
+The comment ratchet now covers the package's top-level modules and the card's script, and 25 released modules have their long comment sentences split at their own clause boundaries. #3831 does the same for the comment and path text in `tests/*.mjs`. Text only: no behaviour changes.
+
+### #3816 Declared tank volume and house size are read (R11-READS-RESIDUE)
+
+The tank volume and house size levels a config entry declares are now read where they were declared but not read, and the operation seed ledger is re-cut.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3708 (shared-file ownership), #3739 (security and privacy, part 2), #3808 (comments seam tests), #3801 (self-test closures for `survivor_triage` and `currency`), #3815 (lift-peak check across BLAS kernels), #3817 (class-open RCA), #3828 (CodeQL leg cap), #3830 (env-matrix cap), #3809, #3810, #3818, #3819, #3823 and #3829 (round-11 audit finder intake), #3804, #3807, #3826 and #3827 (round-11 issue numbers and delivery rows, autofix).
+
+## v10.1.1
+
+**Patch stamp: 23 merges since v10.1.0 (`git log --first-parent --merges --format=%h v10.1.0..HEAD | wc -l`): a single-zone plan no longer publishes floor rows, and `set_thermal_parameters` refuses the whole-house fields on a two-zone model; the Monthly Savings figure waits for a day of data and counts a month's real hours; money fields in the options take the price sensor's currency; the self-setting-pump test keeps its pair across a skipped cycle; a single-zone house behind a throttling mixing valve learns no flow-curve bias; the rest is tooling and records.**
+
+### Action needed
+
+Only if an automation or script calls `set_thermal_parameters` with `house_thermal_mass` or `house_heat_loss_coefficient` on a two-zone model: that call is now refused before anything is written, so set the floor masses and losses a two-zone house uses instead (#3731, below). Nothing else asks anything of you: no store needs a migration, no option is added, no entity id changes and no option default changes. Two changes you may notice without acting: the Monthly Savings sensor is unavailable for the first 24 hours of each month (#3726), and on a single-zone install the plan's upper and lower floor rows are now empty (#3731).
+
+### #3731 One answer per plant question (R11-SEAM-plant-model)
+
+A single-zone plan no longer publishes upper and lower floor rows built from the room's own trajectory; the two-zone plan is unchanged. The options page no longer offers the whole-house mass on a two-zone model, and its help says where a two-zone house sets its floor masses. `set_thermal_parameters` refuses `house_thermal_mass` and `house_heat_loss_coefficient` on a two-zone model, with a translated message, and the action's field help says both apply to one zone only. The sensor-gap advisor no longer prices a hot-water coast on an install without hot water. The quick-setup descriptions of a wood furnace and a wood buffer tank now state when the plan uses them: only with a throttling mixing valve set in Options, and the pump stands down only with the external-heat detection switch on.
+
+### #3726 Monthly savings and one currency for money figures (R11-SEAM-money)
+
+The Monthly Savings sensor is now unavailable for the first 24 hours of each month (`waiting_for: open_month_coverage`) instead of showing an estimate extrapolated from minutes of data, and a month's estimate counts its real hours across a daylight-saving change. A closed month is unchanged. On an install priced by a price sensor whose unit declares a currency other than Home Assistant's, the options dialog's money fields and the grid-fee page are now labelled, bounded and validated in the sensor's currency, as the sensors already were. No published capacity charge changes.
+
+### #3722 The self-setting-pump test survives a skipped cycle (R11-OUTSIDE-SELF-SETTING-PUMP, part 2)
+
+The test from v10.1.0 (#3662) that decides whether a pump that sets its own power follows the plan no longer voids a pair of readings because one read cycle admitted no row: the missed slot is asked again, and the pair voids only after the hold horizon passes. After three probes in a row end with no pair read, the next probe waits on its first reading for the hold horizon. Frozen and unread cycles still void.
+
+### #3715 No flow-curve bias behind a single-zone mixing valve (R11-VALVE-REFERENCE, part 2)
+
+On a single-zone house behind a throttling mixing valve, the learner no longer takes flow-curve bias samples, because the measured supply there follows the tank charge the valve mixes down, not the space curve. A bias learned before the valve was configured is kept as it was. Two-zone houses and installs without a throttling valve are unchanged.
+
+### #3803 Room lift: the documented peak (R11-CARRY-ROOM-LIFT)
+
+The "Let a cold room raise the planned minimum" row in `docs/configuration.md` now says that the lifted minimum may raise the plan's peak above the comfort target, which it can; the lift itself, its 1.0 K cap and its default (off) are unchanged.
+
+### #3724 Kernel layering (R11-SEAM-kernel-layering)
+
+Modules that need no Home Assistant now import without it, which makes the grid-fee and topology modules' own statements to that effect true. No behaviour changes.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3714 (outside pull request 3529 by Bankaifan, metered floor part 2: a store-declaration check; thanks), #3717 (Bankaifan's #3529 rebased onto main, a design-note wording change; thanks), #3720 (honest starts and runs, part 3 carries), #3725 (replay cost budget after the second solver pass), #3718 (self-test table re-record), #3696 (no-read builders), #3721 (security-dimension grader), #3719 (handoff bookkeeping, part 3), #3727 (governance text), #3732 (instrument triage phase), #3740 (objective builder re-point), #3723 (round-11 audit register), #3733 (rulings), #3730 (round-11 phases), #3608 (round-10 records), #3741 and #3802 (delivery rows, autofix).
+
 ## v10.1.0
 
 **Minor stamp: 18 merges since v10.0.3 (`git log --first-parent --merges --format=%h v10.0.3..HEAD | wc -l`): the plan learns the pump's real minimum power from the meter and publishes it; an install that cannot run below its minimum power prices a compressor start by default; the COP learner tests whether a pump that sets its own power follows the plan before learning from it; the savings reference behind a single-zone mixing valve reaches its setpoint; heat-curve control is described generically; two service fields are corrected; the rest is tooling and records.**

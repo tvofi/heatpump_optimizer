@@ -15,7 +15,7 @@
 //
 // Own CI job, not a run.sh lane: it needs a browser the other lanes do
 // not install, and it is excluded from the closures roster in
-// tests/closure.py's NOT_A_TEST for exactly that reason -- the closures
+// tests/closure.py's NOT_A_TEST for exactly that reason. The closures
 // job would have to install Chromium to record it, which buys nothing:
 // its dependency closure is the card source, the payload and itself.
 //
@@ -41,7 +41,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// createRequire, not a static import: the lane must resolve playwright
+// createRequire, not a static import. The lane must resolve playwright
 // from wherever the CI job or developer put it (a bare `import` would
 // demand node_modules inside the repository, which this repo does not
 // have and should not grow for one lane).
@@ -89,7 +89,7 @@ function check(name, cond, detail = "") {
 // that omits SEK/kWh, one hover row. Round 9 found five more instances at
 // selectors and states none of them named. This block asserts the PROPERTY
 // over every rendered node instead, in every cell of a grid, and a REACH rule
-// that fails when the card styles a colour no cell renders -- so a new status
+// that fails when the card styles a colour no cell renders. So a new status
 // class cannot ship unmeasured by being absent from the grid.
 //
 // Prototype carried from the round-9 P9 RCA seat (handoff/r9-rca-p9) for F6.3.
@@ -261,6 +261,12 @@ function gridStates(plan) {
     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
     S("override_active", { states: override(), config: wi, steps: [["open"]] }),
     S("wood_alert", { states: wood({ cheaper: true, show_whatif: true, ready: true, slots: [] }) }),
+    // R11-SEAM-card moved three status notes from inline style to rules, so
+    // the colour reach measures them. They are the space-blocked banner, the
+    // history line (a recorder that answers nothing for the window panned
+    // into), and the savings month withheld under the meter floor.
+    S("space_blocked", { states: (() => { const st = planStates(plan); st[DEFAULT_SPACE].attributes.space_blocked = true; return st; })() }),
+    S("history_unavailable", { states: planStates(plan), steps: [["cardClick"], ["history", 6]] }),
     S("wood_lane", { states: wood({ cheaper: false, show_whatif: true, ready: true, slots: [{ start: plan.space_plan.forecast[0].t,
       end: plan.space_plan.forecast[Math.min(4, plan.space_plan.forecast.length - 1)].t, source: "detected" }] }) }),
     S("away_return", { states: away({ sw: true }), steps: [["cardClick"]] }),
@@ -277,6 +283,10 @@ function gridStates(plan) {
     S("savings_page_wood", { states: { ...wood({ cheaper: false, show_whatif: true, ready: true, slots: [] }),
       "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1", attributes: { unit_of_measurement: "SEK", savings_months: [
         { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: null, savings_pct: null, old_basis: true }] } } },
+      steps: [["cardClick"], ["page", "savings"]] }),
+    S("savings_page_floor", { states: { ...planStates(plan), "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1",
+      attributes: { unit_of_measurement: "SEK", savings_months: [
+        { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: null, savings_pct: null, below_meter_floor: true }] } } },
       steps: [["cardClick"], ["page", "savings"]] }),
     S("estimated_price_hover", { states: (() => { const st = planStates(plan);
       for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) st[id].attributes.forecast = st[id].attributes.forecast.map((p) => ({ ...p, price_known: false }));
@@ -402,12 +412,12 @@ const contrastKitScript = { content: hpoContrastKit.toString() };
 
 /** R9-UI-3 review, widened by R10-HOTFIX-CARD-HEALTH-TEXT: the card's text in
  * all four theme/darkMode pairings. The two mismatched ones are what Home
- * Assistant produces but no P9 grid cell renders: HA reports
+ * Assistant produces but no P9 grid cell renders. HA reports
  * hass.themes.darkMode false for any theme without a dark mode, so a community
  * dark theme paints the card with dark variables and the light literals (and
  * the mirror image under a light theme on a dark profile). The two matched
  * ones are HA's default theme, measured in this same unit so the four arms are
- * one check's evidence rather than two lanes' (P662), and so a fix that only
+ * one check's evidence rather than two lanes' (P662). And so a fix that only
  * moves the defect from one pairing to another reads red here.
  *
  * The unit is every element that owns a visible text node, on the dashboard
@@ -513,8 +523,8 @@ async function themeMismatch({ browser, check, plan }) {
       const low = pages.flatMap((p) => p.low);
       const count = (id, key) => (pages.find((p) => p.view === id) || { runs: {} }).runs[key] || 0;
       // The sweep's own controls: it reached every page with text on it,
-      // and the rows of the 906fee95e defect are among what it measured --
-      // a sweep that found the Health or Advisor rows absent would pass for
+      // and the rows of the 906fee95e defect are among what it measured.
+      // A sweep that found the Health or Advisor rows absent would pass for
       // having nothing to measure.
       const reach = { pages: first.tabs.length, empty: pages.filter((p) => p.seen < 5).map((p) => p.view),
         health: count("health", "span.fact-text"), advisor: count("advisor", "span.fact-text") };
@@ -530,10 +540,10 @@ async function themeMismatch({ browser, check, plan }) {
 
 /** R10-CARD-COLLAPSE: the headline's two folds and the dialog-only legend,
  * in a real browser, light and dark. Collapsed by default with no body, no
- * chip and no dashed-line note on the card; Enter and Space on a focused
- * header toggle it and focus stays on the header; the summary text clears
+ * chip and no dashed-line note on the card. Enter and Space on a focused
+ * header toggle it and focus stays on the header. The summary text clears
  * 4.5:1 against the card in both themes and the header the 24 px target
- * floor; the expanded dialog carries the chips and the notes. */
+ * floor. The expanded dialog carries the chips and the notes. */
 async function cardCollapse({ browser, check, plan, out }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
   const st = pageStates(plan);
@@ -632,16 +642,16 @@ async function cardCollapse({ browser, check, plan, out }) {
 
 /** R10-HOTFIX-CARD-HEALTH-TEXT, carry 0: HA's default theme in auto mode,
  * switched live with the Health dialog open, in both directions. The page
- * models HA's themes mixin in its order: on the OS colour-scheme change it
+ * models HA's themes mixin in its order. On the OS colour-scheme change it
  * writes the theme's variables onto the document, and only then hands the
  * card a hass whose themes.darkMode is the new scheme (a separate update,
  * modelled one microtask later). Between the two the card reads the new
- * theme's text against the old darkMode's surface literals -- the mismatched
- * pairing -- so the Health dialog is measured there ("between write and
+ * theme's text against the old darkMode's surface literals: the mismatched
+ * pairing. So the Health dialog is measured there ("between write and
  * hass") and again on the frame after the card's own re-render ("after
  * re-render"), where the two agree again. Reach: the change handler fired
  * while the card still held the old darkMode and the old row surface (so the
- * first measurement IS the mismatched pairing), the dialog is still open on
+ * first measurement IS the mismatched pairing). The dialog is still open on
  * Health after the re-render, the rows' surface changed, and the row labels
  * are among the runs measured at both points. */
 async function themeLiveSwitch({ browser, check, plan }) {
@@ -723,7 +733,7 @@ async function themeLiveSwitch({ browser, check, plan }) {
  * row's left edge with no label: EasyList's `##.adv-text` and `##.adv-label`
  * (easylist_general_hide.txt; AdGuard Base carries both) matched the card's
  * own class names and removed the box (rca r10-card-health-text, third
- * pass). A blocker's `##.x` is `display: none !important`; the cell injects
+ * pass). A blocker's `##.x` is `display: none !important`. The cell injects
  * exactly that, as a stylesheet inside the shadow root after the render, on
  * every page the dialog's tabs offer, and requires every element owning a
  * text node to keep a client rect. The bare arm is the null control: the
@@ -907,8 +917,8 @@ function healthPageStates(st, now) {
 }
 
 /** R10-UX-HEALTH items 2 and 3, measured at a phone's width and a desktop's,
- * in both themes: the input rows span the page in a grid, and the Health
- * page's first row is not drawn under the dialog's head -- on open, and
+ * in both themes. The input rows span the page in a grid, and the Health
+ * page's first row is not drawn under the dialog's head, on open and
  * again after a page switch from a scrolled page. "Under" is read by
  * hit-testing the row's own top edge: whatever the browser paints there must
  * be the row. */
@@ -1363,6 +1373,49 @@ function instrument() {
     for (const s of sheets) walk(s.cssRules, "");
     return out;
   };
+  // ROWS (D4-s3-02): the headline numbers of one visual row of `.tiles` or
+  // `.hl-stats` end their first line on one y however their labels wrap.
+  // `uneven` counts the rows whose labels take different line counts, the
+  // rows where a cell that is not on the row's subgrid tracks shows.
+  H.rows = () => {
+    const out = { rows: 0, uneven: 0, misaligned: [] };
+    const firstLineBottom = (el) => {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let t = w.nextNode(); t; t = w.nextNode()) {
+        if (!t.textContent.trim()) continue;
+        const r = document.createRange(); r.selectNodeContents(t);
+        const rs = r.getClientRects();
+        if (rs.length) return rs[0].bottom;
+      }
+      return null;
+    };
+    const lines = (k) => {
+      if (!k) return 0;
+      const r = document.createRange(); r.selectNodeContents(k);
+      return new Set([...r.getClientRects()].map((x) => Math.round(x.top))).size;
+    };
+    for (const [grid, cellSel, valSel, keySel] of [[".tiles", ".tile", ".tile-v", ".tile-k"], [".hl-stats", ".hl-stat", ".hl-value", ".hl-label"]]) {
+      for (const g of scope().querySelectorAll(grid)) {
+        if (!visible(g)) continue;
+        const byTop = {};
+        for (const c of [...g.children].filter((c) => c.matches(cellSel) && visible(c))) {
+          (byTop[Math.round(c.getBoundingClientRect().top)] ||= []).push(c);
+        }
+        for (const row of Object.values(byTop)) {
+          const vals = row.map((c) => ({ v: c.querySelector(valSel), k: c.querySelector(keySel) }))
+            .filter((x) => x.v && visible(x.v))
+            .map((x) => ({ bottom: firstLineBottom(x.v), lines: lines(x.k), label: x.k ? x.k.textContent.trim().slice(0, 24) : "" }))
+            .filter((x) => x.bottom !== null);
+          if (vals.length < 2) continue;
+          out.rows += 1;
+          if (new Set(vals.map((x) => x.lines)).size > 1) out.uneven += 1;
+          const spread = Math.max(...vals.map((x) => x.bottom)) - Math.min(...vals.map((x) => x.bottom));
+          if (spread > 0.5) out.misaligned.push(`${grid} row [${vals.map((x) => x.label).join(" / ")}] values ${spread.toFixed(1)} px apart`);
+        }
+      }
+    }
+    return out;
+  };
   // Pixel ink of one text run: everything else hidden, the run forced black on white.
   // A run's own ink only. An SVG text's glyphs can sit in its tspans, which
   // the hide-everything rule matches too, so they are shown with their text:
@@ -1432,6 +1485,14 @@ function instrument() {
         hover = { x: svgPx(svg, plot.scaleX(plot.windowStart + a1 * 3600000)), y: r.top + r.height * 0.45 };
       }
       else if (op === "zoom") c.view.zoom(a1);
+      else if (op === "history") {
+        // A recorder with nothing for the window: the pan into the past asks
+        // it, and the empty answer draws the history status line.
+        c.hass.callApi = async () => [];
+        c.view.panBy(-a1 * 3600000);
+        for (let i = 0; i < 20 && !root().querySelector(".hist-note"); i++) { await sleep(50); await frame(); }
+        if (!root().querySelector(".hist-note")) missed.push(`${op} ${a1}`);
+      }
       else if (op === "hoverShared") {
         await frame();
         const svgs = charts(), svg = svgs[svgs.length - 1], plot = c._plot;
@@ -1510,17 +1571,17 @@ function instrument() {
 }
 
 // ---- the grid's scope ----------------------------------------------------------
-// The grid costs about as long as the rest of this lane together, and what it
+// The grid costs about as long as the rest of this lane together. What it
 // renders is the card source and this lane's own scripts, fed the payload
-// tests/plan_view.py builds by running the integration -- the solver, the
+// tests/plan_view.py builds by running the integration: the solver, the
 // profiles and the stubs included. So the surface is the card files, the grid
 // scripts, and plan_view.py's MEASURED closure from tests/closures.json at
 // HEAD, never a hand list of its inputs: a solver-only or profiles-only diff
 // moves the payload and runs the grid. HPO_BROWSER_SCOPE=auto runs it only
 // when the branch's diff from its merge base with HPO_BROWSER_BASE (default
-// origin/main) touches the surface; unset or any other value runs it, as does
-// a push (GITHUB_EVENT_NAME=push), so main is always measured in full and a
-// closure that misses a file goes red on main within one merge -- the scoped
+// origin/main) touches the surface. Unset or any other value runs it, as does
+// a push (GITHUB_EVENT_NAME=push). So main is always measured in full, and a
+// closure that misses a file goes red on main within one burst: the scoped
 // gate's own bargain (CLAUDE.md rule 1). Any git failure, and a closure file
 // without plan_view.py's entry, runs it. The mode line always prints, and a
 // skip is reported as a skip in the summary, never as a pass.
@@ -1550,6 +1611,77 @@ function gridScope(env = process.env) {
   return { run: false, line: `P9 grid MODE: SCOPED -- SKIPPED, NOT A PASS (none of ${files.length} changed file(s) is on the card surface or in ${GRID_PAYLOAD}'s ${closure.length}-file closure)` };
 }
 
+/** D4-s3-02: the numbers of one row of tiles or stats share a line however
+ * their labels wrap. The P9 grid's cells (en and sv-SE) wrap no label
+ * unevenly, so they cannot tell a subgrid row from a block one; German does.
+ * The states are the grid's own, mounted as the grid mounts them, with
+ * `hass.localize` reading the integration's translations. The check also asks
+ * that rows with unevenly wrapped labels were measured, its own null control. */
+const ROW_STATES = ["score_open", "score_open_typical", "score_open_no_evidence", "score_open_graded_pump", "savings_open", "folds_open"];
+async function tileRows({ browser, check, plan, cardSrc }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const states = gridStates(plan).filter((s) => ROW_STATES.includes(s.name));
+  const tr = Object.fromEntries(["en", "de", "sv"].map((l) => [l, JSON.parse(readFileSync(
+    path.join(repo, `custom_components/heatpump_optimizer/translations/${l}.json`), "utf8"))]));
+  const PAGE = `<!doctype html><html><head><meta charset="utf-8"><style id="theme"></style></head><body></body></html>`;
+  const misaligned = [], missed = [];
+  let rows = 0, uneven = 0;
+  for (const [vw, vh] of VIEWPORTS) {
+    const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, colorScheme: "light", reducedMotion: "reduce" });
+    await ctx.clock.setFixedTime(FROZEN);
+    await ctx.route("http://hpo.test/**", (r) => r.fulfill({ contentType: "text/html", body: PAGE }));
+    const page = await ctx.newPage();
+    try {
+      for (const lang of ["en", "de-DE", "sv-SE"]) for (const st of states) {
+        const tag = `${st.name}/${vw}/${lang}`;
+        await page.goto("http://hpo.test/");
+        await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+        await page.addScriptTag({ content: cardSrc });
+        await page.addScriptTag({ content: `(${instrument.toString()})();` });
+        await page.evaluate(([themeCss, w, cfg, states2, lang2, t]) => {
+          document.getElementById("theme").textContent =
+            `html{${themeCss};background:var(--primary-background-color)}` +
+            `body{margin:0;padding:8px;font-family:"Liberation Sans",Arial,sans-serif;color:var(--primary-text-color)}` +
+            `heatpump-optimizer-card{display:block;width:${w}px}`;
+          if (!customElements.get("ha-card")) {
+            customElements.define("ha-card", class extends HTMLElement {
+              constructor() {
+                super();
+                this.attachShadow({ mode: "open" }).innerHTML =
+                  "<style>:host{display:block;box-sizing:border-box;border:1px solid var(--divider-color,#e0e0e0);border-radius:12px}</style><slot></slot>";
+              }
+            });
+          }
+          const c = document.createElement("heatpump-optimizer-card");
+          c.setConfig({ type: "custom:heatpump-optimizer-card", ...cfg });
+          const look = (key) => key.split(".").reduce((o, k) => (o && o[k]), t);
+          const hass = { states: states2, language: lang2, themes: { darkMode: false } };
+          hass.localize = (key, ph) => {
+            const m = key.match(/^component\.heatpump_optimizer\.(.*)$/);
+            const text = m ? look(m[1]) : "";
+            return typeof text === "string" ? text.replace(/\{(\w+)\}/g, (x, k) => (ph && k in ph ? String(ph[k]) : x)) : "";
+          };
+          hass.loadBackendTranslation = async () => hass.localize;
+          c.hass = hass;
+          document.body.appendChild(c);
+        }, [THEMES.light, vw - 16, st.config, st.states, lang, tr[lang.slice(0, 2)]]);
+        await page.waitForTimeout(40);
+        const drove = await page.evaluate((s) => window.__p9.drive(s), st.steps);
+        for (const m of drove.missed) missed.push(`${tag}: ${m}`);
+        const r = await page.evaluate(() => window.__p9.rows());
+        rows += r.rows; uneven += r.uneven;
+        for (const x of r.misaligned) misaligned.push(`${tag}: ${x}`);
+      }
+    } finally {
+      await ctx.close();
+    }
+  }
+  console.log(`        tile and stat rows: ${rows} measured, ${uneven} with unevenly wrapped labels, ${misaligned.length} misaligned`);
+  check(`D4-s3-02 the numbers of one tile or stat row share a line however their labels wrap (${ROW_STATES.length} states, 3 widths, en/de/sv)`,
+    states.length === ROW_STATES.length && missed.length === 0 && misaligned.length === 0 && uneven > 0,
+    `${misaligned.length} misaligned: ${misaligned.slice(0, 4).join(" | ")}; ${rows} row(s) measured, ${uneven} with unevenly wrapped labels; missed ${missed.slice(0, 2).join(" | ")}`);
+}
+
 // ---- the host side -----------------------------------------------------------
 async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
@@ -1562,8 +1694,8 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "dark" });
   // The card picks its status colours from hass.themes.darkMode, a profile
   // setting the user flips independently of the OS scheme (D4-s1-01, carry
-  // 1652), so each cell sets it in lockstep with its theme variables, and two
-  // cells run HA's theme against the opposite OS scheme: a colour keyed off
+  // 1652). So each cell sets it in lockstep with its theme variables, and two
+  // cells run HA's theme against the opposite OS scheme. A colour keyed off
   // the OS instead of HA fails one of them.
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "dark", os: "light" });
   cells.push({ vp: VIEWPORTS[0], lang: "en", theme: "light", os: "dark" });
@@ -1868,10 +2000,10 @@ try {
   }
 
   // --- #936 (D4-03): the zoom pair clears SC 2.5.8 under a fine pointer ----
-  // The shipped defect, measured by the audit in this same Chromium: the
+  // The shipped defect, measured by the audit in this same Chromium. The
   // HTML target floor lived only inside @media (pointer: coarse), so under
   // this page's own default fine pointer the zoom pair rendered at
-  // 20.22x20.22 px with 22.22 px between centres -- under the 24 px minimum
+  // 20.22x20.22 px with 22.22 px between centres. That is under the 24 px minimum
   // and inside the spacing exception's 24 px circle at once, which is why
   // the exception rescued nothing. The floor is pointer-independent now
   // (card.mjs pins its emission); this lane is the one that can prove the
@@ -1954,11 +2086,11 @@ try {
   // --- D4-01: the compact chart's text at phone width ----------------------
   // The shipped defect, measured by the audit on a 287 px tile: axis text
   // at 3.19 px glyph height -- outlines gone. The card now floors the
-  // rendered font (the viewBox-unit font grows as the tile narrows), and
+  // rendered font (the viewBox-unit font grows as the tile narrows). And
   // the only honest place to prove it is a real layout engine: shrink the
   // host, re-render, and measure ON-SCREEN sizes. getComputedStyle is
-  // useless here -- it reports the font-size attribute in user units,
-  // with no viewBox scaling -- so the screen size is reconstructed from
+  // useless here. It reports the font-size attribute in user units,
+  // with no viewBox scaling. So the screen size is reconstructed from
   // the svg's own rect, the one transform that actually applies.
   const phoneFont = await page.evaluate(async () => {
     const card = window.__card;
@@ -2076,7 +2208,7 @@ try {
       const vb = (svg.getAttribute("viewBox") || "0 0 900 380").split(/\s+/);
       const scale = r.width / (Number(vb[2]) || 900);
       // The axis and its annotations -- and, since #935 (R4-D4-01), the
-      // lane strip's own labels: they used to be filtered out here because
+      // lane strip's own labels. They used to be filtered out here because
       // they were drawn at 0.8x with no floor of their own, which put them
       // at 6.4 px wherever this floor bound. The card now floors them
       // through the same chartFontUnits pass (0.8 em base), so this check
@@ -2144,7 +2276,7 @@ try {
       : `${dlgFont.length} chart(s) measured`);
 
   // The editable slots are the ones still in the future, and the payload's
-  // day is fixed while the wall clock is not: against the real clock every
+  // day is fixed while the wall clock is not. Against the real clock every
   // slot is already locked, no `.slot-hit` is drawn at all, and a check on
   // slot targets measures an empty set. Freeze six hours into the captured
   // day, as tests/card.mjs does, which always leaves both a locked past and
@@ -2203,9 +2335,9 @@ try {
   coarsePage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
   await coarsePage.goto("about:blank");
   // Headless Chromium is pointer:fine, and nothing here makes it coarse for
-  // CSS: Playwright 1.49's emulateMedia has no `pointer`, and CDP
+  // CSS. Playwright 1.49's emulateMedia has no `pointer`, and CDP
   // Emulation.setEmulatedMedia leaves BOTH matchMedia("(pointer: coarse)")
-  // false and an `@media (pointer: coarse)` block unmatched -- measured on a
+  // false and an `@media (pointer: coarse)` block unmatched. It was measured on a
   // minimal page in this job's own Chromium (R5-D4-03, #1320). What is coarse
   // on this page is the in-page matchMedia stub below, which is the card's
   // own predicate (_coarsePointer()). So the card's HTML floor keys on that
@@ -2287,20 +2419,20 @@ try {
 
   // --- R7 D4-01 / D4-02 (#1454, #1455) ------------------------------------
   // The dialog painted content whose intrinsic width exceeded its own box and
-  // then hid the overflow, so the ink could not be reached by any gesture:
-  // the savings table's `%` column (a `width:100%` table whose min-content
+  // then hid the overflow, so the ink could not be reached by any gesture.
+  // The instances: the savings table's `%` column (a `width:100%` table whose min-content
   // width is wider than `.dlg-body`, right-aligned so the hidden strip is
-  // exactly the digits) and the Swedish tab row (`Rådgivare`). card.mjs
-  // cannot see either -- its stub's getBoundingClientRect is a constant --
-  // and neither could the checks above, which read the chart. What is
+  // exactly the digits) and the Swedish tab row (`Rådgivare`). The card.mjs harness
+  // cannot see either, since its stub's getBoundingClientRect is a constant.
+  // And neither could the checks above, which read the chart. What is
   // measured here is the FINDER's metric, in the lane that runs on every
-  // pull request: the pixels by which a text run's ink extends past the right
+  // pull request. It is the pixels by which a text run's ink extends past the right
   // edge of the nearest clipping ancestor, MINUS what that ancestor (or the
   // document) can scroll to reveal. Anything positive is text a phone user
   // cannot reach at all.
   //
   // The grid is the three phone widths in both languages on both dialog
-  // pages, plus 1280 px as the null control: a wide dialog has no
+  // pages, plus 1280 px as the null control. A wide dialog has no
   // min-content overflow to hide, so a metric that read positive there would
   // be measuring something other than reachability.
   const clipPage = await browser.newPage({ viewport: { width: 375, height: 812 } });
@@ -2609,7 +2741,7 @@ try {
 
   // A target that falls short of the floor has to be BOXED IN, not merely
   // clipped on one side. The first review of this fix found every residual
-  // target sitting next to 84-258 px of empty lane: the deficit was split in
+  // target sitting next to 84-258 px of empty lane. The deficit was split in
   // half and each half clipped at its own constraint, so the half a
   // neighbour refused was thrown away instead of offered to the free side.
   // For each target this measures the span between the two things it may not
@@ -2750,8 +2882,8 @@ try {
   //    the four REQUIRED names. The failing set is a RULE, not a list: every
   //    <text> the chart emits whose fill is var(--secondary-text-color,#888).
   //    Re-derive it. At this head that rule returns the axis tick labels, the
-  //    unit titles, the estimated-prices label AND the .lane-label runs --
-  //    the last of which the three-instance list this line used to carry did
+  //    unit titles, the estimated-prices label AND the .lane-label runs.
+  //    The last of these the three-instance list this line used to carry did
   //    not name. #888 on white is 3.54:1. With the token present it is 4.81:1
   //    light and 6.13:1 dark, so this is a FALLBACK defect, not a token one.
   //
@@ -3014,11 +3146,11 @@ try {
 
   // --- R8 D4-01 (#1522): keyboard reading order ---------------------------
   // The rules above each read a selector list, and a control no list names is
-  // a control no rule measures. Tab reaches every control by construction, so
-  // this arm walks real Tab presses through every view -- the tile and each
-  // dialog page -- at the three required viewports, and refuses a step whose
+  // a control no rule measures. Tab reaches every control by construction.
+  // So this arm walks real Tab presses through every view (the tile and each
+  // dialog page) at the three required viewports. It refuses a step whose
   // target sits more than ROW_TOL of a row ABOVE the previous stop while not
-  // starting to the right of that stop's right edge: a jump back up the
+  // starting to the right of that stop's right edge. That is a jump back up the
   // screen, rather than a wrap to the next row or a move to the top of the
   // next column. Positions are read after the walk, with every scroller
   // reset, so a focus that scrolled the body is not a jump. A positive
@@ -3108,8 +3240,8 @@ try {
     `reversed ${reversed.length}, straight ${straight.length} backward step(s)`);
 
   // Every view the card draws: the tile (and its score breakdown), and each
-  // dialog page -- the plan page twice, the second with every optional
-  // control the what-if panel and the zoom row can add, and the setup page
+  // dialog page. The plan page is drawn twice, the second with every optional
+  // control the what-if panel and the zoom row can add. The setup page is drawn
   // twice, the second with its entity picker open.
   const ORDER_VIEWS = [
     { name: "tile" }, { name: "tile_score", score: true },
@@ -3302,6 +3434,7 @@ try {
 
   // R9-UX-8: the narrative rows lay out on a phone and on a desktop.
   await narrativeLayout({ browser, check, plan, out: process.env.HPO_NL_OUT });
+  await tileRows({ browser, check, plan, cardSrc: readFileSync(CARD_SRC, "utf8") });
   await cardCollapse({ browser, check, plan, out: process.env.HPO_NL_OUT });
 } finally {
   await browser.close();

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pv.py:forecast_production_kw CLAMP_DROP 10afa9db",
+  "killed_by": "tests/features.py",
+  "old": "    capped: np.ndarray = np.clip(production, 0.0, config.peak_kw)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`capped: np.ndarray = (production)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

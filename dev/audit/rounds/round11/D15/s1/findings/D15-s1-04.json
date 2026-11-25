@@ -1,0 +1,33 @@
+{
+  "id": "D15-s1-04",
+  "scope": "D15-s1",
+  "step": "D15.M4",
+  "title": "store.DOMAINS declares less than the writers write; the debug ring's loader drops rows with an unpriced sample",
+  "severity": "medium",
+  "claim": "A sample the coordinator writes with predicted_cost None (no price covered the interval, #2229) is outside DOMAINS (admitted=0), so debugger._kept refuses each debugger.cycle_row row that carries it: 0 of 192 rows kept for the synthetic bundle's production-written samples; and on the owner's real download 102 healthy fields its loaders read intact are off their declaration (off_restore 1, snapshots 101).",
+  "mechanism": "DOMAINS['accuracy']['accuracy/samples/#/predicted_cost'] is _R (non-null) while AccuracySample.as_dict writes None and actual_cost beside it is _N; 'rows/#/accuracy_sample' aliases that table and debugger._repair drops a row admitted() refuses, so the ring loses those rows on the next load (restart). The same drift without a dropping reader: off_restore 'armed/*' is declared a number while its writer stores {entity_id, value} and _entry_of reads that mapping; the snapshot ring keeps the pre-R10-HOTFIX-COP-UNMEASURED learner keys cop_baseline/cop_health_cusum, which DOMAINS neither declares nor marks unread. The stores self-test (debugger.store_report) reports these as off-domain on a healthy install.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py --bundle B [--synthetic S]",
+    "harness_path": "dev/audit/rounds/round11/D15/s1/domains_drift.py",
+    "value": "sample_none_cost_admitted=0, unit_row_kept=0/1, synthetic_written_rows_kept=0/192 (192/192 unpriced), real off_domain[off_restore]=1 with loader keeping 2/2, real off_domain[snapshots]=101",
+    "unit": "rows / fields",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, box B8 (shared), CI venv python3",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 22.31,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/debugger.py:_kept",
+  "perturbation": {"change": "--declare: in memory, DOMAINS accuracy samples' predicted_cost nullable (as actual_cost is) and off_restore's armed entry declared as its writer's mapping", "expected_direction": "up", "observed_value": "synthetic_written_rows_kept 0/192 -> 192/192, unit arm 0 -> 1, real off_domain[off_restore] 1 -> 0"},
+  "null_control": {"command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py --bundle B", "value": "real_written_rows_kept=192/192 and real_cycle_rows_kept=662/662, unchanged under --declare", "note": "the real install priced every interval in the window, so its rows are kept either way: the drop needs an unpriced interval, which the synthetic install's store shows the coordinator writing"},
+  "metric_definition": "Rows debugger._kept keeps of rows debugger.cycle_row writes from a bundle's restored accuracy samples; store.off_domain field count per store document.",
+  "phenomenon_property": "Every field a current or still-on-disk release's writer produces is declared in store.DOMAINS, in its domain or marked unread, so no reader that consults DOMAINS (admitted, _repair, the stores self-test) refuses healthy data.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/store_replay.py --bundle B (each store with off_domain>0 over a production-written bundle is a seam; then grep -n 'admitted(' custom_components/heatpump_optimizer/*.py for the readers that drop on it)",
+  "stop_rule_class": "bug",
+  "class_guess": "P2",
+  "files": ["custom_components/heatpump_optimizer/store.py", "custom_components/heatpump_optimizer/debugger.py", "custom_components/heatpump_optimizer/accuracy.py", "custom_components/heatpump_optimizer/off_restore.py"],
+  "proposed_fix_scope": "store.py DOMAINS: predicted_cost -> _N; off_restore 'armed/*/entity_id' and 'armed/*/value' beside the scalar; the snapshot ring's legacy thermal_learning keys declared with unread= naming the provenance rule. A regression arm driving debugger.cycle_row with an unpriced sample through _kept.",
+  "reproduction_steps": ["PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s1/domains_drift.py", "same with --declare"]
+}

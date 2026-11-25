@@ -1,0 +1,5 @@
+{"class": "N-restore-race", "instances": 0, "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/restore_race_seams.py custom_components/heatpump_optimizer",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/off_restore.py", "symbol": "_armed_record", "probe": "dev/audit/rounds/round11/D1/s2/off_restore_race.py (2 consequences; --serial 0, --fix 0)", "beyond_finding": false}
+ ]}

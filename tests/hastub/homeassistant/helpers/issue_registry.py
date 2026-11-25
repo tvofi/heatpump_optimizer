@@ -5,7 +5,7 @@ Destination: tests/hastub/homeassistant/helpers/issue_registry.py (T4a).
 The v4.0.0 detectors raise repair issues (accuracy drift, compressor
 degradation). What the tests need to pin is the wiring — that a trip
 raises exactly one issue with the right translation key, and that
-recovery or rollback deletes it — so issues land on ``hass.issues`` as
+recovery or rollback deletes it. Issues therefore land on ``hass.issues`` as
 ``(domain, issue_id, kwargs)`` tuples with working deletion, mirroring
 how ``event.py`` records state listeners.
 """

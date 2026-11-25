@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_collinear CMP_BOUND 303f5033",
+  "killed_by": "tests/features.py",
+  "old": "    return (names[best], float(row[best])) if len(row) and row[best] >= COLLINEAR_R else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return (names[best], float(row[best])) if len(row) and row[best] > COLLINEAR_R else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,999 @@
+{
+ "class": "I1",
+ "instances": 58,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-I1/enumerate_i1.py  (--fixture null|perturb; dynamic arm: dev/audit/rounds/round11/D14/sweep-I1/probe_hook.sh, dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh -> dev/audit/rounds/round11/D14/sweep-I1/probes.out)",
+ "seams": 168,
+ "guarded": [
+  {
+   "file": "tools/audit/prepr.sh",
+   "symbol": "governance.yml:instrument-self-tests/launch",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/beatd.py",
+   "symbol": "governance.yml:instrument-self-tests/launch",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/open_pr.sh",
+   "symbol": "governance.yml:instrument-self-tests/launch",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/pr_args.sh",
+   "symbol": "governance.yml:instrument-self-tests/launch",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/update_pr.sh",
+   "symbol": "governance.yml:instrument-self-tests/launch",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/pr/figure_block.py",
+   "symbol": "governance.yml:instrument-self-tests/figure-block",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/policy/budget_raise_gate.py",
+   "symbol": "governance.yml:instrument-self-tests/budget-raise-gate",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/pr/codeql_scope.py",
+   "symbol": "governance.yml:instrument-self-tests/codeql-leg-scope",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/merge_fastpath.py",
+   "symbol": "governance.yml:instrument-self-tests/merge-fast-path",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/plan_audit.py",
+   "symbol": "governance.yml:instrument-self-tests/p3-move-ledger-and",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/sweep_render.py",
+   "symbol": "governance.yml:instrument-self-tests/sweep-template",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/policy_reread_check.py",
+   "symbol": "governance.yml:instrument-self-tests/sweep-template",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/orchestrator_tick.py",
+   "symbol": "governance.yml:instrument-self-tests/orchestrator-tick",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/review_strength.py",
+   "symbol": "governance.yml:instrument-self-tests/review-strength-enumerator",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/ci_critpath.py",
+   "symbol": "governance.yml:instrument-self-tests/critical-path-and-flow",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/flow_metrics.py",
+   "symbol": "governance.yml:instrument-self-tests/critical-path-and-flow",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/body_patch.sh",
+   "symbol": "governance.yml:instrument-self-tests/body-patch",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/body_push.sh",
+   "symbol": "governance.yml:instrument-self-tests/body-patch",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/carry_fold.py",
+   "symbol": "governance.yml:instrument-self-tests/body-patch",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/ci-watch.sh",
+   "symbol": "governance.yml:instrument-self-tests/ci-watcher",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/cloud_dispatch.py",
+   "symbol": "governance.yml:instrument-self-tests/cloud-dispatcher",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/cloud_relay.sh",
+   "symbol": "governance.yml:instrument-self-tests/cloud-relay",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/ledger.py",
+   "symbol": "governance.yml:instrument-self-tests/obligations-ledger",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/record_beat.py",
+   "symbol": "governance.yml:instrument-self-tests/post-merge-record-line",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/postmerge.py",
+   "symbol": "governance.yml:instrument-self-tests/post-merge-bookkeeping",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/roster_queue.py",
+   "symbol": "governance.yml:instrument-self-tests/roster-queue-runner",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/owed_unactioned.py",
+   "symbol": "governance.yml:instrument-self-tests/owed-line-reader",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/topic_grammar.py",
+   "symbol": "governance.yml:instrument-self-tests/topic-grammar",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/daemonize.py",
+   "symbol": "governance.yml:instrument-self-tests/detached-launcher",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/delivery_row.sh",
+   "symbol": "governance.yml:instrument-self-tests/delivery-row-writer",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/failure_logs.sh",
+   "symbol": "governance.yml:instrument-self-tests/failure-log-reader",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/features_block.py",
+   "symbol": "governance.yml:instrument-self-tests/features-block",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/mutant_run.py",
+   "symbol": "governance.yml:instrument-self-tests/mutant-driver",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/handoff_push.sh",
+   "symbol": "governance.yml:instrument-self-tests/handoff-push",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/handover_prompt.py",
+   "symbol": "governance.yml:instrument-self-tests/handover-prompt",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/merge_pr.sh",
+   "symbol": "governance.yml:instrument-self-tests/pr-merger",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/moved_paths.py",
+   "symbol": "governance.yml:instrument-self-tests/moved-path-reader",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/plan_table.py",
+   "symbol": "governance.yml:instrument-self-tests/plan-table",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/gantt_drift.py",
+   "symbol": "governance.yml:instrument-self-tests/gantt-drift",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/plan_page.py",
+   "symbol": "governance.yml:instrument-self-tests/plan-page",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/pr_cap.py",
+   "symbol": "governance.yml:instrument-self-tests/dispatch-cap",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/ci_priority.py",
+   "symbol": "governance.yml:instrument-self-tests/ci-priority",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/ci_pause.py",
+   "symbol": "governance.yml:instrument-self-tests/ci-priority",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/open_driver.py",
+   "symbol": "governance.yml:instrument-self-tests/open-driver",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/seat_gen.py",
+   "symbol": "governance.yml:instrument-self-tests/seat-gen",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/proof_watch.py",
+   "symbol": "governance.yml:instrument-self-tests/proof-watcher",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/prune_refs.py",
+   "symbol": "governance.yml:instrument-self-tests/ref-pruner",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/closeout.py",
+   "symbol": "governance.yml:instrument-self-tests/round-closeout",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/pulse.py",
+   "symbol": "governance.yml:instrument-self-tests/programme-pulse",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/record_row.py",
+   "symbol": "governance.yml:instrument-self-tests/record-row-generator",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/gh_read_run.py",
+   "symbol": "governance.yml:instrument-self-tests/gh-read-run",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/resume_doc.py",
+   "symbol": "governance.yml:instrument-self-tests/resume-renderer",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/review_packet.py",
+   "symbol": "governance.yml:instrument-self-tests/review-packet",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/review_carry.py",
+   "symbol": "governance.yml:instrument-self-tests/review-carry",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/roster_edit.py",
+   "symbol": "governance.yml:instrument-self-tests/roster-editor",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/r10_roster_ops_mutants.py",
+   "symbol": "governance.yml:instrument-self-tests/roster-ops-mutation-harness",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/r10_stamp_round_mutants.py",
+   "symbol": "governance.yml:instrument-self-tests/stamp-round-close-mutation",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/r10_ledger_mutants.py",
+   "symbol": "governance.yml:instrument-self-tests/ledger-mutation-harness",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/r10_mandate_guard_mutants.py",
+   "symbol": "governance.yml:instrument-self-tests/mandate-guard-mutation-harness",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/roster_lib.py",
+   "symbol": "governance.yml:instrument-self-tests/roster-library",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/roster_sync.py",
+   "symbol": "governance.yml:instrument-self-tests/roster-sync-reconciler",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/run_twins.py",
+   "symbol": "governance.yml:instrument-self-tests/twin-run-reader",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/seat_venv.sh",
+   "symbol": "governance.yml:instrument-self-tests/seat-venv-recipe",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/gh_calls.py",
+   "symbol": "governance.yml:instrument-self-tests/gh-call-log-shim",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/cloud-setup.sh",
+   "symbol": "governance.yml:instrument-self-tests/cloud-setup-profile",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/state_docs.py",
+   "symbol": "governance.yml:instrument-self-tests/state-doc-writer",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/pr/outside.py",
+   "symbol": "governance.yml:instrument-self-tests/outside-contract",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/tick_loop.sh",
+   "symbol": "governance.yml:instrument-self-tests/tick-loop",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/heartbeat.sh",
+   "symbol": "governance.yml:instrument-self-tests/heartbeat-andon",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/beat_jobs.py",
+   "symbol": "governance.yml:instrument-self-tests/beat-job-rows",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/hooks_setup.py",
+   "symbol": "governance.yml:instrument-self-tests/hooks-setup",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/offline_spy.py",
+   "symbol": "governance.yml:instrument-self-tests/offline-spy",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/merge_train.py",
+   "symbol": "governance.yml:instrument-self-tests/merge-train",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/carry_audit.py",
+   "symbol": "governance.yml:instrument-self-tests/carry-check-and-the",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/queue_pre_flight.py",
+   "symbol": "governance.yml:instrument-self-tests/carry-check-and-the",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/ghapi.py",
+   "symbol": "governance.yml:instrument-self-tests/github-rest-client",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/prelude.py",
+   "symbol": "governance.yml:instrument-self-tests/ci-prelude",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/gate.py",
+   "symbol": "governance.yml:instrument-self-tests/gate-predicate",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/sweep.py",
+   "symbol": "governance.yml:instrument-self-tests/gate-sweep",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/alert_list.py",
+   "symbol": "governance.yml:instrument-self-tests/code-scanning-alert-lister",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/ruleset_cutover.py",
+   "symbol": "governance.yml:instrument-self-tests/ruleset-cut-over-instrument",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/sweep_driver.py",
+   "symbol": "governance.yml:instrument-self-tests/sweep-driver",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/sweep_gantt.py",
+   "symbol": "governance.yml:instrument-self-tests/gantt-and-verdict-audit",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/verdict_audit.py",
+   "symbol": "governance.yml:instrument-self-tests/gantt-and-verdict-audit",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/owed_watch.py",
+   "symbol": "governance.yml:instrument-self-tests/gantt-and-verdict-audit",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/survivor_list.py",
+   "symbol": "governance.yml:instrument-self-tests/survivor-list",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/audit/seat/ci_probe.py",
+   "symbol": "governance.yml:instrument-self-tests/ci-probe-instrument",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/codescan_wait.py",
+   "symbol": "governance.yml:instrument-self-tests/code-scanning-wait",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/pr/ci_predict.py",
+   "symbol": "governance.yml:instrument-self-tests/ci-predictor",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/pr/local_alerts.py",
+   "symbol": "governance.yml:instrument-self-tests/local-alert-lister",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/alert_list_mutants.sh",
+   "symbol": "governance.yml:instrument-self-tests/alert-lister-mutants",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/selftest_scope.py",
+   "symbol": "governance.yml:instrument-self-tests/selftest-scope",
+   "guard": "step greps the self-test tally"
+  },
+  {
+   "file": "tools/ci/selftest_scope_mutants.sh",
+   "symbol": "governance.yml:instrument-self-tests/selftest-scope-mutants",
+   "guard": "step greps the self-test tally"
+  }
+ ],
+ "not_applicable": [
+  {
+   "file": "tools/audit/round6/D11/fix/codeowners_gap.py",
+   "symbol": "governance.yml:policy-docs/Refuse a check script no CODEOWNERS pattern owns --check",
+   "reason": "fallback path absent from the tree"
+  },
+  {
+   "file": "tools/audit/record-predicate/sweep.mjs",
+   "symbol": "governance.yml:instrument-self-tests/record-predicate-sweep",
+   "reason": "fallback path absent from the tree"
+  },
+  {
+   "file": "tools/audit/push.sh",
+   "symbol": "governance.yml:instrument-self-tests/push-script-decisions",
+   "reason": "fallback path absent from the tree"
+  },
+  {
+   "file": "tools/audit/app_push.sh",
+   "symbol": "governance.yml:instrument-self-tests/app-push",
+   "reason": "fallback path absent from the tree"
+  },
+  {
+   "file": "tools/audit/app_approve.sh",
+   "symbol": "governance.yml:instrument-self-tests/app-approval",
+   "reason": "fallback path absent from the tree"
+  },
+  {
+   "file": "tools/audit/app_comment.sh",
+   "symbol": "governance.yml:instrument-self-tests/app-verdict-poster",
+   "reason": "fallback path absent from the tree"
+  },
+  {
+   "file": "tools/audit/round6/D11/fix/codeowners_gap.py",
+   "symbol": "governance.yml:instrument-self-tests/pin-rule",
+   "reason": "fallback path absent from the tree"
+  }
+ ],
+ "instance_list": [
+  {
+   "file": "tools/policy/rules_sync.mjs",
+   "symbol": "governance.yml:policy-docs/Refuse a Cursor rule that is not the generated form of its source --check",
+   "family": "CHECK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/rules_sync.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": false,
+   "finding": "D11-s1-03"
+  },
+  {
+   "file": "tools/audit/machinery_ratchet.py",
+   "symbol": "governance.yml:policy-docs/Refuse a window of merges past the machinery caps --check",
+   "family": "CHECK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/machinery_ratchet.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/fragments_sync.mjs",
+   "symbol": "governance.yml:instrument-self-tests/fragment-check",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/fragments_sync.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/probe_bridge.py",
+   "symbol": "governance.yml:instrument-self-tests/probe-bridge",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/probe_bridge.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/plan_public.py",
+   "symbol": "governance.yml:instrument-self-tests/plan-public",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/plan_public.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/outside_intake.py",
+   "symbol": "governance.yml:instrument-self-tests/outside-intake",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/outside_intake.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/bottleneck_check.py",
+   "symbol": "governance.yml:instrument-self-tests/bottleneck-alert",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/bottleneck_check.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/scorecard.py",
+   "symbol": "governance.yml:instrument-self-tests/scorecard",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/scorecard.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/toolchain.py",
+   "symbol": "governance.yml:instrument-self-tests/toolchain",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/toolchain.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/round_metrics.py",
+   "symbol": "governance.yml:instrument-self-tests/round-metrics",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/round_metrics.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/plant_recall.py",
+   "symbol": "governance.yml:instrument-self-tests/plant-recall",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/plant_recall.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/finder_overlap.py",
+   "symbol": "governance.yml:instrument-self-tests/finder-overlap",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/finder_overlap.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/loop_ledger.py",
+   "symbol": "governance.yml:instrument-self-tests/loop-ledger",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/loop_ledger.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/field_coverage.mjs",
+   "symbol": "governance.yml:instrument-self-tests/field-coverage",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/field_coverage.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/site/day_chart.mjs",
+   "symbol": "governance.yml:instrument-self-tests/day-chart",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/site/day_chart.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/pr/merge_main_bot.py",
+   "symbol": "governance.yml:instrument-self-tests/merge-main-bot",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/pr/merge_main_bot.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/pr/cancel_superseded.py",
+   "symbol": "governance.yml:instrument-self-tests/superseded-run-canceller",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/pr/cancel_superseded.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/pr/dependabot_merge.py",
+   "symbol": "governance.yml:instrument-self-tests/dependabot-merge-decision",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/pr/dependabot_merge.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/pr/depgraph.py",
+   "symbol": "governance.yml:instrument-self-tests/dependency-graph-census",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/pr/depgraph.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/bus.sh",
+   "symbol": "governance.yml:instrument-self-tests/verdict-bus",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/bus.sh (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/machinery_ratchet.py",
+   "symbol": "governance.yml:instrument-self-tests/machinery-ratchet",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/machinery_ratchet.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/tmp_paths.py",
+   "symbol": "governance.yml:instrument-self-tests/temp-or-machine-path",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/tmp_paths.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/tmp_paths.py",
+   "symbol": "governance.yml:instrument-self-tests/temp-or-machine-path --check",
+   "family": "CHECK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/tmp_paths.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/bare_array.py",
+   "symbol": "governance.yml:instrument-self-tests/bare-array-expansion",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/bare_array.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/shell_hazard.py",
+   "symbol": "governance.yml:instrument-self-tests/bare-array-expansion",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/shell_hazard.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/bare_array.py",
+   "symbol": "governance.yml:instrument-self-tests/bare-array-expansion --check",
+   "family": "CHECK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/bare_array.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/ref_privacy.py",
+   "symbol": "governance.yml:instrument-self-tests/push-names-the-host",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/ref_privacy.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/ref_privacy.py",
+   "symbol": "governance.yml:instrument-self-tests/push-names-the-host --check",
+   "family": "CHECK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/ref_privacy.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/selftest_wiring.py",
+   "symbol": "governance.yml:instrument-self-tests/selftest-wiring",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/selftest_wiring.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/selftest_wiring.py",
+   "symbol": "governance.yml:instrument-self-tests/selftest-wiring --check",
+   "family": "CHECK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/selftest_wiring.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/regret_oracle.py",
+   "symbol": "governance.yml:instrument-self-tests/regret-oracle",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/regret_oracle.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/archscore/gate.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/archscore/gate.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/check_scopes.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/check_scopes.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/enumerate.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/enumerate.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/product_reads.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/product_reads.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/text_ledger.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/text_ledger.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/merge_throughput.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/merge_throughput.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/worktree_gc.sh",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/worktree_gc.sh (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/coverage/partition.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/coverage/partition.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/merge/ledger_merge.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/merge/ledger_merge.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/plan/replan.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/plan/replan.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/plan/size_durations.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/plan/size_durations.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/policy_lint.mjs",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/policy_lint.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/record-predicate/row_files_replay.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/record-predicate/row_files_replay.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/pr/approve_held_runs.sh",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/pr/approve_held_runs.sh (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/pr/gate_priority.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/pr/gate_priority.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/pr/head_note.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/pr/head_note.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/release/stamp.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/release/stamp.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/agreement_py.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/agreement_py.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/role_pack.py",
+   "symbol": "governance.yml:instrument-self-tests/self-tests-outside-seat",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/role_pack.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tests/throwaway_git.py",
+   "symbol": "governance.yml:instrument-self-tests/throwaway-git-helper",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tests/throwaway_git.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tests/throwaway_git.py",
+   "symbol": "governance.yml:instrument-self-tests/throwaway-git-helper --check",
+   "family": "CHECK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tests/throwaway_git.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/seat/train.sh",
+   "symbol": "governance.yml:instrument-self-tests/train-launcher",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/seat/train.sh (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/figure_lint.mjs",
+   "symbol": "governance.yml:instrument-self-tests/figure-check",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/figure_lint.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/figure_census.mjs",
+   "symbol": "governance.yml:instrument-self-tests/figure-census",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/figure_census.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/agreement.mjs",
+   "symbol": "governance.yml:wave-script/Show the agreement lane refusing each shape it exists to refuse",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/agreement.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/audit/fold_ledger.py",
+   "symbol": "governance.yml:wave-script/Check the bug-class register against the rounds in the tree",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/audit/fold_ledger.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tools/policy/friction_issues.mjs",
+   "symbol": "governance.yml:record/filer_selftest",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tools/policy/friction_issues.mjs (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": "tests/ci_ratchet.py",
+   "symbol": "tests.yml:ci-ratchet/Self-test the window fetch and parse",
+   "family": "ST",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_empty_selftest.sh tests/ci_ratchet.py (exit 1: --self-test green with the script emptied)",
+   "beyond_finding": true
+  },
+  {
+   "file": ".claude/hooks/pre-bash.sh",
+   "symbol": "policy_lint cmdHooks",
+   "family": "HOOK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_hook.sh .claude/hooks/pre-bash.sh (exit 1: policy_lint --hooks green with the hook emptied)",
+   "beyond_finding": false,
+   "finding": "D11-s3-03"
+  },
+  {
+   "file": ".claude/hooks/pre-edit.sh",
+   "symbol": "policy_lint cmdHooks",
+   "family": "HOOK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_hook.sh .claude/hooks/pre-edit.sh (exit 1: policy_lint --hooks green with the hook emptied)",
+   "beyond_finding": false,
+   "finding": "D11-s3-03"
+  },
+  {
+   "file": ".claude/hooks/session-start.sh",
+   "symbol": "policy_lint cmdHooks",
+   "family": "HOOK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_hook.sh .claude/hooks/session-start.sh (exit 1: policy_lint --hooks green with the hook emptied)",
+   "beyond_finding": false,
+   "finding": "D11-s3-03"
+  },
+  {
+   "file": ".claude/hooks/stop-selfcheck.sh",
+   "symbol": "policy_lint cmdHooks",
+   "family": "HOOK",
+   "probe": "bash dev/audit/rounds/round11/D14/sweep-I1/probe_hook.sh .claude/hooks/stop-selfcheck.sh (exit 1: policy_lint --hooks green with the hook emptied)",
+   "beyond_finding": false,
+   "finding": "D11-s3-03"
+  },
+  {
+   "file": "tests/config_flow_steps.py",
+   "symbol": "error-recovery coverage",
+   "family": "JUDGED",
+   "probe": "the finding's own harness (D10-s1-05, register row)",
+   "beyond_finding": false,
+   "finding": "D10-s1-05"
+  },
+  {
+   "file": "dev/audit/harnesses/claim_merge_mutants.py",
+   "symbol": "main: baseline copy lacks custom_components",
+   "family": "JUDGED",
+   "probe": "the finding's own harness (D11-s1-04, register row)",
+   "beyond_finding": false,
+   "finding": "D11-s1-04"
+  },
+  {
+   "file": "tools/pr/prepr.sh",
+   "symbol": "step 'no version edit' (self-test blind)",
+   "family": "JUDGED",
+   "probe": "the finding's own harness (D11-s3-04, register row)",
+   "beyond_finding": false,
+   "finding": "D11-s3-04"
+  },
+  {
+   "file": "tests (memory pass)",
+   "symbol": "_memory_probe_labels",
+   "family": "JUDGED",
+   "probe": "the finding's own harness (D9-s3-01, register row)",
+   "beyond_finding": false,
+   "finding": "D9-s3-01"
+  },
+  {
+   "file": "tests (stress gate)",
+   "symbol": "per-cycle coordinator cost unmeasured",
+   "family": "JUDGED",
+   "probe": "the finding's own harness (D9-s3-02, register row)",
+   "beyond_finding": false,
+   "finding": "D9-s3-02"
+  }
+ ]
+}

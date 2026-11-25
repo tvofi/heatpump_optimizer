@@ -1,0 +1,21 @@
+2026-11-17T12:53:10Z RUN pre queued=1260 workers=3
+2026-11-17T13:05:24Z PRE SURVIVED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe_duty GUARD_OFF 1bf142a4 L419 by=- ran=8 skip=6 wall=734.7s
+2026-11-17T13:05:31Z PRE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_plain_types GUARD_OFF 710abac2 L422 by=- ran=9 skip=5 wall=741.5s
+2026-11-17T13:11:01Z PRE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:_dhw_windows_at GUARD_OFF b551ee16 L75 by=- ran=12 skip=4 wall=1071.6s
+2026-11-17T13:14:06Z PRE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe GUARD_OFF 336a6ca0 L183 by=- ran=8 skip=7 wall=521.4s
+2026-11-17T13:18:21Z PRE KILLED custom_components/heatpump_optimizer/grid_fee.py:FeeRule.applies GUARD_OFF f7aadc6c L164 by=tests/env_drift.py ran=9 skip=6 wall=769.9s
+2026-11-17T13:18:26Z PRE KILLED custom_components/heatpump_optimizer/process_worker.py:_bootstrap GUARD_OFF e20ed60e L28 by=tests/deployment_shape.py ran=2 skip=0 wall=4.6s
+2026-11-17T13:23:48Z PRE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF ed095cbf L198 by=- ran=10 skip=4 wall=582.3s
+2026-11-17T13:25:05Z PRE SURVIVED custom_components/heatpump_optimizer/optimizer.py:_holiday_flags_for GUARD_OFF dacd4cc6 L773 by=- ran=12 skip=4 wall=844.2s
+2026-11-17T13:28:00Z PRE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_tau_fast GUARD_OFF 72abb7dd L610 by=- ran=8 skip=6 wall=574.8s
+2026-11-17T13:38:31Z PRE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state GUARD_OFF 23752846 L539 by=- ran=9 skip=5 wall=630.3s
+2026-11-17T13:39:49Z PRE SURVIVED custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0 L64 by=- ran=12 skip=4 wall=961.1s
+2026-11-17T13:41:24Z PRE SURVIVED custom_components/heatpump_optimizer/thermal_model.py:_holiday_dhw_windows GUARD_OFF 4893b0a8 L169 by=- ran=14 skip=2 wall=978.8s
+2026-11-17T13:47:14Z PRE KILLED custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 532b15a0 L546 by=tests/finite_boundary.py ran=8 skip=6 wall=523.5s
+2026-11-17T13:53:41Z PRE SURVIVED custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planning_prices GUARD_OFF 54e620e3 L473 by=- ran=9 skip=7 wall=832.0s
+2026-11-17T13:56:21Z PRE SURVIVED custom_components/heatpump_optimizer/flow_lift.py:<module> CONST 17af2c12 L47 by=- ran=16 skip=0 wall=897.2s
+2026-11-17T14:00:54Z PRE SURVIVED custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF f8c4994a L173 by=- ran=9 skip=6 wall=819.5s
+2026-11-17T14:07:19Z PRE SURVIVED custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF 3dbd4039 L201 by=- ran=10 skip=4 wall=657.9s
+2026-11-17T14:12:35Z PRE KILLED custom_components/heatpump_optimizer/optimizer.py:_dhw_resolved_publish GUARD_OFF c45a47f9 L814 by=tests/env_drift.py ran=12 skip=4 wall=1133.8s
+2026-11-17T14:19:20Z PRE SURVIVED custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability GUARD_OFF f4619cef L677 by=- ran=8 skip=6 wall=1106.6s
+2026-11-17T14:52:03Z PRE SURVIVED custom_components/heatpump_optimizer/coordinator.py:_best_effort_cycle_step GUARD_OFF d02b7542 L687 by=- ran=9 skip=5 wall=1962.8s

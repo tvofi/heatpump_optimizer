@@ -49,7 +49,8 @@ from pathlib import Path
 
 # The playbook's order (dev/audit/README.md): round start holds the pickup,
 # the start evaluation and the finder-critical groups; fix waves are the
-# roster's group lanes (playbook phases 5 to 10).
+# roster's group lanes (playbook phases 5 to 10); instrument triage is phase
+# 12b, opening about 24 h before closeout, ahead of closure.
 PHASES = (
     ("round-start", "Round start"),
     ("finders", "Finders"),
@@ -57,6 +58,7 @@ PHASES = (
     ("plan", "Architect plan"),
     ("fix-waves", "Fix waves"),
     ("stamps", "Stamps"),
+    ("instrument-triage", "Instrument prototype and proposal triage"),
     ("closure", "Closure"),
 )
 STATUSES = {"not-started": "not started", "running": "running",
@@ -363,7 +365,8 @@ def shown(path: str | Path, repo: str | Path) -> str:
 
 def fixture() -> dict:
     """A round with each status on a phase and on an item, a forecast with
-    its basis, and two phases (fix waves, closure) the file does not list."""
+    its basis, and three phases (fix waves, instrument triage, closure) the file
+    does not list."""
     return {"round": 9, "as_of": "2026-01-05T12:00:00Z", "phases": [
         {"phase": "round-start", "status": "done", "started": "2026-01-01T00:00:00Z",
          "finished": "2026-01-02T00:00:00Z", "entry": "ENTRY-RS", "exit": "EXIT-RS",
@@ -399,6 +402,11 @@ def fixture_checks(check) -> None:
     refuses(lambda d: d["phases"].reverse(), "out of the playbook's order")
     refuses(lambda d: d["phases"].insert(1, dict(ph(d, 0))), "out of the playbook's order")
     refuses(lambda d: ph(d, 0).update(phase="intake"), "unknown phase")
+    check("phases: instrument triage sits after stamps and before closure, in the playbook's order",
+          [p for p, _ in PHASES][-3:] == ["stamps", "instrument-triage", "closure"], PHASES)
+    refuses(lambda d: d["phases"].extend([{"phase": "closure", "status": "not-started"},
+                                          {"phase": "instrument-triage", "status": "not-started"}]),
+            "out of the playbook's order")
     refuses(lambda d: ph(d, 2).pop("waiting_on"), "waiting on nothing named")
     refuses(lambda d: ph(d, 1)["items"][2].pop("waiting_on"), "waiting on nothing named")
     refuses(lambda d: ph(d, 4).update(started="2026-01-07T00:00:00Z"), "a date on a not-started phase")
@@ -409,8 +417,8 @@ def fixture_checks(check) -> None:
     rows = rows_of(doc)
     check("phases: every playbook phase is a row, in order; an unlisted one is not started",
           [r["phase"] for r in rows] == [p for p, _ in PHASES]
-          and [r["status"] for r in rows if r["phase"] in ("fix-waves", "closure")]
-          == ["not-started"] * 2, [(r["phase"], r["status"]) for r in rows])
+          and [r["status"] for r in rows if r["phase"] in ("fix-waves", "instrument-triage", "closure")]
+          == ["not-started"] * 3, [(r["phase"], r["status"]) for r in rows])
     s = section(doc, [], "dev/programme/round9/phases.json")
     tr = {m.group(1): m.group(0) for m in re.finditer(r'<tr data-phase="([a-z-]+)".*?</tr>', s, re.S)}
     check("phases: the section draws a row per phase in the playbook's order",

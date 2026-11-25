@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:<module> CONST 5e618390",
+  "killed_by": "tests/features.py",
+  "old": "FLAT_IQR = 0.25",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`FLAT_IQR = 0.5`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

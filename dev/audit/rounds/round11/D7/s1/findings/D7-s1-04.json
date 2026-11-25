@@ -1,0 +1,45 @@
+{
+  "id": "D7-s1-04",
+  "scope": "D7-s1",
+  "step": "D7.M1",
+  "title": "No ratchet row holds coordinator.py's size outside the class: 2,980 lines unpriced, 1,423 more move nothing",
+  "severity": "low",
+  "claim": "coordinator.py is 11,414 lines, of which the ratchet prices 8,434 (the class's 7,877 and 557 lines of helpers handed the coordinator); the other 2,980 lines sit in no row, and ten more live 140-line module-level functions there (1,423 lines) leave all 18 rows of tests/structure.py at their budget.",
+  "mechanism": "max_class_loc and class_excess_loc measure class spans (the coordinator's with the coordinator.py helpers handed it); the function rows price only a function crossing 150 lines or CC 15. A module-level function of coordinator.py that is not handed the coordinator, and stays under both thresholds, is in no row, so the file the owner's brief names can keep growing beside its class while the class rows fall: 135 module-level functions hold 2,413 of its lines today, 557 of them charged.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py",
+    "value": 2980,
+    "unit": "coordinator_py_unpriced_loc, lines (coordinator_py_loc=11414, ratchet_max_class_loc=7877, coordinator_helper_loc=557)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "darwin arm64, 8 cores (box B5)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out in progress, load1 150 to 290 across the arms; static line counts",
+    "tolerance": "exact",
+    "load1": 150.27,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tests/structure.py:measure",
+  "perturbation": {
+    "change": "--perturb module-growth: in memory, ten live 140-line functions (CC 1, none handed the coordinator, each calling the next, the first read by a module-level assert) are appended to coordinator.py. coordinator_py_loc rises 11414 -> 12837 and coordinator_py_unpriced_loc 2980 -> 4403 while ratchet_rows_off_budget stays 0.",
+    "expected_direction": "up",
+    "observed_value": 4403
+  },
+  "metric_definition": "Lines of coordinator.py outside the coordinator class span and outside structure.py's helper_loc. Key: file line count less the two spans measure() itself reports.",
+  "phenomenon_property": "Growth of a module is priced wherever in the module it lands: lines added to coordinator.py as module-level functions move a structural row, as the same lines added to a class do.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py | grep '^FILE'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s1/m1_ratchet_census.py --perturb class-growth",
+    "value": 18807,
+    "note": "the same ten bodies added as methods of optimizer.py's HeatPumpOptimizer move class_excess_loc 17407 -> 18807, exactly their 1,400 lines: the ratchet prices the lines in a class and not in a module"
+  },
+  "reproduction_steps": [
+    "Run the harness: RESULT coordinator_py_loc=11414, coordinator_helper_loc=557, coordinator_py_unpriced_loc=2980, modules_over_2000_loc=8.",
+    "Run it with --perturb module-growth: coordinator_py_loc=12837 and RESULT ratchet_rows_off_budget=0.",
+    "Run it with --perturb class-growth: ratchet_rows_off_budget=2 (class_excess_loc 17407 -> 18807, dead_methods 0 -> 10)."
+  ],
+  "proposed_fix_scope": "tests/structure.py: one row over module spans built the way class_excess_loc is built over class spans (each module's lines past a stated limit, summed), recorded at today's value so it only falls; eight modules are over 2,000 lines today. The limit is the owner's to choose; a threshold count would repeat the crossing blindness the docstring argues against for functions.",
+  "files": ["tests/structure.py", "tests/structure_budgets.json", "custom_components/heatpump_optimizer/coordinator.py"],
+  "stop_rule_class": "hygiene",
+  "class_guess": "N-structure-blind"
+}

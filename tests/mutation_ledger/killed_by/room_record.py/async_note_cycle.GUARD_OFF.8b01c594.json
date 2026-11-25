@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_record.py:async_note_cycle GUARD_OFF 8b01c594",
+  "killed_by": "tests/features.py",
+  "old": "    if rec.unsaved >= SAVE_EVERY_ROWS:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

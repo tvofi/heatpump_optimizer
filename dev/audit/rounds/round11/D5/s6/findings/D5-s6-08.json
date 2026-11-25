@@ -1,0 +1,52 @@
+{
+ "id": "D5-s6-08",
+ "scope": "D5-s6",
+ "step": "D5.M4",
+ "title": "404 comment sentences over 40 words in 99 files of the seat's cells",
+ "severity": "low",
+ "claim": "Run over all 3781 D5 comment units of the seat's cells, 404 prose sentences (usage/code lines excluded, text_ledger's own sentence splitter) exceed criteria C5's 40-word bound, in 99 of 258 files; the longest is 166 words (tools/replay/export.py's module docstring).",
+ "mechanism": "Long WHY paragraphs are written as one sentence chained by colons, semicolons and dashes; nothing checks length. Fails D5-criteria C5.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "harness_path": "dev/audit/rounds/round11/D5/s6/m4_ledger.py",
+  "value": 404,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 container (shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.59,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of (the D5 unit enumerator) over the cells' comments",
+ "perturbation": {
+  "change": "m4_ledger.py --c5-split tools/audit/seat/pr_args.sh (that file's units re-broken in memory every 30 words, as a fix would)",
+  "expected_direction": "down",
+  "observed_value": 372
+ },
+ "metric_definition": "Count of sentences over 40 words in D5 comment units of D5-s6's cells (comment markers stripped, indented/command lines dropped, a backtick span one word).",
+ "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C5-len; C5_BY_FILE.tsv",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "see dev/audit/rounds/round11/D5/s6/C5_BY_FILE.tsv (99 files)"
+ ],
+ "proposed_fix_scope": "Sentence splits in the comments only; no code change.",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --out $(mktemp -d) --c5-split tools/audit/seat/pr_args.sh"
+ ],
+ "leave_one_out": {
+  "cells": 99,
+  "min": 1,
+  "max": 35,
+  "drop_most_favourable": 369
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "value": "C2-call=0 C2-cite=0 over the same 3781 units",
+  "note": "the same scan reports zero where the comments are sound; C5 is grouped as one phenomenon, the per-file split is C5_BY_FILE.tsv"
+ }
+}

@@ -1,0 +1,49 @@
+{
+ "id": "D9-s1-03",
+ "scope": "D9-s1",
+ "step": "D9.M1",
+ "title": "User what-ifs queue 3 solves each behind the worker lock: the 3 s limiter has no in-flight guard",
+ "severity": "medium",
+ "claim": "async_simulate(steady=True) -- the simulate_plan service the card's sliders call -- submits 3 full solves per what-if, and whatif.limited_answer refuses only on SIMULATE_MIN_INTERVAL_SECONDS (3 s) since the last start, never while an earlier what-if is still solving, so K nudges 3 s apart start 3K worker solves for drafts the card has already superseded and a scheduled solve submitted behind them waits for all of them (12.4x its solo latency at K=4, quiet).",
+ "mechanism": "coordinator.py async_simulate: limited_answer(held, now) checks held.last_at only; held.last_at is set when a solve starts (#1448), then _await_optimize plus whatif.steady_pair's two _held_solve each take coordinator._PROCESS_LOCK in _run_in_process for one full solve. A what-if costs 3 solves (~6.8 s host here, ~34 s Pi at F=5), far above the 3 s interval, so requests overlap and every one is solved in turn; the card shows only the latest answer.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s1/h_whatif_backlog.py --k 4",
+  "harness_path": "dev/audit/rounds/round11/D9/s1/h_whatif_backlog.py",
+  "value": 12,
+  "unit": "worker jobs (coordinator._run_in_process entries, one full solve each) started by 4 what-ifs 3.05 s apart; 3 per what-if",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B1 container (4 vCPU, shared by three seats), CPython 3.14, OpenBLAS pinned to 1 thread; shipped route: real persistent process worker",
+  "cpu_or_wall": "count",
+  "contention_note": "The job count is contention-immune. Latency was re-taken in a quiet window (load1 0.8, out/wb3.txt): solo scheduled solve 1.50 s; behind K=1 6.04 s (4.0x); behind K=4 18.5 s (12.4x); with the guard 5.90 s (3.9x). One what-if costs about 4.5 s of worker wall on the host, over the 3 s interval even here. Loaded run (load1 6.8, out/wb2.txt): 9.46x. Provisional.",
+  "tolerance": "exact (count); latency ratio provisional",
+  "load1": 0.84,
+  "thread_factor": 1.0,
+  "provisional": false
+ },
+ "instrumented_symbol": "heatpump_optimizer.coordinator:_run_in_process (entries) driven through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_simulate with heatpump_optimizer.whatif:limited_answer as the gate",
+ "perturbation": {
+  "change": "whatif.limited_answer also answers from the held state while another user what-if is in flight (an in-flight guard), in memory",
+  "expected_direction": "down",
+  "observed_value": "worker jobs 12 -> 3 (3 of 4 answers rate-limited); scheduled-solve latency ratio 12.4 -> 3.9 (the K=1 level), quiet"
+ },
+ "metric_definition": "Entries into coordinator._run_in_process (each one solve holding _PROCESS_LOCK) started by K concurrent user what-ifs whose frozen clocks are SIMULATE_MIN_INTERVAL_SECONDS + 0.05 s apart.",
+ "phenomenon_property": "The worker's queue of user what-if solves is bounded by what is in flight, not by a start interval shorter than one what-if's own solve time: at most one user what-if solves at a time, and a superseded draft is not solved.",
+ "seam_rule": "grep -n 'limited_answer\\|SIMULATE_MIN_INTERVAL_SECONDS\\|held.last_at' custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/whatif.py",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s1/h_whatif_backlog.py --k 4",
+  "value": "K=1: 3 jobs, scheduled-solve latency 4.0x solo (one what-if ahead); K=0: solo 1.50 s (quiet)",
+  "note": "jobs scale exactly 3 per admitted what-if (K=1: 3, K=4: 12); with the guard K=4 returns to the K=1 level"
+ },
+ "reproduction_steps": [
+  "Run the command; compare k1.*, k4.* and k4.inflight_guard.* worker_jobs_started and scheduled_solve_latency_over_solo.",
+  "Pi extrapolation (F=5, an assumption): one what-if = 3 solves, ~34 s of worker CPU on a Pi against the 3 s interval; K=4 holds the worker ~160 s ahead of the scheduled solve."
+ ],
+ "proposed_fix_scope": "coordinator.py async_simulate / whatif.limited_answer: an in-flight latch on WhatIfState (answer with the held answer, rate_limited, while a user what-if solves; or cancel-and-replace the queued one); a features.py check that K overlapping what-ifs start 3 solves, not 3K.",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/whatif.py"
+ ],
+ "expected_golden_drift": [],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

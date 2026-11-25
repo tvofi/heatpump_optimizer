@@ -20,6 +20,7 @@ sys.path.insert(0, "custom_components")
 
 from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
 from heatpump_optimizer import boost as boost_mod  # noqa: E402
+from heatpump_optimizer import duty_ledger  # noqa: E402
 from heatpump_optimizer import entity as entity_mod  # noqa: E402
 from heatpump_optimizer import pump_arbiter as arb  # noqa: E402
 from heatpump_optimizer import setpoint_check  # noqa: E402
@@ -808,7 +809,7 @@ def hysteresis_checks() -> None:
 
     import numpy as np
 
-    from heatpump_optimizer import dhw_planner as planner
+    from heatpump_optimizer import dhw_charges as charges
     from heatpump_optimizer import inputs as inputs_mod
     from heatpump_optimizer import thermal_model as tm
 
@@ -866,16 +867,16 @@ def hysteresis_checks() -> None:
     check("null control: with no cycle active a cycle step holds the everyday set-point",
           lambda: tm.dhw_step_target_c(nocyc, True) == 55.0)
     check("each step's start temperature is its own target less the hysteresis, the cycle step the cycle's",
-          lambda: list(planner.dhw_start_temps(cyc, _start_state(4.0), 6, 3)) == [51, 51, 51, 56, 51, 51]
-          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 6, None)) == [51.0] * 6)
+          lambda: list(charges.dhw_start_temps(cyc, _start_state(4.0), 6, 3)) == [51, 51, 51, 56, 51, 51]
+          and list(charges.dhw_start_temps(cyc, _start_state(4.0), 6, None)) == [51.0] * 6)
     check("a cycle on the first step is judged against its own target; one past the horizon moves no step",
-          lambda: list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 0)) == [56, 51, 51]
-          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 3)) == [51, 51, 51]
-          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 2)) == [51, 51, 56])
+          lambda: list(charges.dhw_start_temps(cyc, _start_state(4.0), 3, 0)) == [56, 51, 51]
+          and list(charges.dhw_start_temps(cyc, _start_state(4.0), 3, 3)) == [51, 51, 51]
+          and list(charges.dhw_start_temps(cyc, _start_state(4.0), 3, 2)) == [51, 51, 56])
     check("with no or zero hysteresis no step has a start temperature",
-          lambda: planner.dhw_start_temps(cyc, _start_state(None), 6, 3) is None
-          and planner.dhw_start_temps(cyc, _start_state(0.0), 6, 3) is None
-          and planner.dhw_start_temps(cyc, _start_state(0.0, _step(5)), 6, 3) is None)
+          lambda: charges.dhw_start_temps(cyc, _start_state(None), 6, 3) is None
+          and charges.dhw_start_temps(cyc, _start_state(0.0), 6, 3) is None
+          and charges.dhw_start_temps(cyc, _start_state(0.0, _step(5)), 6, 3) is None)
 
     # 5. One owner of the target: what the arbiter writes.
     check("the arbiter writes dhw_step_target_c: the everyday set-point with no cycle booked",
@@ -936,17 +937,17 @@ def hysteresis_checks() -> None:
     check("precondition: an everyday 58 on a 5 degC step is written 55, its cycle of 62 written 60",
           lambda: arb._dhw_write(five) == 55.0 and arb._dhw_write(five_cycle) == 60.0)
     check("on a stepped entity each step's start temperature is the written target less the hysteresis",
-          lambda: list(planner.dhw_start_temps(stepped, _start_state(4.0, _step(5)), 4, 2))
+          lambda: list(charges.dhw_start_temps(stepped, _start_state(4.0, _step(5)), 4, 2))
           == [arb._dhw_write(five) - 4.0] * 2 + [arb._dhw_write(five_cycle) - 4.0, arb._dhw_write(five) - 4.0]
           == [51.0, 51.0, 56.0, 51.0])
     check("null control: with no set-point entity the same parameters start below 58 and 62 less the hysteresis",
-          lambda: list(planner.dhw_start_temps(stepped, _start_state(4.0), 4, 2)) == [54.0, 54.0, 58.0, 54.0])
+          lambda: list(charges.dhw_start_temps(stepped, _start_state(4.0), 4, 2)) == [54.0, 54.0, 58.0, 54.0])
     check("the ledger's start temperature on the stepped entity is the planner's",
           lambda: arb._dhw_start_below_c(replace(five, state=_start_state(4.0, _step(5)))) == 51.0
           and arb._dhw_start_below_c(replace(five_cycle, state=_start_state(4.0, _step(5)))) == 56.0)
 
     # 6. Which steps the pump starts.
-    startable = planner.startable_steps
+    startable = charges.startable_steps
     check("a step is startable where it opens on a tank below its start temperature or follows a charge under way",
           lambda: list(startable(np.array([0, 0, 1, 0, 0.]), np.array([54, 52, 50, 53, 50.9, 50.]),
                                  np.full(5, 51.0))) == [False, False, True, True, True])
@@ -980,7 +981,7 @@ def hysteresis_checks() -> None:
 
     plan = np.array([1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0])
     kept = plan.copy()
-    drop = planner.drop_unstartable
+    drop = charges.drop_unstartable
     check("a charge begun above its start temperature is dropped whole; the first step and a cooled tank's run are kept",
           lambda: list(drop(plan, np.full(8, 51.0), temps_of)) == [1, 0, 0, 0, 0, 0, 0, 1])
     check("a tank exactly at the start temperature does not start",
@@ -1001,7 +1002,7 @@ def hysteresis_checks() -> None:
 
     marker = np.array([0.0, 1.0])
     check("with no start temperature the repair's own answer stands and no trajectory is read",
-          lambda: planner.place_startable(plan, None, raises, lambda plan: marker) is marker)
+          lambda: charges.place_startable(plan, None, raises, lambda plan: marker) is marker)
     calls, original = [], plan
 
     def stubborn(plan, start_below):
@@ -1009,16 +1010,16 @@ def hysteresis_checks() -> None:
         return original.copy()
 
     check("a repair that keeps re-placing the unstartable plan still leaves a plan with none, in bounded rounds",
-          lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, stubborn))
+          lambda: list(charges.place_startable(plan, np.full(8, 51.0), temps_of, stubborn))
           == list(drop(plan, np.full(8, 51.0), temps_of))
-          and 1 <= len(calls) <= planner.STARTABLE_ROUNDS)
+          and 1 <= len(calls) <= charges.STARTABLE_ROUNDS)
     rounds = []
 
     def counting(plan, start_below):
         rounds.append(1)
         return plan
 
-    planner.place_startable(plan, np.full(8, 51.0), temps_of, counting)
+    charges.place_startable(plan, np.full(8, 51.0), temps_of, counting)
     check("a repair that changes nothing ends the loop: one round to drop, one to see the plan stand",
           lambda: len(rounds) == 2)
     turns = []
@@ -1030,12 +1031,12 @@ def hysteresis_checks() -> None:
         out[4] = float(len(turns) % 2)
         return out
 
-    settled = planner.place_startable(plan, np.full(8, 51.0), temps_of, restless)
+    settled = charges.place_startable(plan, np.full(8, 51.0), temps_of, restless)
     check("a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge",
-          lambda: planner.STARTABLE_ROUNDS == 8 and len(turns) == 8
+          lambda: charges.STARTABLE_ROUNDS == 8 and len(turns) == 8
           and np.array_equal(settled, drop(settled, np.full(8, 51.0), temps_of)))
     check("an identity repair leaves the dropped plan",
-          lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan, start_below: plan))
+          lambda: list(charges.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan, start_below: plan))
           == list(drop(plan, np.full(8, 51.0), temps_of)))
 
     # 8b. The clamp-then-zero step the placement stages share.
@@ -1108,7 +1109,7 @@ def hysteresis_checks() -> None:
            "dhw_mode": False, "start_below": 51.0}
 
     def verdict(tank=52.0, **over):
-        return arb._verdict({**row, "tank": tank, **over}, tank)["verdict"]
+        return duty_ledger.step_verdict({**row, "tank": tank, **over}, tank)["verdict"]
 
     check("an idle hot water step on a tank above the start temperature is not-startable",
           lambda: verdict() == "not-startable")
@@ -1118,12 +1119,16 @@ def hysteresis_checks() -> None:
           lambda: verdict(50.0) == "idle-instead")
     check("an idle hot water step with no start temperature, or a row without the key, is idle-instead",
           lambda: verdict(start_below=None) == "idle-instead"
-          and arb._verdict({k: v for k, v in row.items() if k != "start_below"}, 52.0)["verdict"]
+          and duty_ledger.step_verdict({k: v for k, v in row.items() if k != "start_below"}, 52.0)["verdict"]
           == "idle-instead")
     check("a planned both step idle above the start temperature is idle-instead",
           lambda: verdict(planned="both") == "idle-instead")
     check("a hot water step that ran the space pump on a warm tank is space-instead",
           lambda: verdict(ran=True) == "space-instead")
+    check("with no power meter and no tank rise a planned step is unknown, a both step too",
+          lambda: verdict(measured=False) == "unknown" and verdict(measured=False, planned="both") == "unknown")
+    check("null control: with no power meter a tank rise reads as hot water delivered",
+          lambda: duty_ledger.step_verdict({**row, "measured": False}, 53.0)["verdict"] == "delivered")
 
     def unwritten(**kwargs):
         snap = _hyst_snap(4.0, **kwargs)

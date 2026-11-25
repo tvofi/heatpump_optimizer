@@ -1,13 +1,13 @@
 """Batched reductions whose rows are numpy's own scalar summation order.
 
-One primitive, shared by the solver's batch twins (``optimizer.py``'s cost
-terms since R9 F2.2 and ``tariff.py``'s capacity term since R9 F2.5): a row
+One primitive is shared by the solver's batch twins (``optimizer.py``'s cost
+terms since R9 F2.2, ``tariff.py``'s capacity term since R9 F2.5). A row
 of the batched reduction must be the scalar ``np.sum`` of that row's
 freshly built 1-D array to the bit, on every numpy backend. A reduction
 numpy schedules itself -- ``np.sum(m, axis=1)`` over a batch, or over a row
 VIEW of one -- treats stride and alignment as inputs and picks its path by
-backend (#948: bit-identical on the arm64 seat that wrote it, re-planned
-19 of 51 stress scenarios on CI's x86_64, at the production width only).
+backend. In #948 it was bit-identical on the arm64 seat that wrote it, and
+re-planned 19 of 51 stress scenarios on CI's x86_64, at production width only.
 So the order is reproduced here as explicit column arithmetic instead:
 every addition is one elementwise ``+`` across the batch's column, an exact
 IEEE operation whatever the memory order around it (fixer.md step 15).
@@ -33,8 +33,8 @@ def row_sums(rows: np.ndarray) -> np.ndarray:
     numpy sums a fresh 1-D array pairwise: under ``PAIRWISE_BLOCK`` elements
     as eight interleaved partial sums combined in a fixed tree, above it by
     halving. This runs exactly that order of additions, but each addition is
-    one elementwise ``+`` across the batch's column, so row ``b`` is the
-    scalar ``np.sum`` of ``rows[b]`` to the bit while the interpreter works
+    one elementwise ``+`` across the batch's column. Row ``b`` is then the
+    scalar ``np.sum`` of ``rows[b]`` to the bit, and the interpreter works
     once per column block rather than once per row. Only elementwise ufuncs
     touch the values, and they are exact IEEE operations on every numpy
     backend, whatever the memory order or alignment of ``rows`` -- which is

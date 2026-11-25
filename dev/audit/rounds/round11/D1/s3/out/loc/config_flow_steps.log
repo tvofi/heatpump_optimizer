@@ -1,0 +1,121 @@
+
+=== Initial config flow, walked end to end ===
+
+-- #590 NumberSelector / advanced convention
+  ok   walker refuses a NumberSelector built outside _number
+  ok   walker accepts _number and _widen_to_fit
+  ok   walker refuses _number that omits mode
+  ok   walker refuses description={advanced: True}
+  ok   production config_flow.py holds the #590 convention
+  ok   _number runtime passes min/max and explicit BOX mode with step "any" (#1679: a pinned increment left off-grid defaults unselectable)
+  ok   _number(slider=True) passes its increment as step and explicit SLIDER mode
+
+-- E1: setup, reauth and options share one token mask
+  ok   the three tibber_token surfaces agree on the same mask
+  ok   that shared mask is the password TextSelector
+
+-- user: the same plant twice, a second pump once
+  ok   a valid first screen offers finish-setup-now
+  ok   and carries the plant identity as the flow's unique id
+  ok   the same answers a second time abort as already_configured
+  ok   a second heat pump on the same account proceeds (null control)
+  ok   a flat identity payload is invalid on the grouped setup schema, the nested one is valid
+  ok   a nested user_sensors submit still identifies the plant
+
+-- user: refused and unreachable tokens, required fields
+  ok   a 401 re-shows the first screen with invalid_tibber_token
+  ok   a refused token stores nothing
+  ok   a connect failure shows cannot_connect, not invalid_tibber_token
+  ok   an HTTP 500 is cannot_connect, not invalid_tibber_token
+  ok   a server fault stores nothing
+  ok   an errors payload on HTTP 200 is an invalid token too
+  ok   the first-screen schema requires the weather entity, not the token
+  ok   Tibber without a token is tibber_token_required
+  ok   an entity source without a price sensor is price_entity_required
+  ok   an entity price source proceeds without a Tibber token
+
+-- E2/E3: finish-setup-now shows the overview, then creates
+  ok   the second screen opens the finish-setup menu
+  ok   finish-setup-now shows the setup overview
+  ok   confirming the early overview creates the entry
+  ok   the early entry carries the first two screens and no later page
+
+-- walk 1 (questionnaire): user through create_entry
+  ok   the accepted first screen offers finish-setup-now
+  ok   continuing setup lands on temperature
+  ok   a valid comfort band opens the building menu
+  ok   the band answers are accumulated
+  ok   the questionnaire proceeds to the heat pump extras
+  ok   the answers are stored and the physics derived from them
+  FAIL a fresh questionnaire derives a single-zone model (no zone keys)  [['upper_floor_thermal_mass', 'lower_floor_thermal_mass']]
+  ok   the nameplate numbers proceed to hot water
+  ok   an unparseable window spec is invalid_dhw_windows
+  ok   a window shorter than one planning step is dhw_window_too_short
+  ok   a minimum with no deadband below the setpoint is dhw_min_too_close
+  ok   a valid hot-water page proceeds to weather sensitivity
+  ok   a legionella cycle above the charge limit proceeds with a warning
+  ok   the last questionnaire page shows the setup overview
+  ok   confirming the questionnaire overview creates the entry
+  ok   the entry carries one answer from every page it walked
+
+-- walk 2 (expert): thermal values and zones
+  ok   a modulation floor above the ceiling is min_power_above_max
+  ok   the thermal page refuses the same inverted power pair
+  ok   hand-typed thermal values proceed to the optional zones page
+  ok   zone answers proceed to hot water
+  ok   and the zone keys are accumulated
+  ok   hot water without a legionella cycle proceeds too
+  ok   the expert path shows the setup overview
+  ok   confirming the expert overview creates the entry with the thermal values
+
+-- temperature: every comfort-band contradiction
+  ok   comfort band: min_above_target re-shows the page with exactly that error
+  ok   comfort band: min_above_target stores nothing
+  ok   comfort band: max_below_target re-shows the page with exactly that error
+  ok   comfort band: max_below_target stores nothing
+  ok   comfort band: night_above_day re-shows the page with exactly that error
+  ok   comfort band: night_above_day stores nothing
+  ok   comfort band: day_window_empty re-shows the page with exactly that error
+  ok   comfort band: day_window_empty stores nothing
+  ok   comfort band: comfort_outside_band (day) re-shows the page with exactly that error
+  ok   comfort band: comfort_outside_band (day) stores nothing
+  ok   comfort band: comfort_outside_band (night) re-shows the page with exactly that error
+  ok   comfort band: comfort_outside_band (night) stores nothing
+
+-- reauth: refused, unreachable, then fixed
+  ok   the reauth flow opens on a one-field confirm form
+  ok   the refused old token is invalid_tibber_token, not a network error
+  ok   an unreachable Tibber is cannot_connect on the confirm form too
+  ok   a new token is written through, the entry reloads, reauth_successful
+  ok   the new token re-derives the entry's unique id (D10-s1-01)
+
+-- options: the two menus
+  ok   the top menu offers the revisited pages plus Quick setup and Advanced, in order
+  ok   the advanced menu lists the set-once pages, in order
+  ok   the pre-fill entry is labelled for any heat pump device, not only Modbus
+  ok   the pre-fill page sits on the first menu, off the advanced one
+
+-- options walk: six top pages, every save through async_update_entry
+  ok   the setup overview renders the configured system as text
+  ok   the setup overview is written in the install's language (Swedish hass)
+  ok   leaving the overview returns to the menu and saves nothing
+  ok   a valid comfort page saves and returns to the top menu
+  ok   a valid hot-water page saves and warns about the legionella pair
+  ok   the DHW set-point entity round-trips on the hot_water page
+  ok   clearing the DHW set-point entity writes None
+  ok   cleared entity slots on split pages are written back as None
+  ok   the tuning page saves and returns to the top menu
+  FAIL the grid page saves, converting the window dropdown to minutes  [window=None months=None]
+  ok   the away page no longer offers helper fields
+  ok   the away page saves temperatures and keeps an optional person
+  FAIL five saved top pages accumulate on the entry, not replace each other  [missing ['peak_tariff_months'] updated=7]
+  FAIL 'close' merges this page into every page saved before it  [create_entry keys=34 after_save_persisted=False]
+
+-- options: the advanced pages
+  ok   a changed but refused token re-shows the entities page as invalid_tibber_token
+  ok   an unreachable Tibber is cannot_connect on the entities page too
+STATUS aborted: KeyError: 'tibber_token'
+RESULT fired=16 handlers
+RESULT load1=137.94
+RESULT thread_factor=1.0 (no timing RESULT; not measured)
+RESULT swapins=0

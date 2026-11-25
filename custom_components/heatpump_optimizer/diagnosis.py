@@ -2,9 +2,9 @@
 
 The accuracy tracker says HOW WRONG the last interval's prediction was; this
 module says WHY. It re-runs the interval through the same thermal model the
-plan used, swapping one realised input at a time into the forecast set —
+plan used, swapping one realised input at a time into the forecast set:
 realised outdoor for forecast outdoor, measured power for commanded power,
-and so on — and charges each swap with the temperature shift it alone
+and so on. Each swap is charged with the temperature shift it alone
 causes. What no swap explains is the model's own residual, printed as such:
 "unexplained" shrinking toward zero is the model earning trust, and a large
 unexplained term is a bug report aimed at exactly the right module.
@@ -17,7 +17,7 @@ so the attribution always accounts for the whole residual.
 
 One structural honesty note: in the single-zone model this step's
 electrical power heats the SLAB, and the room only sees the slab a step
-later — so the power swap's room contribution is genuinely ~0 there, and a
+later. So the power swap's room contribution is genuinely ~0 there, and a
 power shortfall shows up under "unexplained" until the following interval.
 That is the model's answer, not a gap in the attribution: two-zone
 installs (where power reaches the radiator zone within the step) see the

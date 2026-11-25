@@ -106,10 +106,10 @@ house is below the plan's room temperature for the step. A house at or
 above it needs no space heat, so the lease does not hand the pump's own
 space thermostat a warm house (tvofi, v6.6.12). A stale or
 missing plan, comfort, an experiment and the end of the lease all get
-the baseline row above, and so does unloading while the optimizer is on,
-the space set-point apart. A boost adds its duty to the plan step's (Boost Space Heating alone is
+the baseline row above, and so do turning the optimizer off and unloading,
+the space set-point apart (:func:`_release_row`). A boost adds its duty to the plan step's (Boost Space Heating alone is
 space only, DHW boost alone hot water only), and the global boost mode is
-both (:func:`_planned_duty`). Turning it off writes nothing but the restore.
+both (:func:`_planned_duty`).
 
 **Off restores the space set-point** (tvofi, 2026-11-07, "Arbiter too",
 retracting 2026-09-26's "off writes nothing" for this slot). Before its first
@@ -121,8 +121,15 @@ last write is never captured: the baseline row's own target is, and the write
 is sent (:func:`_arm_space`). What a person sets while
 the optimizer is off is captured at the next arm; one set between writes is
 adopted as the baseline (:func:`_edited`), bounded to the entity's own
-range, and, while active, still written over. The mode, the hot-water set-point and the silent switch are not
-restored.
+range, and, while active, still written over.
+
+**Off and unload hand everything back** (D16 owner ruling, tvofi,
+2026-11-15: each written entity is returned to its baseline once; ADR-004).
+The power switch arms :data:`SUPPLY` before an off write and is restored to
+on, on a stale plan too; the mode, the hot-water set-point and the silent
+switch arm :data:`ROW` before a write and are restored by
+:func:`_release_row`, the baseline row with the cycle flags cleared. The
+switch registers first: the row is not written while it reads off.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
 off) re-derives the step, since the solve runs every 30 minutes and a plan
@@ -132,13 +139,8 @@ cycle's first switch write whatever the option says (:func:`supply_tick`).
 **Observe keeps a ledger**, in observe and in control: per 15-minute step,
 the planned duty against what the pump did, read from what the integration
 already reads -- the measured electrical draw (running or not), the mode
-select (DHW only) and the tank temperature (a rise of :data:`TANK_RISE_C`
-over the step is hot water). Each step is ``delivered``,
-``space-instead``, ``dhw-instead``, ``idle-instead``, ``not-startable`` (a
-hot-water step left idle on a tank at or above the pump's own start
-temperature, the step's target less ``dhw_hysteresis_entity``), ``unknown``
-(no power meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
-reads as hot water; a big draw can hide a tank rise. The last
+select (DHW only) and the tank temperature, closed into one verdict per
+step by :mod:`duty_ledger`. The last
 :func:`log_steps` steps and their counts are in the diagnostics; the ledger
 is not persisted. It is what decides whether control is worth turning on:
 ``delivered`` over the other verdicts is how often the pump already does
@@ -147,14 +149,13 @@ what the plan wanted.
 from __future__ import annotations
 
 import asyncio
-import bisect
 import logging
 import math
 from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta, timezone
-from typing import Any, TypeGuard, cast
+from datetime import datetime, timedelta
+from typing import Any, NamedTuple, cast
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -165,7 +166,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, duty_switch, issues, off_restore, pump_mode, quiet_windows
+from . import boost, draw_range, duty_ledger, duty_switch, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -199,10 +200,11 @@ from .inputs import (
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
-from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
+from .plan_step import PLAN_STEP_MINUTES, plan_step_index, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
+from .sysid import KIND_PROBE
 from .thermal_model import (
     configured_flow_heat_c,
     dhw_start_below_c,
@@ -255,7 +257,6 @@ ISSUE_MANUAL = "pump_manual_change"
 ISSUE_IGNORED = "pump_write_ignored"
 #: How long an ignored write waits before it is sent again.
 RETRY_MINUTES = 5.0
-TANK_RISE_C = 0.5
 _STORE_VERSION = 1
 
 
@@ -306,6 +307,20 @@ FEEDBACK_STOP_MARGIN_K = 0.2
 #: Past the gate by any amount the entity's step rounding does not absorb,
 #: so the loop's lowest write is the gate plus one entity step (I2).
 FEEDBACK_GATE_CLEAR_K = 0.01
+#: Where a pass's space write came from (:func:`pass_origin`, the one place
+#: it is decided), the origin column of ``draw_range``'s map rows. The values
+#: are the plan's level mapped open-loop; the feedback loop's start-hold
+#: (today's target) and its moved target; a boost's ceiling; the gate of a
+#: step that does not heat; the baseline's hold; the experiment's fit or
+#: ceiling probe.
+ORIGIN_PLAN = "plan"
+ORIGIN_FEEDBACK_START = "feedback_start"
+ORIGIN_FEEDBACK = "feedback"
+ORIGIN_BOOST = "boost"
+ORIGIN_GATE = "gate"
+ORIGIN_HOLD = "hold"
+ORIGIN_FIT = "fit"
+ORIGIN_PROBE = "probe"
 
 
 @dataclass(frozen=True)
@@ -383,6 +398,8 @@ class ArbiterState:
     supply_held: bool = False
     #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
     held_until: datetime | None = None
+    #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
+    last_pass: draw_range.PassRecord | None = None
 
 
 @dataclass(frozen=True)
@@ -412,6 +429,11 @@ class ArbiterInputs:
     #: means is ``freq_control.defrost_interval``'s, and ``None`` is no flag
     #: or no evidence.
     defrosting: bool | None = None
+    #: The config entry, the key every off restore is armed on (:mod:`off_restore`).
+    entry: Any = None
+    #: The running-draw window each pass record is handed to
+    #: (``draw_range.note_pass``); ``None`` keeps none.
+    draw: Any = None
 
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
@@ -527,7 +549,7 @@ def step_duty(result: Any, now: datetime) -> str | None:
     the loop, so the harm was the channel and the second piece of state that
     kept it clean, not a live race.
     """
-    i = _step_index(result, now)
+    i = plan_step_index(result, now)
     if i is None:
         return None
     space = list(result.power_schedule or [])
@@ -538,19 +560,6 @@ def step_duty(result: Any, now: datetime) -> str | None:
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
         (s_on, d_on), "idle"
     )
-
-
-def _step_index(result: Any, now: datetime) -> int | None:
-    """The index of the plan step covering ``now``, or ``None`` outside the plan.
-
-    A step covers [stamp, stamp + one plan step): the last one ends where the
-    next would start, the same half-open rule bisect gives every other step.
-    """
-    stamps = list(getattr(result, "timestamps", None) or [])
-    i = bisect.bisect_right(stamps, now) - 1
-    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] >= timedelta(minutes=PLAN_STEP_MINUTES)):
-        return None
-    return i
 
 
 def own(coord: Any, signals: Any) -> Any:
@@ -611,11 +620,10 @@ def _grid(inp: ArbiterInputs, slot: str) -> SetpointGrid | None:
 def _planned_room(
     result: Any, now: datetime, attr: str = "optimal_setpoints"
 ) -> float | None:
-    """The plan series ``attr`` for the step covering ``now``."""
-    stamps = list(getattr(result, "timestamps", None) or [])
-    i = bisect.bisect_right(stamps, now) - 1
+    """The plan series ``attr`` for the step covering ``now``, ``None`` outside the plan."""
+    i = plan_step_index(result, now)
     points = list(getattr(result, attr, None) or [])
-    return points[i] if 0 <= i < len(points) else None
+    return points[i] if i is not None and i < len(points) else None
 
 
 def _space_target(
@@ -944,20 +952,14 @@ def _flow_target(
     where that is higher.
     """
     if duty in ("space", "both"):
-        p_min, p_max = _band_kw(inp)
-        boost_c = _boost_ceiling_c(inp) if boosted else None
-        heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
-        floor_c = _or_hold(modulation_floor_flow_c(
-            _flow_inlet_c(inp), _gate_c(inp),
-            start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
-        ), inp.config)
+        m = _map_inputs(inp, now, boosted)
         return _bounded(
             inp,
             "space_setpoint",
-            flow_setpoint_for_level(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c),
+            flow_setpoint_for_level(m.level_kw, m.low_kw, m.high_kw, m.heat_c, m.floor_c),
             _gate_floor_c(inp.config),
-            lo=min(floor_c, heat_c),
-            hi=heat_c,
+            lo=min(m.floor_c, m.heat_c),
+            hi=m.heat_c,
         )
     if duty is not None:
         return _gate_c(inp)
@@ -972,6 +974,31 @@ def _flow_target(
     capped = curve is not None or _return_unit(inp.config)
     hold = min(target, ceiling) if capped else target
     return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
+
+
+class MapInputs(NamedTuple):
+    """What a heating step's level is mapped on (:func:`_flow_target`)."""
+
+    level_kw: float | None
+    low_kw: Any
+    high_kw: Any
+    heat_c: float
+    floor_c: float
+    #: The heat ceiling is a live boost's (:func:`_boost_ceiling_c`).
+    boost: bool
+
+
+def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool) -> MapInputs:
+    """The level, band, heat ceiling and floor a heating step maps, read once
+    for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`)."""
+    p_min, p_max = _band_kw(inp)
+    boost_c = _boost_ceiling_c(inp) if boosted else None
+    heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
+    floor_c = _or_hold(modulation_floor_flow_c(
+        _flow_inlet_c(inp), _gate_c(inp),
+        start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
+    ), inp.config)
+    return MapInputs(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c, boost_c is not None)
 
 
 def _feedback_on(inp: ArbiterInputs, duty: str | None, now: datetime, boosts: Any) -> bool:
@@ -1182,37 +1209,6 @@ def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: dat
     return True
 
 
-def _silent_rows(spec: Any) -> TypeGuard[str]:
-    """Whether ``spec`` names a silent window the week can reach.
-
-    The same ``step_actions`` the solve uses, over seven days from a Monday,
-    so a weekday token and an overnight window are rows and an empty or
-    unreadable spec is not. No rows means the switch is never written.
-    True only for a ``str``, which is what lets the caller pass it to
-    :func:`_inside_silent`.
-    """
-    if not isinstance(spec, str) or not spec.strip():
-        return False
-    monday = datetime(2026, 1, 5, tzinfo=timezone.utc)
-    actions = quiet_windows.step_actions(
-        monday, 7 * 24 * 60 // PLAN_STEP_MINUTES, PLAN_STEP_HOURS, spec, None,
-    )
-    return actions is not None
-
-
-def _inside_silent(silent_spec: str, off_spec: Any, now: datetime) -> bool:
-    """Whether the step covering ``now`` is silent, off winning an overlap.
-
-    The same ``step_actions`` the solve uses, so a hand-edited store whose
-    off row overlaps a silent row holds the switch off: that step is idle,
-    not a silent one.
-    """
-    actions = quiet_windows.step_actions(
-        plan_step_start(now), 1, PLAN_STEP_HOURS, silent_spec, off_spec,
-    )
-    return actions is not None and int(actions[0]) == quiet_windows.ACTION_SILENT
-
-
 def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None:
     """On inside a silent window, off outside; ``None`` when the slot is not ours.
 
@@ -1224,14 +1220,14 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
         return None
     cfg = EntryConfig.from_mapping(inp.config)
     spec = cfg.quiet_silent_windows
-    if not _silent_rows(spec):
+    if not quiet_windows.silent_rows(spec):
         return None
     if inp.mode == MODE_BOOST:
         return False
     held = boost.held_for(coord)
     if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):
         return False
-    return _inside_silent(spec, cfg.quiet_off_windows, now)
+    return quiet_windows.inside_silent(spec, cfg.quiet_off_windows, now)
 
 
 def _dhw_write(inp: ArbiterInputs) -> float | None:
@@ -1300,10 +1296,7 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    # The boost fact is read for a water set-point only: an indoor one maps no
-    # level, and a caller may hand no coordinator for it.
-    space = _space_target(inp, result, now, duty, boosted=_flow_unit(inp.config) and (
-        inp.mode == MODE_BOOST or boost.held_for(coord).active(boost.CHANNEL_SPACE, now)))
+    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
     if _flow_unit(inp.config):
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
@@ -1311,6 +1304,59 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
         return PumpCommand(mode, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
     return PumpCommand(mode, dhw, space, silent)
+
+
+def _boosted(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
+    """A space boost or the global boost mode is live on a water set-point.
+
+    Read for a water set-point only: an indoor one maps no level, and a
+    caller may hand no coordinator for it.
+    """
+    return _flow_unit(inp.config) and (
+        inp.mode == MODE_BOOST or boost.held_for(coord).active(boost.CHANNEL_SPACE, now))
+
+
+def pass_origin(inp: ArbiterInputs, duty: str | None, boost_on: bool, run: FeedbackRun | None, now: datetime) -> str:
+    """Where this pass's space write came from: one of the ``ORIGIN_*``.
+
+    ``duty`` is the duty served, ``boost_on`` whether a boost's ceiling was
+    mapped (:attr:`MapInputs.boost`), ``run`` the feedback loop's run after
+    this pass's :func:`_feedback`. The experiment's action names its kind.
+    """
+    action = inp.action or {}
+    if action.get("mode") == "system_identification":
+        return ORIGIN_PROBE if action.get("kind") == KIND_PROBE else ORIGIN_FIT
+    if duty not in ("space", "both"):
+        return ORIGIN_HOLD if duty is None else ORIGIN_GATE
+    if boost_on:
+        return ORIGIN_BOOST
+    if run is None or not run.running:
+        return ORIGIN_PLAN
+    held_start = utc_elapsed_seconds(now, run.start) < FEEDBACK_START_HOLD.total_seconds()
+    return ORIGIN_FEEDBACK_START if held_start else ORIGIN_FEEDBACK
+
+
+def _note_pass(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> None:
+    """Record this Control pass on ``held`` and hand it to the window ``inp.draw``."""
+    held.last_pass = _pass_record(held, inp, duty, boosted, now)
+    draw_range.note_pass(inp.draw, held.last_pass)
+
+
+def _pass_record(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> draw_range.PassRecord | None:
+    """This Control pass as ``draw_range`` keeps it, or ``None`` where no
+    flow set-point is held (:func:`_flow_command`). ``boosted``: :func:`_boosted`."""
+    command = _flow_command(inp, held)
+    if command is None:
+        return None
+    m = _map_inputs(inp, now, boosted)
+    return draw_range.PassRecord(
+        now, command.written_c, command.gate_c, command.ceiling_c, m.floor_c,
+        m.level_kw, finite_float(m.low_kw), finite_float(m.high_kw), m.heat_c,
+        _flow_inlet_c(inp), finite_float(inp.measured_power_kw),
+        finite_float(getattr(inp.state, "outdoor_temperature", None)), duty,
+        getattr(_slot_state(inp, "mode"), "state", None), defrost_interval(inp.defrosting),
+        pass_origin(inp, duty, m.boost, held.feedback, now),
+    )
 
 
 def _disinfecting(inp: ArbiterInputs, duty: str | None) -> str | None:
@@ -1590,7 +1636,12 @@ def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | 
 
 async def _write(
     coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime, command: PumpCommand | None = None,
-) -> None:
+    *, release: bool = False,
+) -> bool:
+    """Send one slot's value where it differs; False while a differing write is still owed.
+
+    ``release`` is the off restore's own write (:func:`_release_row`): it arms nothing.
+    """
     held = state_for(coord)
     entity = _slot_entity(inp.config, slot)
     state = inp.hass.states.get(entity) if entity else None
@@ -1598,9 +1649,9 @@ async def _write(
     if value is None or entity is None or state is None or (
         recorded and not _differs(slot, recorded[0], value)
     ):
-        return
-    if await _held_back(inp, coord.entry, held, slot, entity, now):
-        return
+        return True
+    if await _held_back(inp, coord.entry, held, slot, entity, now, release):
+        return slot not in held.retry
     domain = entity.split(".", 1)[0]
     service = _service(slot, state, value)
     try:
@@ -1612,10 +1663,11 @@ async def _write(
             )
     except Exception as err:  # noqa: BLE001 - retried on the next tick
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
-        return
+        return False
     held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
     _report_write(duty_switch.record_for(coord), boost.held_for(coord), held, inp, slot, recorded, now, command)
     await _persist(coord)
+    return True
 
 
 def _reads_below(reading: Any, setpoint: Any) -> bool:
@@ -1695,14 +1747,17 @@ async def _adopt(inp: ArbiterInputs, entry: Any, held: ArbiterState, now: dateti
 
 async def _held_back(
     inp: ArbiterInputs, entry: Any, held: ArbiterState, slot: str, entity: str, now: datetime,
+    release: bool = False,
 ) -> bool:
     """A write that differs but is not sent this pass: its retry is not due, the
-    mode slot is read-only (D12-s2-02), or the space restore is not armed."""
+    mode slot is read-only (D12-s2-02), or its off restore is not armed."""
     if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
         return True
     if slot == "mode" and entity.split(".", 1)[0] not in _MODE_DOMAINS:
         return True
-    return slot == "space_setpoint" and not await _arm_space(inp, entry, held, entity, now)
+    if slot == "space_setpoint":
+        return not await _arm_space(inp, entry, held, entity, now)
+    return not (release or await off_restore.async_arm(inp.hass, entry, inp.config, ROW))
 
 
 async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity: str, now: datetime) -> bool:
@@ -1732,9 +1787,14 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
     return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER, baseline_c=baseline)
 
 
-async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
+async def _command(
+    coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime, *, release: bool = False,
+) -> bool:
+    """Write the row's slots; False while one of them is still owed."""
+    done = True
     for slot in _SLOTS:
-        await _write(coord, inp, slot, getattr(command, slot), now, command)
+        done = await _write(coord, inp, slot, getattr(command, slot), now, command, release=release) and done
+    return done
 
 
 async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
@@ -1786,7 +1846,7 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
     row = held.step
     if row is None or row["start"] != start:
         if row is not None:
-            held.log.append(_verdict(row, tank))
+            held.log.append(duty_ledger.step_verdict(row, tank))
         held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
                            "measured": False, "ran": False, "dhw_mode": False}
         row["start_below"] = _dhw_start_below_c(inp)
@@ -1810,44 +1870,6 @@ def _dhw_start_below_c(inp: ArbiterInputs) -> float | None:
     return None if hysteresis is None else dhw_start_below_c(_dhw_target(inp), hysteresis)
 
 
-def _not_startable(row: dict[str, Any]) -> bool:
-    """Whether the step's tank opened at or above the pump's start temperature.
-
-    Its own hysteresis then kept the pump off, so an idle hot-water step says
-    nothing about whether the pump obeys the plan (Bankaifan, #3440).
-    """
-    start, tank = row.get("start_below"), row["tank"]
-    return start is not None and tank is not None and float(tank) >= start
-
-
-def _missed(row: dict[str, Any], planned: str, actual: str) -> str:
-    """The verdict for a step that did something other than its plan."""
-    if planned == "dhw" and actual == "idle" and _not_startable(row):
-        return "not-startable"
-    return f"{actual}-instead"
-
-
-def _verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
-    """What the pump did over one step, against what the plan wanted."""
-    rose = None not in (tank, row["tank"]) and float(tank) - float(row["tank"]) >= TANK_RISE_C
-    hot = rose or row["dhw_mode"]
-    if row["measured"]:
-        actual: str | None = ("dhw" if hot else "space") if row["ran"] else "idle"
-    else:
-        actual = "dhw" if rose else None
-    planned = row["planned"]
-    if planned is None:
-        verdict = "baseline"
-    elif actual is None:
-        verdict = "unknown"
-    elif actual == planned or (planned == "both" and actual != "idle"):
-        verdict = "delivered"
-    else:
-        verdict = _missed(row, planned, actual)
-    return {"start": row["start"].isoformat(), "planned": planned,
-            "actual": actual, "verdict": verdict}
-
-
 async def apply(coord: Any, now: datetime | None = None) -> None:
     """One arbitration pass; safe to call from the cycle and from the tick."""
     now = now or dt_util.now()
@@ -1867,10 +1889,10 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
 
 async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: str, now: datetime) -> None:
     if inp.mode == MODE_OFF or mode != DUTY_CONTROL:
-        # Off writes nothing here, not even the baseline row: the pump is the
-        # person's the moment the optimizer lets go of it. The space
-        # set-point's baseline is restored by off_restore (tvofi, 2026-11-07,
-        # "Arbiter too"), before this pass; its record is dropped here.
+        # Off writes nothing here: the baseline row and the space set-point's
+        # baseline are written back by off_restore (tvofi, 2026-11-15; ROW,
+        # CONSUMER), at the mode change and from the cycle until they land.
+        # What is left of the record is dropped here.
         if held.written or held.retry or held.space_before is not None:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
@@ -1887,7 +1909,10 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         return
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
-    await _command(coord, inp, desired(coord, inp, _served(coord, inp, duty, now), now), now)
+    served = _served(coord, inp, duty, now)
+    await _command(coord, inp, desired(coord, inp, served, now), now)
+    boosted = _boosted(coord, inp, now)
+    _note_pass(held, inp, served, boosted, now)
     await _write_night_schedule(coord, inp, now)
 
 
@@ -1935,11 +1960,11 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
     A boost, a disinfection hold or a non-plan mode keeps Heating + DHW.
     """
     held = boost.held_for(coord)
-    if (duty != "both" or inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.disinfecting
+    result = inp.plan
+    i = plan_step_index(result, now)
+    if (i is None or duty != "both" or inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.disinfecting
             or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
         return duty
-    result = inp.plan
-    i = bisect.bisect_right(result.timestamps, now) - 1
     start = result.timestamps[i]
     return duty_switch.both_step_duty(
         duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
@@ -1957,16 +1982,23 @@ def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
     return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"
 
 
-async def switch_supply(hass: Any, entity_id: str, on: bool) -> None:
+async def _send_supply(hass: Any, entity_id: str, on: float) -> None:
+    await hass.services.async_call(
+        *on_off_service(entity_id, bool(on)), {"entity_id": entity_id}, blocking=True
+    )
+
+
+async def switch_supply(hass: Any, entry: Any, config: Any, entity_id: str, on: bool) -> None:
     """Write the pump's power switch; a refused write is logged, never raised.
 
     The one writer of that switch: the coordinator's cycle and the early
-    cut-off both call it, so neither re-spells the routing or the fence.
+    cut-off both call it, so neither re-spells the routing or the fence. An
+    off write arms the switch's restore first (:data:`SUPPLY`): off, unload
+    and a stale plan switch it back on.
     """
     try:
-        await hass.services.async_call(
-            *on_off_service(entity_id, on), {"entity_id": entity_id}, blocking=True
-        )
+        if on or await off_restore.async_arm(hass, entry, config, SUPPLY):
+            await _send_supply(hass, entity_id, on)
     except Exception as err:  # noqa: BLE001 -- the next cycle writes again
         _LOGGER.error("Error toggling heat pump switch %s: %s", entity_id, err)
 
@@ -1979,7 +2011,7 @@ async def write_supply(coord: Any, entity_id: str, on: bool) -> None:
     :func:`switch_supply` alone, as before.
     """
     await _lead_mode(coord, on)
-    await switch_supply(coord.hass, entity_id, on)
+    await switch_supply(coord.hass, coord.entry, coord.arbiter_inputs().config, entity_id, on)
 
 
 def supply_write(on: bool, signals: Any) -> bool | None:
@@ -2011,7 +2043,7 @@ def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
         return None
     if boosts.active(boost.CHANNEL_SPACE, now) or boosts.active(boost.CHANNEL_DHW, now):
         return True
-    i = _step_index(inp.plan, now)
+    i = plan_step_index(inp.plan, now)
     return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
 
 
@@ -2128,20 +2160,52 @@ def _pump_off(inp: ArbiterInputs, held: ArbiterState) -> bool:
 
 
 async def release(coord: Any) -> None:
-    """Unload: write the baseline row over anything still owned, then let go.
+    """Unload: let go of the listeners and save the record; nothing is written.
 
-    Not the space set-point: the unload's restore (:mod:`off_restore`) has
-    written its baseline back already, and the record of it is saved here.
+    The unload's restore (:mod:`off_restore`) has written the baseline row
+    and the space set-point's baseline back already.
     """
     release_listeners(coord)
     held = state_for(coord)
     release_supply(held)
-    inp = coord.arbiter_inputs()
-    if held.written and duty_mode(inp.config) == DUTY_CONTROL and inp.mode != MODE_OFF:
-        await _command(coord, inp, replace(desired(coord, inp, None, dt_util.now()), space_setpoint=None),
-                       dt_util.now())
     if held.loaded:
         await _persist(coord)
+
+
+def baseline_row(coord: Any, inp: ArbiterInputs, now: datetime) -> PumpCommand:
+    """The row the pump is handed back on: no duty, the cycle flags cleared, no space set-point.
+
+    A disinfection hold or a booked cycle step is the live step's, not the
+    baseline's: the tank is handed back at the configured set-point,
+    whatever ran when the optimizer let go (D16-s3-03).
+    """
+    action = cast(CurrentAction, {k: v for k, v in (inp.action or {}).items() if k != "dhw_reason"})
+    return replace(desired(coord, replace(inp, disinfecting=False, action=action), None, now), space_setpoint=None)
+
+
+async def _release_row(_hass: Any, entry: Any, _config: Any, reason: str) -> bool:
+    """The off restore of :data:`ROW`: write the baseline row; True once every slot took it.
+
+    While the power switch reads off the pump takes no write
+    (:func:`_pump_off`), so the row stays owed and the next cycle tries
+    again; an unload has no next cycle and writes regardless. Takes no
+    arbiter lock: a pass that forgets the record between two of these
+    writes drops only what is cleared here anyway.
+    """
+    coord = getattr(entry, "runtime_data", None)
+    if coord is None:
+        return False
+    inp, held, now = coord.arbiter_inputs(), state_for(coord), dt_util.now()
+    if reason != "unload" and _pump_off(inp, held):
+        return False
+    if not await _command(coord, inp, baseline_row(coord, inp, now), now, release=True):
+        return False
+    for record in (held.written, held.misses, held.retry):
+        for slot in [s for s in record if s != "space_setpoint"]:
+            del record[slot]
+    if held.loaded:
+        await _persist(coord)
+    return True
 
 
 def release_listeners(coord: Any) -> None:
@@ -2236,8 +2300,26 @@ def _writable(slot: str, value: Any) -> bool:
 
 boost.bind_cold_lease(block_cold_lease)
 
-#: The off-restore hook's key for the space set-point (R10-ARBITER-OFF-RESTORE).
+#: The off-restore keys: the power switch, the row's other slots, and the
+#: space set-point (R10-ARBITER-OFF-RESTORE), registered in that order.
+SUPPLY = "pump_arbiter_supply"
+ROW = "pump_arbiter_row"
 CONSUMER = "pump_arbiter_space"
+
+
+def _supply_restorer(config: Any) -> off_restore.Restorer | None:
+    """The power switch's restore: on, the pump's own thermostats in charge."""
+    entity = EntryConfig.from_mapping(config).heat_pump_switch_entity
+    return off_restore.Restorer(str(entity), _send_supply, neutral=1.0, restored=_supply_restored) if entity else None
+
+
+def _supply_restored(entry: Any, _entity_id: str, _value: float) -> None:
+    """The restore switched the pump on: the step tick's record of the switch goes."""
+    coord = getattr(entry, "runtime_data", None)
+    held = None if coord is None else _STATES.get(coord)
+    if held is not None:
+        release_supply(held)
+        held.supply, held.supply_held = None, False
 
 
 def _restorer(config: Any) -> off_restore.Restorer | None:
@@ -2264,6 +2346,8 @@ def _space_restored(entry: Any, _entity_id: str, _value: float) -> None:
         held.feedback = None  # its prev_c is that record too (_note_sent)
 
 
+off_restore.register_consumer(SUPPLY, _supply_restorer, stale=True)
+off_restore.register_release(ROW, _release_row)
 off_restore.register_consumer(CONSUMER, _restorer, write=write_setpoint_c)
 
 

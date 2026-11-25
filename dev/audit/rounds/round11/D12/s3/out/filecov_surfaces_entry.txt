@@ -1,0 +1,172 @@
+CELL switch:switch	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL switch:input_boolean	ok	sub_min=None	entities=82	
+   calls: [('input_boolean', 'turn_on', 'input_boolean.hp', None)]
+CELL switch:climate	ok	sub_min=None	entities=82	
+   calls: [('climate', 'turn_on', 'climate.hp', None)]
+CELL space_setpoint:number	ok	sub_min=None	entities=82	
+   calls: [('number', 'set_value', 'number.sp', 20)]
+CELL space_setpoint:input_number	ok	sub_min=None	entities=82	
+   calls: [('input_number', 'set_value', 'input_number.sp', 20)]
+CELL space_setpoint:climate	ok	sub_min=None	entities=82	
+   calls: [('climate', 'set_temperature', 'climate.sp', 20)]
+CELL space_setpoint:flow_number	ok	sub_min=None	entities=82	
+   calls: [('number', 'set_value', 'number.flow_sp', 41)]
+CELL dhw_setpoint:number	ok	sub_min=None	entities=82	
+   calls: [('number', 'set_value', 'number.dhw_sp', 40)]
+CELL dhw_setpoint:input_number	ok	sub_min=None	entities=82	
+   calls: [('input_number', 'set_value', 'input_number.dhw_sp', 40)]
+CELL dhw_setpoint:climate	ok	sub_min=None	entities=82	
+   calls: [('climate', 'set_temperature', 'climate.dhw_sp', 40)]
+CELL dhw_setpoint:water_heater	ok	sub_min=None	entities=82	
+   calls: [('water_heater', 'set_temperature', 'water_heater.dhw_sp', 40)]
+CELL mode_select:tuya	ok	sub_min=None	entities=82	
+   calls: [('select', 'select_option', 'select.hp_mode', 'Heating'), ('number', 'set_value', 'number.sp', 20)]
+CELL mode_select:modbus	ok	sub_min=None	entities=82	
+   calls: [('select', 'select_option', 'select.hp_mode', 'Heat + DHW'), ('number', 'set_value', 'number.sp', 20)]
+CELL heat_curve:ecl110_set_topic	ok	sub_min=None	entities=82	
+   calls: [('mqtt', 'publish', 'ecl110/displace/set', '0')]
+CELL heat_curve:ecl110_legacy_topic	ok	sub_min=None	entities=82	
+   calls: [('mqtt', 'publish', 'ecl110/cmd', '{"source": "heatpump_optimizer", "reason": "scheduled_update", "timestamp": "2026-11-16T20:56:54.761534+00:00", "command": {"type": "ecl110_control", "heat_pump_on": true, "displace": 0}, "context": {"price": 0.675, "mode": "eco", "pre_heat_urgency": 0.27}}')]
+CELL heat_curve:number_offset	ok	sub_min=None	entities=82	
+   calls: [('number', 'set_value', 'number.curve_off', -1)]
+CELL heat_curve:input_number_offset	ok	sub_min=None	entities=82	
+   calls: [('input_number', 'set_value', 'input_number.curve_off', -1)]
+CELL heat_curve:number_persistent	ok	sub_min=None	entities=82	
+   calls: [('number', 'set_value', 'number.curve_par', 39)]
+CELL modulation:on_off	FAIL	sub_min=34	entities=82	declared on/off but 34 planned steps in (0,1.2) kW (clamp_planned_levels=False)
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL modulation:modulating	ok	sub_min=34	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL modulation:auto	ok	sub_min=34	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL frequency:none	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL frequency:observe	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL frequency:control	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL frequency:control_evidenced	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None), ('number', 'set_value', 'number.hz', 44.5)]
+CELL metering:counter_dhw_spans	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None), ('switch', 'turn_on', 'switch.hp', None)]
+CELL boost:short_space	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None)]
+CELL circulation:space_pump_switch	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.hp', None), ('homeassistant', 'turn_on', 'switch.circ', None)]
+CELL circulation:vvc_input_boolean	ok	sub_min=None	entities=82	
+   calls: [('homeassistant', 'turn_on', 'input_boolean.vvc', None)]
+CELL silent:capacity_switch	ok	sub_min=None	entities=82	
+   calls: [('switch', 'turn_on', 'switch.silent', None), ('switch', 'turn_on', 'switch.hp', None)]
+CELL disinfection:switch_control	ok	sub_min=None	entities=82	
+   calls: []
+CELL mixing_valve:smart_write_number	ok	sub_min=None	entities=82	
+   calls: [('number', 'set_value', 'number.valve', 22)]
+RESULT arm=generalization
+RESULT cells=32 count
+RESULT fail_count=1 count
+RESULT sub_min_steps[modulation:on_off]=34 count
+RESULT sub_min_steps[modulation:modulating]=34 count
+RESULT sub_min_steps[modulation:auto]=34 count
+RESULT wall_s=1600.9 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=1.10
+RESULT swapins=0
+RESULT child_files=65 count
+DRIVEN custom_components/heatpump_optimizer/__init__.py
+DRIVEN custom_components/heatpump_optimizer/accuracy.py
+DRIVEN custom_components/heatpump_optimizer/away.py
+DRIVEN custom_components/heatpump_optimizer/batchmath.py
+DRIVEN custom_components/heatpump_optimizer/battery.py
+DRIVEN custom_components/heatpump_optimizer/binary_sensor.py
+DRIVEN custom_components/heatpump_optimizer/boost.py
+DRIVEN custom_components/heatpump_optimizer/button.py
+DRIVEN custom_components/heatpump_optimizer/climate.py
+DRIVEN custom_components/heatpump_optimizer/comfort_band.py
+DRIVEN custom_components/heatpump_optimizer/comfort_learning.py
+DRIVEN custom_components/heatpump_optimizer/config_flow.py
+DRIVEN custom_components/heatpump_optimizer/const.py
+DRIVEN custom_components/heatpump_optimizer/coordinator.py
+DRIVEN custom_components/heatpump_optimizer/currency.py
+DRIVEN custom_components/heatpump_optimizer/curve_learning.py
+DRIVEN custom_components/heatpump_optimizer/datetime.py
+DRIVEN custom_components/heatpump_optimizer/debugger.py
+DRIVEN custom_components/heatpump_optimizer/defrost.py
+DRIVEN custom_components/heatpump_optimizer/device_prefill.py
+DRIVEN custom_components/heatpump_optimizer/dhw_draws.py
+DRIVEN custom_components/heatpump_optimizer/dhw_learning.py
+DRIVEN custom_components/heatpump_optimizer/dhw_planner.py
+DRIVEN custom_components/heatpump_optimizer/dhw_schedule.py
+DRIVEN custom_components/heatpump_optimizer/diagnosis.py
+DRIVEN custom_components/heatpump_optimizer/diagnostics.py
+DRIVEN custom_components/heatpump_optimizer/disinfection.py
+DRIVEN custom_components/heatpump_optimizer/draw_range.py
+DRIVEN custom_components/heatpump_optimizer/drift.py
+DRIVEN custom_components/heatpump_optimizer/driving_grade.py
+DRIVEN custom_components/heatpump_optimizer/duty_legs.py
+DRIVEN custom_components/heatpump_optimizer/duty_switch.py
+DRIVEN custom_components/heatpump_optimizer/early_cutoff.py
+DRIVEN custom_components/heatpump_optimizer/entity.py
+DRIVEN custom_components/heatpump_optimizer/entry_config.py
+DRIVEN custom_components/heatpump_optimizer/external_heat.py
+DRIVEN custom_components/heatpump_optimizer/flow_lift.py
+DRIVEN custom_components/heatpump_optimizer/flow_meter.py
+DRIVEN custom_components/heatpump_optimizer/freq_control.py
+DRIVEN custom_components/heatpump_optimizer/frontend.py
+DRIVEN custom_components/heatpump_optimizer/grid_fee.py
+DRIVEN custom_components/heatpump_optimizer/heat_curve.py
+DRIVEN custom_components/heatpump_optimizer/heat_energy.py
+DRIVEN custom_components/heatpump_optimizer/inputs.py
+DRIVEN custom_components/heatpump_optimizer/issues.py
+DRIVEN custom_components/heatpump_optimizer/learner_progress.py
+DRIVEN custom_components/heatpump_optimizer/ledger.py
+DRIVEN custom_components/heatpump_optimizer/legionella.py
+DRIVEN custom_components/heatpump_optimizer/log_latch.py
+DRIVEN custom_components/heatpump_optimizer/manual_plan.py
+DRIVEN custom_components/heatpump_optimizer/mixing_valve.py
+DRIVEN custom_components/heatpump_optimizer/modbus_prefill.py
+DRIVEN custom_components/heatpump_optimizer/name_match.py
+DRIVEN custom_components/heatpump_optimizer/narrative.py
+DRIVEN custom_components/heatpump_optimizer/notifier.py
+DRIVEN custom_components/heatpump_optimizer/off_restore.py
+DRIVEN custom_components/heatpump_optimizer/open_meteo.py
+DRIVEN custom_components/heatpump_optimizer/optimizer.py
+DRIVEN custom_components/heatpump_optimizer/payload.py
+DRIVEN custom_components/heatpump_optimizer/plan_slots.py
+DRIVEN custom_components/heatpump_optimizer/plan_step.py
+DRIVEN custom_components/heatpump_optimizer/power_guard.py
+UNDRIVEN custom_components/heatpump_optimizer/prefill_offer.py
+DRIVEN custom_components/heatpump_optimizer/presets.py
+DRIVEN custom_components/heatpump_optimizer/price_model.py
+DRIVEN custom_components/heatpump_optimizer/price_tiles.py
+DRIVEN custom_components/heatpump_optimizer/process_worker.py
+DRIVEN custom_components/heatpump_optimizer/pump_arbiter.py
+DRIVEN custom_components/heatpump_optimizer/pump_mode.py
+DRIVEN custom_components/heatpump_optimizer/pump_schedule.py
+DRIVEN custom_components/heatpump_optimizer/pump_signals.py
+DRIVEN custom_components/heatpump_optimizer/pv.py
+UNDRIVEN custom_components/heatpump_optimizer/quick_setup.py
+DRIVEN custom_components/heatpump_optimizer/quiet_windows.py
+UNDRIVEN custom_components/heatpump_optimizer/repairs.py
+DRIVEN custom_components/heatpump_optimizer/replay_doc.py
+DRIVEN custom_components/heatpump_optimizer/running_signal.py
+DRIVEN custom_components/heatpump_optimizer/runs.py
+DRIVEN custom_components/heatpump_optimizer/sensor.py
+DRIVEN custom_components/heatpump_optimizer/services.py
+DRIVEN custom_components/heatpump_optimizer/setpoint_check.py
+DRIVEN custom_components/heatpump_optimizer/silent_mode.py
+DRIVEN custom_components/heatpump_optimizer/slab_seed.py
+DRIVEN custom_components/heatpump_optimizer/slot_drivers.py
+DRIVEN custom_components/heatpump_optimizer/snapshots.py
+DRIVEN custom_components/heatpump_optimizer/store.py
+DRIVEN custom_components/heatpump_optimizer/supply_hold.py
+DRIVEN custom_components/heatpump_optimizer/switch.py
+DRIVEN custom_components/heatpump_optimizer/sysid.py
+DRIVEN custom_components/heatpump_optimizer/tariff.py
+DRIVEN custom_components/heatpump_optimizer/thermal_model.py
+DRIVEN custom_components/heatpump_optimizer/topology.py
+DRIVEN custom_components/heatpump_optimizer/wear.py
+DRIVEN custom_components/heatpump_optimizer/whatif.py
+DRIVEN custom_components/heatpump_optimizer/wood_fuel.py
+RESULT files_universe=95 count
+RESULT files_driven=92 count

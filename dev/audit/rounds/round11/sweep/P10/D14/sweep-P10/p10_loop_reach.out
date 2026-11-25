@@ -1,0 +1,38 @@
+SEAM away.py:estimate_recovery_hours:simulate_step
+SEAM coordinator.py:_replay_step:simulate_step
+SEAM coordinator.py:_whatif_solve:simulate_wood_slots
+SEAM dhw_planner.py:_clamp_dhw_to_capacity:simulate_dhw_step
+SEAM dhw_planner.py:_dhw_coil_wood_forecast:simulate_trajectory_with_dhw
+SEAM dhw_planner.py:_dhw_plan_temps:simulate_dhw_only
+SEAM dhw_planner.py:_plan_dhw_min_cost:linprog
+SEAM diagnosis.py:_room_after:simulate_step
+SEAM drift.py:_positive_definite:cholesky
+SEAM optimizer.py:_combi_dhw_exo:simulate_dhw_only
+SEAM optimizer.py:_combi_flux_exchange:simulate_trajectory
+SEAM optimizer.py:_compute_baseline_power:simulate_step
+SEAM optimizer.py:_optimize_with_dhw:simulate_trajectory_with_dhw
+SEAM optimizer.py:_replay_end_state:simulate_step
+SEAM optimizer.py:_scoped_minimize:minimize
+SEAM optimizer.py:_solve_objectives._space_traj:simulate_trajectory
+SEAM optimizer.py:_solve_objectives.objective_batch:simulate_trajectory_batch
+SEAM optimizer.py:_tighten_buffer_caps:simulate_trajectory
+SEAM sysid.py:_held_state:lstsq
+SEAM sysid.py:_lm_solve:solve
+SEAM sysid.py:_one_state_ua_halfwidth:inv
+SEAM sysid.py:_slab_ua_profile_halfwidth:inv
+SEAM sysid.py:_valve_drive:simulate_step
+SEAM sysid.py:identify:lstsq
+SEAM sysid.py:identify:solve
+SEAM thermal_model.py:extend_dhw_temps:simulate_step
+SEAM thermal_model.py:simulate_trajectory:simulate_step
+SEAM thermal_model.py:simulate_trajectory_with_dhw:simulate_dhw_step
+SEAM thermal_model.py:simulate_trajectory_with_dhw:simulate_step
+SEAM thermal_model.py:valve_top_equilibrium:solve
+SEAM topology.py:_advisor_replay:simulate_step
+LOOP coordinator.py:_whatif_solve:simulate_wood_slots  via coordinator.py:async_simulate / coordinator.py:async_simulate._scratch / coordinator.py:_whatif_solve
+LOOP drift.py:_positive_definite:cholesky  via coordinator.py:_async_load_thermal_learning / drift.py:load / drift.py:_positive_definite
+LOOP optimizer.py:_compute_baseline_power:simulate_step  via coordinator.py:async_simulate / whatif.py:schedule_days / optimizer.py:reference_day / optimizer.py:_compute_baseline_power
+LOOP thermal_model.py:valve_top_equilibrium:solve  via coordinator.py:async_simulate / whatif.py:schedule_days / optimizer.py:reference_day / optimizer.py:_compute_baseline_power / optimizer.py:_thermostat_held_state / optimizer.py:_held_at_valve_top / thermal_model.py:valve_top_equilibrium
+RESULT kernel_seams=31
+RESULT loop_reachable_seams=4
+unresolved generic names (> fanout): 12

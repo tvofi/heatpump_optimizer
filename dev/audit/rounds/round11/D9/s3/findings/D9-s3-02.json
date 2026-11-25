@@ -1,0 +1,53 @@
+{
+ "id": "D9-s3-02",
+ "scope": "D9-s3",
+ "step": "D9.M2",
+ "title": "Stress gate runs no coordinator cycle: 2x solves/cycle, payload, retained growth or lost GIL yields read unchanged",
+ "severity": "medium",
+ "claim": "Four injected per-cycle regressions -- the coordinator's solve run twice (2 -> 4 _multi_start_minimize entries per cycle), the published dict doubled (89,220 -> 177,853 JSON bytes), each cycle's dict retained (+~205 kB/cycle), and every optimizer GIL yield removed (394 -> 0 sleeps per cycle) -- leave the stress gate's solver_evals, solver_simulate_steps and solver_calls bit-identical and its traced peak within 0.55% on five sweep scenarios, because build_case executes 0 of coordinator.py's 835 functions and 80 of the 96 D9 universe files at all.",
+ "mechanism": "tests/stress.py measures only HeatPumpOptimizer.optimize called directly by build_case; it never drives HeatPumpOptimizerCoordinator._async_update_data, the process-worker submission, _build_data_dict or the event loop. Of D9.md's six metrics only sse_per_gradient (and the per-solve CPU/memory) has a stress channel; solves_per_cycle, gil_hold, loop_thread_work, retained_bytes (per-cycle slope) and payload_bytes have none, and nothing else in the gate budgets them (the owner's 'whether the stress budget should become a real gate' for the cycle).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/percycle.py",
+  "harness_path": "dev/audit/rounds/round11/D9/s3/percycle.py",
+  "value": 0.0,
+  "unit": "max |ratio-1| of the gate's solver_evals/simulate/calls readings, injected arm over clean, across 5 scenarios and 4 arms (traced peak max 0.0055)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "cloud box B3, Linux x86_64 4 vCPU shared by up to 3 compute seats, Python 3.14.7, numpy 2.5.4",
+  "cpu_or_wall": "count",
+  "contention_note": "load1 14 from other seats; counts and bytes are contention-immune",
+  "tolerance": "exact for counts; traced +/-1%",
+  "load1": 14.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data (optimize_in_process, _build_data_dict) and heatpump_optimizer.optimizer:_multi_start_minimize; gate side stress.build_case/SolverWork",
+ "perturbation": {
+  "change": "each arm (solves2x, payload2x, retain, noyield) is the perturbation; the per-cycle metric it targets must move while the gate readings stay flat",
+  "expected_direction": "up",
+  "observed_value": "solves/cycle 2.00->4.00; payload 89220->177853 B; retained growth 9136->213862 B/cycle; yields/cycle 394->0 (direction to_zero); gate deviations 0.0000 counts, <=0.0055 traced"
+ },
+ "metric_definition": "Per arm: the targeted per-cycle metric on a real coordinator cycle vs the ratio of the gate's build_case readings (evals, simulate steps, calls, traced peak) to the clean arm.",
+ "phenomenon_property": "Each D9 per-cycle metric (solves per cycle, loop-thread work, GIL hold, retained bytes per cycle, payload bytes) has a gate channel that fails on a 2x regression of it; a metric no channel reads cannot regress green unseen.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D9/s3/reach.py  (FILE ... blind=1 lists every universe file whose code no stress channel executes)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D9/s3/percycle.py --arms clean,noyield",
+  "value": "clean arm: gate deviations 0.0000; same-tree re-solve is deterministic",
+  "note": "The clean arm against itself fixes the gate-reading noise floor at 0 for counts and the traced peak's ~0.5% jitter."
+ },
+ "leave_one_out": {
+  "cells": 5,
+  "min": 0.0,
+  "max": 0.0,
+  "drop_most_favourable": 0.0
+ },
+ "reproduction_steps": [
+  "Run percycle.py: each ARM line shows the per-cycle metric moved; each RESULT <arm>_gate_*_max_dev reads 0.0000 for counts.",
+  "Run reach.py: RESULT coordinator_executed=0, files_blind=80 of 96."
+ ],
+ "proposed_fix_scope": "A per-cycle stress lane (tests/): drive N coordinator cycles on the in-process worker, record solves/cycle, payload bytes, retained growth slope and loop-thread time per scenario in a budgets file, and fail at DETECTION_TARGET like the solve channels.",
+ "files": [
+  "tests/stress.py",
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

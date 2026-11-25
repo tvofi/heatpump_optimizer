@@ -1,9 +1,9 @@
 """The repair-notice writer: the one place a notice is raised or cleared.
 
-A leaf (it imports only ``const``), so a module that raises a notice -- the
+A leaf: it imports only ``const``. So a module that raises a notice -- the
 store boundary, the legionella guard, the notifier, the pump-duty arbiter --
-does not inherit what the set-point consistency check imports to do its own
-work (the quiet windows and, through them, the solver).
+does not inherit the set-point consistency check's own imports (the quiet
+windows and, through them, the solver).
 """
 from __future__ import annotations
 

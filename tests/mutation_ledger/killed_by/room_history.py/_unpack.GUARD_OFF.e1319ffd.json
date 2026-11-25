@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_unpack GUARD_OFF e1319ffd",
+  "killed_by": "tests/features.py",
+  "old": "    if len(cells) != width or any(c is not None and not lo * SCALE <= c <= hi * SCALE for c in cells):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,38 @@
+{
+  "class": "P11",
+  "instances": 3,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P11/p11_write_records.py (controls: --null 0, --perturb 1; re-finds pump_arbiter._write)",
+  "instance_list": [
+    {
+      "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+      "symbol": "_write (via _lead_mode)",
+      "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates (unavailable_recorded=5 rigs at register head; --perturb write_skips_unavailable 0; --perturb ha_skip_off 0)",
+      "beyond_finding": false
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/coordinator.py",
+      "symbol": "HeatPumpOptimizerCoordinator._async_set_pump",
+      "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P11/p11_probes.py (set_pump_lost_command=1; --double fake 0; --perturb 0)",
+      "beyond_finding": true
+    },
+    {
+      "file": "custom_components/heatpump_optimizer/coordinator.py",
+      "symbol": "HeatPumpOptimizerCoordinator._command_frequency",
+      "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P11/p11_probes.py (frequency_lost_command=1; --double fake 0; --perturb 0)",
+      "beyond_finding": true
+    }
+  ],
+  "notes": [
+    {
+      "moved_seam": {
+        "file": "custom_components/heatpump_optimizer/coordinator.py",
+        "symbol": "HeatPumpOptimizerCoordinator._command_valve_target",
+        "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P11/p11_probes.py (valve_lost_command=1; --double fake 0; --perturb 0)",
+        "beyond_finding": true
+      },
+      "to": "N-stale-step-actuation",
+      "why": "fold_ledger one-seam-one-class: seam already registered in N-stale-step-actuation; P11 lost-command probe kept here as evidence for the owning class fixer (orchestrator ruling 2026-11-18, mandate 6893738184)"
+    }
+  ]
+}

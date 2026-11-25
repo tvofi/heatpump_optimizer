@@ -6,21 +6,20 @@ from datetime import datetime, timedelta, tzinfo
 from itertools import zip_longest
 from typing import Any
 
-from .drift import utc_elapsed_seconds
+from .drift import utc_elapsed_seconds, utc_instant
+from .entry_config import EntryConfig
 from .const import (
     CONF_DHW_WOOD_COIL_ENABLED,
     CONF_EXTERNAL_HEAT_ENABLED,
     CONF_EXTERNAL_HEAT_ENTITY,
     CONF_WOOD_FURNACE_EFFICIENCY,
     CONF_WOOD_FURNACE_ENABLED,
-    CONF_WOOD_LIGHTING_LEAD_MINUTES,
     CONF_WOOD_PACKING,
     CONF_WOOD_PRICE_SEK_M3,
     CONF_WOOD_TANK_BOTTOM_ENTITY,
     CONF_WOOD_TANK_TOP_ENTITY,
     CONF_WOOD_TYPE,
     DEFAULT_MIN_TEMP,
-    DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
     WOOD_TANK_MAX_TEMP,
 )
 from .const import finite_float
@@ -164,6 +163,12 @@ def cheaper_hour_count(
     return sum(cheaper_steps(wood_sek, prices, cops, runs))
 
 
+def _in_zone(ts: datetime, local_tz: tzinfo | None) -> datetime:
+    """A plan stamp on ``local_tz``'s wall clock; a naive one is UTC
+    (``drift.utc_instant``), never the host's zone (PR #3728 review)."""
+    return utc_instant(ts).astimezone(local_tz) if local_tz is not None else ts
+
+
 def cheaper_windows(
     timestamps: Sequence[datetime],
     cheaper: Sequence[bool],
@@ -179,7 +184,7 @@ def cheaper_windows(
         return []
 
     def day(ts: datetime) -> object:
-        return (ts.astimezone(local_tz) if local_tz is not None else ts).date()
+        return _in_zone(ts, local_tz).date()
 
     today = day(timestamps[0])
     # One step's length, read off the plan's own grid.
@@ -553,18 +558,12 @@ def _attach_windows(
         return
 
     def iso(ts: datetime) -> str:
-        return (ts.astimezone(local_tz) if local_tz is not None else ts).isoformat()
+        return _in_zone(ts, local_tz).isoformat()
 
     windows: list[WoodWindow] = [
         {"start": iso(start), "end": iso(end)} for start, end in runs
     ]
-    lead = max(
-        0.0,
-        finite_float(
-            config.get(CONF_WOOD_LIGHTING_LEAD_MINUTES),
-            DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
-        ),
-    )
+    lead = EntryConfig.from_mapping(config).wood_lighting_lead_minutes
     light_start, light_end = lighting_window(runs[0][0], timestamps[0], lead)
     view["cheaper_windows"] = windows
     view["lighting_start"] = iso(light_start)

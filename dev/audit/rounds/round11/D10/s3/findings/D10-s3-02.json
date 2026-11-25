@@ -1,0 +1,47 @@
+{
+ "id": "D10-s3-02",
+ "scope": "D10-s3",
+ "step": "D10.M1",
+ "title": "Coordinator has no config_entry: HeatPumpOptimizerConfigEntry annotation under a done strict-typing row",
+ "severity": "low",
+ "claim": "HeatPumpOptimizerCoordinator (the integration's one DataUpdateCoordinator subclass) declares no config_entry annotation anywhere in its in-package MRO, so its config_entry is the base's bare ConfigEntry | None, while strict-typing is done and its comment claims every attribute annotation is typed.",
+ "mechanism": "The rule pages (strict-typing: 'use a typed config entry everywhere you get one'; runtime-data: 'A coordinator that gets the config entry should use the typed entry too: config_entry: MyConfigEntry', pylint home-assistant-coordinator-untyped-config-entry) ask for the class annotation. The coordinator receives the typed entry (coordinator.py:3514) and passes config_entry=entry (3536) but never re-annotates the attribute; coordinator.py:7022 then reads it through getattr(self, 'config_entry', None). The doc_claims census (qs_entry_param_bare) counts parameters, not this attribute. Fails D10-criteria Q2.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+  "harness_path": "dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+  "value": 1,
+  "unit": "classes",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "macOS arm64, orchestrator box B3, venv-ci python 3.14.7",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box under heavy finder load (load1 147-260); counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 260.47,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator (inspect.get_annotations over its MRO)",
+ "perturbation": {
+  "change": "--perturb coord (class annotation config_entry: HeatPumpOptimizerConfigEntry patched in memory) or --perturb row",
+  "expected_direction": "to_zero",
+  "observed_value": "0 under either perturbation"
+ },
+ "metric_definition": "coordinator_untyped_under_done_row: in-package DataUpdateCoordinator subclasses lacking a config_entry annotation naming the typed alias, while strict-typing is done",
+ "phenomenon_property": "Every DataUpdateCoordinator subclass of the integration annotates config_entry with the typed entry alias.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py | grep '^COORD'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb coord",
+  "value": 0,
+  "note": "the honest fix's shape moves the count to 0; entry-point parameters (12 sites) already read typed (entry_point_bare=0)"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s3/platinum_rules.py --perturb coord"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py",
+  "custom_components/heatpump_optimizer/quality_scale.yaml"
+ ],
+ "proposed_fix_scope": "Add 'config_entry: HeatPumpOptimizerConfigEntry' to HeatPumpOptimizerCoordinator's class body (no newer HA API needed: config_entry= is already passed at the 2025.2.0 floor) and extend tests/doc_claims.py's census to the attribute."
+}

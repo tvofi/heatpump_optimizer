@@ -1,0 +1,57 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  FAIL the boundary quarantines nan at every depth  [scrubbed={'leaf': nan, 'nested': [[nan], {'k': nan}]}]
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  FAIL the boundary quarantines str-nan at every depth  [scrubbed={'leaf': 'NaN', 'nested': [['NaN'], {'k': 'NaN'}]}]
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the boundary quarantines an absurd magnitude as it does a non-finite (class P1)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+RESULT healthy_stores=17 count  (missing=[])
+CTRL ledger: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT ledger_mutants=200 count
+RESULT ledger_loader_raise=0 count
+RESULT ledger_cycle_fail=0 count
+RESULT ledger_task_raise=0 count
+RESULT ledger_repeat_fence=0 count
+RESULT ledger_log_multi=1 count
+RESULT ledger_log_repeat=0 count
+RESULT ledger_nonfinite_live=0 count
+  EX ledger/log_multi: op=instant_far path=['ledger', 'months', '2026-01', 'lines', 'savings_baseline', 'sek'] c1=ok tasks=[] load_exc=[] fence=[] extra=['WARNING:heatpump_optimizer.ledger:Quarantined %d malformed ledger month(s) on load; the rest of the ledger was kept', 'WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s'] nf=[]
+CTRL manual_plan: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT manual_plan_mutants=200 count
+RESULT manual_plan_loader_raise=0 count
+RESULT manual_plan_cycle_fail=0 count
+RESULT manual_plan_task_raise=0 count
+RESULT manual_plan_repeat_fence=0 count
+RESULT manual_plan_log_multi=2 count
+RESULT manual_plan_log_repeat=0 count
+RESULT manual_plan_nonfinite_live=0 count
+  EX manual_plan/log_multi: op=instant_far path=[] c1=ok tasks=[] load_exc=[] fence=[] extra=['WARNING:heatpump_optimizer.coordinator:Discarding unreadable stored manual plan: %s', 'WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s'] nf=[]
+CTRL notifier: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT notifier_mutants=200 count
+RESULT notifier_loader_raise=0 count
+RESULT notifier_cycle_fail=0 count
+RESULT notifier_task_raise=0 count
+RESULT notifier_repeat_fence=0 count
+RESULT notifier_log_multi=0 count
+RESULT notifier_log_repeat=0 count
+RESULT notifier_nonfinite_live=0 count
+CTRL off_restore: healthy c1=ok c2=ok tasks=0 fences=0/0 kinds_vs_empty=[]
+RESULT off_restore_mutants=200 count
+RESULT off_restore_loader_raise=0 count
+RESULT off_restore_cycle_fail=0 count
+RESULT off_restore_task_raise=0 count
+RESULT off_restore_repeat_fence=0 count
+RESULT off_restore_log_multi=0 count
+RESULT off_restore_log_repeat=0 count
+RESULT off_restore_nonfinite_live=0 count
+RESULT thread_factor=1.000
+RESULT load1=165.65
+RESULT swapins=39

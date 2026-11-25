@@ -12,14 +12,14 @@ Rules are configured as comma- or newline-separated lines of the form::
     Nov-Mar Mon-Fri 06:00-22:00 = 0.25
     Jul = 0.10
 
-A comma between digits is a decimal separator (``0,25`` is ``0.25`` — the
-form a Swedish keyboard writes), so it never splits a rule; every other
+A comma between digits is a decimal separator (``0,25`` is ``0.25``, as a
+Swedish keyboard writes it). So it never splits a rule; every other
 comma, ``;`` and a newline separate rules from each other.
 
-Each part before the ``=`` is optional and narrows when the rate applies:
-a month or month range (wrapping allowed, ``Nov-Mar``), a weekday or weekday
-range (``Mon-Fri``), and a time-of-day range in the same ``HH:MM-HH:MM``
-grammar as the DHW demand windows (wrapping allowed). A rule with no
+Each part before the ``=`` is optional and narrows when the rate applies.
+A part is a month or month range (wrapping allowed, ``Nov-Mar``), a weekday
+or weekday range (``Mon-Fri``), or a time-of-day range in the same
+``HH:MM-HH:MM`` grammar as the DHW demand windows (wrapping allowed). A rule with no
 qualifiers applies always. **Overlapping rules add**: real tariffs are often
 a base transfer fee plus a high-load surcharge, and addition composes those
 without asking the user to pre-merge them.
@@ -64,12 +64,12 @@ _LOGGER = logging.getLogger(__name__)
 #: integration can plan against — real ToU transfer fees run 0.05–1.5 per
 #: kWh in every currency Tibber prices in. 25 in a whole-unit field is öre
 #: or cents, the classic 100× slip. Two layers use the bound (audit D4-05,
-#: #169): the config flow refuses a rules text above it (``spec_problem``),
-#: because the form is where the typo happens and can still be corrected;
-#: the coordinator raises a warn-only repair issue for a value that arrived
+#: #169). The config flow refuses a rules text above it (``spec_problem``),
+#: because the form is where the typo happens and can still be corrected.
+#: The coordinator raises a warn-only repair issue for a value that arrived
 #: any other way and never touches it, because the parser must stay
-#: permissive (a stored fee that stopped loading, or was silently capped,
-#: would be worse than a wrong one the user was told about).
+#: permissive. A stored fee that stopped loading, or was silently capped,
+#: would be worse than a wrong one the user was told about.
 IMPLAUSIBLE_FEE_SEK_PER_KWH = 10.0
 
 
@@ -232,7 +232,7 @@ def spec_problem(spec: str, currency: Any = None) -> str | None:
 
     A transfer fee is a charge, so a negative rate is a sign slip that the
     parser would otherwise store as a permanent subsidy on exactly the hours
-    the grid company charges most for; a rate above the implausibility bound
+    the grid company charges most for. A rate above the implausibility bound
     is öre typed where whole units were meant. The sign is judged first --
     "= -25" is two mistakes, and the sign is the one that inverts the plan.
     Stricter than ``parse_rules`` on purpose, and separate from it, for the
@@ -400,7 +400,7 @@ def min_component(
 #:
 #: Ellevio — villa effektabonnemang, HISTORICAL. 81.25 kr/kW incl. moms
 #: (example "6,8 kW × 81,25 kronor/kW = 553 kronor per månad",
-#: ellevio.se/abonnemang/elnatspriser/hus/), timmedeleffekt averaged over
+#: ellevio.se/abonnemang/elnatspriser/hus/). Timmedeleffekt is averaged over
 #: "de tre högsta effekttopparna under månaden, fördelade på tre olika
 #: dygn" with "mellan klockan 22 och 06 ... räknas bara halva
 #: effekttoppen" (ellevio.se/nyheter/energi-hemma/
@@ -411,7 +411,7 @@ def min_component(
 #: prismodell-utan-effektavgift/). The row stays for bills of that era and
 #: is labelled with its end date. Energy side of the same era: "fast
 #: avgift 395 kr/mån, överföringsavgift 7 öre/kWh" (ellevio.se/
-#: abonnemang/elnatspriser/hus/) — flat, so the rules are "= 0.07"; the
+#: abonnemang/elnatspriser/hus/) — flat, so the rules are "= 0.07". The
 #: monthly fixed fee has no config slot and no time dependence, so the
 #: catalog does not write it.
 #:
@@ -432,7 +432,7 @@ def min_component(
 #: effektavgift only "för en mindre kundgrupp sedan oktober 2025" with no
 #: published SEK/kW, and the planned autumn-2026 introduction is paused
 #: (vattenfalleldistribution.se/abonnemang-och-avgifter/avtal-och-avgifter/
-#: effektguiden/). eon_energidistribution_effekt_2026 — E.ON never
+#: effektguiden/). ``eon_energidistribution_effekt_2026`` — E.ON never
 #: introduced one: "du kommer inte att få en ny elnätsavgift med
 #: effektavgift från och med den 1 september 2026" (eon.se/el/elnat/
 #: effekt; "Vi har sedan tidigare pausat vårt planerade införande och det

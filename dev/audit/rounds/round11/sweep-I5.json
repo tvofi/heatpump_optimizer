@@ -1,0 +1,15 @@
+{
+ "class": "I5",
+ "instances": 1,
+ "barriered": true,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-I5/dangling_refs.py .  (every comment, docstring or .md line in tracked files outside history dirs that names a file whose basename no tracked file carries; base 28b864af6d: seams=176 over 73 files; null fixture 0; one-line perturbation 176 -> 177)",
+ "instance_list": [
+  {"file": "tools/policy/check-wave-script.mjs", "symbol": "comment at line 702-705 citing yield_rounds.py and tools/audit/round7/D13/class_vocabulary.mjs", "probe": "test -e tools/audit/round7/D13/class_vocabulary.mjs  # exits 1: the harness lives at dev/audit/rounds/round7/D13/class_vocabulary.mjs, and no yield_rounds.py is tracked (yield_rounds.mjs is)", "beyond_finding": true},
+  {"file": "tools/audit/seat/replay_draws.py", "symbol": "module docstring line 6 (tests/replay_draws.tsv)", "probe": "test -e tests/replay_draws.tsv  # exits 1", "beyond_finding": false},
+  {"file": "tools/audit/seat/update_pr.sh", "symbol": "header line 2 (updatepr.sh)", "probe": "test -e tools/audit/seat/updatepr.sh  # exits 1", "beyond_finding": false},
+  {"file": "tools/audit/seat/open_pr.sh", "symbol": "header line 2 (openpr.sh)", "probe": "test -e tools/audit/seat/openpr.sh  # exits 1", "beyond_finding": false},
+  {"file": "tools/audit/seat/plan_table.py", "symbol": "comment line 205 (gen_table_rev3.py)", "probe": "git ls-files | grep -q gen_table_rev3.py  # exits 1", "beyond_finding": false},
+  {"file": "tools/audit/seat/roster_lib.py", "symbol": "docstring line 9, comments 79 and 658 (gen_table_rev3.py)", "probe": "git ls-files | grep -q gen_table_rev3.py  # exits 1", "beyond_finding": false},
+  {"file": "tests/card.mjs", "symbol": "comments 501, 3743, 3794 (card_shapes.mjs)", "probe": "git ls-files | grep -q card_shapes.mjs  # exits 1", "beyond_finding": false}
+ ]
+}

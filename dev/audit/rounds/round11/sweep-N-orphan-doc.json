@@ -1,0 +1,1 @@
+{"class":"N-orphan-doc","instances":0,"barriered":false,"enumerator":"python3 dev/audit/rounds/round11/D14/orphan_doc.py .","instance_list":[{"file":"docs/CONTRIBUTING.md","symbol":"inbound links from README.md + docs/*.md|html","probe":"python3 dev/audit/rounds/round11/D14/orphan_doc.py . | grep -qx docs/CONTRIBUTING.md && exit 1","beyond_finding":false}]}

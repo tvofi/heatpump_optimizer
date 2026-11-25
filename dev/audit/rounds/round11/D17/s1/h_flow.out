@@ -1,0 +1,88 @@
+ROW options-step advanced PASS shown=['entities', 'entities_metering', 'entities_pump', 'building', 'building_preset', 'thermal_model', 'thermal_model_zones', 'hot_water_tank', 'hot_water_pumps', 'solar_pv', 'learning', 'learning_features', 'grid_connection', 'grid_fees', 'heat_curve', 'factory_reset'] documented=['entities', 'entities_metering', 'entities_pump', 'building', 'building_preset', 'thermal_model', 'thermal_model_zones', 'hot_water_tank', 'hot_water_pumps', 'solar_pv', 'learning', 'learning_features', 'grid_connection', 'grid_fees', 'heat_curve', 'factory_reset'] opened=16/16
+ROW options-step away PASS type=menu step=init parent=init stored=14.0 written=True errors=None
+ROW options-step building PASS type=menu step=advanced parent=advanced stored=80.0 written=True errors=None
+ROW options-step building_preset PASS type=menu step=advanced parent=advanced stored=20.0 written=True errors=None
+ROW options-step comfort PASS type=menu step=init parent=init stored=22.0 written=True errors=None
+ROW options-step entities PASS type=menu step=advanced parent=advanced stored=1.25 written=True errors=None
+ROW options-step entities_metering PASS type=menu step=advanced parent=advanced stored=True written=True errors=None
+ROW options-step entities_pump PASS type=menu step=advanced parent=advanced stored='observe' written=True errors=None
+ROW options-step factory_reset PASS opens=form (effect rowed under its fields)
+ROW options-step grid PASS type=menu step=init parent=init stored=80.0 written=True errors=None
+ROW options-step grid_connection PASS type=menu step=advanced parent=advanced stored=1 written=True errors=None
+ROW options-step grid_fees PASS type=menu step=advanced parent=advanced stored=0.9 written=True errors=None
+ROW options-step heat_curve PASS type=menu step=advanced parent=advanced stored=1.0 written=True errors=None
+Hot water: the anti-legionella cycle at 60 °C is above the 58 °C charge limit, so the tank is taken above that limit every 10 days
+ROW options-step hot_water PASS type=menu step=init parent=init stored=58.0 written=True errors=None
+ROW options-step hot_water_pumps PASS type=menu step=advanced parent=advanced stored=30 written=True errors=None
+ROW options-step hot_water_tank PASS type=menu step=advanced parent=advanced stored=12.0 written=True errors=None
+ROW options-step init PASS shown=['setup_overview', 'comfort', 'hot_water', 'tuning', 'grid', 'away', 'modbus_prefill', 'quick_setup', 'advanced'] documented=['setup_overview', 'comfort', 'hot_water', 'tuning', 'grid', 'away', 'modbus_prefill', 'quick_setup', 'advanced'] opened=9/9
+ROW options-step learning PASS type=menu step=advanced parent=advanced stored=2.0 written=True errors=None
+ROW options-step learning_features PASS type=menu step=advanced parent=advanced stored=True written=True errors=None
+ROW options-step modbus_prefill PASS opens=form save->menu/init
+ROW options-step quick_setup PASS type=menu step=init parent=init stored=300.0 written=True errors=None
+ROW options-step setup_overview PASS types=['form', 'form'] summary_moves=True
+ROW options-step solar_pv PASS type=menu step=advanced parent=advanced stored=0.7 written=True errors=None
+ROW options-step thermal_model PASS type=menu step=advanced parent=advanced stored=4.5 written=True errors=None
+ROW options-step thermal_model_zones PASS type=menu step=advanced parent=advanced stored=0.5 written=True errors=None
+ROW options-step tuning PASS type=menu step=init parent=init stored=2.0 written=True errors=None
+ROW option away.after_save PASS menu->menu/init close->create_entry kept=14.0
+ROW option building.after_save PASS menu->menu/advanced close->create_entry kept=80.0
+ROW option building_preset.after_save PASS menu->menu/advanced close->create_entry kept=20.0
+ROW option comfort.after_save PASS menu->menu/init close->create_entry kept=22.0
+ROW option entities.after_save PASS menu->menu/advanced close->create_entry kept=1.25
+ROW option entities_metering.after_save PASS menu->menu/advanced close->create_entry kept=True
+ROW option entities_pump.after_save PASS menu->menu/advanced close->create_entry kept='observe'
+ROW option grid.after_save PASS menu->menu/init close->create_entry kept=80.0
+ROW option grid_connection.after_save PASS menu->menu/advanced close->create_entry kept=1
+ROW option grid_fees.after_save PASS menu->menu/advanced close->create_entry kept=0.9
+ROW option heat_curve.after_save PASS menu->menu/advanced close->create_entry kept=1.0
+Hot water: the anti-legionella cycle at 60 °C is above the 58 °C charge limit, so the tank is taken above that limit every 10 days
+Hot water: the anti-legionella cycle at 60 °C is above the 58 °C charge limit, so the tank is taken above that limit every 10 days
+ROW option hot_water.after_save PASS menu->menu/init close->create_entry kept=58.0
+ROW option hot_water_pumps.after_save PASS menu->menu/advanced close->create_entry kept=30
+ROW option hot_water_tank.after_save PASS menu->menu/advanced close->create_entry kept=12.0
+ROW option learning.after_save PASS menu->menu/advanced close->create_entry kept=2.0
+ROW option learning_features.after_save PASS menu->menu/advanced close->create_entry kept=True
+ROW option modbus_prefill.after_save PASS close->create_entry
+ROW option quick_setup.after_save PASS menu->menu/init close->create_entry kept=300.0
+ROW option solar_pv.after_save PASS menu->menu/advanced close->create_entry kept=0.7
+ROW option thermal_model.after_save PASS menu->menu/advanced close->create_entry kept=4.5
+ROW option thermal_model_zones.after_save PASS menu->menu/advanced close->create_entry kept=0.5
+ROW option tuning.after_save PASS menu->menu/init close->create_entry kept=2.0
+ROW option modbus_prefill.compressor_freq_sensor PASS doc='sensor.hp_actual_compressor_frequency' suggested='sensor.hp_actual_compressor_frequency' stored='sensor.hp_actual_compressor_frequency' coordinator='sensor.hp_actual_compressor_frequency' saved=menu/init
+ROW option modbus_prefill.dhw_legionella_interval_days PASS doc=3.0 suggested=3.0 stored=3.0 coordinator=3.0 saved=menu/init
+ROW option modbus_prefill.dhw_legionella_temperature PASS doc=65.0 suggested=65.0 stored=65.0 coordinator=65.0 saved=menu/init
+ROW option modbus_prefill.dhw_min_temperature PASS doc=42.0 suggested=42.0 stored=42.0 coordinator=42.0 saved=menu/init
+ROW option modbus_prefill.dhw_setpoint PASS doc=52.0 suggested=52.0 stored=52.0 coordinator=52.0 saved=menu/init
+ROW option modbus_prefill.dhw_temp_entity PASS doc='sensor.hp_dhw_tank_temperature' suggested='sensor.hp_dhw_tank_temperature' stored='sensor.hp_dhw_tank_temperature' coordinator='sensor.hp_dhw_tank_temperature' saved=menu/init
+ROW option modbus_prefill.dhw_windows PASS doc='05:30-07:00' suggested='05:30-07:00' stored='05:30-07:00' coordinator='05:30-07:00' saved=menu/init
+ROW option modbus_prefill.heat_pump_capacity_limited_entity PASS doc='binary_sensor.hp_night_mode_frequency_reduction_active' suggested='binary_sensor.hp_night_mode_frequency_reduction_active' stored='binary_sensor.hp_night_mode_frequency_reduction_active' coordinator='binary_sensor.hp_night_mode_frequency_reduction_active' saved=menu/init
+ROW option modbus_prefill.heat_pump_max_power PASS doc=2.6 suggested=2.6 stored=2.6 coordinator=2.6 saved=menu/init
+ROW option modbus_prefill.heat_pump_return_temp_entity PASS doc='sensor.hp_entering_water_temperature_tw_in' suggested='sensor.hp_entering_water_temperature_tw_in' stored='sensor.hp_entering_water_temperature_tw_in' coordinator='sensor.hp_entering_water_temperature_tw_in' saved=menu/init
+ROW option modbus_prefill.heat_pump_supply_temp_entity PASS doc='sensor.hp_leaving_water_temperature_t1' suggested='sensor.hp_leaving_water_temperature_t1' stored='sensor.hp_leaving_water_temperature_t1' coordinator='sensor.hp_leaving_water_temperature_t1' saved=menu/init
+ROW option modbus_prefill.mixing_valve_write_target_kind PASS doc='flow' suggested='flow' stored='flow' coordinator='flow' saved=menu/init
+ROW option modbus_prefill.modbus_prefill_prefix PASS found-under-wp stored='wp'; nothing-under-zz stored=None
+ROW option modbus_prefill.outdoor_temp_entity PASS doc='sensor.hp_outdoor_air_temperature' suggested='sensor.hp_outdoor_air_temperature' stored='sensor.hp_outdoor_air_temperature' coordinator='sensor.hp_outdoor_air_temperature' saved=menu/init
+ROW option modbus_prefill.prefill_device PASS device preview offers ['after_save', 'dhw_setpoint', 'outdoor_temp_entity']
+ROW option modbus_prefill.prefill_offer PASS stored=True (survives restart: in entry)
+ROW option modbus_prefill.silent_mode_windows PASS doc='22:00-06:00' suggested='22:00-06:00' stored='22:00-06:00' coordinator='22:00-06:00' saved=menu/init
+ROW option modbus_prefill.space_setpoint_unit PASS doc='flow' suggested='flow' stored='flow' coordinator='flow' saved=menu/init
+Factory reset (settings) applied; restore_learned_snapshot undoes it
+Learned house_heat_loss_scale reset to the configuration: reset on request
+Learned lower_floor_loss_ratio reset to the configuration: reset on request
+Factory reset (learners) applied; restore_learned_snapshot undoes it
+Learned house_heat_loss_scale reset to the configuration: reset on request
+Learned lower_floor_loss_ratio reset to the configuration: reset on request
+Factory reset (both) applied; restore_learned_snapshot undoes it
+factory: {('both', False): ('menu', 'advanced', 23.0), ('settings', True): ('abort', 'factory_reset_done', None), ('learners', True): ('abort', 'factory_reset_done', 23.0), ('both', True): ('abort', 'factory_reset_done', None)} {('both', False): 0, ('settings', True): 0, ('learners', True): 1, ('both', True): 1}
+ROW option factory_reset.confirm PASS unticked -> ('menu', 'advanced', 23.0)
+ROW option factory_reset.scope PASS settings->('abort', 'factory_reset_done', None) learners->('abort', 'factory_reset_done', 23.0) both->('abort', 'factory_reset_done', None) learned_resets={('both', False): 0, ('settings', True): 0, ('learners', True): 1, ('both', True): 1}
+RESULT steps_examined=26 of 26
+RESULT after_save_examined=22
+RESULT modbus_examined=18
+RESULT factory_examined=2
+RESULT after_save_fail=0
+RESULT flow_fail=0
+RESULT thread_factor=1.001
+RESULT load1=5.1337890625
+RESULT swapins=0

@@ -1,9 +1,6 @@
 # D5 acceptance criteria: docs structure and code comments
 
-> Docs structure, flow and content. Verify claims in docs.
-> Comments in code should be concise but precise and easy to understand.
-
-— the owner, `D5.md`. Claims in docs are D6's (`D6.md`).
+The owner's brief is quoted in `D5.md`. Claims in docs are D6's (`D6.md`).
 
 Drafted by a fixer seat under mandate 6893738184 (scope all);
 binding as the owner's words until the owner rewrites them.

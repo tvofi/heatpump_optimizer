@@ -1,0 +1,390 @@
+{
+ "dimension": "D17",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D17/s2/REPORT.md",
+ "exposure": "Read README.md/docs/configuration.md sections and custom_components/heatpump_optimizer/strings.json as the oracle (D17 brief); no earlier-round finding read.",
+ "coverage": [
+  {
+   "step": "D17.M1",
+   "enumerator": "sh -c 'python3 tools/audit/enumerate.py d17-features --kind config-step; python3 tools/audit/enumerate.py d17-features --kind config-field'",
+   "universe": 117,
+   "examined": 117,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/oracles.py -> RESULT items=117, items_undocumented=0: every item's documented sentence printed with its strings.json key (config.step.<step>.description / data_description.<field>); no D5 lead owed"
+  },
+  {
+   "step": "D17.M2",
+   "enumerator": "sh -c 'python3 tools/audit/enumerate.py d17-features --kind config-step; python3 tools/audit/enumerate.py d17-features --kind config-field'",
+   "universe": 117,
+   "examined": 117,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py -> one executable oracle per item (117 rows, RESULT items=117), each written from the M1 sentence as an observable in the plan, the writes, the data dict or the created entry, on vs off; oracles listed in REPORT.md"
+  },
+  {
+   "step": "D17.M3",
+   "enumerator": "sh -c 'python3 tools/audit/enumerate.py d17-features --kind config-step; python3 tools/audit/enumerate.py d17-features --kind config-field'",
+   "universe": 117,
+   "examined": 117,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py -> each item set through the real config flow, coordinator built from the created entry, one real cycle: RESULT items_held=109 items_failed=8 (the D17-s2-01..05 seams); restart arm (new coordinator on the same entry) on 51 rows, all same; named states: two-zone on/off (7 zone fields), weekday vs weekend (dhw_windows), due vs not-due legionella, binding tank floor, binding silent window; --perturb-two-zone-auto -> items_held=112"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D17.M3",
+   "what": "The restart arm (a new coordinator on the same entry) ran on 51 of 117 rows (the plan/state-observable rows); the flow-only and entity-role rows (user.*, reauth_confirm, device_prefill.*, user_sensors defrost/online/fault/switch/mode, quick_setup wood/buffer/dhw_tank/two_zone, the config-step rows) were not re-run across a restart. The holiday named state was not exercised (no field of these two kinds reads it)."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D17-s2-01",
+   "scope": "D17-s2",
+   "step": "D17.M3",
+   "title": "Two-zone mode \"auto\" is always on: finish-now and questionnaire entries are planned as two-zone houses",
+   "severity": "high",
+   "claim": "An entry created by Finish setup now (no zone value saved) or by the building questionnaire (never asked the two-zone question) runs the two-zone model, because ThermalParameters.from_config treats the default mode 'auto' exactly like 'on'.",
+   "mechanism": "thermal_model.py:1122 tests `two_zone_mode in (TWO_ZONE_MODE_ON, DEFAULT_TWO_ZONE_MODE)`; DEFAULT_TWO_ZONE_MODE is 'auto', so the presence rule in the else branch (the documented meaning of auto: 'two-zone as soon as any zone value has ever been saved', and the comment two lines above) is unreachable. config_flow._derive_preset then reads that verdict through presets.preset_from_config and writes two-zone keys for every questionnaire answer, contrary to its own docstring ('derives a single-zone model').",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/two_zone_auto.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s2/two_zone_auto.py",
+    "value": 1,
+    "unit": "entries (finish_now entry with no zone value planned two-zone)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+    "tolerance": "exact",
+    "load1": 3.3,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.from_config",
+   "perturbation": {
+    "change": "ThermalParameters.from_config wrapped so mode 'auto' (or absent) answers by zone-key presence -- the one-line fix of dropping DEFAULT_TWO_ZONE_MODE from the tuple at thermal_model.py:1122 (`two_zone_auto.py --perturb`)",
+    "expected_direction": "to_zero",
+    "observed_value": "auto_two_zone_without_values 1->0, questionnaire_two_zone_unasked 1->0, upper_emitter_moves_single_zone_answer 1->0; features_e2e.py items_held 109->112"
+   },
+   "metric_definition": "Created entries whose published two_zone_enabled is True while the entry holds no zone value and never answered the two-zone question (mode absent = auto).",
+   "phenomenon_property": "An entry whose two-zone mode is 'auto' (or absent) is planned two-zone exactly when it carries a zone value; a setup path that never asks the question yields a single-zone model.",
+   "seam_rule": "grep -n \"DEFAULT_TWO_ZONE_MODE\\|TWO_ZONE_MODE_AUTO\" custom_components/heatpump_optimizer/*.py  (every reader of the auto default; plus PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D17/s2/two_zone_auto.py over the create_entry paths)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/two_zone_auto.py",
+    "value": "explicit_off_two_zone=0, explicit_on_two_zone=1",
+    "note": "an explicit on/off answer is honoured in both arms; only the auto default is wrong"
+   },
+   "reproduction_steps": [
+    "Walk user -> user_sensors -> finish_setup -> finish_now -> setup_overview -> create_entry",
+    "Build HeatPumpOptimizerCoordinator on the entry; run one cycle",
+    "two_zone_enabled is True and the plan carries upper/lower trajectories although no zone value exists"
+   ],
+   "proposed_fix_scope": "thermal_model.py ThermalParameters.from_config: let 'auto' fall to the presence rule; re-check presets.preset_from_config / config_flow._derive_preset so a fresh questionnaire derives single-zone keys only; golden fixtures of default entries will drift.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/presets.py",
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "expected_golden_drift": [
+    "tests/golden coordinator fixtures built from entries without two_zone_mode (coord_minimal and similar)"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D17-s2-02",
+   "scope": "D17-s2",
+   "step": "D17.M3",
+   "title": "The outdoor temperature sensor never reaches the plan while a weather forecast exists",
+   "severity": "medium",
+   "claim": "With a forecast available, the plan's current-hour outdoor temperature and its energy are identical whether the configured outdoor sensor reads -25, -3 or +10 C, although the field is documented as beating the forecast for the current hour.",
+   "mechanism": "HeatPumpOptimizerCoordinator._weather_series builds the plan's outdoor series from forecast rows only; the measured value (_current_state.outdoor_temperature) is used for that series only in the no-forecast fallback. The sensor feeds COP/learning and the published outdoor_temperature, not the plan.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/outdoor_sensor.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s2/outdoor_sensor.py",
+    "value": 0.0,
+    "unit": "K spread of plan step-0 outdoor over sensor readings {-25,-3,+10} C",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+    "tolerance": "1e-6",
+    "load1": 3.3,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_series",
+   "perturbation": {
+    "change": "_weather_series wrapped so the current hour's four quarter steps take the measured outdoor temperature (`outdoor_sensor.py --perturb`)",
+    "expected_direction": "up",
+    "observed_value": "step0_outdoor_spread_K 0.0->35.0, plan_kwh_spread 0.0->5.124 kWh"
+   },
+   "metric_definition": "Max-min over sensor readings {-25,-3,+10} C of the plan's step-0 outdoor temperature (and of planned space kWh), forecast fixed at -5 C.",
+   "phenomenon_property": "When an outdoor sensor is configured and fresh, the plan's current hour is planned at the measured outdoor temperature rather than the forecast's.",
+   "seam_rule": "grep -n \"_weather_series\\|outdoor_temps\" custom_components/heatpump_optimizer/coordinator.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/outdoor_sensor.py",
+    "value": "null_no_forecast_step0_spread_K=35.0",
+    "note": "with no forecast the same harness sees the sensor reach the plan, so the zero is the forecast path, not the rig"
+   },
+   "proposed_fix_scope": "coordinator._weather_series (or _forecast_arrays): override or bias the current hour with a fresh outdoor reading; or, if the plan deliberately ignores it, D6 rewords strings.json and docs/configuration.md:87.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "docs/configuration.md"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D17-s2-03",
+   "scope": "D17-s2",
+   "step": "D17.M3",
+   "title": "Quick setup's wood furnace and wood-tank probe change nothing in the plan of the plant quick setup creates",
+   "severity": "medium",
+   "claim": "On an entry made by quick setup with wood furnace and wood buffer tank answered yes and the top probe picked, the planned energy is identical with the furnace on or off and the probe at 85 or 35 C, because the two-tank model also requires a throttling mixing valve the quick path never asks for.",
+   "mechanism": "ThermalParameters.topology_layout returns no_valve whenever mixing_valve_mode is not throttling, so wood_tank_configured (the probe) never selects two_tank_4way; the external-heat detector is enabled only by the separate options switch external_heat_detection_enabled (default False), so 'stand the pump down while the fire is lit' never happens either. quick_setup._quick_setup_schema's docstring calls the probes 'the two-tank model's own gate'. Grid cells (4, printed individually by the harness, below the five-cell leave-one-out threshold): all four 21.6738 kWh; leave-one-out spread 0.0.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/wood_quick.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s2/wood_quick.py",
+    "value": 0.0,
+    "unit": "kWh spread of planned space energy over furnace{on,off} x probe{85,35} C on the quick-setup entry",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+    "tolerance": "1e-6",
+    "load1": 3.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.topology_layout",
+   "perturbation": {
+    "change": "config: the same quick-setup entry with options mixing_valve_mode=smart_write (a throttling valve) stored",
+    "expected_direction": "up",
+    "observed_value": "valve_arm_plan_kwh_spread=11.805 kWh (furnace on, probe 85 C: 5.65 kWh vs probe 35 C: 14.90 kWh)"
+   },
+   "metric_definition": "Max-min of planned space kWh over the 2x2 grid furnace{on,off} x wood-probe{85,35} C on an entry created by the quick-setup path.",
+   "phenomenon_property": "A wood furnace answered yes with a probe assigned on quick setup changes the plan with the wood tank's heat (or the page says what else it needs), on the plant topology quick setup produces.",
+   "seam_rule": "grep -n \"wood_tank_configured\\|two_tank_modelled\\|topology_layout\" custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/wood_quick.py",
+    "value": "valve_arm_plan_kwh_spread=11.805",
+    "note": "the identical harness sees the probe move the plan once a valve exists"
+   },
+   "proposed_fix_scope": "quick_setup (ask for the valve, or enable detection with wood_furnace) or strings.json quick_setup wood_* descriptions naming the valve condition as buffer_tank's already does.",
+   "files": [
+    "custom_components/heatpump_optimizer/quick_setup.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/strings.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  },
+  {
+   "id": "D17-s2-04",
+   "scope": "D17-s2",
+   "step": "D17.M3",
+   "title": "The night-mode schedule kept on the setup pre-fill page caps nothing",
+   "severity": "medium",
+   "claim": "A pump night-mode schedule kept on the config flow's device pre-fill page leaves the plan at full nameplate power inside it, because the companion power fraction defaults to 1.0 and the setup page never offers it.",
+   "mechanism": "silent_mode.compose/caps return no cap when silent_mode_power_fraction >= 1.0 (DEFAULT_SILENT_MODE_FRACTION=1.0); the setup pre-fill page writes silent_mode_windows only, so the stored schedule is inert until the user finds the fraction on the options grid page.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/silent_prefill.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s2/silent_prefill.py",
+    "value": 0.0,
+    "unit": "kW change of the max planned power inside the kept 06-10 UTC window",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+    "tolerance": "1e-6",
+    "load1": 3.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/silent_mode.py:compose",
+   "perturbation": {
+    "change": "config: silent_mode_power_fraction=0.6 stored beside the kept schedule; code: `silent_prefill.py --perturb` reads the fraction as 0.6 when a schedule is stored at the 1.0 default",
+    "expected_direction": "down",
+    "observed_value": "with_fraction_cap_delta_kW=-2.0; under --perturb kept_schedule_cap_delta_kW=-2.0"
+   },
+   "metric_definition": "Max planned kW inside the kept night window with the schedule minus without it, the window being the horizon's only cheap stretch.",
+   "phenomenon_property": "A night-mode schedule the setup flow stores reduces the power the plan counts on inside it.",
+   "seam_rule": "grep -n \"silent_mode_windows\\|silent_mode_power_fraction\" custom_components/heatpump_optimizer/config_flow.py custom_components/heatpump_optimizer/modbus_prefill.py custom_components/heatpump_optimizer/silent_mode.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/silent_prefill.py",
+    "value": "with_fraction_cap_delta_kW=-2.0",
+    "note": "the same plan does cap once a fraction is stored, so the zero is the missing fraction"
+   },
+   "proposed_fix_scope": "config_flow device_prefill (offer or default the fraction with the schedule) or silent_mode (a stored schedule with no fraction caps at a documented default).",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/silent_mode.py",
+    "custom_components/heatpump_optimizer/const.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D17-s2-05",
+   "scope": "D17-s2",
+   "step": "D17.M3",
+   "title": "The setup pre-fill page stores its After-saving navigation choice in the entry's data",
+   "severity": "low",
+   "claim": "Submitting the config flow's device pre-fill page writes the navigation field after_save ('menu' or 'close') into the created entry's data, where no reader uses it.",
+   "mechanism": "async_step_device_prefill keeps every non-empty submitted key (`saved = {k: v for k, v in _flatten_section_input(user_input).items() if v not in (None, '')}`) and the shared _prefill_schema carries after_save with a default; the options flow pops the key instead.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/after_save_stray.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s2/after_save_stray.py",
+    "value": 2,
+    "unit": "entries carrying after_save over choices {menu, close}",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13, Linux x86_64 container, 4 vCPU, shared with up to two other finder seats",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running on the box; the number is a count/plan value, immune to load",
+    "tolerance": "exact",
+    "load1": 3.1,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_device_prefill",
+   "perturbation": {
+    "change": "config_flow._flatten_section_input wrapped to drop after_save (`after_save_stray.py --perturb`)",
+    "expected_direction": "to_zero",
+    "observed_value": "entries_with_after_save 2->0; next step finish_setup in both arms"
+   },
+   "metric_definition": "Count of created entries whose data holds the key after_save, over the two choices.",
+   "phenomenon_property": "A navigation-only form field is never persisted into the config entry.",
+   "seam_rule": "grep -n \"CONF_AFTER_SAVE\" custom_components/heatpump_optimizer/config_flow.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/after_save_stray.py",
+    "value": "next step=finish_setup for both choices",
+    "note": "the documented navigation holds; only the persistence is wrong"
+   },
+   "proposed_fix_scope": "config_flow.async_step_device_prefill: drop CONF_AFTER_SAVE from `saved` (or omit the field from the setup variant of the page).",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "user step: name titles the entry; Tibber token authorises the price fetch; an entity price source with its price entity prices the plan; the chosen weather entity is the one fetched",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "title='Cellar plant'; Authorization 'Bearer tok-a'/'Bearer tok-b'; plan price[0] 0.560/2.060; weather.get_forecasts entity_id follows the field"
+  },
+  {
+   "claim": "reauth_confirm replaces the token on the entry and reloads",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "reauth_successful, stored 'tok-new'"
+  },
+  {
+   "claim": "user_sensors: indoor, floor return, tank, solar radiation readings reach the state/plan and survive a restart; the switch receives the plan's action; Open-Meteo source and location drive the plan's solar gain and the location is ignored under the weather source; buffer cooling is learned only with the sensor; a cooling mode plans no heat; defrost/online/fault reach the signals",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "indoor 21->18 plan kWh 30.94->48.30; solar gain weather 43.2 / OM lat30 172.8 / lat60 345.6; buffer samples>0 only with sensor; Cool -> 0.0 kWh space and DHW"
+  },
+  {
+   "claim": "a tank seen at the disinfection temperature resets the anti-legionella timer (dhw_temp_entity's second sentence)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "due 168.0 h after a 61 C reading vs 48.0 h at 50 C"
+  },
+  {
+   "claim": "temperature page: target is what the climate entity shows; the daytime plan holds above min_temperature; max lowers the warmest pre-heat; day/night comfort raise/lower the band means; day start/end move the band",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "climate target 21->22; warmest 21.72->21.55; day-band mean 20.555->20.639; night mean 19.691->19.299"
+  },
+  {
+   "claim": "thermal and building_extras numbers and the questionnaire answers reach the plan on every path that asks them; optimization_interval sets the update interval",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "plan fingerprint moves on all 9+3+5x2 rows, restart_same=True; interval 0:30 -> 1:00"
+  },
+  {
+   "claim": "zone fields move the plan only with two zones on (documented two-zone-only); solar fields scale the free solar gain; buffer volume only sizes the modelled tank without a valve",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "7/7 zone fields: on moves, off unchanged; solar gain 43.2->108.0/21.6/21.6; buffer rate 0.396->0.163, plan unchanged"
+  },
+  {
+   "claim": "weather sensitivity raises heat under wind/rain; rain multiplier 1.0 makes rain irrelevant",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "wind 40.96->69.38 kWh; rain 36.91->50.47 kWh; at 1.0 rain/dry 30.944/30.944"
+  },
+  {
+   "claim": "dhw page: every field moves the hot-water plan in the state that binds it; day selector windows follow the weekday; idle floor binds on a cold tank; legionella on/off, temperature and interval act on a due cycle; dhw_enabled off plans no tank",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "first window step weekday=1 weekend=4; idle 20->35 C 5.021->5.103 kWh; peak 60/65 C; due at 1-day not 7-day; dhw 2.50/0.00 kWh"
+  },
+  {
+   "claim": "quick setup: two-zone/dhw tank answers set the model; buffer yes records 500 L and only sizes the tank (as documented); wood top probe alone gives the heat left, bottom alone none",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "two_zone False->True; dhw 2.18/0.0 kWh; wood energy 1.7/22.0 kWh at 50/85 C; bottom alone None"
+  },
+  {
+   "claim": "device pre-fill: an empty pick skips; a pick opens suggestions; kept DHW/power values land and move the plan; entity roles are offered on an empty slot only and land",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "offered 7 keys for the G7b fixture; dhw kWh 2.18->2.39/2.46/2.12; max power plan 21.67->20.96; outdoor/dhw_temp not offered over a filled slot"
+  },
+  {
+   "claim": "device pre-fill dhw_windows 'turns hot water planning on' holds on the ordinary offer path (no explicit dhw_enabled); after quick setup's explicit 'no tank' the explicit answer wins and the window does not turn it on (wording lead to D6, not a D17 defect)",
+   "command": "ad-hoc probe through the same rig (offer path: FakeEntry options prefill_offer=True)",
+   "value": "offer path: model dhw_enabled True, 2.117 kWh; quick path tank=no: dhw_enabled False, 0.0 kWh"
+  },
+  {
+   "claim": "setup_overview names the configured slots; building menu lands both describe and expert values; finish-now entry solves",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s2/features_e2e.py",
+   "value": "overview 660 chars naming sensor.indoor; preset marked; house_thermal_mass 10.0 stored; finish_now reason None"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D17/s2/rig.py",
+  "dev/audit/rounds/round11/D17/s2/oracles.py",
+  "dev/audit/rounds/round11/D17/s2/features_e2e.py",
+  "dev/audit/rounds/round11/D17/s2/two_zone_auto.py",
+  "dev/audit/rounds/round11/D17/s2/outdoor_sensor.py",
+  "dev/audit/rounds/round11/D17/s2/wood_quick.py",
+  "dev/audit/rounds/round11/D17/s2/silent_prefill.py",
+  "dev/audit/rounds/round11/D17/s2/after_save_stray.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D17-s3",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._dhw_in_demand_window / _dhw_effective_windows",
+   "what": "With a day-selector spec 'weekdays 06:00-08:30, weekend 08:00-09:30', on Saturday 07:00 UTC the published dhw_in_demand_window is True, dhw_next_window_in_hours 0.0 and dhw_windows '06:00-09:30' (the flat union, params.dhw_demand_windows), while the plan uses the weekend window opening 08:00. Entity attributes misreport per-day windows."
+  },
+  {
+   "owner_seat": "D17-s1",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalParameters.from_config (two_zone_mode)",
+   "what": "Same root as D17-s2-01 seen from the option: the options page's 'Automatic' (strings.json options.step.thermal_model_zones two_zone_mode, docs/configuration.md:1075 'two-zone as soon as any zone value has ever been saved') behaves as On."
+  },
+  {
+   "owner_seat": "D17-s1",
+   "file": "custom_components/heatpump_optimizer/silent_mode.py",
+   "symbol": "compose / DEFAULT_SILENT_MODE_FRACTION",
+   "what": "The options grid page's silent_mode_windows is documented (docs/configuration.md:1171) as stopping the plan counting on full power, but with silent_mode_power_fraction at its 1.0 default it caps nothing (D17-s2-04's mechanism on the options axis)."
+  },
+  {
+   "owner_seat": "D17-s1",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_external_heat_config (ExternalHeatConfig enabled)",
+   "what": "wood_furnace_enabled on does not enable the external-heat detector; external_heat_detection_enabled defaults False, so 'stand the pump down while the fire is lit' needs a second option."
+  },
+  {
+   "owner_seat": "D17-s1",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "symbol": "space_setpoint_unit / mixing_valve_write_target_kind",
+   "what": "Kept from the setup pre-fill page they land in the entry; their effect on the writes was not measured here (options/write axis)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/strings.json",
+   "symbol": "config.step.temperature.data_description.target_temperature",
+   "what": "Says the plan aims for the comfort temperatures and the target is the climate reference, yet target 21->22 moves the solved plan (optimizer.py reads config.target_temp in fallbacks/held reference/baseline): sentence vs code, a D6 item."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/strings.json",
+   "symbol": "config.step.device_prefill.data_description.dhw_windows",
+   "what": "'Saving a hot water time frame here turns hot water planning on' omits that an explicit 'no hot water tank' answer (quick setup writes dhw_enabled False) wins: measured 0.0 kWh after keeping a window. D6 wording."
+  }
+ ]
+}

@@ -1,0 +1,85 @@
+SEAM bool-number custom_components/heatpump_optimizer/boost.py::_restore_settle ok 617
+SEAM bool-number custom_components/heatpump_optimizer/comfort_learning.py::ComfortLearner.from_dict FLAG 240
+SEAM bool-number custom_components/heatpump_optimizer/config_flow.py::_same_setting FLAG 2560
+SEAM bool-number custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_load_energy_totals FLAG 8415
+SEAM bool-number custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._async_load_ledger FLAG 8334
+SEAM bool-number custom_components/heatpump_optimizer/coordinator.py::_fold_away FLAG 2488
+SEAM bool-number custom_components/heatpump_optimizer/coordinator.py::_parse_ecl110_state FLAG 543
+SEAM bool-number custom_components/heatpump_optimizer/coordinator.py::_with_sensor_advisor FLAG 2202
+SEAM bool-number custom_components/heatpump_optimizer/coordinator.py::plan_stale_limit_minutes ok 818
+SEAM bool-number custom_components/heatpump_optimizer/defrost.py::DefrostWindow._elapsed ok 739
+SEAM bool-number custom_components/heatpump_optimizer/dhw_draws.py::DrawStats.from_dict FLAG 150
+SEAM bool-number custom_components/heatpump_optimizer/diagnostics.py::_inputs_at.aged FLAG 241
+SEAM bool-number custom_components/heatpump_optimizer/diagnostics.py::_over_age FLAG 169
+SEAM bool-number custom_components/heatpump_optimizer/draw_range.py::_stored_idle ok 444
+SEAM bool-number custom_components/heatpump_optimizer/drift.py::_finite_floats ok 347
+SEAM bool-number custom_components/heatpump_optimizer/duty_switch.py::_stored_number ok 263
+SEAM bool-number custom_components/heatpump_optimizer/learner_progress.py::_snapshot_count ok 108
+SEAM bool-number custom_components/heatpump_optimizer/ledger.py::MonthlyLedger.observe_spot_and_settle_savings FLAG 334
+SEAM bool-number custom_components/heatpump_optimizer/legionella.py::LegionellaGuard.async_load FLAG 222
+SEAM bool-number custom_components/heatpump_optimizer/notifier.py::_comfort FLAG 129
+SEAM bool-number custom_components/heatpump_optimizer/off_restore.py::_entry_of FLAG 143
+SEAM bool-number custom_components/heatpump_optimizer/pump_arbiter.py::_flow_command FLAG 858
+SEAM bool-number custom_components/heatpump_optimizer/pump_arbiter.py::_writable ok 2234
+SEAM bool-number custom_components/heatpump_optimizer/replay_doc.py::_collect_strings ok 399
+SEAM bool-number custom_components/heatpump_optimizer/replay_doc.py::_number ok 263
+SEAM bool-number custom_components/heatpump_optimizer/replay_doc.py::_scan_leaf ok 703
+SEAM bool-number custom_components/heatpump_optimizer/replay_doc.py::clean_value ok 236
+SEAM bool-number custom_components/heatpump_optimizer/replay_doc.py::json_decimal_places ok 192
+SEAM bool-number custom_components/heatpump_optimizer/replay_doc.py::numeric FLAG 181
+SEAM bool-number custom_components/heatpump_optimizer/store.py::_number ok 223
+SEAM bool-number custom_components/heatpump_optimizer/tariff.py::_stored_peaks FLAG 520
+SEAM bool-number custom_components/heatpump_optimizer/thermal_model.py::ThermalParameters.dhw_inlet_reference FLAG 820
+SEAM bool-number custom_components/heatpump_optimizer/topology.py::rank_sensor_advisor FLAG 1150
+SEAM dyn-timedelta custom_components/heatpump_optimizer/boost.py::_restore_settle FLAG 617
+SEAM feed-instant custom_components/heatpump_optimizer/accuracy.py::AccuracyTracker.from_dict ok 511
+SEAM feed-instant custom_components/heatpump_optimizer/accuracy.py::AccuracyTracker.replay FLAG 230
+SEAM feed-instant custom_components/heatpump_optimizer/accuracy.py::_stored_promise FLAG 613
+SEAM feed-instant custom_components/heatpump_optimizer/binary_sensor.py::MoldFloorBreachBinarySensor._plan_outdoor_now ok 218
+SEAM feed-instant custom_components/heatpump_optimizer/coordinator.py::HeatPumpOptimizerCoordinator._immersion_dhw_margin ok 9292
+SEAM feed-instant custom_components/heatpump_optimizer/coordinator.py::_comparable_ts FLAG 582
+SEAM feed-instant custom_components/heatpump_optimizer/coordinator.py::_outage_reading FLAG 893
+SEAM feed-instant custom_components/heatpump_optimizer/coordinator.py::_stored_isoformat FLAG 439
+SEAM feed-instant custom_components/heatpump_optimizer/drift.py::stored_instant FLAG 108
+SEAM feed-instant custom_components/heatpump_optimizer/duty_switch.py::Direction.from_row ok 253
+SEAM feed-instant custom_components/heatpump_optimizer/heat_curve.py::_age_s FLAG 411
+SEAM feed-instant custom_components/heatpump_optimizer/manual_plan.py::ManualOverride.from_dict FLAG 266
+SEAM feed-instant custom_components/heatpump_optimizer/manual_plan.py::_parse_dt FLAG 98
+SEAM feed-instant custom_components/heatpump_optimizer/open_meteo.py::_parse_block FLAG 222
+SEAM feed-instant custom_components/heatpump_optimizer/price_model.py::_entries_by_day FLAG 582
+SEAM feed-instant custom_components/heatpump_optimizer/price_model.py::_noon FLAG 483
+SEAM feed-instant custom_components/heatpump_optimizer/price_model.py::_raw_start FLAG 748
+SEAM feed-instant custom_components/heatpump_optimizer/price_tiles.py::_aware FLAG 306
+SEAM feed-instant custom_components/heatpump_optimizer/services.py::handle_apply_manual_plan FLAG 1132
+SEAM feed-instant custom_components/heatpump_optimizer/store.py::_bound_instants ok 159
+SEAM feed-instant custom_components/heatpump_optimizer/wood_fuel.py::_as_dt FLAG 290
+SEAM num-flag custom_components/heatpump_optimizer/inputs.py::parse_bool FLAG 964
+SEAM opt-float custom_components/heatpump_optimizer/comfort_band.py::effective FLAG 85
+SEAM opt-float custom_components/heatpump_optimizer/config_flow.py::_effective FLAG 937
+SEAM opt-float custom_components/heatpump_optimizer/grid_fee.py::GridFeeSchedule.from_config ok 278
+SEAM opt-float custom_components/heatpump_optimizer/price_model.py::pull_prices ok 859
+SEAM opt-float custom_components/heatpump_optimizer/quiet_windows.py::measured_ceiling_kw FLAG 390
+SEAM opt-float custom_components/heatpump_optimizer/quiet_windows.py::silent_cap_kw ok 419
+SEAM opt-float custom_components/heatpump_optimizer/thermal_model.py::ThermalParameters.from_config FLAG 1089
+SEAM opt-float custom_components/heatpump_optimizer/thermal_model.py::_flow_curve_values FLAG 194
+SEAM opt-float custom_components/heatpump_optimizer/topology.py::_slot_extras FLAG 391
+SEAM opt-float custom_components/heatpump_optimizer/topology.py::describe_setup FLAG 713
+SEAM opt-float custom_components/heatpump_optimizer/wood_fuel.py::_wood_override_fuel ok 364
+SEAM opt-float custom_components/heatpump_optimizer/wood_fuel.py::wood_fuel_ready ok 128
+SEAM store-leaf custom_components/heatpump_optimizer/store.py::_poisoned ok 89
+SEAM window custom_components/heatpump_optimizer/grid_fee.py::fee_bound FLAG 81
+SEAM window custom_components/heatpump_optimizer/grid_fee.py::spec_problem FLAG 248
+SEAM window custom_components/heatpump_optimizer/inputs.py::plausible_c ok 266
+SEAM window custom_components/heatpump_optimizer/open_meteo.py::_parse_block ok 187
+SEAM window custom_components/heatpump_optimizer/slab_seed.py::judge FLAG 84
+RESULT num-flag seams=1 flagged=1
+RESULT bool-number seams=33 flagged=19
+RESULT dyn-timedelta seams=1 flagged=1
+RESULT opt-float seams=12 flagged=7
+RESULT window seams=5 flagged=3
+RESULT feed-instant seams=21 flagged=16
+RESULT store-leaf seams=1 flagged=0
+RESULT judged_sites_listed=7 of 7
+RESULT judged_sites_flagged=5 of 7 (D1-s2-05,D1-s2-06,D1-s3-01,D1-s3-02,D1-s3-03)
+RESULT seams_total=74
+RESULT seams_flagged=47

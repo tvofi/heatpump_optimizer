@@ -1,0 +1,46 @@
+{
+ "id": "D5-s10-01",
+ "scope": "D5-s10",
+ "step": "D5.M4",
+ "title": "pre-edit.sh names .claude/rules/ as the source of .cursor/rules and sends seats to edit a generated copy",
+ "severity": "medium",
+ "claim": "pre-edit.sh's header (line 14) and its .cursor/rules refusal (lines 94-97) say the Cursor rules are generated from .claude/rules/ and tell the seat to edit that source and regenerate, but rules_sync.mjs generates both .claude/rules/ and .cursor/rules/ from dev/governance/rules/, so an edit made where the hook says is discarded by the regeneration (edit_reaches_cursor=0) and the hook lets that generated directory through (unguarded_generated=1).",
+ "mechanism": "R9-RO-5 moved the canonical rules to dev/governance/rules/ and made .claude/rules/ a second generated output (tools/policy/rules_sync.mjs SRC/CLAUDE_OUT/CURSOR_OUT); the hook's comment, refusal text and guard still describe the pre-move layout, and its self-test pins the stale reading ('the SOURCE rule is allowed', .claude/rules/gate-scoping.md).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/pre_edit_source.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "harness_path": "dev/audit/rounds/round11/D5/s10/pre_edit_source.py",
+  "value": 0,
+  "unit": "bool (edit_reaches_cursor)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12, x86_64 Intel Xeon @ 2.10GHz, 4 vCPU, Python 3.14.7, node v22.23.4",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; a count, contention-immune",
+  "tolerance": "exact",
+  "load1": 1.92,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": ".claude/hooks/pre-edit.sh:decide (HPO_PRE_EDIT_PY block), driven end to end; tools/policy/rules_sync.mjs:SRC",
+ "perturbation": {
+  "change": "--perturb: replace .claude/rules/ with dev/governance/rules/ in the hook copy's refusal message (the one-line fix)",
+  "expected_direction": "up",
+  "observed_value": 1
+ },
+ "metric_definition": "edit_reaches_cursor: 1 if a line planted in the dir the hook's refusal names as source survives rules_sync.mjs regeneration into .cursor/rules/<rule>.mdc, else 0",
+ "phenomenon_property": "Every directory a hook comment or refusal names as the source of a generated file is the directory the generator reads, and every generator output directory is refused by the hook.",
+ "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/pre_edit_source.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  (RESULT named_source, unguarded_generated over rules_sync.mjs's *_OUT dirs)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s10/pre_edit_source.py --repo /home/user/heatpump_optimizer --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "value": "null_prod_rc=0, cursor_refused_rc=2",
+  "note": "production code is allowed and .cursor/rules is still refused; only the named source and the .claude/rules guard are wrong"
+ },
+ "reproduction_steps": [
+  "run the command; read RESULT named_source=.claude/rules/ and edit_reaches_cursor=0",
+  "re-run with --perturb: named_source=dev/governance/rules/, edit_reaches_cursor=1"
+ ],
+ "proposed_fix_scope": "pre-edit.sh lines 13-16 and 93-98: name dev/governance/rules/ as the source; refuse .claude/rules/** as generated too; flip the self-test case at line 146 to refuse and add a dev/governance/rules/ allow null control",
+ "files": [
+  ".claude/hooks/pre-edit.sh"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-move-stale-path"
+}

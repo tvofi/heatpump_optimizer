@@ -1,0 +1,10 @@
+{
+  "class": "N-shared-config",
+  "instances": 0,
+  "barriered": true,
+  "enumerator": "python3 dev/audit/rounds/round11/D14/sweep/enum_shared_config.py",
+  "instance_list": [
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator.async_set_target_temperature (_opt_config.target_temp, :4259)", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py  # holder_torn_fields=2, target_temp among torn", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._apply_comfort_weight (_opt_config.comfort_weight, :10944)", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s2/m4_order_context.py  # holder_torn_fields=2, comfort_weight among torn", "beyond_finding": false}
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_dhw_min_too_close CMP_BOUND 427c3c3c",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`return float(minimum) >= float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
+}

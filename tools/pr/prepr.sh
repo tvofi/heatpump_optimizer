@@ -257,11 +257,11 @@ pinned_touched() { # file of changed paths, pins (one per line)
   return 1
 }
 
-# Step 7a2's whole body, and --body-check's: a rendered figure block is re-rendered
-# from the base's registry at HEAD and compared (read-only, offline; pr-contract
-# runs the same verify). A body with no block passes untouched.
+# Step 7a2's whole body, and --body-check's: a body that stores a figure block is
+# refused (read-only, offline; pr-contract runs the same verify, and renders the
+# registered figures itself). A body with no block passes untouched.
 figure_block_check() { # body file
-  python3 -I tools/pr/figure_block.py verify "$1" --base origin/main --head HEAD
+  python3 -I tools/pr/figure_block.py verify "$1"
 }
 
 # Step 7a's whole body, so `--self-test` drives the code the step runs rather
@@ -1986,10 +1986,13 @@ selftest_tmp_root() {
 # (merge base, gate mode, version edit, claim files) are demonstrated by the
 # `pr-contract` job running this script on every pull request.
 if [ "${1:-}" = "--self-test" ]; then
-  # The rows set or leave unset these two themselves; a caller exporting one
-  # (update_pr.sh exports PREPR_SKIP_CLOSURES=1) must not reach a fixture child
-  # shell, where an assignment to an exported name keeps it exported.
-  unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES
+  # The rows set or leave unset these themselves; a caller exporting one
+  # (update_pr.sh exports PREPR_SKIP_CLOSURES=1; fixer.md step 2 has a seat
+  # export MUTANT_IN_PLACE=1, which `mutants_line` reads, and the archive-copy
+  # row then ran in place: 552 passed, 1 failed) must not reach a row, nor a
+  # fixture child shell, where an assignment to an exported name keeps it exported.
+  scrub_caller_env() { unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES MUTANT_IN_PLACE MUTANT_MAX; }
+  scrub_caller_env
   # Every throwaway repository below takes the shared helper: auto-maintenance
   # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
   . tests/throwaway_git.sh || exit 2
@@ -2547,6 +2550,7 @@ EOS
   # archive-copy rows clear MUTANT_IN_PLACE: a fixer runs prepr with it set (fixer.md step 2).
   got=$(MUTANT_IN_PLACE= mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
   st "$r" 1 "a check needing a git checkout measures nothing in the archive copy, and is refused"
+  st "$( (export MUTANT_IN_PLACE=1 MUTANT_MAX=1; scrub_caller_env; echo "${MUTANT_IN_PLACE-unset},${MUTANT_MAX-unset}") )" "unset,unset" "and the entry scrub drops a caller's MUTANT_IN_PLACE and MUTANT_MAX, which that row's mutants_line reads"
   got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
   st "$r" 0 "the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes"
   # BSD/macOS wc pads its count ("       0"); the comparison is a string compare, so
@@ -4937,7 +4941,7 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
   rm -f /tmp/prepr-fig.$$
 
-  # --- 7a2. every registered figure block is what the registry renders at HEAD.
+  # --- 7a2. the body stores no figure block (figure_block.py verify).
   figure_block_check "$BODY" >/tmp/prepr-fb.$$ 2>&1
   step "figure blocks" $? "$(tail -1 /tmp/prepr-fb.$$)"
   rm -f /tmp/prepr-fb.$$

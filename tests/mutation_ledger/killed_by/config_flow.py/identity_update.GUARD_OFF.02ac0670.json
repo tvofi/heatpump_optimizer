@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:identity_update GUARD_OFF 02ac0670",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    if unique_id == entry_identity(_in_force(entry)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

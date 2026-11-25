@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair RETURN_DEL 3e584094",
+  "killed_by": "tests/plan_view.py",
+  "old": "        return day, night, start, end",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

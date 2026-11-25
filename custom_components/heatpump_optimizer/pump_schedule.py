@@ -10,7 +10,7 @@ Two pumps, two very different risk profiles:
   OFF: someone waits twenty seconds for hot water.
 * **The space circulation pump** moves heat from the buffer/pump to the
   emitters. A wrong OFF here can cool the house or, in winter, freeze a
-  pipe. It is therefore guarded by hard rails — forced ON whenever the
+  pipe. It is therefore guarded by hard rails. It is forced ON whenever the
   plan wants heat now or next step, whenever the heat curve is being
   driven, whenever any zone sits close to its comfort floor, and whenever
   it is freezing outside. It switches off only in slots that are provably
@@ -44,7 +44,7 @@ def vvc_should_run(
         return True, "inside a hot-water demand window"
     lead_h = max(0.0, float(lead_minutes)) / 60.0
     # "Does any window OPEN within the lead", not "is the instant now+lead
-    # inside one": probing the single instant left a hole in the final
+    # inside one". Probing the single instant left a hole in the final
     # approach to any window shorter than the lead — off during exactly
     # the minutes the pre-heat exists for.
     until = hours_until_next_window(hour, list(windows))

@@ -1,0 +1,188 @@
+1794988471 INIT box D3-top6
+1794988482 HB alive
+1794988503 HB drift warm skipped: HEAD is the baseline
+1794988547 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
+1794988550 HB prepared
+1794988565 SEAT D3-s1 running
+1794988595 HB BLOCKED
+1794989484 RESUMED from c1d7caa19173
+1794989484 INIT box D3-top6
+1794989515 HB alive
+1794989522 HB inbox cmd 1 (malformed, parser refused) read by hand: orchestrator says run D3-s1 inline in this opus session, no Agent spawn, no FRUGAL_ALLOW_EXPENSIVE; obeying. New container: PREPARE re-run.
+1794989583 HB OWNER-ACCEPTED GAPS: scopes_rc=1, the only FAIL is the start evaluation (F=1 E=1 G=0)
+1794989587 HB drift warm skipped: HEAD is the baseline
+1794989591 HB prepared
+1794989596 CKPT D3-s1 125 file(s)
+1794989634 HB R1 machine: nproc=4, 16087 MB RAM, Intel Xeon @ 2.30GHz, / 28G free of 252G, load1 0.24
+1794990119 HB alive
+1794990494 HB R1 baselines re-taken on this box (21 drivers, all rc=0, load1 1.01); controls running
+1794990498 CKPT D3-s1 127 file(s)
+1794990724 HB alive
+1794990918 HB R1 controls: null LIVES (16 drivers), posctl-D3-top6 2/2 KILLED; T1 M22 re-drive running
+1794990923 CKPT D3-s1 130 file(s)
+1794991237 CKPT D3-s1 133 file(s)
+1794991249 CKPT D3-s1 133 file(s)
+1794991311 HB T2 gate done: null
+1794991329 HB alive
+1794991375 CKPT D3-s1 134 file(s)
+1794991405 HB T2 gate done: pre:fb16c7b0cbbfc63d
+1794991410 CKPT D3-s1 134 file(s)
+1794991422 HB alive
+1794991433 HB correction: the 'T2 gate done: pre:fb16...' line came from a stray driver that refused (HEAD not baseline) and was killed; no mutant gate has run yet. T1: M22 re-drive SURVIVED (12 drivers, 293 s). T2 null-control full gate running.
+1794992027 HB alive
+1794992631 HB alive
+1794993236 HB alive
+1794993841 HB alive
+1794994445 HB alive
+1794994708 CKPT D3-s1 135 file(s)
+1794994713 HB T2 gate done: null
+1794995055 HB alive
+1794995660 HB alive
+1794996265 HB alive
+1794996870 HB alive
+1794997475 HB alive
+1794998080 HB alive
+1794998117 CKPT D3-s1 137 file(s)
+1794998121 HB T2 gate done: pre:fb16c7b0cbbfc63d
+1794998685 HB alive
+1794999289 HB alive
+1794999896 HB alive
+1795000501 HB alive
+1795001106 HB alive
+1795001501 CKPT D3-s1 139 file(s)
+1795001506 HB T2 gate done: pre:4b3795aece73ba73
+1795001711 HB alive
+1795002316 HB alive
+1795002920 HB alive
+1795003525 HB alive
+1795004131 HB alive
+1795004735 HB alive
+1795004974 CKPT D3-s1 141 file(s)
+1795004979 HB T2 gate done: pre:bdcf7589b0a0a6df
+1795005340 HB alive
+1795005945 HB alive
+1795006550 HB alive
+1795007155 HB alive
+1795007760 HB alive
+1795008324 CKPT D3-s1 143 file(s)
+1795008328 HB T2 gate done: c2:0e172028a23d9372
+1795008366 HB alive
+1795008970 HB alive
+1795009575 HB alive
+1795010180 HB alive
+1795010785 HB alive
+1795011390 HB alive
+1795011738 CKPT D3-s1 145 file(s)
+1795011743 HB T2 gate done: c2:d931ab195b940b0c
+1795011998 HB alive
+1795012602 HB alive
+1795013207 HB alive
+1795013812 HB alive
+1795014417 HB alive
+1795014741 CKPT D3-s1 147 file(s)
+1795014746 HB T2 gate done: c2:8e82d7a0b3617003
+1795014885 CKPT D3-s1 150 file(s)
+1795014890 HB T2 done: 5 of 6 KILLED (features.py), tariff.py:744 M31 SURVIVED -> finding D3-s1-02 (low). T3 complete net running.
+1795015023 HB alive
+1795015628 HB alive
+1795016233 HB alive
+1795016839 HB alive
+1795017444 HB alive
+1795018049 HB alive
+1795018655 HB alive
+1795019261 HB alive
+1795019866 HB alive
+1795020471 HB alive
+1795021076 HB alive
+1795021683 HB alive
+1795022288 HB alive
+1795022893 HB alive
+1795023188 CKPT D3-s1 166 file(s)
+1795023192 HB T3 complete net done: src=pre
+1795023498 HB alive
+1795024104 HB alive
+1795024708 HB alive
+1795025313 HB alive
+1795025920 HB alive
+1795026525 HB alive
+1795027130 HB alive
+1795027735 HB alive
+1795028341 HB alive
+1795028428 CKPT D3-s1 177 file(s)
+1795028432 HB T3 complete net done: src=c2
+1795028946 HB alive
+1795029551 HB alive
+1795030158 HB alive
+1795030763 HB alive
+1795031276 CKPT D3-s1 183 file(s)
+1795031279 HB T3 complete net done: src=c3c6
+1795031314 CKPT D3-s1 183 file(s)
+1795031318 HB T3 complete net done: 35 results, 16 SURVIVED (incl. M31); M22 KILLED in complete. Starting full gates on the 15 remaining survivors.
+1795031368 HB alive
+1795031973 HB alive
+1795032578 HB alive
+1795033184 HB alive
+1795033790 HB alive
+1795034395 HB alive
+1795034612 CKPT D3-s1 186 file(s)
+1795034616 HB T3 gate done: 5e8d48eff7e4fa8d
+1795035003 HB alive
+1795035609 HB alive
+1795036214 HB alive
+1795036836 HB alive
+1795037457 HB alive
+1795037920 CKPT D3-s1 189 file(s)
+1795037920 HB T3 gate done: 121362d48b408236
+1795038079 HB alive
+1795041154 CKPT D3-s1 192 file(s)
+1795041216 HB T3 gate done: 3885e472b8297a90
+1795044404 CKPT D3-s1 195 file(s)
+1795044466 HB T3 gate done: 460217277822d5bd
+1795047618 CKPT D3-s1 198 file(s)
+1795047680 HB T3 gate done: 65f121eb047174ad
+1795049465 HB alive
+1795049470 HB container restart interrupted the thermal_model.py:169 gate; worktree reset to baseline, lease released, gate re-queued
+1795049481 CKPT D3-s1 199 file(s)
+1795050077 HB alive
+1795050684 HB alive
+1795051289 HB alive
+1795051896 HB alive
+1795052502 HB alive
+1795053074 CKPT D3-s1 201 file(s)
+1795053080 HB T3 gate done: 050fdc4a20eba212
+1795053108 HB alive
+1795053713 HB alive
+1795054318 HB alive
+1795054925 HB alive
+1795055531 HB alive
+1795056136 HB alive
+1795056615 CKPT D3-s1 204 file(s)
+1795056620 HB T3 gate done: 0c3e91a6a349409a
+1795056743 HB alive
+1795057347 HB alive
+1795057954 HB alive
+1795058559 HB alive
+1795059164 HB alive
+1795059771 HB alive
+1795060073 CKPT D3-s1 207 file(s)
+1795060078 HB T3 gate done: 0911281eca895664
+1795060382 HB alive
+1795060986 HB alive
+1795061592 HB alive
+1795062200 HB alive
+1795062806 HB alive
+1795063412 HB alive
+1795063488 CKPT D3-s1 209 file(s)
+1795063492 HB T3 gate done: 22b5ec8775d5bd50
+1795064018 HB alive
+1795064623 HB alive
+1795065229 HB alive
+1795065836 HB alive
+1795066441 HB alive
+1795066885 CKPT D3-s1 212 file(s)
+1795066891 HB T3 gate done: 2719aef4cbb8b464
+1795067048 HB alive
+1795067652 HB alive
+1795068257 HB alive
+1795068863 HB alive
+1795069469 HB alive

@@ -1,0 +1,179 @@
+{
+ "dimension": "D0",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D0/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D0.M4",
+   "enumerator": "python3 dev/audit/rounds/round11/D0/s2/enum_cells.py",
+   "universe": 1220,
+   "examined": 1220,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "race.py over all 1200 d0-grid lines on the four winter prices (valve-storage, wood, manual-valve-buffer, flow-setpoint-behind-valve, plain; 6/24/48 h) and the 20 coordinator captures: results/m4_shard0..4.jsonl, 1220 rows, 0 errors; analyse.py RESULT m4_examined=1220, m4_gap_cells=186 (gap > 0.05 pct-points), coord captures max gap 0.010 pct. Wood two-zone cells re-run with the tank read (cells.WOOD_TANK_C): untanked rows superseded in results/superseded_wood_untanked.jsonl. Plant properties over all 240 cells each: mvb_nobuffer.py, analyse.py fsp_*."
+  },
+  {
+   "step": "D0.M5",
+   "enumerator": "python3 dev/audit/rounds/round11/D0/s2/enum_cells.py",
+   "universe": 1220,
+   "examined": 1220,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "race.py --price flat on each cell's flat counterpart (results/m5_order.txt, 305 distinct flat lines, all raced: results/m5_flat.jsonl); analyse.py RESULT m5_cells_with_null=1220, price-attributable gap cells 161, surviving flat 52."
+  },
+  {
+   "step": "D0.M6",
+   "enumerator": "python3 dev/audit/rounds/round11/D0/s2/m6_queue.py --all-gap",
+   "universe": 186,
+   "examined": 186,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C3",
+     "state": "examined"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Each of the 186 gap cells answered: 126 by race.py step0_differs=False (the executed first action is production's), 60 (m6_queue.py) by a day-long closed loop, mpc.py --days 1 --replan 16 --plant-error 1.0, production vs augmented challenger scored on the production objective (Jr, comfort-pull and start terms inside it) plus energy, comfort deficit, DHW deficit, starts: results/m6_loops.jsonl, 0 errors. Variants on the 4 high-bill positive-realised cells: --days 2 (Jr over 48 h), --plant-error 1.25, and the loop's flat null: results/m6_multiday.jsonl, m6_plant125.jsonl, m6_flatnull.jsonl."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D0.M6",
+   "what": "Depth, not denominator: the 2-day loop (C3) and plant-error 1.25 loop (C5) ran on the 4 high-bill cells of results/m6_variant_cells.txt, not on all 60 closed-loop cells; replan cadence R8 ran on 1 cell. The realised objective of 7 valve-storage/flow-setpoint two-zone loops differs by 7.8-15.2 pct with near-equal energy, comfort and starts: mpc.py scores the executed power schedule through the captured objective without the executed valve targets, so that part of Jr is not attributed (harness limit, named)."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D0-s2-01",
+   "scope": "D0-s2",
+   "step": "D0.M4",
+   "title": "Charged wood tank zeroes 4 of 5 space-only multi-start seeds; mild two-zone days ship the all-off plan",
+   "severity": "low",
+   "claim": "On a two-tank (wood) two-zone house without DHW, HeatPumpOptimizer's space-only solve hands _multi_start_minimize 4 all-zero starts of 5 in 32 of the 60 cells of this seat's axis, and on the 5 mild 24 h cells it ships a 0 kWh plan that a one-run challenger beats by 1.47-2.03 objective units with no feasibility loss.",
+   "mechanism": "optimizer.py (space-only path, ~line 5507): seed_power = baseline_power * (1 - _wood_covered_share(...)); a tank that covers the thermostat reference gives share 1.0, so seed_power, baseline_energy and the three _price_ranked_start vectors built from baseline_energy (full, low, deep-low) are all zero. Only the price-weighted initial guess is live, and the all-off point is a stationary basin for the relaxed descent (the start term is not in the relaxed objective, and a run below the 1 kW floor is clipped by the candidate stage), so the multi-start has no start inside the one-run basin the true objective prefers.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/wood_seeds.py --race winter_narrow/summer_cool/two-zone/no-dhw/wood/24h winter_typical/shoulder/two-zone/no-dhw/wood/24h winter_extreme/summer_cool/two-zone/no-dhw/wood/24h winter_typical/summer_cool/two-zone/no-dhw/wood/24h winter_moderate/summer_cool/two-zone/no-dhw/wood/24h flat/summer_cool/two-zone/no-dhw/wood/24h flat/shoulder/two-zone/no-dhw/wood/24h",
+    "harness_path": "dev/audit/rounds/round11/D0/s2/wood_seeds.py",
+    "value": 2.0292,
+    "unit": "objective units (J_prod - J_best, max over the 5 gap cells; census: 32 of 60 cells with 4/5 zero starts)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B2, 4 vCPU, shared",
+    "cpu_or_wall": "count",
+    "contention_note": "counts and objective values; contention-immune (D0-s2 M6 loops and D3/D9 seats running)",
+    "tolerance": "exact for counts, +-0.01 objective units",
+    "load1": 5.78,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:_wood_covered_share",
+   "perturbation": {
+    "change": "WOOD_SHARE_OFF=1: optimizer._wood_covered_share patched to return 0.0 (seed from the reference unscaled)",
+    "expected_direction": "down",
+    "observed_value": "gap_abs 2.029/1.678/1.631/1.468 -> 0.000 on the four summer_cool cells, 1.725 -> 0.577 on winter_typical/shoulder; census all-but-one-zero cells 32 -> 4, zero starts 128 -> 16 (the 4 left are summer_warm/6h, which needs no heat)"
+   },
+   "metric_definition": "gap_abs = J_prod - J_best feasible challenger (race.py arms seeds/warm, production objective); zero_starts = all-zero candidates in the space-only multi-start call",
+   "phenomenon_property": "The space-only multi-start's structured starts must not collapse to the all-zero vector because a free heat source covers the thermostat reference: at least one start besides the price-weighted guess carries energy whenever the shipped horizon can need heat.",
+   "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/wood_seeds.py --census",
+   "null_control": {
+    "command": "same --race on flat/summer_cool/two-zone/no-dhw/wood/24h and flat/shoulder/two-zone/no-dhw/wood/24h",
+    "value": "1.678 (summer_cool) / 0.0001 (shoulder)",
+    "note": "Survives flat prices: the gap is not price optimality but solver structure (seed collapse); named so per D0.M5. Bills on these days are ~0 SEK of energy: the gap is the objective's comfort-pull term (challenger buys 3.0-5.1 kWh)."
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 1.4675,
+    "max": 2.0292,
+    "drop_most_favourable": 1.6255
+   },
+   "reproduction_steps": [
+    "run the --census command; read census_cells_all_but_one_start_zero[prod]=32",
+    "repeat with WOOD_SHARE_OFF=1; read 4",
+    "run the --race command with and without WOOD_SHARE_OFF=1"
+   ],
+   "proposed_fix_scope": "optimizer.py space-only seeding: keep the wood-scaled seed and add an unscaled (or floor-level single-run) start, so a covered reference cannot empty the seed set; the DHW path (_solve_space) does not scale and is untouched.",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No multi-start budget gap: no L-BFGS-B run inside any production multi-start call stopped on its iteration limit in any of the 1220 cells, so the 4x maxiter arm never differs",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/race.py --cells-file dev/audit/rounds/round11/D0/s2/results/m4_order.txt --out F.jsonl",
+   "value": "budget arm 'identical' in 1220/1220 rows (prod_runs_at_limit=0)"
+  },
+  {
+   "claim": "One-shot price gaps are masked by MPC: across the 60 gap cells whose first action differs, the closed loop realises no systematic gain for the augmented challenger",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/mpc.py --days 1 --replan 16 --plant-error 1.0 --cells-file dev/audit/rounds/round11/D0/s2/results/m6_queue.txt",
+   "value": "realised gap median +0.029 pct, 29 positive / 28 negative / 3 within tolerance; realised energy gap mean 0.051 SEK per cell-day; loop flat null on the same cells -2.58..+2.26 pct (as large as priced); plant error 1.25 flips sign on 3 of 4; 2-day Jr gap -0.94..+0.58 pct"
+  },
+  {
+   "claim": "Largest price-attributable one-shot gaps on large bills stay under the brief's bar: winter_cold two-zone 24/48 h cells 0.5-1.0 pct of J on 45-182 SEK horizons, flat null ~0, realised 0.04-0.5 pct",
+   "command": "python3 dev/audit/rounds/round11/D0/s2/analyse.py",
+   "value": "m4_plane_mean_gap_loo mean 0.083 pct, drop-most-favourable 0.072 pct over 20 price x weather planes"
+  },
+  {
+   "claim": "flow-setpoint-behind-valve: the plan leaves the minimum level, more where a price spread exists",
+   "command": "python3 dev/audit/rounds/round11/D0/s2/analyse.py",
+   "value": "on-steps above min+0.05 kW: 0.693 (winter prices) vs 0.611 (flat) over 185 pairs; never above min in 2 of 240 cells; plan identical to valve-storage in 240/240 pairs (the flow set-point is actuation, not planning)"
+  },
+  {
+   "claim": "manual-valve-buffer: the plan differs from the same cell with no store",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/mvb_nobuffer.py --all --out F.jsonl",
+   "value": "identical in 0 of the 184 cells that use heat (54 identical cells all ship 0 kWh); median L1 4.21 kWh"
+  },
+  {
+   "claim": "Coordinator captures carry no gap at winter prices",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D0/s2/race.py coord/coord_all_features/winter_typical/winter_cold",
+   "value": "20 capture cells, max gap 0.010 pct"
+  },
+  {
+   "claim": "Harness gap recorded (not a production defect): a wood cell without a tank reading runs the manual-valve plant",
+   "command": "python3 dev/audit/rounds/round11/D0/s2/analyse.py (before cells.WOOD_TANK_C)",
+   "value": "59/59 wood plans identical to manual-valve-buffer with wood_tank_temperature None; two-tank layout needs two zones (thermal_model.ThermalParameters.topology_layout) so single-zone wood is manual-valve by design"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D0/s2/enum_cells.py",
+  "dev/audit/rounds/round11/D0/s2/cells.py",
+  "dev/audit/rounds/round11/D0/s2/race.py",
+  "dev/audit/rounds/round11/D0/s2/mpc.py",
+  "dev/audit/rounds/round11/D0/s2/m6_queue.py",
+  "dev/audit/rounds/round11/D0/s2/analyse.py",
+  "dev/audit/rounds/round11/D0/s2/mvb_nobuffer.py",
+  "dev/audit/rounds/round11/D0/s2/wood_seeds.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D0-s3",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_wood_covered_share (space-only seed scaling)",
+   "what": "D0-s2-01's seed collapse is price-independent (it survives flat at 1.678 objective units): the two-zone no-DHW wood cells on summer/shoulder/flat prices likely carry the same all-off plan; measure with dev/audit/rounds/round11/D0/s2/wood_seeds.py --census over that axis."
+  },
+  {
+   "owner_seat": "D0-s3",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalState.wood_tank_temperature",
+   "what": "A cell builder that does not set the wood tank reading drives the manual-valve plant, not wood (59/59 identical plans here); D0-s3's wood cells need the reading set before they count as examined."
+  }
+ ]
+}

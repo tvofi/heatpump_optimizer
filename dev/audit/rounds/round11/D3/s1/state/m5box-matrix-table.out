@@ -1,0 +1,110 @@
+coordinator.py:422 GUARD_OFF	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+coordinator.py:539 GUARD_OFF	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+coordinator.py:687 GUARD_OFF	killers=entities.py,features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=K env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+coordinator.py:6995 M08	killers=entities.py,features.py,finite_boundary.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=K env_drift.py=S features.py=K finite_boundary.py=K golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+coordinator.py:8806 M04	killers=-	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+defrost.py:419 GUARD_OFF	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+defrost.py:559 GUARD_OFF	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+defrost.py:783 M32	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+dhw_planner.py:1559 M19	killers=-	arch_score_head.py=S backtest.py=R block_duty.py=S boost_drift_replay.py=R card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+dhw_planner.py:473 GUARD_OFF	killers=features.py	arch_score_head.py=S backtest.py=R block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=R entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R optimality.py=R plan_view.py=R solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=R wood_advisor.py=R
+dhw_planner.py:75 GUARD_OFF	killers=features.py	arch_score_head.py=S backtest.py=R block_duty.py=S boost_drift_replay.py=R card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+flow_lift.py:183 GUARD_OFF	killers=-	arch_score_head.py=S backtest.py=R block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=R entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R optimality.py=R plan_view.py=R solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=R wood_advisor.py=R
+flow_lift.py:188 M35	killers=-	arch_score_head.py=S backtest.py=R block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=R entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R optimality.py=R plan_view.py=R solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=R wood_advisor.py=R
+flow_lift.py:47 CONST	killers=-	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=S card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=S deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=S harness_headers.py=S manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=S stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=S
+grid_fee.py:173 GUARD_OFF	killers=-	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+grid_fee.py:355 M36	killers=-	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+grid_fee.py:383 M21	killers=-	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+optimizer.py:773 GUARD_OFF	killers=-	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=S card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+price_model.py:198 GUARD_OFF	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=S harness_headers.py=S manual_plan.py=S plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+price_model.py:201 GUARD_OFF	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=S harness_headers.py=S manual_plan.py=S plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+price_model.py:252 M34	killers=-	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+price_model.py:337 M25	killers=-	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+price_model.py:532 M33	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+sysid.py:1549 M26	killers=features.py,harness_headers.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=K manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+sysid.py:1593 M28	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+sysid.py:2246 M27	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+sysid.py:610 GUARD_OFF	killers=-	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+sysid.py:677 GUARD_OFF	killers=features.py	arch_score_head.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R plan_view.py=R solar_alignment.py=R structure.py=S typing_ruler.py=S wood_advisor.py=R
+tariff.py:595 M22	killers=features.py,harness_headers.py	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=S card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=K manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+tariff.py:64 GUARD_OFF	killers=features.py	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=S card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+tariff.py:64 M29	killers=features.py	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=S card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+tariff.py:744 M31	killers=-	arch_score_head.py=S backtest.py=R block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=R entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R optimality.py=R plan_view.py=R solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=R wood_advisor.py=R
+tariff.py:805 M30	killers=env_drift.py,features.py	arch_score_head.py=S backtest.py=R block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=R entities.py=S env_drift.py=K features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R optimality.py=R plan_view.py=R solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=R wood_advisor.py=R
+thermal_model.py:169 GUARD_OFF	killers=-	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=S card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=S harness_headers.py=S manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=S stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+thermal_model.py:2593 M07	killers=-	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=R card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=R optimality.py=R plan_view.py=R solar_alignment.py=R stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+thermal_model.py:270 GUARD_OFF	killers=harness_headers.py	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=S card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=S env_drift.py=S features.py=T finite_boundary.py=S golden.py=S guard_pins.py=S harness_headers.py=K manual_plan.py=S optimality.py=S plan_view.py=S solar_alignment.py=S stress.py=S structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=S
+thermal_model.py:730 M01	killers=entities.py,env_drift.py,features.py,harness_headers.py,optimality.py,stress.py	arch_score_head.py=S backtest.py=S block_duty.py=S boost_drift_replay.py=S card.mjs=S card_drift.mjs=S config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=S entities.py=K env_drift.py=K features.py=K finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=K manual_plan.py=S optimality.py=K plan_view.py=S solar_alignment.py=R stress.py=K structure.py=S typing_ruler.py=S validate.py=S wood_advisor.py=R
+thermal_model.py:835 M03	killers=-	arch_score_head.py=S backtest.py=R block_duty.py=S boost_drift_replay.py=S card.mjs=R card_drift.mjs=R config_flow_steps.py=S debug_collect.py=R deployment_shape.py=S doc_claims.py=S edge.py=R entities.py=S env_drift.py=S features.py=S finite_boundary.py=S golden.py=S guard_pins.py=R harness_headers.py=S manual_plan.py=S optimality.py=R plan_view.py=R solar_alignment.py=S stress.py=S structure.py=S typing_ruler.py=S validate.py=R wood_advisor.py=R
+
+script	ran	reach_skipped	timeouts	kills	unique_kills	sum_seconds(provisional)
+tests/arch_score_head.py	38	0	0	0	0	1767
+tests/backtest.py	9	8	0	0	0	535
+tests/block_duty.py	38	0	0	0	0	296
+tests/boost_drift_replay.py	9	29	0	0	0	1765
+tests/card.mjs	10	28	0	0	0	944
+tests/card_drift.mjs	10	28	0	0	0	58
+tests/config_flow_steps.py	38	0	0	0	0	726
+tests/debug_collect.py	1	37	0	0	0	1
+tests/deployment_shape.py	38	0	0	0	0	90
+tests/doc_claims.py	38	0	0	0	0	402
+tests/edge.py	11	6	0	0	0	244
+tests/entities.py	38	0	0	3	0	20550
+tests/env_drift.py	38	0	0	2	0	3952
+tests/features.py	38	0	1	21	15	29897
+tests/finite_boundary.py	38	0	0	1	0	3618
+tests/golden.py	38	0	0	0	0	3838
+tests/guard_pins.py	5	33	0	0	0	23
+tests/harness_headers.py	38	0	0	4	1	5681
+tests/manual_plan.py	18	20	0	0	0	111
+tests/optimality.py	10	7	0	1	0	1102
+tests/plan_view.py	10	28	0	0	0	12
+tests/solar_alignment.py	4	34	0	0	0	4
+tests/stress.py	17	0	0	1	0	4692
+tests/structure.py	38	0	0	0	0	729
+tests/typing_ruler.py	38	0	0	0	0	753
+tests/validate.py	11	6	0	0	0	224
+tests/wood_advisor.py	2	36	0	0	0	1
+NO-UNIQUE-KILL tests/arch_score_head.py ran=38 kills=0 seconds=1767
+NO-UNIQUE-KILL tests/backtest.py ran=9 kills=0 seconds=535
+NO-UNIQUE-KILL tests/block_duty.py ran=38 kills=0 seconds=296
+NO-UNIQUE-KILL tests/boost_drift_replay.py ran=9 kills=0 seconds=1765
+NO-UNIQUE-KILL tests/card.mjs ran=10 kills=0 seconds=944
+NO-UNIQUE-KILL tests/card_drift.mjs ran=10 kills=0 seconds=58
+NO-UNIQUE-KILL tests/config_flow_steps.py ran=38 kills=0 seconds=726
+NO-UNIQUE-KILL tests/debug_collect.py ran=1 kills=0 seconds=1
+NO-UNIQUE-KILL tests/deployment_shape.py ran=38 kills=0 seconds=90
+NO-UNIQUE-KILL tests/doc_claims.py ran=38 kills=0 seconds=402
+NO-UNIQUE-KILL tests/edge.py ran=11 kills=0 seconds=244
+NO-UNIQUE-KILL tests/entities.py ran=38 kills=3 seconds=20550
+NO-UNIQUE-KILL tests/env_drift.py ran=38 kills=2 seconds=3952
+NO-UNIQUE-KILL tests/finite_boundary.py ran=38 kills=1 seconds=3618
+NO-UNIQUE-KILL tests/golden.py ran=38 kills=0 seconds=3838
+NO-UNIQUE-KILL tests/guard_pins.py ran=5 kills=0 seconds=23
+NO-UNIQUE-KILL tests/manual_plan.py ran=18 kills=0 seconds=111
+NO-UNIQUE-KILL tests/optimality.py ran=10 kills=1 seconds=1102
+NO-UNIQUE-KILL tests/plan_view.py ran=10 kills=0 seconds=12
+NO-UNIQUE-KILL tests/solar_alignment.py ran=4 kills=0 seconds=4
+NO-UNIQUE-KILL tests/stress.py ran=17 kills=1 seconds=4692
+NO-UNIQUE-KILL tests/structure.py ran=38 kills=0 seconds=729
+NO-UNIQUE-KILL tests/typing_ruler.py ran=38 kills=0 seconds=753
+NO-UNIQUE-KILL tests/validate.py ran=11 kills=0 seconds=224
+NO-UNIQUE-KILL tests/wood_advisor.py ran=2 kills=0 seconds=1
+RESULT mutants=38
+RESULT pairs=921
+RESULT pairs_K=33
+RESULT pairs_S=587
+RESULT pairs_R=300
+RESULT pairs_T=1
+RESULT pairs_X=0
+RESULT killed_mutants=22
+RESULT survivors=16
+RESULT duplicate_kills=11
+RESULT mutants_with_0_killers=16
+RESULT mutants_with_1_killers=16
+RESULT mutants_with_2_killers=4
+RESULT mutants_with_3_killers=1
+RESULT mutants_with_6_killers=1
+RESULT scripts_without_unique_kill=25
+RESULT load1=0.80
+RESULT thread_factor=1.00

@@ -1,0 +1,16 @@
+{"class": "I3", "instances": 1, "barriered": true,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/I3/enumerate_I3.py (--self-test: positive, null, perturbation; rc=0)",
+ "instance_list": [
+  {"file": ".claude/hooks/stop-selfcheck.sh", "symbol": "POLICY_PREFIXES (AGENTS.md)", "probe": "enumerate_I3.py stop_gap() lists AGENTS.md; D11/s1/stop_hook_reach.py rc=2", "beyond_finding": false},
+  {"file": ".claude/hooks/stop-selfcheck.sh", "symbol": "POLICY_PREFIXES (dev/audit/README.md)", "probe": "enumerate_I3.py stop_gap() lists dev/audit/README.md", "beyond_finding": false},
+  {"file": "tools/policy/fixtures/required-contexts.json", "symbol": "rulesets (22628467)", "probe": "D11/s1/ruleset_reach.mjs: always-bypass actor added, 0 findings", "beyond_finding": false},
+  {"file": "tools/policy/fixtures/required-contexts.json", "symbol": "rulesets (23937752)", "probe": "D11/s1/ruleset_reach.mjs: always-bypass actor added, 0 findings", "beyond_finding": false},
+  {"file": "tests/structure.py", "symbol": "CODEOWNERS (unowned meter run from the PR copy)", "probe": "D11/s1/meter_boundary.py prints EXPOSED tests/structure.py", "beyond_finding": false},
+  {"file": "tools/audit/seat/wt_sync.sh", "symbol": "--self-test", "probe": "D11/s1/seat_selftest_sweep.py prints REAL-REPO-WRITE wt_sync.sh", "beyond_finding": false},
+  {"file": "tools/audit/seat/merge_train.py", "symbol": "platform_gate (#3618, #3644)", "probe": "D11/s2/gate_at_merge.py: 1 red, 1 wait at merged_at", "beyond_finding": false},
+  {"file": "tools/policy/budget_raise_gate.py", "symbol": "AGENT_DECLARED / approval", "probe": "D11/s2/oversight.py: owner_own_at_head 0 -> 31 when the declaration words are deleted", "beyond_finding": false},
+  {"file": ".github/workflows/release.yml", "symbol": "attest subject (heatpump_optimizer.zip)", "probe": "D11/s2/provenance.py: zip attested 0 of 5", "beyond_finding": false},
+  {"file": "tools/policy/brief_lint.mjs", "symbol": "ROSTERS (dev/programme/rosters/wave-r10-groups.json)", "probe": "D11/s3/brief_arms.py gap arm unmoved; enumerate_I3.py roster_gap()", "beyond_finding": false},
+  {"file": "tools/policy/brief_lint.mjs", "symbol": "ROSTERS (dev/programme/rosters/wave-r9-groups.json)", "probe": "D11/s3/brief_arms.py gap arm unmoved; enumerate_I3.py roster_gap()", "beyond_finding": false},
+  {"file": "tools/pr/outside.py", "symbol": "class-O approval split at AGENT_DECLARED.search (lines 292, 304, 504)", "probe": "an agent approval at head whose body omits the AGENT_DECLARED words and cites no mandate is accepted as the owner's own form; no GitHub-recorded field tells them apart", "beyond_finding": true}
+ ]}

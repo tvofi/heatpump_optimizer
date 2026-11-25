@@ -1,0 +1,7 @@
+{"class": "N-instrument-locator", "instances": 0, "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/N-instrument-locator/enumerate.py tools",
+ "instance_list": [
+  {"file": "tools/audit/text_ledger.py", "symbol": "scan_c_like",
+   "probe": "JS text 'a = \"x\\\\<newline>y\";<newline>// c' : comment is on line 3, scan_c_like reports line 2 (escaped newline inside a string not counted; same for a non-template string broken at a newline). Full harness: dev/audit/rounds/round11/D5/s8/ledger_lines.py (mislocated=1175, --fixed 0).",
+   "beyond_finding": false}
+ ]}

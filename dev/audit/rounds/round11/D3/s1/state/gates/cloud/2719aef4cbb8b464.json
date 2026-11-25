@@ -1,0 +1,26 @@
+{
+ "key": "2719aef4cbb8b464",
+ "mutant": {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/price_model.py",
+  "line": 337,
+  "old": "        if not day_types or not np.isfinite(level) or level <= 0.0:",
+  "new": "        if not day_types or not np.isfinite(level) or level < 0.0:",
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:R10-C2 M25",
+  "c2_id": "M25"
+ },
+ "gate_rc": 0,
+ "failed_scripts": [],
+ "summary": [
+  "ALL TEST SCRIPTS PASSED"
+ ],
+ "wall_s": 3388.4,
+ "child_cpu_s": 4589.3,
+ "load1_start": 0.08,
+ "load1_end": 0.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "killed_by": [],
+ "verdict": "SURVIVED"
+}

@@ -1,0 +1,301 @@
+
+########## environment ##########
+  python   3.14.7 (linux)
+  cpu      Intel(R) Xeon(R) Processor @ 2.10GHz
+  blas     Haswell
+  stack    numpy 2.5.4, scipy 1.18.1
+
+########## python3 tests/env_drift.py --claims-only 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ##########
+claims hygiene: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ok
+
+########## python3 tests/closure.py selftest ##########
+  SLOT: tests/closure.py joins a heavy slot as run.sh-25338
+
+=== closure shrink guard (#527) ===
+  ok   card_drift.mjs's committed closure covers plan_view.py
+  ok   the 6-file raw trace is a strict subset of that claim
+  ok   a full merge does not drop files from card_drift.mjs
+  ok   a full merge writes the _comment's stub-seconds disclosure
+  ok   a shrinking script does not abort an unrelated grow
+  ok   the shrink path does not tell you to run a full derive
+  ok   a grow-only partial merge still grows (null control)
+  ok   a partial merge refreshes a stale _comment
+  ok   card_drift.mjs inherits plan_view.py's closure the way card.mjs does
+  ok   a broken-recording refusal names the command that takes the flag
+  ok   a stale-closure refusal names --single, not a bare full derive
+  FAIL a refused merge surfaces merge()'s reason, not just skip-merge-failed  [status='skip-not-under-scoped' log='']
+  FAIL and a merge that succeeds carries no merge reason (null control)  [status='skip-not-under-scoped' log='']
+  ok   a warm __pycache__ .pyc open attributes the source it was compiled from
+  ok   the #1309 instance maps: governance_cost's cache attributes its source
+  ok   a cache whose source is gone attributes nothing (null control)
+  ok   the cold path is unchanged (control)
+  ok   the header corpus is the six-part path under dev/audit/rounds
+  ok   merge drops a committed entry whose path does not exist (#1310)
+  ok   merge still keeps a committed REAL file the run did not touch (#527 null control)
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check passes on the same table once the phantom is gone (#1310 null control)
+  ok   check fails on a phantom in the committed inert_reads (R9-RO-10)
+  ok   prune drops committed phantom entries (#1310)
+  ok   prune keeps a closures key whose every entry was a phantom, empty: select reads a missing key as no closure recorded (R9-RO-9a)
+  ok   prune drops dead inert_reads entries, and a key left with none (R9-RO-10)
+  ok   prune is idempotent (#1310 null control)
+  ok   a partial merge keeps committed inert_reads the run cannot see (#1886)
+  ok   a recording that saw other inert reads grows, never swaps (#1886 grow arm)
+  ok   a full merge keeps committed inert_reads the run cannot see (#1886)
+  ok   the #1886 sequence stays green: Darwin merge, then Linux check
+
+=== coverage reuses only what the scoped gate skips (#1812) ===
+  ok   a FULL plan measures every script, base data or not
+  ok   a plan of no known mode measures every script
+  ok   scoped: only a skipped script with base data is reused
+  ok   scoped, cache miss: nothing is reused
+  ok   coverage-split reads .coverage.<n> and <n>.nodata as base data
+  ok   a push diff no closure mentions selects a FULL plan
+  ok   the FULL plan reuses nothing from a fully populated base
+  ok   a FULL plan measures even the script its own skip names
+  ok   the push marker at the expected base is trusted
+  ok   a non-push run's marker is discarded: reuse never engages from a non-push run
+  ok   a push marker naming another commit is discarded
+  ok   a missing marker is a discard, never a trust
+  ok   coverage-trust exits 0 only on the trusted marker
+  ok   the summary line states the reuse count and the backstop loss
+  ok   a run that reused nothing says so
+  ok   the push arm restores through the same key formula
+  ok   the push arm's plan comes from select at the restored base
+  ok   the coverage job states the reuse count in its summary
+  ok   coverage_tree.sh provenances every entry it leaves in per/
+
+=== a recording's rc says whether it ended, and the log says it (#1987) ===
+  ok   record() runs the script with HPO_CLOSURE_RECORDING=1, the flag stress.py keys its timing verdicts on
+  ok   stress.py reads the same variable name
+  ok   harness_headers.py reads the same variable name (its CPU-headroom grade)
+  ok   derive_closures.sh's done line reports a recording's exit 3
+  ok   derive_closures.sh's done line reports a recording's exit 0
+
+=== a layout git merges without a driver (R9-CI-2b) ===
+  ok   within-band: the partial merge succeeds
+  ok   a timing re-recorded within 2x keeps the committed seconds
+  ok   outside-band: the partial merge succeeds
+  ok   a timing re-recorded outside 2x takes the new seconds
+  ok   ours: the partial merge succeeds
+  ok   theirs: the partial merge succeeds
+  ok   two branches re-timing one script merge with no driver
+  ok   legacy: the partial merge succeeds
+  ok   a merge writes sorted keys and sorted lists
+  ok   layout_errors names an unsorted list and unsorted keys
+  ok   check passes a sorted table
+  ok   check refuses an unsorted table
+  ok   check passes write_closures' own text (null control)
+  ok   check refuses a recorded entry as {seconds, rc}
+  ok   check refuses top-level keys unsorted
+  ok   check refuses indent 2
+  ok   the committed tests/closures.json is in the layout
+
+=== the batch proof's recordings fail closed (round-9 C2) ===
+  ok   proof-consume accepts recordings whose manifest names this tree
+  ok   proof-consume refuses a manifest naming ANOTHER tree
+  ok   proof-consume refuses no manifest at all
+  ok   proof-consume refuses an artifact with no recordings
+  ok   proof-consume refuses an unhealthy recording
+  ok   proof-consume refuses a set missing selectable scripts
+[... trimmed by the landing: 15961 of    16261 lines omitted; the full log is in handoff/audit-r11-find-D3-rem at 6ff1235867ed ...]
+
+-- Economics
+  ok   winter: cheaper than holding the setpoint
+  ok   winter_extreme: cheaper than holding the setpoint
+  ok   shoulder: cheaper than holding the setpoint
+  ok   a flat price curve produces no fictitious saving
+  ok   a flat price curve still respects comfort
+  ok   a wider price spread yields a larger saving
+  ok   a higher comfort weight is warmer, across the documented range
+  ok   a higher comfort weight saves less, across the documented range
+  ok   the README's comfort-weight table still holds
+  ok   solver noise under an economically nil perturbation stays small
+  ok   a capacity tariff lowers the projected peak
+  ok   and does not wreck comfort doing it
+  ok   a cycling cost reduces compressor starts
+  ok   PV surplus is self-consumed
+  ok   a more efficient heat pump is never worse, and is better somewhere
+  ok   a leakier, larger house costs more to heat
+
+-- Edge conditions
+  ok   all 17 edge conditions produce a sound plan
+  ok   an undersized pump runs flat out rather than giving up
+  ok   negative prices are exploited rather than ignored
+  ok   the baseline scenario plans electric hot water inside the 2 h horizon
+  ok   an external heat source suppresses electric hot water
+  ok   suppression lowers total electric DHW energy, not just moves it
+
+ALL 116 STRESS CHECKS PASSED
+
+########## python3 tests/harness_headers.py ##########
+
+=== harness header EXPECTED vs RESULT (#817) ===
+  ok   repo_root finds the checkout that holds the manifest
+  ok   repo_root finds the checkout from one segment deeper
+  ok   repo_root refuses a directory with no manifest
+  FAIL every inlined walk matches the canonical helper and no depth root remains  [ompose.py:16: ROOT = HERE.parents[5]; dev/audit/rounds/round11/D3/s1/fullgate.py:26: ROOT = HERE.parents[5]; dev/audit/rounds/round11/D3/s1/fl183_nonfinite.py:25: ROOT = Path(__file__).resolve().parents[6]; dev/audit/rounds/round11/D3/s1/probe_0911281e.py:29: ROOT = Path(__file__).resolve().parents[6]; dev/audit/rounds/round11/D3/s1/probe_0c3e91a6.py:21: ROOT = Path(__file__).resolve().parents[6]
+]
+  ok   every harness declaring live-header anywhere in its file is executed
+  ok   every per-harness CPU bound names an executed harness, under the wall cap
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py exists
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round3/D2/dst_window_factors.py: cpu=0.4s of the 60s bound
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py exits 0
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT default_horizon_hours matches header
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT cells matches header
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT total_mismatched_cells matches header
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT mismatches_autumn_60min_peak_hours matches header
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT null_control_non_dst_day_mismatches matches header
+  ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT no_mask_returns_none matches header
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py exists
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round3/D2/window_size_sweep.py: cpu=0.3s of the 60s bound
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py exits 0
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_15min matches header
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_90min matches header
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_control_15min matches header
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT catalog_window_minutes matches header
+  ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT options_selector_choices matches header
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py exists
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round3/D5/option_doc_coverage.py: cpu=0.3s of the 60s bound
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py exits 0
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT option_fields_rendered matches header
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT option_fields_undocumented matches header
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT option_schema_keys_rendered matches header
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT wood_economics_fields_rendered matches header
+  ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT wood_economics_doc_lines matches header
+  ok   dev/audit/rounds/round4/D10/qs_rules.py exists
+  ok   dev/audit/rounds/round4/D10/qs_rules.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round4/D10/qs_rules.py: cpu=0.5s of the 60s bound
+  ok   dev/audit/rounds/round4/D10/qs_rules.py exits 0
+  ok   dev/audit/rounds/round4/D10/qs_rules.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round4/D10/qs_rules.py RESULT rules_total matches header
+  ok   dev/audit/rounds/round4/D10/qs_rules.py RESULT declared_mismatch matches header
+  ok   dev/audit/rounds/round4/D6/claims.py exists
+  ok   dev/audit/rounds/round4/D6/claims.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round4/D6/claims.py: cpu=2.0s of the 60s bound
+  ok   dev/audit/rounds/round4/D6/claims.py exits 0
+  ok   dev/audit/rounds/round4/D6/claims.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_extracted matches header
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_checked matches header
+  FAIL dev/audit/rounds/round4/D6/claims.py RESULT claims_true matches header  [header='123' printed='122']
+  FAIL dev/audit/rounds/round4/D6/claims.py RESULT claims_false matches header  [header='0' printed='1']
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_stale matches header
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_unverifiable matches header
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT config_defaults_compared matches header
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT config_ranges_compared matches header
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT arch_modules_on_disk matches header
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT arch_map_listed matches header
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT arch_map_missing matches header
+  ok   dev/audit/rounds/round4/D6/claims.py RESULT ha_module_level_importers matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py exists
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round4/D7/sysid_estimator_frontier.py: cpu=116.8s of the 480s bound
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py exits 0
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT gatepass_plants matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT draws_per_cell matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT fitted_typical_s001 matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT within10_typical_s001 matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT fitted_heavy_s001 matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT within10_heavy_s001 matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_typical_s005 matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_heavy_s005 matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_armed matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_gate_named matches header
+  ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT unridged_fitted_typical_s001 matches header
+  ok   dev/audit/rounds/round4/D9/h2_cycle.py exists
+  ok   dev/audit/rounds/round4/D9/h2_cycle.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round4/D9/h2_cycle.py: cpu=3.3s of the 60s bound
+  ok   dev/audit/rounds/round4/D9/h2_cycle.py exits 0
+  ok   dev/audit/rounds/round4/D9/h2_cycle.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round4/D9/h2_cycle.py RESULT msm_entries_per_cycle matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py exists
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round4/D9/h7_memory_gate.py: cpu=3.9s of the 60s bound
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py exits 0
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_recorded matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT memory_top_n matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT memory_budget_factor matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT detection_target matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT min_attrib_rss_multiple_required_to_fail matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT max_attrib_rss_multiple_required_to_fail matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_where_2x_attrib_rss_fails matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT min_traced_multiple_required_to_fail matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT max_traced_multiple_required_to_fail matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_where_2x_traced_fails matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_memory_probed matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_never_memory_probed matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT attrib_leader_label matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT attrib_fail_threshold_mb matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT traced_fail_threshold_mb matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT clean_attrib_rule_fires matches header
+  ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT inject2x_attrib_rule_fires matches header
+  ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py exists
+  ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py header names at least one EXPECTED RESULT
+  dev/audit/rounds/round4/D9/h9_batch_cost_loop.py: cpu=4.9s of the 60s bound
+  ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py exits 0
+  ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py costs at most 50% of its CPU bound
+  ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py RESULT cost_terms_batch_calls_per_gradient matches header
+  ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py RESULT batch_rows_per_gradient matches header
+  ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py RESULT null_control_batched_calls_per_gradient_delta matches header
+  ok   an idle child past the CPU limit is not killed by it
+  ok   a spinning child is killed at the CPU limit
+  ok   an idle child past the wall cap reports 124
+  ok   a bounded child runs with every BLAS pool pinned to one thread
+  ok   a recorded run does not grade the CPU headroom (closure.py's flag)
+  ok   an unrecorded run past half its bound still fails the headroom (null control)
+  ok   and an unrecorded run within it passes
+  FAIL the executed harnesses leave their committed output byte-identical  [uncommitted:  M dev/audit/rounds/round4/D6/claims.json;  M dev/audit/rounds/round4/D6/claims.md]
+  ok   tests/harness.py from a foreign cwd finds its catalogues and its own tree's package
+  ok   tests/harness.py from a foreign cwd resolves a module the cwd's tests/ also holds to its own tests/
+  ok   tests/harness.py's sys.path inserts are exactly its own tests/ and custom_components/, absolute
+
+4 of 115 HARNESS HEADER CHECKS FAILED
+>>> FAILED: python3 tests/harness_headers.py
+
+########## wall clock ##########
+       0s  python3 tests/env_drift.py --claims-only 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+       4s  python3 tests/closure.py selftest
+     723s  python3 tests/features.py
+     482s  python3 tests/entities.py
+       7s  python3 tests/block_duty.py
+      10s  python3 tests/doc_claims.py
+       0s  node tests/md_tables.mjs
+       1s  python3 tests/wood_advisor.py
+      18s  python3 tests/config_flow_steps.py
+      18s  python3 tests/structure.py
+      19s  python3 tests/typing_ruler.py
+       0s  python3 tests/ha_contract.py
+       6s  python3 tests/manual_plan.py
+       0s  python3 tests/open_meteo.py
+       1s  python3 tests/solar_alignment.py
+       4s  python3 tests/guard_pins.py
+       1s  python3 tests/debug_collect.py
+      86s  python3 tests/finite_boundary.py
+       4s  python3 tests/layout.py
+       2s  python3 tests/deployment_shape.py
+      94s  python3 tests/env_drift.py --all 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+     735s  python3 tests/arch_score.py
+      44s  python3 tests/arch_score_head.py
+      19s  python3 tests/validate.py
+      21s  python3 tests/edge.py
+      54s  python3 tests/backtest.py
+     181s  python3 tests/boost_drift_replay.py
+     104s  python3 tests/optimality.py
+       1s  python3 tests/plan_view.py
+       0s  python3 tests/frontend.py
+      85s  node tests/card.mjs
+       0s  node tests/setup_qa_render.mjs
+       4s  node tests/card_drift.mjs 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+     255s  python3 tests/stress.py
+     139s  python3 tests/harness_headers.py
+    3123s  TOTAL (1 lane(s))
+
+3 TEST SCRIPT(S) FAILED

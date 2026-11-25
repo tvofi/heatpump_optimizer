@@ -1,0 +1,11 @@
+{
+ "class": "N-partial-window-extrapolation",
+ "instances": 1,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep_partial_window.py --controls --probe",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/ledger.py", "symbol": "coverage_factor", "probe": "coverage_factor({settled_hours: {sum: 0.25, count: 1}}, 2027-02-01T00:15) returns 2688.0; fails a minimum-coverage assertion (factor <= 31)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/power_guard.py", "symbol": "project_window_mean (caller coordinator._on_power_event)", "probe": "project_window_mean(0.0, 1.0, 9.0, 60.0) returns 8.85: one elapsed minute projects the window from the instantaneous draw; D17-s1-05 harness h_guard.py counts 69", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/ledger.py", "symbol": "pro_rata_factor", "probe": "pro_rata_factor(2027-02-01T00:15) returns 28.0 with 15 minutes elapsed: day-of-month granularity, no minimum coverage; reached as coverage_factor's fallback", "beyond_finding": true}
+ ]
+}

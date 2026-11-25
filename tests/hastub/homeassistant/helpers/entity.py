@@ -16,9 +16,9 @@ class Entity:
 
     ``entity_category`` used to be missing from the whole stub, so
     ``getattr(ent, "entity_category")`` was ``None`` for every entity in the
-    tree regardless of what it declared -- the vacuity #947 records: a
+    tree regardless of what it declared. This is the vacuity #947 records: a
     check keyed on the public property counts zero for a reason that has
-    nothing to do with the code under test, and real Home Assistant, which
+    nothing to do with the code under test. Real Home Assistant, which
     declares the property, would have returned the value.
     """
 

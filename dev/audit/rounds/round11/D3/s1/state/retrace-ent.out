@@ -1,0 +1,3 @@
+2026-11-17T12:48:24Z RETRACE tests/entities.py rc=1 failed=1 complete=True problems=['starts a non-Python process: <tmp> 68007 (+1003)', 'starts Python without the tracer: <home>/.local/state/hpo/venv-ci/bin/python3 -I -c import sys; sys.path.insert(0, sys.argv[1]); import stamp; print(stamp.read_rule().READ_TRIES) /private<tmp>']
+RESULT load1=75.42
+RESULT thread_factor=1.00

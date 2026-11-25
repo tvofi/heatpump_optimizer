@@ -23,9 +23,17 @@ power schedule``:
   * ``lift`` -- the fixture's lift (ramped from the house's 0.1 K margin, to
     the 0.5 K day band, 1.0 K at night). Expect more space energy, a higher
     lowest temperature, and a lifted floor (the configuration's floor plus
-    the array) at or under the comfort target at every step. The highest
-    planned temperature is printed, not judged: a floor held at the target
-    leaves the plan's stored heat above it.
+    the array) at or under the comfort target at every step, and at it once
+    the ramp has caught up. The highest planned temperature may rise above
+    ``none``'s: a floor held at the target leaves the plan's stored heat above
+    it, and that rise is accepted (round-11 ruling of 2026-11-18, option A:
+    no clip and no headroom under the target), so it is printed and its
+    direction checked, never bounded.
+  * ``lift_cap_removed`` / ``lift_cap_zero`` -- the null control for the
+    peak: ``rooms.ROOM_LIFT_CAP_C`` set to infinity and to zero around
+    ``rooms.resolve``. With the cap removed the peak still rises over
+    ``none``'s (the rise is the floor's, not the cap's); at zero no lift is
+    held and the plan is ``none``'s.
   * ``lift_pinned_off`` / ``none_pinned_off`` -- a forced-off space pin for
     hours 1 to 3 with the lifted array forced in (the coordinator never
     builds this: a pin gates the lift) against the same pin unlifted: the
@@ -118,12 +126,25 @@ def main() -> int:
     print("lift margins, first 8 steps and the largest:",
           np.round(lift_margins[:8], 4).tolist(), float(lift_margins.max()))
     lift = row("lift", solve(lift_margins))
+    capped = {}
+    for name, cap in (("lift_cap_removed", float("inf")), ("lift_cap_zero", 0.0)):
+        saved, rooms.ROOM_LIFT_CAP_C = rooms.ROOM_LIFT_CAP_C, cap
+        try:
+            got = margins()
+        finally:
+            rooms.ROOM_LIFT_CAP_C = saved
+        capped[name] = (got, row(name, solve(got)))
     config = _config()
     clock = [START + timedelta(hours=DT * i) for i in range(N)]
     lifted_floor_ok = all(
         config.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0] + lift_margins[i]
         <= config.get_comfort_temp(t.hour + t.minute / 60.0, when=t) + 1e-9
         for i, t in enumerate(clock))
+    ramped = int(np.argmax(lift_margins >= 0.5))
+    lifted_floor_at_target = ramped > 0 and all(
+        abs(config.get_temp_bounds(t.hour + t.minute / 60.0, when=t)[0] + lift_margins[i]
+            - config.get_comfort_temp(t.hour + t.minute / 60.0, when=t)) < 1e-9
+        for i, t in enumerate(clock) if i >= ramped)
     pins = np.full(N, np.nan)
     pins[int(1 / DT):int(3 / DT)] = 0.0
     pinned_none, pinned_lift = solve(None, pins), solve(lift_margins, pins)
@@ -138,6 +159,13 @@ def main() -> int:
         "the lift plans more space energy": lift[0] > none[0],
         "the lift raises the lowest planned temperature": lift[1] > none[1],
         "the lifted floor is at or under the comfort target at every step": lifted_floor_ok,
+        "the lifted floor is at the comfort target at every step past the ramp": lifted_floor_at_target,
+        "the lift may raise the plan peak over the unlifted plan's (accepted)": lift[2] > none[2],
+        "the zeros control leaves the peak at the unlifted plan's": zeros[2] == none[2],
+        "null control: with the cap removed the peak still rises":
+            capped["lift_cap_removed"][1][2] > none[2],
+        "null control: at a zero cap nothing is lifted and the plan is none's":
+            capped["lift_cap_zero"][0] is None and capped["lift_cap_zero"][1][3] == none[3],
     }
     for name, ok in checks.items():
         print(f"{'ok  ' if ok else 'FAIL'} {name}")

@@ -9,25 +9,25 @@ while the integration is being set up instead: the device has just been added,
 which is when the suggestion is worth making.
 
 What decides whether a device is worth offering: a device qualifies only when
-one of the sources G7b can map resolves it, which is
+one of the sources G7b can map resolves it. That is
 :func:`device_prefill.resolve_with_fallback`'s own answer -- a source table
 that proves the model, or, for a device no table knows, the fuzzy fallback
 filling at least :data:`QUALIFYING_MINIMUM` roles. A device nothing resolves
 gets no offer, because a prompt that opens an empty page is noise.
 
-**The minimum is measured, not chosen.** It is read off the corpus table
+**The minimum is measured, not chosen**. It is read off the corpus table
 W1067-G7b-3 built and keeps:
 
     PYTHONPATH=tests/hastub python3 tools/devices/measure_prefill_corpus.py
 
-prints "roles the fallback fills per corpus device (W1067-POST1's table)",
-one row per labelled device with the roles its source table resolved and the
+prints "roles the fallback fills per corpus device (W1067-POST1's table)".
+Each labelled device's row holds the roles its source table resolved and the
 roles the fallback then filled. The minimum is the smallest count in that
 table's ``fallback`` column *among its hand-shaped rows* -- the devices no
 source table reads, whose resolvability is the names' doing alone. The two
 generated rows print six and two tabled roles and zero fallback roles while
 being fully resolvable, so a zero there is the source table's doing and not
-the device being unreadable: that is why this number is never read off the
+the device being unreadable. That is why this number is never read off the
 whole column, and why the rule is stated rather than the count alone.
 
 A device with a source table that resolves it is qualified by that table, not

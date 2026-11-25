@@ -1,0 +1,42 @@
+{
+ "round": 11,
+ "intake": "late D3 s1 (owner-approved 2026-11-18)",
+ "source_ref": "handoff/audit-r11-find-D3R c0adbc19fe",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "rows": [
+  {
+   "id": "D3-s1-01",
+   "V1_reproduce": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py [--as-if-fixed]",
+    "got": "capture_never_executes=681 gate_skippable=0; --as-if-fixed 0 -> 681; null_skippable=0 of 579 both arms",
+    "load1": 3.15,
+    "thread_factor": 1.0,
+    "outcome": "reproduced (exact)"
+   },
+   "V2_independent": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/J/late-D3/v_capture_lines.py (from a baseline tree with the s1 dir overlaid)",
+    "metric": "unpinned cell sites in env_drift's closure on an instruction-bearing line that an own sys.monitoring LINE recorder never sees fire in one env_drift.py --capture <tree> <out> --all child run",
+    "got": "682 never executed, 578 executed; probe: a child launched with PYTHONPATH reset to tests/hastub loads the parent's sitecustomize: 0 (2 started, 1 recorded)",
+    "load1": 2.55,
+    "difference": "one site, process_worker.py:28 (GUARD_OFF): the finder's reach row counts it executed, the own recorder does not; the finder's count is the conservative one",
+    "comparable": true
+   },
+   "V3_reach_class": {
+    "attacks": [
+     "contention: counts only, immune",
+     "gate mode: not a test-gap mutant claim; a resource claim about the mutation lane's reach rule",
+     "grid artefact: per-file range 6..289 over 10 files; dropping coordinator.py (289) leaves 392; gate_skippable is 0 in every file, so the mechanism is not aggregate-sensitive",
+     "null control: present and passing, null_skippable 0 of 579 under both arms",
+     "soundness of the fix scope: the parent's `git diff --name-only HEAD` does read the tree, so reading git as tree-blind is sound only at file granularity; a never-executed-line mutant gives the same diff file set as the lane's own comment-only null control (mutation_table.null_control), so the claim 'cannot change' holds while that null control passes. The fix must key on that, not on a blanket TREE_BLIND entry for git",
+     "consequence: CI/nightly mutation-lane time only (one env_drift --all capture per driven pair, own capture wall 68.9 s provisional); no test is missed and no user-facing behaviour moves",
+     "'every such mutant pays': true for survivors and for pairs the schedule reaches before a kill; overstated for mutants killed earlier"
+    ],
+    "severity": "low (bounded CI cost, never a missed kill)",
+    "seam_rule": "m5_closure_reach.py | grep REACH-REFUSED enumerates refused reach rows per driver, which covers the phenomenon's seams",
+    "class": "I2"
+   },
+   "vote": "weaken",
+   "vote_severity": "low"
+  }
+ ]
+}

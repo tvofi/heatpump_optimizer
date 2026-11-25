@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_record.py:<module> CONST 0059744a",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "ROOM_HISTORY_STORE_VERSION = 1",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`ROOM_HISTORY_STORE_VERSION = 2`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

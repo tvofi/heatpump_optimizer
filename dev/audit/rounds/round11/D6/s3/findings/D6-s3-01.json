@@ -1,0 +1,45 @@
+{
+  "id": "D6-s3-01",
+  "scope": "D6-s3",
+  "step": "D6.M2",
+  "title": "Setup-wizard device pre-fill refusal renders its description without the placeholders its text reads",
+  "severity": "medium",
+  "claim": "When the setup wizard's device pre-fill page refuses a save (e.g. dhw_min_too_close), the re-rendered form supplies only name_matched/matched_sources, so en.json's config.step.device_prefill description, which reads {found} and {backup_heater_type}, cannot render, and matched_sources is re-told as '–' for a device the preview resolved; the options flow's sibling page keeps them.",
+  "mechanism": "config_flow.HeatPumpOptimizerConfigFlow.async_step_device_prefill's refusal branch calls self._device_prefill_form(_prefill_schema(keys, saved), {}, errors): the notes the preview computed (modbus_prefill.notes + device_prefill.disclaimer(resolution)) are not kept, so only device_prefill.disclaimer()'s empty-resolution defaults reach description_placeholders. The options sibling (async_step_modbus_prefill) keeps notes in self._prefill and passes them on refusal. Home Assistant's frontend formats the description with IntlMessageFormat and shows 'Translation error: ...' when a variable is missing.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/prefill_placeholders.py",
+    "harness_path": "dev/audit/rounds/round11/D6/s3/prefill_placeholders.py",
+    "value": 2,
+    "unit": "missing placeholders on the config refusal render (found, backup_heater_type); 1 en.json string fails str.format_map; 3 placeholders changed vs the preview",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B3, linux x86_64, 4 cpu",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during the fan-out; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 5.51,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_device_prefill",
+  "perturbation": {
+    "change": "--perturb: mock.patch.object HeatPumpOptimizerConfigFlow._device_prefill_form so the refusal keeps the page's read-notes ({**modbus_prefill.notes({}), **notes}), the shape of the options page's kept self._prefill notes",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Placeholders named by en.json config.step.device_prefill (plus the rendered error strings) absent from the returned form's description_placeholders, on the refusal render.",
+  "phenomenon_property": "Every render of a flow step (first show, preview and every refusal re-render) supplies every placeholder that step's en.json strings and its rendered error strings name, with the same values the page last showed for the read it describes.",
+  "seam_rule": "dev/audit/rounds/round11/D6/s3/prefill_placeholders.py (arms: config pick/preview/refusal, options refusal); the call sites are `grep -n \"_device_prefill_form(\\|_prefill_form(\" custom_components/heatpump_optimizer/config_flow.py`",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D6/s3/prefill_placeholders.py",
+    "value": "options_refusal_missing=0; config_pick_missing=0; config_preview_missing=0",
+    "note": "The same device and the same refused value on the options flow's modbus_prefill page supply every placeholder; the config page's own pick and preview renders do too. Only the config refusal drops them."
+  },
+  "reproduction_steps": [
+    "Seed a FakeHass with the tuya_heat_pump_000004k4z6 fixture device (dev_rotenso) and its live states.",
+    "Config flow: async_step_device_prefill(None), then pick the device, then submit {dhw_setpoint: 49} (45 degC minimum + 5 K margin refuses it).",
+    "Compare result['description_placeholders'] against the {..} names in en.json config.step.device_prefill: found and backup_heater_type are missing; matched_sources reads '–'."
+  ],
+  "proposed_fix_scope": "config_flow.py: keep the preview's notes (and sourced disclaimer) on the config flow's pre-fill state the way the options flow's self._prefill tuple does, and pass them to _device_prefill_form on refusal.",
+  "files": ["custom_components/heatpump_optimizer/config_flow.py", "custom_components/heatpump_optimizer/translations/en.json"],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}

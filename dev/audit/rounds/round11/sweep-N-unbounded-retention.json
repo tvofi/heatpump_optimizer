@@ -1,0 +1,44 @@
+{
+ "class": "N-unbounded-retention",
+ "instances": 2,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/unbounded_retention_seams.py (37 seams on custom_components/heatpump_optimizer; positive: re-finds HistorySource log/actionLog/seen/covered of D9-s2-01; null: 0 on D14/unbounded_retention_fixture/clean.py; perturbation: deleting the one discard line (perturbed.py.txt) gives 1)",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "HistorySource.log",
+   "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "HistorySource.actionLog",
+   "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "HistorySource.seen",
+   "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "HistorySource.covered",
+   "probe": "node --expose-gc dev/audit/rounds/round11/D9/s2/card_history_retained.mjs --days 30 --arm baseline",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "symbol": "PriceShapeLearner.days_seen",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/probe_price_days_seen.py",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "symbol": "PriceShapeLearner.quarter_days_seen",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/probe_price_days_seen.py",
+   "beyond_finding": true
+  }
+ ]
+}

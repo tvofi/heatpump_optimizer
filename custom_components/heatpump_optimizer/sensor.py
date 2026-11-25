@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import duty_switch, narrative
+from . import duty_switch, narrative, room_history, room_record
 from . import topology
 from .accuracy import COP_ESTIMATED, COP_NOT_MEASURABLE
 from .const import (
@@ -40,6 +40,7 @@ from .const import (
     MANUAL_PLAN_WINDOW_HOURS,
     OPTIMIZATION_MODE_STATES,
     SOLAR_APERTURE_MIN_SAMPLES,
+    WATER_SPECIFIC_HEAT,
 )
 from .coordinator import (
     HeatPumpOptimizerConfigEntry,
@@ -54,7 +55,7 @@ from .entity import dhw_split_attributes
 from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
-from .thermal_model import feedback_gaps
+from .thermal_model import dhw_enabled_from_config, feedback_gaps
 from .wood_fuel import saving_includes_wood
 
 if TYPE_CHECKING:
@@ -274,10 +275,11 @@ async def async_setup_entry(
         WoodBurnAdvisorSensor(coordinator, entry),
         ModelRestartAdvisorSensor(coordinator, entry),
     ]
-    # The room list's two sensors exist only where a list is configured
+    # The room list's three sensors exist only where a list is configured
     # (#3616); an options save reloads the entry, so the set holds for its life.
     if EntryConfig.from_mapping(coordinator.effective_config).room_temperature_entities:
-        entities += [RoomAverageTempSensor(coordinator, entry), RoomSpreadSensor(coordinator, entry)]
+        entities += [RoomAverageTempSensor(coordinator, entry), RoomSpreadSensor(coordinator, entry),
+                     RoomSeparabilitySensor(coordinator, entry)]
 
     async_add_entities(entities)
 
@@ -530,7 +532,14 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
 
     @property
     def _waiting_for(self) -> str | None:
-        return None if self._rows() else "settled_savings_month"
+        # Closed months and no open row: the ledger holds the open month back
+        # until it has covered ``ledger.MIN_COVERAGE_HOURS``.
+        rows = self._rows()
+        if not rows:
+            return "settled_savings_month"
+        if any(isinstance(row, dict) and row.get("estimated") for row in rows):
+            return None
+        return "open_month_coverage"
 
     @property
     def native_value(self) -> float | None:
@@ -753,6 +762,29 @@ class RoomAverageTempSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         block = _mapping(self._data().get("rooms"))
         return {key: block.get(key) for key in ("valid_count", "configured_count", "per_room", "dropped")}
+
+
+class RoomSeparabilitySensor(HeatPumpOptimizerSensorBase):
+    """How many rooms the room history can model apart (#3616, phase 3a).
+
+    The state counts the rooms whose verdict is ``separable``; the attributes
+    carry each room's verdict and the house line (``room_history.identifiability_report``).
+    Unknown until the history is loaded on the first cycle.
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(coordinator, entry, "room_separability", "room_separability")
+
+    @property
+    def native_value(self) -> int | None:
+        return room_history.separable_count(room_record.report_of(self.coordinator))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        view = room_record.report_of(self.coordinator) or {}
+        return {"rooms": view.get("rooms"), "house": view.get("house"), "rows": view.get("rows")}
 
 
 class RoomSpreadSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
@@ -2987,7 +3019,8 @@ def _gap_probe_terms(
     reading; an install with none ranks nothing, and its zero is the absent
     window rather than a priced one. Once
     a series is present the COP terms read the pump load and duty cycle the
-    window shows; the DHW term is a month of the tank's usable band, one
+    window shows; on an install with hot water (``dhw_enabled_from_config``)
+    the DHW term is a month of the tank's usable band, one
     reheat a day at the resolved rate, priced from the configured tank volume
     (``CONF_DHW_TANK_VOLUME``, else the documented ``DEFAULT_DHW_TANK_VOLUME``)
     over the documented ``DEFAULT_DHW_SETPOINT`` - ``DEFAULT_DHW_MIN_TEMP``
@@ -3017,7 +3050,10 @@ def _gap_probe_terms(
     terms["outdoor_load_kw"] = sum(hp_vals) / len(hp_vals) if hp_vals else 0.0
     terms["outdoor_hours"] = 24.0 * 30.0 * duty
     terms["outdoor_price"] = rate
-    terms["dhw_extra_kwh"] = volume * band * (4.187 / 3600.0) * 30.0
+    # An install with no hot water has no tank to coast (D8-s1-01): the
+    # model's own answer, so the default volume is never priced for it.
+    if dhw_enabled_from_config(config):
+        terms["dhw_extra_kwh"] = volume * band * WATER_SPECIFIC_HEAT * 30.0
     terms["dhw_price"] = rate
     return terms
 

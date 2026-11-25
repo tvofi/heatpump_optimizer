@@ -1,0 +1,33 @@
+RESULT gap_pct[flat/winter_cold/two-zone/dhw/wood/6h|flat]=1.2421339329380644e-06 pct best=warm
+RESULT gap_pct[flat/winter_cold/two-zone/dhw/wood/24h|flat]=1.1988779252299169e-05 pct best=seeds
+RESULT gap_pct[flat/winter_cold/two-zone/no-dhw/wood/6h|flat]=0.0940667020946838 pct best=warm
+RESULT gap_pct[flat/winter_cold/two-zone/no-dhw/wood/24h|flat]=8.728700485230927e-06 pct best=seeds
+RESULT gap_pct[flat/shoulder/two-zone/no-dhw/wood/24h|flat]=0.0003260656144918598 pct best=warm
+RESULT gap_pct[flat/summer_cool/two-zone/no-dhw/wood/48h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/summer_warm/two-zone/dhw/wood/48h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/summer_cool/two-zone/dhw/wood/6h|flat]=7.836141162442656e-07 pct best=warm
+RESULT gap_pct[flat/shoulder/two-zone/dhw/wood/6h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/winter_mild/two-zone/no-dhw/wood/6h|flat]=5.1431435813993374e-06 pct best=warm
+RESULT gap_pct[flat/shoulder/two-zone/dhw/wood/24h|flat]=8.321059046801828 pct best=seeds
+RESULT gap_pct[flat/summer_warm/two-zone/no-dhw/wood/6h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/summer_warm/two-zone/no-dhw/wood/48h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/summer_warm/two-zone/dhw/wood/24h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/winter_mild/two-zone/no-dhw/wood/24h|flat]=0.005623868565239927 pct best=warm
+RESULT gap_pct[flat/winter_mild/two-zone/no-dhw/wood/48h|flat]=0.08966022918068599 pct best=warm
+RESULT gap_pct[flat/winter_mild/two-zone/dhw/wood/24h|flat]=0.013033115182170416 pct best=warm
+RESULT gap_pct[flat/winter_mild/two-zone/dhw/wood/6h|flat]=0.9996132429189751 pct best=seeds
+RESULT gap_pct[flat/summer_cool/two-zone/no-dhw/wood/24h|flat]=1.8583311627961685 pct best=seeds
+RESULT gap_pct[flat/winter_cold/two-zone/no-dhw/wood/48h|flat]=0.14776128364577637 pct best=warm
+RESULT gap_pct[flat/winter_mild/two-zone/dhw/wood/48h|flat]=0.021578091393972168 pct best=warm
+RESULT gap_pct[flat/shoulder/two-zone/no-dhw/wood/48h|flat]=0.15243406015992952 pct best=warm
+RESULT gap_pct[flat/summer_cool/two-zone/dhw/wood/24h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/summer_cool/two-zone/dhw/wood/48h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/summer_warm/two-zone/no-dhw/wood/24h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/shoulder/two-zone/no-dhw/wood/6h|flat]=2.5882806978686688 pct best=seeds
+RESULT gap_pct[flat/shoulder/two-zone/dhw/wood/48h|flat]=2.0548692376858972 pct best=warm
+RESULT gap_pct[flat/summer_cool/two-zone/no-dhw/wood/6h|flat]=3.5900508114374643e-06 pct best=warm
+RESULT gap_pct[flat/summer_warm/two-zone/dhw/wood/6h|flat]=0.0 pct best=seeds
+RESULT gap_pct[flat/winter_cold/two-zone/dhw/wood/48h|flat]=0.014359346480643444 pct best=seeds
+RESULT thread_factor=1.000
+RESULT load1=6.96
+RESULT swapins=0

@@ -127,7 +127,7 @@ def enqueue(state_dir: Path, ops: "list[str]", sha: str) -> "list[str]":
         have.add(text)
     new = [line for line in (f"{op}  # postmerge {sha}" for op in ops) if line not in have]
     if new:
-        fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+        fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
         try:
             os.write(fd, "".join(line + "\n" for line in new).encode())
         finally:
@@ -226,6 +226,9 @@ MUTANTS = {
     "no_idempotence_key": ('    new = [line for line in (f"{op}  # postmerge {sha}" for op in ops) if line not in have]',
                            '    new = [line for line in (f"{op}  # postmerge {sha}" for op in ops)]',
                            "(ii) a second postmerge run for that merge queues nothing, the first line marked or not"),
+    "queue_world_readable": ("os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)",
+                             "os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)",
+                             "the queue enqueue creates is owner-only under umask 022"),
     "marks_by_index": ('        hits = [c for c in g.get("carry", []) if key and key in c]',
                        '        hits = [c for c in g.get("carry", [])[int(n):int(n) + 1]]\n        key = hits[0][:20] if hits else key',
                        "(i) #3470's body yields exactly the two marks batch 236 queued by hand, keyed on text"),
@@ -356,8 +359,14 @@ def self_test(mutants: bool = True) -> int:
     # (v) replay of #3447 (merge ceb3070ccb, group R10-OUTSIDE-DIAG-REDACT-LOCATION), whose stage was routed by hand
     merged = "ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e"
     with tempfile.TemporaryDirectory() as st:
-        enqueue(Path(st), [f"set-stage R10-OUTSIDE-DIAG-REDACT-LOCATION done --at-sha {merged}"], merged)
+        old_umask = os.umask(0o022)
+        try:
+            enqueue(Path(st), [f"set-stage R10-OUTSIDE-DIAG-REDACT-LOCATION done --at-sha {merged}"], merged)
+        finally:
+            os.umask(old_umask)
         got = (Path(st) / QUEUE).read_text()
+        mode = (Path(st) / QUEUE).stat().st_mode & 0o777
+    check("the queue enqueue creates is owner-only under umask 022", mode == 0o600, oct(mode))
     parsed = rq.parse_line(got)
     check("(v) #3447's derived stage op passes roster_queue.parse_line and replay_unsafe",
           parsed == ("set-stage", "R10-OUTSIDE-DIAG-REDACT-LOCATION", "done", ["--at-sha", merged])

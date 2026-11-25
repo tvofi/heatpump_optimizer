@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:_house_line GUARD_OFF 5e733a26",
+  "old": "    if fitted is None:",
+  "reason": "Equivalent: unreachable. Past the IQR guard the calling fractions xs hold at least two distinct values (q3 - q1 >= FLAT_IQR > 0), so the design column_stack([xs, ones]) has rank 2, and past the row guard len(rows) >= MIN_PAIRS (144) > 2, so _fit's dof is positive and lstsq returns full rank: _fit never returns None here. The guard narrows the Optional for mypy --strict (tests/typing_ruler.py); switched off, no input reaches the None it would refuse.",
+  "verdict": "equivalent"
+}

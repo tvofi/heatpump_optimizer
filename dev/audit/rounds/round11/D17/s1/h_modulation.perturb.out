@@ -1,0 +1,7 @@
+stored: {'compressor_modulation': 'on_off', 'heat_pump_min_power': 1.5}
+RESULT declared_on_off=False
+RESULT on_off_sub_min_steps=0 of 96
+RESULT modulating_sub_min_steps=60 of 96
+RESULT thread_factor=1.001
+RESULT load1=1.76953125
+RESULT swapins=0

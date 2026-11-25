@@ -1,0 +1,2 @@
+CELL gradient-fd golden=extreme_prices relerr_max=1.828e+00 relerr_median=4.791e-08 per_point=[1.8e+00,4.1e-08,4.3e-08,4.8e-08,4.8e-08] (point 0 = the solve's start x0) worst_step=63 |dg|=1.703e-01 g_central=-0.08639 g_solver=0.08394
+CELL gradient-fd golden=winter_single_dhw relerr_max=1.078e+00 relerr_median=1.266e-07 per_point=[1.1e+00,9.0e-08,1.0e-07,1.3e-07,1.3e-07] (point 0 = the solve's start x0) worst_step=87 |dg|=3.429e-01 g_central=-0.3274 g_solver=0.01552

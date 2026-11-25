@@ -195,6 +195,9 @@ class CurrentAction(TypedDict, total=False):
     boost_space: bool
     boost_dhw: bool
     why_now: WhyNow
+    # The system-identification override's experiment (``sysid.KIND_*``);
+    # absent on every other action.
+    kind: str
 
 
 class DisinfectionSwitch(TypedDict, total=False):

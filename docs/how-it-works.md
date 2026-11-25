@@ -107,12 +107,15 @@ more expensive hours in the validation scenarios.
 
 **Several starting points, not one.** A single gradient run can stop at a
 locally optimal schedule that a different starting guess beats — that is what
-the two-zone model showed. So each space solve scores four candidate profiles
+the two-zone model showed. So each space solve scores five candidate profiles
 cheaply (a warm start or the naive guess, two price-ranked profiles at
-different total energy, and a flat half-headroom guess), refines every one of
-them with L-BFGS-B, and keeps whichever refinement scores best. Four candidates
-close most of the local-optimum gap in the two-zone model; a fifth would not be
-worth the extra full solve on the hardware Home Assistant runs on.
+different total energy, a flat half-headroom guess, and the all-off plan with
+every step at its lower bound), refines every one of them with L-BFGS-B, and
+keeps whichever refinement scores best. The all-off candidate is there because
+every other one buys energy: on a day whose cheapest plan buys none, such as
+negative prices on a storage plant, a descent from the others can stop short
+of it. Each candidate costs one full solve on the hardware Home Assistant runs
+on, so the set stays this small.
 
 ---
 

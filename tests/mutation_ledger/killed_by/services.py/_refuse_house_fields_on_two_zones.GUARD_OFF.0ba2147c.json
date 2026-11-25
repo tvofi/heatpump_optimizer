@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:_refuse_house_fields_on_two_zones GUARD_OFF 0ba2147c",
+  "killed_by": "tests/features.py",
+  "old": "        if two_zone_from_config(coord.effective_config):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

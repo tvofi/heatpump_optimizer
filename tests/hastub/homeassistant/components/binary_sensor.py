@@ -21,9 +21,9 @@ class BinarySensorEntity(Entity):
 
         Upstream's cached_property returns ``_attr_device_class`` when the
         attribute exists, then consults ``entity_description``, then
-        ``None``; this copy drops the description branch (the stub does not
+        ``None``. This copy drops the description branch (the stub does not
         model descriptions) and uses a plain property, for the same reason
-        SensorEntity's does -- without it the three binary sensors that
+        SensorEntity's does. Without it the three binary sensors that
         declare a device class read ``None`` through the public property,
         the #947 vacuity.
         """

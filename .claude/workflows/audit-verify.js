@@ -85,10 +85,10 @@ const LENSES = [
 
 // OWNER-ONLY:BEGIN -- check-wave-script.mjs evaluates this block alone, so it
 // uses nothing from outside it.
-const OWNER_ONLY = new Set([])
+const OWNER_ONLY = new Set(['DX0'])
 // The dimension a finding record names, by any of its three spellings: one
 // owner-only spelling makes the record owner-only.
-const ownerOnlyRecord = (f, set) => [f?.dimension, f?.scope, f?.id].some((x) => { const m = /^D[0-9]+/.exec(String(x ?? '')); return !!m && set.has(m[0]) })
+const ownerOnlyRecord = (f, set) => [f?.dimension, f?.scope, f?.id].some((x) => { const m = /^D(?:[0-9]+|X0)(?![0-9])/.exec(String(x ?? '')); return !!m && set.has(m[0]) })
 // Why a run handed a private root is refused; every line a literal, '' the only pass.
 const ownerOnlyRefusal = (a, set) => {
   if (typeof a?.privateRoot !== 'string' || !a.privateRoot.startsWith('/') || a.privateRoot.includes('/../') || a.privateRoot.endsWith('/')) return 'args.private_root is an absolute path, written without a trailing slash or a parent step'
@@ -309,7 +309,7 @@ const verdictOf = Object.fromEntries(verdicts.map((v) => [v.id, v.verdict]))
 const rotationYield = {}
 for (const f of [...reg.findings].sort((a, b) => String(a.id).localeCompare(String(b.id)))) {
   const y = (rotationYield[f.dimension] ??= {})
-  const m = /^D\d+\.(M\d+)$/.exec(f.step ?? '')?.[1]
+  const m = /^D(?:\d+|X0)\.(M\d+)$/.exec(f.step ?? '')?.[1]
   if (m && SURVIVES.has(verdictOf[f.id])) y[m] = (y[m] ?? 0) + 1
   else if (!m) log(`${f.id} names no method step; it counts toward no step's yield`)
 }

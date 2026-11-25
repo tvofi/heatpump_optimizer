@@ -3,7 +3,7 @@
 One table, five modes, two questions: can this unit heat the house right now,
 and can it make hot water right now. Everything downstream — slot suppression
 in the planner, the comfort floors the plan is allowed to promise, and a
-future path that *writes* the mode — reads its answer from here, so there is
+future path that *writes* the mode — reads its answer from here. So there is
 exactly one place where "DHW means no space heating" is written down.
 
 **Written only by ``pump_arbiter``, per plan step, when opted in.** It uses
@@ -200,7 +200,7 @@ _ALIASES: dict[str, str] = _build_aliases()
 #: This is the one place the vocabulary is genuinely dangerous. A generic
 #: status sensor cycling ``heating`` / ``cooling`` / ``defrosting`` / ``idle``
 #: is exactly what a user drops into a field labelled "Heat pump operating
-#: mode" — and there ``heating`` means "the compressor is making heat right
+#: mode". There ``heating`` means "the compressor is making heat right
 #: now", NOT "this unit cannot make hot water". Reading it as the single-duty
 #: ``heat`` mode suppresses the hot-water channel on a misreading, which is
 #: the failure this module's own docstring calls out as the expensive one.
@@ -278,7 +278,7 @@ def declares_current_option(state: Any) -> bool:
     it is a question about the ENTITY rather than about its domain. A
     ``select`` publishes ``options`` and its state is always one of them, so
     "Heating" there is a mode somebody declared. An ``input_select`` does the
-    same, and its options being user-typed is the point: a person who builds
+    same, and its options being user-typed is the point. A person who builds
     a helper listing the pump's modes and sets it to one is telling us the
     mode, which is exactly the input this slot wants.
 

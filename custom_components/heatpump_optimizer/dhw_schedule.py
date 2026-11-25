@@ -14,20 +14,20 @@ Windows may wrap around midnight (``22:00-06:00``) and are normalized/merged so
 that downstream code can rely on a canonical, non-overlapping representation.
 
 **Weekly windows.** A range may carry a day selector prefix, so different days
-get different windows (owner request: weekdays vs weekend, or one specific
+get different windows (owner request: weekdays vs weekend, or one
 weekday)::
 
     weekdays 06:00-08:30, weekend 08:00-09:30
     Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30
 
-A day selector is one of: ``daily`` (the default when absent), ``weekdays``
-(Monday–Friday), ``weekend`` (Saturday–Sunday), or a comma/range list of
-two-letter day tokens ``Mo Tu We Th Fr Sa Su``. A range without a selector
-applies to all seven days, which is exactly the previous behaviour — the flat
-spec ``06:00-08:30`` and ``daily 06:00-08:30`` mean the same thing, and an
-existing configuration loads unchanged. Later segments for the same day
-accumulate (``Mo 06:00-07:00, Mo 18:00-19:00`` is Monday with two windows),
-mirroring how the flat grammar treats ``06:00-07:00, 18:00-19:00``.
+A day selector takes four forms. ``daily`` is the default when absent,
+``weekdays`` is Monday–Friday and ``weekend`` Saturday–Sunday; the fourth is a
+comma/range list of two-letter day tokens ``Mo Tu We Th Fr Sa Su``. A range
+without a selector applies to all seven days, which is exactly the previous
+behaviour. The flat spec ``06:00-08:30`` and ``daily 06:00-08:30`` mean the
+same thing, and an existing configuration loads unchanged. Later segments
+for the same day accumulate (``Mo 06:00-07:00, Mo 18:00-19:00`` is Monday
+with two windows), as the flat grammar treats ``06:00-07:00, 18:00-19:00``.
 
 **One grammar, and it is this one.** The segment separator and the day-list
 separator are the same comma, so a spec can only be split by a reader that
@@ -266,9 +266,9 @@ def _raw_windows(spec: str | list[Any] | tuple[Any, ...] | None) -> list[Window]
 def _parse_one_range(chunk: str) -> list[Window]:
     """One ``[days ]HH:MM-HH:MM`` range into its window list.
 
-    The day selector is accepted and IGNORED here -- ``parse_windows`` is the
+    The day selector is accepted and IGNORED here. ``parse_windows`` is the
     every-day view, and a day-prefixed spec means "these times, on those
-    days"; the every-day view keeps the times so nothing downstream breaks
+    days". The every-day view keeps the times so nothing downstream breaks
     on a weekly spec it has not been taught about. The weekly structure is
     ``parse_weekly_windows``'s job.
     """
@@ -370,7 +370,7 @@ def format_weekly_windows(weekly: list[list[Window]]) -> str:
             segments.append(format_windows(list(wins)))
             continue
         # One selector per RANGE, not one per group. The grammar reads a
-        # range with no selector as applying to all seven days, so a group's
+        # range with no selector as applying to all seven days. A group's
         # second and later ranges must not be left bare: "Mo 06:00-08:30,
         # 17:00-22:00" handed every other day Monday's evening window on the
         # way back in (#329). Repeating the selector is exactly equivalent --
@@ -394,15 +394,15 @@ def windows_for_day(
     the ``dhw_windows_<day>`` keys, #1260), then the holiday overlay, then
     the default spec's own structure (``weekly``, or ``fallback`` when the
     spec names no days). A day whose override slot is ``None`` inherits the
-    rest of the chain unchanged, and the whole ``day_overrides`` argument
-    defaulting to ``None`` reproduces yesterday's behaviour exactly — the
+    rest of the chain unchanged. The whole ``day_overrides`` argument
+    defaulting to ``None`` reproduces yesterday's behaviour exactly. The
     holiday tier keeps the semantics it had before the overrides existed,
     because no configuration that predates them can carry any.
 
     ``fallback`` is the flat/every-day set from ``parse_windows``, used when
-    no weekly structure exists; it is also what a ``None`` weekday (a caller
+    no weekly structure exists. It is also what a ``None`` weekday (a caller
     with an hour but no date) gets, so hour-only consumers are untouched by
-    the whole feature — overrides included, since a caller with no date
+    the whole feature. That includes overrides, since a caller with no date
     cannot name a day to override.
     """
     if day_overrides is not None and weekday is not None:
@@ -541,8 +541,8 @@ def is_valid_spec(spec: str) -> bool:
 
 #: The shortest window the config flow accepts, in minutes: one planning
 #: step. The optimizer plans on a 15-minute grid and tests window membership
-#: at each step's start (``hour_in_windows``), so a window shorter than a
-#: step can sit between two starts and bind nothing at all -- "06:05-06:06"
+#: at each step's start (``hour_in_windows``). A window shorter than a
+#: step can sit between two starts and bind nothing at all: "06:05-06:06"
 #: was accepted and then changed no plan (audit D4-08, #171). Kept equal to
 #: ``OptimizationConfig.time_step_minutes``; tests/entities.py pins the two
 #: together, since this module cannot import the optimizer.
@@ -567,7 +567,7 @@ def window_minutes(window: Window) -> float:
 def spec_problem(spec: str) -> str | None:
     """The config flow's verdict on a window spec: an error key, or None.
 
-    Stricter than ``parse_windows`` on purpose, and separate from it: the
+    Stricter than ``parse_windows`` on purpose, and separate from it. The
     parser must stay permissive so a stored spec keeps loading whatever this
     version thinks of it, while the form is where the typo happens and where
     it can still be corrected.

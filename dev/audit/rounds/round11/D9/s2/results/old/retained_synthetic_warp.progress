@@ -1,0 +1,2 @@
+{"cycle": 200, "traced": 385654, "cpu_s": 8.5, "top": [["coord.data", 238047], ["coord._optimization_result", 79447], ["module.heatpump_optimizer.debugger.DOMAINS", 47545], ["coord.logger", 26889], ["coord._price_learner", 25245]]}
+{"cycle": 250, "traced": 461586, "cpu_s": 23.2, "top": [["coord.data", 238047], ["coord._optimization_result", 79447], ["module.heatpump_optimizer.debugger.DOMAINS", 47545], ["coord._price_learner", 27795], ["coord.logger", 26889]]}

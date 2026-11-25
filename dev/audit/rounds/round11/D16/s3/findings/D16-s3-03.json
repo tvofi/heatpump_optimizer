@@ -1,0 +1,48 @@
+{
+  "id": "D16-s3-03",
+  "scope": "D16-s3",
+  "step": "D16.M6",
+  "title": "Unload during a held disinfection run leaves the tank set-point at the disinfection target",
+  "severity": "high",
+  "claim": "When the entry unloads (or is removed) while the integration holds the pump's disinfection program on, the tank set-point stays at the cycle target 60 instead of the configured 50, because release() computes its baseline row while the disinfection hold is still live.",
+  "mechanism": "coordinator.async_shutdown calls LegionellaGuard.async_release_switch (DisinfectionSwitch.release_blind turns the switch off but leaves memo True) and then pump_arbiter.release, whose desired(coord, inp, None) reads inp.disinfecting (the memo) in _dhw_target and so writes, or finds already written, the cycle temperature. The same row reads the action's dhw_reason legionella, so a plan-booked cycle step unloaded has the same seam.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "harness_path": "dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "value": 1,
+    "unit": "entity (RESULT unrestored_unload_disinfecting__number.dhw_set: reads 60 against 50)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B11 (shared, up to three compute seats)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute seats may share B11; the number is a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.87,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "pump_arbiter:release (pump_arbiter:_dhw_target via desired) after legionella:LegionellaGuard.async_release_switch, from heatpump_optimizer:async_unload_entry",
+  "perturbation": {
+    "change": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py --perturb memo: LegionellaGuard.async_release_switch also sets disinfect.memo = None before pump_arbiter.release runs",
+    "expected_direction": "to_zero",
+    "observed_value": "unrestored_unload_disinfecting__number.dhw_set=0"
+  },
+  "metric_definition": "1 when the tank set-point after unload differs from the configured dhw_setpoint (50) in the arm where the disinfection program was held on; key = state the delivered calls left.",
+  "phenomenon_property": "The baseline row written when the optimizer lets go (unload, and Off once D16-s3-01 writes one) carries the configured tank set-point, never the live step's cycle target, whatever the disinfection hold or the action's dhw_reason says.",
+  "seam_rule": "grep -n 'disinfecting\\|REASON_LEGIONELLA' custom_components/heatpump_optimizer/pump_arbiter.py (each read reachable from release()/desired(..., None, ...))",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D16/s3/m6_restore.py",
+    "value": "unrestored_unload__number.dhw_set=0 (same arm without the disinfection hold); null_unrestored_unload_disinfecting=0",
+    "note": "without the hold the release writes 50"
+  },
+  "reproduction_steps": [
+    "run the command; read RESULT unrestored_unload_disinfecting__number.dhw_set",
+    "re-run with --perturb memo: it reads 0"
+  ],
+  "proposed_fix_scope": "pump_arbiter.release (and the Off baseline write) builds the baseline row with the cycle flags cleared, or the unload clears the disinfection hold before the arbiter's release.",
+  "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "N-order-coupling"
+}

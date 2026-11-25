@@ -1,0 +1,637 @@
+{
+ "seams": [
+  {
+   "file": "coordinator.py",
+   "symbol": "_band_fields",
+   "line": 2438,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._solve_hubs",
+   "line": 6202,
+   "power": "via _band_fields",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "dhw_planner.py",
+   "symbol": "DhwPlanner._build_dhw_requirements",
+   "line": 1068,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "draw_range.py",
+   "symbol": "power_floor_kw",
+   "line": 526,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "draw_range.py",
+   "symbol": "fold",
+   "line": 588,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "draw_range.py",
+   "symbol": "planned_range",
+   "line": 633,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "draw_range.py",
+   "symbol": "diagnostics_view",
+   "line": 661,
+   "power": "via planned_range",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "draw_range.py",
+   "symbol": "solve_band",
+   "line": 708,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_duty_floor",
+   "line": 144,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_stop_availability",
+   "line": 275,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_with_stop_availability",
+   "line": 298,
+   "power": "via _duty_floor,_stop_availability",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_shipped_and_received",
+   "line": 323,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_switch_cost_fn",
+   "line": 347,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_start_cost_fn",
+   "line": 383,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_avoid_priced_switches",
+   "line": 428,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_projection",
+   "line": 509,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_run_plans",
+   "line": 525,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_space_scope",
+   "line": 575,
+   "power": "via _pin_on_power",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_stage_box",
+   "line": 601,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_resolved_runs",
+   "line": 623,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_best_runs",
+   "line": 642,
+   "power": "via _resolved_runs,_run_plans,_stage_box",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_commit_runs",
+   "line": 673,
+   "power": "via _projection,_stage_box",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "_power_fraction",
+   "line": 2159,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._zone_setpoints",
+   "line": 3783,
+   "power": "via _power_fraction",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._build_result",
+   "line": 3805,
+   "power": "via _duty_floor",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._co_optimize",
+   "line": 3935,
+   "power": "via _duty_floor",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer.optimize._solve",
+   "line": 4451,
+   "power": "via _optimize_space_only,_optimize_with_dhw",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._pin_on_power",
+   "line": 5276,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._solve_objectives",
+   "line": 5297,
+   "power": "via _start_cost_fn,_switch_cost_fn",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._solve_objectives.objective",
+   "line": 5337,
+   "power": "via _shipped_and_received",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._solve_objectives.objective_batch",
+   "line": 5394,
+   "power": "via _shipped_and_received",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._optimize_space_only",
+   "line": 5442,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._optimize_with_dhw",
+   "line": 5707,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._power_to_setpoints",
+   "line": 6452,
+   "power": "via _power_fraction",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._power_to_displace_schedule",
+   "line": 6468,
+   "power": "via _power_fraction",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer._idle_action",
+   "line": 6532,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "optimizer.py",
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "line": 6546,
+   "power": "via _idle_action,_power_fraction",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "pump_arbiter.py",
+   "symbol": "_level_kw",
+   "line": 657,
+   "power": "via _band_kw",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "pump_arbiter.py",
+   "symbol": "_band_kw",
+   "line": 691,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "pump_arbiter.py",
+   "symbol": "_full_draw_c",
+   "line": 863,
+   "power": "",
+   "lift": "FLOW_MIN_LIFT_K",
+   "owner": false,
+   "arms": [
+    "L"
+   ]
+  },
+  {
+   "file": "pump_arbiter.py",
+   "symbol": "_flow_target",
+   "line": 919,
+   "power": "via _band_kw",
+   "lift": "owned ",
+   "owner": false,
+   "arms": [
+    "M"
+   ]
+  },
+  {
+   "file": "pump_arbiter.py",
+   "symbol": "_feedback_on",
+   "line": 977,
+   "power": "via _band_kw",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "pump_arbiter.py",
+   "symbol": "_nudged",
+   "line": 1042,
+   "power": "via _band_kw",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "ThermalParameters.clamp",
+   "line": 252,
+   "power": "via _partload_derate",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "ThermalParameters.flow_lift_power_floor_kw",
+   "line": 733,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "ThermalParameters._tabled_values",
+   "line": 946,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "ThermalParameters.from_config",
+   "line": 1034,
+   "power": "via _tabled_values",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "modulation_floor_flow_c",
+   "line": 1762,
+   "power": "",
+   "lift": "FLOW_MIN_LIFT_K",
+   "owner": true,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "configured_flow_min_lift_k",
+   "line": 1862,
+   "power": "",
+   "lift": "CONF_FLOW_MIN_LIFT_K FLOW_MIN_LIFT_K",
+   "owner": true,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "start_flow_min_lift_k",
+   "line": 1880,
+   "power": "",
+   "lift": "configured_flow_min_lift_k()",
+   "owner": true,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "on_threshold_kw",
+   "line": 1941,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "_partload_derate",
+   "line": 2660,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "partload_factor",
+   "line": 2677,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "heat_per_cop_kw",
+   "line": 2693,
+   "power": "via partload_factor",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "power_for_heat_per_cop_kw",
+   "line": 2708,
+   "power": "direct",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "refill_power_kwh",
+   "line": 2742,
+   "power": "via power_for_heat_per_cop_kw",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  },
+  {
+   "file": "thermal_model.py",
+   "symbol": "added_power_for_heat_per_cop_kw",
+   "line": 2757,
+   "power": "via power_for_heat_per_cop_kw",
+   "lift": "",
+   "owner": false,
+   "arms": [
+    "P"
+   ]
+  }
+ ],
+ "count": {
+  "M": 1,
+  "L": 1,
+  "P": 55
+ },
+ "seams_total": 57
+}

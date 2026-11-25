@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:MapRows.take_pass CMP_BOUND a2c87e94",
+  "killed_by": "tests/features.py",
+  "old": "                (rec.at - first.at).total_seconds() >= SEGMENT_MAX_MIN * 60.0):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`(rec.at - first.at).total_seconds() > SEGMENT_MAX_MIN * 60.0):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

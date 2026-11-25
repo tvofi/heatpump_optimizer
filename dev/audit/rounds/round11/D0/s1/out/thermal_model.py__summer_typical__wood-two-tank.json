@@ -1,0 +1,107 @@
+{
+ "cell": "thermal_model.py/summer_typical/wood-two-tank",
+ "perturb": null,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "n_calls": 1,
+ "status": "optimal",
+ "objective_value": 7.026341197944047,
+ "predicted_cost": 0.0,
+ "shipped_energy_kwh": 0.0,
+ "lbfgsb_runs": 11,
+ "lbfgsb_hit_maxiter": 0,
+ "lbfgsb_abnormal": 0,
+ "calls": [
+  {
+   "call": 0,
+   "n": 96,
+   "maxiter": 200,
+   "n_candidates": 5,
+   "batch": true,
+   "has_dhw_arg": false,
+   "f_prod": 7.026341197944047,
+   "prod_feas": {
+    "bound_viol": 0.0,
+    "comfort_lo": 0.0,
+    "comfort_hi": 0.0
+   },
+   "shipped": true,
+   "energy_cost_prod": 0.0,
+   "challengers": {
+    "seeds": {
+     "f": 7.026341197944047,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 3.008,
+     "energy_cost": 0.0
+    },
+    "budget": {
+     "f": 7.026341197944047,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 0.364,
+     "energy_cost": 0.0
+    },
+    "eps-1e-6": {
+     "f": 7.026341197944047,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 0.367,
+     "energy_cost": 0.0
+    },
+    "eps-1e-3": {
+     "f": 7.026341197944047,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 0.325,
+     "energy_cost": 0.0
+    },
+    "global": {
+     "f": 7.026341197944047,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "cpu_s": 3.419,
+     "energy_cost": 0.0
+    },
+    "warm": {
+     "f": 7.026341197944047,
+     "feas": {
+      "bound_viol": 0.0,
+      "comfort_lo": 0.0,
+      "comfort_hi": 0.0
+     },
+     "feasible": true,
+     "from_": "seeds",
+     "energy_cost": 0.0
+    }
+   },
+   "best": "seeds",
+   "f_best": 7.026341197944047,
+   "gap": 0.0,
+   "gap_rel": 0.0,
+   "infeasible_cheaper": {}
+  }
+ ],
+ "wall_s": 17.91,
+ "cpu_s": 7.94,
+ "thread_factor": 1.0
+}

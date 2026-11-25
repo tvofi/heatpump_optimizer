@@ -1,0 +1,57 @@
+{
+ "id": "D11-s2-04",
+ "scope": "D11-s2",
+ "step": "D11.M3",
+ "title": "Policy mandates stated verbatim in two policy files, and rulings policy already states",
+ "severity": "low",
+ "claim": "Over the 84-file policy set D11.md names, 16 normalized units of >= 8 words occur verbatim in two or more files; 6 of them are live mandates outside the recorded deliberate pair and the decision history (root-cause.md/defect-root-cause.md RCA cost rule; standing-roster.md/standing-tick.md retirement constraint; steward SKILL.md/claim-files.md merge-tree check; D4.md/D4-criteria.md and D5.md/D5-criteria.md owner criteria; D11.md/RULINGS.md mechanise-first), and 1 further live RULINGS.md entry quotes text D6.md states (rulings_overlap=1), against the owner's one-mandate-one-file rule (tvofi 2026-11-15).",
+ "mechanism": "Nothing measures cross-file restatement: policy_lint's `duplicates` class compares generated copies only, and RULINGS.md's rule (1) 'an entry policy already states is dropped' has no detector, so a mandate copied into a second role, brief or criteria file, or kept in RULINGS after a brief adopts it, stays until an audit reads it.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list",
+  "harness_path": "dev/audit/rounds/round11/D11/s2/policy_health.py",
+  "value": 16,
+  "unit": "duplicate units (>= 8 words) across the policy set; rulings_overlap=1",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B7 (4 vCPU, shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; a count over the tree",
+  "tolerance": "exact",
+  "load1": 9.13,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of",
+ "perturbation": {
+  "change": "--perturb: delete, in memory, one file's copy of every duplicate unit and every corpus sentence an overlapping ruling quotes",
+  "expected_direction": "to_zero",
+  "observed_value": "dup_units 16 -> 0, rulings_overlap 1 -> 0"
+ },
+ "metric_definition": "normalized text_ledger D6 units of >= 8 words present in >= 2 policy files (.claude/rules folded onto source), plus live RULINGS entries a corpus file states",
+ "phenomenon_property": "Each mandate is stated once, in the most authoritative policy file owning it, and pointed to elsewhere; no live RULINGS.md entry is stated by a policy file.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list (DUP and OVERLAP lines)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list",
+  "value": "0 DUP lines pair a .claude/rules copy with its dev/governance/rules source",
+  "note": "the rules_sync-held generated pair, identical by construction, is folded and does not count, so the count is not inflated by the copies the brief excludes"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D11/s2/policy_health.py --list"
+ ],
+ "proposed_fix_scope": "Keep each of the 6 mandates in its owning file and replace the other copy with a pointer; drop the two RULINGS entries D6.md and D11.md state; report CLAUDE.md/orchestrator.md section 8 (recorded deliberate) and the four criteria files' shared provenance sentence to the owner; mechanise: a policy_lint class over text_ledger units refusing a new verbatim cross-file unit.",
+ "files": [
+  "dev/governance/roles/root-cause.md",
+  "dev/governance/rules/defect-root-cause.md",
+  "dev/governance/roles/standing-roster.md",
+  "dev/governance/roles/standing-tick.md",
+  ".claude/skills/steward/SKILL.md",
+  "dev/governance/rules/claim-files.md",
+  "dev/governance/dimensions/D4.md",
+  "dev/governance/dimensions/criteria/D4-criteria.md",
+  "dev/governance/dimensions/D5.md",
+  "dev/governance/dimensions/criteria/D5-criteria.md",
+  "dev/governance/dimensions/D11.md",
+  "dev/governance/dimensions/D6.md",
+  "dev/programme/RULINGS.md"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

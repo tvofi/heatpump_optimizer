@@ -1,0 +1,11 @@
+{"class": "N-confounded-learner", "instances": 2, "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep_N_confounded_learner.py (controls: --controls; 55 seams, positive 4/4, null 0, perturb 1)",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/heat_energy.py", "symbol": "space_heat_kw", "probe": "dev/audit/rounds/round11/D14/probe_N_unobserved_dhw.py", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/draw_range.py", "symbol": "DrawRange.observe_ceiling", "probe": "D2-s3-09 harness (narrowing_censored_kw=4.100)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_fold_internal_gains", "probe": "D2-s3-11 and D7-s2-01 harnesses", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/dhw_learning.py", "symbol": "async_learn_usage", "probe": "D7-s2-01 harness (enum_m3.py, away arm)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/comfort_learning.py", "symbol": "comfort quiet evidence", "probe": "D7-s2-01 harness (away arm)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_fold_measured_cop", "probe": "dev/audit/rounds/round11/D14/probe_N_unobserved_dhw.py (ran_hot_water False on an unobserved DHW interval, line 5034)", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_async_learn_lower_floor_loss", "probe": "dev/audit/rounds/round11/D14/probe_N_unobserved_dhw.py (via _interval_measured_heat_kw, line 1010)", "beyond_finding": true}
+ ]}

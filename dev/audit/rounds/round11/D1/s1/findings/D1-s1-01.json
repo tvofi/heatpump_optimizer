@@ -1,0 +1,49 @@
+{
+ "id": "D1-s1-01",
+ "scope": "D1-s1",
+ "step": "D1.M1",
+ "title": "HA stop mid-solve raises a persistent solve_worker_fallback repair that no later solve ever clears",
+ "severity": "medium",
+ "claim": "When EVENT_HOMEASSISTANT_STOP fires while a solve's reply is being read from the process worker, the reap breaks the pipe, _await_optimize takes the fallback route (one in-process GIL solve during the stop) and raises the persistent 'solve_worker_fallback' repair; after a restart the issue is still raised once the new instance has solved twice through a healthy worker (count 1, null control 0).",
+ "mechanism": "_shutdown_process_pool kills the child before taking the lock (by design, D1-s2-05), so the in-flight _run_in_process reads EOF and raises ProcessWorkerUnavailable('Ran out of input'); _await_optimize treats that like a broken install: _note_worker_fallback creates the issue with is_persistent=True and reruns the solve in process. The issue is cleared only by _clear_worker_fallback, which returns early unless THIS process's _WORKER_FALLBACK_CAUSES latched a cause for the entry; after the restart the module dict is empty, so every successful solve leaves the restored issue in place. HA does not unload entries at stop, so _release_registrations' clear does not run either.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_stop_midsolve.py --arm stop_midsolve",
+  "harness_path": "dev/audit/rounds/round11/D1/s1/m1_stop_midsolve.py",
+  "value": 1,
+  "unit": "stale solve_worker_fallback issues after restart",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B4 container, linux x86_64, Python 3.14 venv-ci",
+  "cpu_or_wall": "count",
+  "contention_note": "part B of m4_race.py and other finder seats running on the box; a count, contention-immune; thread_factor is the residual after subtracting executor-thread CPU (rl.DELIBERATE)",
+  "tolerance": "exact",
+  "load1": 2.88,
+  "thread_factor": 1.112
+ },
+ "instrumented_symbol": "heatpump_optimizer.coordinator:_clear_worker_fallback (with _await_optimize, _note_worker_fallback, async_register_worker_shutdown._stop driven on a real loop)",
+ "perturbation": {
+  "change": "_clear_worker_fallback deletes the issue whenever no cause is latched in this process (drop the early return after the pop); harness flag --perturb",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Count of hass.issues entries with issue_id solve_worker_fallback after the restarted instance completed two successful process-route solves.",
+ "phenomenon_property": "A repair notice raised for a transient, self-inflicted cause (the instance's own stop reaping its worker) must not be raised persistent, or must be withdrawable by the next healthy solve in a fresh process; a stop must not rerun the killed solve in process.",
+ "seam_rule": "grep -n 'is_persistent=True' custom_components/heatpump_optimizer/*.py  (each persistent issue: is its clear path reachable from a fresh process?)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s1/m1_stop_midsolve.py --arm stop_idle",
+  "value": 0,
+  "note": "stop fired with no solve in flight: 0 issues raised, 0 in-process solves after stop, 0 stale after restart"
+ },
+ "reproduction_steps": [
+  "setup on a real loop (rl.RealHass), wait for the first process solve",
+  "start async_run_optimization; when _read_reply is entered, await the EVENT_HOMEASSISTANT_STOP listener (_stop)",
+  "observe fallback cause 'process worker exited rc=None: Ran out of input', 1 issue is_persistent=True, 1 in-process solve after stop",
+  "restart: keep the persistent issues, clear _WORKER_FALLBACK_CAUSES and the streak; set up a new entry and solve twice",
+  "stale_fallback_issues_after_restart=1"
+ ],
+ "proposed_fix_scope": "coordinator.py: mark the stop (a module flag set by _stop) so a reply broken by our own reap is not a worker fault (no issue, no in-process rerun during stop); and/or let _clear_worker_fallback delete the issue when no entry has a latched cause in this process.",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

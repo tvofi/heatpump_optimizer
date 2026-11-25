@@ -1,0 +1,84 @@
+{
+  "box": "SW9",
+  "missing": [],
+  "reports": {
+    "sweep-P3": {
+      "class": "P3",
+      "instances": 1,
+      "barriered": false,
+      "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P3/enumerate.py [--null | --perturb]",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_flow_target",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s2/effect.py -> min-cold-tank_k8.0_starts=30 measured_kw=0.602 vs 1.0 booked (D16-s2-04)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+          "symbol": "_full_draw_c",
+          "probe": "PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/D14/sweep-P3/probe_full_draw.py -> exit 1, contradictions=210/1170 (lift 5.5-15 K: the floor-level write is the set-point FlowCommand.ceiling_c calls full draw); --null 0, --fixed 0",
+          "beyond_finding": true
+        }
+      ]
+    },
+    "sweep-P4": {
+      "class": "P4",
+      "instances": 1,
+      "barriered": false,
+      "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P4/enumerate.py [--null | --perturb]",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer._optimize_space_only",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D0/s2/wood_seeds.py --race winter_narrow/summer_cool/two-zone/no-dhw/wood/24h ... -> race gap max 2.0292 (D0-s2-01); dev/audit/rounds/round11/D0/s3/offstart.py --workers 1 -> 16/60 gap cells (D0-s3-02)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer._solve_space",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D0/s3/offstart.py --workers 1 (D0-s3-02); sweep probe_offstart_sites.py --limit 6 -> _relaxed_plans:245 gap_calls=12/14 max_gap=3204.3613",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "_relaxed_plans",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P4/probe_offstart_sites.py --limit 6 -> exit 1, free-room re-run (optimizer.py:251) gap_calls=12/14 max_gap=3204.3567 on its descent objective; --null 0",
+          "beyond_finding": true
+        }
+      ]
+    },
+    "sweep-P5": {
+      "class": "P5",
+      "instances": 2,
+      "barriered": false,
+      "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P5/enumerate.py [--null | --perturb]",
+      "instance_list": [
+        {
+          "file": "custom_components/heatpump_optimizer/sysid.py",
+          "symbol": "slab_ua_adoption_halfwidth",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s3/m5_sysid.py -> miss rate 0.214 (6 of 28) at 0.02 C, 1.000 at 0.05 C (D2-s3-10)",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/sysid.py",
+          "symbol": "_slab_ua_prior_halfwidth",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py -> biased_admitted=3 (D7-s2-02); sweep enumerate.py house.gains +0.8 kW -> 2 past bar, worst 0.2111",
+          "beyond_finding": false
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/sysid.py",
+          "symbol": "SystemIdentification.step[cop]",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P5/probe_told.py -> exit 1; COP x0.85 2/2 admitted past the 10 % bar (worst 0.2027), x1.10 1 (0.1027), x1.15 1 (0.1285); --null 0",
+          "beyond_finding": true
+        },
+        {
+          "file": "custom_components/heatpump_optimizer/sysid.py",
+          "symbol": "SystemIdentification.step[outdoor_temp]",
+          "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P5/probe_told.py -> exit 1; outdoor sensor +2.5 K 2/2 admitted past the bar (worst 0.1410), +1.5 K 2 interval misses; --null 0",
+          "beyond_finding": true
+        }
+      ]
+    }
+  }
+}

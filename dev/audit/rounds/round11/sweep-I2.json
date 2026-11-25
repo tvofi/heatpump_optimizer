@@ -1,0 +1,13 @@
+{
+ "class": "I2",
+ "instances": 2,
+ "barriered": true,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-I2/enum_i2.py . (families A strip-keep, B closure select granularity, C text_ledger plant scope)",
+ "instance_list": [
+  {"file": "dev/audit/config/bundles.json", "symbol": "evidence (line 16) vs prepare_baseline.sh strip_earlier_rounds keep set", "probe": "prepare_baseline.sh --strip <tree> 11; python3 tools/audit/enumerate.py d15-installs -> 0 lines rc=2 (finder D0-s3-01 harness)", "beyond_finding": false},
+  {"file": "tests/closure.py", "symbol": "select (file-level closures)", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s2/m5_reach.py dev/audit/rounds/round11/D3/s2/run/reach -> 9 over-selected scripts for a payload.py body edit", "beyond_finding": false},
+  {"file": "tools/audit/text_ledger.py", "symbol": "run_check plant target files[0] for seat D5-s2", "probe": "text_ledger.py check --dim D5 --seat D5-s2 --plant on a complete ledger -> plant_refused=0 planted_units=0 in README.md, rc=1", "beyond_finding": false},
+  {"file": "tools/audit/text_ledger.py", "symbol": "run_check plant target files[0] for seat D5-s1", "probe": "enum_i2.py family C: plant into README.md yields 0 D5 units for D5-s1 (same as D5-s2); text_ledger.py check --dim D5 --seat D5-s1 --plant -> plant_refused=0 rc=1", "beyond_finding": true},
+  {"file": "tools/audit/seat/review_strength.py", "symbol": "self_test (line 722) and _self_test_guardrail (line 1237) read dev/audit/rounds/round10/D13/yield-probe.md", "probe": "prepare_baseline.sh --strip <tree> 11; python3 tools/audit/seat/review_strength.py --self-test in that tree -> FileNotFoundError (path absent from closures.json and tests/ literals, so the strip removes it)", "beyond_finding": true}
+ ]
+}

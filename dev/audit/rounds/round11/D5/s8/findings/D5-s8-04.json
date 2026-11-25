@@ -1,0 +1,37 @@
+{
+ "id": "D5-s8-04",
+ "step": "D5.M4",
+ "title": "doc_claims.py cites design notes and CONDENSED.md that are not in the tree",
+ "severity": "low",
+ "claim": "3 comment/docstring units of tests/doc_claims.py cite dev/programme/designs/R10-ARCH-DOCS-FIRST.md, dev/programme/designs/R10-USER-DOCS-FINAL.md and CONDENSED.md as the home of the grammar, page map and stale-prose class they implement; no such file (and no dev/programme/designs/ directory) is tracked at 92d38ecb and no SHA or branch is given.",
+ "mechanism": "The cited notes live on design branches or were never landed; a reader of the code cannot resolve the term the unit leans on (C2, C5's 'defined in a document it names').",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <git repo holding 92d38ecb640b> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --file tests/doc_claims.py --show",
+  "harness_path": "dev/audit/rounds/round11/D5/s8/m4_ledger.py",
+  "value": 3,
+  "unit": "stale units in the file",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (light seat), Linux x86_64, 4 vCPU, venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.92,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/doc_claims.py comment and docstring units via tools/audit/text_ledger.py:units_of (module docstring, lines 3258, 4337)",
+ "perturbation": {
+  "change": "--drop 'tests/doc_claims.py#b32560c883' (blank the R10-USER-DOCS-FINAL unit in memory)",
+  "expected_direction": "down",
+  "observed_value": 2
+ },
+ "metric_definition": "Count of D5 units in the file naming a path or document that git ls-tree at the ref does not hold, without a pin.",
+ "phenomenon_property": "D5 comment units (text_ledger.py units --dim D5) of a file whose named path does not exist in the tree at the ref, in a present-tense sentence, after the seat's adjudication list (ADJ) of fixtures, history and pinned citations",
+ "seam_rule": "dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <repo> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --show  (every C2 row of the seat's cells; ledger verdict stale)",
+ "stop_rule_class": "hygiene",
+ "class_guess": "N-move-stale-path",
+ "files": [
+  "tests/doc_claims.py"
+ ],
+ "proposed_fix_scope": "Pin each citation to the SHA or branch that holds it, or state the rule inline.",
+ "scope": "D5-s8"
+}

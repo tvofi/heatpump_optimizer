@@ -1,0 +1,46 @@
+{
+  "id": "D4-s1-03",
+  "scope": "D4-s1",
+  "step": "D4.M1",
+  "title": "Headline fold headers (.hl-fold-head) stay 32/39 px tall under a coarse pointer: not on the card's 44 px floor list",
+  "severity": "low",
+  "claim": "With the headline stats published (score_open), both `.hl-fold-head` buttons lay out 39 px and 32 px tall under a coarse pointer in all 36 coarse renders (de, en, sv x 375/768/1280 x light/dark x reduce/no-preference), 72 targets under D4-criteria F1's 44 px coarse floor, while every other HTML control of the state clears it.",
+  "mechanism": "cardStyleBlock's htmlTargetFloor selector list applies `min-height: ${targetFloorPx}px` (44 px when _coarsePointer()) to the card's HTML controls; `.hl-fold-head` (R10-CARD-COLLAPSE's fold header, a <button>) was added later with its own fixed `min-height: 32px` and never joined that list.",
+  "evidence": {
+    "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> STATES=score_open node dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+    "harness_path": "dev/audit/rounds/round11/D4/s1/m1_browser.mjs",
+    "value": 72,
+    "unit": "interactive targets under 24 px (44 px coarse), RESULT strict_small, all button.hl-fold-head in the coarse arm",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B9, 4 vCPU, Chromium 158.0.8127.18 (playwright 1.65.0 lock, rev 1254), headless shell",
+    "cpu_or_wall": "count",
+    "contention_note": "the seat's full M1 grid run ran beside it; a count of geometry, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.88,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (htmlTargetFloor selector list) through the rendered heatpump-optimizer-card",
+  "perturbation": {
+    "change": "HPO_PERTURB='[[\"        .sp-filter, .sp-select,\\n\",\"        .sp-filter, .sp-select, .hl-fold-head,\\n\"]]' (adds the fold header to the floor list in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Interactive elements (button, [role=button], tabindex, cursor:pointer roots) in the card's active scope whose border box is under 24 px (44 px coarse) on either axis.",
+  "phenomenon_property": "Every HTML control the card renders meets the card's own pointer-keyed target floor (24 px, 44 px coarse): a control is on the floor list or carries a size at least as large.",
+  "seam_rule": "dev/audit/rounds/round11/D4/s1/m1_browser.mjs (RESULT strict_small; m1_summarize.py <renders.jsonl> --check strictSmall groups it by element)",
+  "null_control": {
+    "command": "same command, fine-pointer arm of the same renders",
+    "value": 0,
+    "note": "Under a fine pointer the same buttons (32/39 px) clear the 24 px floor: 0 of the 36 fine renders count; the count is the coarse floor's alone."
+  },
+  "leave_one_out": {"cells": 6, "min": 32, "max": 39, "drop_most_favourable": 39},
+  "reproduction_steps": [
+    "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+    "run the command above; RESULT strict_small=72; python3 dev/audit/rounds/round11/D4/s1/m1_summarize.py <OUT>/renders.jsonl --check strictSmall --detail 4",
+    "re-run with the HPO_PERTURB above: RESULT strict_small=0"
+  ],
+  "proposed_fix_scope": "Add .hl-fold-head to cardStyleBlock's htmlTargetFloor selector list (or key its min-height on targetFloorPx).",
+  "files": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"],
+  "stop_rule_class": "bug",
+  "class_guess": "P9"
+}

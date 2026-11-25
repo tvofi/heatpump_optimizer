@@ -1,0 +1,630 @@
+tools/audit/archscore/calibrate.py#3b14d3766b	1	C5-len	44 words: X pins each case's VERDICT and its admissibility, misses included: a case the score gets w
+tools/audit/archscore/counters.py#8b4a903ebb	1	C5-len	65 words: C7 X here; gate-only C11 literal keys read from a function's own X are parameters X C14 a 
+tools/audit/archscore/counters.py#8b4a903ebb	1	C5-len	43 words: C22 a card function's own names numbered and its no-op and empty statements dropped X C23 
+tools/audit/archscore/metrics/card.py#8a4ebb0f3d	1	C5-len	49 words: A string is one X token; a template literal is X tokens for its text and the tokens of eac
+tools/audit/archscore/metrics/common.py#98e43dccd9	1	C2-path-dismissed	new_metrics.md
+tools/audit/archscore/metrics/family_splits.py#64b84b6e1c	1	C5-len	72 words: Over every entity name the shipped catalogue publishes (X -> X, all platforms in one list,
+tools/audit/archscore/metrics/family_splits.py#64b84b6e1c	1	C2-path-dismissed	name_sort_families.py
+tools/audit/archscore/metrics/family_splits.py#64b84b6e1c	1	C2-path-dismissed	family_check.py
+tools/audit/archscore/metrics/footprint.py#988c0a30a4	1	C5-len	53 words: Plumbing is not logic and is not counted -- an alias (X), a bare delegation (X as an expre
+tools/audit/archscore/metrics/footprint.py#988c0a30a4	1	C5-len	41 words: X is the guard against fragment chains (a pass-through chain inflates it) and counts each 
+tools/audit/archscore/metrics/hub_solve_writes.py#e71d11ab0d	1	C5-len	46 words: The cycle is a root so that a write moved out of the solve into a step before it is the sa
+tools/audit/archscore/metrics/hub_solve_writes.py#e71d11ab0d	1	C5-len	65 words: A site is an assignment / augmented assignment / X / X / item store / container mutation w
+tools/audit/archscore/metrics/hub_solve_writes.py#e71d11ab0d	1	C5-len	64 words: C16 (round 10, ARCH2-s2 P4's instrument half): a coordinator method the package hands to c
+tools/audit/archscore/metrics/hub_solve_writes.py#e71d11ab0d	1	C5-len	75 words: A callback handed to a package function is reached from wherever that function is, so it i
+tools/audit/archscore/metrics/hub_solve_writes.py#e71d11ab0d	1	C5-len	41 words: A returned reference whose result is discarded, or bound to a name and handed on later, is
+tools/audit/archscore/metrics/layering.py#30167f27d9	1	C5-len	122 words: The reach is the reach whatever syntax spells it, so the graph follows every spelling of a
+tools/audit/archscore/metrics/layering.py#30167f27d9	1	C5-len	80 words: The name's relation to this package is one predicate at a dot boundary: a DESCENDANT of it
+tools/audit/archscore/metrics/layering.py#30167f27d9	1	C5-len	71 words: The EDGE belongs to the module a read resolves to, whether the name read off it is public 
+tools/audit/archscore/metrics/layering.py#30167f27d9	1	C5-len	42 words: LAYERS is a design choice, stated: Home Assistant is the integration's glue edge (model, o
+tools/audit/archscore/metrics/literal_clones.py#58eb5023b2	1	C5-len	59 words: The clone census (X) joins functions that share a window of statements, so a spec that is 
+tools/audit/archscore/metrics/literal_clones.py#58eb5023b2	1	C5-len	57 words: A SPEC is a call, dict, list, tuple or set expression of at least MIN_NODES nodes (express
+tools/audit/archscore/metrics/literal_clones.py#58eb5023b2	1	C5-len	51 words: Normalisation, so that re-spelling one value is not a fix (counter C20): a number is its f
+tools/audit/archscore/metrics/literal_clones.py#58eb5023b2	1	C5-len	65 words: A local bound once, in the same function, to a spec-shaped value reads as that value, and 
+tools/audit/archscore/metrics/literal_clones.py#58eb5023b2	1	C5-len	47 words: Not seen, and stated: a value computed at runtime, a constant bound twice, a constant read
+tools/audit/archscore/metrics/shapes.py#e365bb1b4c	1	C5-len	51 words: The clone census (X) joins functions sharing a window of two statements carrying at least 
+tools/audit/archscore/metrics/shapes.py#e365bb1b4c	1	C5-len	71 words: The SHAPE of a function is its body with its own names erased (counter C23): the docstring
+tools/audit/archscore/metrics/shapes.py#e365bb1b4c	1	C5-len	55 words: Weighted, it would be gamed: one statement re-spelled (a lookup written as a conditional) 
+tools/audit/archscore/metrics/shared_inplace_writes.py#fdea19e6b0	1	C5-len	43 words: An IN-PLACE write mutates that object instead of rebinding the coordinator's slot: attribu
+tools/audit/archscore/planted/controls.py#0f696246f2	1	C5-len	41 words: Planted controls: for each metric a scripted edit that ADDS one instance of its defect sha
+tools/audit/archscore/planted/perturb/B3a_passthrough_chain_optimize.py#4919494e9f	1	C5-len	46 words: B3a (BAD): split the tree's max-CC function (optimizer.HeatPumpOptimizer.optimize, CC 48, 
+tools/audit/archscore/planted/perturb/B3c_passthrough_chain_greedy.py#9158fa71fb	1	C5-len	46 words: B3c (BAD): the pass-through chain taken as far as it goes on the five worst-CC functions (
+tools/audit/archscore/planted/perturb/B4a_inplace_write_shared_dict.py#26fb3049a0	1	C5-len	45 words: B4a (BAD): write a per-operation value into a long-lived shared object inside an async met
+tools/audit/archscore/planted/perturb/B7_god_helper_module.py#498c2775a3	1	C2-path-dismissed	freq_helpers.py
+tools/audit/archscore/planted/perturb/G3_move_cluster_with_state.py#a9a141a58e	1	C2-path-dismissed	freq_seat.py
+tools/audit/archscore/planted/perturb/N3_seam_relabel.py#d35f35b32b	1	C2-path-dismissed	search_relabel.py
+tools/audit/archscore/planted/redteam/03_shared_dunder_spelling.py#8cc2b3fe87	1	C5-len	42 words: Game shared_inplace_writes: every counted in-place write into coordinator-held state is re
+tools/audit/archscore/planted/redteam/04_dup_noop_interleave.py#524b53261f	1	C5-len	75 words: Variants: argv[2] picks the junk (id | pass | ellipsis | none | str | iffalse | assert | a
+tools/audit/archscore/planted/redteam/12_combined_evasions.py#bf5acec249	1	C5-len	48 words: All pure-evasion games in one change (no feature deleted, no base-class move): 02 hub via 
+tools/audit/archscore/planted/redteam/12b_combined_without_06.py#bf5acec249	1	C5-len	48 words: All pure-evasion games in one change (no feature deleted, no base-class move): 02 hub via 
+tools/audit/archscore/planted/redteam/13_hub_handle_accessor.py#aa4aaa46c5	1	C5-len	44 words: Game hub_solve_writes without any reflective write: inside the coordinator class every LOA
+tools/audit/archscore/planted/redteam/17_typeddict_any_spellings.py#44934c73a1	1	C5-len	41 words: Game untyped_payload_keys with attempt 01's all-untyped contract, every key spelled so tha
+tools/audit/archscore/planted/redteam/19_hub_reader_lambda.py#5a75e90ead	1	C5-len	44 words: The same live object is written in place by the same methods; the role engine read a const
+tools/audit/archscore/planted/redteam/25_layer_negated_guard.py#a59edbc0f0	1	C5-len	41 words: Game layer_violations with a negated guard: X runs at runtime -- away from a type checker 
+tools/audit/archscore/planted/redteam/41_layer_chain_past_module.py#49d34421d2	1	C5-len	43 words: The module the chain names is X, four segments down, and the name read off it is X -- but 
+tools/audit/archscore/planted/redteam/46_card_rule_respelled.py#87dae3b75d	1	C5-len	41 words: The rule is spelled at one more site and behaves the same; it is shorter than a 20-token w
+tools/audit/archscore/score.py#c127485169	1	C2-path-dismissed	BASE.json
+tools/audit/archscore/score.py#c127485169	1	C2-path-dismissed	HEAD.json
+tools/audit/archscore/vector.py#90bf82e7fb	1	C5-len	53 words: Where a metric already exists in X this file reads THAT definition, on a freshly loaded co
+tools/audit/archscore/vector.py#90bf82e7fb	1	C5-len	80 words: Three things are done to that copy and never to X itself, because each is a red-team count
+tools/audit/archscore/vector.py#90bf82e7fb	1	C5-len	50 words: The metrics structure.py has no row for (the hub and shared-object write censuses, the pay
+tools/audit/carry_audit.py#46bb5aa976	2	C5-len	49 words: X requires every finding to reach an owner, and nothing enforced it: a sweep of round 10 f
+tools/audit/carry_audit.py#46bb5aa976	2	C5-len	43 words: AN ITEM (X): fenced code and HTML comments dropped; a section is the text under one headin
+tools/audit/carry_audit.py#46bb5aa976	2	C5-len	47 words: two X, every carry or brief text the first holds and the second lacks (a roster PR cut fro
+tools/audit/carry_audit.py#46bb5aa976	2	C5-len	64 words: X is #2733's offline routing check over the roster alone: every pending carry on a done or
+tools/audit/carry_audit.py#46bb5aa976	2	C2-path-dismissed	dev/programme/carries/carry-N.json
+tools/audit/carry_audit.py#46bb5aa976	2	C2-path-dismissed	-name.md
+tools/audit/carry_audit.py#2565f8c976	966	C2-path-dismissed	own.py
+tools/audit/carry_audit.py#3c177e7437	125	C5-len	60 words: A verdict's X section, and every section of a merge verdict but a findings section, is rea
+tools/audit/carry_audit.py#33736d5cce	559	C5-len	58 words: The roster at main, or at an explicit ref, lags the round's branch (finding-propagation.md
+tools/audit/carry_audit.py#521c09acda	893	C2-path-dismissed	SEATS.md
+tools/audit/check_scopes.py#d7ab2b51be	2	C5-len	42 words: Coverage: every tracked path at --ref is in some dimension's universe or matches one entry
+tools/audit/check_scopes.py#d7ab2b51be	2	C5-len	57 words: Null control: --self-test duplicates one seat's block and empties another's (D1 and D2, th
+tools/audit/check_scopes.py#d7ab2b51be	2	C5-len	43 words: Ledger dimensions (D5, D6): a dimension's X {step, max_units} caps each seat's text units 
+tools/audit/check_scopes.py#d7ab2b51be	2	C5-len	50 words: Its X globs and X map {glob: reason} draw the line between documentation the dimension mea
+tools/audit/check_scopes.py#d7ab2b51be	2	C5-len	45 words: evidence from an evaluator who is not its reviewer, and every card carries the owner's dec
+tools/audit/check_scopes.py#d7ab2b51be	2	C5-len	67 words: Each gap is refused by the path or id it names; audit-find.js passes its round. --open-car
+tools/audit/check_scopes.py#d7ab2b51be	2	C5-len	100 words: The record also needs: an approving review at a commit in --ref's history whose EVALUATION
+tools/audit/check_scopes.py#5eef6958cb	993	C2-path-dismissed	.claude/workflows/zz-planted.js
+tools/audit/check_scopes.py#5eef6958cb	993	C2-path-dismissed	dev/zz-planted.md
+tools/audit/enumerate.py#31d4112859	2	C5-len	46 words: d8-cells strings.json entity name / state / attribute, once per translation file d9-collec
+tools/audit/enumerate.py#31d4112859	2	C5-len	45 words: Null control: --self-test runs every universe on the live tree (>=1 line, sorted, no dupli
+tools/audit/enumerate.py#31d4112859	2	C2-path-dismissed	dev/governance/dimensions/D
+tools/audit/enumerate.py#7b01cb60bd	54	C2-path-dismissed	D16.md
+tools/audit/enumerate.py#7b01cb60bd	54	C1-count-dismissed	STATES has 14 items; comment says one axis
+tools/audit/enumerate.py#f3a0ce1004	63	C1-count-dismissed	? has 3 items; comment says two plants
+tools/audit/enumerate.py#cbb2f3ada0	720	C1-count-dismissed	ENTRY has 6 items; comment says one shows
+tools/audit/fold_ledger.py#6bdb7a2f79	2	C2-path-dismissed	dev/audit/rounds/round
+tools/audit/fold_ledger.py#6bdb7a2f79	2	C2-path-dismissed	dev/audit/rounds/round
+tools/audit/judge_batch.py#93c8a68a95	2	C5-len	49 words: So this script measures and never decides: a row says what ran, what it printed and whethe
+tools/audit/judge_batch.py#93c8a68a95	2	C5-len	47 words: X and X are what the harness printed on its main run (the harness contract in X requires b
+tools/audit/judge_batch.py#93c8a68a95	2	C5-len	41 words: The lease is X's: taken once, with this process as its owner pid and a lease longer than o
+tools/audit/judge_batch.py#93c8a68a95	2	C5-len	54 words: Commands run from X through X, one at a time, with the LEASE held and flock NOT held: the 
+tools/audit/judge_batch.py#93c8a68a95	2	C5-len	84 words: Every command runs against a snapshot of the tree (X, untracked included, plus the bytes o
+tools/audit/judge_batch.py#93c8a68a95	2	C2-path-dismissed	rows.json
+tools/audit/judge_batch.py#93c8a68a95	2	C2-path-dismissed	rows.md
+tools/audit/machinery_ratchet.py#3877ac4a1f	2	C5-len	44 words: With n the first-parent merges after the anchor up to the base (PR mode) or the head (push
+tools/audit/machinery_ratchet.py#3877ac4a1f	2	C5-len	41 words: It refuses only a candidate that is not production and not exempted: a production candidat
+tools/audit/machinery_ratchet.py#ecc54b9c97	614	C1-count-dismissed	outs has 0 items; comment says one line edited is
+tools/audit/merge_fastpath.py#53548495b9	2	C5-len	45 words: X routes a pull request touching a workflow, claim, grader or unmeasured budget file seria
+tools/audit/merge_fastpath.py#94c2d18414	61	C2-path-dismissed	_budgets.json
+tools/audit/merge_throughput.py#57bf91d3d3	2	C5-len	45 words: The X subcommand is the flow board (Lean study K1): throughput against the owner's demand 
+tools/audit/merge_throughput.py#166d7ad1af	986	C2-path-dismissed	VERDICT.md
+tools/audit/merge_throughput.py#0ab19ae0c8	707	C5-len	43 words: B4b: the third measure's window. #1's first verdict -- the blocked one -- is committed at 
+tools/audit/merge_throughput.py#89fe0f6d21	724	C5-len	41 words: A path probe that fails alike for an absent path and an unreadable object (X reads the blo
+tools/audit/prepare_baseline.sh#3096fd8b40	2	C2-path-dismissed	dev/audit/rounds/round
+tools/audit/prepare_baseline.sh#0c60b18e03	18	C5-len	57 words: What a finder tree takes from the checkout over the baseline's own copy, so a baseline old
+tools/audit/prepare_baseline.sh#5183b4da0d	114	C2-path-dismissed	docs/audit-2026-09.md
+tools/audit/prepare_baseline.sh#2ec4146104	128	C2-path-dismissed	tools/audit/round
+tools/audit/prepare_baseline.sh#e661a0cc0a	198	C5-len	46 words: RELEASE_NOTES.md IS NOT DELETED, and the reason is a defect this line used to carry: tests
+tools/audit/prepare_baseline.sh#08d624e65d	210	C2-path-dismissed	docs/audit-
+tools/audit/prepare_baseline.sh#08d624e65d	210	C2-path-dismissed	tools/audit/round
+tools/audit/prepare_baseline.sh#08d624e65d	210	C2-path-dismissed	tools/audit/round
+tools/audit/prepare_baseline.sh#08d624e65d	210	C2-path-dismissed	tools/audit/round...
+tools/audit/prepare_baseline.sh#1c4320edbc	269	C2-path-dismissed	docs/audit-
+tools/audit/prepare_baseline.sh#1c4320edbc	269	C2-path-dismissed	dev/archive/audits/audit-
+tools/audit/prose_counts_census.py#8a76d50f8b	2	C5-len	41 words: X X reads eleven count SHAPES over the reader corpus and compares each to a measurement th
+tools/audit/prose_counts_census.py#8a76d50f8b	2	C5-len	57 words: A noun with no entry is REFUSED, so a count shape that lands tomorrow without a reader is 
+tools/audit/prose_counts_census.py#8a76d50f8b	2	C2-path-dismissed	tests/doc_claims
+tools/audit/prose_counts_census.py#1046c93db0	40	C5-len	50 words: : noun -> why the count it states is read, or why it is not a count of a set. : Only nouns
+tools/audit/round4/D11/governance_cost.py#a18d5b52c2	45	C5-len	112 words: The set is carried here rather than parsed live because a harness is pinned, not self-modi
+tools/audit/round4/D11/governance_cost.py#a18d5b52c2	45	C2-path-dismissed	budget-raise-gate-rerun.yml
+tools/audit/round4/D11/governance_cost.py#a18d5b52c2	45	C1-count-dismissed	GOV has 9 items; comment says four grows
+tools/audit/seat/plan_audit.py#59adfeda0c	2	C1-flag	--target
+tools/audit/seat/plan_audit.py#59adfeda0c	2	C5-len	45 words: A metric a merged PR moved that no planned move names, a merged group with no body, and a 
+tools/audit/seat/plan_audit.py#59adfeda0c	2	C5-len	54 words: **The holdout check.** X records, for one ref, the five measures the score does not contai
+tools/audit/seat/plan_audit.py#59adfeda0c	2	C5-len	43 words: The fork is snapshotted with X, so both sides are read by the base's scorer and the base's
+tools/audit/seat/plan_audit.py#59adfeda0c	2	C5-len	47 words: Neither re-implements an instrument it can call: X runs X itself, and X imports the instru
+tools/audit/seat/plan_audit.py#59adfeda0c	2	C2-path-dismissed	PLAN.json
+tools/audit/seat/plan_audit.py#9aba09c082	314	C5-len	43 words: The question here is module identity, so detection is kept and the destination taken: one 
+tools/audit/seat/plan_audit.py#9aba09c082	314	C1-count-dismissed	changed has 0 items; comment says one rename is
+tools/audit/seat/plan_audit.py#ac70550f2c	559	C5-len	45 words: The harness owns its git identity for this block (X, the tree's mechanism for a self-test 
+tools/audit/seat/plan_audit.py#6d5468ccfc	594	C2-path-dismissed	a.py
+tools/audit/seat/plan_audit.py#6d5468ccfc	594	C2-path-dismissed	d.py
+tools/audit/seat/plan_page.py#8f745459c1	2	C5-len	73 words: What it reads live is display state, not schedule: the roster (through X, at the plan's ow
+tools/audit/seat/plan_page.py#8f745459c1	2	C5-len	43 words: REFUSALS (exit 1): a plan X calls stale -- its roster blob is not the roster's blob at the
+tools/audit/seat/plan_page.py#8f745459c1	2	C5-len	43 words: A branch answers for a group by X, then by its last segment against the tails of the roste
+tools/audit/seat/plan_page.py#8f745459c1	2	C2-path-dismissed	plan.json
+tools/audit/seat/plan_page.py#8f745459c1	2	C2-path-dismissed	plan.json
+tools/audit/seat/plan_page.py#8f745459c1	2	C2-path-dismissed	plan.json
+tools/audit/seat/plan_page.py#8f745459c1	2	C2-path-dismissed	plan.html
+tools/audit/seat/plan_page.py#8f745459c1	2	C2-path-dismissed	snapshot.json
+tools/audit/seat/plan_page.py#8f745459c1	2	C2-path-dismissed	plan.json
+tools/audit/seat/plan_page.py#8f745459c1	2	C2-path-dismissed	dev/programme/round
+tools/audit/seat/plan_page.py#d749d0e0e0	80	C2-path-dismissed	plan.json
+tools/audit/seat/plan_page.py#19f6fb8e9f	1002	C2-path-dismissed	DESIGN.md
+tools/audit/seat/plan_page.py#2f1fe90f4a	1011	C2-path-dismissed	REPLAN-EDGES.json
+tools/audit/seat/plan_phases.py#ea9ab3e084	2	C5-len	98 words: REFUSALS (X; X exits 1): a status outside X; a phase outside X, repeated, or out of the pl
+tools/audit/seat/plan_phases.py#ea9ab3e084	2	C2-path-dismissed	page.html
+tools/audit/seat/plan_phases.py#ea9ab3e084	2	C2-path-dismissed	plan.json
+tools/audit/seat/plan_phases.py#cbae1eb101	167	C2-path-dismissed	dev/programme/round
+tools/audit/seat/plan_public.py#e5a3be424e	2	C5-len	47 words: Refusals, rc 1 and nothing written, which turn the deploy red: a page that is not an HTML 
+tools/audit/seat/plan_public.py#e5a3be424e	2	C2-path-dismissed	PLAN.html
+tools/audit/seat/plan_public.py#e5a3be424e	2	C2-path-dismissed	PLAN.html
+tools/audit/seat/plan_public.py#e5a3be424e	2	C2-path-dismissed	PLAN.html
+tools/audit/seat/plan_table.py#a5387d9675	2	C5-len	53 words: X runs the tool over a fixture roster and checks the wave math, the mermaid emission (fenc
+tools/audit/seat/plan_table.py#a5387d9675	2	C2-path-dismissed	overlay.json
+tools/audit/seat/plan_table.py#a5387d9675	2	C2-path-dismissed	dev/programme/rosters/wave-r
+tools/audit/seat/plan_table.py#a5387d9675	2	C2-path-dismissed	-groups.json
+tools/audit/seat/plan_table.py#edc3e23673	205	C2-path	gen_table_rev3.py
+tools/audit/seat/plant_recall.py#f04e8e014d	2	C5-len	46 words: A plant is FOUND when a finding naming it was judged X or X; LOST when every finding namin
+tools/audit/seat/plant_recall.py#f04e8e014d	2	C2-path-dismissed	P.json
+tools/audit/seat/plant_recall.py#f04e8e014d	2	C2-path-dismissed	POP.txt
+tools/audit/seat/plant_recall.py#f04e8e014d	2	C2-path-dismissed	P.json
+tools/audit/seat/plant_recall.py#f04e8e014d	2	C2-path-dismissed	P.json
+tools/audit/seat/plant_recall.py#f04e8e014d	2	C2-path-dismissed	POP.txt
+tools/audit/seat/pr_args.sh#f10f661279	84	C5-len	56 words: One run per branch: open_pr.sh and update_pr.sh both take it, so neither moves a branch th
+tools/audit/seat/pr_args.sh#f10f661279	84	C5-len	93 words: The holder lets go when the run ends -- USR1 from PR_AFTER_REAP, which the caller's pr_exi
+tools/audit/seat/pr_args.sh#f10f661279	84	C5-len	42 words: A merge the run left stopped on a conflict is aborted first, since X refuses a conflicted 
+tools/audit/seat/pr_args.sh#8ef80a78fb	132	C5-len	69 words: It waits for this run's earlier push (open_pr.sh's first), which only a detached child of 
+tools/audit/seat/pr_args.sh#cc8c8f2244	144	C5-len	75 words: WHY IT EXISTS (R10-FLY-OPENPR-ATOMIC: P-D, P64, P72). open_pr.sh's worktree kept its branc
+tools/audit/seat/pr_args.sh#cc8c8f2244	144	C5-len	55 words: Detached only at the end, never between two pushes: app_push.sh's committed-tip gate passe
+tools/audit/seat/pr_args.sh#e89778cd7d	190	C5-len	44 words: A caller that sourced it by a relative path and then changed directory (update_pr.sh and o
+tools/audit/seat/pr_args.sh#682ef150dd	211	C5-len	43 words: Whose refusal a refused row push is (R10-HOTFIX-OPENPR-HOST-REFUSAL): the HOST's only when
+tools/audit/seat/pr_args.sh#682ef150dd	211	C5-len	45 words: It is measured, never read from the refusal's text or the diff's paths: #3508 was closed f
+tools/audit/seat/pr_args.sh#682ef150dd	211	C5-len	42 words: The log only names WHICH step refused; prepr's self-test is the one step with a form that 
+tools/audit/seat/pr_args.sh#682ef150dd	211	C5-len	51 words: Both trees are detached worktrees under <cache>, run alike, and each measurement owns its 
+tools/audit/seat/pr_args.sh#682ef150dd	211	C5-len	52 words: Main's answer is kept per origin/main sha in <cache>/<sha>.sig, written from a whole run u
+tools/audit/seat/pr_args.sh#7cdf8e5711	258	C5-len	57 words: A pusher stopped with TERM left its whole subtree running: a shell does not forward a sign
+tools/audit/seat/pr_args.sh#8a6f831970	342	C5-len	88 words: An orphaned update_pr.sh self-test spun 8.6 h at about 67% CPU. pr_bounded runs a self-tes
+tools/audit/seat/pr_args.sh#ebf3d4dc87	612	C5-len	48 words: passes <name> <mutant> <expected text> <args...>: the run opens (stops only at the absent 
+tools/audit/seat/pr_args.sh#193992eedc	652	C5-len	49 words: A refused or stopped open tidies its worktree (P72): one whose branch origin never had is 
+tools/audit/seat/pr_args.sh#96d478566d	707	C5-len	55 words: (A) a fresh clone sourced by a relative path, then a cd into a stale sibling checkout, pas
+tools/audit/seat/pr_args.sh#cb6be5ca97	965	C5-len	55 words: One run per branch (the 2026-10-19/20 worktree vanish): update_pr.sh's fixed per-branch wo
+tools/audit/seat/pr_args.sh#b144d19b7b	994	C5-len	61 words: The lock dies with the run, whatever the run started (#2469's round-1 review: an fd of the
+tools/audit/seat/pr_args.sh#0000209934	1002	C5-len	65 words: mut:unlock leaves the holder to its own 0.2 s parent poll, so reading it alive at the run'
+tools/audit/seat/pr_args.sh#9c0a4f14a1	1119	C5-len	45 words: The lock outlives the push, whatever stops the run (R10-UPDATE-PR-SIGNALS). sigrun <mutant
+tools/audit/seat/pr_args.sh#6e17b6d518	1138	C5-len	64 words: Those two mutants' holders free the lock only after the detach that follows the mark, so t
+tools/audit/seat/pr_args.sh#d7bb7c29dc	1239	C5-len	69 words: The branch a pull request is opened on belongs to one instrument at a time (R10-OPENPR-ROW
+tools/audit/seat/pr_args.sh#d7bb7c29dc	1239	C5-len	42 words: The stub app_push.sh is the real push's HEAD check: call 1 pushes and "opens" #5, call 2 (
+tools/audit/seat/pr_args.sh#9a84e2c555	1324	C5-len	101 words: R10-HOTFIX-OPENER-REFUSALS: two openers on one topic (a seat's hand run, open_driver.py's)
+tools/audit/seat/pr_args.sh#9a84e2c555	1324	C2-path-dismissed	body.md
+tools/audit/seat/pr_args.sh#9a84e2c555	1324	C2-path-dismissed	body.md
+tools/audit/seat/pr_args.sh#9a84e2c555	1324	C2-path-dismissed	body.md
+tools/audit/seat/pr_args.sh#9a84e2c555	1324	C2-path-dismissed	body.md
+tools/audit/seat/pr_args.sh#9d9ee54b80	1354	C2-path-dismissed	body.md
+tools/audit/seat/pr_args.sh#844fa35ae6	1379	C5-len	57 words: #3549's review: git lists the opener worktree by its physical path, so a state dir spelled
+tools/audit/seat/pr_args.sh#84b5b3ada4	1562	C5-len	49 words: HPO_UPDATE_BODY_ONLY (cloud_relay.sh's body-only move under a merge verdict or a dispatche
+tools/audit/seat/pr_args.sh#abaa424ec4	1630	C5-len	42 words: A refused row push (#2625, #2629: prepr refused p2 on a red CI reported after p1) left the
+tools/audit/seat/pr_args.sh#0f1a30a0e8	1699	C5-len	50 words: A row push can fail after its git push landed (app_push.sh's refused body PATCH, its read-
+tools/audit/seat/pr_args.sh#ef2691d908	1713	C5-len	44 words: A refusal that is the host's, not the head's (R10-HOTFIX-OPENPR-HOST-REFUSAL), is decided 
+tools/audit/seat/pr_args.sh#10d3fb3527	1840	C2-path-dismissed	tools/audit/prepr.sh
+tools/audit/seat/pr_args.sh#203f418a91	1921	C5-len	50 words: A conflicted main merge was left in the opener's worktree, and pr_release_wt kept it as di
+tools/audit/seat/pr_args.sh#08e48b06e8	1981	C5-len	47 words: The row-only arm (R10-ROW-ONLY-UPDATE): a head that is the live head plus one commit (here
+tools/audit/seat/pr_args.sh#aa50e9f850	2012	C5-len	47 words: A run whose merge stops on a conflict leaves no merge behind (R10-FLY-ABORT-OWN-MERGE, P27
+tools/audit/seat/pr_args.sh#facfdbe29a	2092	C5-len	49 words: The push's FAIL lines and prepr's X line reach the train's Stop message, and a push that p
+tools/audit/seat/pr_args.sh#b2b098a328	2145	C2-path-dismissed	bchild.sh
+tools/audit/seat/pr_args.sh#f95c9ff83b	2216	C5-len	50 words: A X line is a whole statement: copyin deletes one line, so a predicate continued from the 
+tools/audit/seat/pr_cap.py#2f73c3477f	2	C5-len	42 words: Lines (one per call, on stderr; exit 0 to pass, 1 to refuse, 2 for usage): dispatch: WIP 5
+tools/audit/seat/probe_bridge.py#4790194889	2	C5-len	56 words: The fleet record (dev/audit/harnesses/r10_hotfix_ci_critpath_4/fleet.json) is the probed r
+tools/audit/seat/proof_watch.py#636c941efd	2	C5-len	46 words: Owner decision P8 (2026-10-12, the throughput pre-study): a 4.5 h validating proof was mis
+tools/audit/seat/proof_watch.py#7e662ca036	176	C2-path-dismissed	tests/README
+tools/audit/seat/proof_watch.py#70958a72db	707	C5-len	50 words: (g3) a red gate that is an edit run's DEFERRAL, while the code run it defers to is still r
+tools/audit/seat/prune_refs.py#c38d400bce	2	C5-len	41 words: With the tip ages read (the live path), a tip younger than 6 h, or a X tip younger than 24
+tools/audit/seat/prune_refs.py#c38d400bce	2	C5-len	61 words: X (the default) writes by X: every tag as a X refspec in chunks of 100, then a read-back o
+tools/audit/seat/prune_refs.py#c38d400bce	2	C5-len	43 words: The push arm refuses before the first delete when a ref it would delete has no tag at its 
+tools/audit/seat/prune_refs.py#c38d400bce	2	C5-len	64 words: Every delete is leased at the sha the plan read and each delete chunk is atomic, so a ref 
+tools/audit/seat/prune_refs.py#c38d400bce	2	C5-len	55 words: X restricts the same classifier and the archive-first step to the refs of one topic (X, X,
+tools/audit/seat/prune_refs.py#c38d400bce	2	C5-len	55 words: It drives the pure classifier and planner over synthetic ref/PR sets -- one arm per rule, 
+tools/audit/seat/pulse.py#6922f2dbc9	2	C5-len	57 words: Every consumer the programme runs -- the opener, the verdict router, the merge train, the 
+tools/audit/seat/pulse.py#6922f2dbc9	2	C5-len	45 words: Every input and every footprint is a ref or a REST fact, so the verdict is the same from t
+tools/audit/seat/pulse.py#6922f2dbc9	2	C5-len	51 words: A seat whose input is session-local is judged on its queue file, one arm per X: each non-b
+tools/audit/seat/pulse.py#6922f2dbc9	2	C5-len	62 words: Round 10 found a process that is not the seat the board names keeping the per-role file fr
+tools/audit/seat/pulse.py#6922f2dbc9	2	C5-len	51 words: What it does not see, stated: a programme with nothing owed reads ok however long it has b
+tools/audit/seat/pulse.py#6922f2dbc9	2	C2-path-dismissed	dev/governance/roles/standing-
+tools/audit/seat/pulse.py#003efe4895	111	C5-len	43 words: : The standing seats and their cadences in minutes: the longest a queued input : may wait 
+tools/audit/seat/queue_pre_flight.py#7469708329	2	C2-path-dismissed	_budgets.json
+tools/audit/seat/queue_pre_flight.py#ca41bb3249	466	C5-len	42 words: R10-HOTFIX-TRAIN-POLICY-MANDATE (#3366): the train's own pre-flight ran policy_gate before
+tools/audit/seat/queue_pre_flight.py#56aab9b3e2	540	C5-len	45 words: R10-TRAIN-RAISE-HOLD: pre-flight is the train's own raise_hold, so it admits exactly what 
+tools/audit/seat/r10_deeplink_mutants.py#469cf328de	2	C5-len	44 words: L*,D*, the class those three belong to, enumerated by the rule "every I*,MR*, member, alia
+tools/audit/seat/r10_deeplink_mutants.py#469cf328de	2	C2-path-dismissed	mut3.py
+tools/audit/seat/r10_deeplink_mutants.py#469cf328de	2	C2-path-dismissed	mut4.py
+tools/audit/seat/r10_deeplink_mutants.py#469cf328de	2	C2-path-dismissed	own_plants.py
+tools/audit/seat/r10_deeplink_mutants.py#469cf328de	2	C2-path-dismissed	rev_plants.py
+tools/audit/seat/r10_deeplink_mutants.py#ec1db75ff3	173	C5-len	45 words: The other written ways to invoke the member by name, so the round closes the CLASS the rev
+tools/audit/seat/r10_deeplink_mutants.py#8157b6cdfa	188	C5-len	52 words: V2-V10 isolate each written spelling the class admits -- creating the form by name, writin
+tools/audit/seat/r10_deeplink_mutants.py#65317f025e	297	C5-len	45 words: #2452 round 1: the location object's every member, its aliases, the interfaces, the docume
+tools/audit/seat/r10_deeplink_mutants.py#6ab868d015	322	C5-len	47 words: #2452 round 3: a reference to the surface taken when the card LOADS, before the census swi
+tools/audit/seat/r10_deeplink_mutants.py#6ab868d015	322	C2-path-dismissed	rev_plants.py
+tools/audit/seat/r10_deeplink_mutants.py#3da0a092e7	370	C2-path-dismissed	mut3.py
+tools/audit/seat/r10_deeplink_mutants.py#761a5ba34b	389	C2-path-dismissed	mut4.py
+tools/audit/seat/r10_deeplink_mutants.py#9a2a37aa70	435	C2-path-dismissed	review_plants.py
+tools/audit/seat/r10_deeplink_mutants.py#c00164b045	454	C2-path-dismissed	review_plants9.py
+tools/audit/seat/r10_deeplink_mutants.py#b91d3c3cef	462	C5-len	53 words: The round-10 review's anchor (#2345, review_plants10.py, verbatim): RD6, green at #2345's 
+tools/audit/seat/r10_deeplink_mutants.py#b91d3c3cef	462	C2-path-dismissed	review_plants10.py
+tools/audit/seat/r10_deeplink_mutants.py#3c7d94a3db	489	C2-path-dismissed	own_plants.py
+tools/audit/seat/r10_deeplink_mutants.py#a21e5f5f81	528	C2-path-dismissed	rev_plants.py
+tools/audit/seat/r10_roster_ops_mutants.py#2099c42de7	2	C5-len	42 words: X does not run the plants -- one costs the target's own minute -- and pins instead the pre
+tools/audit/seat/r10_stamp_round_mutants.py#0882e7a144	2	C5-len	55 words: Null control: X runs the self-test with no plant, which must print rc=0 fails=0; given a b
+tools/audit/seat/r9_rc_bus_fetchhead.sh#60fe6e8dbd	2	C5-len	62 words: It injects the window with a git wrapper on PATH that performs the unrelated fetch right a
+tools/audit/seat/r9_rc_bus_fetchhead.sh#60fe6e8dbd	2	C5-len	41 words: X runs X from a copy parked outside any checkout, where the script's ROOT resolves above t
+tools/audit/seat/r9_rc_bus_fetchhead.sh#afc227c86b	52	C5-len	57 words: The timestamps are pinned for the whole run so every sha printed here is a measurement tha
+tools/audit/seat/r9_rc_bus_fetchhead.sh#3cde10e978	67	C5-len	41 words: The dispatching arms (race, ootree) dispatch pull request 21, so H1 is a REAL head carryin
+tools/audit/seat/r9_rc_bus_fetchhead.sh#05b7d28730	97	C5-len	54 words: THE PLANT, for every mode that needs a fetch inside the window: a git wrapper that, after 
+tools/audit/seat/r9_rc_bus_fetchhead.sh#05b7d28730	97	C5-len	44 words: It must go INSIDE the window: measured (probe, 2026-10-09) that X rewrites FETCH_HEAD even
+tools/audit/seat/r9_rc_bus_fetchhead.sh#31f7ebf0b4	134	C2-path-dismissed	BODY.md
+tools/audit/seat/r9_rc_bus_fetchhead.sh#95d8c17005	231	C2-path-dismissed	BODY.md
+tools/audit/seat/r9_rc_bus_fetchhead.sh#33ac29cebd	274	C5-len	47 words: Printed with the timestamps pinned, so running this mode against the pre-fix and the fixed
+tools/audit/seat/r9_rc_bus_fetchhead.sh#dd17ec8884	281	C5-len	42 words: A fixed nonce, not one X mints: the verdict file's bytes are part of the commit, so a rand
+tools/audit/seat/r9_rc_bus_fetchhead.sh#dd17ec8884	281	C5-len	51 words: The nonce is planted into the dispatch state as a line in X's own format (<pr> <head> <rev
+tools/audit/seat/record_beat.py#c2e7e8b205	2	C5-len	62 words: For each merged pull request it resolves the FULL merge sha from git (the oid GitHub names
+tools/audit/seat/record_beat.py#c2e7e8b205	2	C5-len	46 words: X is the one place a merge's roster group is named, for this comment and for X's X line: t
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C5-len	50 words: The X job (.github/workflows/nightly.yml) drives the three modes in order: X reads the win
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C5-len	43 words: Stateless like the other seat tools: every input is a flag, the roster through X (a git re
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C5-len	56 words: A row records the MERGE, not merely the pull request, so a row the tree already carries is
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C5-len	45 words: THE REVIEW IS A PREDICATE (tvofi, 2026-10-07): X is the guard under which the job approves
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C5-len	57 words: A STATUS REWRITE IS A MODIFIED FILE, so a beat that carries one was refused here -- measur
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C5-len	44 words: The guard now reads a rewrite in exactly the shape X writes -- the deleted line the genera
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C5-len	49 words: This module's write set cannot express the second: X refuses every path that is not X, so 
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C2-path-dismissed	dev/programme/rosters/wave-r
+tools/audit/seat/record_row.py#2a50ae8fc7	2	C2-path-dismissed	-groups.json
+tools/audit/seat/record_row.py#eee6935b43	108	C5-len	44 words: : The plan of record and the living handover are dispositions a seat writes, : never this 
+tools/audit/seat/record_row.py#a486c2c167	116	C5-len	67 words: : The reds a record pull request answers, by full check-run name : X (ci.yml calls tests.y
+tools/audit/seat/record_row.py#c3f69d29ec	210	C5-len	55 words: : The status a row records, read back from the one line a row writer emits. : This is not 
+tools/audit/seat/record_row.py#6c0edb7890	316	C5-len	41 words: THE BATCH (tvofi, 2026-10-24 and 2026-10-25): a push to main opens or updates the record p
+tools/audit/seat/record_row.py#6c0edb7890	316	C5-len	59 words: The floor is bounded by X, not chosen: at a floor of F rowless merges the oldest has F - 1
+tools/audit/seat/record_row.py#f1146e2ac4	341	C5-len	72 words: : THE PITCH (Lean study K6): a record pull request does not merge from a : push beat while
+tools/audit/seat/record_row.py#f3a75f5b23	752	C5-len	42 words: X and X take any Unicode digit, X matches before a trailing newline and X drops a leading 
+tools/audit/seat/record_row.py#94966189fe	1212	C5-len	48 words: A rewrite moves a row TOWARD the merge, never away from it: writing the beat's own open se
+tools/audit/seat/record_row.py#d0d255ccfb	1422	C5-len	46 words: The stale row is the reporter's class too (R9-ROW-STALE): a merge carrying a sha is not ro
+tools/audit/seat/record_row.py#b9968e8c7c	1472	C5-len	46 words: R9-ROW-STALE, the guard half: the beat PLANS a status rewrite of an existing row file, so 
+tools/audit/seat/record_row.py#ee55ce65b0	1875	C5-len	60 words: The CLI's exit mapping, driven through main() over a plan file and a throwaway repository 
+tools/audit/seat/ref_privacy.py#61f2688b79	2	C5-len	49 words: A worktree outside the home directory -- a session scratch under the temp root, whose own 
+tools/audit/seat/ref_privacy.py#61f2688b79	2	C5-len	59 words: A path under a named root (wt_sync.sh names the repository's main checkout X) is X; any ot
+tools/audit/seat/ref_privacy.py#61f2688b79	2	C5-len	98 words: Every instrument that composes a ref name or a commit message from a value it does not fix
+tools/audit/seat/ref_privacy.py#61f2688b79	2	C5-len	43 words: The accounts X, X and X, and names under three characters, are not judged: the first three
+tools/audit/seat/ref_privacy.py#61f2688b79	2	C5-len	121 words: It enumerates every tracked file, at <ref> through X, holding a push site -- a non-comment
+tools/audit/seat/ref_privacy.py#61f2688b79	2	C5-len	212 words: A push built across lines whose X line opens with neither a push option, X nor a variable;
+tools/audit/seat/ref_privacy.py#0bfbfbc77a	145	C5-len	42 words: : THE HOST-PATH GRAMMAR, owned here; tools/audit/seat/tmp_paths.py imports it. : HOME_DIR 
+tools/audit/seat/ref_privacy.py#65e57bda65	163	C1-count-dismissed	PRIVATE_EMAIL_SUFFIXES has 6 items; comment says one names
+tools/audit/seat/ref_privacy.py#29bdc92dc6	235	C5-len	49 words: The owner's ruling (tvofi, : 2026-10-22): "please have your seats not post claude code foo
+tools/audit/seat/ref_privacy.py#29bdc92dc6	235	C5-len	116 words: Judged : on what a push or a post publishes -- a commit message, a comment body -- : never
+tools/audit/seat/ref_privacy.py#29bdc92dc6	235	C1-count-dismissed	ATTRIBUTION has 4 items; comment says one mid-line passes
+tools/audit/seat/remerge_main.sh#a496094a3c	2	C5-len	65 words: It pushes with X, which prefixes the body's X with the note naming the new head (an automa
+tools/audit/seat/remerge_main.sh#a496094a3c	2	C5-len	96 words: The start is refs/pull/<pr>/head, the local merge only proves that main merges with no res
+tools/audit/seat/remerge_main.sh#9ba2ca05ce	41	C5-len	52 words: MERGE CONFLICT is printed only for a merge that left unmerged paths (carry f7d2bf7c): a fe
+tools/audit/seat/remerge_main.sh#f94977800a	89	C5-len	54 words: shellcheck disable=SC2086 # $ISS is a word list of issue numbers Every REFUSE line, not th
+tools/audit/seat/remerge_main_selftest.py#d621de058a	2	C5-len	41 words: Copies remerge_main.sh, pr_args.sh and gh_read.py into a throwaway repo beside a bare orig
+tools/audit/seat/remerge_main_selftest.py#d621de058a	2	C5-len	60 words: The fork cases (decision 0017, --head-repo): the head lives only at refs/pull/1/head of th
+tools/audit/seat/replay_draws.py#f34b498935	2	C2-path	tests/replay_draws.tsv
+tools/audit/seat/replay_draws.py#f34b498935	2	C5-len	43 words: X lists the runs (newest first), each run's jobs on every page and every attempt, and down
+tools/audit/seat/replay_draws.py#f34b498935	2	C5-len	41 words: X grades, at this tree, the synthetic clean draw of every replay job of the X most recent 
+tools/audit/seat/replay_draws.py#f34b498935	2	C5-len	49 words: X grades one job of X exactly as the lane does (X) and exits 1 iff a clean run offends or 
+tools/audit/seat/replay_draws.py#f34b498935	2	C5-len	42 words: X runs X over a draw table (default the committed one; X reads another, e.g. one X wrote),
+tools/audit/seat/replay_draws.py#f34b498935	2	C5-len	43 words: X measures a declared cut's factor on this box: the synthetic fixture's clean replay (X) i
+tools/audit/seat/replay_draws.py#f34b498935	2	C2-path-dismissed	FILE.tsv
+tools/audit/seat/replay_draws.py#f34b498935	2	C2-path-dismissed	FILE.tsv
+tools/audit/seat/review_carry.py#7c5382b0e2	2	C5-len	121 words: The range carries only where X carries it, and this prints CARRY: each merge git's own aut
+tools/audit/seat/review_carry.py#7c5382b0e2	2	C5-len	42 words: 2876 253dc4867 -> e0237e6d0 branch-only 1, the merge itself -> CARRY 2876 253dc4867 -> d08
+tools/audit/seat/review_carry.py#8825f58a72	107	C5-len	44 words: The one carry predicate (R10-REVIEW-CARRY review round 1): this instrument and X once answ
+tools/audit/seat/review_carry.py#5f26734537	393	C2-path-dismissed	shared.txt
+tools/audit/seat/review_packet.py#a4bff32b03	2	C5-len	76 words: The packet holds the three-dot diff against the merge base, a digest of the head's check r
+tools/audit/seat/review_packet.py#a4bff32b03	2	C5-len	48 words: Every git read runs in the checkout the WORKING DIRECTORY is in, never in the directory th
+tools/audit/seat/review_packet.py#a4bff32b03	2	C5-len	41 words: The harness run is the finder's: a path present at the merge base and untouched by the dif
+tools/audit/seat/review_packet.py#a4bff32b03	2	C5-len	51 words: X runs X at the code head before the body is pushed, so a fixer answers before the open wh
+tools/audit/seat/review_packet.py#a4bff32b03	2	C5-len	41 words: A refusal that leaves the packet truthful still WRITES it and then exits 1, so whoever hol
+tools/audit/seat/review_packet.py#a4bff32b03	2	C5-len	47 words: A seat that cannot READ the packet's inputs -- its working directory is not a checkout, X 
+tools/audit/seat/review_packet.py#a4bff32b03	2	C2-path-dismissed	VERDICT.md
+tools/audit/seat/review_packet.py#b5484c1462	438	C2-path-dismissed	VERDICT.md
+tools/audit/seat/review_packet.py#3b07cfd40f	448	C2-path-dismissed	VERDICT.md
+tools/audit/seat/review_packet.py#60e869696a	613	C2-path-dismissed	PROMPT.md
+tools/audit/seat/review_packet.py#6e30b4c738	657	C2-path-dismissed	PROMPT.md
+tools/audit/seat/review_packet.py#a2aae30007	200	C1-count-dismissed	CLASSIFY_WORD has 4 items; comment says one line starts
+tools/audit/seat/review_packet.py#fd510daa7a	973	C5-len	41 words: #3379 at 71b95e42, 00:03Z on 11-10: the gate's latest run concluded failure while the budg
+tools/audit/seat/review_packet.py#706c4c0c10	1251	C5-len	55 words: ONLY A REQUIRED RED IS OWED (owner ruling tvofi 2026-11-07): with the train's set given, m
+tools/audit/seat/review_packet.py#fa0bd53bab	1268	C5-len	56 words: Where the set cannot be read (an empty --required-file), the rule as it stood (P282): main
+tools/audit/seat/review_strength.py#fe56538cf9	2	C5-len	53 words: REAL_CATCH is the study's judgement of which words name a catch, and is the one list this 
+tools/audit/seat/review_strength.py#fe56538cf9	2	C5-len	152 words: STRATA (X). kind: X when the verdict's bus nonce prefix names a probe return, a ref X or t
+tools/audit/seat/review_strength.py#fe56538cf9	2	C5-len	52 words: The four fact strata are taken as of T, so a verdict, merge or roster edit after T moves n
+tools/audit/seat/review_strength.py#fe56538cf9	2	C5-len	43 words: Every figure is then a function of the bus, the two refs and T, not of a tip's position wh
+tools/audit/seat/review_strength.py#fe56538cf9	2	C5-len	53 words: Each arm takes the last N PRs by first verdict before the latest window's until (a tie bro
+tools/audit/seat/review_strength.py#d508da9497	559	C2-path-dismissed	VERDICT.md
+tools/audit/seat/review_strength.py#720533a049	561	C5-len	43 words: main grows: PR 14 merged from fix/r1-res-pr with 10 lines the merge itself adds; an octopu
+tools/audit/seat/review_strength.py#38b9ff1d70	737	C5-len	43 words: PR 16: 145 lines plus one each in files a prefix cut would wrongly read: the delivery excl
+tools/audit/seat/review_strength.py#d14dd6c185	743	C2-path-dismissed	VERDICT.md
+tools/audit/seat/review_strength.py#d3d4b868ae	794	C5-len	62 words: main: rows naming groups whose letters hold a 0 and a 9 at every position the group regex 
+tools/audit/seat/roster_edit.py#fa994140a2	2	C5-len	45 words: Two recorded JSON breakages came from editing the roster as text; every op here loads the 
+tools/audit/seat/roster_edit.py#fa994140a2	2	C5-len	47 words: THE ROUND-TRIP RULE: a no-op edit must reproduce the roster's bytes exactly; the self-test
+tools/audit/seat/roster_edit.py#fa994140a2	2	C5-len	64 words: Every worktree of one repository shares its local branches, so a named branch is one a con
+tools/audit/seat/roster_edit.py#fa994140a2	2	C5-len	47 words: A push origin refuses because X moved since this run's base (a rival landed in the lint wi
+tools/audit/seat/roster_edit.py#fa994140a2	2	C5-len	41 words: Without X, the tool checks out one itself; with it, the tool verifies the directory's HEAD
+tools/audit/seat/roster_edit.py#fa994140a2	2	C5-len	45 words: Every text an op adds (the same added_texts the triage gate judges, plus a set-resume valu
+tools/audit/seat/roster_edit.py#fa994140a2	2	C2-path-dismissed	dev/programme/rosters/wave-r
+tools/audit/seat/roster_edit.py#fa994140a2	2	C2-path-dismissed	-groups.json
+tools/audit/seat/roster_edit.py#fa994140a2	2	C2-path-dismissed	.claude/workflows/brief_lint.mjs
+tools/audit/seat/roster_edit.py#3f8a34439a	278	C5-len	41 words: : The resume fields set-resume may write. stage and branch are the roster's : structural n
+tools/audit/seat/roster_edit.py#f93de7d3c0	1147	C5-len	47 words: A ref-lock race lasts the : milliseconds between another process's read and write of one :
+tools/audit/seat/roster_edit.py#845ac96b3c	3065	C5-len	41 words: On 2026-10-21 one run printed "pushed ... at b622ec9f1" with rc 0 while no ref on origin e
+tools/audit/seat/roster_lib.py#d0dce9e6e5	2	C2-path	gen_table_rev3.py
+tools/audit/seat/roster_lib.py#d0dce9e6e5	2	C5-len	45 words: The wave computation is X's (the round-9 alt archive tag X), the critical path is X's X, a
+tools/audit/seat/roster_lib.py#102bd7e0b0	240	C2-path-dismissed	-groups.json
+tools/audit/seat/roster_lib.py#7756c72b99	640	C2-path	gen_table_rev3.py
+tools/audit/seat/roster_lib.py#13181cf03a	79	C2-path	gen_table_rev3.py
+tools/audit/seat/roster_lib.py#e41163b70f	93	C5-len	43 words: These four are exactly the tuple X : carries as X, so that module converging on this view 
+tools/audit/seat/roster_lib.py#cd97f1fa62	165	C2-path-dismissed	dev/programme/rosters/wave-r
+tools/audit/seat/roster_lib.py#cd97f1fa62	165	C2-path-dismissed	-groups.json
+tools/audit/seat/roster_lib.py#cd97f1fa62	165	C2-path-dismissed	-groups.json
+tools/audit/seat/roster_lib.py#b43e2613dd	516	C5-len	44 words: ONE predicate (X) says which carries a group still owes; X, X's merge transition and X all
+tools/audit/seat/roster_lib.py#023fc65241	532	C5-len	44 words: : The stages a carry may not be routed TO (R10-CARRY-SINK-BARRIER, tvofi : 2026-11-10): ev
+tools/audit/seat/roster_lib.py#d9d20c10bd	553	C5-len	48 words: : THE CUT-OVER, per roster path: a carry that sat on a closed group at this : roster-branc
+tools/audit/seat/roster_lib.py#177a51a281	809	C5-len	41 words: : X values (intake, P268): "outside" is a contribution from outside the : project; "user" 
+tools/audit/seat/roster_lib.py#f7028d479f	847	C5-len	46 words: : The convergence record (decision 0018 sections 2 and 4; process cards P7 and : L1): what
+tools/audit/seat/roster_lib.py#6b712a38d5	1022	C5-len	53 words: A ref that publishes no file means no group is critical -- a measurement, X; a file that i
+tools/audit/seat/roster_lib.py#c06dbadcf5	1155	C1-count-dismissed	cg has 3 items; comment says One predicate decides
+tools/audit/seat/roster_queue.py#c64867e4f5	2	C5-len	51 words: X and X are read-only (X of the roster at a ref, nothing written, nothing fetched): one li
+tools/audit/seat/roster_queue.py#c64867e4f5	2	C5-len	48 words: So the runner lints from X, a checkout it owns, fetched and detached at X before every att
+tools/audit/seat/roster_queue.py#c64867e4f5	2	C5-len	50 words: LINE GRAMMAR (one parser for X, X and X): an unquoted word that begins with X ends the lin
+tools/audit/seat/roster_queue.py#c64867e4f5	2	C5-len	48 words: X rewrites each applied line in place as X (pushed, read-back not FAILED) or X, re-reading
+tools/audit/seat/roster_queue.py#c64867e4f5	2	C1-flag-dismissed	--report
+tools/audit/seat/roster_queue.py#9aec2aac7d	146	C2-path-dismissed	1.txt
+tools/audit/seat/roster_queue.py#a935142cd8	812	C5-len	45 words: write_roster's real refusal shape: banner, the new ERROR lines, then the lint's own last t
+tools/audit/seat/roster_sync.py#9f34bc0af9	2	C5-len	47 words: BRANCH MATCHING is the design's B13 rule (X 09174d94, X section 6.4): the topic is the bas
+tools/audit/seat/roster_sync.py#9f34bc0af9	2	C5-len	55 words: RECORD-INVALID is the design's commit predicate (6.4, item 3): every X is resolved by pref
+tools/audit/seat/roster_sync.py#9f34bc0af9	2	C5-len	45 words: X replaces the X read with recorded output (the same shape: X, X, X, X), and X (X) the iss
+tools/audit/seat/roster_sync.py#9f34bc0af9	2	C2-path-dismissed	dev/audit/design/orch-machinery/DESIGN.md
+tools/audit/seat/roster_sync.py#2bb25835b9	487	C2-path-dismissed	dev/programme/triage/s6-batch
+tools/audit/seat/roster_sync.py#160b4fa6aa	90	C5-len	48 words: noqa: E402 the one X parser; a second is refused noqa: E402 a ref or message never names t
+tools/audit/seat/roster_sync.py#7ff9cb5e81	101	C5-len	108 words: : The human dispositions, named so a skip can say which rule protected it. : Not exhaustiv
+tools/audit/seat/roster_sync.py#ceb046ff45	837	C5-len	43 words: X and X are a seat's claim that the work is live: the reconciler leaves the claim alone wh
+tools/audit/seat/roster_sync.py#ceb046ff45	837	C5-len	41 words: First, before any git fixture: these arms are pure, and a mutant on the done guard breaks 
+tools/audit/seat/roster_sync.py#61d6709228	897	C5-len	47 words: The two closing rules together (the #3054 merge): a group whose only carry is legacy deriv
+tools/audit/seat/roster_sync.py#61d6709228	897	C1-count-dismissed	lz has 1 items; comment says two closing rules
+tools/audit/seat/roster_sync.py#30fc6c16b0	923	C5-len	43 words: The reader half of the vocabulary barrier: a word the registry does not classify is skippe
+tools/audit/seat/roster_sync.py#19f799034b	946	C5-len	41 words: THE CARRY LEDGER (#2733 (b), carry 31): a merge over a group that still owes a carry write
+tools/audit/seat/roster_sync.py#9e162418ee	1072	C5-len	47 words: A destination already holding THIS finding: both its carry and the derived row cite triage
+tools/audit/seat/roster_sync.py#a2859eff34	1411	C1-count-dismissed	oth has 8 items; comment says One pass
+tools/audit/seat/round_metrics.py#d73b95cab9	2	C2-path-dismissed	tokens.tsv
+tools/audit/seat/round_metrics.py#d73b95cab9	2	C2-path-dismissed	ci_runs.json
+tools/audit/seat/round_metrics.py#d73b95cab9	2	C2-path-dismissed	merges.tsv
+tools/audit/seat/round_metrics.py#d73b95cab9	2	C2-path-dismissed	entries.json
+tools/audit/seat/round_metrics.py#d73b95cab9	2	C2-path-dismissed	roster.json
+tools/audit/seat/round_metrics.py#0d6b11a879	392	C2-path-dismissed	ci_runs.json
+tools/audit/seat/round_metrics.py#686c0ecaa2	79	C2-path-dismissed	merges.tsv
+tools/audit/seat/round_metrics.py#686c0ecaa2	79	C1-count-dismissed	ROSTER_PATHS has 2 items; comment says 50 windows
+tools/audit/seat/row_position.py#b7c6226eae	2	C2-path	dev/audit/harnesses/row_position.py
+tools/audit/seat/run_twins.py#0e64f9730d	2	C5-len	46 words: A cancelled X run is a SAME-SHA TWIN when another X run of the same workflow sits at the s
+tools/audit/seat/scorecard.py#0616e59966	2	C2-path-dismissed	merges.tsv
+tools/audit/seat/scorecard.py#0616e59966	2	C2-path-dismissed	roster.json
+tools/audit/seat/scorecard.py#d801d041fd	109	C2-path-dismissed	yield.py
+tools/audit/seat/scorecard_selftest.py#b497522242	65	C1-count-dismissed	shuf has 3 items; comment says 50 latest first verdicts
+tools/audit/seat/seat_gen.py#80b373ed4d	2	C5-len	41 words: X records the session binary's pid -- the first ancestor whose command matches SESSION_RE,
+tools/audit/seat/seat_gen.py#80b373ed4d	2	C5-len	42 words: A holder pid that is alive AND whose X matches the session binary, and is not the caller's
+tools/audit/seat/seat_venv.sh#8efcadbe4c	2	C5-len	82 words: THE SHIMS. tools/audit/seat/shims/seat-python and seat-python3 exec the venv-ci interprete
+tools/audit/seat/seat_venv.sh#b82a07c052	53	C5-len	43 words: The census is read by an interpreter named by absolute path, never by the first X on PATH:
+tools/audit/seat/selftest_wiring.py#33240e543a	176	C1-count-dismissed	guide has 3 items; comment says two index lines
+tools/audit/seat/state_docs.py#d64be4c3de	2	C5-len	59 words: A page that refuses (a stale or violating plan, an unreadable roster) is the UNAVAILABLE p
+tools/audit/seat/state_docs.py#d64be4c3de	2	C5-len	51 words: X runs the roster-sync step (X) at the START of every pass, before the memo check, so an o
+tools/audit/seat/state_docs.py#d64be4c3de	2	C2-path-dismissed	dev/programme/rosters/wave-r
+tools/audit/seat/state_docs.py#d64be4c3de	2	C2-path-dismissed	-groups.json
+tools/audit/seat/state_docs.py#d64be4c3de	2	C2-path-dismissed	plan.json
+tools/audit/seat/state_docs.py#d64be4c3de	2	C2-path-dismissed	PLAN.html
+tools/audit/seat/state_docs.py#d64be4c3de	2	C2-path-dismissed	PLAN.html
+tools/audit/seat/state_docs.py#8fc7f19de3	489	C2-path-dismissed	PLAN.html
+tools/audit/seat/state_docs.py#e8fe8e3d95	98	C5-len	59 words: : The four docs, one per generator (the flow board is merge_throughput.py's : X subcommand
+tools/audit/seat/state_docs.py#d19af0c60a	755	C2-path-dismissed	plan.json
+tools/audit/seat/state_docs.py#d19af0c60a	755	C2-path-dismissed	PLAN.html
+tools/audit/seat/state_docs.py#0bbdf1679e	842	C2-path-dismissed	docs/keep.md
+tools/audit/seat/state_docs.py#66a27a379a	988	C5-len	48 words: The three arms the issue names, each driven through X with the tip file the loop keeps its
+tools/audit/seat/state_docs.py#41256b08ab	1216	C5-len	43 words: ARM 5 (O17) -- no --roster-ref: every generator, run standalone in the driver, reads the R
+tools/audit/seat/state_docs.py#f41daa6597	1352	C5-len	49 words: ARM 4 -- a ref-lock race in the sync pass's fetch (another process moved a remote-tracking
+tools/audit/seat/survivor_list.py#df528c6b1c	2	C5-len	49 words: Owner ruling (tvofi, 2026-11-07, waste-study card 2, NARROW): a reviewer that blocks X lis
+tools/audit/seat/survivor_list.py#df528c6b1c	2	C2-path-dismissed	VERDICT.md
+tools/audit/seat/sweep_driver.py#7f9946c031	2	C5-len	48 words: Every POLL s (never under 60, tvofi 2026-10-19) it lists the PR's X runs at the live head 
+tools/audit/seat/sweep_driver.py#7f9946c031	2	C2-path-dismissed	DESIGN-P2.md
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C5-len	47 words: Owner ruling (2026-11-06): a handoff already in main is not work in flight, and an old fir
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C5-len	41 words: X takes a file of refs, unfiltered; X takes the rows and X the ledger, and both apply the 
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C2-path-dismissed	PLAN.json
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C2-path-dismissed	BASE.json
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C2-path-dismissed	ACKS.txt
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C2-path-dismissed	ROSTER.json
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C2-path-dismissed	PRS.json
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C2-path-dismissed	REFS.txt
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C2-path-dismissed	ROWS.tsv
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C2-path-dismissed	LEDGER.txt
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C1-flag-dismissed	--acks
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C1-flag-dismissed	--baseline
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C1-flag-dismissed	--plan
+tools/audit/seat/sweep_gantt.py#7a8be95b27	2	C1-flag-dismissed	--roster
+tools/audit/seat/sweep_gantt.py#9cd8486f38	228	C1-count-dismissed	plan3 has 3 items; comment says one does
+tools/audit/seat/tick_loop.sh#7665d49159	2	C5-len	51 words: One banner line per pass on stdout: TICK-PASS <utc> relay=<ok|rc=N|running|absent|stale> t
+tools/audit/seat/tick_loop.sh#7665d49159	2	C5-len	54 words: In the sleep between passes the loop reaps a finished relay (its TICK-RELAY line) and star
+tools/audit/seat/tick_loop.sh#7665d49159	2	C5-len	47 words: A --self-test still here was not replaced by the re-exec -- a caller's function named exec
+tools/audit/seat/tick_loop.sh#acb8ae4402	252	C5-len	41 words: Under pipefail a X that leaves at its match can kill the printf feeding it (141), and the 
+tools/audit/seat/tick_loop.sh#389bee583c	480	C5-len	55 words: The self-test run as a live seat runs it -- from a checkout behind origin/main on the watc
+tools/audit/seat/tick_loop.sh#2e69344d58	528	C5-len	68 words: A caller's function named exec, exported or defined by a BASH_ENV file, skips the env -i r
+tools/audit/seat/tmp_paths.py#d3ec77aed1	2	C5-len	70 words: WHAT IT SCANS, at <ref> (default HEAD) through X, so a ref can be graded without a checkou
+tools/audit/seat/tmp_paths.py#d3ec77aed1	2	C5-len	44 words: WHAT IT REFUSES, one line per hit (X); every match is judged on its own, never excused by 
+tools/audit/seat/tmp_paths.py#d3ec77aed1	2	C5-len	77 words: WHAT IT DOES NOT CATCH, so a green run is not read as more than it is: a path assembled ac
+tools/audit/seat/tmp_paths.py#d3ec77aed1	2	C2-path-dismissed	docs/decisions/
+tools/audit/seat/tmp_paths.py#33aaafc84b	218	C5-len	43 words: Any path under a temp root, a home or a seat directory is refused; only the lines a diff a
+tools/audit/seat/train.sh#c3cddb5c37	2	C5-len	59 words: X loads one verdicted pull request into the state dir's live train -- it joins the batch a
+tools/audit/seat/train.sh#c3cddb5c37	2	C2-path-dismissed	Q.json
+tools/audit/seat/train.sh#af20a431a8	223	C5-len	43 words: launched WITHOUT --checkout, the child runs from the REPOSITORY ROOT, where tools/audit/se
+tools/audit/seat/train.sh#37a5f3445c	322	C5-len	55 words: a stopped train ends its whole tree (R10-PUSHER-REAP): TERM or HUP to the pid in train.pid
+tools/audit/seat/train.sh#ab1efd950c	438	C5-len	59 words: A stopped train ends its whole tree, and frees the state dir only after (R10-PUSHER-REAP):
+tools/audit/seat/update_pr.sh#7a6b60c645	2	C2-path	updatepr.sh
+tools/audit/seat/update_pr.sh#7a6b60c645	2	C5-len	71 words: One run per branch, open_pr.sh's included (pr_args.sh's pr_branch_lock): a second run whil
+tools/audit/seat/update_pr.sh#7a6b60c645	2	C5-len	61 words: A head that is exactly the live head plus one commit asks app_push.sh for --row-only (R10-
+tools/audit/seat/update_pr.sh#7a6b60c645	2	C5-len	49 words: A head that merges new code, or main, asks for --reuse instead (P386): the fixer's receipt
+tools/audit/seat/update_pr.sh#969df6c898	47	C5-len	49 words: The EXIT trap goes first, so the lock (pr_branch_lock) is freed by it after the reap: bash
+tools/audit/seat/update_pr.sh#e8c444cbb1	111	C5-len	46 words: HPO_UPDATE_BODY_ONLY (cloud_relay.sh's handoff_arm, on a body-only move it does not review
+tools/audit/seat/verdict_audit.py#6f0188b753	2	C5-len	95 words: One X line per PR whose next step nobody visibly holds: merge verdict at an older head tha
+tools/audit/seat/verdict_audit.py#1e6e1064a2	45	C2-path-dismissed	VERDICT.md
+tools/audit/seat/verify_eight.py#61a3976296	2	C5-len	55 words: For each target site it applies that one site's mutation in a private git worktree (so the
+tools/audit/text_ledger.py#426c85ac36	2	C5-len	74 words: A unit is what one ledger row judges (dev/governance/dimensions/D6.md step 1, D5.md step 4
+tools/audit/text_ledger.py#426c85ac36	2	C5-len	41 words: The ledger is TSV with the header X: kind X or X; a claim carries the executed command, it
+tools/audit/text_ledger.py#426c85ac36	2	C5-len	48 words: X prints the structure D5.md steps 1 and 2 judge, one row per item: a X row for each Markd
+tools/audit/text_ledger.py#426c85ac36	2	C2-path-dismissed	LEDGER.tsv
+tools/audit/worktree_gc.sh#a1971b340f	2	C5-len	139 words: THE KEEP RULES, ahead of every deletion and printed with their reason: the main checkout a
+tools/audit/worktree_gc.sh#a1971b340f	2	C5-len	61 words: Every evidence*/ev-* subdirectory of a seat directory is moved into --keep-dir (default $H
+tools/audit/worktree_gc.sh#fb3ec84840	104	C5-len	42 words: The stubs record every argv line, so keep/delete is asserted on the log as well as on the 
+tools/audit/worktree_gc.sh#646bd8df30	114	C5-len	44 words: Normalize once: the tool realpaths every path it handles, and on macOS mktemp's /var/... i
+tools/audit/worktree_gc.sh#337ac7c496	223	C5-len	43 words: The redirect variables MUST be exported: set as plain shell variables they reach no subpro
+tools/audit/worktree_gc.sh#2083be0db8	454	C5-len	54 words: An ORPHANED seat (its wt a checkout this repository does not register: a separate clone, o
+tools/audit/worktree_gc.sh#b1cafee886	489	C5-len	49 words: The orphan wt is dead (unregistered, no readable branch: the pruned class); the nested ope
+tools/audit/worktree_gc.sh#7c6de720ed	510	C5-len	47 words: A failed evidence move must backstop class C as it backs A/B (a leftover evidence dir is n
+tools/audit/worktree_gc.sh#4b35e688ae	1085	C5-len	46 words: It goes when the seat's topic (the directory name less a leading X) has a MERGED pull requ
+tools/ci/alert_list.py#4abe5878a3	2	C2-path-dismissed	DESIGN-P2.md
+tools/ci/gate.py#da19c00406	2	C5-len	55 words: The 17 contexts of ruleset 23698884 are renamed X; X joins when the diff reaches custom_co
+tools/ci/gate.py#da19c00406	2	C5-len	43 words: The gate then FAILs with the deferral AT ONCE and holds no runner while the decider runs: 
+tools/ci/gate.py#da19c00406	2	C5-len	47 words: The waits this replaced (up to GATE_WAIT_MAX_S, re-reading every POLL_S) held a runner for
+tools/ci/gate.py#da19c00406	2	C5-len	55 words: Deferrals stay acyclic in the order judging() and busy() give: a gate defers only to runs 
+tools/ci/gate.py#da19c00406	2	C2-path-dismissed	gate_replay2.py
+tools/ci/gate.py#da19c00406	2	C2-path-dismissed	gate_sim.py
+tools/ci/gate.py#1ef8b968a5	77	C5-len	68 words: GitHub fails a run's 51st attempt; the hooks never take a run past 45 (4.3) The bound on r
+tools/ci/gate.py#43f0ec0769	613	C5-len	69 words: r10-gate-busy-defer: #3241 head 95c7e604, attempt 2 -- two deferring edit runs, each gate 
+tools/ci/gate.py#2bf29cadcd	659	C5-len	44 words: #3246 review: the same deferring gate (lo) beside a LATER edit run (hi) still in its prelu
+tools/ci/gate.py#cd2f7e179b	1035	C5-len	68 words: A need is read from the previous attempt only when (R1) the run is past attempt 1, (R2) th
+tools/ci/ghapi.py#6042485c6f	2	C5-len	59 words: A non-2xx answer is returned, never raised, so the caller names it -- except a RATE LIMIT 
+tools/ci/ghapi.py#0b1f2c731f	41	C5-len	71 words: GET only: the backoffs, in seconds, before each retry of a 5xx or TRANSPORT failure : A fa
+tools/ci/ghapi.py#5b5c725c6b	235	C5-len	45 words: A transient 5xx on a GET is retried, twice, with a short backoff (R10-CI-LAYOUT P2 step 11
+tools/ci/prelude.py#cd7610a823	2	C5-len	41 words: GitHub does not number a same-second push and body edit in event order (R10-RCA-CODESCAN-W
+tools/ci/prelude.py#ab5100840e	55	C5-len	69 words: owner variant: a review re-runs only budget-raise-gate An edit run beside an unfinished co
+tools/ci/prelude.py#b5031e8702	63	C5-len	50 words: R10-CI-SLIM card C7(a): the machinery lanes (tests / arch-instrument, tests / closures' re
+tools/ci/prelude.py#b5031e8702	63	C5-len	53 words: X ignores exactly that row, for the lanes that read no row; another pull request's row sta
+tools/ci/prelude.py#e96eb47f71	585	C5-len	41 words: C3 (option A): an edit run beside a code run that has not started its pr-contract exits at
+tools/ci/ruleset_cutover.py#0266bbe85d	2	C5-len	43 words: The rollback copy is written only from a GET that parsed and holds exactly 17 contexts, to
+tools/ci/ruleset_cutover.py#0266bbe85d	2	C5-len	41 words: THE READ-BACK has two halves, both required: the PUT result equals the payload (and a fres
+tools/ci/ruleset_cutover.py#0266bbe85d	2	C2-path-dismissed	PLAN.md
+tools/ci/ruleset_cutover.py#0266bbe85d	2	C2-path-dismissed	DESIGN-REVIEW.md
+tools/ci/ruleset_cutover.py#3b3da6eea7	193	C2-path-dismissed	DESIGN-REVIEW.md
+tools/ci/selftest_scope.py#109f1d414f	2	C5-len	106 words: THE SELECTION, X, on a pull request (prelude.py calls X): FULL (every step) when the table
+tools/ci/selftest_scope.py#109f1d414f	2	C5-len	41 words: THE DRIFT CHECK, X, runs on every push to main over the traces that run took: it fails nam
+tools/ci/selftest_scope.py#109f1d414f	2	C5-len	57 words: X saves the table to commit, which main uploads as the X artifact: the committed table uni
+tools/ci/selftest_scope.py#109f1d414f	2	C5-len	43 words: THE SETTLED INDEX, X, runs untraced before any step is (CI's strace step; X itself): a fre
+tools/ci/selftest_scope.py#109f1d414f	2	C5-len	96 words: BLIND SPOTS, stated: a path a process named relative to a working directory the trace does
+tools/ci/selftest_scope.py#109f1d414f	2	C2-path-dismissed	docs/x.md
+tools/ci/selftest_scope.py#68b24796da	1475	C5-len	44 words: The wrapper over stub PATHs (no strace needed): which steps it traces, with which flags, a
+tools/ci/sweep.py#27dee38780	2	C5-len	46 words: Where no green gate covers the newest event (X, r10-gate-busy-defer-3): a gate defers at o
+tools/ci/sweep.py#27dee38780	2	C5-len	66 words: Once every gate at the head has concluded (in_progress gates polled as above), every red g
+tools/ci/sweep.py#27dee38780	2	C5-len	60 words: A source is a job that ran: a skipped job is none, because GitHub re-stamps every skipped 
+tools/ci/sweep.py#27dee38780	2	C5-len	51 words: And settle never re-runs a gate attempt the bot started (X: this sweep's token, and refres
+tools/ci/sweep.py#27dee38780	2	C5-len	54 words: SWEEP-SELF (R10-HOTFIX-SWEEP-TOKEN-ACTOR; dev/audit/rca/R10-RCA-SWEEP-TOKEN-ACTOR.md): Git
+tools/ci/sweep.py#27dee38780	2	C5-len	61 words: From inside V, settle never waits on another gate still judging either (that run's own com
+tools/ci/sweep.py#27dee38780	2	C5-len	43 words: A pull_request or review run's gate restores tools/ci/*.py from the event's X, and a job r
+tools/ci/sweep.py#27dee38780	2	C5-len	45 words: Where the base changed tools/ci/*.py after the pin, the sweep instead dispatches ONE fresh
+tools/ci/sweep.py#27dee38780	2	C5-len	68 words: That run's green X is a check of its own suite and replaces no other run's red (#3400 at 7
+tools/ci/sweep.py#27dee38780	2	C5-len	43 words: A dispatch whose first gate attempt was green stays that judge after a refresh re-ran its 
+tools/ci/sweep.py#27dee38780	2	C5-len	64 words: Nor does a DEFERRAL red dispatch where a green gate covers the newest event (X): a red who
+tools/ci/sweep.py#27dee38780	2	C2-path-dismissed	DESIGN-P2.md
+tools/ci/sweep_selftest.py#df2f9da5c8	92	C1-count-dismissed	REC3308 has 3 items; comment says 41 jobs, five sources
+tools/ci/sweep_selftest.py#d382c95c8d	162	C5-len	41 words: #3544 at a60a65d8, recorded 2026-11-14 (X): the dispatched run D's first gate was green; r
+tools/ci/sweep_selftest.py#d04fd835b2	355	C5-len	51 words: Every overlapping red deferral is re-run by some sweep, the lower where it is red, else th
+tools/ci/sweep_selftest.py#2bb05fc507	487	C5-len	41 words: #3400 at 7326025c (roster carry 1, R10-HOTFIX-SWEEP-TOKEN-ACTOR): the App-actor decider's 
+tools/coverage/coverage_tree.sh#56629f4c2b	2	C5-len	47 words: THE PATTERN ALSO DROPS ONE SCRIPT SILENTLY, named here so the next reader does not have to
+tools/coverage/coverage_tree.sh#56629f4c2b	2	C5-len	45 words: Harmless here, measured rather than argued: run tests/closure.py selftest alone under this
+tools/coverage/coverage_tree.sh#56629f4c2b	2	C5-len	59 words: WHAT THIS INSTRUMENT CANNOT MEASURE, established at both ends rather than argued: a timing
+tools/coverage/coverage_tree.sh#56629f4c2b	2	C5-len	61 words: So a failure of that pair in a coverage run is this instrument, not a regression: do not r
+tools/coverage/coverage_tree.sh#56629f4c2b	2	C2-path-dismissed	scope.json
+tools/coverage/coverage_tree.sh#a08d584215	147	C5-len	46 words: A script's processes write under their own data directory and combine into their own per/ 
+tools/coverage/coverage_tree.sh#42fad5bc8c	158	C5-len	44 words: Reading the data directory at the script's return then records a script whose workers were
+tools/coverage/coverage_tree.sh#fce34f8ede	231	C5-len	45 words: The lanes only decide WHEN a script runs: every script still runs with the same arguments 
+tools/coverage/coverage_tree.sh#fce34f8ede	231	C5-len	47 words: The default is 3, the R9 covfast pre-study's (iv): features.py alone (995 s traced, the 20
+tools/coverage/coverage_tree.sh#a14b4d804e	285	C5-len	43 words: Only the reused ones (R10-CI-LAYOUT PR 0): a script this run measured already measured thi
+tools/devices/gen_device_fixtures.py#1ce564ab3d	2	C5-len	46 words: Each X may be given once per source; the source is found by matching the checkout's X agai
+tools/devices/gen_device_fixtures.py#1ce564ab3d	2	C5-len	41 words: Its records are therefore **hand-shaped** from the X list below on the unique-id rule read
+tools/devices/gen_device_fixtures.py#fc28de4e69	589	C2-path-dismissed	device_config.py
+tools/devices/gen_device_fixtures.py#e8151c8ed5	113	C1-count-dismissed	LOCALTUYA has 11 items; comment says two maintained lines
+tools/devices/gen_device_fixtures.py#c887a0282e	166	C5-len	60 words: A *label* : is the entity a role should resolve to on that device, or X when the : device 
+tools/devices/gen_device_fixtures.py#c887a0282e	166	C5-len	53 words: A X device is the set a user : configured by hand, marked as such, and its labels are DP n
+tools/devices/measure_prefill_corpus.py#6f6cd0a232	2	C5-len	89 words: Precision is X, recall X: recall is reported, never gated, because a wrong suggestion cost
+tools/merge/ledger_merge.py#0a81bf888c	2	C5-len	47 words: Every number it writes is re-checked by the gate that owns the file -- a sum of deltas tha
+tools/merge/ledger_merge.py#0a81bf888c	2	C5-len	42 words: Its numbers are counts derived from instance lists, so a class record both sides changed r
+tools/merge/ledger_merge.py#001f082c8a	98	C1-count-dismissed	LAYOUT has 1 items; comment says two branches
+tools/merge/ledger_merge.py#b56f03850b	506	C1-count-dismissed	base has 3 items; comment says two branches
+tools/merge/ledger_merge.py#c0cc88a50c	777	C1-count-dismissed	rn has 2 items; comment says one of them lands
+tools/merge/ledger_merge.py#0516270cb3	879	C1-count-dismissed	rca has 3 items; comment says two root-cause branches
+tools/plan/replan.py#365d083e30	2	C2-path-dismissed	plan.json
+tools/plan/replan.py#365d083e30	2	C2-path-dismissed	plan.json
+tools/plan/replan.py#365d083e30	2	C2-path-dismissed	dev/programme/rosters/wave-r
+tools/plan/replan.py#365d083e30	2	C2-path-dismissed	-groups.json
+tools/plan/replan.py#365d083e30	2	C2-path-dismissed	plan.json
+tools/plan/replan.py#5f6a3af65f	152	C2-path-dismissed	-groups.json
+tools/plan/replan.py#75ee5f193d	481	C2-path-dismissed	plan.json
+tools/plan/replan.py#77ed414953	107	C1-count-dismissed	LANES has 6 items; comment says five production groups
+tools/plan/replan.py#e333d3d1cb	424	C1-count-dismissed	? has 5 items; comment says 2 hotfixes, 08 keeps
+tools/plan/replan.py#1d9a05d1d6	884	C5-len	42 words: A critical-path tail (B, 18 h left) against a taller hotfix (H, 24 h): the hotfix outranks
+tools/plan/replan.py#09c7352dc9	1096	C5-len	44 words: Liveness by evidence, not by the stage word (carries 0, 3): an open pull request is live (
+tools/plan/replan.py#4ea337e194	1152	C5-len	68 words: n -> (slot, work_end) n -> work_end, waiting for its batch started groups in flight at the
+tools/plan/replan.py#1f2e55ba67	1234	C5-len	46 words: The real slots go in the dispatch order over every ready group, so a tier above the critic
+tools/plan/replan.py#575b66bb37	1249	C5-len	41 words: A ready critical-path group the slots left waiting starts now whatever the cap, as dispatc
+tools/plan/replan.py#0db9a8c5cd	1948	C5-len	41 words: hot_files are owned files too: a tool group whose hot file is in the integration, or is a 
+tools/plan/replan.py#94a964678f	2088	C1-count-dismissed	many has 1 items; comment says 7 slots
+tools/plan/replan.py#1da969d305	2190	C5-len	43 words: The six behaviours whose deletion the reviewer will attempt: each gets an arm that names i
+tools/plan/replan.py#b2b098b44c	2308	C5-len	45 words: A size the durations table does not measure is refused at the roster boundary, naming the 
+tools/plan/replan.py#ab0cadfac9	2584	C5-len	52 words: 3c. after-edges by predecessor stage (owner ruling, mandate 6715477401): a refused or refu
+tools/plan/replan.py#2d98b6b178	2621	C5-len	44 words: 3d. merge resolution of the two rulings: a discharged group (proposal 1) behind a deferred
+tools/plan/replan.py#4c1c27e0c1	2865	C5-len	56 words: The harness first proves the copy is sound UNMUTATED -- with durations.json beside it, bec
+tools/plan/replan.py#5c36e3324b	3265	C5-len	64 words: The cancelled rate's denominator is the Analyze population, never the complete-sample popu
+tools/plan/size_durations.py#d284cd29fc	2	C2-path-dismissed	prs.json
+tools/plan/size_durations.py#87f7e78e18	399	C5-len	55 words: : A body cites carries by position, and a carry list is re-numbered when an : entry is dro
+tools/release/stamp.py#9edc9ad755	2	C5-len	50 words: A major version is a closed audit round (decision 0016, tvofi 2026-10-29): the programme c
+tools/release/stamp.py#9edc9ad755	2	C5-len	82 words: What it writes: VERSION, the manifest version, CARD_VERSION in the bundled card (console b
+tools/release/stamp.py#9edc9ad755	2	C2-path-dismissed	docs/delivery/
+tools/release/stamp.py#9edc9ad755	2	C2-path-dismissed	.claude/workflows/carry-
+tools/release/stamp.py#9edc9ad755	2	C2-path-dismissed	docs/plan-
+tools/release/stamp.py#abe7dcd47b	793	C2-path-dismissed	EXECUTION.md
+tools/release/stamp.py#4686290d73	2235	C2-path	tools/audit/README.md
+tools/release/stamp.py#e40b6a93df	194	C5-len	41 words: It carries no pull request by construction, and it lands inside a later window whenever a 
+tools/release/stamp.py#b82acc89d8	199	C5-len	41 words: The parent count is how a merge is recognised as one -- git says so, where a subject regex
+tools/release/stamp.py#e8907e0fb2	205	C5-len	66 words: Rule 2's gate. gh answers it when gh is installed; when it is not, the same question goes 
+tools/release/stamp.py#abe90d4242	1027	C5-len	50 words: A standalone enumerator, deliberately NOT wired into X's refusal: X above already relies o
+tools/release/stamp.py#fb1b7efe7c	1050	C5-len	55 words: Every pure piece above is correct while the caller still hand-rolls its own X without the 
+tools/release/stamp.py#da1eddb83c	1076	C5-len	44 words: Suspended entries come back verbatim with the claims they were suspended for (v7.0.1's ref
+tools/release/stamp.py#9ed7ae5f54	1121	C5-len	48 words: THE BUMP BASE AND THE LAST STAMP (R10-HOTFIX-STAMP-BASE). v7.1.2 was tagged by hand at a t
+tools/release/stamp.py#a0f5816c50	1376	C5-len	83 words: The tag-push fallback is a control-flow contract, so it is pinned by reading this file: a 
+tools/release/stamp.py#d2e41a3758	1394	C5-len	62 words: Once main-protect's admin bypass is narrowed to pull requests, a direct push to main lands
+tools/release/stamp.py#d2e41a3758	1394	C1-count-dismissed	calls has 0 items; comment says three things
+tools/release/stamp.py#0c13c4c2bd	1616	C5-len	50 words: The driven decision above is correct while the call site never hands it the verdict -- whi
+tools/release/stamp.py#e56469e629	1627	C5-len	48 words: A record pull request merges to add the window's delivery rows and then ITSELF stands unro
+tools/release/stamp.py#514bf48e92	1674	C5-len	49 words: All four arms around the new exemption: the record-class-only window proceeds and names wh
+tools/release/stamp.py#514bf48e92	1674	C1-count-dismissed	_rc_rowless has 1 items; comment says four arms
+tools/release/stamp.py#3bce1d3fcb	1894	C5-len	56 words: Every pure piece above is correct while main() stops calling the generator -- which is the
+tools/release/stamp.py#aea5e2fcdc	1970	C5-len	58 words: Rule "flush" (R10-FLOW-RECORD-PITCH carry [6]), driven with doubles: a window owing a row 
+tools/release/stamp.py#ee2f9a9939	2009	C1-count-dismissed	_H1 has 4 items; comment says one exits
+tools/release/stamp.py#6bb1226922	2161	C5-len	43 words: Both are GitHub READS under gh_read.py's rule (R10-FLY-GH-READ-RETRY carry 6): 4 reads set
+tools/release/stamp.py#a60c1e0c17	2324	C5-len	49 words: Run against the freshly made stamp commit, HEAD^1 is the origin/main this stamp was taken 
+tools/release/stamp.py#6fbe7ebb62	2353	C5-len	44 words: X is X's window, the deploy-key tag push is X's only bypass, so a stamp taken over a rowle
+tools/release/stamp.py#6fbe7ebb62	2353	C5-len	44 words: That is not hypothetical -- v6.6.7 closed over 4/4 rowless merges, v6.6.6 over 9/16, v6.6.
+tools/release/stamp.py#bf904ec74e	2453	C2-path	.claude/workflows/policy_lint.mjs
+tools/release/stamp.py#bf904ec74e	2453	C1-count	RECORD_CLASS_RES has 6 items; comment says THREE PATH CLASSES, three regexes, ten lines
+tools/release/stamp.py#bf904ec74e	2453	C5-len	72 words: THE THREE PATH CLASSES ARE THE WHOLE PREDICATE and each is exact, not a prefix: a stray fi
+tools/release/stamp.py#bf904ec74e	2453	C2-path-dismissed	docs/delivery
+tools/release/stamp.py#bf904ec74e	2453	C2-path-dismissed	docs/plan.md
+tools/release/stamp.py#bf904ec74e	2453	C2-path-dismissed	carry.json
+tools/release/stamp.py#d79758a4e0	2539	C5-len	63 words: So before rule 4 reads the window, a stamp whose window owes a non-record-class row dispat
+tools/release/stamp.py#02c55f1d5a	2861	C5-len	50 words: Raising here left the stamp half-done and quiet -- the version commit on main, the tag loc
+tools/release/stamp.py#bb93522c1a	3039	C5-len	50 words: X is the window X reads, and the tag push below is X's only bypass, so this run is the one
+tools/release/stamp.py#984b47ea63	3052	C5-len	56 words: The instrument's rowless merges are parsed from its own output, cross-checked against rule
+tools/release/stamp.py#984b47ea63	3052	C5-len	41 words: X stays empty on a cleared window, on an empty rule-4 window (no tag yet: there is nothing
+tools/release/stamp.py#ee6a753447	3145	C5-len	49 words: Nothing is committed yet, so a failed regeneration is one checkout away from the pre-stamp
+tools/replay/cut_day.py#2016c0d1b6	2	C5-len	41 words: The replay lane reads a fixture in only three ways (X): each mapped input's state in force
+tools/replay/cut_day.py#2016c0d1b6	2	C5-len	54 words: All three instants lie on the quarter-hour grid that starts at the window's local midnight
+tools/replay/cut_day.py#2016c0d1b6	2	C5-len	45 words: Both entities are masked to hashes, so they are found by what they did: the one published 
+tools/replay/cut_day.py#2016c0d1b6	2	C2-path-dismissed	EXPORT.json
+tools/replay/cut_day.py#2016c0d1b6	2	C2-path-dismissed	tests/replay/F.json
+tools/replay/debug_ingest.py#1a0b2db5ff	2	C5-len	42 words: Generalises the R9-DBG-0 smoke (X at X): schema and manifest, X over the replay half with 
+tools/replay/debug_ingest.py#1a0b2db5ff	2	C2-path-dismissed	dbg_ingest_smoke.py
+tools/replay/debug_ingest.py#1a0b2db5ff	2	C2-path-dismissed	B.json
+tools/replay/debug_ingest.py#1a0b2db5ff	2	C2-path-dismissed	B.json
+tools/replay/debug_replay.py#05b9c88fe8	2	C2-path-dismissed	B.json
+tools/replay/debug_replay.py#05b9c88fe8	2	C2-path-dismissed	F.json
+tools/replay/export.py#066da4bb4d	2	C5-len	66 words: The standard library is all it imports on the SQLite path, so it runs under the interprete
+tools/replay/export.py#066da4bb4d	2	C5-len	84 words: WHAT IT EXPORTS, for the window X in the instance's zone: every entity id the config entry
+tools/replay/export.py#066da4bb4d	2	C5-len	57 words: X names it; without the flag the export takes the Tibber integration's own price sensor fr
+tools/replay/export.py#066da4bb4d	2	C5-len	123 words: entry keys that are this integration's own X names (read from the installed X); a key nami
+tools/replay/export.py#066da4bb4d	2	C5-len	166 words: any text state, and any entry value under a key not naming an entity, of up to 40 characte
+tools/replay/export.py#066da4bb4d	2	C2-path-dismissed	configuration.yaml
+tools/replay/export.py#066da4bb4d	2	C2-path-dismissed	secrets.yaml
+tools/replay/export.py#4ca640028c	238	C2-path-dismissed	configuration.yaml
+tools/replay/export.py#7318c8b2fe	334	C2-path-dismissed	configuration.yaml
+tools/replay/export.py#5fb459f1cc	261	C5-len	43 words: : A SQLite recorder named by a X is named by its kind alone, for the : same reason: the UR
+tools/replay/export.py#5fb459f1cc	261	C2-path-dismissed	secrets.yaml
+tools/site/build_docs.mjs#2cdaba6a90	1	C5-len	82 words: It exits 1, printing one FAIL line per failure, on: a README Documentation row whose file 
+tools/site/build_docs.mjs#2cdaba6a90	1	C2-path-dismissed	TREE.txt
+tools/site/build_docs.mjs#2cdaba6a90	1	C2-path-dismissed	TREE.txt
+tools/site/build_docs.mjs#2cdaba6a90	1	C1-flag-dismissed	--mermaid
+tools/site/build_docs.mjs#2cdaba6a90	1	C1-flag-dismissed	--out
+tools/site/build_docs.mjs#2cdaba6a90	1	C1-flag-dismissed	--root
+tools/site/build_docs.mjs#2cdaba6a90	1	C1-flag-dismissed	--tree
+tools/site/day_chart.mjs#5c442d6b27	19	C5-len	47 words: Not the integration's solver: a 24-step dynamic programme over a house that gains three un

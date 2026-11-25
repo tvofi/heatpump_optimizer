@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/room_history.py:<module> CONST e7357e3b",
+  "killed_by": "tests/features.py",
+  "old": "MIN_T = 3.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`MIN_T = 6.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

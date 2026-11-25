@@ -237,7 +237,7 @@ class Identity:
 
 
 SCOPES = "dev/audit/config/scopes.json"
-_DIM = re.compile(r"D[0-9]+")
+_DIM = re.compile(r"D(?:[0-9]+|X0)")
 
 
 def owner_only_dims(root: Path | None = None) -> tuple[str, ...]:

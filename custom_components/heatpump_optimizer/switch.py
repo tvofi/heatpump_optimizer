@@ -3,7 +3,7 @@
 Six switches, all plain toggles over coordinator state. Each reads the live
 state rather than the published payload, and publishes it as soon as the
 action has changed it, before the refresh that runs the solve (30 to 70 s on
-a Pi): Home Assistant's toggle falls back to the old state after about two
+a Pi). Home Assistant's toggle falls back to the old state after about two
 seconds without a state change, so a switch turned off flipped back on in
 front of the user (v6.6.12).
 
@@ -80,7 +80,7 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
         """Return extra state attributes.
 
         ``mode`` reads the live ``coordinator.mode``, the same source
-        ``is_on`` above reads, not the published payload's copy: the payload
+        ``is_on`` above reads, not the published payload's copy. The payload
         only catches up once the refresh a mode change asks for has run its
         solve, so the switch's own state and its ``mode`` attribute used to
         disagree for that window (D8-s2-03).

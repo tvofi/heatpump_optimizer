@@ -1,0 +1,277 @@
+{
+ "dimension": "D17",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D17/s3/REPORT.json",
+ "exposure": "Read README.md, docs/configuration.md and docs/how-it-works.md (the D17 oracle) plus strings.json/services.yaml and the blueprints; no earlier round's findings, registers or GitHub. REPORT.md could not be written (the session's tool policy refuses report .md files for subagents); its content is in the seat's handback.",
+ "coverage": [
+  {
+   "step": "D17.M1",
+   "enumerator": "for k in service entity blueprint; do python3 tools/audit/enumerate.py d17-features --kind $k; done",
+   "universe": 34,
+   "examined": 34,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "Each of the 34 items' documented effect taken as one sentence with its source (strings.json services.<name>, README.md Buttons / Switches, climate and datetime entities / Services / Blueprints, docs/configuration.md Services and Reset to factory defaults, docs/how-it-works.md Away and holiday mode, each blueprint's own description); the table is in the handback report (REPORT.md body). No item lacked a documented effect, so there are no D5 leads."
+  },
+  {
+   "step": "D17.M2",
+   "enumerator": "for k in service entity blueprint; do python3 tools/audit/enumerate.py d17-features --kind $k; done",
+   "universe": 34,
+   "examined": 34,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "Every sentence written as an executable oracle on the published payload, the stored options read back after a reload, the entity's own state, the action's answer, or bus events, before the handler was read; each is a RESULT <item>.<oracle> line in services_e2e.py (15 services), entities_e2e.py (14 entities), blueprints_e2e.py (5 blueprints), plus f01-f03."
+  },
+  {
+   "step": "D17.M3",
+   "enumerator": "for k in service entity blueprint; do python3 tools/audit/enumerate.py d17-features --kind $k; done",
+   "universe": 34,
+   "examined": 34,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "Driven as a user does (registered schema / entity method) on a real coordinator set up through async_setup_entry (rig.py), over cycles at a frozen and advanced clock, a restart and a reload, and the named states warm/cold/at-floor house, mild/freezing outdoors, inside/outside a hot-water window, with/without hot water, single/two-zone, option on/off, before the first plan. Runs: runs/svc_base.txt oracles_failed=2 (D17-s3-01, -03), runs/ent_base.txt 0, runs/bp_base.txt 0; perturbations 9, 4, 2."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D17-s3-01",
+   "scope": "D17-s3",
+   "step": "D17.M3",
+   "title": "run_optimization re-solves without fetching inputs or publishing the plan; Optimize Now does both",
+   "severity": "medium",
+   "claim": "After the entry's price feed rises 0.5 -> 2.0 /kWh, a heatpump_optimizer.run_optimization call leaves the published plan priced at 0.5 with its last_optimization stamp unmoved, while the Optimize Now button, documented as doing the same thing, publishes 2.0 and a new stamp.",
+   "mechanism": "services.handle_run_optimization awaits coordinator.async_run_optimization only, which solves from the cached price/forecast arrays (_forecast_arrays) and stores the result privately; nothing rebuilds coordinator.data. ForceOptimizationButton.async_press runs the same solve and then requests a coordinator refresh, which fetches and republishes. The plan sensors and the card keep showing the previous plan until the next scheduled update interval.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/f01_run_optimization.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s3/f01_run_optimization.py",
+    "value": 0.5,
+    "unit": "SEK/kWh published first-step price after the call (documented 2.0)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (shared, three compute seats)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other finder seats on the box; the number is a published value, contention-immune",
+    "tolerance": "exact",
+    "load1": 3.52,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/services.py:handle_run_optimization",
+   "perturbation": {
+    "change": "handle_run_optimization followed by coord.async_request_refresh() for each loaded coordinator (the button's tail), swapped in memory: f01_run_optimization.py --perturb",
+    "expected_direction": "up",
+    "observed_value": 2.0
+   },
+   "metric_definition": "coordinator.data['schedule'][0]['price'] (and whether data['last_optimization'] moved) after the price feed rises to 2.0 and the action is called",
+   "null_control": {
+    "command": "same harness, button arm (button.heat_pump_optimizer_optimize_now.async_press)",
+    "value": 2.0,
+    "note": "the documented twin of the action publishes the new price and a new stamp (button_plan_republished=1)"
+   },
+   "phenomenon_property": "A user-facing 'run the optimization now' entry point (action or button) ends with the fetched inputs solved and the resulting plan published to coordinator.data, the same for every entry point.",
+   "seam_rule": "grep -n 'async_run_optimization()' custom_components/heatpump_optimizer/services.py custom_components/heatpump_optimizer/button.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "README.md",
+    "docs/configuration.md"
+   ],
+   "reproduction_steps": [
+    "Set up an entry with an entity price feed at 0.5",
+    "Raise the feed to 2.0",
+    "Call heatpump_optimizer.run_optimization",
+    "Read sensor.heat_pump_optimizer_cost_current_electricity_price / the plan sensors: still 0.5 and the old plan; press Optimize Now: 2.0"
+   ],
+   "proposed_fix_scope": "services.handle_run_optimization: after a run that returned None, request (or await) the coordinator refresh as the button does, so the action fetches and publishes; reconcile strings.json's 'does not fetch new ones' with README/configuration.md in the same change."
+  },
+  {
+   "id": "D17-s3-02",
+   "scope": "D17-s3",
+   "step": "D17.M3",
+   "title": "set_thermal_parameters accepts house heat loss and thermal mass and changes nothing in two-zone",
+   "severity": "medium",
+   "claim": "With the two-zone model in force (the default 'auto' mode resolves to it, and 'on'), a set_thermal_parameters call raising house_heat_loss_coefficient 0.15 -> 0.35 kW/\u00b0C or lowering house_thermal_mass 10 -> 3 kWh/\u00b0C is acknowledged and stored but moves the published plan by 0.000 kW-steps, after the call and after a restart (4 of 4 two-zone cells), where the single-zone arm moves 167.6 and 5.9.",
+   "mechanism": "The two-zone model reads the per-zone upper/lower floor heat loss and masses; the action writes ThermalParameters.heat_loss_coefficient / house thermal mass and the entry options, which no two-zone solve reads, and the action has no per-zone heat-loss field to write instead. Its own description promises two-zone support and its field help states the coefficient's effect without a zone condition; nothing refuses or warns.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/f02_two_zone_inert.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s3/f02_two_zone_inert.py",
+    "value": 4,
+    "unit": "two-zone cells (mode x field) whose plan delta is 0.000 after the call and after a restart",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (shared, three compute seats)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other finder seats on the box; plan deltas are solver outputs at a frozen clock, contention-immune",
+    "tolerance": "exact (0.001 kW-steps)",
+    "load1": 3.86,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/services.py:handle_set_thermal_params",
+   "perturbation": {
+    "change": "two_zone_mode: off in the entry data of every arm (config change): f02_two_zone_inert.py --perturb",
+    "expected_direction": "up",
+    "observed_value": "inert cells 4 -> 0; plan delta 0.000 -> 167.619 (heat loss) and 5.882 (mass)"
+   },
+   "metric_definition": "|sum of data['schedule'][i]['power'] after - before| for one set_thermal_parameters field, after the call and after a restart, per two-zone mode",
+   "null_control": {
+    "command": "same harness, two_zone_mode off arm",
+    "value": 167.619,
+    "note": "single-zone: the same call moves the plan as documented"
+   },
+   "phenomenon_property": "Every field set_thermal_parameters accepts changes the model the next solve uses in every zone mode it accepts the field in, or the call refuses/flags it in that mode.",
+   "seam_rule": "grep -n '_THERMAL_PARAM_FIELDS\\|two_zone_enabled' custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/thermal_model.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/services.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/strings.json"
+   ],
+   "reproduction_steps": [
+    "Set up an entry with default two_zone_mode (auto)",
+    "Call set_thermal_parameters house_heat_loss_coefficient: 0.35",
+    "Compare the plan before and after (and after a restart): identical"
+   ],
+   "proposed_fix_scope": "Either map the house fields onto the zone parameters in two-zone (scaling upper/lower floor heat loss and masses), or refuse them with a ServiceValidationError naming the per-zone fields, and add the per-zone heat-loss fields the options page has; field help says which mode reads which field."
+  },
+  {
+   "id": "D17-s3-03",
+   "scope": "D17-s3",
+   "step": "D17.M3",
+   "title": "restore_learned_snapshot restores to a snapshot that carried no accuracy evidence",
+   "severity": "low",
+   "claim": "On a fresh install the action restores (1 of 1 calls succeed) to the snapshot the first heartbeat took, whose recorded temperature_bias is None, discarding a heat-loss scale learned since (1.3 -> 1.0), where the documented rule admits only a snapshot captured with prediction accuracy in band and otherwise fails with an error.",
+   "mechanism": "SnapshotRing.due() is True on an empty ring, so the first heartbeat takes a snapshot of the default learners with an accuracy summary that has no samples (temperature_bias None). best_restore() applies the band test only when bias is not None, so the unevidenced snapshot qualifies; undo_target() hands it to the service, and the drift watchdog's automatic rollback reads the same best_restore().",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/f03_restore_unevidenced.py",
+    "harness_path": "dev/audit/rounds/round11/D17/s3/f03_restore_unevidenced.py",
+    "value": 1,
+    "unit": "restore calls that succeeded out of 1 (documented: 0, refused)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B13 (shared, three compute seats)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other finder seats on the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 3.45,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.best_restore",
+   "perturbation": {
+    "change": "best_restore skips a snapshot whose accuracy.temperature_bias is None (one-line 'if bias is None: continue'), in memory: f03_restore_unevidenced.py --perturb",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "restore_learned_snapshot calls that return without error on a fresh install after one cycle, and data['house_heat_loss_scale'] after one, with the scale moved to 1.3 since the snapshot",
+   "phenomenon_property": "A snapshot enters the restore pool only when it carries an in-band accuracy measurement; a snapshot with no accuracy evidence never qualifies for the manual or the automatic rollback.",
+   "seam_rule": "grep -n 'def best_restore\\|def undo_target' custom_components/heatpump_optimizer/snapshots.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/snapshots.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "reproduction_steps": [
+    "Set up a fresh entry and let one update cycle run",
+    "Move a learner (house heat-loss scale 1.3)",
+    "Call heatpump_optimizer.restore_learned_snapshot: it succeeds and the scale returns to 1.0 instead of the call failing"
+   ],
+   "proposed_fix_scope": "snapshots.SnapshotRing.best_restore: require a finite in-band temperature_bias (treat None as unqualified); the undo point keeps its own path."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every service's documented effect other than the two findings holds end to end (15 services, through registered schemas, cycles, restart, reload)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/services_e2e.py",
+   "value": "services_examined=15, oracles_failed=2 (run_optimization.publishes_new_price, restore_learned_snapshot.refuses_unevidenced); --perturb (set_mode ignored) oracles_failed=9"
+  },
+  {
+   "claim": "Every user-actuated entity does what README says: buttons, climate target/presets/HVAC/comfort observation, away switch and return datetime, the four two-hour switches (effect, restart, expiry at 120 min, no-DHW gating, safety release with reason), optimizer active",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/entities_e2e.py",
+   "value": "entities_examined=14, oracles_failed=0; --perturb (one-hour windows) oracles_failed=4"
+  },
+  {
+   "claim": "Each blueprint's default entity exists, reads published values, its events/keys are fired with entry_id and non-null keys, its offered set_mode options pass the schema",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/blueprints_e2e.py",
+   "value": "blueprints_examined=5, oracles_failed=0 (headroom 11.04-3.0=8.04 kW; wood sensor 5 windows); --perturb (steps dropped) oracles_failed=2"
+  },
+  {
+   "claim": "Away recovery: with the return inside estimate+margin the plan reaches the comfort floor by the return",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/services_e2e.py (set_away.recovery_reaches_floor_by_return)",
+   "value": "1; probe arms indoor 16.5/18.0 at leads est+0.9/0.5/0 h: room at return 19.28-19.78 vs floor 19.0"
+  },
+  {
+   "claim": "set_mode economy widens the solve floor to floor-1.5 (17.5), never below 15",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/services_e2e.py (set_mode.economy_widens_solve_floor)",
+   "value": "1 (solve floor 17.5); plan use of it is a D0 lead"
+  },
+  {
+   "claim": "run_optimization's 'fewer than four price steps' refusal is not reachable through an entity feed: the price prior fills the horizon, so the solve can run and does",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/services_e2e.py (run_optimization.two_row_feed_*)",
+   "value": "two-row feed: 8 known quarter steps, 96-step plan, runs_when_solve_can_run=1"
+  },
+  {
+   "claim": "Restart persistence: mode, away override and return, manual plan, timed boosts/blocks, climate target, apply_schedule and set_thermal_parameters values",
+   "command": "services_e2e.py / entities_e2e.py / f02_two_zone_inert.py",
+   "value": "every *survives_restart* and holds_two_hours_across_restart_then_expires oracle 1; f02 off-arm delta after restart equals delta after call (167.619)"
+  },
+  {
+   "claim": "assign_entity accepts number.* on temperature slots by design (_TEMP = sensor, number, input_number) and refuses switch.*",
+   "command": "services_e2e.py (assign_entity.refuses_wrong_domain)",
+   "value": "1"
+  },
+  {
+   "claim": "set_thermal_parameters field sweep: each of 31 fields is accepted and stored; fields reading inputs the rig lacks (weather, solar, ECL110, buffer, silent control) are inert here by topology, the rest move the plan; upper_floor_thermal_mass and inter_zone_heat_transfer move it in two-zone (103.8, 110.4 from 108.4)",
+   "command": "probe sweep recorded in the harness design; two-zone/one-zone cells in f02_two_zone_inert.py",
+   "value": "two-zone single-zone cells only defect: D17-s3-02"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D17/s3/f01_run_optimization.py",
+  "dev/audit/rounds/round11/D17/s3/f02_two_zone_inert.py",
+  "dev/audit/rounds/round11/D17/s3/f03_restore_unevidenced.py",
+  "dev/audit/rounds/round11/D17/s3/services_e2e.py",
+  "dev/audit/rounds/round11/D17/s3/entities_e2e.py",
+  "dev/audit/rounds/round11/D17/s3/blueprints_e2e.py",
+  "dev/audit/rounds/round11/D17/s3/rig.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D17-s1",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalParameters (from-config two_zone_mode branch, ~line 1121)",
+   "what": "`two_zone_mode in (TWO_ZONE_MODE_ON, DEFAULT_TWO_ZONE_MODE)` with DEFAULT = 'auto' makes 'Automatic' always two-zone; the presence rule in the else branch is unreachable. docs/configuration.md Two-zone model: 'Automatic means two-zone as soon as any zone value has ever been saved'. A fresh entry with no zone values published two_zone_enabled=True in this seat's rig."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer objective under economy band",
+   "what": "D0 lead: under a 7-hour 5.0 vs 0.1 /kWh price spike, economy (solve floor 17.5) plans a minimum room temperature of 19.29 vs auto 19.35 (19.14 at comfort_weight 1.0); the widened band is barely used to ride out expensive hours."
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "README.md; docs/configuration.md",
+   "symbol": "Services table / run_optimization paragraph; climate entity paragraph",
+   "what": "README and configuration.md say run_optimization 'fetches prices and weather' and that the button 'does the same thing'; strings.json says it does not fetch (behaviour: D17-s3-01). README says setting the climate target 'records a comfort-weight observation' unconditionally; it does so only with the opt-in comfort learning option (overrides 0 with it off, 1 with it on)."
+  },
+  {
+   "owner_seat": "D6-s2",
+   "file": "blueprints/automation/notify_on_manual_plan.yaml",
+   "symbol": "blueprint description",
+   "what": "Says the plan sensor's manual_override attribute is 'absent otherwise'; it is published with a None value while no plan is pinned (key_published_while_unpinned=1). The blueprint's own `is not none` condition makes it work; the wording is wrong."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_build_data_dict / boost.adopt_plan",
+   "what": "D16/D4 lead: during a space boost the current action is power_normalized 1.0 while the published schedule shows 0.0 kW in the boost window; the plan sensors and card do not reflect the boost being actuated."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/snapshots.py",
+   "symbol": "SnapshotRing persisted day stamps / drift.stored_instant",
+   "what": "D1 lead: after a factory reset at the real clock, each load of the snapshots store logged 'stored instant ... is ahead of the clock; bounded' for five future instants (up to +24 h), repeated per load; day-boundary stamps appear to be stored ahead of now and re-warned on every read."
+  }
+ ]
+}

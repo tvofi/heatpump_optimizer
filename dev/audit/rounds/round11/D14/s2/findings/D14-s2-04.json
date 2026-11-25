@@ -1,0 +1,47 @@
+{
+ "id": "D14-s2-04",
+ "scope": "D14-s2",
+ "step": "D14.M3",
+ "title": "prepr.sh --self-test evals an unterminated step-1a3 block: every run prints a bash syntax error and its null pin passes through it",
+ "severity": "low",
+ "claim": "The self-test's step-1a3 extraction (sed from '# --- 1a3.' to '# --- 1b0.') now ends inside the open `if [ -n \"$REUSE\" ]; then ... else` that was inserted before 1b0, so the null-control arm's eval raises 1 bash syntax error on every run (the 'eval: syntax error: unexpected end of file' tail of each prepr.sh --self-test), and the pin 'step 1a3 lets a body naming this head run every step' passes on output produced after the parse failure.",
+ "mechanism": "bash's eval runs complete top-level commands as it parses them, so the leading 1a3 `if` executes (the refuse arm exits 1 inside it, the null arm falls past it), then the parser meets the unterminated REUSE `if` and aborts the eval; `echo FELL-THROUGH` after the eval prints regardless. The null pin keys on FELL-THROUGH alone, never on the eval's status or stderr, so it cannot tell 'the arm let the body through' from 'the eval died'. The block also carries the PREPR_RECORDER_CACHE line, so the self-test writes a stray /tmp/prepr-recpy.<pid>. The pins still pass (rc 0), so the defect is silent: the barrier's drive is no longer the code it says it drives.",
+ "evidence": {
+  "command": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py",
+  "harness_path": "dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py",
+  "value": 1,
+  "unit": "bash syntax errors raised by the self-test's eval of its extracted step-1a3 block (null arm); refuse_pin=1, null_pin=1, block_lines=18",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B7, linux, 4 cpu",
+  "cpu_or_wall": "count",
+  "contention_note": "shared compute box; a parse-error count is contention-immune. The same stderr line ends the full prepr.sh --self-test run in sweep.py's N-body-lint-bounce row (rc 0) in a clean git worktree and in the walled export",
+  "tolerance": "exact",
+  "load1": 1.21,
+  "thread_factor": 0.999
+ },
+ "instrumented_symbol": "tools/pr/prepr.sh: the --self-test's blk1a3 extraction and early_head drive (the extraction is read from prepr.sh and run as written)",
+ "perturbation": {
+  "change": "the extraction's end anchor moved from '^# --- 1b0\\.' to '^# One interpreter resolution' (the first line after step 1a3's fi), in memory (harness --anchor)",
+  "expected_direction": "to_zero",
+  "observed_value": "syntax_errors 1 -> 0, block_lines 18 -> 11, refuse_pin and null_pin stay 1"
+ },
+ "metric_definition": "Count of 'syntax error' lines bash writes when the self-test's own blk1a3 extraction is eval'd by its early_head drive with stub arm rc 1 and rc 0.",
+ "phenomenon_property": "Every block a self-test extracts by line range and evals parses on its own (bash -n clean), and a fall-through pin also asserts the eval returned without a parse error.",
+ "seam_rule": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py   (this seam; the other extracted-and-eval'd blocks of tools/pr/prepr.sh -- bcg, blk1a2, blk3, the take_slot and heavy_skip copies -- were bash -n checked by hand at the baseline and parse)",
+ "null_control": {
+  "command": "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py --anchor",
+  "value": "syntax_errors=0 with both pins still 1",
+  "note": "The pins' verdicts are not what is wrong; the drive under them is."
+ },
+ "reproduction_steps": [
+  "python3 dev/audit/rounds/round11/D14/s2/prepr_1a3_eval.py -> syntax_errors=1, refuse_pin=1, null_pin=1",
+  "... --anchor -> syntax_errors=0",
+  "bash tools/pr/prepr.sh --self-test (clean git worktree) -> rc 0, output tail 'tools/pr/prepr.sh: eval: line 4017: syntax error: unexpected end of file'"
+ ],
+ "proposed_fix_scope": "tools/pr/prepr.sh --self-test: end blk1a3's range at step 1a3's own closing fi (or add a '# --- 1a4.' marker before the REUSE block), and make early_head fail on a non-empty eval stderr. A one-line instrument repair (README: made in place, no issue).",
+ "files": [
+  "tools/pr/prepr.sh"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "N-body-lint-bounce"
+}

@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from .accuracy import utc_elapsed_seconds
+from .drift import utc_elapsed_seconds
 from .const import (
     EXTERNAL_HEAT_FORECAST_MAX_HOURS,
     WATER_SPECIFIC_HEAT,

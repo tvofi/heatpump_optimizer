@@ -1,8 +1,8 @@
 """The legs a plan step is served in, the switches between them, and what a stop costs.
 
-One concern with one owner, on ``plan_step.py``'s own argument: the pump
+One concern with one owner, on ``plan_step.py``'s own argument. The pump
 arbiter serves a planned both step as a hot-water leg and a heating leg, and
-the optimizer prices the switches that serving makes, so two modules need one
+the optimizer prices the switches that serving makes. So two modules need one
 rule and neither may import the other. A leaf: numpy, the plan's running rule
 and the step width, nothing of Home Assistant.
 
@@ -55,7 +55,7 @@ def leg_rule(stop_probability: tuple[float, float], off_seconds: tuple[float, fl
     hot water to heating alone stops the compressor. Where the switch into
     the second duty stops it, a second share shorter than
     :data:`SPLIT_MIN_MINUTES` plus that direction's off time goes to the
-    first duty when the next step serves the second, so its delivery moves
+    first duty when the next step serves the second. Its delivery then moves
     one step and is not dropped. With no stop priced this is
     :data:`DEFAULT_RULE`.
     """
@@ -163,7 +163,7 @@ def switch_weights_batch(
 
     Every pair of consecutive legs of different duty with no idle step
     between weighs ``p * level / p_max``, in the direction ``rule`` orders the
-    legs: inside a two-leg step both legs run at the step's combined level; across a boundary the stop adds the smaller
+    legs. Inside a two-leg step both legs run at the step's combined level; across a boundary the stop adds the smaller
     of the two levels. ``level`` is what the pairs are weighed at, the
     combined draw unless given: ``p_max`` times the running share
     (``runs.running_share``) weighs a pair in starts, so a boundary's switch
@@ -284,7 +284,7 @@ def switch_ban(
     """The steps hot water may not be placed on to avoid a priced switch.
 
     For hot water to heating: where heating runs in that step or the next, so
-    a block can only end into a planned stop or into more hot water; where
+    a block can only end into a planned stop or into more hot water. Where
     ``rule`` serves space first, a both step ends on its hot-water leg, so
     only heating in the next step bans it. For heating to hot water it
     mirrors onto the previous step.

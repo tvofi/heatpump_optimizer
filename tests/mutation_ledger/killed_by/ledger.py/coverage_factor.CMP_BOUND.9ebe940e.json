@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:coverage_factor CMP_BOUND 9ebe940e",
+  "killed_by": "tests/features.py",
+  "old": "        return None if settled < MIN_COVERAGE_HOURS else max(1.0, month_hours(now) / settled)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return None if settled <= MIN_COVERAGE_HOURS else max(1.0, month_hours(now) / settled)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

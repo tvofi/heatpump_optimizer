@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:MapRows.take_pass BOOLOP 5370a6a2",
+  "killed_by": "tests/features.py",
+  "old": "        if self.open and int(rec.at.timestamp() // 60) == int(self.open[-1].at.timestamp() // 60):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self.open or int(rec.at.timestamp() // 60) == int(self.open[-1].at.timestamp() // 60):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,35 @@
+{
+  "id": "D10-s2-04",
+  "scope": "D10-s2",
+  "step": "D10.M2",
+  "title": "Three degC difference sensors stay classless where HA >= 2025.11.0 offers TEMPERATURE_DELTA",
+  "severity": "low",
+  "claim": "ECL110 Displace, ECL110 Effective Displace and Prediction Accuracy publish temperature differences in degC with no device class (3 sensors); Home Assistant 2025.11.0 added SensorDeviceClass.TEMPERATURE_DELTA (measurement), so on any install at or above 2025.11.0 a device class is possible and unused, and a Fahrenheit user sees these deltas unconverted.",
+  "mechanism": "The rows were left bare deliberately because TEMPERATURE converts a delta as an absolute; the floor in hacs.json (2025.2.0) predates TEMPERATURE_DELTA (absent in core 2025.10.0's sensor/const.py, present from 2025.11.0). The rule asks for device classes where possible; a getattr(SensorDeviceClass, 'TEMPERATURE_DELTA', None) keeps the floor working. Per D10.M2 this is the todo needing an API newer than the floor, with its minimum release.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s2/entity_census.py",
+    "value": 3,
+    "unit": "sensors in degC with no device class",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "local macOS box B2 (orchestrator machine), Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 42.64,
+    "thread_factor": 0.999
+  },
+  "instrumented_symbol": "heatpump_optimizer.sensor:ECL110DisplaceSensor",
+  "perturbation": {
+    "change": "--perturb-delta: set sensor.ECL110DisplaceSensor._attr_device_class = 'temperature_delta' in memory",
+    "expected_direction": "down",
+    "observed_value": 2
+  },
+  "metric_definition": "delta_bare = sensors (via async_setup_entry) whose native unit is degC or K and whose published device class is None",
+  "phenomenon_property": "Every sensor publishing a temperature difference declares TEMPERATURE_DELTA wherever the running Home Assistant provides it, and none declares TEMPERATURE.",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/entity_census.py | grep DELTA_BARE",
+  "proposed_fix_scope": "sensor.py: the three delta sensors take SensorDeviceClass.TEMPERATURE_DELTA when the running core has it (getattr fallback to None at the 2025.2.0 floor)",
+  "files": ["custom_components/heatpump_optimizer/sensor.py"],
+  "stop_rule_class": "hygiene",
+  "class_guess": "new"
+}

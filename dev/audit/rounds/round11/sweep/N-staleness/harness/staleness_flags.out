@@ -1,0 +1,12 @@
+RESULT quiet_stale_flags=6 keys
+RESULT quiet_input_problem_on=1
+RESULT null_stale_flags=0 keys
+RESULT null_input_problem_on=0
+RESULT polled_stale_flags=0 keys
+RESULT polled_input_problem_on=0
+RESULT quiet_stale_flags=0 keys
+RESULT quiet_input_problem_on=0
+RESULT null_stale_flags=0 keys
+RESULT null_input_problem_on=0
+RESULT polled_stale_flags=0 keys
+RESULT polled_input_problem_on=0

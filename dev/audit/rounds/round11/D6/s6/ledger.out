@@ -1,0 +1,55 @@
+   STALE options/step/advanced/menu_options/heat_curve#0: Heizkurvensteuerung (ECL110)
+        truth: heat_curve page rows beyond the ECL110 MQTT ones: ['heat_curve_displace_entity', 'heat_curve_target_kind', 'heat_curve_offset_band_k', 'heat_curve_persistent_band_k', 'heat_curve_persistent_writes_per_day', 'heat_curve_persistent_min_dwell_minutes']
+   STALE options/step/comfort/sections/mold/data_description/mold_floor_breach_margin#0: Wie weit der gemessene Raum unter die schimmelsichere Untergrenze fallen darf, bevor der Binärsensor „Mold Floor Breach“ einschaltet.
+        truth: „Mold Floor Breach“ is not what the German UI shows: no German label reads „Mold Floor Breach“; nearest: „Komfortbereich“
+   FALSE options/step/building/sections/combi/data_description/combi_potable_volume_l#1: 0 für eine Frischwasserstation.
+        truth: config_flow._combi_preset_fill -> internal_coil eps 0.85 potable 30.0 L, tank_in_tank eps 0.95 potable 150.0 L, external_station eps 0.75 potable 150.0 L
+   STALE options/step/building/sections/wood/data_description/wood_lighting_lead_minutes#1: Legt das Anfeuerfenster am Sensor „Wood Cheaper Than Heat Pump“ fest.
+        truth: „Wood Cheaper Than Heat Pump“ is not what the German UI shows: no German label reads „Wood Cheaper Than Heat Pump“; nearest: „Der Tag endet um“
+   FALSE options/step/building/sections/wood/data_description/wood_packing#0: Gepackt ist gestapelt (travad); lose ist geschüttet (stjälpt) und wird mit 0,60 des gepackten Volumens abgerechnet.
+        truth: wood_fuel.useful_kwh_m3 loose/packed per type: birch 1.667, pine 0.600, mixed 0.600
+   STALE options/step/building/sections/wood/data_description/wood_price_sek_m3#1: Leer lässt den Sensor „günstiger als Pumpe“ nicht verfügbar – es gibt keinen stillen Standardwert.
+        truth: „günstiger als Pumpe“ is not what the German UI shows: no German label reads „günstiger als Pumpe“; nearest: „Holz günstiger als Wärmepumpe“
+   STALE options/step/heat_curve/title#0: Heizkurvensteuerung (ECL110)
+        truth: heat_curve page rows beyond the ECL110 MQTT ones: ['heat_curve_displace_entity', 'heat_curve_target_kind', 'heat_curve_offset_band_k', 'heat_curve_persistent_band_k', 'heat_curve_persistent_writes_per_day', 'heat_curve_persistent_min_dwell_minutes']
+   STALE options/step/heat_curve/description#0: Für Danfoss-ECL110-Regler, die über MQTT angesteuert werden.
+        truth: heat_curve page rows beyond the ECL110 MQTT ones: ['heat_curve_displace_entity', 'heat_curve_target_kind', 'heat_curve_offset_band_k', 'heat_curve_persistent_band_k', 'heat_curve_persistent_writes_per_day', 'heat_curve_persistent_min_dwell_minutes']
+   STALE options/step/quick_setup/description#1: Die Vorbelegung aus einem Gerät wird hier nicht angeboten – die Entitätsfelder dieses Eintrags sind bereits beantwortet, und die Vorbelegung
+        truth: „Vorbelegung aus einem Wärmepumpengerät“ is not what the German UI shows: no German label reads „Vorbelegung aus einem Wärmepumpengerät“; nearest: „Aus einem Wärmepumpengerät vorbefüllen“
+   STALE options/step/entities_pump/data_description/heat_pump_supply_temp_entity#4: Sie verändert Pläne und Kosten nur, wenn „Anhebung der Vorlauftemperatur bepreisen“ auf der Seite des Heizsystems eingeschaltet ist; andernf
+        truth: „Anhebung der Vorlauftemperatur bepreisen“ is not what the German UI shows: no German label reads „Anhebung der Vorlauftemperatur bepreisen“; nearest: „Vorlauftemperatur“
+   STALE options/step/factory_reset/description#4: Bis zur nächsten wöchentlichen Momentaufnahme, etwa eine Woche, macht die Aktion „Gelernte Momentaufnahme wiederherstellen“ das Zurücksetzen
+        truth: „Gelernte Momentaufnahme wiederherstellen“ is not what the German UI shows: no German label reads „Gelernte Momentaufnahme wiederherstellen“; nearest: „Gelernten Snapshot wiederherstellen“
+   STALE options/abort/factory_reset_done#2: Um das Zurücksetzen rückgängig zu machen, führe die Aktion „Gelernte Momentaufnahme wiederherstellen“ aus.
+        truth: „Gelernte Momentaufnahme wiederherstellen“ is not what the German UI shows: no German label reads „Gelernte Momentaufnahme wiederherstellen“; nearest: „Gelernten Snapshot wiederherstellen“
+   STALE issues/accuracy_drift/description#3: Ist der Plan spürbar schlechter geworden, setzt der Dienst "Restore learned snapshot" das gelernte Modell auf den letzten bewährten wöchentl
+        truth: „Restore learned snapshot“ is not what the German UI shows: no German label reads „Restore learned snapshot“; nearest: „Faktor der Sonnenausrichtung“
+   STALE issues/accuracy_drift/description#4: Der Sensor „Model Restart Advisor“ und der Reiter „Ratgeber“ der Karte bieten diesen Snapshot an und, sobald drei eingeschwungene Tage an Da
+        truth: „Model Restart Advisor“ is not what the German UI shows: no German label reads „Model Restart Advisor“; nearest: „Modellneustart-Ratgeber“
+   STALE issues/lower_floor_modelled/description#0: Die Zwei-Zonen-Planung ist aktiv und es ist kein Thermometer für das Untergeschoss konfiguriert, daher startet die untere Zone vom Hauptraum
+        truth: „Lower floor (modelled)“ is not what the German UI shows: no German label reads „Lower floor (modelled)“; nearest: „Lernmodelle“
+   STALE issues/lower_floor_modelled/description#3: Weise in den Zonenoptionen den „Lower floor temperature sensor“ zu, um diese Lücke zu schließen; dann verschwindet dieser Hinweis.
+        truth: „Lower floor temperature sensor“ is not what the German UI shows: no German label reads „Lower floor temperature sensor“; nearest: „Innentemperatursensor“
+   STALE issues/pump_write_ignored/description#1: Solange „Optimizer active“ eingeschaltet ist, ist der Optimierer der einzige Schreiber der Pumpe: Er sendet den Wert alle fünf Minuten erneu
+        truth: „Optimizer active“ is not what the German UI shows: no German label reads „Optimizer active“; nearest: „Optimierer aktiv“
+   STALE issues/pump_write_ignored/description#2: Um die Pumpe von Hand zu ändern, schalte zuerst „Optimizer active“ aus.
+        truth: „Optimizer active“ is not what the German UI shows: no German label reads „Optimizer active“; nearest: „Optimierer aktiv“
+RESULT units=2300
+RESULT rows=2300
+RESULT claims=2300
+RESULT false=2
+RESULT stale=16
+RESULT true=1054
+RESULT unverifiable=1228
+RESULT unrowed=0
+RESULT orphan=0
+RESULT malformed=0
+RESULT plant_refused=1 planted_units=1 in custom_components/heatpump_optimizer/translations/de.json
+RESULT tier_label=842 tier_content=230 tier_behaviour=1228
+RESULT unmapped_numeric=0
+RESULT false_plus_stale=18 rows
+RESULT ledger_check_rc=0
+RESULT perturb=None
+RESULT thread_factor=1.000
+RESULT load1=5.50
+RESULT swapins=0

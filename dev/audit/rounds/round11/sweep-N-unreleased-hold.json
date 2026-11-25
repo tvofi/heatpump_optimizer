@@ -1,0 +1,105 @@
+{
+ "class": "N-unreleased-hold",
+ "instances": 1,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep/enum_unreleased_hold.py  (8 write sites x 9 exit arms + stale plan + failed restore; held_cells=51, seams=24 at origin/handoff/audit-r11-register); --null: 0; --perturb all: 9",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "release",
+   "exits": "unload, remove (and the unload inside a duty-mode change) while the disinfection hold is live",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  RESULT unrestored_unload_disinfecting__number.dhw_set=1 and unrestored_remove_disinfecting__number.dhw_set=1 (fail; tank left at 60); null_unrestored_*=0; --perturb memo -> 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "switch_supply (stale-plan exit, via coordinator._apply_action)",
+   "exits": "stale plan",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s1/cells.py --no-gates  RESULT baseline_switch_off=5 (fail)",
+   "beyond_finding": false,
+   "finding": "D16-s1-04"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_arbitrate (MODE_OFF branch) / _write",
+   "exits": "off (Tuya, Modbus, disinfecting)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_off__select.pump_mode=1, unrestored_off_disinfecting__number.dhw_set=1, unrestored_off_modbus__number.dhw_set=1",
+   "beyond_finding": false,
+   "finding": "D16-s3-01"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "switch_supply",
+   "exits": "off, unload, remove, duty-mode change",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_<off|unload|remove|duty_change>__switch.hp=1",
+   "beyond_finding": false,
+   "finding": "D16-s3-02"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._command_frequency",
+   "exits": "off, unload, remove, duty-mode change",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_<arm>__number.freq=1",
+   "beyond_finding": false,
+   "finding": "D16-s3-02"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._command_valve_target",
+   "exits": "off, unload, remove, duty-mode change",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_<arm>__number.valve=1",
+   "beyond_finding": false,
+   "finding": "D16-s3-02"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._async_set_pump",
+   "exits": "off, unload, remove, duty-mode change",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m6_restore.py  unrestored_<arm>__switch.vvc=1",
+   "beyond_finding": false,
+   "finding": "D16-s3-02"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/off_restore.py",
+   "symbol": "async_restore (failed restore, no retry while Off)",
+   "exits": "failed restore",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D16/s3/m5_holds.py  writes_again_off_restore_failed_while_off=0 and writes_again_off_restore_neutral_failed_while_off=0 (fail; heat-curve offset left at 3 K too)",
+   "beyond_finding": false,
+   "finding": "D16-s3-04"
+  }
+ ],
+ "controls": {
+  "positive": "re-finds every judged cell: D16-s1-04 (stale_plan switch.hp), D16-s3-01 (off select.pump_mode, off_disinfecting number.dhw_set), D16-s3-02 (switch.hp, number.freq, number.valve, switch.vvc on off/unload/remove), D16-s3-04 (failed_restore_while_off space set-point)",
+  "null": "--null (the harnesses' null arms: a plan whose commands equal each baseline): held_cells=0 seams=0",
+  "perturbation": "--perturb all (m6's in-memory fix of the arbiter, the consumers and the hold order): seams 24 -> 9; m6 --perturb memo alone moves unrestored_unload_disinfecting__number.dhw_set 1 -> 0"
+ },
+ "dispositions": [
+  {
+   "seam": "heat_curve.publish_ecl110_topics / heat_curve.write_persistent x duty-mode change (mqtt ecl110 topics, number.offset)",
+   "disposition": "not applicable",
+   "reason": "the unload inside the change restores them (unload arm: 0); the harness's reloaded observe-mode coordinator, given the old plan, writes them again. That is a question of what observe mode may write, not a hold left without a release owner; left as a lead for D16, not counted"
+  },
+  {
+   "seam": "heat curve, heat-curve MQTT, space set-point x off / unload / remove",
+   "disposition": "guarded",
+   "reason": "off_restore consumers registered at import (heat_curve, heat_curve_mqtt, pump_arbiter_space); m6 arms 0 for these entities"
+  },
+  {
+   "seam": "disinfection switch (switch.dis) x every exit",
+   "disposition": "guarded",
+   "reason": "DisinfectionSwitch.release / release_blind on every _drive_switch pass and on unload; m6 arms 0"
+  },
+  {
+   "seam": "arbiter slots (mode, tank, water set-point) x unload / remove outside disinfection",
+   "disposition": "guarded",
+   "reason": "pump_arbiter.release writes the baseline row on unload; m6 unload/remove arms 0 for the arbiter slots"
+  },
+  {
+   "seam": "other actuators x stale plan",
+   "disposition": "guarded",
+   "reason": "cells.py: clause_stale=0, clause_freq/valve/circ/mqtt=0 rows; only the supply switch holds (judged)"
+  }
+ ],
+ "ledger_status": "absent: N-unreleased-hold is not a key of dev/audit/config/bugclasses.json at the register head (minted by the round-11 judge)",
+ "baseline": "origin/handoff/audit-r11-register"
+}

@@ -1,0 +1,85 @@
+{
+ "totals": {
+  "price_model": {
+   "log_multi": 2
+  },
+  "pump_duty": {},
+  "snapshots": {},
+  "thermal_learning": {
+   "log_multi": 1
+  }
+ },
+ "examples": {
+  "price_model": {
+   "log_multi": [
+    {
+     "i": 37,
+     "op": "instant_far",
+     "path": [
+      "model",
+      "residual_var",
+      "0",
+      "10"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [],
+     "load_exc": [],
+     "fence": [],
+     "extra": [
+      "WARNING:heatpump_optimizer.price_model:Persisted %s has a non-finite or unreadable bin; restarting it",
+      "WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s"
+     ],
+     "text": "{\"model\": {\"shapes\": [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]], \"days\": [0, 0], \"quarter_factors\"",
+     "nf": []
+    },
+    {
+     "i": 194,
+     "op": "instant_far",
+     "path": [
+      "model",
+      "quarter_factors",
+      "0",
+      "25"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [],
+     "load_exc": [],
+     "fence": [],
+     "extra": [
+      "WARNING:heatpump_optimizer.price_model:Persisted %s has a non-finite or unreadable bin; restarting it",
+      "WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s"
+     ],
+     "text": "{\"model\": {\"shapes\": [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]], \"days\": [0, 0], \"quarter_factors\"",
+     "nf": []
+    }
+   ]
+  },
+  "pump_duty": {},
+  "snapshots": {},
+  "thermal_learning": {
+   "log_multi": [
+    {
+     "i": 170,
+     "op": "instant_far",
+     "path": [
+      "heat_loss_zone_entities",
+      "lower_floor_temp_entity"
+     ],
+     "c1": "ok",
+     "c2": "ok",
+     "tasks": [],
+     "load_exc": [],
+     "fence": [],
+     "extra": [
+      "WARNING:heatpump_optimizer.coordinator:Learned %s reset to the configuration: %s",
+      "WARNING:heatpump_optimizer.store:%s: stored instant %s is ahead of the clock; bounded to %s"
+     ],
+     "text": "{\"buffer_cooling_rate\": 0.39587982935374616, \"buffer_cooling_samples\": 0, \"house_heat_loss_anchor\": 0.15, \"lower_floor_loss_anchor\": 0.07, \"house_heat_loss_basis\": \"commanded\", \"heat_loss_zone_entities\": {\"indoor_temp_entity\": \"sensor.indoor\", \"lower_floor_temp_entity\": \"2999-01-01T00:00:00+00:00\"},",
+     "nf": []
+    }
+   ]
+  }
+ }
+}

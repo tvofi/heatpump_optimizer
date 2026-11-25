@@ -1,0 +1,49 @@
+{
+ "id": "D8-s2-01",
+ "scope": "D8-s2",
+ "step": "D8.M3",
+ "title": "German run-optimization refusal names {entry_id}; production passes {entry_ids}, so the de message cannot render",
+ "severity": "low",
+ "claim": "translations/de.json exceptions.run_optimization_no_prices.message uses placeholder {entry_id} while strings.json, sv.json and both raise sites pass only entry_ids, so 1 of 3 shipped languages cannot format the message the optimize_now button raises.",
+ "mechanism": "button.py ForceOptimizationButton.async_press (and services.py run_optimization) raise HomeAssistantError(translation_key='run_optimization_no_prices', translation_placeholders={'entry_ids': ...}); the de string formats {entry_id}. str.format raises KeyError; Home Assistant's translation loader validates a localized string's placeholders against the English one and discards a mismatching one, so German users get the English text (plus a load-time error log) instead of German.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_placeholder.py",
+  "harness_path": "dev/audit/rounds/round11/D8/s2/m3_placeholder.py",
+  "value": 1,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "macOS arm64, orchestrator box (local seat B5)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, other finder seats running; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 52.5,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.button:ForceOptimizationButton.async_press (built via heatpump_optimizer.button:async_setup_entry)",
+ "perturbation": {
+  "change": "--perturb-de: in memory, '{entry_id}' -> '{entry_ids}' in the de message",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "shipped languages whose exceptions.<key>.message raises KeyError when formatted with the placeholders on the HomeAssistantError production raises",
+ "phenomenon_property": "Every leaf string of every translations/<lang>.json carries exactly the {placeholder} set of the same leaf in strings.json.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_naming.py  (RESULT tr_placeholder_<lang>; DETAIL lines name each leaf)",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s2/m3_placeholder.py",
+  "value": 0,
+  "note": "null_raised=0: the same press with reason None raises nothing; sv and en render (0 KeyError)"
+ },
+ "reproduction_steps": [
+  "run m3_placeholder.py: unrenderable_langs=1 (de:missing 'entry_id')",
+  "run with --perturb-de: unrenderable_langs=0",
+  "m3_naming.py: tr_placeholder_de=1, en=0, sv=0 over all leaves"
+ ],
+ "proposed_fix_scope": "translations/de.json: {entry_id} -> {entry_ids} in exceptions.run_optimization_no_prices.message; plus a tests/entities.py check that every translation leaf's placeholder set equals strings.json's (the existing strings/translation drift check compares keys, not placeholders).",
+ "files": [
+  "custom_components/heatpump_optimizer/translations/de.json",
+  "custom_components/heatpump_optimizer/button.py",
+  "tests/entities.py"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new"
+}

@@ -1,0 +1,7 @@
+box D3-rem full-gate null control (fullgate.py null), 2026-11-19, nproc 4 Intel Xeon @ 2.10GHz, load1 1.55..1.0, wall 3215.1 s (provisional)
+gate_rc=1, 3 scripts red: closure.py selftest 2 lines, entities.py 1 of 2723, harness_headers.py 4 lines.
+- closure.py selftest: "a refused merge surfaces merge()'s reason" / "and a merge that succeeds carries no merge reason" [status='skip-not-under-scoped']: branch/merge-tool pins, no production file involved.
+- entities.py: the single red check is "and is accepted when it does [the scoped path records only what the diff can reach]" (scoped-gate pin, branch-environment artefact).
+- harness_headers.py: walks dev/audit/rounds/round11/D3/s1/*.py (this seat's untracked harnesses: ROOT = parents[N]) and the hb: positive-control timing lines; no production file involved.
+None of these checks reads a production cell file, so no mutant could need to fail them; each script's other checks still run, and fullgate.py counts KILLED only on more failing checks than this null. Gate verdicts are usable; no BLOCKED.
+Carried cloud null (box D3-top6, state/gates/cloud/null.json) was gate_rc=0.

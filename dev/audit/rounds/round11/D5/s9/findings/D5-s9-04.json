@@ -1,0 +1,51 @@
+{
+ "scope": "D5-s9",
+ "step": "D5.M4",
+ "severity": "low",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "id": "D5-s9-04",
+ "title": "820 comment sentences over 40 words in 597 units across 37 test files (C5)",
+ "claim": "At 92d38ecb, 597 of the 3664 claim-bearing D5 units in the seat's cells hold at least one sentence over 40 words (820 such sentences, median 49 words, max 181), against criterion C5's limit of 40.",
+ "mechanism": "Comment blocks in the test suite carry the reasoning and history of each check in long compound sentences joined by dashes, colons and parenthetical asides. The splitter is conservative: blank lines, rule lines, list items, indented lines, a trailing ':' and ';' all close a sentence.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s9/comments.py --repo /home/user/heatpump_optimizer --show --perturb",
+  "harness_path": "dev/audit/rounds/round11/D5/s9/comments.py",
+  "value": 820,
+  "unit": "sentences over 40 words (RESULT C5-long)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 container, 4 vCPU",
+  "cpu_or_wall": "count",
+  "contention_note": "other finder seats on the box; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 2.43,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:units_of (D5 units of the seat's cells) measured by comments.py:long_sentences",
+ "perturbation": {
+  "change": "--perturb: the first failing unit (tests/entities.py#bf10514027) rewritten in memory with its long sentence cut into 20-word sentences",
+  "expected_direction": "down",
+  "observed_value": "unit long sentences 1->0"
+ },
+ "metric_definition": "count of sentences over 40 words in D5 comment/docstring units of the seat's cells, sentence closed at . ! ? ; or a structural line break",
+ "phenomenon_property": "No sentence in a comment or docstring of the test suite exceeds 40 words.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s9/comments.py --repo <repo-with-baseline> --show | grep -P '\\tC5-long\\t'",
+ "leave_one_out": {
+  "cells": 37,
+  "min": 1,
+  "max": 468,
+  "drop_most_favourable": 352
+ },
+ "proposed_fix_scope": "Rewrite the long sentences file by file (entities.py 468, stress.py 112, env_drift.py 34, mutation_table.py 31, replay.py 29, the rest 18 or fewer); text-only.",
+ "files": [
+  "tests/entities.py",
+  "tests/stress.py",
+  "tests/env_drift.py",
+  "tests/mutation_table.py",
+  "tests/replay.py",
+  "tests/optimality.py",
+  "tests/nightly_ha.py",
+  "tests/structure.py",
+  "tests/run.sh"
+ ]
+}

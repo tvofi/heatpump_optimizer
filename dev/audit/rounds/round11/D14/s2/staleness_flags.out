@@ -1,0 +1,18 @@
+SEAM arm=quiet key=heat_pump_backup_heater_entity
+SEAM arm=quiet key=heat_pump_capacity_limited_entity
+SEAM arm=quiet key=heat_pump_defrost_entity
+SEAM arm=quiet key=heat_pump_dhw_booster_entity
+SEAM arm=quiet key=heat_pump_fault_entity
+SEAM arm=quiet key=heat_pump_online_entity
+RESULT quiet_stale_flags=6 keys
+RESULT quiet_input_problem_on=1
+RESULT quiet_learners_frozen=0
+RESULT null_stale_flags=0 keys
+RESULT null_input_problem_on=0
+RESULT null_learners_frozen=0
+RESULT polled_stale_flags=0 keys
+RESULT polled_input_problem_on=0
+RESULT polled_learners_frozen=0
+RESULT thread_factor=1.000
+RESULT load1=4.31
+RESULT swapins=0

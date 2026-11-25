@@ -1,0 +1,46 @@
+{
+ "id": "D5-s8-01",
+ "step": "D5.M4",
+ "title": "policy_lint.mjs comments point at pre-move paths: usage lines, corpus_excluded.json, preflight.sh, decisions, delivery",
+ "severity": "low",
+ "claim": "12 comment units of tools/policy/policy_lint.mjs name a path absent at 92d38ecb in a present-tense sentence, among them the header's six usage lines `node .claude/workflows/policy_lint.mjs ...` (node exits MODULE_NOT_FOUND) and the line 589 statement that the round-evidence exclusions 'live in .claude/workflows/corpus_excluded.json' while CORPUS_EXCLUDED_DATA reads dev/governance/config/corpus_excluded.json.",
+ "mechanism": "The R9-RO reorganisation moved the script to tools/policy/, the exclusion data to dev/governance/config/, decisions to dev/governance/decisions/, delivery rows to dev/programme/delivery/, role briefs to dev/governance/roles/ and preflight.sh to tools/pr/; the comments kept the old spellings (criteria C2 resolvable, and C1 for the corpus_excluded sentence, which the code beside it contradicts).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <git repo holding 92d38ecb640b> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --file tools/policy/policy_lint.mjs --show",
+  "harness_path": "dev/audit/rounds/round11/D5/s8/m4_ledger.py",
+  "value": 12,
+  "unit": "stale units in the file",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B12 (light seat), Linux x86_64, 4 vCPU, venv-ci python 3.14",
+  "cpu_or_wall": "count",
+  "contention_note": "count; contention-immune (other seats on the box)",
+  "tolerance": "exact",
+  "load1": 1.92,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/policy/policy_lint.mjs:CORPUS_EXCLUDED_DATA (and the file's comment units via tools/audit/text_ledger.py:units_of)",
+ "perturbation": {
+  "change": "--perturb 'tools/policy/policy_lint.mjs:.claude/workflows/corpus_excluded.json=>dev/governance/config/corpus_excluded.json' (the comment spelled as the code reads it)",
+  "expected_direction": "down",
+  "observed_value": 11
+ },
+ "null_control": {
+  "command": "node tools/policy/policy_lint.mjs --list (export root) vs node .claude/workflows/policy_lint.mjs --list",
+  "value": "new path reaches the script (stops at the export's missing .git); old path: Cannot find module",
+  "note": "the usage line as written cannot start the script at this ref"
+ },
+ "metric_definition": "Count of D5 units in the file holding a present-tense path that git ls-tree at the ref does not hold (m4_ledger.py stale verdict).",
+ "phenomenon_property": "D5 comment units (text_ledger.py units --dim D5) of a file whose named path does not exist in the tree at the ref, in a present-tense sentence, after the seat's adjudication list (ADJ) of fixtures, history and pinned citations",
+ "seam_rule": "dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <repo> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --show  (every C2 row of the seat's cells; ledger verdict stale)",
+ "stop_rule_class": "hygiene",
+ "class_guess": "N-move-stale-path",
+ "files": [
+  "tools/policy/policy_lint.mjs"
+ ],
+ "proposed_fix_scope": "Respell the 12 units' paths to their tracked homes (lines ~1-46, 485, 553, 589, 976, 1928, 1945, 1985, 2058, 2328, 2716, 7438 by text; text_ledger's line field drifts in .mjs, see D5-s8-07).",
+ "reproduction_steps": [
+  "cd export root",
+  "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D5/s8/m4_ledger.py --repo <git repo holding 92d38ecb640b> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --file tools/policy/policy_lint.mjs --show | grep C2"
+ ],
+ "scope": "D5-s8"
+}

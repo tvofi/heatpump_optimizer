@@ -1,0 +1,15 @@
+{
+ "class": "N-stale-step-actuation",
+ "instances": 2,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep_stale_step.py custom_components/heatpump_optimizer (null: --null -> 0; perturbation: --perturb -> 1)",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._command_frequency", "probe": "PYTHONPATH=tests/hastub venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/timing.py -> stale_share_frequency=0.4480", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator.async_publish_current_action", "probe": "timing.py -> stale_share_curve_offset=0.4644", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator.async_publish_ecl110_command", "probe": "timing.py -> stale_share_mqtt_displace=0.5732", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._apply_action", "probe": "timing.py (cycle driver of the curve/MQTT writes; same shares)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/legionella.py", "symbol": "LegionellaGuard.async_track_cycle", "probe": "PYTHONPATH=tests/hastub venv-ci/bin/python3 dev/audit/rounds/round11/D16/s2/disinfect.py -> on_in_window=0 of 30", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._command_valve_target", "probe": "python3 dev/audit/rounds/round11/D14/probe_stale_step.py valve -> FAIL rc=1 (only caller async_run_optimization; no step re-cut, no per-step tick)", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._async_peak_guard_transition", "probe": "python3 dev/audit/rounds/round11/D14/probe_stale_step.py peak_guard -> FAIL rc=1 (meter-event path re-publishes the last solve action, nudged or released, with no step re-cut)", "beyond_finding": true}
+ ]
+}

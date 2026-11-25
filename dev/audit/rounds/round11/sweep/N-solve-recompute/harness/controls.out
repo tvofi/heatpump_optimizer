@@ -1,0 +1,4 @@
+positive: D9-s1-01 site coordinator.async_diagnose_interval -> async_request_refresh found=1
+null: clean fixture seams=0
+perturbation: one-line re-introduction seams=1
+controls OK

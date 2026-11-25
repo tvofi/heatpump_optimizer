@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.from_dict CLAMP_DROP 286a7598",
+  "killed_by": "tests/features.py",
+  "old": "            np.clip(bias, -FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`(bias)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

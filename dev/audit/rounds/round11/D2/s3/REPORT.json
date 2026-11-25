@@ -1,0 +1,697 @@
+{
+ "dimension": "D2",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D2/s3/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D2.M3",
+   "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d2-identities --cells | grep '^M3 '",
+   "universe": 260,
+   "examined": 260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "examined"
+    }
+   ],
+   "evidence": "out/m3_objective.txt (predicted-cost-sum, penalty-scaling, gradient-fd: 50 goldens each), out/m3_savings.txt (60 savings cells, identity_failures=0), out/m3_terminal.txt (50 goldens), out/m3_risk.txt (the risk-priced arm behind D2-s3-01); C4 answered: savings identity 0/60 failures incl. the buffer-above-curve and mid-month-upgrade months; terminal credit sign holds on 50/50 and magnitude r_J 0.76-1.35 on the winter goldens; penalty scaling with price_weight exact to 1.8e-15; solver gradient vs central FD relerr <= 5e-6 at every random interior point, worst at the solve's warm start x0 (up to 1.83, extreme_prices step 63)"
+  },
+  {
+   "step": "D2.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d2-identities --cells | grep '^M4 '",
+   "universe": 32,
+   "examined": 32,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "out/m4_tariff.txt, all 32 cells; C5 answered: 23/25-hour DST and month-boundary folding sweep exact (92/100/96 steps, err <= 2.2e-16), grid-fee weekday/day-night sweep over 672 quarter steps (D2-s3-04), unit/currency conversion over the price grammar (D2-s3-02; no inter-currency conversion exists in currency.py, the code is a label), Tibber folding (D2-s3-03), capacity peak (D2-s3-05, -06), coverage (D2-s3-07)"
+  },
+  {
+   "step": "D2.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 tools/audit/enumerate.py d2-identities --cells | grep '^M5 '",
+   "universe": 29,
+   "examined": 19,
+   "not_reached": [
+    "M5 booked-against-metered | layout=no_valve emitter=floor",
+    "M5 booked-against-metered | layout=no_valve emitter=radiators",
+    "M5 booked-against-metered | layout=single_tank_valve emitter=floor",
+    "M5 booked-against-metered | layout=single_tank_valve emitter=radiators",
+    "M5 booked-against-metered | layout=slab_shunt emitter=floor",
+    "M5 booked-against-metered | layout=slab_shunt emitter=radiators",
+    "M5 booked-against-metered | layout=two_tank_4way emitter=floor",
+    "M5 booked-against-metered | layout=two_tank_4way emitter=radiators",
+    "M5 booked-against-metered | layout=valve_upper_direct_slab emitter=floor",
+    "M5 booked-against-metered | layout=valve_upper_direct_slab emitter=radiators"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "out/m5_sysid.txt, out/m5_learners.txt, out/m5_crosscov.txt (+ _ridge0), out/m5_covariate.txt, out/m5_powerest.txt, out/m5_drawrange.txt, out/m5_tankfall.txt; C6 answered: confidence gate vs bias over the plant grid s_true {0.8,1,1.25} x capacity {0.7,1.4} x noise {none, white 0.005/0.02/0.05, quantised 0.1C, drifting}, 40 seeds (D2-s3-10); COP and heat-loss learner clamps: zero drift 0, overrun 0, wind-up 0 steps"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D2.M5",
+   "what": "booked-against-metered, all 10 layout x emitter cells: the coordinator's _accumulate_energy space/dhw booking against a metered month needs a live coordinator per layout and an emitter config mapping (floor/radiators) the enumerator's axis does not define; no harness written"
+  },
+  {
+   "step": "D2.M3",
+   "what": "terminal-credit magnitude on the 7 cells outside the tolerance (shoulder, shoulder_two_zone, mild_windy_rain, precip_snow, cool_rainy_summer, confidence_margins: r_J 1.6-76, absolute over-credit <= 3.8 currency; direct_flow_carnot: an undersized 3 kW pump ending 10 K under the caps, where dJ=266386 is comfort penalty, not money) was measured against a same-window re-solve, a proxy continuation; a true next-window continuation was not built, so no claim is made on them"
+  }
+ ],
+ "findings": [
+  {
+   "id": "D2-s3-01",
+   "step": "D2.M3",
+   "title": "price_risk_lambda's premium is booked as money: predicted_cost, baseline_cost, savings and prices carry lambda*sigma",
+   "severity": "high",
+   "claim": "With price_risk_lambda > 0 the optimizer prices predicted_cost, baseline_cost, deferred cost and the published per-step prices on the risk-adjusted series, so predicted_cost != sum(raw price*power*dt) and the published saving is inflated by 12.46 currency at lambda 1 (25.06 at the config maximum 2.0) on the price_risk golden, where the thermostat baseline runs through the guessed tail the plan avoids.",
+   "mechanism": "optimizer.optimize replaces prices with _stash_price_horizon's return (prices + lambda*sigma on unknown steps); every _Horizon closure (energy_cost_of) and _build_result (prices=h.prices) reads that array. The premium is a planning device (#34), never paid; the coordinator publishes predicted_cost/baseline_cost/predicted_savings and schedule[].price from the result and the accuracy promise (note_promise) reads result.prices.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_risk.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m3_risk.py",
+    "value": 12.4574,
+    "unit": "currency",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+    "tolerance": "±1e-3",
+    "load1": 9.0,
+    "thread_factor": 1.0003
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (_stash_price_horizon, _build_result)",
+   "perturbation": {
+    "change": "--perturb-raw: the risk premium stays in the solve, the published figures are priced on the raw series",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0
+   },
+   "metric_definition": "savings_inflation = (baseline_cost - raw-priced baseline) - (predicted_cost - raw-priced plan spend), the published saving's gain from prices nobody pays",
+   "phenomenon_property": "Every published money figure and per-step price of a plan is the raw input price series' (plus PV piecewise); a risk premium may shape the solve but never the reported spend, baseline or saving.",
+   "seam_rule": "grep -n 'h.prices\\|prices=h.prices\\|_stash_price_horizon' custom_components/heatpump_optimizer/optimizer.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_risk.py",
+    "value": 0.0,
+    "note": "lambda 0 on the same golden: every premium 0; also the 49 other goldens (lambda 0) close predicted-cost-sum to 0 in m3_objective.py"
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 3.8322,
+    "max": 25.0586,
+    "drop_most_favourable": 12.4574
+   },
+   "proposed_fix_scope": "optimizer: keep the raw series beside the risk-adjusted one in _Horizon; price predicted/baseline/deferred and publish prices on the raw one",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "scope": "D2-s3"
+  },
+  {
+   "id": "D2-s3-02",
+   "step": "D2.M4",
+   "title": "A price sensor in a minor unit (öre, cent, c, p) reaches the plan at 100x: the 1/100 is never applied",
+   "severity": "critical",
+   "claim": "inputs.normalize_price_per_kwh returns value*per_kwh for every unit in PRICE_MINOR_UNITS, so prices_from_entity_attributes publishes an öre/kWh or c/kWh series as major currency per kWh, 100x too high (and an öre/MWh one 100x too high too).",
+   "mechanism": "inputs.py:791-792: the minor-unit branch returns value*per_kwh where its own docstring (and tests/features.py _P8_FACTORS) says a minor unit is a hundredth of the major one; price_model.prices_from_entity_attributes scales every row by normalize_price_per_kwh(1.0, unit) before VAT and surcharge, and the coordinator plans, publishes and books on those rows. The unit is recognised, so the price_unit_unrecognised notice never fires: silent.",
+   "evidence": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": 8,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 5.76,
+    "thread_factor": 1.0001
+   },
+   "instrumented_symbol": "heatpump_optimizer.price_model:prices_from_entity_attributes (through inputs:normalize_price_per_kwh)",
+   "perturbation": {
+    "change": "--perturb minor: normalize_price_per_kwh divides a minor-unit result by 100 (the documented factor)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "unit_mismatches = units of the price grammar where prices_from_entity_attributes' total != raw value * true unit factor * VAT + surcharge (14 units tried)",
+   "phenomenon_property": "Every price an entity publishes in a minor currency unit reaches the plan, the published costs and the ledger as major currency per kWh: value/100 per the unit's energy factor.",
+   "seam_rule": "grep -n 'PRICE_MINOR_UNITS' custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": "0 mismatches on SEK/kWh, EUR/MWh, €/kWh, kr/kWh, NOK/Wh and unit-less",
+    "note": "the major-unit arms of the same seam are exact; only the 8 minor-unit spellings fail (öre/kWh 153.8 vs 1.638 at VAT 1.25 + 0.1)"
+   },
+   "reproduction_steps": [
+    "run the command; read the CELL currency-pv-export price_source=entity line",
+    "rerun with --perturb minor --section cur: unit_mismatches=0"
+   ],
+   "proposed_fix_scope": "inputs.normalize_price_per_kwh: the minor-unit branch returns value*per_kwh/100; tests/features.py's _P8_FACTORS check already states the contract",
+   "files": [
+    "custom_components/heatpump_optimizer/inputs.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P8",
+   "scope": "D2-s3"
+  },
+  {
+   "id": "D2-s3-03",
+   "step": "D2.M4",
+   "title": "Tibber's tomorrow prices are dropped: the payload parser reads only 'today'",
+   "severity": "high",
+   "claim": "price_model.prices_from_tibber_payload iterates period in ('today',) only, so a Tibber payload carrying today and tomorrow (96+96 quarter rows) returns 96 rows, and a plan solved at 14:00 knows 40 of its 96 steps instead of 96: the rest is filled from the learned prior.",
+   "mechanism": "price_model.py:719 `for period in (\"today\",)`; the query (TIBBER_PRICE_QUERY[_QUARTER]) requests tomorrow and the entity path (prices_from_entity_attributes) reads raw_tomorrow/tomorrow. After the day-ahead auction the published prices past midnight never reach coordinator._known_prices_for, so price_known is False there and extend_price_series substitutes the prior's guess (with its sigma, risk-priced when price_risk_lambda > 0).",
+   "evidence": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": 96,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 5.76,
+    "thread_factor": 1.0001
+   },
+   "instrumented_symbol": "heatpump_optimizer.price_model:prices_from_tibber_payload, heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._price_series",
+   "perturbation": {
+    "change": "--perturb tomorrow: the parser also folds priceInfo.tomorrow",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "tibber_rows_dropped = rows of a 192-row today+tomorrow Tibber payload not returned; tibber_known_steps_at_14h = steps of a 96-step plan at 14:00 the coordinator marks price_known",
+   "phenomenon_property": "Every published price row a source delivers inside the horizon reaches the plan as known; the two ingress paths (Tibber, entity) read the same days.",
+   "seam_rule": "grep -n 'for period in\\|raw_tomorrow' custom_components/heatpump_optimizer/price_model.py",
+   "null_control": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": "known_steps 96/96 with --perturb tomorrow; at 00:07 the same payload already covers the whole horizon from today",
+    "note": "the loss is the 56 steps past midnight"
+   },
+   "proposed_fix_scope": "price_model.prices_from_tibber_payload: iterate ('today', 'tomorrow')",
+   "files": [
+    "custom_components/heatpump_optimizer/price_model.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "scope": "D2-s3"
+  },
+  {
+   "id": "D2-s3-04",
+   "step": "D2.M4",
+   "title": "Grid-fee weekday rules are shifted a day: Mon-Fri skips Friday, Sat-Sun bills Friday and Saturday, Sunday never matches",
+   "severity": "high",
+   "claim": "grid_fee.FeeRule.applies tests when.isoweekday() (Mon=1..Sun=7) against day sets parse_day_range builds in datetime.weekday() numbering (Mon=0..Sun=6), so over one week 192 of 672 quarter steps carry the wrong fee for the spec '= 0.05, Mon-Fri 06:00-22:00 = 0.25, Sat-Sun = 0.10, Nov-Mar 22:00-06:00 = 0.02' (all of Friday and all of Sunday).",
+   "mechanism": "grid_fee.py:104 _DAYS maps mon->0; :162 applies() uses isoweekday(). Every weekday rule is evaluated one day late; the fee vector (coordinator._fee_series -> the plan's prices), current_fee (the ledger's grid_fee line and the savings' spot+fee) all read it.",
+   "evidence": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": 192,
+    "unit": "count",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 5.76,
+    "thread_factor": 1.0001
+   },
+   "instrumented_symbol": "heatpump_optimizer.grid_fee:GridFeeSchedule.fee_vector (FeeRule.applies)",
+   "perturbation": {
+    "change": "--perturb weekday: FeeRule.applies tests datetime.weekday()",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "fee_mismatch_steps = quarter steps of the week 2026-01-12..18 (Europe/Stockholm) where fee_vector differs from the rule text's calendar meaning",
+   "phenomenon_property": "A weekday token in a fee rule applies on the calendar day it names, in the same numbering the parser and the evaluator share.",
+   "seam_rule": "grep -n 'isoweekday\\|weekday()' custom_components/heatpump_optimizer/grid_fee.py custom_components/heatpump_optimizer/tariff.py custom_components/heatpump_optimizer/dhw_schedule.py",
+   "null_control": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": "grid_fee_mode=entity 0/672, none 0/672; rules mode mismatches only on Fri (96) and Sun (96)",
+    "note": "month and hour windows of the same rules agree on every step"
+   },
+   "proposed_fix_scope": "grid_fee.FeeRule.applies: when.weekday()",
+   "files": [
+    "custom_components/heatpump_optimizer/grid_fee.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "scope": "D2-s3"
+  },
+  {
+   "id": "D2-s3-05",
+   "step": "D2.M4",
+   "title": "The realised capacity tracker keeps each day's LOWEST window, so the billed peak and the capacity line are understated",
+   "severity": "high",
+   "claim": "tariff._one_per_day keeps an entry when kw < best[day], so under distinct_days (the default) PeakTracker records each day's smallest closed window and billed_peak_kw reads 1.93 kW against 4.06 kW for three days of the winter_extreme capacity-tariff plan; 0.47-2.13 kW low on all 8 price shapes.",
+   "mechanism": "tariff.py:491 `elif day not in best or kw < best[day][0]` (docstring: 'Each dated day's highest entry'). _close_window folds every closed window through it, so a day's recorded peak walks down to its quietest window; billed_peak_kw (ledger capacity line via book_capacity, the published billed peak) and threshold_kw (the plan's capacity threshold) both read the understated list.",
+   "evidence": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": 2.1268,
+    "unit": "kW",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+    "tolerance": "±1e-4 kW",
+    "load1": 5.76,
+    "thread_factor": 1.0001
+   },
+   "instrumented_symbol": "heatpump_optimizer.tariff:PeakTracker.observe/_close_window/billed_peak_kw (_one_per_day)",
+   "perturbation": {
+    "change": "--perturb oneperday: _one_per_day keeps kw > best[day]",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0
+   },
+   "metric_definition": "tracker_peak_err = |PeakTracker.billed_peak_kw - mean of the 3 highest per-day window maxima| after 3 days of the plan's house power (distinct_days on, 60-min windows)",
+   "phenomenon_property": "Under a distinct-days tariff each day contributes its highest metering window, and the billed peak is the mean of the k highest such days.",
+   "seam_rule": "grep -n '_one_per_day\\|distinct_days' custom_components/heatpump_optimizer/tariff.py",
+   "null_control": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": "capacity_line_err 0 on all 8 shapes",
+    "note": "booking the same billed peak twice books it once (book_capacity sets): the line restates whatever the tracker says, so the error is the tracker's alone"
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 0.4718,
+    "max": 2.1268,
+    "drop_most_favourable": 0.4986
+   },
+   "proposed_fix_scope": "tariff._one_per_day: keep the larger kw per day",
+   "files": [
+    "custom_components/heatpump_optimizer/tariff.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "scope": "D2-s3"
+  },
+  {
+   "id": "D2-s3-06",
+   "step": "D2.M4",
+   "title": "peak_cost (the published projected capacity charge) sums the k SMALLEST window excesses",
+   "severity": "medium",
+   "claim": "tariff._exact_topk_sum returns sum(np.sort(excess)[:k]), the k smallest, so with peak_distinct_days off the published OptimizationResult.peak_cost on the capacity_tariff plan is 0.0-3.34 against 23.2-41.5 for the k largest on all 8 price shapes; the solver's scalar surrogate takes the same arm when at most k windows tie, while its batch twin takes the largest.",
+   "mechanism": "tariff.py:918. _peak_charge feeds it for peak_cost; _plateau_aware_topk_sum uses it for k>1 off plateaus, while _plateau_aware_topk_sum_batch uses np.sort(...)[:, -k:] (largest): the objective and its batched twin disagree. Inert under distinct_days (default) for horizons of at most k days, where every day's excess is summed.",
+   "evidence": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": 41.4976,
+    "unit": "currency",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+    "tolerance": "±1e-3",
+    "load1": 5.76,
+    "thread_factor": 1.0001
+   },
+   "instrumented_symbol": "heatpump_optimizer.tariff:peak_cost (_exact_topk_sum), via HeatPumpOptimizer.optimize -> OptimizationResult.peak_cost",
+   "perturbation": {
+    "change": "--perturb topk: _exact_topk_sum takes np.sort(excess)[-k:]",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0004
+   },
+   "metric_definition": "peak_cost_err = |result.peak_cost - peak_price_per_kw * sum of the k largest window excesses over the threshold|, capacity_tariff golden at peak_distinct_days False, threshold 3 kW",
+   "phenomenon_property": "Every top-k capacity charge, exact or surrogate, scalar or batch, sums the k largest window excesses.",
+   "seam_rule": "grep -n 'np.sort' custom_components/heatpump_optimizer/tariff.py",
+   "null_control": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": "0.0004 with the k largest (rounding of the published figure)",
+    "note": "same plans, only the top-k arm changed"
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 20.9232,
+    "max": 41.4976,
+    "drop_most_favourable": 22.7434
+   },
+   "proposed_fix_scope": "tariff._exact_topk_sum: np.sort(excess)[-k:]",
+   "files": [
+    "custom_components/heatpump_optimizer/tariff.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "scope": "D2-s3"
+  },
+  {
+   "id": "D2-s3-07",
+   "step": "D2.M4",
+   "title": "The open month's coverage scale counts 744 h for the 743-hour March: a fully settled DST month reads 0.13 % high",
+   "severity": "low",
+   "claim": "ledger.coverage_factor divides ledger.month_hours (days x 24, 744 for March 2026) by the settled hours, so a March settled for every one of its 743 real hours scales every estimated row figure by 1.001346 instead of 1.0.",
+   "mechanism": "ledger.py month_hours ignores the DST hour (its docstring says so); coverage_factor = max(1, month_hours/settled). October (745 h) clamps to 1.0, so only the spring month is off; it lasts until the month closes.",
+   "evidence": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": 1.001346,
+    "unit": "ratio",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out: up to three seats share the box; a count, contention-immune",
+    "tolerance": "±1e-6",
+    "load1": 5.76,
+    "thread_factor": 1.0001
+   },
+   "instrumented_symbol": "heatpump_optimizer.ledger:coverage_factor (month_hours)",
+   "perturbation": {
+    "change": "--perturb realhours: ledger.month_hours counts the month's real hours in the zone",
+    "expected_direction": "down",
+    "observed_value": 1.0
+   },
+   "metric_definition": "coverage_full = ledger.coverage_factor of a month whose settled-hours meta equals its real UTC hours, read on the month's last minute (identity 1.0)",
+   "phenomenon_property": "An open month settled over all of its real hours is estimated at scale 1.0, its real hours counted in the zone the month is booked in.",
+   "seam_rule": "grep -n 'def month_hours\\|monthrange' custom_components/heatpump_optimizer/ledger.py",
+   "null_control": {
+    "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+    "value": "coverage_full_month_boundary 1.000000 (January, 744 h), coverage_full_25h 1.000000",
+    "note": ""
+   },
+   "proposed_fix_scope": "ledger.month_hours: the real hours between the month's local midnights",
+   "files": [
+    "custom_components/heatpump_optimizer/ledger.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P7",
+   "scope": "D2-s3"
+  },
+  {
+   "id": "D2-s3-08",
+   "scope": "D2-s3",
+   "step": "D2.M5",
+   "title": "A charge longer than one sample books its whole charge-start dip as a hot-water draw on every combi tank",
+   "severity": "medium",
+   "claim": "With no hot water drawn at all, dhw_learning.DhwProfileLearner books the 4 K charge-start dip of a 60-minute charge into DrawStats as 3.016 kWh of draw (2.459 kWh on internal_coil), the whole dip, on all three combi_tank constructions, because ChargeSettle.advance takes back only rises seen on UNHEATED intervals and the reading recovers while the charge is still heated; the one-sample charge the take-back was built for books 0.039 kWh.",
+   "mechanism": "async_learn_dynamics folds every interval's beyond-standby drop into draw_stats (charge=started_heated or settling); the interval ending at the first heated sample is folded with charge=False (not provisional at all), and a dip on a later heated interval is provisional but ChargeSettle.advance returns 0 on every heated interval, so the recovery during the charge is never credited; the first unheated non-rise closes the charge with the dip still booked. The p90 ready target (dhw_draws.DrawStats.quantile) then asks the plan to hold more hot water than any draw needed.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+    "value": 3.016,
+    "unit": "kWh",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out, up to three seats on the box; an energy figure, contention-immune",
+    "tolerance": "±0.05 kWh",
+    "load1": 7.8,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.dhw_learning:DhwProfileLearner.async_learn_dynamics (ChargeSettle.advance, async_fold_draw_stats -> dhw_draws.DrawStats)",
+   "perturbation": {
+    "change": "--perturb-skip-heated: async_fold_draw_stats books no fall on an interval that starts or ends on a heated sample",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0
+   },
+   "metric_definition": "booked_kwh = sum of every DrawStats occurrence (closed + open) after a trace with zero real draw; identity 0 kWh",
+   "phenomenon_property": "A fall of the tank reading that a charge's loading transient explains is never booked as draw, whatever the charge's length relative to the sampling interval and whether the dip lands on the first or a later heated sample.",
+   "seam_rule": "grep -n 'charge=started_heated or settling\\|def advance\\|heated_interval' custom_components/heatpump_optimizer/dhw_learning.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+    "value": 0.0389,
+    "note": "the 'short' shape (one-sample charge, dip recovers unheated) books 0.039 kWh on every cell: the take-back works where it was designed to"
+   },
+   "reproduction_steps": [
+    "Run the harness; read the long_a/long_b booked figures per combi_tank cell against dip_equiv",
+    "Re-run with --perturb-skip-heated: every booked figure goes to 0"
+   ],
+   "proposed_fix_scope": "dhw_learning: credit the dip's recovery across heated intervals of the open charge (or hold every charge-affected fall provisional until the charge closes), including the interval ending at the first heated sample",
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/dhw_draws.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D2-s3-09",
+   "scope": "D2-s3",
+   "step": "D2.M5",
+   "title": "Ceiling-probe intervals metered at the pump's floor become the solve's learned top: the planned max drops 6.0 -> 1.5 kW",
+   "severity": "medium",
+   "claim": "draw_range.DrawRange.takes_ceiling accepts any experiment interval written at the ceiling whose draw clears idle, so 14 ceiling-probe intervals in which the load sat under the pump's minimum (drawn 1.5 kW, the floor) make draw_range.solve_band book max_kw 1.5 kW ('measured_below_configured') for a pump configured and truly able to draw 5.6-6.0 kW: a 4.10 kW narrowing below a draw the store never observed, while the uncensored arm keeps 6.0 and still learns a genuine 4.0 kW top.",
+   "mechanism": "The store's median (learned_max_kw) is read as the pump's top with no test that the probe's draw was capacity-limited rather than load-limited; censoring at the modulation floor is indistinguishable from a small pump. solve_band then clamps every solve's max_electrical_power to it (for CEILING_LAPSE_DAYS, until CEILING_OVERDRAWS ordinary ceiling-written overdraws clear the store).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_drawrange.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m5_drawrange.py",
+    "value": 4.1,
+    "unit": "kW",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out, up to three seats on the box; a power figure, contention-immune",
+    "tolerance": "exact (±1e-6 kW)",
+    "load1": 7.9,
+    "thread_factor": 0.9999
+   },
+   "instrumented_symbol": "heatpump_optimizer.draw_range:solve_band (via draw_range.fold -> DrawRange.takes_ceiling / observe_ceiling / learned_max_kw)",
+   "perturbation": {
+    "change": "--perturb-floor: takes_ceiling refuses a draw within AGREE_TOLERANCE of the window's metered running floor (DrawRange.observed()[0])",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0
+   },
+   "metric_definition": "narrowing_kw = true pump top - solve_band(...).max_kw after the probe; identity 0 where the top was never observed",
+   "phenomenon_property": "The draw range a solve books never falls below a draw the samples could not observe: a probe interval whose draw sits at the metered running floor (load-limited, censored) is no evidence of the pump's top.",
+   "seam_rule": "grep -n 'def takes_ceiling\\|def learned_max_kw\\|def solve_band\\|observe_ceiling' custom_components/heatpump_optimizer/draw_range.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_drawrange.py",
+    "value": 0.0,
+    "note": "samples=uncensored, true top 5.6: solve_max 6.0 (not_below_configured), narrowing <= 0; true top 4.0: learned 4.0, the honest narrowing the store exists for, kept under the perturbation"
+   },
+   "reproduction_steps": [
+    "Run the harness; read samples=censored_at_minimum_power solve_max and narrowing_kw",
+    "Re-run with --perturb-floor: narrowing goes to 0, the uncensored top-4.0 cell still learns 4.0"
+   ],
+   "proposed_fix_scope": "draw_range: refuse (or mark censored) ceiling-store samples at the metered running floor / when the probe's delivered heat did not reach the commanded level; require evidence the draw was capacity-limited before solve_band lowers the top",
+   "files": [
+    "custom_components/heatpump_optimizer/draw_range.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-confounded-learner"
+  },
+  {
+   "id": "D2-s3-10",
+   "scope": "D2-s3",
+   "step": "D2.M5",
+   "title": "The sysid adoption interval under-covers under 0.1 C quantisation and 0.02-0.05 C noise: 19 of 43 admitted fits miss it",
+   "severity": "medium",
+   "claim": "Under reading noise the fit is documented to tolerate (0.05 C white) and the 0.1 C quantisation of common room sensors, sysid.adoption_decision admits slab fits whose UA error exceeds the half-width it admitted them on in 9 of 11 (quantised) and 4 of 4 (white 0.05 C) cases, 19 of 43 over the three noisy arms against a nominal 0.05, all biased high (+7 % to +35 %), and the blend carries up to 11.7 % of UA error into house_heat_loss_scale from a learner sitting at the truth; noise-free windows recover UA to 5e-14.",
+   "mechanism": "slab_ua_adoption_halfwidth combines the profile-likelihood and prior widths in quadrature, both conditional on the reading noise being white with the fitted residual scale; a quantised or larger-noise room series leaves the room temperature (a regressor in the slab fit) noisy, which biases UA upward (errors-in-variables) while the profile width shrinks with the residual fit, so the narrowest (admitted) intervals are the biased ones.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_sysid.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m5_sysid.py",
+    "value": 9,
+    "unit": "count (quantised_0.1C admitted fits missing their interval, of 11 admitted)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, up to three seats on the box; seeded counts, contention-immune",
+    "tolerance": "exact (seeded rng 2611, 40 seeds per cell)",
+    "load1": 9.79,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sysid:adoption_decision (on SystemIdentification.identify_slab results, slab_ua_adoption_halfwidth)",
+   "perturbation": {
+    "change": "--perturb-bar5: sysid.UA_ADOPTION_HALFWIDTH_BAR = log(1.05)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "misses = admitted fits with |log(UA_fit/UA_true)| > the adoption half-width they were admitted on (95 % interval non-coverage; nominal share 0.05)",
+   "phenomenon_property": "An admitted sysid fit's adoption interval covers the true UA at its nominal rate under every reading-noise model the fit is built for (white to 0.05 C, 0.1 C quantisation, slow drift), and the blend weight never carries a bias larger than the interval states.",
+   "seam_rule": "grep -n 'def adoption_decision\\|def slab_ua_adoption_halfwidth\\|def _slab_ua_profile_halfwidth\\|UA_ADOPTION_HALFWIDTH_BAR' custom_components/heatpump_optimizer/sysid.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_sysid.py",
+    "value": "null_abs_bias_max=4.88e-14; white_0.005 miss_rate 0.006 (1/166)",
+    "note": "noise-free and 0.005 C white: the interval covers at (better than) nominal; the defect appears only as noise grows"
+   },
+   "leave_one_out": {
+    "cells": 10,
+    "min": 0.0,
+    "max": 1.0,
+    "drop_most_favourable": 0.368
+   },
+   "reproduction_steps": [
+    "Run the harness (about 10 min on a loaded box); read RESULT *_misses and *_admitted per noise kind and the per-cell CELL lines",
+    "Leave-one-out over the 10 plant x noise cells with admissions (white_0.02, white_0.05, quantised_0.1C): miss share 19/43 = 0.44; dropping the most favourable cell (white_0.02 s_true 1.25 cr 1.4, 5/5) leaves 14/38 = 0.368",
+    "Re-run with --perturb-bar5: every admitted and missed count goes to 0"
+   ],
+   "proposed_fix_scope": "sysid: widen the adoption interval for regressor noise (quantisation variance d^2/12, residual autocorrelation) or test the fit's residual whiteness before admitting; a bias check against the declared plant before blending",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D2-s3-11",
+   "scope": "D2-s3",
+   "step": "D2.M5",
+   "title": "A genuine internal gain is learned at 54-57 % of its size; the heat-loss scale absorbs the rest (-2.75 %)",
+   "severity": "medium",
+   "claim": "Driven together on a converged house with a genuine +0.6 kW evening gain (17-22 h) and zero-mean sensor noise, coordinator._fold_internal_gains settles the profile at 0.540-0.569 of the genuine gain over 15 noise x seed cells, while learner_newton_step moves house_heat_loss_scale to 0.9725 (truth 1.0) because both learners fold the same residual; with no genuine gain the profile stays within 0.009 kW of the prior and the scale within 1e-4.",
+   "mechanism": "_fold_internal_gains steps g += INTERNAL_GAINS_ALPHA*y - INTERNAL_GAINS_RIDGE*(g - g0) on the residual power y left after the live model (which carries the profile through _model_corrections), so its own fixed point is only alpha/(alpha+ridge) = 0.714 of the gain; the share it leaves unexplained is folded into the heat-loss scale on the same interval, which reads extra evening heat as a tighter house and, by lowering UA, explains part of the gain away from the profile (scale and a near-uniform gain offset are near-collinear under a 6 K diurnal swing).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_crosscov.py",
+    "harness_path": "dev/audit/rounds/round11/D2/s3/m5_crosscov.py",
+    "value": 0.5573,
+    "unit": "ratio (learned gain / genuine gain, mean over 3 noise arms x 5 seeds)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B6 (shared, 4 cores, Linux), $HOME/venv-ci python 3.14",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out, three seats on the box; seeded arithmetic, contention-immune",
+    "tolerance": "exact (seeded rng 0-4, 120 days of 30-min intervals)",
+    "load1": 6.8,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_internal_gains (with thermal_model:learner_newton_step and HeatPumpOptimizerCoordinator._apply_house_heat_loss_scale, gated by coordinator:internal_gains_gate_open)",
+   "perturbation": {
+    "change": "--perturb-ridge0: coordinator.INTERNAL_GAINS_RIDGE = 0",
+    "expected_direction": "up",
+    "observed_value": 0.7748
+   },
+   "metric_definition": "gain_recovery = mean over the gain hours of (learned profile g_h - prior g0) / (genuine gain), after 120 days of accepted dark intervals; identity 1",
+   "phenomenon_property": "On a converged heat-loss level, the internal-gains profile converges to a genuine hour-correlated gain and the heat-loss scale stays at the true UA: no learner settles on a fraction of a covariate the other learner absorbs.",
+   "seam_rule": "grep -n 'INTERNAL_GAINS_RIDGE\\|INTERNAL_GAINS_ALPHA\\|def _fold_internal_gains\\|self._fold_internal_gains\\|learner_newton_step(' custom_components/heatpump_optimizer/coordinator.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_crosscov.py",
+    "value": "no-gain arm: gain_spurious_max 0.0092 kW (white), 0.0046 kW (quantised); scale_bias_nogain_mean +0.0001 (white, quantised)",
+    "note": "with no genuine gain neither learner moves under zero-mean noise; the shortfall and the scale bias appear only with a genuine gain"
+   },
+   "leave_one_out": {
+    "cells": 15,
+    "min": 0.5401,
+    "max": 0.5687,
+    "drop_most_favourable": 0.5585
+   },
+   "reproduction_steps": [
+    "Run the harness (about 1 min); read the CELL lines' gain_recovery_mean and scale_bias_genuine_mean per noise arm",
+    "Re-run with --perturb-ridge0: gain_recovery_mean rises 0.557 -> 0.775 (the ridge share); the rest is the scale's",
+    "The drifting arm's +0.06 scale under a +1.5 K outdoor drift is the scale reading a biased covariate (expected) and is not the claim"
+   ],
+   "proposed_fix_scope": "coordinator: fold the gains profile as a zero-mean shape about the level the heat-loss scale owns (or fold the scale on the residual after the profile's hour term), and drop the ridge's bias at the fixed point (shrink the step, not the target)",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "N-confounded-learner"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "predicted_cost equals sum(raw price * published draw * dt) less the PV-covered margin on every golden but price_risk (that one is D2-s3-01)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_objective.py",
+   "value": "cost_sum_mismatches=1 of 50 (price_risk, 0.92 currency); the other 49 err 0 at 1e-9"
+  },
+  {
+   "claim": "Every price-weighted term of the objective scales exactly with price_weight in {0, 0.5, 2, 5} at the plan and 4 random points, comfort terms unscaled",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_objective.py",
+   "value": "scaling_err_max=1.804e-15 over 50 goldens"
+  },
+  {
+   "claim": "The solver's batch FD gradient matches a central difference at random interior points; the worst disagreement is at the warm-start x0 of the last L-BFGS-B run, a kink of the non-smooth objective (forward vs central differ in sign at one step), not at random points",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_objective.py --only extreme_prices",
+   "value": "per-point relerr [1.8e+00 (x0), 4.1e-08, 4.3e-08, 4.8e-08, 4.8e-08]; median of medians 1.6e-07 over 50 goldens; 40/50 goldens have relerr > 1e-3 only at x0"
+  },
+  {
+   "claim": "The savings row identity (savings = baseline - actual), its tie to the plan's baseline_cost - spend, and the stored-heat line's telescoping hold on all 5 layouts x 4 valve modes x {whole month, mid-month upgrade round-trip, buffer above curve}",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_savings.py",
+   "value": "identity_failures=0 of 60; I_tie <= 4.3e-14, I_tel 0, upgrade_delta 0"
+  },
+  {
+   "claim": "The terminal credit has the right sign on every golden (T(E) >= 0, T(E*) = 0, dJ >= -0.05 where T > 0) and its magnitude is within 0.76-1.35 of the re-solved continuation's objective difference on the winter goldens",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m3_terminal.py",
+   "value": "sign holds on 50/50 (T(E) >= 0, T(E*) = 0); r_J median 0.946 over 48 cells with T > 0.05, 0.76-1.35 on the winter goldens; 7 tolerance failures, all on mild or undersized-pump goldens (see unfinished)"
+  },
+  {
+   "claim": "Folding 15-minute and hourly prices into 15-minute steps conserves the time mean and the horizon integral on all 8 price shapes",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+   "value": "fold_err_max=8.9e-16, fold_sum_err_max=7.1e-14 over 16 cells"
+  },
+  {
+   "claim": "23- and 25-hour DST days and a month boundary are priced on their real quarter counts",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+   "value": "92/92, 100/100, 96/96 steps, err <= 2.2e-16 (the month-hours coverage defect is D2-s3-07)"
+  },
+  {
+   "claim": "The ledger's capacity line charges the month's billed peak exactly once when book_capacity is called twice",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+   "value": "capacity_line_err_max=0.00e+00 on 8 shapes"
+  },
+  {
+   "claim": "The PV export price is applied piecewise: energy cost equals export*min(P,s) + import*max(P-s,0) summed",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+   "value": "pv_piecewise_err=1.42e-14"
+  },
+  {
+   "claim": "The heat-loss and COP learners do not drift on zero evidence, never overrun their clamps, and leave a clamp as fast as a fresh learner (no wind-up)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_learners.py",
+   "value": "zero_drift_max=0, clamp_overrun_max=0, windup_steps_max=0"
+  },
+  {
+   "claim": "The internal-gains fold never runs before the heat-loss level has converged, and with no genuine gain it learns none under white, quantised or drifting covariate error",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_crosscov.py",
+   "value": "premature_folds=0; gain_spurious_max 0.0092 kW (white), 0.0046 (quantised), 0.0293 (drifting +1.5 K)"
+  },
+  {
+   "claim": "A moved outdoor sensor that keeps the house learner costs no extra convergence: carried and voided learners reach B's equilibrium in the same number of intervals (the void restarts at 1.0, where A sat)",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_covariate.py",
+   "value": "steps_carried=80, steps_voided=80; voided_indoor=1, outdoor/flow/tank 0 (gap: only the heat-loss void decision is read; DHW learners on a moved tank sensor were not driven)"
+  },
+  {
+   "claim": "An interval whose power entity is the pump's own estimate is never recorded as a measured COP nor fed to the health watch; the COP scale trains on it as ruled; the capacity envelope folds on it only because the arm's heat meter is a measured floor",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_powerest.py",
+   "value": "estimate arm: measured_cop_records=0, health_observations=0, capacity_envelope_folds=200 (heat_kw from a METER-source thermal entity), cop_scale_moved=0.6 in both arms"
+  },
+  {
+   "claim": "A draw range learned from uncensored samples keeps the truth: a top that agrees with configuration is not narrowed and a real 4.0 kW over-statement is learned",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_drawrange.py",
+   "value": "narrowing_uncensored_agree_kw=0.000; uncensored_overstated_learned_max_kw=4.000"
+  },
+  {
+   "claim": "A one-sample charge's dip, recovering unheated, books (almost) no draw",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+   "value": "booked_kwh_short_max=0.0389 kWh (tol 0.05)"
+  },
+  {
+   "claim": "sysid recovers UA exactly on a noise-free window over the plant grid",
+   "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D2/s3/m5_sysid.py",
+   "value": "null_abs_bias_max=4.88e-14; drifting arm admits 0 fits"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D2/s3/m3_objective.py",
+  "dev/audit/rounds/round11/D2/s3/m3_risk.py",
+  "dev/audit/rounds/round11/D2/s3/m3_savings.py",
+  "dev/audit/rounds/round11/D2/s3/m3_terminal.py",
+  "dev/audit/rounds/round11/D2/s3/m4_tariff.py",
+  "dev/audit/rounds/round11/D2/s3/m5_covariate.py",
+  "dev/audit/rounds/round11/D2/s3/m5_crosscov.py",
+  "dev/audit/rounds/round11/D2/s3/m5_drawrange.py",
+  "dev/audit/rounds/round11/D2/s3/m5_learners.py",
+  "dev/audit/rounds/round11/D2/s3/m5_powerest.py",
+  "dev/audit/rounds/round11/D2/s3/m5_sysid.py",
+  "dev/audit/rounds/round11/D2/s3/m5_tankfall.py"
+ ],
+ "leads": []
+}

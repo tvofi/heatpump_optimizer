@@ -1,0 +1,22 @@
+| id | metric | expected | got | reproduced | direction | perturbed | perturbation | void | null_value | load1 | thread_factor | flags |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D0-s3-02 | universe |  | 120 | by-hand | down |  | by-hand |  | by-hand | 0.13 | 1.000 |  |
+| D1-s2-51 |  |  |  | by-hand |  |  | by-hand |  |  |  |  | harness not found |
+| D10-s1-03 | continue_settings_in_data |  | 41 | by-hand | to_zero |  | by-hand |  | by-hand | 0.13 | 1.000 |  |
+| D11-s1-04 | baseline_pass |  | 0 | by-hand | up |  | by-hand |  | by-hand | 0.13 | 1.000 |  |
+| D12-s2-01 | single_zone_cells |  | 47 | by-hand | to_zero |  | by-hand |  | by-hand | 0.68 | 1.000 | tree edited by run: dev/audit/rounds/round11/D12/s2/__pycache__/cells.cpython-314.pyc; restored |
+| D14-s2-03 | counted_warning | 1, | 1 | no | up |  | by-hand |  | by-hand | 0.71 | 1.000 |  |
+| D15-s2-07 |  |  |  | by-hand | to_zero |  | by-hand |  | by-hand | 0.71 |  | rc=1; load1 from batch; no thread_factor |
+| D16-s2-04 | partial_abs_power_error_mean |  | 0.0788 | by-hand | down |  | by-hand |  | by-hand | 0.73 | 1.000 | tree edited by run: dev/audit/rounds/round11/D16/s2/__pycache__/rig.cpython-314.pyc, dev/audit/rounds/round11/D16/s2/__pycache__/timing.cpython-314.pyc; restored |
+| D17-s2-04 | kept_schedule_cap_delta_kW | 0.00 | 0.000 | by-hand | down |  | by-hand |  | by-hand | 0.73 | 1.00 | tree edited by run: dev/audit/rounds/round11/D17/s2/__pycache__/rig.cpython-314.pyc; restored |
+| D2-s3-02 | fold_err_max |  | 8.882e-16 | by-hand | to_zero |  | by-hand |  | by-hand | 0.90 | 1.0003 | tree edited by run: dev/audit/rounds/round11/D2/s3/__pycache__/_common.cpython-314.pyc; restored |
+| D4-s1-01 |  |  |  | by-hand | down |  | by-hand |  | by-hand | 0.90 |  | rc=1; load1 from batch; no thread_factor |
+| D4-s3-07 | en_page_titles |  | 42 | by-hand | down |  | by-hand |  | by-hand | 0.90 | 1.00 |  |
+| D5-s2-05 | units |  | 75 | by-hand | to_zero |  | by-hand |  | by-hand | 0.90 | 1.000 | tree edited by run: dev/audit/rounds/round11/D5/s2/work/m4_ledger.tsv; restored |
+| D5-s4-02 | units |  | 143 | by-hand | down |  | by-hand |  | by-hand | 0.91 | 1.000 |  |
+| D5-s6-04 | stamp_record_class_res_len |  | 6 | by-hand | to_zero |  | by-hand |  | by-hand | 0.91 | 1.00 |  |
+| D5-s8-04 | units | 3628, |  | by-hand | down |  | by-hand |  | by-hand | 0.91 |  | rc=1; load1 from batch; no thread_factor |
+| D6-s2-02 | gov_paths |  | 2 | by-hand | to_zero |  | by-hand |  | by-hand | 0.91 | 1.000 |  |
+| D6-s5-07 |  |  |  | by-hand | to_zero |  | by-hand |  | by-hand | 0.91 |  | rc=1; load1 from batch; no thread_factor |
+| D7-s2-01 | ingest_comfort_away |  | 1 | by-hand | to_zero |  | by-hand |  | by-hand | 0.91 | 1.000 | tree edited by run: dev/audit/rounds/round11/D7/s2/__pycache__/enum_m3.cpython-314.pyc; restored |
+| D8-s2-02 | fam_runs_excess_entity_id_sensor |  | 2 | by-hand | to_zero |  | by-hand |  | by-hand | 0.91 | 1.000 |  |

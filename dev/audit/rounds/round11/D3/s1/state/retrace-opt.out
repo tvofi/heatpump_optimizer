@@ -1,0 +1,3 @@
+2026-11-17T11:43:01Z RETRACE tests/optimality.py rc=1 failed=1 complete=True problems=[]
+RESULT load1=48.30
+RESULT thread_factor=1.00

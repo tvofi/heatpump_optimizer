@@ -1,0 +1,47 @@
+{
+ "id": "D3-s1-67",
+ "scope": "D3-s1",
+ "step": "D3.M3",
+ "title": "No check pins that an unset holiday-DHW-windows option parses to None, not []",
+ "severity": "low",
+ "claim": "Mutant 050fdc4a20eba212 at thermal_model.py:169 survives the full gate (SURVIVED), yet the probe's unset_forms_moved moves: baseline holiday windows (option absent/''/None)=None, mutant [] for all 3 unset forms.",
+ "mechanism": "Reach: reach_unset_calls=3 (default install leaves the option unset). Check that should have failed (D3.M4): tests/features.py (dhw_holiday_windows) / tests/config_flow_steps.py do not pin None for the unset option.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+  "value": 3,
+  "unit": "count of unset option forms (absent, '', None) whose parsed holiday windows differ from baseline None",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-rem: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+  "cpu_or_wall": "n/a",
+  "contention_note": "deterministic value; probes ran while box D3-rem gates ran (load1 ~1); the full-gate walls in the T1 table are provisional",
+  "tolerance": "exact",
+  "load1": 1.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:_holiday_dhw_windows",
+ "perturbation": {
+  "change": "the mutant edit at thermal_model.py:169 applied in memory by the probe (holiday DHW windows option absent, empty string, None); full gate: fullgate.py run --key 050fdc4a20eba212",
+  "expected_direction": "up",
+  "observed_value": 3
+ },
+ "metric_definition": "count of unset option forms (absent, '', None) whose parsed holiday windows differ from baseline None",
+ "phenomenon_property": "An unset holiday DHW windows option leaves the ordinary windows in force on holidays (parses to None)",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+  "value": "0 count",
+  "note": "null arm where the edit cannot matter; identical floats under both arms"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/probe_050fdc4a.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src pre --key 050fdc4a20eba212"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value (holiday windows (option absent/''/None)=None)",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py",
+  "tests/features.py"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

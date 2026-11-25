@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleDither.step BOOLOP e8d07b18",
+  "killed_by": "tests/features.py",
+  "old": "            self.holding = running is not None and running == self._next(want)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`self.holding = running is not None or running == self._next(want)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

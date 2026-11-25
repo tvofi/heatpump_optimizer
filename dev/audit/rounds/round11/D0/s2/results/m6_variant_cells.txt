@@ -1,0 +1,4 @@
+winter_typical/winter_cold/two-zone/dhw/plain/48h
+winter_moderate/winter_cold/two-zone/no-dhw/plain/48h
+winter_extreme/winter_cold/two-zone/dhw/wood/48h
+winter_moderate/winter_cold/two-zone/dhw/wood/48h

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:ScaleDither.take GUARD_OFF b15f3f91",
+  "killed_by": "tests/features.py",
+  "old": "        if self.reading is None or self.reading != self._want():",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

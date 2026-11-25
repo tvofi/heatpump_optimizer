@@ -1,0 +1,61 @@
+  ok   cut_day:no_published_entity_kept
+  ok   cut_day:away_command_from_the_paired_switch_restart_skipped
+  ok   cut_day:reload_is_every_published_entity_gone_and_no_input
+  ok   cut_day:null_restart_with_inputs_gone_is_no_reload
+  ok   cut_day:null_day_without_a_command_has_none
+  ok   cut_day:two_paired_switches_refused
+reading the recorder: SQLite database /tmp/tmphdyb2ope/home-assistant_v2.db
+  ok   the synthetic fixture is what synthesize.py + export.py write
+
+-- replay owner-2026-10-30-away.json
+  ok   owner-2026-10-30-away.json: the replay ran to the end
+  16 cycles over 82 entities in 2206.3 s; cost {'cpu_ratio': 534.6315, 'peak_kib': 2860.9, 'loop_cpu_ratio': 0.2487, 'timed': 7, 'traced': 8, 'ref_ms': 31.420883999999205, 'loop_ref_ms': 95.28723300002184}
+  record: owner-2026-10-30-away.json cpu_ratio=756.1 peak_kib=4046 loop_cpu_ratio=0.3517
+  doubled arms not run: a real install's solve: 16 cycles, about 12 CPU-minutes a replay, so four would overrun the replay job; the arms run on the synthetic fixture
+
+-- replay synthetic-dhw-only.json
+  ok   synthetic-dhw-only.json: the replay ran to the end
+  48 cycles over 82 entities in 15.8 s; cost {'cpu_ratio': 2.1625, 'peak_kib': 1939.4, 'loop_cpu_ratio': 0.1632, 'timed': 23, 'traced': 24, 'ref_ms': 30.95507899999994, 'loop_ref_ms': 95.4609099999999}
+  record: synthetic-dhw-only.json cpu_ratio=3.058 peak_kib=2743 loop_cpu_ratio=0.2308
+  ok   synthetic-dhw-only.json: the replay ran to the end (cpu doubled)
+  cpu doubled: cost {'cpu_ratio': 4.2883, 'peak_kib': 1940.1, 'loop_cpu_ratio': 0.8249, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 30.12156699999835, 'loop_ref_ms': 96.72644199999958}
+  ok   synthetic-dhw-only.json: the replay ran to the end (memory doubled)
+  memory doubled: cost {'cpu_ratio': 2.115, 'peak_kib': 3877.5, 'loop_cpu_ratio': 0.1591, 'timed': 23, 'traced': 24, 'ref_ms': 30.209979999998637, 'loop_ref_ms': 95.0474570000006}
+  ok   synthetic-dhw-only.json: the replay ran to the end (loop doubled)
+  loop doubled: cost {'cpu_ratio': 2.5567, 'peak_kib': 1939.9, 'loop_cpu_ratio': 0.3193, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 30.877932999999302, 'loop_ref_ms': 94.42334199999891}
+
+-- graded owner-2026-10-30-away.json
+  graded on the job's rulers: ref_ms 30.88 (class None), loop_ref_ms 95.29
+  ok   owner-2026-10-30-away.json: at least one cycle and one entity
+  ok   owner-2026-10-30-away.json: finite
+  ok   owner-2026-10-30-away.json: unit
+  ok   owner-2026-10-30-away.json: no_default
+  ok   owner-2026-10-30-away.json: agreement
+  ok   owner-2026-10-30-away.json: cycle
+  ok   owner-2026-10-30-away.json: not_frozen
+  ok   owner-2026-10-30-away.json: away
+  FAIL owner-2026-10-30-away.json: cycle_cost  [2 offender(s): cpu_ratio 534.6 over its budget 332.8 | loop_cpu_ratio 0.2487 over its budget 0.2154]
+
+-- graded synthetic-dhw-only.json
+  graded on the job's rulers: ref_ms 30.88 (class ref31), loop_ref_ms 95.29
+  ok   synthetic-dhw-only.json: at least one cycle and one entity
+  ok   synthetic-dhw-only.json: finite
+  ok   synthetic-dhw-only.json: unit
+  ok   synthetic-dhw-only.json: no_default
+  ok   synthetic-dhw-only.json: agreement
+  ok   synthetic-dhw-only.json: cycle
+  ok   synthetic-dhw-only.json: not_frozen
+  ok   synthetic-dhw-only.json: away
+  FAIL synthetic-dhw-only.json: cycle_cost  [2 offender(s): cpu_ratio 2.163 over its budget 2.084 | loop_cpu_ratio 0.1635 over its budget 0.1527]
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
+  ok   synthetic-dhw-only.json: the cpu arm doubles the whole span cpu_ratio times
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
+  ok   synthetic-dhw-only.json: the loop arm doubles the whole span loop_cpu_ratio times
+  ok   AWAY_COVERED names committed fixtures
+  ok   the doubled-cost arms are skipped on committed fixtures only, never all
+
+replay lane wall time 2291.4 s
+
+2 of 198 replay checks FAILED
+rc=1

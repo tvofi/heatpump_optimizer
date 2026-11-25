@@ -20,7 +20,7 @@ uncomfortable, so counting it would overstate the asset.
 
 **Round-trip efficiency is where the COP and the standing losses show up.**
 Charging is done at COP > 1, which makes the "efficiency" exceed 100% if
-measured naively in electrical terms — so it is reported in thermal terms,
+measured naively in electrical terms. So it is reported in thermal terms,
 where standing loss is the only round-trip cost and the number means what a
 battery person expects it to mean.
 """
@@ -189,11 +189,11 @@ def label_measured(view: Battery, reading_ok: Any) -> Battery:
     """Say which of the battery's stores stand on a thermometer.
 
     Every component temperature comes out of ``ThermalState``, and a field
-    there is overwritten only when its entity read OK -- so on an install
-    with no probes the whole view is assembled from constructor defaults
-    (55/40/22/21 °C) and published as a ``BATTERY`` percentage and an
-    ``ENERGY_STORAGE`` kWh, both ``MEASUREMENT``, which is a long-term
-    statistics series of a number nothing measured (#282).
+    there is overwritten only when its entity read OK. On an install with
+    no probes the whole view is assembled from constructor defaults
+    (55/40/22/21 °C). It is published as a ``BATTERY`` percentage and an
+    ``ENERGY_STORAGE`` kWh, both ``MEASUREMENT``: a long-term statistics
+    series of a number nothing measured (#282).
 
     The figures themselves are left exactly as they were. The view is a
     model and the model is the point; dropping a component would change the
@@ -238,8 +238,8 @@ def build(
 
     # The view reports the same house the dynamics simulate, so every loss
     # figure carries the learned corrections: the overall scale on both
-    # zones, and the learned split on the lower one (whose docstring says
-    # every consumer of the dynamics must go through it). Raw configured
+    # zones, and the learned split on the lower one. That split's docstring
+    # says every consumer of the dynamics must go through it. Raw configured
     # values here showed autonomy figures for a house the model itself no
     # longer believes in. Both default to 1.0, so a fresh install is
     # unchanged.
@@ -293,8 +293,8 @@ def build(
             # `comfort_max + 6.0` — the last magic offset left over from the
             # v4.0.6 sweep that took `comfort + 20` off the buffer tank. A
             # fixed 29.0 °C at the default ceiling is not the same number as
-            # the settlement cap in ANY direction: on the default parameters
-            # it is too high (cap 27.4 °C at −15 outdoor), and on a radiator
+            # the settlement cap in ANY direction. On the default parameters
+            # it is too high (cap 27.4 °C at −15 outdoor). On a radiator
             # install, where the emitter is weak and the loop must run hot to
             # sustain the target, it is far too low (cap 48.3 °C). The view is
             # report-only, so nothing the optimizer does changes; what changes

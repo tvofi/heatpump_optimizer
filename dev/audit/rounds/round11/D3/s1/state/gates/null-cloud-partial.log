@@ -1,0 +1,301 @@
+
+########## environment ##########
+  python   3.14.7 (linux)
+  cpu      Intel(R) Xeon(R) Processor @ 2.30GHz
+  blas     Haswell
+  stack    numpy 2.5.4, scipy 1.18.1
+
+########## python3 tests/env_drift.py --claims-only 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ##########
+claims hygiene: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ok
+
+########## python3 tests/closure.py selftest ##########
+  SLOT: tests/closure.py joins a heavy slot as run.sh-23159
+
+=== closure shrink guard (#527) ===
+  ok   card_drift.mjs's committed closure covers plan_view.py
+  ok   the 6-file raw trace is a strict subset of that claim
+  ok   a full merge does not drop files from card_drift.mjs
+  ok   a full merge writes the _comment's stub-seconds disclosure
+  ok   a shrinking script does not abort an unrelated grow
+  ok   the shrink path does not tell you to run a full derive
+  ok   a grow-only partial merge still grows (null control)
+  ok   a partial merge refreshes a stale _comment
+  ok   card_drift.mjs inherits plan_view.py's closure the way card.mjs does
+  ok   a broken-recording refusal names the command that takes the flag
+  ok   a stale-closure refusal names --single, not a bare full derive
+  ok   a refused merge surfaces merge()'s reason, not just skip-merge-failed
+  ok   and a merge that succeeds carries no merge reason (null control)
+  ok   a warm __pycache__ .pyc open attributes the source it was compiled from
+  ok   the #1309 instance maps: governance_cost's cache attributes its source
+  ok   a cache whose source is gone attributes nothing (null control)
+  ok   the cold path is unchanged (control)
+  ok   the header corpus is the six-part path under dev/audit/rounds
+  ok   merge drops a committed entry whose path does not exist (#1310)
+  ok   merge still keeps a committed REAL file the run did not touch (#527 null control)
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check passes on the same table once the phantom is gone (#1310 null control)
+  ok   check fails on a phantom in the committed inert_reads (R9-RO-10)
+  ok   prune drops committed phantom entries (#1310)
+  ok   prune keeps a closures key whose every entry was a phantom, empty: select reads a missing key as no closure recorded (R9-RO-9a)
+  ok   prune drops dead inert_reads entries, and a key left with none (R9-RO-10)
+  ok   prune is idempotent (#1310 null control)
+  ok   a partial merge keeps committed inert_reads the run cannot see (#1886)
+  ok   a recording that saw other inert reads grows, never swaps (#1886 grow arm)
+  ok   a full merge keeps committed inert_reads the run cannot see (#1886)
+  ok   the #1886 sequence stays green: Darwin merge, then Linux check
+
+=== coverage reuses only what the scoped gate skips (#1812) ===
+  ok   a FULL plan measures every script, base data or not
+  ok   a plan of no known mode measures every script
+  ok   scoped: only a skipped script with base data is reused
+  ok   scoped, cache miss: nothing is reused
+  ok   coverage-split reads .coverage.<n> and <n>.nodata as base data
+  ok   a push diff no closure mentions selects a FULL plan
+  ok   the FULL plan reuses nothing from a fully populated base
+  ok   a FULL plan measures even the script its own skip names
+  ok   the push marker at the expected base is trusted
+  ok   a non-push run's marker is discarded: reuse never engages from a non-push run
+  ok   a push marker naming another commit is discarded
+  ok   a missing marker is a discard, never a trust
+  ok   coverage-trust exits 0 only on the trusted marker
+  ok   the summary line states the reuse count and the backstop loss
+  ok   a run that reused nothing says so
+  ok   the push arm restores through the same key formula
+  ok   the push arm's plan comes from select at the restored base
+  ok   the coverage job states the reuse count in its summary
+  ok   coverage_tree.sh provenances every entry it leaves in per/
+
+=== a recording's rc says whether it ended, and the log says it (#1987) ===
+  ok   record() runs the script with HPO_CLOSURE_RECORDING=1, the flag stress.py keys its timing verdicts on
+  ok   stress.py reads the same variable name
+  ok   harness_headers.py reads the same variable name (its CPU-headroom grade)
+  ok   derive_closures.sh's done line reports a recording's exit 3
+  ok   derive_closures.sh's done line reports a recording's exit 0
+
+=== a layout git merges without a driver (R9-CI-2b) ===
+  ok   within-band: the partial merge succeeds
+  ok   a timing re-recorded within 2x keeps the committed seconds
+  ok   outside-band: the partial merge succeeds
+  ok   a timing re-recorded outside 2x takes the new seconds
+  ok   ours: the partial merge succeeds
+  ok   theirs: the partial merge succeeds
+  ok   two branches re-timing one script merge with no driver
+  ok   legacy: the partial merge succeeds
+  ok   a merge writes sorted keys and sorted lists
+  ok   layout_errors names an unsorted list and unsorted keys
+  ok   check passes a sorted table
+  ok   check refuses an unsorted table
+  ok   check passes write_closures' own text (null control)
+  ok   check refuses a recorded entry as {seconds, rc}
+  ok   check refuses top-level keys unsorted
+  ok   check refuses indent 2
+  ok   the committed tests/closures.json is in the layout
+
+=== the batch proof's recordings fail closed (round-9 C2) ===
+  ok   proof-consume accepts recordings whose manifest names this tree
+  ok   proof-consume refuses a manifest naming ANOTHER tree
+  ok   proof-consume refuses no manifest at all
+  ok   proof-consume refuses an artifact with no recordings
+  ok   proof-consume refuses an unhealthy recording
+  ok   proof-consume refuses a set missing selectable scripts
+[... 2969 lines trimmed; full log in the box's handoff ref handoff/audit-r11-find-D3-top6 at fdd9e2d827a9 ...]
+  ok   marginal_cop('dhw') is compute_cop_dhw
+  ok   building-mass stores heat at the plain curve
+  ok   without the Carnot derate the buffer collapses to the plain curve
+  ok   the terminal credit repays a stored buffer kWh at the flow-derated COP the simulation charged to store it, less what the tank loses first
+  ok   and at -5 C that haircut is small: winter storage is not discouraged
+  ok   which is genuinely dearer than the plain curve the old code paid
+  ok   building-mass deficits keep the plain conversion
+  ok   derate off: the terminal term is the historical single-sum, exactly
+  ok   a DHW deficit settles at compute_cop_dhw of its settlement temperature
+  ok   and a buffer deficit at the flow-derated COP of its settlement ceiling
+
+-- v4.0.5 — settlement caps: the lower zone's slab, a reachable tank
+  ok   two-zone slab cap is sized from the lower zone alone
+  ok   and it moves with the learned split, like the dynamics it settles
+  ok   single-zone keeps the historical formula exactly
+  ok   a strong pump's cap is the rating — mild installs are untouched
+  ok   a weak pump against a cold day cannot reach the rating, and the cap says so
+  ok   the reachable ceiling rises with milder weather, up to the rating
+
+-- v4.0.5 — DHW conservation: a cold tank cannot pour hot water
+  ok   the booked draw never exceeds the nominal demand
+  ok   every step balances: in == out + losses + storage delta
+  ok   the inlet floor fabricated nothing — the scaled draw makes it inert
+  ok   a cold tank delivers less than the nominal demand, not the same
+  ok   and the tank never pins to the inlet pouring imaginary heat
+  ok   a tank at the setpoint is debited exactly the nominal draw
+  ok   charging cannot pass the tank rating, and the excess is booked
+  ok   a tank read above the rating cools at its physical rate, not by fiat
+  ok   an inlet above the tank's surroundings manufactures no heat over 24 h
+  ok   the tank is not pinned at the inlet: it settles toward its surroundings
+  ok   coil split at the default inlet is the historical arithmetic
+  ok   a real winter inlet changes the split and keeps the identity exact
+
+-- v4.0.5 — sysid: the intercept the relax phase was smuggling
+  ok   known UA, C and gains are recovered together
+  ok   the old no-intercept fit really was biased on this data
+  ok   an implausible fitted gain rejects the experiment instead of adopting it
+
+-- sysid under sensor noise (D2-01) and a reachable gate (D7-02)
+  ok   a 40-seed 0.10 degC ensemble: the worst-window noise gate engages
+  ok   the ensemble's UA bias p90 is inside 15 % (pre-fix production: +54 %)
+  ok   raw uncorrected OLS on the same rows is far worse (the comparator)
+  ok   a window whose noise swamps the excursion is refused outright
+  ok   a clean default-protocol experiment is adoptable (gate can open)
+  ok   a noisy experiment's confidence is discounted, not just its bias
+
+-- sysid vs a drifting room sensor, and a bound-blind gate (D2-07)
+  ok   the unbiasedness null: a noise-free window recovers UA exactly
+  ok   a clean sensor is still adopted (the gate stays open at the low end)
+  ok   the comparator: a plain fit on the drifting rows IS biased
+  ok   a 0.10 °C/h drifting sensor no longer biases the identified UA
+  ok   the drift is identified as such, not absorbed into the house
+  ok   drift buys no confidence: the excursion it fakes is not identifiability
+  ok   widening the comfort bound cannot lower a finished experiment's confidence
+  ok   an experiment run under a lifted bound is still adoptable
+
+-- sysid settle power, comfort-bounded step sizing, settle window (W2-G5)
+  ok   #779: sized step does not abort mid-step on the two-state plant
+  ok   #779: first-order identify still admits 1 of the 64 two-state cells
+  ok   null: 6.0 kW thermal via real step() completes rows=7 at conf 0.445 matching identify() on the STEP+RELAX samples (sysid_bias.py plant)
+  ok   perturbation: 0.3 x nameplate (6 kW el, COP 3, no sizer) completes
+  ok   perturbation: 0.15 x nameplate-equivalent (2.7 kW thermal) aborts on undershoot
+  ok   perturbation: 0.6 x nameplate x COP overshoots the comfort band
+  ok   perturbation: 0.3 x nameplate x COP lands inside the band
+
+-- sysid step sized on the two-state plant (#779)
+  ok   a sized step on the heavy default house uses most of the 0.8 C allowance
+  ok   and still respects the 0.8 C comfort allowance on that plant
+  ok   the one-state exponential still over-predicts that same injection
+  ok   settle rows record the plan's delivered thermal power, not zero
+  ok   mis-recorded settle 3 kW as 0 kW biases clean UA (#325 trap)
+  ok   the same 3 kW settle hour recorded correctly stays unbiased
+  ok   including the settle hour keeps a clean sensor unbiased (#325 guard)
+  ok   sigma->0 recovers d exactly on both arms
+
+-- sysid refuses a shrunk drift that landed in UA (R3-D2-03 / #778)
+  ok   0.02 C noise + 0.10 C/h drift is not adopted: the ridge had shrunk d into UA
+  ok   the same 0.02 C noise with no drift stays adoptable (null)
+  ok   noise-free 0.10 C/h drift is still identified, not refused
+
+-- Free heat skips the accuracy sample (D7-05)
+  ok   an interval with detected free heat records no accuracy sample
+  ok   an interval with the open-window detector tripped records no accuracy sample
+
+-- v4.0.5 — learners: tracking error is not efficiency
+  ok   a pure tracking error — pump at half the commanded power — moves cop_scale not at all
+  ok   while a modest, efficiency-shaped gap still teaches
+  ok   without a power entity the commanded space figure is all there is
+  ok   with one, the meter wins, net of the hot-water allocation the meter cannot tell apart
+  ok   a meter far off the commanded total is a tracking gap: the split would land the whole error on the space figure, so no sample
+  ok   a configured-but-stale meter yields no sample rather than a commanded guess
+  ok   an immersion-latched meter is a different appliance's reading — skip
+
+-- v4.0.6 — the floor gets the same physics check the rating has
+  ok   winter_mild's evening window holds the promised minimum
+  ok   neutering the floor repair reopens the breach (mutation check)
+
+-- v4.0.5 — the battery view shares the optimizer's caps
+  ok   the buffer component's ceiling is the tank's configured rating — the same constant the simulation clamps at and the settlement caps read
+  ok   a 40 °C tank no longer reads nearly full
+  ok   the zone losses are the learned ones the dynamics actually run
+  ok   at default learned values the loss figures are the raw configured ones
+
+-- v5.1.1 — reloads that change nothing, and setups that do not solve
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   with the flag set the first refresh completes without invoking the solve
+  ok   the light payload still carries the live-state keys entities read
+  ok   the flag is consumed by the light refresh
+  ok   the second refresh solves normally — the flag never latches
+  ok   each fixed-rule mode's action carries its own mode and the current price
+  ok   the plan's action keeps its own price, not the current one
+Error updating Heat Pump Optimizer: boom
+Traceback (most recent call last):
+  File "/home/user/audit-r11-D3-s1/custom_components/heatpump_optimizer/coordinator.py", line 6067, in _async_update_data
+    await self._fetch_tibber_prices()
+  File "/home/user/audit-r11-D3-s1/tests/features.py", line 30278, in _fr_fetch_raises
+    raise RuntimeError("boom")
+RuntimeError: boom
+Error updating Heat Pump Optimizer: boom
+Traceback (most recent call last):
+  File "/home/user/audit-r11-D3-s1/custom_components/heatpump_optimizer/coordinator.py", line 6180, in _async_first_refresh_light
+    await self._fetch_tibber_prices()
+  File "/home/user/audit-r11-D3-s1/tests/features.py", line 30278, in _fr_fetch_raises
+    raise RuntimeError("boom")
+RuntimeError: boom
+  ok   both refresh wrappers raise a translated UpdateFailed (update_failed)
+
+-- Unload lifecycle and Tibber failure semantics (D10-06/07/09)
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/home/user/audit-r11-D3-s1/custom_components/heatpump_optimizer/coordinator.py", line 6965, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/root/audit-r11-D3-s1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+  ok   a failed Tibber fetch raises UpdateFailed, failing the update cycle
+  ok   the outage latch's UpdateFailed carries its translation (#1546)
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/home/user/audit-r11-D3-s1/custom_components/heatpump_optimizer/coordinator.py", line 6965, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/root/audit-r11-D3-s1/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+  ok   two failed fetches count two outage cycles (the ERROR logged once)
+  ok   a successful fetch clears the outage latch
+  ok   null control: a healthy price fetch neither fails the update nor raises the price_feed_stale repair
+  ok   a failed price fetch while the last prices still cover now does not fail the update
+  ok   ...and raises the price_feed_stale repair, logging a WARNING and no ERROR
+  ok   a recovered fetch clears the repair and the outage latch
+  ok   null control: prices that no longer cover now fail the update again, and the repair stays
+  ok   null control: an outage with no covering prices logs ERROR on its first cycle and raises no repair
+  ok   null control: a refused token fails the update although prices still cover now, and raises no price_feed_stale repair
+  ok   five HTTP-500 polls log exactly one ERROR - the latch owns the transition (#216)
+  ok   five HTTP-500 polls count five outage cycles, not ten (#216)
+  ok   recovery after five failures reports 'after 5 failed cycle(s)' once (#216)
+  ok   a failed first-refresh poll (zero-evidence install) logs one ERROR, once (#216)
+  ok   five connect-failure polls also log exactly one ERROR (#216)
+  ok   five connect-failure polls count five outage cycles (already single-counted)
+Tibber refused the token (HTTP 401); reauthentication started
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Authentication failed while fetching heatpump_optimizer data: Tibber refused the token (HTTP 401); reauthentication started
+Tibber refused the token (HTTP 403); reauthentication started
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Authentication failed while fetching heatpump_optimizer data: Tibber refused the token (HTTP 403); reauthentication started
+Tibber API error: 500
+Error fetching heatpump_optimizer data: Tibber API error: 500
+  ok   D10-s1-03: a steady refresh refused by Tibber (401/403) latches ConfigEntryAuthFailed with its translation and starts reauth; a 500 stays UpdateFailed with no reauth
+Tibber refused the token (HTTP 401); reauthentication started
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+  ok   D10-s1-03: a first refresh refused by Tibber raises ConfigEntryAuthFailed out of setup, not ConfigEntryNotReady
+  ok   async_shutdown runs the base class's shutdown (timer/debouncer leak)
+  ok   a spawned task is tracked until it lands
+  ok   shutdown lets a pending background save finish
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   an options save with an unchanged effective config reloads nothing
+  ok   the page-merge no-op (options rewritten, config identical) skips too
+  ok   a genuinely changed config reloads exactly once
+  ok   after the reload the same save skips again: the new coordinator holds the new config
+  ok   removing the coordinator comparison makes the no-op save reload (mutation)
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   unload stashes the last published payload for the next setup
+  ok   and the unloaded entry carries no coordinator any more
+  ok   setup always pops the handover — it never outlives one reload
+  ok   the base-class first refresh publishes the handed-over plan itself, fetch-free (#924)
+  ok   and the handover is single-use on the coordinator
+
+-- #236/#237/#240 — the coordinator's lifecycle seam
+/home/user/audit-r11-D3-s1/tests/features.py:30997: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  cb()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+  ok   1 ConfigEntryNotReady retries leak no listener or subscription, eager (HA 2024.3+) (#236)
+  ok   5 ConfigEntryNotReady retries leak no listener or subscription, eager (HA 2024.3+) (#236)
+  ok   1 ConfigEntryNotReady retries leak no listener or subscription, lazy (HA 2024.1) (#236)
+  ok   5 ConfigEntryNotReady retries leak no listener or subscription, lazy (HA 2024.1) (#236)
+  ok   a registration arriving after the entry's unload callbacks does not register at all (#236, the lazy-start arm)
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.

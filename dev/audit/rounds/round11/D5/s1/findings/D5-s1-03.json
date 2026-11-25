@@ -1,0 +1,34 @@
+{
+ "id": "D5-s1-03",
+ "scope": "D5-s1",
+ "step": "D5.M1",
+ "title": "how-it-works.md sends the reader to a 'Grid costs page' that does not exist",
+ "severity": "low",
+ "claim": "docs/how-it-works.md (The DSO transfer fee; Capacity (effekt) tariffs) twice says to configure fees and the tariff month/hour/weekday masks 'on the Grid costs page'. The options menu has no such page: the masks are on 'Grid peak tariff' and the transfer fee on 'Advanced settings -> Transfer fees and contract'. The same section also calls the whole-house meter a 'baseline load entity', while the field is labelled 'Whole-house power meter'. A feature reader following how-it-works cannot find the page by its name.",
+ "evidence": [
+  {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s1/page_names.py",
+   "harness_path": "dev/audit/rounds/round11/D5/s1/page_names.py",
+   "value": 1,
+   "unit": "pages (missing_pages; 2 references)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "orchestrator Mac (local seat B1), darwin",
+   "cpu_or_wall": "count",
+   "contention_note": "fan-out: other seats running concurrently; counts are contention-immune",
+   "tolerance": "exact",
+   "load1": 265.64,
+   "thread_factor": 1.0
+  }
+ ],
+ "instrumented_symbol": "custom_components/heatpump_optimizer/translations/en.json:options.step.{init,advanced}.menu_options (the menu labels the options flow renders)",
+ "perturbation": "--perturb renames the grid_fees menu label to 'Grid costs' in memory: missing_pages 1 -> 0 (executed).",
+ "metric_definition": "Distinct '<Name> page' references in docs/how-it-works.md whose Name is not an options-menu label.",
+ "phenomenon_property": "Every options page a reader doc names is named by its rendered menu label.",
+ "seam_rule": "grep -n -E '(on|in) the [A-Z][^.]* page' README.md docs/*.md",
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "files": [
+  "docs/how-it-works.md"
+ ],
+ "proposed_fix_scope": "Docs only: name 'Grid peak tariff' and 'Advanced settings -> Transfer fees and contract'; call the meter 'Whole-house power meter'."
+}

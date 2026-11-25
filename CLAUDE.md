@@ -11,7 +11,7 @@ file is.
 1. **The gate is scoped by measured dependency closures.** `GATE_SCOPE=auto`
    runs only the scripts your diff can reach, as measured in
    `tests/closures.json`. A push to `main` forces `full`: if a closure is ever
-   wrong, main goes red within one merge instead of never.
+   wrong, main goes red within one burst instead of never.
    **`MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both print zero and mean
    opposite things.** Key on the mode line, never the count — but that line
    only exists on a branch; a push to `main` prints none at all, because the
@@ -154,6 +154,7 @@ individually, never as a range:
 | `D15.md` | debugging run from a live diagnostics bundle |
 | `D16.md` | actuator writes, holds and releases against the plan |
 | `D17.md` | feature behaviour against its documented effect |
+| `DX0.md` | security and privacy, owner-only |
 
 Finder criteria (`owner_criteria`): `D4-criteria.md`,
 `D5-criteria.md`, `D9-criteria.md`, `D10-criteria.md`.

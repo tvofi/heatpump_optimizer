@@ -1,0 +1,15 @@
+{"class": "P1", "instances": 4, "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round11/D14/sweep-P1/enumerate_p1.py . --controls",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/quiet_windows.py", "symbol": "measured_ceiling_kw (line 388, CONF_COMPRESSOR_FREQ_MIN_HZ)", "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-P1/probe_option_floats.py", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/quiet_windows.py", "symbol": "measured_ceiling_kw (line 390, CONF_COMPRESSOR_FREQ_MAX_HZ)", "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-P1/probe_option_floats.py", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/topology.py", "symbol": "_slot_extras (manual_setpoint)", "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-P1/probe_option_floats.py", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/early_cutoff.py", "symbol": "arm (timedelta(minutes=cfg.optimization_interval), via EntryConfig.from_mapping)", "probe": "PYTHONPATH=tests/hastub:custom_components python3 dev/audit/rounds/round11/D14/sweep-P1/probe_interval_domain.py", "beyond_finding": true},
+  {"file": "custom_components/heatpump_optimizer/thermal_model.py", "symbol": "_tabled_values / _flow_curve_values / ThermalParameters.from_config", "probe": "dev/audit/rounds/round11/D1/s2/config_fuzz.py (D1-s2-05)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/comfort_band.py", "symbol": "effective", "probe": "dev/audit/rounds/round11/D1/s2/config_fuzz.py (D1-s2-05)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/boost.py", "symbol": "_restore_settle", "probe": "dev/audit/rounds/round11/D1/s2/boost_settle.py (D1-s2-06)", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/inputs.py", "symbol": "parse_bool", "probe": "D1-s3-01 harness", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_parse_ecl110_state", "probe": "D1-s3-02 harness", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/open_meteo.py", "symbol": "_parse_block", "probe": "D1-s3-03 harness", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/inputs.py", "symbol": "plausible_c (via InputReader.read)", "probe": "dev/audit/rounds/round11/D1/leads/plausible_upper.py (D1-s2-51)", "beyond_finding": false}
+ ]}

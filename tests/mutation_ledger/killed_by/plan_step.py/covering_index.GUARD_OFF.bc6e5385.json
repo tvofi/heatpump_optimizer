@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/plan_step.py:covering_index GUARD_OFF bc6e5385",
+  "killed_by": "tests/block_duty.py",
+  "old": "    if i < 0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=23."
+}

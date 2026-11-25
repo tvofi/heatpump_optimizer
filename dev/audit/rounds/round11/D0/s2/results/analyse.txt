@@ -1,0 +1,154 @@
+RESULT m4_examined=1220 cells  (errors 0, universe 1220)
+RESULT m4_gap_cells=186 cells
+RESULT m4_gap_max=9.4189 pct
+RESULT m5_cells_with_null=1220 cells
+RESULT m5_gap_cells_surviving_flat=52 cells
+RESULT m5_price_attributable_gap_cells=161 cells
+  price    winter_extreme               n= 305 gap>tol=  40 mean=0.0753 max=2.7218
+  price    winter_moderate              n= 305 gap>tol=  44 mean=0.0635 max=3.7805
+  price    winter_narrow                n= 305 gap>tol=  57 mean=0.0946 max=2.2168
+  price    winter_typical               n= 305 gap>tol=  45 mean=0.0939 max=9.4189
+  weather  coord                        n=  20 gap>tol=   0 mean=0.0014 max=0.0100
+  weather  shoulder                     n= 240 gap>tol=  52 mean=0.1739 max=9.4189
+  weather  summer_cool                  n= 240 gap>tol=  50 mean=0.1270 max=2.2168
+  weather  summer_warm                  n= 240 gap>tol=   0 mean=0.0000 max=0.0000
+  weather  winter_cold                  n= 240 gap>tol=  44 mean=0.0525 max=0.9989
+  weather  winter_mild                  n= 240 gap>tol=  40 mean=0.0624 max=1.7409
+  zones    coord                        n=  20 gap>tol=   0 mean=0.0014 max=0.0100
+  zones    single-zone                  n= 600 gap>tol=  76 mean=0.0574 max=1.6836
+  zones    two-zone                     n= 600 gap>tol= 110 mean=0.1089 max=9.4189
+  dhw      coord                        n=  20 gap>tol=   0 mean=0.0014 max=0.0100
+  dhw      dhw                          n= 600 gap>tol=  98 mean=0.0685 max=3.7805
+  dhw      no-dhw                       n= 600 gap>tol=  88 mean=0.0978 max=9.4189
+  plant    coord                        n=  20 gap>tol=   0 mean=0.0014 max=0.0100
+  plant    flow-setpoint-behind-valve   n= 240 gap>tol=  34 mean=0.0520 max=1.6836
+  plant    manual-valve-buffer          n= 240 gap>tol=  35 mean=0.0558 max=1.6836
+  plant    plain                        n= 240 gap>tol=  31 mean=0.0376 max=0.8799
+  plant    valve-storage                n= 240 gap>tol=  34 mean=0.0520 max=1.6836
+  plant    wood                         n= 240 gap>tol=  52 mean=0.2183 max=9.4189
+  horizon  24h                          n= 400 gap>tol=  58 mean=0.0873 max=9.4189
+  horizon  48h                          n= 400 gap>tol=  74 mean=0.0537 max=2.7218
+  horizon  6h                           n= 400 gap>tol=  54 mean=0.1084 max=2.0953
+  horizon  coord                        n=  20 gap>tol=   0 mean=0.0014 max=0.0100
+RESULT m4_plane_mean_gap_loo={"cells": 20, "min": 0.0, "max": 0.3034891338471974, "mean": 0.08316493717716383, "mean_drop_most_favourable": 0.07156892682610944}
+RESULT m5_price_gap_loo={"cells": 1220, "min": -8.320837117659256, "max": 9.418556609876518, "mean": 0.010564211770139845, "mean_drop_most_favourable": 0.0028464165296916326}
+  TOP winter_typical/shoulder/two-zone/no-dhw/wood/24h                       gap=9.419 flat=0.000 best=warm dE=-3.94SEK E=0.0 step0=False
+  TOP winter_moderate/shoulder/two-zone/dhw/wood/24h                         gap=3.780 flat=8.321 best=warm dE=-5.62SEK E=5.6 step0=False
+  TOP winter_extreme/shoulder/two-zone/no-dhw/wood/48h                       gap=2.722 flat=0.152 best=warm dE=0.63SEK E=7.3 step0=False
+  TOP winter_narrow/summer_cool/two-zone/no-dhw/wood/24h                     gap=2.217 flat=1.858 best=seeds dE=-4.35SEK E=0.0 step0=False
+  TOP winter_narrow/shoulder/two-zone/no-dhw/wood/6h                         gap=2.095 flat=2.588 best=seeds dE=0.18SEK E=4.1 step0=True
+  TOP winter_typical/shoulder/two-zone/no-dhw/wood/6h                        gap=1.989 flat=2.588 best=seeds dE=0.10SEK E=1.8 step0=True
+  TOP winter_extreme/summer_cool/two-zone/no-dhw/wood/24h                    gap=1.858 flat=1.858 best=seeds dE=-3.60SEK E=0.0 step0=False
+  TOP winter_typical/summer_cool/two-zone/no-dhw/wood/24h                    gap=1.835 flat=1.858 best=seeds dE=-2.83SEK E=0.0 step0=False
+  TOP winter_moderate/winter_mild/two-zone/no-dhw/wood/6h                    gap=1.741 flat=0.000 best=seeds dE=0.48SEK E=3.3 step0=False
+  TOP winter_narrow/summer_cool/single-zone/no-dhw/wood/6h                   gap=1.684 flat=0.044 best=warm dE=-0.73SEK E=3.0 step0=False
+  TOP winter_narrow/summer_cool/single-zone/no-dhw/manual-valve-buffer/6h    gap=1.684 flat=0.044 best=warm dE=-0.73SEK E=3.0 step0=False
+  TOP winter_narrow/summer_cool/single-zone/no-dhw/valve-storage/6h          gap=1.684 flat=0.044 best=warm dE=-0.73SEK E=3.0 step0=False
+  TOP winter_narrow/summer_cool/single-zone/no-dhw/flow-setpoint-behind-valve/6h gap=1.684 flat=0.044 best=warm dE=-0.73SEK E=3.0 step0=False
+  TOP winter_moderate/summer_cool/two-zone/no-dhw/wood/24h                   gap=1.639 flat=1.858 best=seeds dE=-3.15SEK E=0.0 step0=False
+  TOP winter_narrow/winter_mild/two-zone/dhw/wood/6h                         gap=1.564 flat=1.000 best=seeds dE=0.70SEK E=4.9 step0=True
+  TOP winter_narrow/winter_mild/two-zone/no-dhw/wood/6h                      gap=1.359 flat=0.000 best=warm dE=0.08SEK E=4.9 step0=False
+  TOP winter_moderate/winter_mild/two-zone/dhw/wood/6h                       gap=1.163 flat=1.000 best=seeds dE=0.03SEK E=2.9 step0=True
+  TOP winter_narrow/shoulder/two-zone/dhw/wood/48h                           gap=1.113 flat=2.055 best=warm dE=0.53SEK E=25.0 step0=False
+  TOP winter_moderate/shoulder/two-zone/dhw/wood/48h                         gap=1.056 flat=2.055 best=warm dE=-0.84SEK E=17.2 step0=False
+  TOP winter_extreme/summer_cool/single-zone/dhw/manual-valve-buffer/6h      gap=1.043 flat=0.072 best=seeds dE=-2.70SEK E=0.0 step0=False
+  TOP winter_extreme/summer_cool/single-zone/no-dhw/valve-storage/6h         gap=1.043 flat=0.044 best=seeds dE=-2.70SEK E=0.0 step0=False
+  TOP winter_extreme/summer_cool/single-zone/no-dhw/flow-setpoint-behind-valve/6h gap=1.043 flat=0.044 best=seeds dE=-2.70SEK E=0.0 step0=False
+  TOP winter_extreme/summer_cool/single-zone/no-dhw/wood/6h                  gap=1.043 flat=0.044 best=seeds dE=-2.70SEK E=0.0 step0=False
+  TOP winter_extreme/summer_cool/single-zone/dhw/valve-storage/6h            gap=1.043 flat=0.072 best=seeds dE=-2.70SEK E=0.0 step0=False
+  TOP winter_extreme/summer_cool/single-zone/dhw/wood/6h                     gap=1.043 flat=0.072 best=seeds dE=-2.70SEK E=0.0 step0=False
+RESULT fsp_cells=240 cells
+RESULT fsp_cells_never_above_min=2 cells
+RESULT fsp_above_min_share_mean=0.693 ratio
+RESULT mvb_pairs=240 cells
+RESULT mvb_identical_to_plain=54 cells
+RESULT mvb_l1_kwh_median=4.257 kWh
+RESULT m6_loops=73 loops (with realised gap 73)
+RESULT m6_realised_gap_positive=36 loops
+  M6 ('flat/winter_cold/two-zone/dhw/plain/48h', 1.0, 16, 1.0, 'cell') realised=-2.583011775310069 dE=-5.726656390779084 ddef=0.0 dstarts=0 err=
+  M6 ('flat/winter_cold/two-zone/dhw/wood/48h', 1.0, 16, 1.0, 'cell') realised=0.2587106768306848 dE=0.38765246830736544 ddef=0.0 dstarts=0 err=
+  M6 ('flat/winter_cold/two-zone/no-dhw/plain/48h', 1.0, 16, 1.0, 'cell') realised=2.2628556874442722 dE=4.678162093096091 ddef=0.0 dstarts=0 err=
+  M6 ('winter_extreme/shoulder/single-zone/no-dhw/plain/24h', 1.0, 16, 1.0, 'cell') realised=-0.14376037287429627 dE=0.24901882733059288 ddef=0.0 dstarts=0 err=
+  M6 ('winter_extreme/winter_cold/single-zone/dhw/flow-setpoint-behind-valve/24h', 1.0, 16, 1.0, 'cell') realised=0.19100267976378701 dE=0.3974049187797988 ddef=0.0 dstarts=1 err=
+  M6 ('winter_extreme/winter_cold/single-zone/dhw/manual-valve-buffer/24h', 1.0, 16, 1.0, 'cell') realised=0.19100267976378701 dE=0.3974049187797988 ddef=0.0 dstarts=1 err=
+  M6 ('winter_extreme/winter_cold/single-zone/dhw/valve-storage/24h', 1.0, 16, 1.0, 'cell') realised=0.19100267976378701 dE=0.3974049187797988 ddef=0.0 dstarts=1 err=
+  M6 ('winter_extreme/winter_cold/single-zone/dhw/wood/24h', 1.0, 16, 1.0, 'cell') realised=0.19100267976378701 dE=0.3974049187797988 ddef=0.0 dstarts=1 err=
+  M6 ('winter_extreme/winter_cold/two-zone/dhw/wood/24h', 1.0, 16, 1.0, 'cell') realised=0.14305752440412695 dE=-0.030750833461851812 ddef=2.9485701418252575e-05 dstarts=0 err=
+  M6 ('winter_extreme/winter_cold/two-zone/dhw/wood/48h', 1.0, 16, 1.0, 'cell') realised=0.5049153834897664 dE=-1.9083315727690717 ddef=2.32436286005111e-05 dstarts=0 err=
+  M6 ('winter_extreme/winter_cold/two-zone/dhw/wood/48h', 1.0, 16, 1.25, 'cell') realised=1.3889695903727155 dE=3.326344922454183 ddef=0.29190245589194674 dstarts=1 err=
+  M6 ('winter_extreme/winter_cold/two-zone/dhw/wood/48h', 2.0, 16, 1.0, 'cell') realised=0.5049153834897664 dE=0.6662605845338021 ddef=1.915625286841305e-05 dstarts=0 err=
+  M6 ('winter_extreme/winter_cold/two-zone/no-dhw/manual-valve-buffer/24h', 1.0, 16, 1.0, 'cell') realised=-0.9630934785490258 dE=-4.3664269550944255 ddef=0.0001497084168633478 dstarts=-2 err=
+  M6 ('winter_extreme/winter_mild/two-zone/dhw/manual-valve-buffer/24h', 1.0, 16, 1.0, 'cell') realised=0.6988924985614786 dE=-0.7357833860554024 ddef=-0.00323843620487807 dstarts=0 err=
+  M6 ('winter_extreme/winter_mild/two-zone/dhw/plain/24h', 1.0, 16, 1.0, 'cell') realised=-0.19961988531485142 dE=1.8678599603061343 ddef=0.47552816179351964 dstarts=0 err=
+  M6 ('winter_extreme/winter_mild/two-zone/dhw/plain/48h', 1.0, 16, 1.0, 'cell') realised=-0.27984364947067764 dE=2.69252644593643 ddef=0.08950876096554339 dstarts=-3 err=
+  M6 ('winter_extreme/winter_mild/two-zone/dhw/wood/48h', 1.0, 16, 1.0, 'cell') realised=0.7120605468471707 dE=-1.3476301647143991 ddef=0.0 dstarts=0 err=
+  M6 ('winter_extreme/winter_mild/two-zone/dhw/wood/6h', 1.0, 16, 1.0, 'cell') realised=-0.8325430245248641 dE=-2.700000000000003 ddef=-0.8240390142048355 dstarts=1 err=
+  M6 ('winter_extreme/winter_mild/two-zone/no-dhw/manual-valve-buffer/24h', 1.0, 16, 1.0, 'cell') realised=0.08702918011745761 dE=-0.08766438332132864 ddef=0.0 dstarts=0 err=
+  M6 ('winter_moderate/winter_cold/two-zone/dhw/flow-setpoint-behind-valve/48h', 1.0, 16, 1.0, 'cell') realised=-15.198495092600417 dE=-0.2925843697310313 ddef=2.3081242339628716e-06 dstarts=2 err=
+  M6 ('winter_moderate/winter_cold/two-zone/dhw/manual-valve-buffer/24h', 1.0, 16, 1.0, 'cell') realised=0.008270182299099543 dE=2.1776040821312534 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_moderate/winter_cold/two-zone/dhw/valve-storage/48h', 1.0, 16, 1.0, 'cell') realised=-15.198495092600417 dE=-0.2925843697310313 ddef=2.3081242339628716e-06 dstarts=2 err=
+  M6 ('winter_moderate/winter_cold/two-zone/dhw/wood/24h', 1.0, 16, 1.0, 'cell') realised=0.036798890438869726 dE=-1.0149551604766387 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_moderate/winter_cold/two-zone/dhw/wood/48h', 1.0, 16, 1.0, 'cell') realised=0.25781871148216423 dE=0.547248321266629 ddef=2.4549739912060886e-06 dstarts=1 err=
+  M6 ('winter_moderate/winter_cold/two-zone/dhw/wood/48h', 1.0, 16, 1.25, 'cell') realised=-0.735740465639453 dE=-0.9653816255888614 ddef=-3.102158814360685 dstarts=-1 err=
+  M6 ('winter_moderate/winter_cold/two-zone/dhw/wood/48h', 2.0, 16, 1.0, 'cell') realised=0.25781871148216423 dE=-0.7996916630113731 ddef=2.4549739912060886e-06 dstarts=1 err=
+  M6 ('winter_moderate/winter_cold/two-zone/no-dhw/flow-setpoint-behind-valve/24h', 1.0, 16, 1.0, 'cell') realised=-7.7595219891467195 dE=1.477203178634312 ddef=6.347920979976607e-07 dstarts=1 err=
+  M6 ('winter_moderate/winter_cold/two-zone/no-dhw/plain/24h', 1.0, 16, 1.0, 'cell') realised=0.47884171327804 dE=1.1254227386262983 ddef=-6.240293544124142e-07 dstarts=0 err=
+  M6 ('winter_moderate/winter_cold/two-zone/no-dhw/plain/48h', 1.0, 16, 1.0, 'cell') realised=0.9979154241858075 dE=1.8416059880555622 ddef=0.0 dstarts=0 err=
+  M6 ('winter_moderate/winter_cold/two-zone/no-dhw/plain/48h', 1.0, 16, 1.25, 'cell') realised=-2.617462704906835 dE=-2.89664596115945 ddef=-2.009095677811647 dstarts=-1 err=
+  M6 ('winter_moderate/winter_cold/two-zone/no-dhw/plain/48h', 2.0, 16, 1.0, 'cell') realised=0.9979154241858075 dE=1.842019327996212 ddef=0.0 dstarts=2 err=
+  M6 ('winter_moderate/winter_cold/two-zone/no-dhw/valve-storage/24h', 1.0, 16, 1.0, 'cell') realised=-7.7595219891467195 dE=1.477203178634312 ddef=6.347920979976607e-07 dstarts=1 err=
+  M6 ('winter_moderate/winter_mild/single-zone/no-dhw/plain/48h', 1.0, 16, 1.0, 'cell') realised=-0.10912956044559048 dE=0.5589057880197412 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_moderate/winter_mild/two-zone/dhw/plain/24h', 1.0, 16, 1.0, 'cell') realised=-0.22666162835628118 dE=-0.7455426738681616 ddef=0.0 dstarts=1 err=
+  M6 ('winter_moderate/winter_mild/two-zone/dhw/wood/6h', 1.0, 16, 1.0, 'cell') realised=2.25425237145633 dE=2.8499951058674533 ddef=0.8240195557090324 dstarts=-1 err=
+  M6 ('winter_moderate/winter_mild/two-zone/no-dhw/flow-setpoint-behind-valve/48h', 1.0, 16, 1.0, 'cell') realised=1.3157586842705904 dE=0.2930351767114274 ddef=0.0 dstarts=1 err=
+  M6 ('winter_moderate/winter_mild/two-zone/no-dhw/manual-valve-buffer/48h', 1.0, 16, 1.0, 'cell') realised=1.3157586842705904 dE=0.2930351767114274 ddef=0.0 dstarts=1 err=
+  M6 ('winter_moderate/winter_mild/two-zone/no-dhw/plain/24h', 1.0, 16, 1.0, 'cell') realised=0.4357314466011705 dE=-0.6293036187687306 ddef=-8.189298128513656e-08 dstarts=0 err=
+  M6 ('winter_moderate/winter_mild/two-zone/no-dhw/valve-storage/48h', 1.0, 16, 1.0, 'cell') realised=1.3157586842705904 dE=0.2930351767114274 ddef=0.0 dstarts=1 err=
+  M6 ('winter_narrow/shoulder/two-zone/no-dhw/wood/6h', 1.0, 16, 1.0, 'cell') realised=0.09412127093589513 dE=0.11768511836652351 ddef=0.0 dstarts=0 err=
+  M6 ('winter_narrow/winter_cold/single-zone/no-dhw/flow-setpoint-behind-valve/48h', 1.0, 16, 1.0, 'cell') realised=0.4030668902211883 dE=1.9792990779323958 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_narrow/winter_cold/single-zone/no-dhw/manual-valve-buffer/48h', 1.0, 16, 1.0, 'cell') realised=0.4030668902211883 dE=1.9792990779323958 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_narrow/winter_cold/single-zone/no-dhw/valve-storage/48h', 1.0, 16, 1.0, 'cell') realised=0.4030668902211883 dE=1.9792990779323958 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_narrow/winter_cold/single-zone/no-dhw/wood/48h', 1.0, 16, 1.0, 'cell') realised=0.4030668902211883 dE=1.9792990779323958 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_narrow/winter_cold/two-zone/dhw/flow-setpoint-behind-valve/24h', 1.0, 16, 1.0, 'cell') realised=-12.976421071815611 dE=0.9658046983060729 ddef=0.0 dstarts=0 err=
+  M6 ('winter_narrow/winter_cold/two-zone/dhw/manual-valve-buffer/24h', 1.0, 16, 1.0, 'cell') realised=0.6928744596794082 dE=-0.1279702809682135 ddef=0.0 dstarts=1 err=
+  M6 ('winter_narrow/winter_cold/two-zone/dhw/manual-valve-buffer/48h', 1.0, 16, 1.0, 'cell') realised=-0.1743332408095075 dE=-0.10502670735043296 ddef=0.0 dstarts=2 err=
+  M6 ('winter_narrow/winter_cold/two-zone/dhw/valve-storage/24h', 1.0, 16, 1.0, 'cell') realised=-12.976421071815611 dE=0.9658046983060729 ddef=0.0 dstarts=0 err=
+  M6 ('winter_narrow/winter_cold/two-zone/no-dhw/flow-setpoint-behind-valve/48h', 1.0, 16, 1.0, 'cell') realised=-11.814540318421713 dE=1.0048359233365431 ddef=0.0 dstarts=1 err=
+  M6 ('winter_narrow/winter_cold/two-zone/no-dhw/manual-valve-buffer/24h', 1.0, 16, 1.0, 'cell') realised=0.17690010005181397 dE=-0.2114857005695967 ddef=-0.0005239781376005226 dstarts=1 err=
+  M6 ('winter_narrow/winter_cold/two-zone/no-dhw/valve-storage/48h', 1.0, 16, 1.0, 'cell') realised=-11.814540318421713 dE=1.0048359233365431 ddef=0.0 dstarts=1 err=
+  M6 ('winter_narrow/winter_cold/two-zone/no-dhw/wood/24h', 1.0, 16, 1.0, 'cell') realised=-0.2130982027284372 dE=1.8607932482905838 ddef=0.0 dstarts=1 err=
+  M6 ('winter_narrow/winter_mild/two-zone/dhw/wood/6h', 1.0, 16, 1.0, 'cell') realised=-1.3220476346601269 dE=-2.095832297860496 ddef=-0.6744912267510692 dstarts=1 err=
+  M6 ('winter_typical/shoulder/two-zone/dhw/wood/6h', 1.0, 16, 1.0, 'cell') realised=0.020396782287097525 dE=0.025848583606331133 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/shoulder/two-zone/no-dhw/wood/6h', 1.0, 16, 1.0, 'cell') realised=0.052052874457402004 dE=0.06214909985781869 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/single-zone/dhw/flow-setpoint-behind-valve/24h', 1.0, 16, 1.0, 'cell') realised=-0.3637220850822801 dE=-1.1658137836634452 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/single-zone/dhw/manual-valve-buffer/24h', 1.0, 16, 1.0, 'cell') realised=-0.3637220850822801 dE=-1.1658137836634452 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/single-zone/dhw/valve-storage/24h', 1.0, 16, 1.0, 'cell') realised=-0.3637220850822801 dE=-1.1658137836634452 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/single-zone/dhw/wood/24h', 1.0, 16, 1.0, 'cell') realised=-0.3637220850822801 dE=-1.1658137836634452 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/flow-setpoint-behind-valve/24h', 1.0, 16, 1.0, 'cell') realised=-0.13235145667198983 dE=-3.0351372723028476 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/flow-setpoint-behind-valve/48h', 1.0, 16, 1.0, 'cell') realised=-0.7377888031590157 dE=-3.275603596231363 ddef=0.0 dstarts=1 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/manual-valve-buffer/48h', 1.0, 16, 1.0, 'cell') realised=-0.1967459303062599 dE=-1.82020241557548 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/plain/48h', 1.0, 8, 1.0, 'cell') realised=-0.218671005422244 dE=0.45125639855272937 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/plain/48h', 1.0, 8, 1.25, 'cell') realised=-0.13339383226709356 dE=0.566084825646044 ddef=0.13626242490566298 dstarts=1 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/plain/48h', 1.0, 16, 1.0, 'cell') realised=2.8234847630138806 dE=0.8745030008189474 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/plain/48h', 1.0, 16, 1.25, 'cell') realised=-0.35022404768053017 dE=-0.3385847473705468 ddef=0.6431736607361103 dstarts=-1 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/plain/48h', 2.0, 16, 1.0, 'cell') realised=2.8234847630138806 dE=1.8470579433811167 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/valve-storage/24h', 1.0, 16, 1.0, 'cell') realised=-0.13235145667198983 dE=-3.0351372723028476 ddef=0.0 dstarts=-1 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/valve-storage/48h', 1.0, 16, 1.0, 'cell') realised=-0.7377888031590157 dE=-3.275603596231363 ddef=0.0 dstarts=1 err=
+  M6 ('winter_typical/winter_cold/two-zone/dhw/wood/24h', 1.0, 16, 1.0, 'cell') realised=0.9476571146603513 dE=2.8939334999416175 ddef=0.0 dstarts=0 err=
+  M6 ('winter_typical/winter_cold/two-zone/no-dhw/wood/24h', 1.0, 16, 1.0, 'cell') realised=0.2816714168890228 dE=1.4863077618464935 ddef=-0.03363938630081975 dstarts=-2 err=
+  M6 ('winter_typical/winter_mild/two-zone/dhw/wood/6h', 1.0, 16, 1.0, 'cell') realised=0.5023231395530556 dE=-0.9299999999999988 ddef=-0.6867583703510896 dstarts=1 err=
+  M6 ('winter_typical/winter_mild/two-zone/no-dhw/plain/48h', 1.0, 16, 1.0, 'cell') realised=-0.4432733037814835 dE=1.3017484214219834 ddef=1.0829895191634336 dstarts=-3 err=
+RESULT fsp_plan_identical_to_valve_storage=240 of 240 pairs
+RESULT fsp_pairs_with_flat=185 cells
+RESULT fsp_above_min_share_cell_mean=0.693 ratio
+RESULT fsp_above_min_share_flat_mean=0.611 ratio
+RESULT mvb_nostore_cells=240 cells (errors 0)
+RESULT mvb_nostore_identical=54 cells
+RESULT mvb_nostore_identical_with_heat=0 of 184 cells
+RESULT mvb_nostore_l1_median=4.209 kWh
+RESULT m6_base_loops=63 loops
+RESULT m6_base_realised_gap_loo={"cells": 63, "min": -15.198495092600417, "max": 2.8234847630138806, "mean": -1.3544143015773884, "mean_drop_most_favourable": -1.4217997703611185}
+RESULT m6_base_realised_positive=31 loops
+RESULT m6_base_realised_negative=29 loops
+RESULT m6_base_realised_energy_sek_sum=2.427 SEK
+RESULT m4_not_reached=0 cells

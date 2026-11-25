@@ -1,0 +1,48 @@
+{
+  "id": "D7-s2-02",
+  "scope": "D7-s2",
+  "step": "D7.M2",
+  "title": "Sysid gate admits 11-21 % low UA on the configured free-heat prior; its sweep pins only the learned-profile arm",
+  "severity": "medium",
+  "claim": "On the production two-state fit with the configured free-heat prior (internal-gains learning off, the default), sysid.adoption_decision admits heavy_old at +0.8 kW unmodelled free heat (-11.5 % UA) and typical_slab at +0.5/+0.8 kW (-12.9 %/-21.1 %): 3 of 57 cells admitted outside the +-10 % bar, against 0 when the gate prices the free-heat width at 0.3 kW.",
+  "mechanism": "identify_slab ridges the intercept to gains_prior_kw with SLAB_INTERCEPT_PRIOR_SD_KW=0.1 and _slab_ua_prior_halfwidth widens the adoption interval by one prior width only; free heat several widths past the prior moves UA beyond the bar while the interval stays inside it. The design (tests/features.py R9-P5 note) answers this by seeding the prior from the learned internal-gains profile (night_gains_prior_kw), and its sweep asserts the property only with learned=True; but DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED is False, so a default install with sysid on always arms on the configured constant, the arm the property is not held to.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+    "value": 3,
+    "unit": "two-state fits admitted with |UA bias| > 10 %, of 57 cells (3 presets x 15 truth/noise cells; light_new refused at arm)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "count, contention-immune; deterministic at sigma 0, fixed seeds at sigma 0.01/0.02",
+    "tolerance": "exact",
+    "load1": 1.39,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:adoption_decision (on SystemIdentification.identify_slab via arm/step with the declared plant)",
+  "perturbation": {
+    "change": "--perturb: sysid.SLAB_INTERCEPT_PRIOR_SD_KW 0.1 -> 0.3 kW (one production constant, in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Cells whose production two-state fit adoption_decision admits while |fitted UA / true UA - 1| > expm1(UA_ADOPTION_HALFWIDTH_BAR) = 10 %.",
+  "phenomenon_property": "A night whose free heat differs from the prior the fit is told either adopts within the bar of the plant's own heat loss or is refused, on every prior the shipped configuration can produce (configured constant and learned profile alike).",
+  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py  # rows: every BUILDINGS preset x every told-quantity axis (slab mass, slab transfer, free heat) x noise",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py",
+    "value": "told cells (plant == declaration): heavy_old +0.65 %, typical_slab +0.78 %, both admitted; slab-pair cells (x0.33..x3) all within the bar or refused; gains-0.2 within the bar",
+    "note": "Liveness: the unperturbed nights still adopt, so the count is not a gate that refuses everything. Blended effect on the house heat-loss scale (weight x bias): heavy_old +0.8 kW -7.06 %, typical_slab +0.5 kW -1.64 %, +0.8 kW -0.66 %. First-order (identify, harness-only) completes on 0 of 57 cells, so it admits nothing."
+  },
+  "leave_one_out": {"cells": 8, "min": -0.2111, "max": 0.0622, "drop_most_favourable": -0.1287},
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py  # biased_admitted=3",
+    "... m2_sysid_plant.py --perturb  # biased_admitted=0"
+  ],
+  "proposed_fix_scope": "sysid.py: price the configured prior's own uncertainty when no learned night profile seeds it (a wider SLAB_INTERCEPT_PRIOR_SD_KW for the configured arm, or refuse/require the learned profile); tests/features.py R9-P5 sweep gains the learned=False arm",
+  "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "tests/features.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "P5"
+}

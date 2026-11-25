@@ -1,0 +1,14 @@
+RESULT file=tests/card.mjs mislocated=690
+RESULT file=tests/dom_stub.mjs mislocated=7
+RESULT file=tools/policy/agreement.mjs mislocated=49
+RESULT file=tools/policy/check-wave-script.mjs mislocated=59
+RESULT file=tools/policy/dependabot_contract.mjs mislocated=3
+RESULT file=tools/policy/policy_lint.mjs mislocated=353
+RESULT file=tools/policy/policy_lint_envmatrix.mjs mislocated=14
+RESULT comment_units=3099 count
+RESULT mislocated=1175 count
+RESULT py_comment_units=1200 count
+RESULT py_mislocated=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.60
+RESULT swapins=0

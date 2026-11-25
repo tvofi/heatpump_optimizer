@@ -1,0 +1,32 @@
+{
+ "class": "P5",
+ "instances": 2,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P5/enumerate.py [--null | --perturb]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "slab_ua_adoption_halfwidth",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D2/s3/m5_sysid.py -> miss rate 0.214 (6 of 28) at 0.02 C, 1.000 at 0.05 C (D2-s3-10)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "_slab_ua_prior_halfwidth",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D7/s2/m2_sysid_plant.py -> biased_admitted=3 (D7-s2-02); sweep enumerate.py house.gains +0.8 kW -> 2 past bar, worst 0.2111",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "SystemIdentification.step[cop]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P5/probe_told.py -> exit 1; COP x0.85 2/2 admitted past the 10 % bar (worst 0.2027), x1.10 1 (0.1027), x1.15 1 (0.1285); --null 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "SystemIdentification.step[outdoor_temp]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D14/sweep-P5/probe_told.py -> exit 1; outdoor sensor +2.5 K 2/2 admitted past the bar (worst 0.1410), +1.5 K 2 interval misses; --null 0",
+   "beyond_finding": true
+  }
+ ]
+}

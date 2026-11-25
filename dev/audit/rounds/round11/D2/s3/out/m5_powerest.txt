@@ -1,0 +1,9 @@
+CELL power-entity-own-estimate power_source=metered measured_cop_records=200 health_observations=200 capacity_envelope_folds=200 cop_scale_moved=0.6 refusals=0 cop_measured=True
+CELL power-entity-own-estimate power_source=pump_estimate measured_cop_records=0 health_observations=0 capacity_envelope_folds=200 cop_scale_moved=0.6 refusals=0 cop_measured=False
+RESULT estimate_measured_cop_records=0 count
+RESULT estimate_health_observations=0 count
+RESULT estimate_capacity_envelope_folds=200 count
+RESULT estimate_cop_scale_moved=0.6 ratio
+RESULT thread_factor=1.0000
+RESULT load1=2.93
+RESULT swapins=0

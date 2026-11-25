@@ -1,0 +1,48 @@
+{
+  "id": "D7-s2-01",
+  "scope": "D7-s2",
+  "step": "D7.M3",
+  "title": "Away is no learner freeze: internal gains, DHW draw statistics and comfort quiet evidence ingest away intervals",
+  "severity": "medium",
+  "claim": "With _away_state.active, three occupancy-borne learners (internal_gains, dhw_draws, comfort) still fold the interval, while the curve learner, the one learner that gates away, takes nothing; 3 of 21 persisted learners x 5 freeze signals are contaminated ingests, and a 14-day absence leaves the internal-gains profile at 0.69 g0 (half the free heat occupant-borne) and 14 of the 40 per-window DHW occurrences as empty-house draws.",
+  "mechanism": "HeatPumpOptimizerCoordinator._learning_frozen answers external heat, pump freeze_reason, defrost, unusable inputs, ventilation, boost and tail freezes, but not away; only _track_curve_comfort checks _away_state itself (its comment: a vacation would read as a comfort miss). _fold_internal_gains (inside _async_learn_house_heat_loss), DhwProfileLearner.async_fold_draw_stats (closes a near-zero occurrence per window per away day) and _record_quiet_comfort_period consult _learning_frozen or nothing, so the absence's missing occupants' heat and draws are learned as the household's normal and applied after return.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+    "harness_path": "dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py",
+    "value": 3,
+    "unit": "contaminated (learner, signal) ingests of 105 cells",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B5, round-11 finder container, CPython 3.14, numpy 2.5.4, scipy 1.18.1",
+    "cpu_or_wall": "count",
+    "contention_note": "count, contention-immune; box shared with up to two other seats",
+    "tolerance": "exact",
+    "load1": 1.33,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._learning_frozen (drives _async_learn_house_heat_loss/_fold_internal_gains, DhwProfileLearner.async_learn_dynamics/async_fold_draw_stats, _record_quiet_comfort_period; key: _learner_snapshot_payloads)",
+  "perturbation": {
+    "change": "--perturb: _learning_frozen returns \"away\" while _away_state.active (one-line production edit, applied in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Count of (learner, signal) cells where a driven sequence with the signal set changes the learner's persisted payload and the signal falsifies that learner's sample; null arm must ingest.",
+  "phenomenon_property": "No learner whose sample carries occupancy (free heat, hot-water draws, the absence of complaints) folds an interval during which the house is away; the away freeze is decided once, in the shared freeze predicate, not per learner.",
+  "seam_rule": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/enum_m3.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_away_drift.py --perturb",
+    "value": "gains_profile_mean_over_g0=1.0000 at 50 % and 100 % absent; dhw empty-house occurrences 0 of 26 per window; comfort weight ratio 1.0000",
+    "note": "Consequence harness m3_away_drift.py at baseline: gains profile mean 0.6898 g0 (50 % of free heat occupant-borne) / 0.3796 g0 (100 %) after 14 away days; DHW empty-house occurrences 14/40 per window at 14 d (p90 unchanged 2.066/2.079 kWh) and 28/40 at 28 d (p90 1.832/1.821 kWh, -11 %/-12 %); comfort weight unchanged 1.0000 on a REAL away plan (span 4.90 K, not flat), so the comfort cell is ingestion without measured consequence in this configuration. Home null arm: comfort weight 1.0000."
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_learner_freeze.py  # contaminated_ingest=3",
+    "... m3_learner_freeze.py --perturb  # contaminated_ingest=0",
+    "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D7/s2/m3_away_drift.py  # consequence sizes"
+  ],
+  "proposed_fix_scope": "coordinator.py _learning_frozen (an away reason, room_air-scoped so tank standby and compressor curves keep learning) or an occupancy predicate the three seams share; drop the curve learner's private away check onto it",
+  "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "N-confounded-learner"
+}

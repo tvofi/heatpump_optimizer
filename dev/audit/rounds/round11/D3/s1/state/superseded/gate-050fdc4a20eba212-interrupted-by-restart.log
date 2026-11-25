@@ -1,0 +1,301 @@
+
+########## environment ##########
+  python   3.14.7 (linux)
+  cpu      Intel(R) Xeon(R) Processor @ 2.30GHz
+  blas     Haswell
+  stack    numpy 2.5.4, scipy 1.18.1
+
+########## python3 tests/env_drift.py --claims-only 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ##########
+claims hygiene: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ok
+
+########## python3 tests/closure.py selftest ##########
+  SLOT: tests/closure.py joins a heavy slot as run.sh-4611
+
+=== closure shrink guard (#527) ===
+  ok   card_drift.mjs's committed closure covers plan_view.py
+  ok   the 6-file raw trace is a strict subset of that claim
+  ok   a full merge does not drop files from card_drift.mjs
+  ok   a full merge writes the _comment's stub-seconds disclosure
+  ok   a shrinking script does not abort an unrelated grow
+  ok   the shrink path does not tell you to run a full derive
+  ok   a grow-only partial merge still grows (null control)
+  ok   a partial merge refreshes a stale _comment
+  ok   card_drift.mjs inherits plan_view.py's closure the way card.mjs does
+  ok   a broken-recording refusal names the command that takes the flag
+  ok   a stale-closure refusal names --single, not a bare full derive
+  ok   a refused merge surfaces merge()'s reason, not just skip-merge-failed
+  ok   and a merge that succeeds carries no merge reason (null control)
+  ok   a warm __pycache__ .pyc open attributes the source it was compiled from
+  ok   the #1309 instance maps: governance_cost's cache attributes its source
+  ok   a cache whose source is gone attributes nothing (null control)
+  ok   the cold path is unchanged (control)
+  ok   the header corpus is the six-part path under dev/audit/rounds
+  ok   merge drops a committed entry whose path does not exist (#1310)
+  ok   merge still keeps a committed REAL file the run did not touch (#527 null control)
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check passes on the same table once the phantom is gone (#1310 null control)
+  ok   check fails on a phantom in the committed inert_reads (R9-RO-10)
+  ok   prune drops committed phantom entries (#1310)
+  ok   prune keeps a closures key whose every entry was a phantom, empty: select reads a missing key as no closure recorded (R9-RO-9a)
+  ok   prune drops dead inert_reads entries, and a key left with none (R9-RO-10)
+  ok   prune is idempotent (#1310 null control)
+  ok   a partial merge keeps committed inert_reads the run cannot see (#1886)
+  ok   a recording that saw other inert reads grows, never swaps (#1886 grow arm)
+  ok   a full merge keeps committed inert_reads the run cannot see (#1886)
+  ok   the #1886 sequence stays green: Darwin merge, then Linux check
+
+=== coverage reuses only what the scoped gate skips (#1812) ===
+  ok   a FULL plan measures every script, base data or not
+  ok   a plan of no known mode measures every script
+  ok   scoped: only a skipped script with base data is reused
+  ok   scoped, cache miss: nothing is reused
+  ok   coverage-split reads .coverage.<n> and <n>.nodata as base data
+  ok   a push diff no closure mentions selects a FULL plan
+  ok   the FULL plan reuses nothing from a fully populated base
+  ok   a FULL plan measures even the script its own skip names
+  ok   the push marker at the expected base is trusted
+  ok   a non-push run's marker is discarded: reuse never engages from a non-push run
+  ok   a push marker naming another commit is discarded
+  ok   a missing marker is a discard, never a trust
+  ok   coverage-trust exits 0 only on the trusted marker
+  ok   the summary line states the reuse count and the backstop loss
+  ok   a run that reused nothing says so
+  ok   the push arm restores through the same key formula
+  ok   the push arm's plan comes from select at the restored base
+  ok   the coverage job states the reuse count in its summary
+  ok   coverage_tree.sh provenances every entry it leaves in per/
+
+=== a recording's rc says whether it ended, and the log says it (#1987) ===
+  ok   record() runs the script with HPO_CLOSURE_RECORDING=1, the flag stress.py keys its timing verdicts on
+  ok   stress.py reads the same variable name
+  ok   harness_headers.py reads the same variable name (its CPU-headroom grade)
+  ok   derive_closures.sh's done line reports a recording's exit 3
+  ok   derive_closures.sh's done line reports a recording's exit 0
+
+=== a layout git merges without a driver (R9-CI-2b) ===
+  ok   within-band: the partial merge succeeds
+  ok   a timing re-recorded within 2x keeps the committed seconds
+  ok   outside-band: the partial merge succeeds
+  ok   a timing re-recorded outside 2x takes the new seconds
+  ok   ours: the partial merge succeeds
+  ok   theirs: the partial merge succeeds
+  ok   two branches re-timing one script merge with no driver
+  ok   legacy: the partial merge succeeds
+  ok   a merge writes sorted keys and sorted lists
+  ok   layout_errors names an unsorted list and unsorted keys
+  ok   check passes a sorted table
+  ok   check refuses an unsorted table
+  ok   check passes write_closures' own text (null control)
+  ok   check refuses a recorded entry as {seconds, rc}
+  ok   check refuses top-level keys unsorted
+  ok   check refuses indent 2
+  ok   the committed tests/closures.json is in the layout
+
+=== the batch proof's recordings fail closed (round-9 C2) ===
+  ok   proof-consume accepts recordings whose manifest names this tree
+  ok   proof-consume refuses a manifest naming ANOTHER tree
+  ok   proof-consume refuses no manifest at all
+  ok   proof-consume refuses an artifact with no recordings
+  ok   proof-consume refuses an unhealthy recording
+  ok   proof-consume refuses a set missing selectable scripts
+[... 13493 lines trimmed; full log in the box's handoff ref handoff/audit-r11-find-D3-top6 at fdd9e2d827a9 ...]
+  ok   guard self-test: a file in two categories: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a file citation inside an emptied directory, counted once: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file under a planned move: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file re-added at a landed path: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a move landed, a citation left: {'new-reference': 0, 'unswept': 1, 'placement': 0}
+  ok   guard self-test: a move landed and swept: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a ref namespace's name is not a citation of its emptied parent: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of the moved tree under a ref namespace is still swept: {'new-reference': 1, 'unswept': 1, 'placement': 0}
+  ok   gitignore self-test: rule 'config/': 2 finding(s), want 2
+  ok   gitignore self-test: rule '/config/': 0 finding(s), want 0
+layout self-test: ok
+
+########## python3 tests/deployment_shape.py ##########
+
+=== deployment shape: an installation's layout and module name (#513) ===
+
+-- the shape
+  ok   the tracked package materialised
+  ok   there is no tests/ sibling, so _worker_env takes production's branch
+  ok   the Home Assistant stub cannot make the package under test resolvable
+
+-- what the parent built for the child
+  ok   _worker_env ran against the deployment layout, not this checkout
+  ok   and so added no tests/ or stub directory
+  ok   the integration under test came from the temporary tree
+  ok   no inherited path can resolve the package, so the child has only what _worker_env gave it
+
+-- the process-worker round trip
+  ok   the round trip reached a second interpreter
+
+-- every object shipped to the worker is importable there
+  ok   the worker seams were enumerated from the source
+  ok   every worker call site resolved to an object
+  ok   coordinator.py:2165 step_detached -> the child imports custom_components
+  ok   coordinator.py:2165 step_detached -> and resolved it from the deployment tree
+  ok   coordinator.py:1079 _replay_step -> the child imports custom_components
+  ok   coordinator.py:1079 _replay_step -> and resolved it from the deployment tree
+  ok   coordinator.py:2205 topology.rank_sensor_advisor -> the child imports custom_components
+  ok   coordinator.py:2205 topology.rank_sensor_advisor -> and resolved it from the deployment tree
+  ok   coordinator.py:2318 optimize_in_process -> the child imports custom_components
+  ok   coordinator.py:2318 optimize_in_process -> and resolved it from the deployment tree
+  ok   coordinator.py:10672 diagnosis.diagnose_record -> the child imports custom_components
+  ok   coordinator.py:10672 diagnosis.diagnose_record -> and resolved it from the deployment tree
+  ok   coordinator.py:2183 away_mode.estimate_recovery_hours -> the child imports custom_components
+  ok   coordinator.py:2183 away_mode.estimate_recovery_hours -> and resolved it from the deployment tree
+  ok   coordinator.py:11242 optimize_in_process -> the child imports custom_components
+  ok   coordinator.py:11242 optimize_in_process -> and resolved it from the deployment tree
+
+-- nothing runs only in a child interpreter unwatched
+  ok   the package names at least one script it runs by path
+  ok   every module the package runs by path is exercised here
+
+ALL DEPLOYMENT SHAPE CHECKS PASSED
+
+SKIP: tests/golden.py (GOLDEN_MODE=drift checks fixtures via env_drift.py instead)
+
+########## python3 tests/env_drift.py --all 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ##########
+==========================================================================
+DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
+  key       0c50b660f051cc5d4a76025dabf338b8001425d1e5d6fe7f31847613d3177c6d
+  entry     /root/.cache/heatpump_optimizer/drift-baseline/0c50b660f051cc5d4a76025dabf338b8001425d1e5d6fe7f31847613d3177c6d.json
+  ref       92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -> 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+  tree      4e586eeeffb18109c5d3555bac2fb1c1d3b35bc2
+  mode      all
+  captured  15.6 h ago
+  key covers:
+    baseline_commit  fcfc50d122e7
+    baseline_tree    c82f79ffba0d
+    cache_format     391552c099c1
+    driver_sha256    b1cf91aa5f06
+    environment      745e68e0ca48
+    interpreter      2c0d5a52c59a
+    mode             5cf7504d9781
+    numeric_probe    554d2f4cd907
+    numpy_build      7d455919a5ef
+    packages         8ed25f7e2f3a
+    platform         2654fd167e03
+    sensitive        541346c5f2b4
+  bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch
+==========================================================================
+  captured 56 scenarios from branch
+  reused   56 scenarios for baseline from cache key 0c50b660f051cc5d (see the banner above)
+
+########## committed fixtures: staleness (#347) ##########
+  56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
+
+  values (reported, never failed): 55 fixture(s), 34445 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  ok    away_setback is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    building_preset is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    capacity_curve is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    capacity_tariff is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift capacity_tariff_15min: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    confidence_margins is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    config_flow is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    cool_rainy_summer is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    coord_all_features is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    coord_dhw is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    coord_grid_fee is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    coord_minimal is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    coord_two_zone is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    cop_scale_learned is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    cycling_cost is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    dhw_cold_tank is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    dhw_large_tank is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    dhw_learned_windows is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    dhw_schedule_off is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift direct_flow_carnot: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened)
+  ok    everything_on is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    external_heat_active is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    extreme_prices is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift flat_prices: did not move here (#1208 polish-every-candidate, owner ruling #1208 comment 208bed25)
+  may-drift fuse_guard: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    horizon_48h is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    horizon_6h is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    legionella_due is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    legionella_due_low_setpoint is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    legionella_off is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    mild_windy_rain is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift narrow_band: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    negative_prices is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    peak_masked is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift precip_snow: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    price_risk is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift shoulder: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  may-drift shoulder_two_zone: did not move here (#1208 polish-every-candidate, third name)
+  ok    start_above_band is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    start_below_band is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    summer_dhw_only is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift tariff_plus_two_zone: did not move here (#1207 keep-gate (2e-2 -> 2e-5),)
+  may-drift valve_storage: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to)
+  ok    valve_storage_flat_prices is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    valve_storage_low_target is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    valve_storage_small_tank is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift valve_storage_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift valve_upper_direct_slab: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  ok    wide_band is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    winter_single_dhw is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  ok    winter_single_no_dhw is byte-identical to 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 here
+  may-drift winter_two_zone_dhw: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  may-drift winter_two_zone_no_dhw: did not move here (#1208 polish-every-candidate, owner)
+  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+
+########## python3 tests/arch_score.py ##########
+  SLOT: tests/arch_score.py joins a heavy slot as run.sh-4611
+
+=== architecture score calibration (R9-EG-A1) ===
+  ok   weights.json is the frozen file
+  ok   weights.sha256 names the frozen file
+  ok   arch-score gate: an admissible change passes without a section
+  ok   arch-score gate: a rise with no section fails
+  ok   arch-score gate: a rise explained on its own line passes
+  ok   arch-score gate: a section naming another metric fails
+  ok   arch-score gate: a line naming the metric with no reason fails
+  ok   arch-score gate: an explanation under another heading fails
+  ok   arch-score gate: a metric whose name prefixes another is not explained by it
+  ok   arch-score gate: two rises need two explanations
+  ok   the plant is real: git archive drops the export-ignore'd module (control)
+  ok   score.tree_of extracts the module the head's .gitattributes marks export-ignore
+  ok   a symlink under custom_components/ is refused by name, not skipped (plant 5)
+  ok   the gate turns that refusal into a named FAIL and rc 1, not a traceback
+  ok   arch-score.yml: a head edit to tests/structure.py is not what the gate loads (the #2068 plant)
+  ok   the #2068 plant's base worktree lands in its own RUNNER_TEMP, not the caller's
+  ok   and a base with no gate.py is the adoption: the head's copy runs once (null control)
+  ok   hub census: a rebind onto a collaborator's attribute reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: a rebind through a local the hub is rebound to reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: a zero-argument reader method reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: a package function's returned value reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: a zero-argument lambda reader handed to a constructor reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: an event callback handed to Home Assistant reads 1 site(s), and 0 with C15 and C16 off
+  ok   hub census: null: a reader returning a collaborator, not a hub reads 0 site(s), and 0 with C15 and C16 off
+  ok   hub census: null: a callback handed to a package function reads 0 site(s), and 0 with C15 and C16 off
+  ok   hub census: a callback a package function returns into a Home Assistant subscription (C16b) reads 1 site(s), and 0 with C15 and C16 off
+  ok   card_rule_copies: the rule's owner alone is no copy
+  ok   card_rule_copies: the rule respelled inline at a second site reads both sites
+  ok   card_rule_copies: a rule whose owner is a top-level expression-bodied arrow reads both sites
+  ok   card_clone_copies: the 20-token window cannot see that respelling (why C24 exists)
+  ok   card_rule_copies null: a test of one value against other strings reads nothing
+  ok   card_rule_copies null: a chain over two values reads nothing
+  ok   card_rule_copies null: a statement with no chain reads nothing
+  ok   card_rule_copies: a template rule's owner alone is no copy
+  ok   card_rule_copies: a template rule respelled inline at a second site reads both sites
+  ok   card_rule_copies null: an unrelated template of one value reads nothing
+  ok   card_rule_copies null: the same template over two values reads nothing
+  ok   card_rule_copies null: markup drawn again reads nothing
+
+=== architecture score calibration (R9-EG-A1) ===
+
+=== architecture score calibration (R9-EG-A1) ===
+
+=== architecture score calibration (R9-EG-A1) ===
+
+=== architecture score calibration (R9-EG-A1) ===

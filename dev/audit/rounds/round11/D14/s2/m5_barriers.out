@@ -1,0 +1,72 @@
+CLASS I1 status=barriered state=ci named=1 present=1 wired=tests/mutation_table.py unwired=-
+CLASS I2 status=barriered state=ci named=1 present=1 wired=tests/closure.py unwired=-
+CLASS I3 status=barriered state=ci named=4 present=4 wired=tests/entities.py,tools/policy/field_coverage.mjs,tools/policy/policy_lint.mjs,tools/release/stamp.py unwired=-
+CLASS I4 status=barriered state=ci named=5 present=5 wired=tests/entities.py,tools/audit/seat/merge_train.py,tools/policy/agreement.mjs,tools/policy/agreement_py.py,tools/policy/policy_lint.mjs unwired=-
+CLASS I5 status=barriered state=ci named=2 present=2 wired=tests/doc_claims.py unwired=tools/audit/prose_counts_census.py
+CLASS N-approval-rebuy status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-body-lint-bounce status=barriered state=ci named=5 present=5 wired=tests/entities.py,tools/audit/carry_audit.py,tools/audit/seat/body_push.sh,tools/policy/policy_lint.mjs,tools/pr/prepr.sh unwired=-
+CLASS N-confounded-learner status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-dispatch-overreach status=open state=offline named=1 present=1 wired=- unwired=dev/audit/harnesses/r10_rca_flush_dispatch.py
+CLASS N-finally-return status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-future-clamp status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-future-instant status=barriered state=ci named=1 present=1 wired=tests/finite_boundary.py unwired=-
+CLASS N-gate-yield status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-leaf-imports-solver status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-livehead-operator-cancel status=detector state=offline named=1 present=1 wired=- unwired=dev/audit/harnesses/livehead_cancels.py
+CLASS N-log-flood status=barriered state=ci named=1 present=1 wired=tests/entities.py unwired=-
+CLASS N-move-stale-path status=barriered state=ci named=2 present=2 wired=tests/entities.py,tools/audit/seat/moved_paths.py unwired=-
+CLASS N-name-sort status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-no-expiry status=barriered state=ci named=1 present=1 wired=tests/entities.py unwired=-
+CLASS N-order-coupling status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-orphaned-handoff status=prototype-only state=none named=0 present=0 wired=- unwired=-
+CLASS N-p2b-assembly-reader status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-period-rollover status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-postreview-merge-red status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-provisional-gate-red-read-final status=barriered state=ci named=2 present=2 wired=tools/audit/seat/merge_pr.sh,tools/audit/seat/merge_train.py unwired=-
+CLASS N-reap-lock status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-registry-leak status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-relay-handoff-starvation status=detector state=offline named=1 present=1 wired=- unwired=dev/audit/rca/relay_handoff_lag.py
+CLASS N-restart status=barriered state=ci named=1 present=1 wired=tests/features.py unwired=-
+CLASS N-restore-race status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-shared-config status=barriered state=ci named=4 present=4 wired=tests/arch_score_head.py,tests/entities.py,tests/features.py unwired=tools/audit/archscore/metrics/hub_solve_writes.py
+CLASS N-silent-stop status=detector state=ci named=3 present=3 wired=tools/audit/seat/bus.sh,tools/audit/seat/pulse.py unwired=dev/audit/harnesses/pulse_replay.py
+CLASS N-silent-zero status=barriered state=ci named=3 present=3 wired=tests/structure.py,tools/policy/agreement.mjs,tools/policy/field_coverage.mjs unwired=-
+CLASS N-solve-recompute status=barriered state=ci named=1 present=1 wired=tests/stress.py unwired=-
+CLASS N-staleness status=barriered state=ci named=2 present=2 wired=custom_components/heatpump_optimizer/inputs.py,tests/features.py unwired=-
+CLASS N-stamp-claim-conflict status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-step-grid status=open state=none named=0 present=0 wired=- unwired=-
+CLASS N-structure-blind status=barriered state=ci named=3 present=3 wired=custom_components/heatpump_optimizer/coordinator.py,tests/structure.py,tools/policy/field_coverage.mjs unwired=-
+CLASS N-train-only-predicate status=barriered state=ci named=5 present=5 wired=tools/audit/seat/body_patch.sh,tools/audit/seat/body_push.sh,tools/policy/budget_raise_gate.py,tools/policy/policy_lint.mjs,tools/pr/prepr.sh unwired=-
+CLASS N-unmetered-reference status=detector state=offline named=1 present=1 wired=- unwired=dev/audit/harnesses/r10_rca_sav_estimate.py
+CLASS N-vocabulary-drift status=barriered state=ci named=5 present=5 wired=tools/audit/seat/r10_roster_ops_mutants.py,tools/audit/seat/roster_edit.py,tools/audit/seat/roster_lib.py,tools/audit/seat/roster_sync.py unwired=tools/audit/seat/r10_roster_sync_mutants.py
+CLASS P1 status=barriered state=ci named=1 present=1 wired=tests/finite_boundary.py unwired=-
+CLASS P10 status=open state=none named=0 present=0 wired=- unwired=-
+CLASS P11 status=barriered state=ci named=3 present=3 wired=tests/entities.py,tests/ha_contract.py,tests/ha_floor.py unwired=-
+CLASS P2 status=barriered state=ci named=1 present=1 wired=tests/entities.py unwired=-
+CLASS P3 status=barriered state=ci named=1 present=1 wired=tests/features.py unwired=-
+CLASS P4 status=detector state=ci named=1 present=1 wired=tests/optimality.py unwired=-
+CLASS P5 status=barriered state=ci named=2 present=2 wired=custom_components/heatpump_optimizer/coordinator.py,tests/features.py unwired=-
+CLASS P6 status=barriered state=ci named=1 present=1 wired=tests/entities.py unwired=-
+CLASS P7 status=barriered state=ci named=2 present=2 wired=tests/dst_checks.py,tests/features.py unwired=-
+CLASS P8 status=open state=none named=0 present=0 wired=- unwired=-
+CLASS P9 status=barriered state=ci named=3 present=3 wired=tests/card.mjs,tests/card_browser.mjs,tests/plan_view.py unwired=-
+CLASS R10-SELFTEST-RED-INTRODUCED status=barriered state=ci named=3 present=3 wired=tools/audit/seat/bus.sh,tools/audit/seat/merge_train.py,tools/audit/seat/review_packet.py unwired=-
+CLASS R10-SELFTEST-TABLE-SHRINK status=barriered state=ci named=2 present=2 wired=tools/ci/selftest_scope.py,tools/ci/selftest_scope_mutants.sh unwired=-
+CLASS R10-TOPIC-FAMILY status=barriered state=ci named=4 present=4 wired=tools/audit/seat/cloud_relay.sh,tools/audit/seat/open_driver.py,tools/audit/seat/roster_sync.py,tools/audit/seat/topic_grammar.py unwired=-
+CLASS R9-ROW-STALE status=barriered state=ci named=2 present=2 wired=tests/delivery_status.py,tools/audit/seat/record_row.py unwired=-
+RESULT classes=56
+RESULT open_ci=0
+RESULT open_offline=1
+RESULT open_none=18
+RESULT prototype_only_ci=0
+RESULT prototype_only_offline=0
+RESULT prototype_only_none=1
+RESULT detector_ci=2
+RESULT detector_offline=3
+RESULT detector_none=0
+RESULT barriered_ci=31
+RESULT barriered_offline=0
+RESULT barriered_none=0
+RESULT thread_factor=1.000
+RESULT load1=7.59
+RESULT swapins=0

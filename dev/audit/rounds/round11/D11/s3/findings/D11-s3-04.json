@@ -1,0 +1,46 @@
+{
+  "id": "D11-s3-04",
+  "scope": "D11-s3",
+  "step": "D11.M4",
+  "title": "prepr.sh --self-test never drives main-flow step 5: `no version edit` wired to 0 still gives 553 passed, 0 failed",
+  "severity": "medium",
+  "claim": "Replacing the main flow's `step \"no version edit\" $? \"$STAMPED\"` in tools/pr/prepr.sh with `step \"no version edit\" 0 \"$STAMPED\"` (prepr then reports ok on a branch that moves VERSION, the manifest version or a notes heading) leaves tools/pr/prepr.sh --self-test at 553 passed, 0 failed, identical to the unedited null arm, while gutting the version_edit() function it calls kills 9 cases.",
+  "mechanism": "The self-test drives version_edit() through `ve`/`veco` and the `--version-edit` entry point pr-contract runs (exiting before the main flow), but no case runs the main flow over a VERSION-moving branch and reads step 5's verdict; the step's own comment calls it the cheaper detector for the same refusal, so its wiring has no live control. The refusal still exists later (pr-contract's --version-edit, the pre-edit hook, the stamp), which bounds the consequence to a slower detection.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/prepr_arms.py",
+    "harness_path": "dev/audit/rounds/round11/D11/s3/prepr_arms.py",
+    "value": 0,
+    "unit": "self-test failures under step5_wiring_gutted (null 0; version_edit_gutted 9); mutants_killed=1 of 2",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B7, 4 vCPU container",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, other seats running; the tally is a count and contention-immune. thread_factor 1.358 is the residual over about 0.3 s of the harness's own CPU (the arms are subprocesses on deliberate worker threads, whose 0.087 s is subtracted); no BLAS is loaded and no timing is reported",
+    "tolerance": "exact",
+    "load1": 3.59,
+    "thread_factor": 1.358
+  },
+  "instrumented_symbol": "tools/pr/prepr.sh:step (the main flow's step 5 call site) and its --self-test",
+  "perturbation": {
+    "change": "the harness's two arms are the one-line production edits: step5_wiring_gutted (`$?` -> `0` at the step-5 call) and version_edit_gutted (`out=$(stamp_paths ...)` -> `out=\"\"` in version_edit)",
+    "expected_direction": "up",
+    "observed_value": "failed: null 0 -> version_edit_gutted 9 (control fires); step5_wiring_gutted 0 (the gap)"
+  },
+  "metric_definition": "The `<p> passed, <f> failed` tally of tools/pr/prepr.sh --self-test in a worktree carrying the arm's one-line edit; an arm is killed when f exceeds the null arm's f.",
+  "phenomenon_property": "Every refusal step of prepr.sh's main flow is driven by its --self-test end to end, so wiring a step's status to a constant turns the self-test red.",
+  "seam_rule": "grep -nE '^\\s*step \"[^\"]+\" \\$\\?' tools/pr/prepr.sh (24 call sites; each one's `$?` -> `0` is a mutant prepr_arms.py's ARMS table can carry)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D11/s3/prepr_arms.py",
+    "value": "null arm 553 passed, 0 failed; version_edit_gutted 544 passed, 9 failed",
+    "note": "the null arm shows the self-test green unedited and the function mutant shows it alive, so the surviving wiring mutant is the self-test's reach, not a dead tally; each arm checks its edit applied exactly once before it runs"
+  },
+  "reproduction_steps": [
+    "git worktree add --detach $T/wt HEAD; in it, edit tools/pr/prepr.sh line 4613 to `step \"no version edit\" 0 \"$STAMPED\"`",
+    "bash tools/pr/prepr.sh --self-test -> `553 passed, 0 failed`"
+  ],
+  "proposed_fix_scope": "tools/pr/prepr.sh --self-test: one end-to-end case running the main flow (PREPR_SKIP_CODE, a throwaway repo whose branch moves VERSION) and asserting `REFUSE no version edit`; then the other 23 step call sites measured by the same mutant (seam_rule). Mechanisation (D11.M5): a generic `step` wiring mutant lane, as policy_lint_mutants.mjs does for policy_lint, costs one script and about one self-test run per call site (about 15-25 min each here, provisional), so it fits a nightly lane, not a per-merge one.",
+  "files": [
+    "tools/pr/prepr.sh"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "I1"
+}

@@ -4,9 +4,9 @@ This module serves the custom card's JavaScript from a static path and, when
 Lovelace is running in storage mode, registers the resource automatically so
 users do not have to add it by hand.
 
-Both steps are defensive: the static-path helper prefers the modern
+Both steps are defensive. The static-path helper prefers the modern
 ``async_register_static_paths`` API but falls back to the deprecated
-synchronous call on older Home Assistant releases, and the resource
+synchronous call on older Home Assistant releases. The resource
 registration is wrapped in a broad ``try/except`` because Lovelace internals
 are not a stable public API and must never break integration setup.
 """
@@ -39,7 +39,7 @@ async def _register_static_path(hass: HomeAssistant, www_dir: str) -> None:
 
     Caching is deliberately left off. The cache-busting ``?v=`` query only
     helps when we own the resource entry, which is not the case in YAML mode
-    or for a hand-added resource, and a browser holding a long-cached copy of
+    or for a hand-added resource. A browser holding a long-cached copy of
     an old card is indistinguishable from an upgrade that did nothing. The
     file is small and served locally, so revalidating it costs nothing worth
     having.

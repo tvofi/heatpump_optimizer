@@ -1,0 +1,19 @@
+SEAM config_flow.py::HeatPumpOptimizerOptionsFlow.async_step_quick_setup write@3649 record@3652 FLAG
+SEAM coordinator.py::HeatPumpOptimizerCoordinator._async_set_pump write@4561 record@4571 FLAG
+SEAM coordinator.py::HeatPumpOptimizerCoordinator._async_update_data write@6060 record@6063 FLAG
+SEAM coordinator.py::HeatPumpOptimizerCoordinator._update_current_state write@6764 record@6788 FLAG
+SEAM coordinator.py::HeatPumpOptimizerCoordinator._fetch_weather_forecast write@7063 record@7078 FLAG
+SEAM coordinator.py::HeatPumpOptimizerCoordinator._command_valve_target write@7764 record@7770 FLAG
+SEAM coordinator.py::HeatPumpOptimizerCoordinator._command_frequency write@10873 record@10882 FLAG
+SEAM disinfection.py::DisinfectionSwitch.turn_on write@160 record@165 FLAG
+SEAM disinfection.py::DisinfectionSwitch.release write@181 record@193 FLAG
+SEAM disinfection.py::DisinfectionSwitch.release_blind write@203 record@205 FLAG
+SEAM early_cutoff.py::arm write@176 record@185 FLAG
+SEAM early_cutoff.py::detach write@209 record@210 FLAG
+SEAM early_cutoff.py::on_room_event write@303 record@314 FLAG
+SEAM heat_curve.py::write_displace write@387 record@390 ok
+SEAM legionella.py::LegionellaGuard.async_track_cycle write@345 record@352 FLAG
+SEAM legionella.py::LegionellaGuard._drive_switch write@502 record@505 FLAG
+SEAM pump_arbiter.py::_write write@1608 record@1616 FLAG
+RESULT seams=17
+RESULT flagged=16

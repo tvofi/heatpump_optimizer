@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/__init__.py:async_migrate_entry CMP_BOUND f611f1d9",
+  "killed_by": "tests/entities.py",
+  "old": "    if entry.version < CONFIG_ENTRY_VERSION or minor < CONFIG_ENTRY_MINOR_VERSION:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if entry.version <= CONFIG_ENTRY_VERSION or minor < CONFIG_ENTRY_MINOR_VERSION:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
+}

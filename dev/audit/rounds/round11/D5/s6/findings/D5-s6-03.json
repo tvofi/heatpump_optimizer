@@ -1,0 +1,41 @@
+{
+ "id": "D5-s6-03",
+ "scope": "D5-s6",
+ "step": "D5.M4",
+ "title": "row_position.py usage line runs a path that does not exist (exit 2)",
+ "severity": "low",
+ "claim": "tools/audit/seat/row_position.py's docstring gives its command as 'python3 dev/audit/harnesses/row_position.py', which exits 2 with 'No such file or directory' from the export root; the script lives at tools/audit/seat/row_position.py.",
+ "mechanism": "The script moved from dev/audit/harnesses/ to tools/audit/seat/ and its usage line kept the old path. Fails D5-criteria C1, C2.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "value": 1,
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B11 container (shared)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box during fan-out; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 3.59,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/seat/row_position.py (module docstring, run as written with --help)",
+ "perturbation": {
+  "change": "--perturb row_position: the usage line run in a temp tree holding the script at the cited path",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Exit status != 0 of the usage line exactly as the docstring writes it, run with --help from the repository root (1 = fails).",
+ "phenomenon_property": "Every repository path, script name, usage-line option and stated item count a comment unit or docstring in the seat's cells names resolves at the ref and agrees with what the code it sits on delivers (D5-criteria C1, C2)",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/m4_ledger.py --repo <git checkout holding the baseline> --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692  # FLAGS.tsv rows of kind C1-* and C2-*",
+ "stop_rule_class": "hygiene",
+ "class_guess": "I5",
+ "files": [
+  "tools/audit/seat/row_position.py"
+ ],
+ "proposed_fix_scope": "Docstring usage line: python3 tools/audit/seat/row_position.py.",
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s6/truth_checks.py --perturb row_position"
+ ]
+}

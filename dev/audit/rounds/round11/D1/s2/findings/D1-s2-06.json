@@ -1,0 +1,46 @@
+{
+  "id": "D1-s2-06",
+  "scope": "D1-s2",
+  "step": "D1.M2",
+  "title": "A stored boosted_h past timedelta's range raises in the boost restore task on every restart",
+  "severity": "medium",
+  "claim": "boost._restore_settle builds timedelta(hours=boosted_h) for any finite non-negative boosted_h, and store.ABSURD (1e15) admits values far past timedelta's range, so for 4 of 5 stored values (3e10, 1e11, 1e12, 1e14 h) the restore task the coordinator spawns raises OverflowError on both of two restarts (8 of 10), leaving the running space overlay's start (space_since) unrestored and the boosted time at timedelta(0) instead of the 'unknown' (None) the loader's own comment prescribes; the fifth (1e10 h) loads as ~47 000 years.",
+  "mechanism": "The guard `isinstance(hours, (int, float)) and 0.0 <= hours < math.inf` accepts any finite hours; held.space_settle_until is set before the timedelta call, so the raise leaves a half-applied restore and skips the space since/end handling below it; the exception escapes the spawned restore_session task (Home Assistant logs 'Task exception was never retrieved' each start). The document is not rewritten by the failed restore, so the same failure recurs at every restart until a later boost overwrites the store. DOMAINS declares the field `space_settle/boosted_h: _Z0`, which only the debug-level off-domain diagnostic reads.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/boost_settle.py",
+    "harness_path": "dev/audit/rounds/round11/D1/s2/boost_settle.py",
+    "value": 8,
+    "unit": "restarts (of 10: 5 values x 2 restarts on the same document) whose boost restore task raises",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 (orchestrator box B4, shared)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, other seats running; a count",
+    "tolerance": "exact",
+    "load1": 56.3,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/boost.py:_restore_settle (via the coordinator constructor's spawn_restore_session -> restore_session -> restore, on a real loop; boost.held_for state read back)",
+  "perturbation": {
+    "change": "--fix: _restore_settle treats a boosted_h at or past timedelta.max in hours as unreadable (None), its docstring's rule for an unreadable value; patched in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "restarts_raising=0; space_since restored, space_boosted None"
+  },
+  "metric_definition": "Restarts whose spawned boost restore task raises, over 5 out-of-range boosted_h values x 2 restarts on an unchanged document.",
+  "phenomenon_property": "Every stored duration a loader turns into a timedelta is bounded to what its writer can produce (or read as unknown) before conversion, so no stored number below store.ABSURD can raise out of a restore.",
+  "seam_rule": "grep -nE 'timedelta\\((hours|minutes|seconds|days)=' custom_components/heatpump_optimizer/*.py  (those whose argument comes from a stored document; store_fuzz.py's 'huge' operator drives them per store)",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/boost_settle.py",
+    "value": 0,
+    "note": "RESULT control_restarts_raising: the same record with boosted_h=1.5 restores space_since and 1:30:00 on both restarts"
+  },
+  "leave_one_out": {"cells": 5, "min": 0, "max": 2, "drop_most_favourable": 1.5},
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/boost_settle.py        -> restarts_raising=8, per_cell=[0, 2, 2, 2, 2]",
+    "... --fix -> 0 (perturbation)",
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D1/s2/store_fuzz.py --stores boost   -> boost_task_raise=3 (op=huge on space_settle/boosted_h)"
+  ],
+  "proposed_fix_scope": "boost.py:_restore_settle bounds boosted_h (e.g. to the settle tail's own maximum) before timedelta(); a corrupt value reads as unknown.",
+  "files": ["custom_components/heatpump_optimizer/boost.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P1"
+}

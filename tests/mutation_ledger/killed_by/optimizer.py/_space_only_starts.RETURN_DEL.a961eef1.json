@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_space_only_starts RETURN_DEL a961eef1",
+  "killed_by": "tests/doc_claims.py",
+  "old": "    return list(unique.values())",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/doc_claims.py from rc=0 failed=0 to rc=1 failed=3."
+}

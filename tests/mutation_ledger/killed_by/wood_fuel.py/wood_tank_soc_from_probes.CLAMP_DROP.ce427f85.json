@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_tank_soc_from_probes CLAMP_DROP ce427f85",
+  "killed_by": "tests/wood_advisor.py",
+  "old": "    return min(1.0, max(0.0, float(tank_temp) - float(comfort_min)) / span)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return (1.0)`) took tests/wood_advisor.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

@@ -1,0 +1,16 @@
+{"script": "tests/wood_advisor.py", "rc": 0, "checks": 25, "solves": 0, "multi_starts": 0, "procs_recorded": 1, "cpu_s": 1.5, "wall_s": 2.0, "checks_per_solve": null}
+{"script": "tests/solar_alignment.py", "rc": 0, "checks": 14, "solves": 0, "multi_starts": 0, "procs_recorded": 1, "cpu_s": 1.5, "wall_s": 1.6, "checks_per_solve": null}
+{"script": "tests/debug_collect.py", "rc": 0, "checks": 163, "solves": 0, "multi_starts": 0, "procs_recorded": 1, "cpu_s": 2.1, "wall_s": 2.8, "checks_per_solve": null}
+{"script": "tests/plan_view.py", "rc": 0, "checks": null, "solves": 1, "multi_starts": 1, "procs_recorded": 1, "cpu_s": 1.7, "wall_s": 2.3, "checks_per_solve": null}
+{"script": "tests/manual_plan.py", "rc": 0, "checks": 132, "solves": 31, "multi_starts": 42, "procs_recorded": 1, "cpu_s": 8.4, "wall_s": 11.9, "checks_per_solve": 4.258}
+{"script": "tests/block_duty.py", "rc": 0, "checks": 153, "solves": 6, "multi_starts": 6, "procs_recorded": 1, "cpu_s": 12.7, "wall_s": 23.2, "checks_per_solve": 25.5}
+{"script": "tests/guard_pins.py", "rc": 0, "checks": 91, "solves": 0, "multi_starts": 0, "procs_recorded": 1, "cpu_s": 12.2, "wall_s": 23.8, "checks_per_solve": null}
+{"script": "tests/validate.py", "rc": 0, "checks": null, "solves": 22, "multi_starts": 22, "procs_recorded": 1, "cpu_s": 31.5, "wall_s": 48.8, "checks_per_solve": null}
+{"script": "tests/config_flow_steps.py", "rc": 0, "checks": 586, "solves": 1, "multi_starts": 1, "procs_recorded": 1, "cpu_s": 31.0, "wall_s": 41.2, "checks_per_solve": 586.0}
+{"script": "tests/finite_boundary.py", "rc": 0, "checks": 114, "solves": 0, "multi_starts": 0, "procs_recorded": 1, "cpu_s": 144.1, "wall_s": 214.6, "checks_per_solve": null}
+{"script": "tests/optimality.py", "rc": 1, "checks": 84, "solves": 23, "multi_starts": 28, "procs_recorded": 1, "cpu_s": 182.3, "wall_s": 253.8, "checks_per_solve": 3.652}
+{"script": "tests/boost_drift_replay.py", "rc": 0, "checks": 46, "solves": 789, "multi_starts": 789, "procs_recorded": 1, "cpu_s": 231.5, "wall_s": 399.8, "checks_per_solve": 0.058}
+{"script": "tests/edge.py", "rc": 0, "checks": 20, "solves": 21, "multi_starts": 27, "procs_recorded": 1, "cpu_s": 31.4, "wall_s": 56.9, "checks_per_solve": 0.952}
+{"script": "tests/backtest.py", "rc": 0, "checks": 25, "solves": 11, "multi_starts": 11, "procs_recorded": 1, "cpu_s": 88.0, "wall_s": 130.9, "checks_per_solve": 2.273}
+{"script": "tests/entities.py", "rc": 1, "checks": 2722, "solves": 33, "multi_starts": 33, "procs_recorded": 276, "cpu_s": 1123.1, "wall_s": 1939.8, "checks_per_solve": 82.485}
+{"script": "tests/features.py", "rc": 0, "checks": 5780, "solves": 482, "multi_starts": 631, "procs_recorded": 28, "cpu_s": 1068.4, "wall_s": 2022.6, "checks_per_solve": 11.992}

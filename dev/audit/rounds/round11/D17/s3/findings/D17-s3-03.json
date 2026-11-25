@@ -1,0 +1,43 @@
+{
+ "id": "D17-s3-03",
+ "scope": "D17-s3",
+ "step": "D17.M3",
+ "title": "restore_learned_snapshot restores to a snapshot that carried no accuracy evidence",
+ "severity": "low",
+ "claim": "On a fresh install the action restores (1 of 1 calls succeed) to the snapshot the first heartbeat took, whose recorded temperature_bias is None, discarding a heat-loss scale learned since (1.3 -> 1.0), where the documented rule admits only a snapshot captured with prediction accuracy in band and otherwise fails with an error.",
+ "mechanism": "SnapshotRing.due() is True on an empty ring, so the first heartbeat takes a snapshot of the default learners with an accuracy summary that has no samples (temperature_bias None). best_restore() applies the band test only when bias is not None, so the unevidenced snapshot qualifies; undo_target() hands it to the service, and the drift watchdog's automatic rollback reads the same best_restore().",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11/D17/s3/f03_restore_unevidenced.py",
+  "harness_path": "dev/audit/rounds/round11/D17/s3/f03_restore_unevidenced.py",
+  "value": 1,
+  "unit": "restore calls that succeeded out of 1 (documented: 0, refused)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B13 (shared, three compute seats)",
+  "cpu_or_wall": "count",
+  "contention_note": "two other finder seats on the box; counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 3.45,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.best_restore",
+ "perturbation": {
+  "change": "best_restore skips a snapshot whose accuracy.temperature_bias is None (one-line 'if bias is None: continue'), in memory: f03_restore_unevidenced.py --perturb",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "restore_learned_snapshot calls that return without error on a fresh install after one cycle, and data['house_heat_loss_scale'] after one, with the scale moved to 1.3 since the snapshot",
+ "phenomenon_property": "A snapshot enters the restore pool only when it carries an in-band accuracy measurement; a snapshot with no accuracy evidence never qualifies for the manual or the automatic rollback.",
+ "seam_rule": "grep -n 'def best_restore\\|def undo_target' custom_components/heatpump_optimizer/snapshots.py",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/snapshots.py",
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "reproduction_steps": [
+  "Set up a fresh entry and let one update cycle run",
+  "Move a learner (house heat-loss scale 1.3)",
+  "Call heatpump_optimizer.restore_learned_snapshot: it succeeds and the scale returns to 1.0 instead of the call failing"
+ ],
+ "proposed_fix_scope": "snapshots.SnapshotRing.best_restore: require a finite in-band temperature_bias (treat None as unqualified); the undo point keeps its own path."
+}

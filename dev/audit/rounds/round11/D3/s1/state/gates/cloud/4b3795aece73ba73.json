@@ -1,0 +1,31 @@
+{
+ "key": "4b3795aece73ba73",
+ "mutant": {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/price_model.py",
+  "line": 201,
+  "old": "        if not np.all(np.isfinite(values)):",
+  "new": "        if False:",
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF 3dbd4039"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/features.py",
+  "python3 tests/structure.py"
+ ],
+ "summary": [
+  "2 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3375.2,
+ "child_cpu_s": 4511.9,
+ "load1_start": 0.0,
+ "load1_end": 0.01,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "killed_by": [
+  "python3 tests/features.py",
+  "python3 tests/structure.py"
+ ],
+ "verdict": "KILLED"
+}

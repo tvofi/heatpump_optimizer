@@ -45,7 +45,7 @@ of the deliverable, whether or not it finds anything.
 
 ## 4. Run the cost test, with numbers
 
-    cost(countermeasure, recurring) < cost(defect) x P(recurrence)
+The inequality and its units are `defect-root-cause.md`'s cost test.
 
 For `P(recurrence)`, a **measured** class frequency over a guess: the escape
 record, `RELEASE_NOTES.md` (every shipped fix is a bug that escaped) with the

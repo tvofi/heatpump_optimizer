@@ -1,0 +1,42 @@
+{
+ "id": "D5-s2-07",
+ "scope": "D5-s2",
+ "step": "D5.M4",
+ "title": "text_ledger.py check --plant always fails for seat D5-s2: it plants into README.md, which D5 reads no units from",
+ "severity": "low",
+ "claim": "For a complete D5 ledger over seat D5-s2's cells, text_ledger.py check --plant prints plant_refused=0 planted_units=0 and exits 1, because run_check plants into files[0] (README.md after seat_files' sort) and units_of under --dim D5 yields only the unchanged `file` unit for a .md file before and after the plant, so the per-seat null control D5.md step 4 relies on can never pass for this seat.",
+ "mechanism": "run_check: `f0 = files[0]` with no regard to whether the dimension reads any unit from f0; plant() appends a sentence, units_of(.md, D5) returns [(0,'file',path)] either way, so `planted` is empty and `refused = bool(planted) and ...` is False.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/plant.py",
+  "harness_path": "dev/audit/rounds/round11/D5/s2/plant.py",
+  "value": "plant_refused=0 planted_units=0 rc=1",
+  "unit": "flag",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "B2 (orchestrator's macOS box), venv-ci python3",
+  "cpu_or_wall": "count",
+  "contention_note": "box heavily loaded (load1 150-185); counts are contention-immune",
+  "tolerance": "exact",
+  "load1": 184.83,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/audit/text_ledger.py:run_check (its --plant arm) and text_ledger.py:units_of",
+ "perturbation": {
+  "change": "--perturb: the plant goes to the first file carrying a D5 suffix (files reordered in memory)",
+  "expected_direction": "up",
+  "observed_value": "plant_refused 0 -> 1, rc 1 -> 0"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D5/s2/plant.py",
+  "value": "plant_refused_d6=1 rc_d6=0 over the same files, README.md first",
+  "note": "D6 reads Markdown sentences, so the same order passes there: the defect is D5's rule meeting a non-carrier first file"
+ },
+ "metric_definition": "plant_refused flag and exit code of run_check --plant for a complete ledger (every unit rowed) over the seat's sorted cells.",
+ "phenomenon_property": "For every seat and dimension, check --plant on a complete ledger passes: the plant lands in a file the dimension reads units from.",
+ "seam_rule": "for s in 1..10: python3 tools/audit/check_scopes.py --seat D5-s$s ... | first M4 file without a .py/.js/.mjs/.sh suffix (today only D5-s2: README.md)",
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "tools/audit/text_ledger.py"
+ ],
+ "proposed_fix_scope": "In run_check, plant into the first file whose units under `dim` change when planted (for D5, the first file with a D5_SUFFIXES suffix); add a self-test arm with a .md first file under D5."
+}

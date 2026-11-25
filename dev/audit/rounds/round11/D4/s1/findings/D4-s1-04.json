@@ -1,0 +1,46 @@
+{
+  "id": "D4-s1-04",
+  "scope": "D4-s1",
+  "step": "D4.M1",
+  "title": "Plan editor slot targets at 375 px: 147 slot-hit rects under F1's floor (min 17.7 px), 99 failing WCAG 2.5.8's spacing exception too",
+  "severity": "medium",
+  "claim": "In the expanded plan editor at 375x812, slotHitExtents leaves 147 of the `.slot-hit` targets rendered across the 810 light/reduce renders of all 45 card_drift states x de,en,sv x 3 viewports x fine/coarse under D4-criteria F1's floor (24 px, 44 px coarse; minimum 17.7 px) in 15 states, and 99 of them have another slot target within 12 px of their centre, so WCAG 2.5.8's spacing exception does not rescue them either; 768 and 1280 px count 0.",
+  "mechanism": "slotHitExtents grows each target to minTargetX (= _targetMinPx() in viewBox units) and then resolves residual overlap by putting the shared edge between the two inks, shrinking both below the floor ('the boxed-in case'); a slot at the plot edge cannot grow outward either (history_unavailable: 19.9 px against plotR). The card accepts this as WCAG's spacing exception, but an undersized target abutting another target fails that exception's 24 px circle test, and F1 as the owner wrote it has no exception.",
+  "evidence": {
+    "command": "PW=$HOME/pwlane/node_modules/playwright PLAYWRIGHT_BROWSERS_PATH=$HOME/pw-browsers-lock HPO_PLANDATA=<plan_view.py payload> THEMES=light MOTION=reduce node dev/audit/rounds/round11/D4/s1/m1_slots.mjs",
+    "harness_path": "dev/audit/rounds/round11/D4/s1/m1_slots.mjs",
+    "value": 147,
+    "unit": "slot-hit rects (of 2700) under 24 px (44 px coarse) on either axis; 99 also fail the WCAG 2.5.8 spacing circle",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "box B9, 4 vCPU, Chromium 158.0.8127.18 (playwright 1.65.0 lock, rev 1254), headless shell",
+    "cpu_or_wall": "count",
+    "contention_note": "the seat's full M1 grid run ran beside it; a count of geometry, contention-immune",
+    "tolerance": "exact",
+    "load1": 11.51,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:slotHitExtents",
+  "perturbation": {
+    "change": "m1_slots.mjs PERTURB=1: in memory, slotHitExtents' final resolution `if (t[p].r <= t[p + 1].l) continue;` -> `continue;` (targets keep the floor they were grown to)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "Rendered .slot-hit rects whose border box is under 24 px (44 px when the render's pointer is coarse) on either axis.",
+  "phenomenon_property": "Every slot target the plan editor renders is at least the card's pointer-keyed floor wide, or, where the axis cannot give it that, is reachable another way that is (zoom-to-fit, a list) -- never a sub-floor target abutting another.",
+  "seam_rule": "dev/audit/rounds/round11/D4/s1/m1_slots.mjs (per vp/pointer and state lines), with m1_browser.mjs RESULT strict_small for every other target class",
+  "null_control": {
+    "command": "same run, per vp/pointer line: 768 and 1280 cells",
+    "value": 0,
+    "note": "At 768 and 1280 px the same states, slots and plan give 0 targets under the floor: the count is the narrow axis's, and the perturbation (no boxed-in shrink) takes 375 px to 0 as well."
+  },
+  "leave_one_out": {"cells": 6, "min": 0, "max": 99, "drop_most_favourable": 48},
+  "reproduction_steps": [
+    "HPO_PLANDATA=$(mktemp -d)/plan.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+    "run the command above: RESULT slot_under_floor=147, slot_wcag_fail=99, per vp/pointer {375/fine:48, 375/coarse:99}",
+    "re-run with PERTURB=1: 0"
+  ],
+  "proposed_fix_scope": "Design-level in slotHitExtents and the lane editor: on a narrow chart either widen the editable window (auto-zoom when slots are denser than the floor allows) or let a tap on a boxed-in cluster open a chooser; at the plot edge let the target extend into the plot margin. Needs a design seat (it trades against the no-overlap rule P9-rca4).",
+  "files": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"],
+  "stop_rule_class": "bug",
+  "class_guess": "P9"
+}

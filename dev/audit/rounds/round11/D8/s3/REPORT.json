@@ -1,0 +1,127 @@
+{
+ "dimension": "D8",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D8/s3/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D8.M4",
+   "enumerator": "python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s3",
+   "universe": 6,
+   "examined": 6,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "All 6 platform files' entities built through real async_setup_entry (sensor, binary_sensor, button, switch, climate; datetime read for card ids) in 5 coordinator_scenarios + an all-inputs-lit cell: dev/audit/rounds/round11/D8/s3/m4_enabled_default.py -> card_disabled_where_input_lit=0, readme_disabled_where_input_lit=0 (82 entities/cell, 34 card suffixes, 4 README first-hour rows)."
+  },
+  {
+   "step": "D8.M5",
+   "enumerator": "python3 ~/hpo-orch/r10s6/r11/find-wt/tools/audit/check_scopes.py --repo ~/hpo-orch/r10s6/r11/find-wt --ref 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 --seat D8-s3",
+   "universe": 6,
+   "examined": 6,
+   "not_reached": [],
+   "redispatched": [],
+   "evidence": "Matrix graduated as dev/audit/rounds/round11/D8/s3/m5_matrix.py: deterministic (two identical runs, matrix_nondeterministic=0), no network, one RESULT per violation class over 984 (cell,cycle,entity) triples from all 6 platform files."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D8-s3-01",
+   "scope": "D8-s3",
+   "step": "D8.M5",
+   "title": "Lifetime energy accumulators publish state_class measurement with device_class energy",
+   "severity": "high",
+   "claim": "The three energy accumulators (space_heating_energy, dhw_energy, total_energy) inherit _AccumulatingSensor._attr_state_class = MEASUREMENT, an impossible pair for device_class ENERGY, so Home Assistant warns on every state write and the Energy dashboard cannot offer them.",
+   "mechanism": "sensor.py _AccumulatingSensor sets _attr_state_class = SensorStateClass.MEASUREMENT while its docstring and tests/entities.py ('<name> is TOTAL_INCREASING') state TOTAL_INCREASING; SpaceEnergySensor, DHWEnergySensor and TotalEnergySensor do not override it (the cost subclass overrides to TOTAL).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m5_matrix.py",
+    "harness_path": "dev/audit/rounds/round11/D8/s3/m5_matrix.py",
+    "value": 36,
+    "unit": "violating (cell, cycle, entity) triples, class state_class_impossible",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64 local seat (box B6)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other seats running; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 201.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:_AccumulatingSensor",
+   "perturbation": {
+    "change": "--perturb accum-total-increasing: sensor._AccumulatingSensor._attr_state_class = SensorStateClass.TOTAL_INCREASING (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of (cell, cycle, sensor) triples whose state_class is not in DEVICE_CLASS_STATE_CLASSES[device_class], over 6 cells x 2 cycles x every built entity.",
+   "phenomenon_property": "Every sensor's declared state_class is admissible for its device_class (HA DEVICE_CLASS_STATE_CLASSES); energy meters are TOTAL or TOTAL_INCREASING.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m5_matrix.py | grep 'VIOLATION state_class_impossible'",
+   "leave_one_out": {
+    "cells": 6,
+    "min": 6,
+    "max": 6,
+    "drop_most_favourable": 30
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m5_matrix.py",
+    "read RESULT state_class_impossible=36 and the VIOLATION lines",
+    "rerun with --perturb accum-total-increasing -> 0"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "proposed_fix_scope": "Set _AccumulatingSensor._attr_state_class to SensorStateClass.TOTAL_INCREASING (cost subclass keeps TOTAL); tests/entities.py's existing TOTAL_INCREASING check then holds. Overlaps D8-s1's M2 cell (state_class vs device_class) -- judge to dedupe."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No entity the card addresses (incl. runtime statEntity/ADVISOR/HEALTH suffixes) is disabled by default where its gating input is configured",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m4_enabled_default.py",
+   "value": "card_disabled_where_input_lit=0 (perturbation --perturb-disable optimization_score -> 1)"
+  },
+  {
+   "claim": "No README first-hour row (Card headline / Backs the card) names an entity disabled where its input is lit",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m4_enabled_default.py",
+   "value": "readme_disabled_where_input_lit=0"
+  },
+  {
+   "claim": "Card dependencies disabled in unlit cells (dhw_temperature, lower_floor_temperature, valve_target_recommendation; DHW-gated plan_dhw_heating/dhw_setpoint_advisor without DHW) are input-gated by design and light when configured",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m4_enabled_default.py",
+   "value": "card_disabled_total=21 across 5 unlit cells, 0 in lit cell"
+  },
+  {
+   "claim": "7 card suffixes with no built entity are the pre-#1227/#1333 legacy fallback ids, by design",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m4_enabled_default.py",
+   "value": "CARD_SUFFIXES_UNBUILT=7"
+  },
+  {
+   "claim": "Enabled entities neither the card nor README first-hour rows read: 38 in coord_all_features (controls: climate, switches, buttons; Energy-dashboard meters; diagnostics). Judged appropriate defaults (controls and Energy meters are needed), no defect",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m4_enabled_default.py",
+   "value": "enabled_unread_all_features=38"
+  },
+  {
+   "claim": "Matrix classes clean: measurement numeric, timestamp tz-aware, enum in options, no unit on non-numeric class, JSON/orjson-clean, no property raises, no stale value between cycles, deterministic",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m5_matrix.py",
+   "value": "0 each over 984 triples; --perturb numpy -> not_json_serialisable=288"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D8/s3/m4_enabled_default.py",
+  "dev/audit/rounds/round11/D8/s3/m5_matrix.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "README.md",
+   "symbol": "Entities section, 'Twenty entities ... are disabled by default'",
+   "what": "Holds for a DHW install (82-62=20 disabled in coord_dhw) but a no-DHW install disables 28 (coord_minimal, DHW gate); the sentence states 20 unconditionally. D6 claim check."
+  },
+  {
+   "owner_seat": "D8-s1",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "_AccumulatingSensor",
+   "what": "Docstring says TOTAL_INCREASING, code says MEASUREMENT (D8-s3-01); M2 cell overlap for dedupe."
+  }
+ ]
+}

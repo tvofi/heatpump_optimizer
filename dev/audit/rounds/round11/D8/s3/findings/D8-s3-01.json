@@ -1,0 +1,48 @@
+{
+ "id": "D8-s3-01",
+ "scope": "D8-s3",
+ "step": "D8.M5",
+ "title": "Lifetime energy accumulators publish state_class measurement with device_class energy",
+ "severity": "high",
+ "claim": "The three energy accumulators (space_heating_energy, dhw_energy, total_energy) inherit _AccumulatingSensor._attr_state_class = MEASUREMENT, an impossible pair for device_class ENERGY, so Home Assistant warns on every state write and the Energy dashboard cannot offer them.",
+ "mechanism": "sensor.py _AccumulatingSensor sets _attr_state_class = SensorStateClass.MEASUREMENT while its docstring and tests/entities.py ('<name> is TOTAL_INCREASING') state TOTAL_INCREASING; SpaceEnergySensor, DHWEnergySensor and TotalEnergySensor do not override it (the cost subclass overrides to TOTAL).",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m5_matrix.py",
+  "harness_path": "dev/audit/rounds/round11/D8/s3/m5_matrix.py",
+  "value": 36,
+  "unit": "violating (cell, cycle, entity) triples, class state_class_impossible",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "macOS arm64 local seat (box B6)",
+  "cpu_or_wall": "count",
+  "contention_note": "shared box, other seats running; count is contention-immune",
+  "tolerance": "exact",
+  "load1": 201.0,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "heatpump_optimizer.sensor:_AccumulatingSensor",
+ "perturbation": {
+  "change": "--perturb accum-total-increasing: sensor._AccumulatingSensor._attr_state_class = SensorStateClass.TOTAL_INCREASING (in memory)",
+  "expected_direction": "to_zero",
+  "observed_value": 0
+ },
+ "metric_definition": "Count of (cell, cycle, sensor) triples whose state_class is not in DEVICE_CLASS_STATE_CLASSES[device_class], over 6 cells x 2 cycles x every built entity.",
+ "phenomenon_property": "Every sensor's declared state_class is admissible for its device_class (HA DEVICE_CLASS_STATE_CLASSES); energy meters are TOTAL or TOTAL_INCREASING.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m5_matrix.py | grep 'VIOLATION state_class_impossible'",
+ "leave_one_out": {
+  "cells": 6,
+  "min": 6,
+  "max": 6,
+  "drop_most_favourable": 30
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D8/s3/m5_matrix.py",
+  "read RESULT state_class_impossible=36 and the VIOLATION lines",
+  "rerun with --perturb accum-total-increasing -> 0"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "new",
+ "files": [
+  "custom_components/heatpump_optimizer/sensor.py"
+ ],
+ "proposed_fix_scope": "Set _AccumulatingSensor._attr_state_class to SensorStateClass.TOTAL_INCREASING (cost subclass keeps TOTAL); tests/entities.py's existing TOTAL_INCREASING check then holds. Overlaps D8-s1's M2 cell (state_class vs device_class) -- judge to dedupe."
+}

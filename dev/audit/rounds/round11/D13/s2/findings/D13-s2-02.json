@@ -1,0 +1,47 @@
+{
+ "id": "D13-s2-02",
+ "scope": "D13-s2",
+ "step": "D13.M6",
+ "title": "60.3% of accepted ## Friction entries name no policy file; the body contract never resolves the rule id",
+ "severity": "medium",
+ "claim": "Of the 174 `## Friction` entries policy_lint.mjs:frictionEntries accepts in the bodies of the 569 merged pull requests first-parent in v7.1.0..92d38ecb, 105 (0.603; 84 distinct ids) name no `--budgets` path under D13.M6's rule and 0 are ambiguous, so only 69 (0.397) attribute friction to a policy file, because checkPrBody refuses only an entry's shape and never that its `<rule_id>` names a rule.",
+ "mechanism": "The template asks for `<rule_id>: <event>: <evidence>`; frictionEntries accepts any FRICTION_ID ([A-Za-z.][A-Za-z0-9_.#/-]*) and checkPrBody (policy_lint.mjs:7317) refuses only an entry whose id is null. Ids such as `brief` (4), `handoff-wip`, `frugal-routing`, `PROMPT.md`, `fixer-step-push` (3 each), `r10-process-slim-1..5`, tool and group names pass the contract and key their own verbatim histogram rows, so friction a seat aimed at a contract section (fixer-step-push, fixer-brief, fixer-step-6: 6 entries) reaches no policy file under either keying, and checkSunset's honour-rule test reads only the file keys.",
+ "evidence": {
+  "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+  "harness_path": "dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+  "value": 0.397,
+  "unit": "share of accepted friction entries naming exactly one --budgets path (69/174; no file 105, ambiguous 0)",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B8",
+  "cpu_or_wall": "ratio",
+  "contention_note": "shared box during the fan-out; counts over the committed snapshot window.json, contention-immune",
+  "tolerance": "exact",
+  "load1": 1.28,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tools/policy/policy_lint.mjs:frictionEntries (what an accepted entry is; checked equal to statsHistogram's friction cells), :frictionKey via --normalize-friction-keys, :sizes/:policyFiles (the --budgets paths)",
+ "perturbation": {
+  "change": "--perturb readme: the first accepted entry naming ratchet-budgets.md (#3185) re-spelled `README.md` in its body (D13.md's fixture perturbation); --perturb bare / unticked re-spell it ratchet-budgets / unbackticked",
+  "expected_direction": "down",
+  "observed_value": "readme: one_file 69 -> 68, ambiguous 0 -> 1 (tests/README.md, tools/audit/README.md); bare and unticked: one_file 69 unchanged, only the spelling row moves"
+ },
+ "metric_definition": "accepted friction entries whose id (backticks stripped, # dropped) names exactly one --budgets path p (p is k, k.md, k/SKILL.md or ends in /k, /k.md, /k/SKILL.md), over all accepted entries",
+ "phenomenon_property": "An accepted `## Friction` entry names the policy file it is friction with (or is refused), so every entry the contract accepts is countable against one rule by the histogram and by the sunset check",
+ "seam_rule": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round11/D13/s2/friction_keys.mjs | sed -n '/no-file rows/,/RESULT rule_file/p'",
+ "null_control": {
+  "command": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs --perturb unticked",
+  "value": "one_file 69, no_file 105 (unchanged)",
+  "note": "a spelling change that still names the same file moves no count: the share measures naming, not formatting"
+ },
+ "reproduction_steps": [
+  "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node dev/audit/rounds/round11/D13/s2/friction_keys.mjs",
+  "read RESULT one_file_share, no_file and the no-file rows"
+ ],
+ "proposed_fix_scope": "checkPrBody refuses a ## Friction id that names no policy file by the histogram's own resolution (frictionKey resolves to a policyFiles() path), with the template's <rule_id> naming the file; existing verbatim keys stay readable in --stats",
+ "files": [
+  "tools/policy/policy_lint.mjs",
+  ".github/PULL_REQUEST_TEMPLATE.md"
+ ],
+ "stop_rule_class": "bug",
+ "class_guess": "N-vocabulary-drift"
+}

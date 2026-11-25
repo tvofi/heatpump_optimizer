@@ -1,5 +1,5 @@
-// Visual-QA renderer: builds the card with the same DOM stub as card.mjs,
-// renders the setup page for three topologies, and saves each page's
+// Visual-QA renderer. It builds the card with the same DOM stub as card.mjs
+// and renders the setup page for three topologies. It saves each page's
 // setup <svg> as a self-contained .svg file (card CSS inlined, HA vars
 // resolved to their light-mode fallbacks) for designer review.
 import fs from "fs";

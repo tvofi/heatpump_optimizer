@@ -1,0 +1,134 @@
+HELD config-field user.name :: title='Cellar plant' (doc: the title of this entry)
+HELD config-field user.price_source :: entity source, plan price[0] 0.560 vs 2.060
+HELD config-field user.price_entity :: the entity's raw_today reaches the plan's prices: 0.560/2.060
+HELD config-field user.tibber_token :: price fetch authorises with the entered token: {'tok-a': ['Bearer tok-a'], 'tok-b': ['Bearer tok-b']}
+HELD config-field user.weather_entity :: forecast fetched from the chosen entity: {'weather.home': ['weather.home'], 'weather.other': ['weather.other']}
+HELD config-field reauth_confirm.tibber_token :: result=reauth_successful stored='tok-new'
+HELD config-step reauth_confirm :: doc: enter a valid token to restore price updates -> entry token replaced and reloaded
+HELD config-field user_sensors.indoor_temp_entity :: room reading reaches state and plan A=(21.0, 30.9443) B=(18.0, 48.3028) restart_same=True
+FAIL config-field user_sensors.outdoor_temp_entity :: plan step-0 outdoor with sensor -25/+10: -5.0/-5.0 (data outdoor -25.0/10.0); finding D17-s2-02
+HELD config-field user_sensors.heat_pump_switch_entity :: the plan's action is written to the switch: [('switch', 'turn_on', {'entity_id': 'switch.hp'})]
+HELD config-field user_sensors.solar_radiation_entity :: measured sun reaches the current state A=0.0 B=600.0 restart_same=True
+HELD config-field user_sensors.solar_forecast_source :: plan solar gain weather=43.2 open_meteo=172.8
+HELD config-field user_sensors.solar_location :: open_meteo at lat30/lat60=172.8/345.6; ignored under weather source: 43.2==43.2
+HELD config-field user_sensors.floor_return_temp_entity :: slab charge read into the plan A=(None, 30.9443) B=(28.0, 21.0112) restart_same=True
+HELD config-field user_sensors.lower_floor_temp_entity :: two-zone lower floor planned at its own reading: 21.0 -> 18.0
+HELD config-field user_sensors.dhw_temp_entity :: tank reading reaches plan A=(55.0, 2.5013) B=(30.0, 4.6377) restart_same=True
+HELD config-field user_sensors.buffer_tank_temp_entity :: buffer standby loss learned from the sensor over quiet cycles
+HELD config-field user_sensors.heat_pump_mode_entity :: a cooling mode plans no heat: {'Heat+DHW': (30.9443, 2.5013), 'Cool': (0.0, 0.0)}
+HELD config-field user_sensors.heat_pump_defrost_entity :: defrost_flag_configured: False -> True
+HELD config-field user_sensors.heat_pump_online_entity :: learners_frozen: False -> True
+HELD config-field user_sensors.heat_pump_fault_entity :: learners_frozen: False -> True
+HELD config-step user_sensors :: doc: every sensor optional -- an empty page still yields a solved plan
+HELD config-step user :: doc: token only for Tibber -- entity source walks without one and plans
+HELD config-field user_sensors.dhw_temp_entity#legionella :: a tank seen at 61 resets the timer: due 168.0h vs 48.0h
+HELD config-field temperature.target_temperature :: the reference the climate entity shows A=21.0 B=22.0 restart_same=True
+HELD config-field temperature.min_temperature :: daytime plan holds above the floor, and follows it A=(True, {'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, ... B=(True, {'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 2.6003, 1.5899, 0.63... restart_same=True
+HELD config-field temperature.max_temperature :: pre-heat ceiling lowers the warmest planned room A=21.72 B=21.55
+HELD config-field temperature.comfort_temp_day :: mean planned room in the day band rises A=20.555 B=20.639 restart_same=True
+HELD config-field temperature.comfort_temp_night :: mean planned room at night falls A=19.691 B=19.299 restart_same=True
+HELD config-field temperature.day_start_hour :: day band moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [0.0, 0.0, 2.3022, 5.0, 0.0, 5.0, 5.0, 5.0, 0.0, 3.9733, 5.0, 5.0, 0... restart_same=True
+HELD config-field temperature.day_end_hour :: day band moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.3534, 2.3189, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0... restart_same=True
+HELD config-field thermal.house_thermal_mass :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 0.5792, 0.462, 0.3378, 0.2069, 0.0, 0.0, 0.0, 0... restart_same=True
+HELD config-field thermal.house_heat_loss_coefficient :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.... restart_same=True
+HELD config-field thermal.slab_thermal_mass :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 1.6631, 1.0521, 0.4389, 0.0... restart_same=True
+HELD config-field thermal.slab_heat_transfer :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 4.6717, 0.0,... restart_same=True
+HELD config-field thermal.heat_pump_cop_nominal :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 3.2014, 3.2339, 3.0633, 2.8935, 0.0, 0.0, 0.0, ... restart_same=True
+HELD config-field thermal.heat_pump_max_power :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [3.0, 3.0, 3.0, 3.0, 2.4, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.6565,... restart_same=True
+HELD config-field thermal.heat_pump_min_power :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 5.0, 3.8, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... restart_same=True
+HELD config-field thermal.price_weight :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 1.4407, 1.775, 1.8032, 1.8258, 0.0, 0.0, 0.0, 0... restart_same=True
+HELD config-field thermal.comfort_weight :: plan moves A={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... B={'power_schedule': [5.0, 5.0, 5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 3.7365, 2.8367, 2.0585, 1.3... restart_same=True
+HELD config-field thermal.optimization_interval :: recalculation period 0:30:00 -> 1:00:00
+HELD config-field weather_sensitivity.wind_sensitivity_factor :: more heat under wind A=40.9631 B=69.3789 restart_same=True
+HELD config-field weather_sensitivity.rain_heat_loss_multiplier :: more heat under rain A=36.9051 B=50.4698 restart_same=True
+HELD config-step weather_sensitivity :: doc: 1.0 means rain makes no difference -- rain/dry 30.9443/30.9443
+HELD config-field zones.upper_floor_thermal_mass :: two-zone on: plan moves=True; off: unchanged=True
+HELD config-field zones.lower_floor_thermal_mass :: two-zone on: plan moves=True; off: unchanged=True
+HELD config-field zones.upper_floor_heat_loss :: two-zone on: plan moves=True; off: unchanged=True
+HELD config-field zones.lower_floor_heat_loss :: two-zone on: plan moves=True; off: unchanged=True
+HELD config-field zones.inter_zone_heat_transfer :: two-zone on: plan moves=True; off: unchanged=True
+HELD config-field zones.radiator_power_fraction :: two-zone on: plan moves=True; off: unchanged=True
+HELD config-field zones.upper_floor_area_ratio :: two-zone on: plan moves=True; off: unchanged=True
+HELD config-field zones.window_area :: free solar heat follows A=43.2 B=108.0 restart_same=True
+HELD config-field zones.solar_orientation_factor :: free solar heat follows A=43.2 B=21.6 restart_same=True
+HELD config-field zones.solar_heat_gain_coefficient :: free solar heat follows A=43.2 B=21.6 restart_same=True
+HELD config-field zones.buffer_tank_volume :: without a throttling valve the volume only sizes the modelled tank, as documented (buffer rate 0.396->0.163, plan unchanged)
+HELD config-field zones.two_zone :: two_zone_enabled False -> True
+HELD config-step zones :: doc: leave defaults if you don't need two-zone -- a 'no' answer plans one zone
+HELD config-field dhw.dhw_tank_volume :: hot water plan moves A=2.5013 B=2.1806 restart_same=True
+HELD config-field dhw.dhw_setpoint :: hot water plan moves A=2.5013 B=2.8214 restart_same=True
+HELD config-field dhw.dhw_min_temperature :: hot water plan moves A=2.5013 B=2.8506 restart_same=True
+HELD config-field dhw.dhw_daily_consumption :: hot water plan moves A=2.5013 B=4.8544 restart_same=True
+HELD config-field dhw.dhw_cooling_rate :: hot water plan moves A=2.5013 B=2.9872 restart_same=True
+HELD config-field dhw.dhw_schedule_enabled :: kept hot around the clock costs more A=2.5013 B=2.6527 restart_same=True
+HELD config-field dhw.dhw_windows :: first planned window step from 07:00: weekday=1 weekend=4 (opens 08:00 = step 4); no-selector spec on Saturday=0
+HELD config-field dhw.dhw_idle_min_temperature :: cold tank (25 C), floor 20->35 C: dhw kWh 5.0214->5.1031 (lower saves more)
+HELD config-field dhw.dhw_legionella_enabled :: due cycle planned when on=True, absent when off
+HELD config-field dhw.dhw_legionella_temperature :: tank peak follows the disinfection temperature: 60.0/65.0
+HELD config-field dhw.dhw_legionella_interval_days :: two days after the last cycle: due at 7-day interval=False, at 1-day=True
+HELD config-field dhw.dhw_enabled :: tank planned only when on: 2.5013 / 0.0 (tank volume still stored when off)
+HELD config-step dhw :: doc: guaranteed in the periods, heated beforehand -- window reasons present in the plan
+HELD config-field building_describe.building_structure :: derived physics move the plan A={'power_schedule': [0.0, 0.0, 0.0, 0.3403, 2.9116, 2.5641, 2.4443, 2.5674, 0.4305, 0.82... B={'power_schedule': [0.0, 0.0, 0.0, 0.0, 2.6986, 3.2481, 4.5741, 5.0, 0.0, 0.0, 0.0, 0.0... restart_same=True
+HELD config-field quick_setup.building_structure :: derived physics move the plan A={'power_schedule': [5.0, 5.0, 4.4, 5.0, 0.3723, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,... B={'power_schedule': [0.0, 5.0, 4.4, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... restart_same=True
+HELD config-field building_describe.building_era :: derived physics move the plan A={'power_schedule': [0.0, 0.0, 0.0, 0.3403, 2.9116, 2.5641, 2.4443, 2.5674, 0.4305, 0.82... B={'power_schedule': [0.0, 0.0, 0.0, 0.0, 2.3324, 0.6382, 0.6974, 2.9388, 0.0, 0.0, 0.0, ... restart_same=True
+HELD config-field quick_setup.building_era :: derived physics move the plan A={'power_schedule': [5.0, 5.0, 4.4, 5.0, 0.3723, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,... B={'power_schedule': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.... restart_same=True
+HELD config-field building_describe.building_foundation :: derived physics move the plan A={'power_schedule': [0.0, 0.0, 0.0, 0.3403, 2.9116, 2.5641, 2.4443, 2.5674, 0.4305, 0.82... B={'power_schedule': [0.0, 0.0, 0.4273, 3.121, 2.0338, 2.3442, 2.5041, 2.6546, 1.6459, 1.... restart_same=True
+HELD config-field quick_setup.building_foundation :: derived physics move the plan A={'power_schedule': [5.0, 5.0, 4.4, 5.0, 0.3723, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,... B={'power_schedule': [5.0, 5.0, 4.4, 5.0, 5.0, 4.8927, 4.6081, 4.3498, 0.0, 0.0, 0.0, 0.0... restart_same=True
+HELD config-field building_describe.heated_area_m2 :: derived physics move the plan A={'power_schedule': [0.0, 0.0, 0.0, 0.3403, 2.9116, 2.5641, 2.4443, 2.5674, 0.4305, 0.82... B={'power_schedule': [0.5125, 0.5513, 1.1629, 2.8695, 3.4196, 3.5605, 3.5982, 3.6458, 2.8... restart_same=True
+HELD config-field quick_setup.heated_area_m2 :: derived physics move the plan A={'power_schedule': [5.0, 5.0, 4.4, 5.0, 0.3723, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,... B={'power_schedule': [5.0, 5.0, 4.4, 5.0, 5.0, 5.0, 5.0, 5.0, 4.7451, 4.2576, 3.9529, 3.8... restart_same=True
+HELD config-field building_describe.lower_floor_emitter :: derived physics move the plan A={'power_schedule': [0.0, 0.0, 0.0, 0.3403, 2.9116, 2.5641, 2.4443, 2.5674, 0.4305, 0.82... B={'power_schedule': [0.0, 0.0708, 0.8272, 1.6111, 1.9897, 1.9826, 1.9553, 1.9308, 1.5203... restart_same=True
+HELD config-field quick_setup.lower_floor_emitter :: derived physics move the plan A={'power_schedule': [5.0, 5.0, 4.4, 5.0, 0.3723, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,... B={'power_schedule': [0.0, 1.1784, 3.7067, 4.7933, 2.1482, 2.2296, 2.3311, 2.451, 0.0, 0.... restart_same=True
+FAIL config-field building_describe.upper_floor_emitter :: path=questionnaire answered two-zone=None model two_zone=True: plan moved=True (doc: single-zone ignores it); finding D17-s2-01
+HELD config-field quick_setup.upper_floor_emitter :: path=quick answered two-zone='off' model two_zone=False: plan moved=False (doc: single-zone ignores it)
+HELD config-field building_extras.heat_pump_cop_nominal :: nameplate reaches the plan A={'power_schedule': [0.0, 0.0, 0.0, 0.3403, 2.9116, 2.5641, 2.4443, 2.5674, 0.4305, 0.82... B={'power_schedule': [0.0, 0.0, 0.0, 0.1395, 2.4604, 2.0718, 1.8626, 1.8111, 0.6428, 0.77... restart_same=True
+HELD config-field building_extras.heat_pump_max_power :: nameplate reaches the plan A={'power_schedule': [0.0, 0.0, 0.0, 0.3403, 2.9116, 2.5641, 2.4443, 2.5674, 0.4305, 0.82... B={'power_schedule': [0.0, 0.0, 0.0, 0.7389, 2.3997, 2.6144, 2.4483, 2.4265, 0.9024, 1.08... restart_same=True
+HELD config-field building_extras.heat_pump_min_power :: nameplate reaches the plan A={'power_schedule': [0.0, 0.0, 0.0, 0.3403, 2.9116, 2.5641, 2.4443, 2.5674, 0.4305, 0.82... B={'power_schedule': [0.0, 0.0, 0.0, 1.0644, 2.4694, 2.1721, 2.1766, 2.1319, 1.2128, 1.26... restart_same=True
+HELD config-field quick_setup.two_zone :: two_zone_enabled False->True
+HELD config-field quick_setup.buffer_tank :: records 500 L; without a valve only sizes the modelled tank, as documented
+HELD config-field quick_setup.dhw_tank :: dhw kWh 2.1798 / 0.0
+FAIL config-field quick_setup.wood_furnace :: plan kWh furnace on/off with an 85 C wood tank: 22.9537/22.9537; finding D17-s2-03
+FAIL config-field quick_setup.wood_buffer_tank :: plan kWh with the probe at 85/35 C: 22.9537/22.9537; finding D17-s2-03
+HELD config-field quick_setup.wood_tank_top_entity :: heat left in the wood tank (top alone): 1.7/22.0 kWh at 50/85 C
+HELD config-field quick_setup.wood_tank_bottom_entity :: bottom alone gives no estimate (None); with top 85/bottom 45 the estimate moves (13.3 vs top-alone 22.0)
+HELD config-step quick_setup :: doc: anything left out starts from a default -- the quick path solves
+FAIL config-step finish_setup :: doc: start with shipped defaults -- finish-now entry solves=True, plans two zones=True with no zone value saved; finding D17-s2-01
+HELD config-step building :: doc: describe (derived physics, preset marked) or enter values directly -- both land
+HELD config-step thermal :: hand-typed values stored and solved
+HELD config-step setup_overview :: overview names the assigned slot (660 chars)
+HELD config-step temperature :: the page's documented effect is its fields' (7/7 field rows held)
+FAIL config-step building_describe :: the page's documented effect is its fields' (5/6 field rows held)
+HELD config-step building_extras :: the page's documented effect is its fields' (3/3 field rows held)
+HELD config-field device_prefill.prefill_device#skip :: empty pick skips to finish_setup
+HELD config-field device_prefill.prefill_device :: picking the device opens suggestions: ['after_save', 'dhw_setpoint', 'dhw_temp_entity', 'heat_pump_capacity_limited_entity', 'heat_pump_return_temp_entity', 'heat_pump_supply_temp_entity']
+HELD config-step device_prefill :: doc: nothing written until the second submit; setup continues
+FAIL config-field device_prefill.after_save :: next page per choice + stored into entry: {'menu': ('finish_setup', True), 'close': ('finish_setup', True)}; finding D17-s2-05
+HELD config-field device_prefill.dhw_setpoint :: kept value landed=True; plan 2.1798 -> 2.3893
+HELD config-field device_prefill.dhw_min_temperature :: kept value landed=True; plan 2.1798 -> 2.4622
+HELD config-field device_prefill.dhw_windows :: kept value landed=True; plan 2.1798 -> 2.1166
+HELD config-field device_prefill.heat_pump_max_power :: kept value landed=True; plan 21.6738 -> 20.964
+HELD config-field device_prefill.dhw_legionella_temperature :: landed=True; due -24.0->-24.0, peak 60.0->66.0
+HELD config-field device_prefill.dhw_legionella_interval_days :: landed=True; due -24.0->-240.0, peak 60.0->60.0
+FAIL config-field device_prefill.silent_mode_windows :: kept schedule landed; max planned kW inside 06-10 UTC without/with it: 5.00/5.00; finding D17-s2-04
+HELD config-field device_prefill.outdoor_temp_entity :: offered on an empty slot=True, over a filled slot=False; landed=True
+HELD config-field device_prefill.dhw_temp_entity :: offered on an empty slot=True, over a filled slot=False; landed=True
+HELD config-field device_prefill.heat_pump_supply_temp_entity :: offered on the empty slot=True; landed=True
+HELD config-field device_prefill.heat_pump_return_temp_entity :: offered on the empty slot=True; landed=True
+HELD config-field device_prefill.heat_pump_capacity_limited_entity :: offered on the empty slot=True; landed=True
+HELD config-field device_prefill.compressor_freq_sensor :: fixture has no frequency sensor: not offered=True; a kept value lands=True
+HELD config-field device_prefill.space_setpoint_unit :: kept value landed in the entry: 'flow' (its effect is the options pages' item; lead)
+HELD config-field device_prefill.mixing_valve_write_target_kind :: kept value landed in the entry: 'flow' (its effect is the options pages' item; lead)
+RESULT items=117 items
+RESULT items_held=109 items
+RESULT items_failed=8 items
+RESULT failed_item=config-field:building_describe.upper_floor_emitter
+RESULT failed_item=config-field:device_prefill.after_save
+RESULT failed_item=config-field:device_prefill.silent_mode_windows
+RESULT failed_item=config-field:quick_setup.wood_buffer_tank
+RESULT failed_item=config-field:quick_setup.wood_furnace
+RESULT failed_item=config-field:user_sensors.outdoor_temp_entity
+RESULT failed_item=config-step:building_describe
+RESULT failed_item=config-step:finish_setup
+RESULT wall_s=396.6 s (provisional)
+RESULT thread_factor=1.000 (single-threaded pin; process_cpu/thread_cpu not separated)
+RESULT load1=5.29
+RESULT swapins=0

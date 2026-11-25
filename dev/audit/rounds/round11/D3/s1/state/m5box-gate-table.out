@@ -1,0 +1,129 @@
+# nproc=4 cpu='Intel(R) Xeon(R) Processor @ 2.10GHz' python=3.14.7 tree=/tmp/d3s1-gatetable-wxbv9h4g/tree
+script	rc	wall_s	cpu_s	cpu/wall	maxrss_mb	recorded_s	wall/recorded	load1_before	load1_after
+tests/arch_score_head.py	0	43.4	42.8	0.99	623.2	31.8	1.36	0.73	0.87
+RESULT arch_score_head_wall_s=43.4 s (provisional)
+RESULT arch_score_head_cpu_s=42.8 s (provisional)
+RESULT arch_score_head_rc=0
+tests/backtest.py	0	56.7	55.6	0.98	86.8	61.6	0.92	0.87	0.95
+RESULT backtest_wall_s=56.7 s (provisional)
+RESULT backtest_cpu_s=55.6 s (provisional)
+RESULT backtest_rc=0
+tests/block_duty.py	0	7.3	7.0	0.96	142.2	8.3	0.88	0.95	0.96
+RESULT block_duty_wall_s=7.3 s (provisional)
+RESULT block_duty_cpu_s=7.0 s (provisional)
+RESULT block_duty_rc=0
+tests/boost_drift_replay.py	0	178.7	153.7	0.86	106.5	341.1	0.52	0.96	0.81
+RESULT boost_drift_replay_wall_s=178.7 s (provisional)
+RESULT boost_drift_replay_cpu_s=153.7 s (provisional)
+RESULT boost_drift_replay_rc=0
+producer:tests/plan_view.py	0	0.7	0.7	1.0	108.8	1.8	0.39	0.81	0.81
+RESULT plan_view_wall_s=0.7 s (provisional)
+RESULT plan_view_cpu_s=0.7 s (provisional)
+RESULT plan_view_rc=0
+tests/card.mjs	0	87.0	93.5	1.07	2462.4	82.3	1.06	0.81	1.04
+RESULT card_mjs_wall_s=87.0 s (provisional)
+RESULT card_mjs_cpu_s=93.5 s (provisional)
+RESULT card_mjs_rc=0
+producer:tests/plan_view.py	0	0.8	0.8	1.0	107.6	1.8	0.44	1.04	1.04
+RESULT plan_view_wall_s=0.8 s (provisional)
+RESULT plan_view_cpu_s=0.8 s (provisional)
+RESULT plan_view_rc=0
+tests/card_drift.mjs	0	4.0	5.1	1.27	295.9	6.0	0.67	1.04	1.04
+RESULT card_drift_mjs_wall_s=4.0 s (provisional)
+RESULT card_drift_mjs_cpu_s=5.1 s (provisional)
+RESULT card_drift_mjs_rc=0
+tests/config_flow_steps.py	0	17.5	17.1	0.98	216.4	32.5	0.54	1.04	1.10
+RESULT config_flow_steps_wall_s=17.5 s (provisional)
+RESULT config_flow_steps_cpu_s=17.1 s (provisional)
+RESULT config_flow_steps_rc=0
+tests/debug_collect.py	0	1.1	0.9	0.82	117.7	1.5	0.73	1.10	1.10
+RESULT debug_collect_wall_s=1.1 s (provisional)
+RESULT debug_collect_cpu_s=0.9 s (provisional)
+RESULT debug_collect_rc=0
+tests/deployment_shape.py	0	2.2	2.1	0.95	134.9	3.3	0.67	1.10	1.10
+RESULT deployment_shape_wall_s=2.2 s (provisional)
+RESULT deployment_shape_cpu_s=2.1 s (provisional)
+RESULT deployment_shape_rc=0
+tests/doc_claims.py	0	9.6	9.6	1.0	249.8	11.4	0.84	1.10	1.08
+RESULT doc_claims_wall_s=9.6 s (provisional)
+RESULT doc_claims_cpu_s=9.6 s (provisional)
+RESULT doc_claims_rc=0
+tests/edge.py	0	21.6	20.7	0.96	101.9	21.5	1.0	1.08	1.06
+RESULT edge_wall_s=21.6 s (provisional)
+RESULT edge_cpu_s=20.7 s (provisional)
+RESULT edge_rc=0
+tests/entities.py	0	507.7	512.3	1.01	1280.4	867.9	0.58	1.06	1.04
+RESULT entities_wall_s=507.7 s (provisional)
+RESULT entities_cpu_s=512.3 s (provisional)
+RESULT entities_rc=0
+tests/env_drift.py	0	96.4	92.8	0.96	137.8	1.0	96.4	1.04	0.93
+RESULT env_drift_wall_s=96.4 s (provisional)
+RESULT env_drift_cpu_s=92.8 s (provisional)
+RESULT env_drift_rc=0
+tests/features.py	0	790.6	732.5	0.93	745.4	473.9	1.67	0.93	0.92
+RESULT features_wall_s=790.6 s (provisional)
+RESULT features_cpu_s=732.5 s (provisional)
+RESULT features_rc=0
+tests/finite_boundary.py	0	90.6	89.8	0.99	1039.0	90.4	1.0	0.92	0.98
+RESULT finite_boundary_wall_s=90.6 s (provisional)
+RESULT finite_boundary_cpu_s=89.8 s (provisional)
+RESULT finite_boundary_rc=0
+tests/golden.py	1	96.9	94.3	0.97	111.6	1.2	80.75	0.98	0.91
+RESULT golden_wall_s=96.9 s (provisional)
+RESULT golden_cpu_s=94.3 s (provisional)
+RESULT golden_rc=1
+tests/guard_pins.py	0	4.5	4.4	0.98	102.2	8.2	0.55	0.91	0.91
+RESULT guard_pins_wall_s=4.5 s (provisional)
+RESULT guard_pins_cpu_s=4.4 s (provisional)
+RESULT guard_pins_rc=0
+tests/harness_headers.py	0	144.0	138.5	0.96	261.0	327.6	0.44	0.91	0.94
+RESULT harness_headers_wall_s=144.0 s (provisional)
+RESULT harness_headers_cpu_s=138.5 s (provisional)
+RESULT harness_headers_rc=0
+tests/manual_plan.py	0	5.8	4.9	0.84	114.0	6.5	0.89	0.94	0.94
+RESULT manual_plan_wall_s=5.8 s (provisional)
+RESULT manual_plan_cpu_s=4.9 s (provisional)
+RESULT manual_plan_rc=0
+tests/optimality.py	0	101.1	95.9	0.95	92.5	142.5	0.71	0.94	0.99
+RESULT optimality_wall_s=101.1 s (provisional)
+RESULT optimality_cpu_s=95.9 s (provisional)
+RESULT optimality_rc=0
+tests/plan_view.py	0	0.8	0.7	0.87	107.7	1.8	0.44	0.99	0.99
+RESULT plan_view_wall_s=0.8 s (provisional)
+RESULT plan_view_cpu_s=0.7 s (provisional)
+RESULT plan_view_rc=0
+tests/solar_alignment.py	0	0.6	0.6	1.0	99.9	1.2	0.5	0.99	0.99
+RESULT solar_alignment_wall_s=0.6 s (provisional)
+RESULT solar_alignment_cpu_s=0.6 s (provisional)
+RESULT solar_alignment_rc=0
+tests/stress.py	0	285.6	296.5	1.04	137.7	463.0	0.62	0.99	1.04
+RESULT stress_wall_s=285.6 s (provisional)
+RESULT stress_cpu_s=296.5 s (provisional)
+RESULT stress_rc=0
+tests/structure.py	0	18.7	18.5	0.99	181.9	21.1	0.89	1.04	1.03
+RESULT structure_wall_s=18.7 s (provisional)
+RESULT structure_cpu_s=18.5 s (provisional)
+RESULT structure_rc=0
+tests/typing_ruler.py	0	18.5	18.7	1.01	689.9	20.8	0.89	1.03	1.02
+RESULT typing_ruler_wall_s=18.5 s (provisional)
+RESULT typing_ruler_cpu_s=18.7 s (provisional)
+RESULT typing_ruler_rc=0
+tests/validate.py	0	21.0	20.0	0.95	87.5	21.5	0.98	1.02	1.01
+RESULT validate_wall_s=21.0 s (provisional)
+RESULT validate_cpu_s=20.0 s (provisional)
+RESULT validate_rc=0
+tests/wood_advisor.py	0	0.6	0.6	1.0	101.1	1.4	0.43	1.01	1.01
+RESULT wood_advisor_wall_s=0.6 s (provisional)
+RESULT wood_advisor_cpu_s=0.6 s (provisional)
+RESULT wood_advisor_rc=0
+tests/env_drift.py[strict]	0	61.9	59.8	0.97	137.6	1.0	61.9	1.01	0.92
+RESULT env_drift_strict_wall_s=61.9 s (provisional)
+RESULT env_drift_strict_cpu_s=59.8 s (provisional)
+RESULT env_drift_strict_rc=0
+tests/env_drift.py[nocache]	0	197.2	191.4	0.97	137.7	1.0	197.2	0.92	0.98
+RESULT env_drift_nocache_wall_s=197.2 s (provisional)
+RESULT env_drift_nocache_cpu_s=191.4 s (provisional)
+RESULT env_drift_nocache_rc=0
+RESULT load1=0.98
+RESULT thread_factor=1.00
+RESULT swapins=0

@@ -1,0 +1,7 @@
+RESULT arm=null
+RESULT peak_process_workers=3
+RESULT capped=0
+RESULT script_rc=0
+RESULT seconds=794.5
+RESULT load1=1.65
+RESULT thread_factor=1.00

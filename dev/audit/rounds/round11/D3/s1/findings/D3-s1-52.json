@@ -1,0 +1,48 @@
+{
+ "id": "D3-s1-52",
+ "scope": "D3-s1",
+ "step": "D3.M5",
+ "title": "card_drift.mjs inherits plan_view.py closure, yet compares two cards over one payload: no cell edit can move it",
+ "severity": "low",
+ "claim": "tests/closure.py's _widen unions tests/plan_view.py's closure into tests/card_drift.mjs's, so 11 of the 12 D3-s1 cell files schedule card_drift on every one-file diff (closure.select), yet card_drift renders the working tree's card and the ref's card against ONE shared plan payload, so a production edit that changes that payload (sha256 differs) leaves 0 of its 45 states moved, while a one-token card edit moves 44.",
+ "mechanism": "PRODUCERS = {'tests/card.mjs': [plan_view], 'tests/card_drift.mjs': [plan_view]} is used twice: as a selection-ordering edge (a selected card script needs its producer first: sound) and, in _widen, as a closure union ('anything that can change the payload can change what they test'). The union is sound for card.mjs, whose checks are absolute assertions over the payload, and unsound for card_drift.mjs, whose verdict is byte-equality of two card renders that both read the same payload in one process (tests/card_drift.mjs header, renderAll over makeSide(treeSrc) and makeSide(baseSrc)). A cell-file diff changes only the payload, which both sides share, and touches neither the card source nor a solver fixture (claimsAreThisBranchs), so the comparison is an identity.",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py",
+  "value": 0,
+  "unit": "card_drift.mjs states moved (of 45) under each of two payload-changing production edits (prod_small x1.0001, prod_large x1.5 on thermal_model.py's room-temperature step; payload_changed=1 for both); cell_diffs_selecting_card_drift=11, card_drift_cell_closure_edges=11",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-m5: Linux 6.18 x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, venv-ci CPython 3.14.7 (numpy 2.5.4, scipy 1.18.1), node v22.23.5, alone on the box",
+  "cpu_or_wall": "count",
+  "contention_note": "Counts are contention-immune. Measured alone on box D3-m5 (load1 0.7-1.1). The cost figure quoted (card_drift.mjs 4.0 s wall / 5.1 s CPU per gate run, from m5_gate_table.py, GATE_JOBS=1 shape) is provisional.",
+  "tolerance": "exact",
+  "load1": 1.07,
+  "thread_factor": 1.0
+ },
+ "instrumented_symbol": "tests/card_drift.mjs verdict (DRIFT/CLAIMED/identical lines) over tests/plan_view.py's payload, driven with production custom_components/heatpump_optimizer/thermal_model.py edited in a private worktree; tests/closure.py:select and tests/closure.py:_widen (PRODUCERS union) for the scheduling edges",
+ "perturbation": {
+  "change": "the harness's `card` arm: one CSS token of custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js (`ha-card { padding: 12px ...}` -> `13px`) in the same worktree, payload unchanged",
+  "expected_direction": "up",
+  "observed_value": "moved 0 -> 44 of 45 (card_drift rc 0 -> 1); the two production arms stay at 0 with payload_changed=1"
+ },
+ "metric_definition": "States tests/card_drift.mjs HEAD^1 reports moved (DRIFT or CLAIMED lines, stdout to a file) on a payload plan_view.py writes from a worktree with one edit applied.",
+ "phenomenon_property": "A differential gate driver that renders both of its sides from one shared producer output inherits that producer's closure, so every diff that can only change the shared input schedules it, and it can never move.",
+ "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py --select-only",
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py",
+  "value": "base arm moved=0 identical=45; card arm moved=44 (the gate moves when the thing it compares moves); card.mjs, the non-differential consumer of the same payload, keeps its producer edge (it reads payload values absolutely)",
+  "note": "The two production arms change the payload (sha256 f769f5bd... -> 8cee8f3f... and df892bf5...), so the zero is not an unchanged input. Kill matrix corroboration (m5_matrix.py table, every closure script on 38 cell mutants, no early stop): card_drift.mjs ran on the 10 whose line plan_view executes (28 reach-skipped) and killed 0; card.mjs likewise 0 of 10; plan_view.py 0 of 10."
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py --select-only",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_matrix.py table -v | grep card_drift"
+ ],
+ "proposed_fix_scope": "tests/closure.py: keep card_drift.mjs's PRODUCERS entry for selection ORDER (a card diff still runs plan_view first) but stop _widen from unioning the producer's closure into card_drift.mjs's; re-derive its closures.json entry (its raw trace was 6 files, #527). Verify with this harness's --select-only (11 -> 0) and the card arm (still 44).",
+ "files": [
+  "tests/closure.py",
+  "tests/closures.json"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new"
+}

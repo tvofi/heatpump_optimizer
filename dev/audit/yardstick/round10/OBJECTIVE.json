@@ -20,17 +20,17 @@
   "regret": {
    "no_read": "no same-information oracle and no realised-cost record per install-day exist; 0018 section 2 names no enumerator",
    "would_read": "the oracle harness raced per grid cell (D0's step) and the realised-cost record per install-day from a bundle (D15's step), with the model gap beside both",
-   "builder": "R11-INTAKE-R10-RESIDUE"
+   "builder": "R11-READS-RESIDUE"
   },
   "operation": {
    "no_read": "no cell ledger over write and hold sites times plan states",
    "would_read": "the actuator-write dimension's cell ledger: each write and hold site (`git grep -n \"async_call(\" custom_components/` lists the candidates) times idle, partial, boost, hot-water only and first cycle after an upgrade, with the plan's target and the value written",
-   "builder": "R11-INTAKE-R10-RESIDUE"
+   "builder": "R11-READS-RESIDUE"
   },
   "generality": {
    "no_read": "the examined count has no enumerator: no cell ledger names a cell with its source and asserting test",
    "would_read": "D12's cell ledger over the levels and pairs the denominator command prints",
-   "builder": "R11-INTAKE-R10-RESIDUE",
+   "builder": "R11-READS-RESIDUE",
    "beside": {
     "denominator": {
      "levels": 195,
@@ -44,7 +44,7 @@
   "unowned": {
    "no_read": "0018 section 2 names no enumerator: read off `escapes` once it records its owner, and `escapes` is itself read by hand",
    "would_read": "the escapes record with found-by and owning dimension; until then the `none` rows of dev/audit/rounds/round10/objective/escapes_hand.tsv",
-   "builder": "R11-INTAKE-R10-RESIDUE",
+   "builder": "R11-READS-RESIDUE",
    "by_hand": {
     "count": 7,
     "ledger": "dev/audit/rounds/round10/objective/escapes_hand.tsv",
@@ -63,7 +63,7 @@
   "escapes": {
    "no_read": "0018 section 2 names no enumerator; the roster records no found-by and no owning dimension",
    "would_read": "the escapes record with found-by and owner per group, and the window series R11-PRE-ROUND-METRICS prints",
-   "builder": "R11-INTAKE-R10-RESIDUE",
+   "builder": "R11-READS-RESIDUE",
    "by_hand": {
     "in_window": 26,
     "by_owner_report": 15,
@@ -94,7 +94,7 @@
   "injected": {
    "no_read": "0018 section 2 names no enumerator: no cause recorded per fixing group by the root-cause seat",
    "would_read": "the cause named on each fixing group, recorded by the root-cause seat, over production merges in this window and the previous",
-   "builder": "R11-INTAKE-R10-RESIDUE",
+   "builder": "R11-READS-RESIDUE",
    "by_hand": {
     "bugs_with_a_named_cause": 4,
     "bugs": {
@@ -118,7 +118,7 @@
   "coverage": {
    "no_read": "no finder report row carries examined over universe, so no step's share can be read",
    "would_read": "the per-step universe and examined count in each dimension's reports, each universe printed by a named command",
-   "builder": "R11-INTAKE-R10-RESIDUE"
+   "builder": "R11-READS-RESIDUE"
   },
   "unexamined": {
    "no_read": "no examining pass reports its universe over a late merge, and the roster's group kinds are not read by any tracked command",

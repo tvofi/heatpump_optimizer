@@ -2,7 +2,7 @@
 
 Kept faithful to the real classes the integration relies on: the service layer
 raises ``ServiceValidationError`` for bad input, and callers catch it (or its
-base) rather than a bare ``ValueError``, so the stub must expose the same
+base) rather than a bare ``ValueError``. So the stub must expose the same
 inheritance for tests to exercise that path honestly.
 """
 
@@ -10,7 +10,7 @@ inheritance for tests to exercise that path honestly.
 class HomeAssistantError(Exception):
     """Base class for Home Assistant errors.
 
-    Faithful to the real class on the one axis these tests read: a raise may
+    Faithful to the real class on the one axis these tests read. A raise may
     carry ``translation_domain`` / ``translation_key`` /
     ``translation_placeholders`` and every one of them lands on the instance
     (defaulting to ``None``), which is what the frontend renders a
@@ -63,6 +63,6 @@ class ConfigEntryAuthFailed(IntegrationError):
 
     Upstream (``exceptions.py:218``): raised from an update, the base class
     latches the failure and starts the entry's reauth flow on a steady
-    refresh, and lets it escape the first refresh, where setup marks the
+    refresh. It lets it escape the first refresh, where setup marks the
     entry for reauthentication instead of retrying it (D10-s1-03).
     """

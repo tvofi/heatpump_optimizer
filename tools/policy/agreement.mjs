@@ -35,12 +35,12 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { at, canon, canonList, lsFiles } from './counts.mjs'
+import { at, canon, canonList, gitRead, lsFiles } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 const rd = (rel) => fs.readFileSync(at(rel), 'utf8')
-const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' })
+const git = (args) => gitRead(args)
 
 // A definition that lives in a script with no exports is read from its source
 // text, as policy_lint.mjs reads web-fix-wave.js's VERDICT_RE: the reader
@@ -542,6 +542,19 @@ const PAIRS = [
       }
       return { 'budget_raise_gate.py justification': (b) => rows[b], 'policy_lint.mjs raiseJustification': lint,
         cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
+    },
+  },
+  {
+    concept: 'stored-figure-block',
+    what: 'which lines of a pull-request body are refused as a stored figure block (R11-PRE-SHARED-FILES: a body stores none): tools/pr/figure_block.py verify_text (pr-contract and prepr.sh) against policy_lint.mjs figureBlockProblems (the body contract), each line number refused',
+    async corpus() {
+      return Object.keys(py('figure_block')).map((b, i) => [`body ${i} ${JSON.stringify(b.slice(0, 30))}`, b])
+    },
+    async readers() {
+      const pl = await load('tools/policy/policy_lint.mjs')
+      const rows = py('figure_block')
+      return { 'figure_block.py verify_text': (b) => rows[b],
+        'policy_lint.mjs figureBlockProblems': (b) => pl.figureBlockProblems(b).map((m) => Number(/^line (\d+):/.exec(m)[1])) }
     },
   },
 ]

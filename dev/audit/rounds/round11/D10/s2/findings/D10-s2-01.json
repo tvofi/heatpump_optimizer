@@ -1,0 +1,46 @@
+{
+  "id": "D10-s2-01",
+  "scope": "D10-s2",
+  "step": "D10.M1",
+  "title": "Reconfigure reports success but changes nothing once Options saved the Entities page",
+  "severity": "high",
+  "claim": "After one save of the Options flow's Entities page, a reconfigure that changes the indoor sensor and the weather entity aborts with reconfigure_successful while the effective configuration keeps both old values (2 of 2 changed keys shadowed; 0 on an entry with no options), and the reopened form is prefilled from entry.data rather than the running value.",
+  "mechanism": "_async_save_reconfigure writes the first screen's answers into entry.data only; the coordinator runs on {**entry.data, **entry.options}; the Entities options page (_OPTION_FIELDS rows with step 'entities') stores the same keys (price source/entity, token, weather, indoor, outdoor, ...) in entry.options, which then win over every later reconfigure. The prefill reads self._reconfigure_entry.data, so it also shows a value that is not running. D10-criteria Q2: the reconfiguration-flow row's done fails at this site.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/reconfig_shadow.py",
+    "harness_path": "dev/audit/rounds/round11/D10/s2/reconfig_shadow.py",
+    "value": 2,
+    "unit": "first-screen keys whose reconfigured answer is not the effective config",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "local macOS box B2 (orchestrator machine), Python 3.14 venv-ci",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, other finder seats running; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 42.99,
+    "thread_factor": 0.999
+  },
+  "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow._async_save_reconfigure",
+  "perturbation": {
+    "change": "--perturb: wrap _async_save_reconfigure in memory so it also removes the first-screen keys from entry.options before writing entry.data",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+  },
+  "metric_definition": "shadowed = first-screen keys a reconfigure changed whose value in {**entry.data, **entry.options} after reconfigure_successful differs from the answer",
+  "phenomenon_property": "A reconfigure that reports success leaves every first-screen key it was given in force in the effective configuration the coordinator is built from, and the reconfigure form is prefilled from that effective configuration.",
+  "seam_rule": "grep -n 'def _async_save_reconfigure\\|def async_step_reconfigure\\|add_suggested_values_to_schema' custom_components/heatpump_optimizer/config_flow.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D10/s2/reconfig_shadow.py",
+    "value": "shadowed_null=0",
+    "note": "the same reconfigure on an entry whose options were never saved takes effect in full"
+  },
+  "reproduction_steps": [
+    "Set up an entry (entity price source) with indoor sensor A and weather.home.",
+    "Options -> Entities: change the indoor sensor to B and save.",
+    "Entry menu -> Reconfigure: the form shows indoor A; choose C and weather.other; it reports success.",
+    "The coordinator still reads indoor B and weather.home."
+  ],
+  "proposed_fix_scope": "config_flow.py: the reconfigure write (and its prefill) operate on the effective configuration -- drop the written keys from entry.options in the same async_update_entry, and prefill from {**data, **options}",
+  "files": ["custom_components/heatpump_optimizer/config_flow.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}

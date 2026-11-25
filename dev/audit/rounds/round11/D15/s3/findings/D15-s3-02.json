@@ -1,0 +1,45 @@
+{
+  "id": "D15-s3-02",
+  "scope": "D15-s3",
+  "step": "D15.M7",
+  "title": "dbg_bundle_gen's null-control rows are a diverged copy of cycle_row; feed self-test raises on them",
+  "severity": "medium",
+  "claim": "Every row tools/replay/dbg_bundle_gen.py writes differs from what debugger.cycle_row writes for the same payload (48 of 48 in one day), and debugger.feed_health raises TypeError on those rows, so D15's mandated null control cannot run M7's self-test re-derivation.",
+  "mechanism": "build_bundle.recording_tick builds the row with its own dict literal instead of calling debugger.cycle_row: it keeps keys whose value is None (production drops them), carries no version, records an accuracy sample without its t, and measures wall around _async_update_data. feed_health compares weather_stale_h > 0 on every row carrying the key, which production never writes as None.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+    "harness_path": "dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+    "value": 48,
+    "unit": "rows diverging from cycle_row of 48 generated (rows_with_explicit_none=48, samples_without_t=47, feed_health_completes=False)",
+    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+    "machine": "macOS arm64, CI venv",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, load1 about 12; counts, contention-immune",
+    "tolerance": "exact",
+    "load1": 11.82,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "tools/replay/dbg_bundle_gen.py:build_bundle against custom_components/heatpump_optimizer/debugger.py:cycle_row and debugger:feed_health",
+  "perturbation": {
+    "change": "--perturb production-row: the one-line generator edit row = debugger.cycle_row(self, data, dt_util.now(), wall_ms), applied in memory to build_bundle's source",
+    "expected_direction": "to_zero",
+    "observed_value": "rows_diverging_from_cycle_row=0, rows_with_explicit_none=0, samples_without_t=0, feed_health_completes=True"
+  },
+  "metric_definition": "Rows of one generated day whose keys or values differ from debugger.cycle_row's row for the same coordinator and payload at the same tick (solve_wall_ms compared by presence only).",
+  "phenomenon_property": "The null-control bundle's rows, snapshots and manifest are produced by the production collector's own functions, so every production reader that runs on a real bundle runs unchanged on the synthetic one.",
+  "seam_rule": "grep -n \"\\\"t\\\":\\|row = {\\|payload_snapshots.append\\|\\\"manifest\\\":\" tools/replay/dbg_bundle_gen.py custom_components/heatpump_optimizer/debugger.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D15/s3/m7_nullcontrol_rows.py",
+    "value": "null_feed_health_on_production_rows=True",
+    "note": "production's own rows for the same payloads, captured in the same run, are read by feed_health without error"
+  },
+  "reproduction_steps": [
+    "Run the command: 48 diverging rows, feed_health raises TypeError.",
+    "On a 7-day generated bundle, m7_rowscan.py prints feeds_rederived_equal=error:TypeError and rows_with_explicit_none=336 while the owner's real bundle prints feeds_rederived_equal=True.",
+    "Re-run with --perturb production-row: 0 diverging rows, feed_health completes."
+  ],
+  "proposed_fix_scope": "tools/replay/dbg_bundle_gen.py builds rows (and the snapshot's t and JSON-text data, and the manifest's self_tests via debugger.run_self_tests) through debugger's functions; its gate_checks gains one arm that runs debugger.feed_health and sensor_sanity on a generated row.",
+  "files": ["tools/replay/dbg_bundle_gen.py"],
+  "stop_rule_class": "bug",
+  "class_guess": "P2"
+}

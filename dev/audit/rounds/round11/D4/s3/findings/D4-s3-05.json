@@ -1,0 +1,43 @@
+{
+ "id": "D4-s3-05",
+ "scope": "D4-s3",
+ "step": "D4.M3",
+ "title": "Rendered type and spacing mostly bypass the --hpo-text / --hpo-space scales",
+ "severity": "low",
+ "claim": "Across 50 states x 3 viewports x 2 themes x 3 languages the card renders 17 distinct font sizes outside its 4-step type scale {12, 13, 15, 18 px} (9.28 to 19.6 px; e.g. every what-if button at 14 px, legend chips at 16 px, dialog tabs at 16.66 px, the title at 19.6 px) and 45 distinct non-zero padding/margin/gap values outside its 5-step space scale {4, 8, 12, 16, 24 px}.",
+ "mechanism": "The token layer (CARD_SCALE_TOKENS) is read by a minority of rules: of 83 font-size declarations most are em multipliers (0.78em, 0.82em, 0.85em, 0.9em, 1.1em, 1.25em, 1.4em ...) and literal px, and paddings/gaps are em or literal px (3px 10px, 6px 8px, 0.45em 0.7em ...), so the computed sizes scatter between and beyond the steps.",
+ "evidence": {
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box B10 (4 vCPU, Linux, Chromium 1243 via playwright 1.63.0, Node 22)",
+  "cpu_or_wall": "count",
+  "contention_note": "ran beside the seat's own grid runs; a count, contention-immune",
+  "tolerance": "exact",
+  "thread_factor": 1.0,
+  "command": "HPO_PY=$HOME/venv-ci/bin/python3 node dev/audit/rounds/round11/D4/s3/m3_look.mjs --vp=375,768,1280 --states=live_default_expanded,score_open,tooltip_hover,shared_steps_hover,savings_page,health_page,setup_two_tank,advisor_page,draft_menu_open,save_confirm",
+  "harness_path": "dev/audit/rounds/round11/D4/s3/m3_look.mjs",
+  "value": 14,
+  "unit": "count of distinct computed font-sizes of visible HTML text off {12,13,15,18} px (full grid: 17)",
+  "load1": 2.77
+ },
+ "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (font-size, padding, margin, gap declarations) as Chromium computes them; CARD_SCALE_TOKENS",
+ "perturbation": {
+  "change": "--perturb=type_tokens: every font-size of 0.82em/0.85em (bare or inside max(12px, ...)) reads var(--hpo-text-sm, 13px); space_snap snaps literal 2/3/6/10 px paddings/margins/gaps (offscale_spacing 40 -> 39)",
+  "expected_direction": "down",
+  "observed_value": 10
+ },
+ "metric_definition": "distinct computed font-size values (2 dp) of visible HTML elements with own text, across the cells, not in {12,13,15,18} px",
+ "phenomenon_property": "The card's rendered type sizes and spacing are drawn from its declared scales (--hpo-text-*, --hpo-space-*), so a state introduces no size the scale does not name.",
+ "seam_rule": "grep -nE \"(font-size|padding|margin|gap)[a-z-]*: *[^;]*[0-9.]+(em|px)\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | grep -v \"var(--hpo-\"",
+ "null_control": {
+  "command": "same command",
+  "value": "the 4 on-scale sizes and 5 on-scale spacings are rendered too",
+  "note": "tiles, headline values, labels and pills that read the tokens land exactly on the scale (12/13/15/18 px, 8/12 px), so the instrument does not read the scale itself as off"
+ },
+ "proposed_fix_scope": "Map the em/px sizes and spacings in cardStyleBlock onto the existing tokens (adding a step only where a size is deliberate), one rule family per change, re-running the P9 grid.",
+ "files": [
+  "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+ ],
+ "stop_rule_class": "hygiene",
+ "class_guess": "new",
+ "criteria_statement": "D4.M3 'consistency of typography, spacing and colour tokens across card states' under 'look professional'"
+}

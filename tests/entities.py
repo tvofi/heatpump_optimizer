@@ -560,13 +560,13 @@ _ROOM_BLOCK = {
 _room_coord = FakeCoordinator({**DATA, "rooms": _ROOM_BLOCK})
 _room_coord._config = {_ROOM_KEY: ["climate.a", "sensor.b", "climate.c"]}
 _room_all = collect(sensor, coordinator=_room_coord)
-_room_keys = ("room_average_temperature", "room_temperature_spread")
+_room_keys = ("room_average_temperature", "room_temperature_spread", "room_separability")
 room_sensors = [e for e in _room_all if e._attr_translation_key in _room_keys]
 _room_by_key = {e._attr_translation_key: e for e in room_sensors}
 R.check(
-    "a configured room list adds exactly the room average and spread sensors; null control, the "
-    "default roster with no list holds neither",
-    len(_room_all) == len(sensors) + 2 and set(_room_by_key) == set(_room_keys)
+    "a configured room list adds exactly the room average, spread and separability sensors; null "
+    "control, the default roster with no list holds none of them",
+    len(_room_all) == len(sensors) + 3 and set(_room_by_key) == set(_room_keys)
     and not any(e._attr_translation_key in _room_keys for e in sensors),
     f"{len(_room_all)} vs {len(sensors)}: {sorted(_room_by_key)}",
 )
@@ -3391,7 +3391,7 @@ async def _walk_flow_untouched():
         result = await flow.async_step_user(None)
         for _ in range(20):
             if result.get("type") == "create_entry":
-                return dict(result["data"])
+                return {**result["data"], **result.get("options", {})}
             if result.get("type") == "menu":
                 # An untouched menu is its first option — except the finish
                 # menu, whose first option is now the quick-setup shortcut:
@@ -3883,18 +3883,29 @@ def _p2_proxies(sources):
         return {c for x in ast.walk(node) if (c := _p2_conf(x))}
     out = {"two_zone_enabled": set(), "dhw_enabled": set(), "wood_furnace_on": set()}
     for n in ast.walk(ast.parse(sources["thermal_model.py"])):
-        if isinstance(n, ast.If):
-            txt = ast.unparse(n)
-            if "values['two_zone_enabled']" in txt and "CONF_TWO_ZONE_MODE" not in txt:
-                out["two_zone_enabled"] |= names(n)
-        if isinstance(n, ast.Assign) and "two_zone_mode" in ast.unparse(n.targets[0]):
-            out["two_zone_enabled"] |= names(n.value)
-        if isinstance(n, ast.FunctionDef) and n.name == "_dhw_enabled_from_config":
+        if isinstance(n, ast.FunctionDef) and n.name == "two_zone_from_config":
+            out["two_zone_enabled"] |= names(n)
+        if isinstance(n, ast.FunctionDef) and n.name == "dhw_enabled_from_config":
             out["dhw_enabled"] |= names(n)
     for n in ast.walk(ast.parse(sources["wood_fuel.py"])):
         if isinstance(n, ast.FunctionDef) and n.name in ("wood_furnace_on", "wood_furnace_inferred"):
             out["wood_furnace_on"] |= names(n)
     return out
+
+
+#: Water's heat capacity as a literal, in any unit the package has spelled it:
+#: kJ per kg per K, kJ per litre, kWh per litre per K (D7-s3-04).
+_P2_WATER_HEAT = re.compile(r"^(4\.1[89]\d*|1\.16\d*|0\.0011[56]\d*)$")
+
+
+def _p2_match_water_heat(n, parents):
+    """A float literal that reads as water's heat capacity, outside const.py."""
+    return (isinstance(n, ast.Constant) and isinstance(n.value, float)
+            and not isinstance(n.value, bool)
+            and bool(_P2_WATER_HEAT.match(repr(n.value))))
+
+
+_p2_match_water_heat.live = True
 
 
 def _p2_registry(sources):
@@ -3910,7 +3921,7 @@ def _p2_registry(sources):
     return [
         dict(fact="two_zone_enabled", finding="D14-s2-01",
              match=_p2_match_proxy(px["two_zone_enabled"]),
-             owners=["thermal_model.py::ThermalParameters.from_config"], dispositions={}),
+             owners=["thermal_model.py::two_zone_from_config"], dispositions={}),
         dict(fact="wood_furnace_on", finding="D14-s2-01",
              match=_p2_match_proxy(px["wood_furnace_on"]),
              owners=["wood_fuel.py::wood_furnace_on", "wood_fuel.py::wood_furnace_inferred",
@@ -3926,7 +3937,7 @@ def _p2_registry(sources):
              }),
         dict(fact="dhw_enabled", finding="D14-s2-01",
              match=_p2_match_proxy(px["dhw_enabled"]),
-             owners=["thermal_model.py::_dhw_enabled_from_config"],
+             owners=["thermal_model.py::dhw_enabled_from_config"],
              dispositions={
                  "legionella.py::LegionellaGuard._has_probe":
                      "probe presence, not the hot-water fact",
@@ -3948,7 +3959,7 @@ def _p2_registry(sources):
                  "config_flow.py::_omit_unstored_defaults":
                      answer + " and canonical predicate: it asks only whether "
                      "the explicit answer is stored and takes its verdict from "
-                     "_dhw_enabled_from_config",
+                     "dhw_enabled_from_config",
              }),
         # D1-s5-01: a state's age. inputs.state_stamp owns the stamp rule
         # (last_reported first, #775); age_of re-derived it.
@@ -4040,6 +4051,27 @@ def _p2_registry(sources):
         # scalar and batch twins are both owners: the batch must equal the
         # scalar bit for bit (fixer.md step 15), and the scalar keeps its own
         # bisection for the per-day cost (ARCH2-s3 patch 01b).
+        # D10-s1-03, D10-s2-01 (R11-SEAM-config): where an entry stores a key
+        # is decided by entry_config.placed; every entry write passing data=
+        # writes a pair placed by it, so reconfigure, reauth, setup, the reset
+        # and the migration agree with the reader, {**data, **options}.
+        dict(fact="entry_key_placement", finding="D10-s1-03",
+             match=_p2_match_node(
+                 (ast.Call,), r"async_(update|create)_entry\(",
+                 lambda n: getattr(n.func, "attr", None) in (
+                     "async_update_entry", "async_create_entry")
+                 and any(k.arg == "data" for k in n.keywords)),
+             owners=["__init__.py::async_migrate_entry",
+                     "config_flow.py::HeatPumpOptimizerConfigFlow._async_save_reconfigure",
+                     "config_flow.py::HeatPumpOptimizerConfigFlow._create_setup_entry",
+                     "config_flow.py::HeatPumpOptimizerConfigFlow.async_step_reauth_confirm",
+                     "coordinator.py::_async_rewrite_entry"],
+             dispositions={
+                 "config_flow.py::HeatPumpOptimizerOptionsFlow._save":
+                     "an options flow's result data is the entry's options, never its data",
+                 "repairs.py::DhwSetpointRepairFlow.async_step_confirm":
+                     "a repair flow's result, not an entry write",
+             }),
         dict(fact="peak_tie_rule", finding="D7-s3-8x-tariff",
              match=_p2_match_node(
                  (ast.Name,), r"^_PEAK_TIE_BAND$",
@@ -4218,7 +4250,7 @@ def _p2_registry(sources):
              match=_p2_match_node(
                  ast.BoolOp, r"two_zone\w* and [\w.]*upper_temp_trajectory",
                  lambda n: isinstance(n.op, ast.And)),
-             owners=["optimizer.py::OptimizationResult.sensor_trajectory"],
+             owners=["optimizer.py::OptimizationResult.zone_trajectories"],
              dispositions={}),
         dict(fact="billed_window_pad", finding="R10-CLONE-2238",
              match=_p2_match_node(
@@ -4252,6 +4284,32 @@ def _p2_registry(sources):
                  ast.IfExp, r"if \w+ is None else \w+\.astimezone\(timezone\.utc\)$",
                  lambda n: isinstance(n.test, ast.Compare)),
              owners=["tariff.py::_window_starts"], dispositions={}),
+        # D7-s3-04 (R11-SEAM-kernel-step): the heat that warms a litre of
+        # water by one kelvin is const.WATER_SPECIFIC_HEAT, and the per-kg
+        # form is derived from it there (const.py is not scanned). Any
+        # water-heat literal elsewhere is a second value: the sensor-gap
+        # advisor's 4.187 / 3600 read 0.26 % off the tank model's.
+        dict(fact="water_heat_capacity", finding="D7-s3-04",
+             match=_p2_match_water_heat, owners=[], dispositions={}),
+        # D7-s3-04: a naive instant's zone is UTC, decided by drift.utc_instant;
+        # open_meteo's own reading (astimezone: the host's zone) and
+        # manual_plan's copy read it there now. The shape is the naive-to-UTC
+        # relabel; every other site it returns is dispositioned.
+        dict(fact="naive_instant_zone", finding="D7-s3-04",
+             match=_p2_match_node(
+                 (ast.Call,), r"\.replace\(tzinfo=(timezone\.utc|UTC|dt_timezone\.utc)\)$",
+                 lambda n: getattr(n.func, "attr", None) == "replace"
+                 and any(k.arg == "tzinfo" for k in n.keywords)),
+             owners=["drift.py::utc_instant"], dispositions={}),
+        # D7-s1-05 (the note arm): the evidence line's cap is EVIDENCE_KEEP,
+        # written by EvidenceNotes.note alone; the guard, the CUSUM and the
+        # coordinator's immersion trail each trimmed their own list to a
+        # literal 6 before.
+        dict(fact="evidence_cap", finding="D7-s1-05",
+             match=_p2_match_node(
+                 (ast.Delete,), r"evidence\[:-",
+                 lambda n: True),
+             owners=["drift.py::EvidenceNotes.note"], dispositions={}),
     ]
 
 
@@ -4295,6 +4353,16 @@ _P2_CENSUSES = {
     "finite_float_owner": (
         "tests/finite_boundary.py",
         "every finite-float coercion is const.finite_float or a dispositioned site"),
+    # D7-s3-04 (R11-SEAM-kernel-step): replay_doc.numeric is finite_float's
+    # domain, written out because the export loads that file with no sibling.
+    "replay_numeric_domain": (
+        "tests/debug_collect.py",
+        "replay_doc.numeric answers exactly as const.finite_float on every probe"),
+    # D7-s3-03: every reader of the plan step covering now takes plan_step's
+    # index; the census drives the four on one plan, past its end included.
+    "plan_step_covering": (
+        "tests/features.py",
+        "D7-s3-03: plan_step_index, covering_index and both _planned_room copies agree"),
     # D7-s2-51: the scrub wraps the property Home Assistant resolves, a
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (
@@ -8505,9 +8573,13 @@ _gap_load_data = {
     },
     "current_price": 1.5,
 }
-# A user who has the house meter but neither probe: the two probe rows are
-# the whole ranking, and both must be priced.
-_gap_probe_cfg = {const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power"}
+# A user who has the house meter and a hot-water tank but neither probe: the
+# two probe rows are the whole ranking, and both must be priced. The tank is
+# declared: an install with no hot water prices no coast (D8-s1-01).
+_gap_probe_cfg = {
+    const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power",
+    const.CONF_DHW_ENABLED: True,
+}
 
 
 def _gap_production_rows(data, config):
@@ -14606,9 +14678,9 @@ try:
         R.check(
             "confirming the overview creates the entry",
             _early_entry.get("type") == "create_entry"
-            and _early_entry.get("data", {}).get(const.CONF_TIBBER_TOKEN)
+            and {**_early_entry.get("data", {}), **_early_entry.get("options", {})}.get(const.CONF_TIBBER_TOKEN)
             == _first_credentials[const.CONF_TIBBER_TOKEN]
-            and const.CONF_TARGET_TEMP not in _early_entry.get("data", {}),
+            and const.CONF_TARGET_TEMP not in {**_early_entry.get("data", {}), **_early_entry.get("options", {})},
             str(_early_entry)[:160],
         )
     # What the flow manager does when that flow finishes: an entry that holds
@@ -15555,6 +15627,7 @@ R.section("Config entry migration")
 _mig_hass = FakeHass()
 _mig = FakeEntry()
 _mig.version = const.CONFIG_ENTRY_VERSION
+_mig.minor_version = const.CONFIG_ENTRY_MINOR_VERSION
 R.check(
     "the current version is a no-op that reports success",
     asyncio.run(integration.async_migrate_entry(_mig_hass, _mig)) is True
@@ -15570,11 +15643,304 @@ R.check(
     and _old.data == _old_data,
     "every option is read with a default, so only the stamp moves",
 )
+# D1-s2-05: an earlier release's non-number under a numeric option raised in
+# the thermal table or the comfort band at setup or on every cycle.
+from heatpump_optimizer.entry_config import EntryConfig as _MigEC  # noqa: E402
+from dataclasses import fields as _mig_fields  # noqa: E402
+
+_mig_bad_data = {"min_temperature": [19.0], "max_temperature": "abc", "dhw_tank_volume": "200",
+                 "mixing_valve_target": "abc"}
+_mig_bad_options = {"target_temperature": None, "comfort_weight": {"v": 1.0}, "price_weight": "nan",
+                    "cop_scale": True, "silent_mode_power_fraction": "abc"}
+import logging as _mig_logging  # noqa: E402
+
+
+class _MigLog(_mig_logging.Handler):
+    def __init__(self):
+        super().__init__(_mig_logging.WARNING)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def _mig_warnings(entry):
+    """Migrate ``entry``; return (result, the integration's WARNING records)."""
+    handler, logger = _MigLog(), _mig_logging.getLogger(integration.__name__)
+    logger.addHandler(handler)
+    try:
+        return asyncio.run(integration.async_migrate_entry(_mig_hass, entry)), handler.records
+    finally:
+        logger.removeHandler(handler)
+
+
+_mig_quiet = FakeEntry(data={"min_temperature": 19.0, "dhw_tank_volume": 200.0})
+_mig_quiet_ok, _mig_quiet_logs = _mig_warnings(_mig_quiet)
+R.check(
+    "a healthy old entry migrates with no repair warning (null control)",
+    _mig_quiet_ok is True and not _mig_quiet_logs
+    and {**_mig_quiet.data, **_mig_quiet.options} == {"min_temperature": 19.0, "dhw_tank_volume": 200.0},
+    f"{[r.getMessage() for r in _mig_quiet_logs]} data={_mig_quiet.data} options={_mig_quiet.options}",
+)
+_mig_bad = FakeEntry(data=dict(_mig_bad_data), options=dict(_mig_bad_options))
+_mig_before = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+_mig_bad_ok, _mig_bad_logs = _mig_warnings(_mig_bad)
+R.check(
+    "an old entry's non-numbers under numeric options are repaired, with one warning naming them",
+    _mig_bad_ok is True
+    and len(_mig_bad_logs) == 1 and "min_temperature" in _mig_bad_logs[0].getMessage()
+    and _mig_bad.version == const.CONFIG_ENTRY_VERSION
+    # Numeric text is its number, None is dropped, anything else is its default;
+    # 7.2 then places each key: none is DATA_ONLY, so every one lands in options.
+    and _mig_bad.data == {}
+    and _mig_bad.options == {
+        "min_temperature": const.DEFAULT_MIN_TEMP, "max_temperature": const.DEFAULT_MAX_TEMP,
+        "dhw_tank_volume": 200.0, "mixing_valve_target": const.DEFAULT_MIXING_VALVE_TARGET,
+        "comfort_weight": const.DEFAULT_COMFORT_WEIGHT, "price_weight": const.DEFAULT_PRICE_WEIGHT,
+        "cop_scale": const.DEFAULT_COP_SCALE, "silent_mode_power_fraction": "abc"},
+    f"data={_mig_bad.data} options={_mig_bad.options}",
+)
+_mig_after = _MigEC.from_mapping({**_mig_bad.data, **_mig_bad.options})
+_mig_moved = [
+    f.name for f in _mig_fields(_MigEC)
+    if f.metadata and getattr(_mig_before, f.name) != getattr(_mig_after, f.name)
+]
+R.check(
+    "and the repair moves no parsed field (refused-number keys are left alone)",
+    not _mig_moved,
+    f"moved: {_mig_moved}",
+)
+
+# sweep-P1 (early_cutoff.arm): a re-solve interval outside (0, a day] is no
+# interval; the parse reads it as the default.
+_mig_iv = {v: _MigEC.from_mapping({"optimization_interval": v}).optimization_interval
+           for v in (0, -5, 0.0, 1e12, 1440.5, "nan", 10, 120, 1440)}
+R.check(
+    "an optimization interval outside (0, a day] parses as the default",
+    all(_mig_iv[v] == const.DEFAULT_OPTIMIZATION_INTERVAL for v in (0, -5, 0.0, 1e12, 1440.5, "nan")),
+    f"{_mig_iv}",
+)
+R.check(
+    "and one inside it, both ends' neighbours included, is read as stored (null control)",
+    _mig_iv[10] == 10.0 and _mig_iv[120] == 120.0 and _mig_iv[1440] == 1440.0,
+    f"{_mig_iv}",
+)
+
+# D1-s2-05, the whole class: every numeric option a release stores. The rule
+# enumerates it from where the keys come from and where they are read, not
+# from the repair's own key set. Those are the options flow's number rows (a
+# money row builds its NumberSelector per currency) and the building
+# questionnaire's number fields. They are also every key
+# ThermalParameters.from_config or comfort_band.violations reads with a
+# numeric default (recorded by a mapping that answers every read with its
+# default), and every field EntryConfig parses as a number.
+import inspect as _mig_inspect  # noqa: E402
+from homeassistant.helpers import selector as _mig_selector  # noqa: E402
+from heatpump_optimizer import comfort_band as _mig_band  # noqa: E402
+from heatpump_optimizer import entry_config as _mig_entry  # noqa: E402
+from heatpump_optimizer.entry_config import number_repairs as _mig_repairs  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _MigTP  # noqa: E402
+
+
+class _MigReads(dict):
+    """An empty mapping that records each key read with ``.get`` and its default."""
+
+    def __init__(self):
+        super().__init__()
+        self.read = {}
+
+    def get(self, key, default=None):
+        self.read.setdefault(key, default)
+        return default
+
+
+def _mig_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _mig_raw_numbers(read):
+    reads = _MigReads()
+    read(reads)
+    return {k for k, v in reads.read.items() if _mig_number(v)}
+
+
+_MIG_NUMERIC_PARSES = {
+    const.finite_float, _mig_entry._nonzero_number, _mig_entry._interval_minutes,
+    _mig_entry._lead_minutes, _mig_entry._whole, _mig_entry._refused_number,
+}
+_mig_parse = {f.name: f.metadata["parse"] for f in _mig_fields(_MigEC) if f.metadata}
+_mig_class = {
+    "flow": {
+        r.key for r in config_flow._OPTION_FIELDS
+        if isinstance(r.widget, _mig_selector.NumberSelector)
+        or (isinstance(r.widget, config_flow._ByHass)
+            and re.search(r"\b_(money|number)\(", _mig_inspect.getsource(r.widget.of)))
+    },
+    "questionnaire": {
+        m.schema for m, w in config_flow._questionnaire_fields({}).items()
+        if isinstance(w, _mig_selector.NumberSelector)
+    },
+    "thermal": _mig_raw_numbers(_MigTP.from_config),
+    "band": _mig_raw_numbers(lambda reads: _mig_band.violations({}, reads)),
+    "parsed": {k for k, p in _mig_parse.items() if p in _MIG_NUMERIC_PARSES},
+}
+_mig_members = sorted(set().union(*_mig_class.values()))
+R.check(
+    "the numeric-option census reaches every source it enumerates (precondition)",
+    all(_mig_class.values())
+    and {"day_start_hour", "buffer_tank_volume", "heated_area_m2", "wood_price_sek_m3",
+         "price_vat"} <= set(_mig_members),
+    f"{ {s: len(k) for s, k in _mig_class.items()} }",
+)
+_mig_undeclared = [k for k in _mig_members if _mig_parse.get(k) not in _MIG_NUMERIC_PARSES]
+R.check(
+    "every numeric option a release stores is declared in EntryConfig with a numeric parse",
+    not _mig_undeclared,
+    f"undeclared: {_mig_undeclared}",
+)
+# The residue: a ``_refused_number`` field reads a refused value as None, which
+# caps nothing, and dropping the key would make it the default instead.
+_mig_repaired = [k for k in _mig_members if _mig_parse.get(k) is not _mig_entry._refused_number]
+_mig_open = {}
+for _k in _mig_repaired:
+    if _k not in _mig_parse:
+        _mig_open[_k] = ["undeclared"]
+        continue
+    for _bad in ("abc", None, [12], {"v": 12}, "12"):
+        _rep = _mig_repairs({_k: _bad})
+        _before = getattr(_MigEC.from_mapping({_k: _bad}), _k)
+        _after = getattr(_MigEC.from_mapping(_mig_entry.repaired_numbers({_k: _bad}, _rep)), _k)
+        _stored = _mig_entry.repaired_numbers({_k: _bad}, _rep).get(_k)
+        if set(_rep) != {_k} or _before != _after or not (_stored is None or _mig_number(_stored)):
+            _mig_open.setdefault(_k, []).append(repr(_bad))
+R.check(
+    "the migration repairs every member's non-number: numeric text is stored as its number, "
+    "None is dropped, anything else is its default, and no parsed field moves",
+    _mig_repaired and not _mig_open,
+    f"open: {_mig_open}",
+)
+R.check(
+    "and a stored number under each is left alone (null control)",
+    not [k for k in _mig_members if _mig_repairs({k: 12.0}) or _mig_repairs({k: 12})],
+)
+_mig_whole = _mig_repairs({"day_start_hour": "9", "ecl110_mqtt_qos": " 1 ", "day_end_hour": "7.5"})
+R.check(
+    "an hour stored as text is stored as its whole number, and text no whole number reads as the default",
+    _mig_whole == {"day_start_hour": 9, "ecl110_mqtt_qos": 1, "day_end_hour": const.DEFAULT_DAY_END_HOUR}
+    and type(_mig_whole["day_start_hour"]) is int,
+    f"{_mig_whole}",
+)
+_mig_raw = FakeEntry(data={"day_start_hour": "abc", "buffer_tank_volume": None, "ecl110_mqtt_qos": "1"})
+
+
+def _mig_raw_reads(entry):
+    """The two raw readers the finding names, over ``entry``'s mapping: None, or what raised."""
+    merged = {**entry.data, **entry.options}
+    try:
+        _MigTP.from_config(merged)
+        _mig_band.violations({}, merged)
+    except (TypeError, ValueError) as err:
+        return repr(err)
+    return None
+
+
+_mig_raw_before = _mig_raw_reads(_mig_raw)
+_mig_raw_ok, _ = _mig_warnings(_mig_raw)
+R.check(
+    "an old entry's text hour and null tank volume no longer raise in the thermal table or the "
+    "comfort band once migrated",
+    _mig_raw_before is not None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
+    and {**_mig_raw.data, **_mig_raw.options}
+    == {"day_start_hour": const.DEFAULT_DAY_START_HOUR, "ecl110_mqtt_qos": 1},
+    f"before={_mig_raw_before} after={_mig_raw_reads(_mig_raw)} "
+    f"stored={ {**_mig_raw.data, **_mig_raw.options} }",
+)
+# A reader that takes a key's presence (a zone, the hot-water tank, the buffer
+# cooling prior) reads the repaired entry as it read the stored one.
+from heatpump_optimizer import thermal_model as _mig_thermal  # noqa: E402
+
+_mig_present = FakeEntry(data={"upper_floor_thermal_mass": "abc", "dhw_tank_volume": [200],
+                               "buffer_cooling_rate": {"v": 1.0}})
+
+
+def _mig_presence(entry):
+    merged = {**entry.data, **entry.options}
+    return (_mig_thermal.two_zone_from_config(merged), _mig_thermal.dhw_enabled_from_config(merged),
+            "buffer_cooling_rate" in merged)
+
+
+_mig_present_before = _mig_presence(_mig_present)
+_mig_present_ok, _ = _mig_warnings(_mig_present)
+R.check(
+    "a repaired key stays present: an old two-zone, hot-water entry keeps both, and its buffer "
+    "cooling rate stays configured",
+    _mig_present_ok is True and _mig_present_before == (True, True, True)
+    and _mig_presence(_mig_present) == _mig_present_before,
+    f"before={_mig_present_before} after={_mig_presence(_mig_present)} "
+    f"stored={ {**_mig_present.data, **_mig_present.options} }",
+)
+_mig_cleared = FakeEntry(data={"dhw_tank_volume": None})
+_mig_cleared_before = _mig_presence(_mig_cleared)
+_mig_cleared_ok, _ = _mig_warnings(_mig_cleared)
+R.check(
+    "and a stored None is no value: it is dropped, so a cleared tank volume enables no hot water",
+    _mig_cleared_ok is True and _mig_cleared_before[1] is False
+    and _mig_presence(_mig_cleared)[1] is False and not {**_mig_cleared.data, **_mig_cleared.options},
+    f"before={_mig_cleared_before} after={_mig_presence(_mig_cleared)} "
+    f"stored={ {**_mig_cleared.data, **_mig_cleared.options} }",
+)
+
 _new = FakeEntry()
 _new.version = const.CONFIG_ENTRY_VERSION + 1
 R.check(
     "a downgrade is refused rather than mangled",
     asyncio.run(integration.async_migrate_entry(_mig_hass, _new)) is False,
+)
+
+# R11-SEAM-config: 7.2 stores each key in its one place (entry_config.placed).
+from heatpump_optimizer import entry_config as _mig_ec  # noqa: E402
+
+_m71 = FakeEntry(
+    data={"name": "Annex", const.CONF_TIBBER_TOKEN: "t", const.CONF_TARGET_TEMP: 21.0},
+    options={const.CONF_TARGET_TEMP: 22.0},
+)
+_m71.version = const.CONFIG_ENTRY_VERSION
+_m71_effective = {**_m71.data, **_m71.options}
+R.check(
+    "a 7.1 entry migrates to 7.2: data holds DATA_ONLY alone, the effective mapping is "
+    "unchanged and a key in both sides keeps the options value in force",
+    asyncio.run(integration.async_migrate_entry(_mig_hass, _m71)) is True
+    and (_m71.version, _m71.minor_version)
+    == (const.CONFIG_ENTRY_VERSION, const.CONFIG_ENTRY_MINOR_VERSION)
+    and set(_m71.data) <= _mig_ec.DATA_ONLY
+    and {**_m71.data, **_m71.options} == _m71_effective
+    and _m71.options[const.CONF_TARGET_TEMP] == 22.0,
+    f"data={_m71.data} options={_m71.options} minor={_m71.minor_version}",
+)
+# Null control: an entry already at the minor version is not rewritten, so a
+# 7.2 written under a downgraded release's reconfigure is left as it stands.
+_m72 = FakeEntry(data={"name": "Annex", const.CONF_TARGET_TEMP: 21.0})
+_m72.version = const.CONFIG_ENTRY_VERSION
+_m72.minor_version = const.CONFIG_ENTRY_MINOR_VERSION
+_m72_updates = len(_mig_hass.config_entries.updated)
+R.check(
+    "an entry at the current minor version is not rewritten",
+    asyncio.run(integration.async_migrate_entry(_mig_hass, _m72)) is True
+    and len(_mig_hass.config_entries.updated) == _m72_updates
+    and _m72.data == {"name": "Annex", const.CONF_TARGET_TEMP: 21.0},
+    f"data={_m72.data} updates={_mig_hass.config_entries.updated[_m72_updates:]}",
+)
+# An undo record written before the migration holds its settings in data:
+# undoing it stores each key where the entry now keeps it.
+_undo_rec = _mig_ec.undo_point(
+    const.FACTORY_RESET_SCOPES[0], {"name": "Annex", const.CONF_TARGET_TEMP: 21.0}, {})
+_undone = _mig_ec.undone_settings({"name": "Annex"}, {}, _undo_rec)
+R.check(
+    "undoing a reset recorded before 7.2 places the restored settings in options",
+    _undone is not None
+    and set(_undone[0]) <= _mig_ec.DATA_ONLY
+    and _undone[1].get(const.CONF_TARGET_TEMP) == 21.0,
+    f"record={_undo_rec} undone={_undone}",
 )
 
 
@@ -19172,13 +19538,13 @@ from heatpump_optimizer import thermal_model as _hb_tm  # noqa: E402
 R.check(
     "the heartbeat boot is two-zone + DHW by the model's own reading; the A3-A13 seed has no DHW",
     _hb_tm.ThermalParameters.from_config(_hb_eff).two_zone_enabled
-    and _hb_tm._dhw_enabled_from_config(_hb_eff)
+    and _hb_tm.dhw_enabled_from_config(_hb_eff)
     and _hb_eff.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_ON
     and _hb_eff.get("lower_floor_temp_entity") == _nightly.HB_LOWER_FLOOR_ENTITY
-    and not _hb_tm._dhw_enabled_from_config(_hb_base_eff),
+    and not _hb_tm.dhw_enabled_from_config(_hb_base_eff),
     f"hb two_zone={_hb_tm.ThermalParameters.from_config(_hb_eff).two_zone_enabled} "
-    f"dhw={_hb_tm._dhw_enabled_from_config(_hb_eff)}; "
-    f"base dhw={_hb_tm._dhw_enabled_from_config(_hb_base_eff)}",
+    f"dhw={_hb_tm.dhw_enabled_from_config(_hb_eff)}; "
+    f"base dhw={_hb_tm.dhw_enabled_from_config(_hb_base_eff)}",
 )
 _hb_payload = _nightly.heartbeat_payload(
     _nightly.HB_PAGE, _hb_eff, _nightly.HB_KEY, 21.5, const.AFTER_SAVE_MENU
@@ -20981,9 +21347,18 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
+    # CI-5 (owner 2026-11-21): a push's first attempt joins the one CI-main group, so a pending
+    # push run is replaced by the newest and none in progress is cancelled; every other run and
+    # every re-run keeps its run-id group (N1). Rendered per event and attempt, not matched as text.
     cc = doc.get("concurrency") or {}
-    if cc.get("group") != "CI-${{ github.run_id }}" or cc.get("cancel-in-progress") is not False:
-        out.append(f"concurrency {cc} (want group CI-<run id>, cancelling nothing)")
+    if cc.get("cancel-in-progress") is not False:
+        out.append(f"concurrency {cc} cancels in progress")
+    for (ev, a), payload in _CI_EVENTS.items():
+        for attempt in ("1", "2"):
+            want = "CI-main" if ev == "push" and attempt == "1" else "CI-99"
+            got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
+            if got != want:
+                out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
     jobs = doc.get("jobs") or {}
     callers = {j for j, b in jobs.items() if "uses" in (b or {})}
     if callers != set(_cig.UNITS) | {_cip.KP}:
@@ -21090,7 +21465,13 @@ _CI_PLANTS = {
     "run-name without sha=": _CI_TEXT.replace(" sha={3}'", "'", 1),
     "no merge_group": _CI_TEXT.replace("  merge_group:\n    types: [checks_requested]\n", "", 1),
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
-    "a group per PR": _CI_TEXT.replace("CI-${{ github.run_id }}", "CI-${{ github.event.pull_request.number }}", 1),
+    "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
+                                       "format('CI-{0}', github.event.pull_request.number)", 1),
+    "push re-runs in the main group": _CI_TEXT.replace(" && github.run_attempt == '1' && 'CI-main'", " && 'CI-main'", 1),
+    "every push in its own group": _CI_TEXT.replace(" && 'CI-main' ||", " && format('CI-{0}', github.run_id) ||", 1),
+    "the main group cancelling in progress": _CI_TEXT.replace(
+        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
+        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21136,7 +21517,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group, every unit called "
+    "run-name equal to prelude.title, one run per group but a push's first attempt (CI-main, CI-5), "
+    "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
     not _CI_DEFECTS and not _CI_PLANT_MISSED
@@ -22473,10 +22855,17 @@ for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
 # them as skips, which is #1514. Since that split only `pr-contract.yml` lists
 # `edited`, so the other three come from the held run once it is approved.
 #
-# Parsed from the push step's non-comment lines only: a commented-out
-# dispatch, or one moved into the `always()` report step (which also runs when
-# nothing was pushed), must not count.
+# Parsed from the non-comment lines of each step: a commented-out dispatch, or
+# one moved into the `always()` report step (which also runs when nothing was
+# pushed), must not count. CI-1 (owner 2026-11-21): the one dispatching step is
+# _AF_DISPATCH, after the approve step. It runs only for a token push whose
+# approve step approved no `CI` run at the pushed SHA (approved_head). The
+# approve step sets approved_head only on such an approval.
 _AF_DISPATCHED = {"ci.yml"}
+_AF_DISPATCH = "Dispatch the umbrella when no held run was approved"
+_AF_APPROVED = ('              approved=$((approved + 1))\n'
+                '              if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then\n'
+                '                echo "approved_head=true" >> "$GITHUB_OUTPUT"\n')
 
 
 def _af_dispatches(step: str) -> set[str]:
@@ -22485,21 +22874,45 @@ def _af_dispatches(step: str) -> set[str]:
     return set(re.findall(r"gh workflow run (\S+)", live))
 
 
+def _af_defects(job_text: str) -> "list[str]":
+    steps = job_text.split("\n      - ")
+    disp = [i for i, st in enumerate(steps) if _af_dispatches(st)]
+    appr = [i for i, st in enumerate(steps) if st.startswith("name: Approve the runs")]
+    out = []
+    if len(disp) != 1 or not steps[disp[0]].startswith(f"name: {_AF_DISPATCH}\n") \
+            or _af_dispatches(steps[disp[0]]) != _AF_DISPATCHED:
+        return [f"dispatching steps {[steps[i].splitlines()[0] for i in disp]}, not one `{_AF_DISPATCH}` of ci.yml"]
+    if len(appr) != 1 or appr[0] > disp[0]:
+        out.append("the dispatch does not follow the one approve step")
+    elif "id: approve\n" not in steps[appr[0]] or _AF_APPROVED not in steps[appr[0]]:
+        out.append("the approve step sets no approved_head on a CI run's approval at the pushed SHA")
+    cond = re.search(r"^        if: (.*)$", steps[disp[0]], re.M)
+    cond = cond.group(1) if cond else "true"
+    for tp, ah, want in (("true", "", True), ("true", "true", False), ("", "", False), ("", "true", False)):
+        lit = cond.replace("steps.push.outputs.token_push", repr(tp)) \
+                  .replace("steps.approve.outputs.approved_head", repr(ah))
+        if _ghx(lit, {}) is not want:
+            out.append(f"the dispatch's if: under token_push={tp!r} approved_head={ah!r} is not {want}")
+    return out
+
+
 for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
-    _steps = _workflow_job(_TESTS_YML, _job).split("\n      - ")
-    _push = [s for s in _steps if re.match(r"name: Push\b", s)]
-    _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
-                               if s not in _push))
+    _jt = _workflow_job(_TESTS_YML, _job)
+    _afd = _af_defects(_jt)
+    _af_null = {
+        "dispatch from the push step": _jt.replace("          echo \"token_push=true\" >> \"$GITHUB_OUTPUT\"\n",
+                                                   "          echo \"token_push=true\" >> \"$GITHUB_OUTPUT\"\n"
+                                                   "          gh workflow run ci.yml --ref \"$HEAD_REF\"\n", 1),
+        "dispatch beside an approval": _jt.replace(" && steps.approve.outputs.approved_head != 'true'", "", 1),
+        "approved_head on any approval": _jt.replace('if [ "$name" = CI ] && grep -qxF "$id" <<< "$hits"; then',
+                                                     "if true; then", 1),
+    }
+    _af_missed = sorted(k for k, t in _af_null.items() if t == _jt or not _af_defects(t))
     R.check(
-        f"{_job} dispatches the one umbrella, ci.yml (-f pr -f base), whose callees own every required context",
-        len(_push) == 1 and _af_dispatches(_push[0]) == _AF_DISPATCHED,
-        f"push steps={len(_push)} dispatched="
-        f"{sorted(_af_dispatches(_push[0])) if _push else []}",
-    )
-    R.check(
-        f"{_job} dispatches from the push step only",
-        not _elsewhere,
-        f"elsewhere={sorted(_elsewhere)}; only a pushed SHA needs a retrigger",
+        f"{_job} dispatches the one umbrella, ci.yml (-f pr -f base), from its own step after the approve "
+        "step, only where no held CI run at the pushed SHA was approved (CI-1)",
+        not _afd and not _af_missed,
+        f"defects={_afd}; plants not refused (null controls)={_af_missed}",
     )
 _CODEQL_YML = (pathlib.Path(__file__).resolve().parents[1] / ".github"
                / "workflows" / "codeql.yml").read_text()
@@ -22547,14 +22960,15 @@ R.check(
     f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
-# pull request. The cap is per leg, read from the matrix's `include` entries
-# (r10-hotfix-codeql-headroom, design note sections 1 and 3): python carries 75
-# because main's python job outgrew the 45-minute cap (extraction of
-# tests/features.py is the critical path; projected uncensored worst case about
-# 51 minutes, so 75 is that plus a deliberate stopgap margin); the two legs that
-# read about 40x under the cap stay at exactly 45, which is the null control
-# (a blanket raise would move them and fails here). The cap is pinned against
-# the YAML, not left as prose in the workflow, because a one-line edit
+# pull request and reddens main's gate. The cap is per leg, read from the
+# matrix's `include` entries: python's 45 became 75 (r10-hotfix-codeql-headroom)
+# and 75 became 120 (R11-HOTFIX-CODEQL-PERMS) when main's push jobs outran it:
+# 22 of the 40 newest were capped at 75.1 minutes, so the measured worst case
+# is censored above 75 and the floor below is the first whole minute past that
+# cap (the workflow's comment carries the job list's enumerator). The two legs
+# that read about 40x under the cap stay at exactly 45, which is the null
+# control (a blanket raise would move them and fails here). The cap is pinned
+# against the YAML, not left as prose in the workflow, because a one-line edit
 # shrinking it back is exactly what no other check reads.
 _CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
 _analyze_job = _CODEQL_JOBS.get("analyze") or {}
@@ -22563,7 +22977,7 @@ _analyze_incl = (((_analyze_job.get("strategy") or {}).get("matrix") or {})
                  .get("include")) or []
 _leg_caps = {e.get("language"): e.get("timeout") for e in _analyze_incl
              if isinstance(e, dict)}
-_PY_WORST_CASE_MIN = 51
+_PY_WORST_CASE_MIN = 76
 R.check(
     "codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45",
     _analyze_cap == "${{ matrix.timeout }}"
@@ -22575,9 +22989,9 @@ R.check(
     and _leg_caps["javascript-typescript"] == 45
     and type(_leg_caps["javascript-typescript"]) is int,
     f"timeout-minutes={_analyze_cap!r}; include caps={_leg_caps!r}; the python "
-    "leg was capped at 45.1 min on main (projected worst case ~51, design "
-    "r10-hotfix-codeql-headroom s1); actions and javascript-typescript read "
-    "p99 <= 2.3 min and stay 45",
+    "leg was capped at 75.1 min on 22 of main's 40 newest push jobs (worst case "
+    "censored above 75, R11-HOTFIX-CODEQL-PERMS); actions and "
+    "javascript-typescript read p99 <= 2.3 min and stay 45",
 )
 # D-5: O17's INERT list is admitted only with the soundness step, which runs
 # on push and reads the leg's extracted source archive; and the `scope` job
@@ -22765,11 +23179,13 @@ R.check(
 # child, never every closure (R9-F10.9; this pinned `full` until then).
 # tests/entities.py is the third entry: countermeasure B's pin reads every
 # non-INERT .py under tests/ and tools/, so every such edit re-derives it.
+# tests/doc_claims.py is the fourth: its comment ratchet reads every tests/ script.
 _A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
     "a change to a subprocess-driven script re-derives its driver and itself",
     _A_DRIVEN["case"] == "scoped"
-    and _A_DRIVEN["rederive"] == ["tests/entities.py", "tests/features.py", "tests/dst_checks.py"],
+    and _A_DRIVEN["rederive"] == ["tests/doc_claims.py", "tests/entities.py", "tests/features.py",
+                                  "tests/dst_checks.py"],
     f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
 )
 # A tests/closures.json change runs the scripts whose entry moved, measured
@@ -24021,6 +24437,90 @@ R.check(
         _CM_THEIRS_CLAIM.replace("claims-for: 6.3.16", "claims-for: 6.3.17"),
     ),
     "a claim stamped for another release excuses that release's diff only",
+)
+# A release stamp is not a claim for another release (PC-1113-18,
+# dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md): it moves the stamp and empties
+# the list. Main held a claim when the branch forked, the stamp deleted it, the
+# branch added its own. Per scenario nothing clashes, so the merge is main's
+# stamp and reason block plus the branch's claim, and the deleted line stays
+# deleted. `_CM_STAMPED` is `rewrite_claims`' shape; the stamp section below
+# drives the real function over the same base.
+_CM_BASE_HELD_CLAIM = _CM_BASE.rstrip("\n") + "\nvalve_storage_small_tank # a claim main held at the fork\n"
+_CM_STAMPED = (
+    "# Scenarios this branch deliberately moves, one name per line.\n"
+    "#\n"
+    "# claims-for: 6.3.17\n"
+    "#\n"
+    "# v6.3.17: a release. The stamp empties the list; the\n"
+    "# next branch restates its own footprint, claims included.\n"
+    "#\n"
+    "\n"
+    "# may-drift: wood_coil -- machine-sensitive\n"
+)
+_CM_OURS_OVER_HELD = _CM_BASE_HELD_CLAIM + "everything_on # this branch's own measured drift\n"
+_CM_POST_STAMP = _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED)
+R.check(
+    "a branch's claims merge over a release stamp that emptied the list",
+    _CM_POST_STAMP is not None
+    and [ln for ln in _CM_POST_STAMP.splitlines() if "claims-for:" in ln]
+    == ["# claims-for: 6.3.17"]
+    and "# v6.3.17: a release." in _CM_POST_STAMP
+    and _env_drift.parse_claim_map(_CM_POST_STAMP)
+    == {"everything_on": ["this branch's own measured drift"]},
+    f"merged={_CM_POST_STAMP!r}",
+)
+_CM_POST_STAMP_REV = _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_STAMPED, _CM_OURS_OVER_HELD)
+R.check(
+    "the release stamp merges alike from either side",
+    _CM_POST_STAMP_REV is not None
+    and _env_drift._parse_claims(_CM_POST_STAMP_REV)[0] == "6.3.17"
+    and _env_drift.parse_claim_map(_CM_POST_STAMP_REV)
+    == {"everything_on": ["this branch's own measured drift"]},
+    f"merged={_CM_POST_STAMP_REV!r}",
+)
+# Nulls: each is one condition of `_stamp_emptied_side` taken away.
+_CM_OURS_EDITED_HELD = _CM_OURS_OVER_HELD.replace(
+    "# a claim main held at the fork", "# rewritten by this branch")
+R.check(
+    "a claim the branch edited against the stamp's deletion is still refused",
+    _env_drift.merge_claim_file(_CM_BASE_HELD_CLAIM, _CM_OURS_EDITED_HELD, _CM_STAMPED) is None
+    and _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_EDITED_HELD, _CM_STAMPED)[1]
+    == ["valve_storage_small_tank"],
+    "the stamp deleted it and the branch rewrote it: no rule says which holds",
+)
+_CM_STAMPED_WITH_CLAIM = _CM_STAMPED + "wood_only # claimed after the stamp\n"
+R.check(
+    "a stamped side that holds a claim keeps the different-stamps refusal",
+    _env_drift.merge_claim_file(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED_WITH_CLAIM) is None
+    and "different\n'claims-for:' stamps" in _env_drift.merge_claim_refusal(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD, _CM_STAMPED_WITH_CLAIM),
+    "a claim written after the stamp is another release's claim",
+)
+R.check(
+    "the branch's side stamped and holding a claim keeps the refusal too",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_STAMPED_WITH_CLAIM, _CM_OURS_OVER_HELD) == (None, []),
+    "the rule is one side's shape, not main's side alone",
+)
+# The two below are asked of the DECISION: the file-level merge refuses them
+# further down as well (the stamp key both sides rewrote; a result with no
+# stamp), which would hide the claim rule deciding them per scenario.
+R.check(
+    "stamps both sides moved apart are refused though one side is empty",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM,
+        _CM_OURS_OVER_HELD.replace("claims-for: 6.3.16", "claims-for: 6.3.18"),
+        _CM_STAMPED) == (None, []),
+    "the branch stamped its claims for a release main is not at",
+)
+R.check(
+    "a side that removed the stamp is not a release stamp",
+    _env_drift.merge_claim_decision(
+        _CM_BASE_HELD_CLAIM, _CM_OURS_OVER_HELD,
+        _CM_STAMPED.replace("# claims-for: 6.3.17\n", "")) == (None, []),
+    "an emptied list with no stamp is not what a release writes",
 )
 # Both sides bumped the stamp to the SAME release and changed disjoint claims:
 # every claim either side wrote describes that release's diff, so the stamps
@@ -25566,6 +26066,31 @@ R.check(
     _stc_ok,
     _stc_detail,
 )
+# And the composition with the merge driver (PC-1113-18): the file the stamp
+# writes over a list that held a claim, merged with a branch cut before the
+# stamp that added its own, is the stamp's file plus the branch's claim. The
+# driver section pins the rule on `rewrite_claims`' shape; this drives the
+# function, so a stamp that stops emptying the list, or writes another stamp
+# line, turns red here and not on the first pull request after a release.
+try:
+    _stm_base = _stc_before
+    _stm_ours = _stm_base + "everything_on  # a branch cut before the stamp\n"
+    _stm_merged = _env_drift.merge_claim_file(_stm_base, _stm_ours, _stc_after)
+    _stm_ok = (
+        _stm_merged is not None
+        and _env_drift._parse_claims(_stm_merged)[0] == "6.6.0"
+        and _env_drift.parse_claim_map(_stm_merged)
+        == {"everything_on": ["a branch cut before the stamp"]}
+    )
+    _stm_detail = f"merged={_stm_merged!r}"
+except Exception as _stm_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _stm_ok = False
+    _stm_detail = f"{type(_stm_exc).__name__}: {_stm_exc}"
+R.check(
+    "a branch cut before a stamp merges its claims over the file stamp.py wrote",
+    _stm_ok,
+    _stm_detail,
+)
 # The same composition for the coverage rule, on THIS tree's own claim file
 # (v7.0.1's refusal): the stamp deletes every claim, so every may-drift entry
 # a branch suspended for one must come back in the stamp commit, and the
@@ -26003,7 +26528,8 @@ R.check(
     "a valid token is written through and the entry reloads",
     _ra_out.get("reason") == "reauth_successful"
     and _ra_updates
-    and _ra_updates[0]["data"][_CONF_TOKEN] == "new-token"
+    and {**_ra_updates[0]["data"], **_ra_updates[0].get("options", {})}[_CONF_TOKEN] == "new-token"
+    and set(_ra_updates[0]["data"]) <= {"name"}
     and _ra_reloads == ["reauth-1"],
     f"result {_ra_out}, updates {_ra_updates}, reloads {_ra_reloads}",
 )
@@ -26213,7 +26739,8 @@ R.check(
     _rc_out_same.get("type") == "abort"
     and _rc_out_same.get("reason") == "reconfigure_successful"
     and _rc_updates
-    and _rc_updates[-1]["data"]["target_temp"] == 21.5,
+    and {**_rc_updates[-1]["data"], **_rc_updates[-1].get("options", {})}["target_temp"] == 21.5
+    and set(_rc_updates[-1]["data"]) <= {"name"},
     f"result {_rc_out_same}, updates {[k for k in _rc_updates]}",
 )
 R.check(
@@ -26228,7 +26755,7 @@ R.check(
         {**_rc_submit_same, _CONF_NAME: "Annex (renamed)"}
     ).get("reason")
     == "reconfigure_successful"
-    and _rc_updates[-1]["data"][_CONF_NAME] == "Annex (renamed)"
+    and {**_rc_updates[-1]["data"], **_rc_updates[-1].get("options", {})}[_CONF_NAME] == "Annex (renamed)"
     and _rc_updates[-1].get("title") == "Annex (renamed)",
     f"update kwargs keys {sorted(_rc_updates[-1]) if _rc_updates else []}",
 )
@@ -26239,9 +26766,10 @@ R.check(
     "a slot the user cleared is dropped, not silently kept",
     bool(_rc_updates)
     and _drive_reconfigure(_rc_cleared).get("reason") == "reconfigure_successful"
-    and const.CONF_INDOOR_TEMP_ENTITY not in _rc_updates[-1]["data"],
+    and const.CONF_INDOOR_TEMP_ENTITY not in {**_rc_updates[-1]["data"], **_rc_updates[-1].get("options", {})}
+    and set(_rc_updates[-1]["data"]) <= {"name"},
     f"cleared slot still in data: "
-    f"{_rc_updates[-1]['data'].get(const.CONF_INDOOR_TEMP_ENTITY) if _rc_updates else None!r}",
+    f"{({**_rc_updates[-1]['data'], **_rc_updates[-1].get('options', {})}).get(const.CONF_INDOOR_TEMP_ENTITY) if _rc_updates else None!r}",
 )
 R.check(
     "and the entry's unique id follows the picks, as a delete-and-recreate would",
@@ -32035,10 +32563,11 @@ def _cc_value(expr, event: "dict[str, object]"):
         e = re.sub(r"\b(?:github|needs|inputs|env|vars)(?:\.[\w-]+)+",
                    lambda n: repr(event.get(n.group(0))), e)
         e = e.replace("&&", " and ").replace("||", " or ")
-        if not re.fullmatch(r"(?:\s|\(|\)|==|!=|and|or|not|True|False|None"
-                            r"|'[^']*'|-?\d+)*", e):
+        if not re.fullmatch(r"(?:\s|\(|\)|,|==|!=|and|or|not|True|False|None"
+                            r"|'[^']*'|-?\d+|format)*", e):
             raise ValueError(e)
-        return str(eval(e, {"__builtins__": {}}, {}))  # literals and operators only
+        fmt = {"format": lambda f, *a: re.sub(r"\{(\d+)\}", lambda k: str(a[int(k.group(1))]), f)}
+        return str(eval(e, {"__builtins__": {}}, fmt))  # literals, operators and format()
     try:
         return re.sub(r"\$\{\{(.*?)\}\}", _one, str(expr))
     except ValueError:
@@ -32052,7 +32581,7 @@ _CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
 def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
     """One modelled Actions event. `sha` is None when the model carries none."""
     event = {"github.event_name": ev, "github.workflow": doc.get("name"),
-             "github.run_id": run_id, "github.event.sender.login": who,
+             "github.run_id": run_id, "github.run_attempt": "1", "github.event.sender.login": who,
              "github.event.pull_request.number":
                  7 if ev.startswith("pull_request") else None}
     if sha is not None:
@@ -32065,6 +32594,11 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 _CC_TWIN_ROUTE = {
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
+# The (file, event) pairs whose first attempts share one group that cancels
+# nothing in progress, so GitHub replaces a pending run with the newest: CI-5's
+# push-to-main coalescing (owner 2026-11-21). A re-run keeps its run-id group
+# (the umbrella check above renders that per attempt).
+_CC_COALESCED = {("ci.yml", "push")}
 
 
 def _cc_lists_edited(doc: dict) -> bool:
@@ -32095,13 +32629,14 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
             share = (ev == "pull_request" and who != "github-actions[bot]"
                      and route != "per-run")
             cancel_want = share and not twin
+            together = share or (name, ev) in _CC_COALESCED
             older, newer = at(1), at(2)
             cancel = _cc_value(cc.get("cancel-in-progress"), older)
             a, b = (_cc_value(cc.get("group"), older),
                     _cc_value(cc.get("group"), newer))
             if cancel != str(cancel_want):
                 out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
-            if None in (a, b) or (a == b) != share:
+            if None in (a, b) or (a == b) != together:
                 out.append(f"{name}: two {ev} runs by {who} get groups {a!r} and {b!r}")
             if share:
                 sa, sb = older.get("github.sha"), newer.get("github.sha")
@@ -32958,10 +33493,42 @@ def _mm_defects(text: str) -> "list[str]":
         out.append(f"dispatches {disp}, want exactly ['ci.yml']")
     if not re.search(r'gh workflow run ci\.yml --ref "\$branch" -f pr="\$pr" -f base="\$base"', runs):
         out.append("the ci.yml dispatch does not pass -f pr and -f base")
-    reads = re.findall(r"while read -r ([^;]+); do", runs)
+    reads = [r for r in re.findall(r"while read -r ([^;]+); do", runs) if r.split()[0] == "branch"]
     if len(reads) != 2 or any(len(r.split()) != 4 for r in reads):
         out.append(f"pushed.txt readers {reads} do not read four fields")
+    # CI-1: approve first, dispatch after (even past a failed approve), skipping a pushed head whose
+    # CI run was approved; the approve step records only a CI run's approval.
+    steps = [st for j in jobs.values() for st in j.get("steps") or []]
+    names = [str(st.get("name", "")) for st in steps]
+    ap = next((i for i, n in enumerate(names) if n.startswith("Approve the runs")), None)
+    dp = next((i for i, n in enumerate(names) if n.startswith("Dispatch the checks")), None)
+    if ap is None or dp is None or dp < ap:
+        out.append(f"the dispatch step ({dp}) does not follow the approve step ({ap})")
+    elif str(steps[dp].get("if", "")).replace(" ", "") != "${{!cancelled()}}":
+        out.append(f"the dispatch step's if: {steps[dp].get('if')!r}, not !cancelled()")
+    elif not re.search(r'approved=\$\(\(approved \+ 1\)\)\n\s*\[ "\$name" != CI \] \|\| '
+                       r'echo "\$branch \$sha" >> "\$RUNNER_TEMP/approved\.txt"\n', str(steps[ap].get("run", ""))):
+        out.append("the approve step does not record `branch sha` in approved.txt on a CI run's approval")
     return out
+
+
+def _mm_dispatched(text: str, approved: "str | None", used_pat: str = "false") -> "list[str]":
+    """The `--ref` of every `gh workflow run` merge-main's dispatch step makes, its own `run:`
+    executed under bash -e with gh stubbed, over two pushed heads and `approved` (None: no file)."""
+    doc = _yaml.safe_load(text) or {}
+    step = next(st for j in (doc.get("jobs") or {}).values() for st in j.get("steps") or []
+                if str(st.get("name", "")).startswith("Dispatch the checks"))
+    with tempfile.TemporaryDirectory() as d:
+        Path(d, "gh").write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$GH_LOG"\n')
+        Path(d, "gh").chmod(0o755)
+        Path(d, "pushed.txt").write_text("fix/a aaa 1 main\nfix/b bbb 2 main\n")
+        if approved is not None:
+            Path(d, "approved.txt").write_text(approved)
+        _subprocess.run([*_GHA_RUN, str(step["run"])], capture_output=True, text=True, timeout=30,
+                        env=_stub_path_env(d, RUNNER_TEMP=d, GH_LOG=f"{d}/gh.log", GITHUB_STEP_SUMMARY=f"{d}/s",
+                                           USED_PAT=used_pat, DRY_RUN="false"))
+        log = Path(d, "gh.log").read_text() if Path(d, "gh.log").exists() else ""
+    return [ln.split("--ref ")[1].split()[0] for ln in log.splitlines()]
 
 
 _MM_TEXT = _MM_PATH.read_text()
@@ -32972,7 +33539,26 @@ R.check(
     _MM_DEFECTS == [],
     f"defects: {_MM_DEFECTS}",
 )
+R.check(
+    "CI-1: merge-main dispatches only the pushed heads whose CI run it did not approve, every one "
+    "when approved.txt is absent, none after a PAT push",
+    (_mm_dispatched(_MM_TEXT, "fix/a aaa\n"), _mm_dispatched(_MM_TEXT, None), _mm_dispatched(_MM_TEXT, ""),
+     _mm_dispatched(_MM_TEXT, "fix/a zzz\n"), _mm_dispatched(_MM_TEXT, None, "true"))
+    == (["fix/b"], ["fix/a", "fix/b"], ["fix/a", "fix/b"], ["fix/a", "fix/b"], []),
+    "an approved head dispatched again is CI-1's duplicate full run; an unapproved one left out runs nothing",
+)
+R.check(
+    "and a dispatch step that ignores approved.txt dispatches the approved head (null control)",
+    _mm_dispatched(_MM_TEXT.replace('grep -qxF "$branch $sha" "$RUNNER_TEMP/approved.txt"', "false", 1),
+                   "fix/a aaa\n") == ["fix/a", "fix/b"],
+    "the harness cannot tell the skip from its absence",
+)
 _MM_NULL = {
+    "dispatch before approve": _MM_TEXT.replace("      - name: Dispatch the checks", "      - name: Late dispatch", 1)
+    .replace("      - name: Approve the runs the pushes", "      - name: Dispatch the checks first\n        run: 'true'\n"
+             "      - name: Approve the runs the pushes", 1),
+    "dispatch skipped after a failed approve": _MM_TEXT.replace("        if: ${{ !cancelled() }}\n", "", 1),
+    "approval recorded for any workflow": _MM_TEXT.replace('[ "$name" != CI ] || echo', 'echo', 1),
     "ref guard": _MM_TEXT.replace("    if: github.ref == 'refs/heads/main'\n", ""),
     "four dispatches": _MM_TEXT.replace(
         'gh workflow run ci.yml --ref "$branch"',
@@ -40133,12 +40719,67 @@ def _mut_plan_ok(job: dict, step: dict, pins: str) -> bool:
                 "`mutation-pin-plan`", ""))
 
 
+# CI-7 (owner 2026-11-21): the matrix runs at most this many shards at once, of
+# MAX_SHARDS, so one pins burst holds a tenth of the 40-slot runner cap, not 30%.
+_PINS_MAX_PARALLEL = 4
+# CI-17 (owner 2026-11-21): every job that pip-installs the hash-locked
+# requirements caches pip through its setup-python step, keyed on those lock
+# files, so a lock change is a new key; --require-hashes still verifies every
+# wheel a cache hit supplies. Read per job and per composite action, with each
+# `-r` file the job installs matched against the key's glob.
+_PIPCACHE_DEP = "tests/requirements-*.txt"
+
+
+def _pipcache_defects(docs: dict) -> "list[str]":
+    out = []
+    for label, steps in docs.items():
+        runs = " ".join(str(st.get("run", "")) for st in steps)
+        if not re.search(r"\bpip3? install\b", runs):
+            continue
+        for req in re.findall(r"(?:^|\s)-r\s+(\S+\.txt)(?=\s|$)", runs):
+            if not fnmatch.fnmatch(req, _PIPCACHE_DEP):
+                out.append(f"{label}: installs {req}, outside the cache key {_PIPCACHE_DEP}")
+        for st in steps:
+            if str(st.get("uses", "")).startswith("actions/setup-python@"):
+                w = st.get("with") or {}
+                if (w.get("cache"), w.get("cache-dependency-path")) != ("pip", _PIPCACHE_DEP):
+                    out.append(f"{label}: setup-python caches {w.get('cache')!r} on {w.get('cache-dependency-path')!r}")
+    return out
+
+
+def _pipcache_docs(texts: dict) -> dict:
+    docs = {}
+    for name, text in texts.items():
+        d = _yaml.safe_load(text) or {}
+        if "runs" in d:
+            docs[name] = d["runs"].get("steps") or []
+        for jn, j in (d.get("jobs") or {}).items():
+            docs[f"{name}:{jn}"] = (j or {}).get("steps") or []
+    return docs
+
+
+import fnmatch  # noqa: E402
+
+_PIPCACHE_TEXTS = {str(f.relative_to(_closure.ROOT)): f.read_text()
+                   for f in sorted((_closure.ROOT / ".github").glob("**/*.yml"))
+                   if f.parent.name == "workflows" or f.name == "action.yml"}
+_PIPCACHE_GOT = _pipcache_defects(_pipcache_docs(_PIPCACHE_TEXTS))
+_PIPCACHE_PLANT = _pipcache_defects(_pipcache_docs({**_PIPCACHE_TEXTS, ".github/workflows/tests.yml": (
+    _PIPCACHE_TEXTS[".github/workflows/tests.yml"].replace(
+        "          cache: pip\n          cache-dependency-path: tests/requirements-*.txt\n", "", 1))}))
+R.check(
+    "CI-17: every job pip-installing the hash-locked requirements caches pip on their lock files, "
+    "and a job stripped of its cache lines is refused (null control)",
+    _PIPCACHE_GOT == [] and len(_PIPCACHE_PLANT) == 1,
+    f"defects={_PIPCACHE_GOT}; plant={_PIPCACHE_PLANT}",
+)
 R.check(
     "the pin shard count scales with the diff's new sites, five a shard, "
-    "capped at twelve, and sizes the matrix the shards run",
+    "capped at twelve, and sizes the matrix the shards run, four at a time (CI-7)",
     _MUT_SC == [1, 1, 2, 2, 12, 12] and _MUT_SC0 == 1
     and _mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins)
-    and f"max-parallel: {_mut.MAX_SHARDS}" in _ma_pins,
+    and re.findall(r"\n      max-parallel: (\d+)\n", _ma_pins) == [str(_PINS_MAX_PARALLEL)]
+    and _PINS_MAX_PARALLEL < _mut.MAX_SHARDS,
     f"counts={_MUT_SC} none={_MUT_SC0} plan wiring="
     f"{_mut_plan_ok(_MUT_DOC, _MUT_PLAN_STEP, _ma_pins)}",
 )
@@ -42293,9 +42934,21 @@ R.check(
 # still fails; a site that went away fails too, until its entry is deleted.
 # ---------------------------------------------------------------------------
 from collections import Counter  # noqa: E402
+import logging  # noqa: E402
 
 _r10_pkg = Path("custom_components/heatpump_optimizer")
 _r10_sources = {p.name: p.read_text() for p in sorted(_r10_pkg.glob("*.py"))}
+def _r11_shipped_files(pkg):
+    """The package's shipped files that are not modules, by path: text a
+    module can read, import or hand to an evaluator. Shipped is tracked, so a
+    local cache is not read and a forced-in ``.pyc`` is."""
+    tracked = subprocess.run(["git", "ls-files", "-z", "--", "."], cwd=pkg, check=True,
+                             capture_output=True, text=True).stdout.split("\0")
+    return {p: (pkg / p).read_bytes() for p in sorted(tracked)
+            if p and not p.endswith(".py") and (pkg / p).is_file()}
+
+
+_r11_files = _r11_shipped_files(_r10_pkg)
 
 
 def _r10_functions(source):
@@ -42324,17 +42977,15 @@ def _r10_covering_lookups(sources):
     return found
 
 
-#: Every covering lookup that is not ``coordinator._covering_index``'s, and why
-#: it may hold its last entry open (the R10 sweep's dispositions).
+#: Every covering lookup that is not ``plan_step.covering_index``'s, and why
+#: it may hold its last entry open (the R10 sweep's dispositions). The plan's
+#: readers (``pump_arbiter`` and ``early_cutoff``) take their index from
+#: ``plan_step.plan_step_index`` since round 11 (ADR-001 part 2, D7-s3-03), so
+#: none of them bisects on its own.
 _R10_COVERING_ALLOWED = {
-    ("coordinator.py", "_covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
+    ("plan_step.py", "covering_index"): (1, "the helper: its end bound is `now < starts[i] + span`"),
     ("coordinator.py", "_weather_series"): (1, "builds the future horizon; padding past the last "
                                                "entry is documented extrapolation, never published as current"),
-    ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
-    ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
-    ("pump_arbiter.py", "_step_index"): (1, "returns None past the plan's last step; "
-                                             "step_duty and step_supply read it (#2492)"),
-    ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
 }
 
 
@@ -42348,18 +42999,21 @@ _r10_cov_found = _r10_covering_lookups(_r10_sources)
 _r10_cov_planted = _r10_covering_lookups({
     "planted.py": "from bisect import bisect_right\n"
                   "def current(s, now):\n    return s[bisect_right(s, now) - 1]\n",
-    "pump_arbiter.py": _r10_sources["pump_arbiter.py"]
-    + "\ndef _share(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
+    "coordinator.py": _r10_sources["coordinator.py"]
+    + "\ndef _weather_series(s, now):\n    return bisect_right(s, now) - 1, bisect_right(s, now) - 1\n",
 })
 R.check(
     "R10 N-no-expiry barrier: every 'entry covering now' lookup goes through "
-    "_covering_index or is on the reasoned list with its exact count",
+    "plan_step.covering_index or is on the reasoned list with its exact count",
     not _r10_covering_verdict(_r10_cov_found)
-    and sum(_r10_cov_found.values()) >= 6 and len(_r10_sources) >= 70
+    # The reach floor is the two lookups left once round 11 (ADR-001 part 2)
+    # moved the plan's four readers onto plan_step.plan_step_index: the owner's
+    # own and _weather_series's padding; six before.
+    and sum(_r10_cov_found.values()) >= 2 and len(_r10_sources) >= 70
     # null control and perturbation: a planted unbounded lookup, and a second
     # lookup inside an allow-listed function, are each refused
     and ("planted.py", "current") in _r10_covering_verdict(_r10_cov_planted)
-    and ("pump_arbiter.py", "_share") in _r10_covering_verdict(_r10_cov_planted),
+    and ("coordinator.py", "_weather_series") in _r10_covering_verdict(_r10_cov_planted),
     f"mismatch {_r10_covering_verdict(_r10_cov_found)}; read {sum(_r10_cov_found.values())} "
     f"lookups in {len(_r10_sources)} modules",
 )
@@ -42368,10 +43022,34 @@ _R10_LATCH_WORD = re.compile(r"(warn|logged|report|latch|announc|_failed|notifie
 
 
 def _r10_unlatched_logs(sources):
-    """N-log-flood seams: each ``_LOGGER.warning``/``.error`` with no latch in
-    an enclosing ``if`` (a latch-named test, or a ``not in`` against a set the
-    function ``.add``s to; the R10 sweep's static rule), per (module, function)."""
+    """N-log-flood seams: each ``_LOGGER`` call at WARNING or above with no
+    latch in an enclosing ``if``, per (module, function). WARNING or above is
+    ``.warning`` and its ``.warn`` alias, ``.error``, ``.exception``,
+    ``.critical`` and its ``.fatal`` alias, and ``.log`` at such a level (R11
+    D14-s2-03: the barrier read two of the seven). A latch is a latch-named
+    test, or a ``not in`` against a set the function ``.add``s to (the R10
+    sweep's static rule). A logger under another name is refused by
+    ``_r11_logger_aliases``."""
     found = Counter()
+
+    def flood_level(call):
+        # WARNING or above; ``.log`` at a level below it is quiet, any other
+        # level, a computed one included, is counted. Kept inside this
+        # function: logflood_shape.py execs it alone.
+        if call.func.attr in ("warning", "warn", "error", "exception", "critical", "fatal"):
+            return True
+        if call.func.attr != "log":
+            return False
+        # the level is the first positional or the ``level=`` keyword; one
+        # behind ``*args`` or ``**kwargs`` is unknown, and so counted
+        level = (call.args[0] if call.args
+                 else next((k.value for k in call.keywords if k.arg == "level"), None))
+        if level is None or isinstance(level, ast.Starred):
+            return True
+        if isinstance(level, ast.Constant) and isinstance(level.value, int):
+            return level.value >= 30
+        return ast.unparse(level) not in ("logging.DEBUG", "logging.INFO", "logging.NOTSET")
+
     for name, source in sources.items():
         tree = ast.parse(source)
 
@@ -42379,8 +43057,8 @@ def _r10_unlatched_logs(sources):
             for child in ast.iter_child_nodes(node):
                 inner = child if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) else fn
                 if (isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute)
-                        and child.func.attr in ("warning", "error")
-                        and ast.unparse(child.func.value) == "_LOGGER"):
+                        and ast.unparse(child.func.value) == "_LOGGER"
+                        and flood_level(child)):
                     latched = False
                     for test in chain:
                         text = ast.unparse(test.test)
@@ -42395,6 +43073,216 @@ def _r10_unlatched_logs(sources):
 
         walk(tree, [], None)
     return found
+
+
+def _r11_logger_aliases(sources, files=None):
+    """``(module, line, binding)`` per way a package line can log through
+    something the barrier does not read.
+
+    Claim: every logger binding and call spelled in the package's shipped
+    text is either a ``_LOGGER.<level>(...)`` call that the barrier reads or
+    is refused.
+
+    Residue, two categories. First, text the package derives at run time:
+    any operator, call or formatting (``+``, join, decode, base64, f-string,
+    ``chr``), whether in package code, in the evaluated text or in pickle
+    opcodes. So is text read from outside the shipped tree (config, store,
+    network) and a value flow (``vars(m).values()``). Which string a
+    computation yields is undecidable in general, so no static rule can name
+    it; the boundary is the text as written. Second, any record a dependency
+    writes when the package calls it, whatever the call's purpose. A
+    dependency is any module the package does not ship.
+    This covers ``warnings.warn``, asyncio's exception handlers and an
+    unretrieved task exception. It covers Home Assistant's
+    ``frame.report_usage`` and ``system_log`` service too. Such a call names
+    no logger of the package. Its record is counted at run time, never here.
+
+    The barrier keys on the text ``_LOGGER``, so the one logger it sees is a
+    module-level ``_LOGGER = logging.getLogger(...)`` used only as
+    ``_LOGGER.<method>(...)``. Refused, by spelling: a name bound to
+    ``_LOGGER`` or to a ``getLogger``/``getChild`` result; any other
+    ``getLogger``/``getChild`` call; ``import logging as`` another name, an
+    import of ``_LOGGER``, of a module called ``logging``, or of anything from
+    ``logging`` but its level numbers. Also refused: the module ``logging``
+    used other than as ``logging.<level number>`` or
+    ``logging.getLogger(...)``; an attribute named ``logging``, ``logger``
+    (Home Assistant's coordinator exposes the handed-over ``_LOGGER`` so)
+    or ``_LOGGER``. Also refused:
+    ``_LOGGER.<method>(...)`` outside the level calls and ``isEnabledFor``;
+    and ``_LOGGER`` itself escaping, as an argument, a return value, an
+    element or a bound method.
+
+    Refused, by the payload, whatever later runs it: an identifier that names
+    a logger (``LOGGER``, ``logger`` or ``logging`` inside it) in
+    any other place, a keyword, a parameter, a definition, an import alias or
+    module. Each can become text: ``dict(_LOGGER=0)`` turns a name into a
+    string. Also refused: a str or bytes constant, a docstring included, or a
+    tracked file of the package that is not a module (a ``.pyc`` included),
+    that names one. The constant is read as written and through each
+    evaluator's own front end: ``ast.parse`` (a coding cookie, escapes,
+    adjacent literals, NFKC identifiers) and ``pickletools.genops`` (a
+    pickle's literal opcodes), each result read again. A route that runs text (``exec``, ``typing.get_type_hints``,
+    ``pickle.loads``, any other) needs that text, so the evaluator is not
+    read."""
+    # imported here: a harness execs this function alone (as logflood_shape.py
+    # does the barrier)
+    import hashlib
+    import io
+    import pickletools
+    levels = {"debug", "info", "warning", "warn", "error", "exception",
+              "critical", "fatal", "log"}
+    methods = levels | {"isEnabledFor"}
+    numbers = {"NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"}
+    binders = (ast.Assign, ast.AnnAssign, ast.NamedExpr)
+    # each name a logger is reached by, read as an attribute
+    reached = {"logging", "logger", "_LOGGER"}
+    names_one = re.compile(r"LOGGER|[Ll]ogger|logging")
+
+    def idents(node):
+        # every identifier a node carries: each can become text at run time
+        for field in ("id", "attr", "arg", "name", "asname", "rest", "module"):
+            v = getattr(node, field, None)
+            if isinstance(v, str):
+                yield v
+        for field in ("names", "kwd_attrs"):
+            for v in getattr(node, field, None) or ():
+                if isinstance(v, str):
+                    yield v
+
+    def text_names_one(value):
+        # the text as written, then what each evaluator's own front end reads
+        # out of it, read again: every text read is shorter than the one it
+        # came from, so the recursion ends
+        if names_one.search(value if isinstance(value, str) else value.decode("latin-1")):
+            return True
+        inner = []
+        try:  # ast.parse applies a coding cookie, escapes, adjacent literals, NFKC
+            for n in ast.walk(ast.parse(value)):
+                inner += [s for s in idents(n) if names_one.search(s)]
+                if isinstance(n, ast.Constant) and isinstance(n.value, (str, bytes)):
+                    inner.append(n.value)
+        except Exception:  # not a program: no evaluator of Python runs it
+            pass
+        try:  # a pickle runs each opcode it reads before a bad one, so each counts
+            for _op, arg, _pos in pickletools.genops(io.BytesIO(
+                    value.encode("utf-8") if isinstance(value, str) else value)):
+                if isinstance(arg, (str, bytes)):
+                    inner.append(arg)
+        except Exception:
+            pass
+        return any(v != value and text_names_one(v) for v in inner)
+
+    def logger_call(node):
+        return isinstance(node, ast.Call) and (
+            (isinstance(node.func, ast.Attribute) and node.func.attr in ("getLogger", "getChild"))
+            or (isinstance(node.func, ast.Name) and node.func.id == "getLogger"))
+
+    def label(value):
+        # a long text by the hash of its exact bytes: an allowance cannot be reworded
+        raw = value.encode() if isinstance(value, str) else value
+        return repr(value) if len(raw) <= 40 else f"text sha256:{hashlib.sha256(raw).hexdigest()[:16]}"
+
+    out = []
+    for name, data in (files or {}).items():
+        if text_names_one(data):
+            out.append((name, 0, label(data)))
+    for name, source in sources.items():
+        tree = ast.parse(source)
+        top = set(map(id, tree.body))
+        parent = {id(c): n for n in ast.walk(tree) for c in ast.iter_child_nodes(n)}
+        canonical_values = set()
+        for node in tree.body:
+            if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "_LOGGER"
+                    and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute)
+                    and node.value.func.attr == "getLogger"
+                    and ast.unparse(node.value.func.value) == "logging"):
+                canonical_values.add(id(node.value))
+        for node in ast.walk(tree):
+            up = parent.get(id(node))
+            # the payload arm: identifiers the spelling arms below do not read
+            if not (isinstance(node, ast.Name) and node.id in ("_LOGGER", "logging")
+                    or isinstance(node, ast.Attribute) and (
+                        node.attr in reached or isinstance(node.value, ast.Name)
+                        and node.value.id == "logging")
+                    or isinstance(node, ast.alias) and node.name == "logging"
+                    or isinstance(node, ast.ImportFrom)
+                    and (node.module or "").split(".")[0] == "logging"):
+                for s in idents(node):
+                    if names_one.search(s):
+                        out.append((name, getattr(node, "lineno", getattr(up, "lineno", 0)),
+                                    f"{type(node).__name__} {s}"))
+            if isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes)):
+                if text_names_one(node.value):
+                    out.append((name, node.lineno, label(node.value)))
+            elif isinstance(node, ast.Import):
+                for a in node.names:
+                    if a.name.split(".")[0] == "logging" and a.asname:
+                        out.append((name, node.lineno, a.asname or a.name))
+            elif isinstance(node, ast.ImportFrom):
+                root = (node.module or "").split(".")[0]
+                for a in node.names:
+                    if a.name in ("_LOGGER", "logging") or (
+                            root == "logging" and a.name not in numbers):
+                        out.append((name, node.lineno, a.asname or a.name))
+            elif isinstance(node, binders):
+                value = node.value
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                is_logger = (isinstance(value, ast.Name) and value.id == "_LOGGER") or logger_call(value)
+                canonical = id(node) in top and id(value) in canonical_values
+                if is_logger and targets and not canonical:
+                    out.append((name, node.lineno, ", ".join(ast.unparse(t) for t in targets)))
+            elif logger_call(node) and id(node) not in canonical_values and not (
+                    isinstance(up, binders) and up.value is node):
+                out.append((name, node.lineno, ast.unparse(node.func)))
+            elif (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+                    and node.attr not in numbers and node.value.id == "logging" and not (
+                        node.attr == "getLogger" and isinstance(up, ast.Call) and up.func is node)):
+                out.append((name, node.lineno, ast.unparse(node)))
+            elif isinstance(node, ast.Attribute) and node.attr in reached:
+                out.append((name, node.lineno, ast.unparse(node)))
+            elif isinstance(node, ast.Name) and node.id == "logging" and not (
+                    isinstance(up, ast.Attribute) and up.value is node):
+                out.append((name, node.lineno, f"logging -> {type(up).__name__}"
+                            if not isinstance(up, ast.Call) else f"logging -> {ast.unparse(up.func)}"))
+            elif isinstance(node, ast.Name) and node.id == "_LOGGER" and isinstance(node.ctx, ast.Load):
+                via = up
+                if isinstance(via, ast.Attribute) and via.value is node:
+                    if (isinstance(parent.get(id(via)), ast.Call) and parent[id(via)].func is via
+                            and via.attr in methods):
+                        continue
+                    out.append((name, node.lineno, f"_LOGGER -> {ast.unparse(via)}"))
+                    continue
+                if isinstance(via, binders) and via.value is node:
+                    continue
+                if isinstance(via, (ast.keyword, ast.Starred)):
+                    via = parent.get(id(via))
+                where = ast.unparse(via.func) if isinstance(via, ast.Call) else type(via).__name__
+                out.append((name, node.lineno, f"_LOGGER -> {where}"))
+    return out
+
+
+#: Each place ``_LOGGER`` leaves the package's own call sites, and why the
+#: barrier need not follow it there.
+_R11_LOGGER_HANDOVERS = {
+    # Home Assistant's DataUpdateCoordinator logs a failed refresh at ERROR
+    # only on the success -> failure transition (its last_update_success
+    # latch) and at INFO on recovery, so it cannot flood.
+    ("coordinator.py", "_LOGGER -> super().__init__"): 1,
+    # Prose docstrings that name a logger, each by the hash of its exact text,
+    # so a reworded or replaced one is read again: none is a program any
+    # evaluator runs (R11 #3729 round 6).
+    ("coordinator.py", "text sha256:1bae1cedbbbd1464"): 1,  # "Run one best-effort cycle step, logging ..."
+    ("learner_progress.py", "text sha256:559299c54c5ae71d"): 1,  # "At DEBUG: why ``what`` took no sample ..."
+    ("log_latch.py", "text sha256:82178ac44c5d08e8"): 1,  # "Whether condition ``key`` holds, logging ..."
+}
+
+
+def _r11_alias_verdict(found):
+    seen = Counter((m, b) for m, _l, b in found)
+    return {k: (seen.get(k, 0), _R11_LOGGER_HANDOVERS.get(k, 0))
+            for k in set(seen) | set(_R11_LOGGER_HANDOVERS)
+            if seen.get(k, 0) != _R11_LOGGER_HANDOVERS.get(k, 0)}
 
 
 #: Unlatched WARNING/ERROR sites by why each may stay so. The sweep's 85-site
@@ -42424,10 +43312,13 @@ _R10_LOG_ALLOWED_BY_REASON = {
         # R10-GENERIC-HEAT-CURVE-PERSISTENT: a baseline with no writer left is
         # named once and disarmed in the same call, so it cannot repeat.
         ("off_restore.py", "_restore_baseline"): 1,
+        # R11 D14-s2-03: a fit that raises ends the experiment in the same
+        # call (phase done, a refusal published), so it logs once per night armed.
+        ("sysid.py", "_finish"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
-        ("__init__.py", "async_migrate_entry"): 1, ("accuracy.py", "from_dict"): 1,
+        ("__init__.py", "async_migrate_entry"): 2, ("accuracy.py", "from_dict"): 1,
         ("defrost.py", "from_dict"): 1, ("ledger.py", "from_dict"): 1,
         ("price_model.py", "from_dict"): 1, ("price_model.py", "_stored_rows"): 1,
         ("price_model.py", "_in_domain"): 1, ("snapshots.py", "from_dict"): 1,
@@ -42446,13 +43337,14 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
         # R10-GENERIC-HEAT-CURVE-PERSISTENT (C4): once per baseline still
-        # owed when the entry is removed.
-        ("off_restore.py", "async_forget"): 1,
+        # owed when the entry is removed, and (ADR-004) once per neutral
+        # restore still owed.
+        ("off_restore.py", "async_forget"): 2,
     },
     "one record per failed call, an event and not a held condition (the "
     "sweep's actuation handlers, and an unexpected exception per failed update)": {
         ("climate.py", "_async_publish_displace_from_current_action"): 1,
-        ("heat_curve.py", "publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
+        ("heat_curve.py", "publish_ecl110_topics"): 2, ("circulation.py", "command"): 1,
         ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
         ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
         ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,
@@ -42474,7 +43366,168 @@ _r10_log_planted = _r10_unlatched_logs({
                   "def latched(self):\n    if not self._warned:\n        _LOGGER.warning('once')\n",
     "inputs.py": _r10_sources["inputs.py"]
     + "\ndef _age_gate(x):\n    _LOGGER.warning('a')\n    _LOGGER.warning('b')\n",
+    # R11 D14-s2-03: each level a flood can log at is a site, a quiet one is not
+    "levels.py": "def exc(self):\n    _LOGGER.exception('x')\n"
+                 "def crit(self):\n    _LOGGER.critical('x')\n"
+                 "def at_warning(self):\n    _LOGGER.log(logging.WARNING, 'x')\n"
+                 "def at_forty(self):\n    _LOGGER.log(40, 'x')\n"
+                 "def at_debug(self):\n    _LOGGER.log(logging.DEBUG, 'x')\n"
+                 "def at_info(self):\n    _LOGGER.info('x')\n"
+                 "def warn_alias(self):\n    _LOGGER.warn('x')\n"
+                 "def fatal_alias(self):\n    _LOGGER.fatal('x')\n"
+                 # R11 #3729 review: a keyword level is read; one behind *args/**kwargs is unknown
+                 "def at_kw_error(self):\n    _LOGGER.log(level=logging.ERROR, msg='x')\n"
+                 "def at_kw_debug(self):\n    _LOGGER.log(level=logging.DEBUG, msg='x')\n"
+                 "def at_star(self, a):\n    _LOGGER.log(*a)\n"
+                 "def at_kwargs(self, k):\n    _LOGGER.log(**k)\n",
 })
+_r11_aliases_found = _r11_logger_aliases(_r10_sources, _r11_files)
+# a shipped file that is not a module is read as text, a pickle by its opcodes,
+# compiled code by the names marshal writes raw; a binary one with no logger
+# name in it is not refused
+_r11_files_plant = {"strings.json": b'{"x": "_LOGGER.error(1)"}', "pixel.png": b"\x89PNG\r\n",
+                    "p.pickle": b"\x80\x04\x95\x0b\x00\x8c\x07logging\x94.",
+                    "x.pyc": __import__("marshal").dumps(compile("_LOGGER.error(1)", "x", "exec"))}
+_r11_files_planted = {m for m, _l, _b in _r11_logger_aliases({}, _r11_files_plant)}
+
+
+def _r11_shipped_planted():
+    # Python runs a .pyc beside a package's modules, or an unchecked-hash one
+    # in __pycache__, without reading its source: a tracked one is shipped
+    # text; a cache nobody tracked is not
+    with tempfile.TemporaryDirectory() as d:
+        pkg = Path(d) / "pkg"
+        for k in ("a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc", "__pycache__/d.pyc"):
+            (pkg / k).parent.mkdir(parents=True, exist_ok=True)
+            (pkg / k).write_bytes(b"x")
+        env = throwaway_git_init(d, "-q")
+        subprocess.run(["git", "-C", d, "add", "-f", *(f"pkg/{k}" for k in (
+            "a.json", "m.py", "b.pyc", "__pycache__/c.cpython-314.pyc"))],
+            check=True, capture_output=True, env=env)
+        with throwaway_git_environ():
+            return set(_r11_shipped_files(pkg))
+_r11_aliases_planted = {(m, b) for m, _l, b in _r11_logger_aliases({
+    "ok.py": "import logging\n_LOGGER = logging.getLogger(__name__)\n"
+             "from logging import DEBUG\n"
+             "def f():\n    _LOGGER.warning('x')\n    _LOGGER.isEnabledFor(logging.DEBUG)\n"
+             "    _LOGGER.log(level=DEBUG, msg='see the log')\n"
+             # R11 #3729 round 3: a sibling module and re.compile are not refused
+             "from . import coordinator\nimport re\nPAT = re.compile('x+')\n",
+    # R11 #3729 round 6: text naming a logger is refused wherever it sits,
+    # a pattern or a message included (round 3 let these two through)
+    "mention.py": "import re\nPAT = re.compile('_LOGGER warnings')\nM = 'see logging'\n",
+    "alias.py": "_LOGGER = logging.getLogger(__name__)\ndef f():\n    log = _LOGGER\n    log.warning('x')\n",
+    "child.py": "_LOG = logging.getLogger(__name__)\nCHILD = _LOGGER.getChild('c')\n",
+    "mod.py": "import logging as lg\n",
+    "field.py": "class C:\n    when: int\n    _LOGGER: object = None\n",
+    # R11 D14-s2-03 review: the shapes a logger reached the barrier's blind side by
+    "bare.py": "from logging import getLogger\nLOG = getLogger(__name__)\n",
+    "inline.py": "import logging\ndef f():\n    logging.getLogger(__name__).warning('x')\n",
+    "root.py": "import logging\ndef f():\n    logging.warning('x')\n    logging.root.error('y')\n",
+    "fromimp.py": "from .x import _LOGGER as log\n",
+    "param.py": "_LOGGER = logging.getLogger(__name__)\ndef f(log):\n    log.warning('x')\n"
+                "def g():\n    f(_LOGGER)\n    return _LOGGER\n",
+    "method.py": "_LOGGER = logging.getLogger(__name__)\ndef g():\n    return _LOGGER.error\n",
+    # R11 #3729 review: the module rebound, a record-path method, a reflective
+    # lookup, the rest of logging's surface, and Home Assistant's .logger
+    "rebind.py": "import logging\nlg = logging\ndef f():\n    lg.warning('x')\n"
+                 "    (w := logging).error('y')\n",
+    "record.py": "_LOGGER = logging.getLogger(__name__)\ndef f(r):\n"
+                 "    _LOGGER._log(logging.ERROR, 'x', ())\n    _LOGGER.handle(r)\n",
+    "reflect.py": "import importlib\ndef f():\n    getattr(logging, 'warning')('x')\n"
+                  "    __import__('logging').warning('y')\n"
+                  "    importlib.import_module('logging').error('z')\n",
+    "surface.py": "from logging import WARNING, makeLogRecord\nfrom homeassistant import logging as hl\n"
+                  "def f(self):\n    logging.Logger.error(self, 'x')\n    self.logger.error('y')\n",
+    "star.py": "from logging import *\n",
+    "getref.py": "make = logging.getLogger\n",
+    # R11 #3729 round 3: another module's logger as an attribute, the own
+    # logger by its text, and code run from text
+    "sibling.py": "from . import coordinator as c\nimport sys\ndef f():\n"
+                  "    c._LOGGER.error('x')\n    sys.modules[__name__]._LOGGER.error('y')\n",
+    "bytext.py": "def f(m):\n    globals()['_LOGGER'].error('x')\n    getattr(m, 'logger').error('y')\n",
+    "fromtext.py": "def f():\n    exec(\"_LOGGER.error('x')\")\n    eval('1')\n    compile('', '', 'exec')\n",
+    # R11 #3729 round 4, the class: code run from text has three doors, each
+    # shut in every static spelling. The builtins that compile text, by name,
+    # attribute, text or import; the builtins namespace they live in; and an
+    # imported module, refused unless vetted (marshal, code, runpy are not).
+    "bltn.py": "import builtins\ndef f():\n    builtins.exec(\"_LOGGER.error('x')\")\n",
+    "bgetattr.py": "def f(b):\n    getattr(b, 'exec')(\"_LOGGER.error('x')\")\n",
+    "bfrom.py": "from builtins import exec as run\nfrom os import compile as c\n"
+                "def f():\n    run(\"_LOGGER.error('x')\")\n",
+    "bdunder.py": "def f():\n    __builtins__['eval'](\"_LOGGER.error('x')\")\n"
+                  "    f.__builtins__\n",
+    "bbytes.py": "import pickle\nP = b'cbuiltins\\nexec\\n'\n",
+    "door.py": "import marshal\nimport code as cd\nfrom runpy import run_path\n"
+               "import importlib\nimport importlib.util\nfrom importlib import machinery\n"
+               "importlib.util.spec_from_file_location('m', 'm.py')\n__import__('ctypes')\n"
+               "import types\nfrom types import FunctionType\nT = types.CodeType\n"
+               "B = (b'', b'\\n')\n",
+    # re.compile is read only through an ``import re`` nothing rebinds: a
+    # parameter, a rebinding or another module named re is refused
+    "bimp.py": "import builtins as bi\nimport importlib as il\n",
+    "rebound.py": "import re\ndef f(re):\n    return re.compile('x')\n"
+                  "def g(o):\n    return o.compile('x')\n",
+    # R11 #3729 round 5: vetted roots that run the text they are handed
+    "hints.py": "import typing\ndef g(x: \"_LOGGER.error('x')\"): pass\n"
+                "def f():\n    typing.get_type_hints(g)\n",
+    "evalstr.py": "import inspect\ndef g(x: \"_LOGGER.warning('x')\"): pass\n"
+                  "def f():\n    inspect.get_annotations(g, eval_str=True)\n",
+    "fwdref.py": "import typing\ndef f():\n    typing.ForwardRef(\"_LOGGER.critical('x')\")"
+                 "._evaluate(globals(), None, recursive_guard=frozenset())\n",
+    "pickled.py": "import pickle\ndef f():\n"
+                  "    pickle.loads(\"cbuiltins\\nexec\\n(S\\\"_LOGGER.error(x)\\\"\\ntR.\".encode())\n",
+    # R11 #3729 round 6, the class: the payload is read, not the evaluator.
+    # Text is read as written and through each evaluator's own front end: an
+    # escape inside evaluated text, a fullwidth identifier, a coding cookie,
+    # adjacent literals and an escape in a pickle's string opcode are each refused
+    "escaped.py": "def f():\n    eval(\"globals()['_\\\\x4cOGGER'].error('x')\")\n",
+    "fullwidth.py": "def f():\n    exec('_\\uff2c\\uff2f\\uff27\\uff27\\uff25\\uff32.error(1)')\n",
+    "cookie.py": "def f():\n    exec(b'# coding: utf-7\\n+AF8ATABPAEcARwBFAFI-.error(1)')\n",
+    "joined.py": "def f():\n    exec(\"globals()['_LOG' 'GER'].error(1)\")\n",
+    "pickesc.py": "import pickle\ndef f():\n"
+                  "    pickle.loads(b\"cbuiltins\\nexec\\n(S'_\\\\x4cOGGER.error(1)'\\ntR.\")\n",
+    # an identifier turns into text at run time: a keyword, a parameter, a
+    # definition, an import's module
+    "idents.py": "from homeassistant.util.logging import catch_log_exception\n"
+                 "def f(logger):\n    globals()[next(iter(dict(_LOGGER=0)))].error('x')\n"
+                 "class MyLogger:\n    pass\n",
+    # Declared out of scope, pinned as no finding: text derived at run time,
+    # and an evaluator handed no text naming a logger (bfrom.py, bbytes.py,
+    # door.py, bimp.py and rebound.py above refuse nothing either)
+    "derived.py": "import base64\ndef f(x):\n    exec('_LOG' + 'GER.error(1)')\n"
+                  "    exec(base64.b64decode('X0xPR0dFUi5lcnJvcigxKQ=='))\n"
+                  "    exec(f'{x}GER.error(1)')\n    exec(''.join(map(chr, (95, 76))))\n",
+    "prose.py": "def f():\n    '''Return the plan; a refusal is logged.'''\n",
+    # R11 #3729 round 7: a record a dependency writes when the package calls
+    # it is the docstring's second residue category, whatever the call's
+    # purpose: warnings, asyncio's handlers, a task's unretrieved exception,
+    # Home Assistant's report_usage. Each names no logger, so none is refused
+    "warn.py": "import warnings\nfrom warnings import warn as w\ndef f(o):\n"
+               "    warnings.warn('x')\n    o.warnings.warn('y')\n    __import__('warnings')\n",
+    "report.py": "from homeassistant.helpers.frame import report_usage\n"
+                 "from homeassistant.helpers import frame\ndef f(hass):\n"
+                 "    report_usage('x', level=logging.ERROR)\n    frame.report_usage('y')\n"
+                 "    hass.async_create_task(boom())\n",
+    "handler.py": "import asyncio\ndef f(loop, ctx):\n"
+                  "    asyncio.get_running_loop().call_exception_handler(ctx)\n"
+                  "    loop.default_exception_handler(ctx)\n"
+                  "    getattr(loop, 'call_exception_handler')(ctx)\n"
+                  "    loop.set_exception_handler(None)\n",
+})}
+# Every callable of a Logger, called at ERROR on _LOGGER, and every name the
+# logging module exports. What neither check reads is exactly the quiet level
+# calls and the level numbers. So a method or helper added to either surface
+# by a Python release is refused, not missed.
+_r11_unread = {
+    f"_LOGGER.{a}" for a in dir(logging.Logger) if callable(getattr(logging.Logger, a))
+    for src in [f"_LOGGER = logging.getLogger(__name__)\ndef f():\n    _LOGGER.{a}(logging.ERROR, 'x')\n"]
+    if not _r10_unlatched_logs({"s.py": src}) and not _r11_logger_aliases({"s.py": src})
+} | {
+    f"logging.{a}" for a in dir(logging)
+    for src in [f"import logging\ndef f():\n    return logging.{a}\n"]
+    if not _r11_logger_aliases({"s.py": src})
+}
 R.check(
     "R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list "
     "with its exact count -- a persisting condition goes through log_held",
@@ -42487,8 +43540,83 @@ R.check(
     # one, and a second site inside a listed function, are each refused
     and ("planted.py", "poll") in _r10_log_verdict(_r10_log_planted)
     and ("planted.py", "latched") not in _r10_log_verdict(_r10_log_planted)
-    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted),
+    and ("inputs.py", "_age_gate") in _r10_log_verdict(_r10_log_planted)
+    and all(("levels.py", f) in _r10_log_verdict(_r10_log_planted)
+            for f in ("exc", "crit", "at_warning", "at_forty", "warn_alias", "fatal_alias",
+                      "at_kw_error", "at_star", "at_kwargs"))
+    and not {("levels.py", "at_debug"), ("levels.py", "at_info"),
+             ("levels.py", "at_kw_debug")} & set(_r10_log_verdict(_r10_log_planted)),
     f"mismatch {_r10_log_verdict(_r10_log_found)}; read {sum(_r10_log_found.values())} sites",
+)
+R.check(
+    "R11 N-log-flood barrier reach: every package logger is a module-level "
+    "``_LOGGER = logging.getLogger(...)``, the one name the barrier reads",
+    not _r11_alias_verdict(_r11_aliases_found)
+    # null control: the canonical binding and its method calls are not
+    # refused, nor a sibling import, re.compile or a field. Nor are text
+    # derived at run time (derived.py), an evaluator handed no text naming a
+    # logger (bbytes.py, door.py, bimp.py, rebound.py) or prose (prose.py).
+    # Nor is a dependency call that writes its own record (warn.py,
+    # report.py, handler.py): the second residue category.
+    # Perturbation: an alias, another getLogger name, a getChild, a logging
+    # alias, a bare-callee getLogger, an inline getLogger, a root logging call,
+    # a from-import of _LOGGER, a logger handed to a parameter or returned, a
+    # bound method. Also: another module's _LOGGER as an attribute and an
+    # identifier naming a logger. And text naming one
+    # whatever runs it (round 4's builtins spellings, round 5's typing,
+    # inspect and pickle), in each spelling an evaluator's front end decodes
+    and _r11_aliases_planted == {('mention.py', "'_LOGGER warnings'"),
+                                 ('mention.py', "'see logging'"), ('alias.py', 'log'),
+                                 ('child.py', 'CHILD'), ('child.py', '_LOG'),
+                                 ('child.py', '_LOGGER -> _LOGGER.getChild'), ('mod.py', 'lg'),
+                                 ('bare.py', 'LOG'), ('bare.py', 'Name getLogger'),
+                                 ('bare.py', 'alias getLogger'), ('bare.py', 'getLogger'),
+                                 ('inline.py', 'logging.getLogger'), ('root.py', 'logging.root'),
+                                 ('root.py', 'logging.warning'), ('fromimp.py', 'alias _LOGGER'),
+                                 ('fromimp.py', 'log'), ('param.py', '_LOGGER -> Return'),
+                                 ('param.py', '_LOGGER -> f'),
+                                 ('method.py', '_LOGGER -> _LOGGER.error'),
+                                 ('rebind.py', 'logging -> Assign'),
+                                 ('rebind.py', 'logging -> NamedExpr'),
+                                 ('record.py', '_LOGGER -> _LOGGER._log'),
+                                 ('record.py', '_LOGGER -> _LOGGER.handle'),
+                                 ('reflect.py', "'logging'"), ('reflect.py', 'logging -> getattr'),
+                                 ('surface.py', 'hl'), ('surface.py', 'logging.Logger'),
+                                 ('surface.py', 'makeLogRecord'), ('surface.py', 'self.logger'),
+                                 ('star.py', '*'), ('getref.py', 'logging.getLogger'),
+                                 ('sibling.py', 'c._LOGGER'),
+                                 ('sibling.py', 'sys.modules[__name__]._LOGGER'),
+                                 ('bytext.py', "'_LOGGER'"), ('bytext.py', "'logger'"),
+                                 ('fromtext.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bltn.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bgetattr.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bfrom.py', '"_LOGGER.error(\'x\')"'),
+                                 ('bdunder.py', '"_LOGGER.error(\'x\')"'),
+                                 ('hints.py', '"_LOGGER.error(\'x\')"'),
+                                 ('evalstr.py', '"_LOGGER.warning(\'x\')"'),
+                                 ('fwdref.py', '"_LOGGER.critical(\'x\')"'),
+                                 ('pickled.py', '\'cbuiltins\\nexec\\n(S"_LOGGER.error(x)"\\ntR.\''),
+                                 ('escaped.py', '"globals()[\'_\\\\x4cOGGER\'].error(\'x\')"'),
+                                 ('fullwidth.py', "'_\uff2c\uff2f\uff27\uff27\uff25\uff32.error(1)'"),
+                                 ('cookie.py', 'text sha256:e5560473c6647532'),
+                                 ('joined.py', '"globals()[\'_LOG\' \'GER\'].error(1)"'),
+                                 ('pickesc.py', 'text sha256:bc18f7cf581cd48b'),
+                                 ('idents.py', 'ClassDef MyLogger'),
+                                 ('idents.py', 'ImportFrom homeassistant.util.logging'),
+                                 ('idents.py', 'arg logger'), ('idents.py', 'keyword _LOGGER')}
+    and _r11_unread == {"_LOGGER.debug", "_LOGGER.info", "_LOGGER.isEnabledFor"}
+    | {f"logging.{n}" for n in ("NOTSET", "DEBUG", "INFO", "WARNING", "WARN", "ERROR",
+                                "CRITICAL", "FATAL")}
+    # precondition: the package is flat, so the glob read every module
+    and len(list(_r10_pkg.rglob("*.py"))) == len(_r10_sources)
+    and _r11_files_planted == set(_r11_files_plant) - {"pixel.png"}
+    # a tracked file is read whatever its suffix or folder, a module or an
+    # untracked cache is not
+    and _r11_shipped_planted() == {"a.json", "b.pyc", "__pycache__/c.cpython-314.pyc"}
+    # precondition: the shipped files that are not modules were read
+    and len(_r11_files) >= 10,
+    f"refused {_r11_alias_verdict(_r11_aliases_found)}; planted read {sorted(_r11_aliases_planted)}; "
+    f"unread surface {sorted(_r11_unread)}; files planted {sorted(_r11_files_planted)}",
 )
 
 # THE RECORD JOB'S WINDOW CACHE WIRING (R10-RECORD-API-BUDGET, M1). The cache is
