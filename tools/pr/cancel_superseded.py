@@ -5,6 +5,7 @@
         --pr N --head-sha SHA --branch BRANCH --run-id ID --sender LOGIN [--dry-run]
     python3 -I tools/pr/cancel_superseded.py sweep --repo OWNER/REPO [--dry-run]
     python3 -I tools/pr/cancel_superseded.py main --repo OWNER/REPO --workflow ci.yml [--workflow ...] [--dry-run]
+        [--head-sha SHA --scope full|auto|unknown]
     python3 tools/pr/cancel_superseded.py --self-test
 
 R10-CI-CONCURRENCY. A workflow's `concurrency:` group cancels a pull request's
@@ -74,8 +75,16 @@ consecutive main runs of that workflow with no concluded one. A run counts as co
 completed with a conclusion in VERDICTS; a run still active is not in a row, so a kept one must be
 left to conclude. A row that reaches the old end of a full listing cannot be counted and is
 refused. One `CANCEL-MAIN: <workflow>: kept <id>: <why>` line per refusal, then
-`CANCEL-MAIN: <workflow>: cancelled n, kept m`. API cost: one listing per workflow + one POST per
-cancel.
+`CANCEL-MAIN: <workflow>: cancelled n, kept m`. API cost: one listing per workflow + one jobs
+listing and one POST per cancel.
+
+PUSH (#3885, `.github/workflows/main-cancel.yml`): the same arm fired by every push to main with
+`--head-sha` and `--scope` (that push's prelude.py `scope`). Anything but `full` cancels nothing,
+so a light push never cancels a run. The push's own run must be listed (polled MAIN_POLLS times,
+MAIN_POLL_S apart) and be the newest main run, or a newer push decides. Whether fired or by hand,
+nothing is cancelled while a run to cancel has a job queued `pause_queued_min` minutes
+(ci_pause.queued_minutes over ci_priority.json, the train's pause signal: GitHub is not granting
+runners) or its jobs cannot be read.
 
 `concurrency:` is unchanged and still models the bot rule (`tests/entities.py`).
 The workflow job runs the BASE's copy of this program with `actions: write`.
@@ -98,6 +107,7 @@ EVENTS = ("pull_request", "workflow_dispatch")
 PAGE, MAX_PAGES = 100, 10
 MAIN_ROW_MAX = 3  # the longest row of consecutive main runs of one workflow the `main` arm may leave with no verdict
 VERDICTS = ("success", "failure", "timed_out")  # the conclusions that say what main is
+MAIN_POLLS, MAIN_POLL_S = 6, 10  # a push waits up to 50 s for its own CI run to be listed
 
 
 def candidates(runs: list[dict], *, live_sha: str, branch: str, run_id: int) -> list[int]:
@@ -468,22 +478,75 @@ def main_plan(runs: list[dict], *, full: bool = False) -> dict:
     return out
 
 
-def main_arm(a: argparse.Namespace, api=gh) -> int:
+def load_health_setting() -> "dict | None":
+    """ci_priority.json's knobs (`pause_queued_min` is read), or None when unreadable."""
+    sys.path.insert(0, str(SEAT))
+    try:
+        import ci_priority
+        return ci_priority.load_setting()
+    except Exception:  # noqa: BLE001 -- any failure reads as unknown health, which cancels nothing
+        return None
+
+
+def unhealthy(jobs: "object", setting: "dict | None", now: float) -> str:
+    """#3885: '' when GitHub is granting runners to a run, else why not: a job of it queued for
+    `pause_queued_min` minutes (ci_pause.queued_minutes, the train's pause signal), or a jobs
+    listing or setting that cannot be read. A cancel then frees nothing the next run can use."""
+    sys.path.insert(0, str(SEAT))
+    rows = jobs.get("jobs") if isinstance(jobs, dict) else None
+    if not isinstance(rows, list) or not isinstance(setting, dict) or "pause_queued_min" not in setting:
+        return "its jobs or the health setting cannot be read"
+    import ci_pause
+    age = ci_pause.queued_minutes(rows, now)
+    if age is not None and age >= setting["pause_queued_min"]:
+        return (f"a job has been queued {int(age)} min (pause_queued_min {setting['pause_queued_min']}): "
+                "GitHub is not granting runners")
+    return ""
+
+
+def main_arm(a: argparse.Namespace, api=gh, sleep=time.sleep, now=time.time, setting=load_health_setting) -> int:
+    """By hand, or fired by a push to main (main-cancel.yml, #3885: --head-sha and --scope). A push
+    cancels only when its own run is graded FULL (`--scope full`, prelude.py's `scope`): a light
+    push never cancels; its run is listed and the newest; and GitHub grants runners (`unhealthy`)."""
+    scope, head = getattr(a, "scope", None), getattr(a, "head_sha", None)
     for wf in a.workflow:
-        got = api([f"repos/{a.repo}/actions/workflows/{wf}/runs", "-f", "branch=main", "-f", "event=push",
-                   "-f", f"per_page={PAGE}"])
-        runs = got.get("workflow_runs") if isinstance(got, dict) else None
+        if scope is not None and scope != "full":
+            print(f"CANCEL-MAIN: {wf}: this push is graded {scope or 'unknown'}, not full: a light push cancels nothing")
+            continue
+        for attempt in range(MAIN_POLLS if head else 1):
+            if attempt:
+                sleep(MAIN_POLL_S)
+            got = api([f"repos/{a.repo}/actions/workflows/{wf}/runs", "-f", "branch=main", "-f", "event=push",
+                       "-f", f"per_page={PAGE}"])
+            runs = got.get("workflow_runs") if isinstance(got, dict) else None
+            if not isinstance(runs, list) or not head or any(r.get("head_sha") == head for r in runs):
+                break
         if not isinstance(runs, list):
             print(f"CANCEL-MAIN: {wf}: unreadable answer; cancelling nothing")
             continue
         p = main_plan(runs, full=len(runs) >= PAGE)
+        if head:
+            mine = [r for r in runs if r.get("head_branch") == "main" and r.get("event") == "push"]
+            newest = max(mine, key=lambda r: int(r["id"]), default={})
+            if not any(r.get("head_sha") == head for r in mine):
+                print(f"CANCEL-MAIN: {wf}: this push's run is not listed; cancelling nothing")
+                continue
+            if newest.get("head_sha") != head:
+                print(f"CANCEL-MAIN: {wf}: a newer push's run {newest.get('id')} is listed; that push decides")
+                continue
+        if p["cancel"]:
+            cfg = setting()
+            why = next((w for w in (unhealthy(api([f"repos/{a.repo}/actions/runs/{rid}/jobs", "-f", "per_page=100"]),
+                                              cfg, now()) for rid in p["cancel"]) if w), "")
+            if why:
+                p = {"cancel": [], "refused": p["refused"] + [(rid, why) for rid in p["cancel"]]}
         for rid, why in p["refused"]:
             print(f"CANCEL-MAIN: {wf}: kept {rid}: {why}")
         for rid in p["cancel"]:
             if a.dry_run:
                 print(f"cancel_superseded: would cancel {rid}")
             else:
-                post_cancel(api, a.repo, rid, {}, time.time())
+                post_cancel(api, a.repo, rid, {}, now())
         print(f"CANCEL-MAIN: {wf}: {'would cancel' if a.dry_run else 'cancelled'} {len(p['cancel'])}, kept {len(p['refused'])}")
     return 0
 
@@ -946,6 +1009,8 @@ def self_test() -> int:
         if method == "POST":
             mposts.append(int(args[0].split("/")[-2]))
             return {}
+        if args[0].endswith("/jobs"):  # #3885's health read: every job running, none queued
+            return {"jobs": [{"status": "in_progress", "started_at": "2026-01-01T00:00:00Z"}]}
         mseen.append(args)
         return {"workflow_runs": runs} if "/workflows/ci.yml/runs" in args[0] else None
 
@@ -968,6 +1033,63 @@ def self_test() -> int:
            mbuf.getvalue().count("cancel_superseded: would cancel ")), ([], True, 6))
     check("null: `run` and `sweep` still never cancel a main run",
           (plan(**{**base, "branch": "main", "runs": seven})[0], sweep_plan([], seven, set(), repo=REPO)["cancel"]), ([], []))
+    # --- #3885: the `main` arm fired by a push (main-cancel.yml): only a FULL push cancels, and only
+    # while GitHub grants runners (ci_pause's queued-job signal), the row bound unchanged.
+    SHA_NEW = "f" * 40
+    fresh = {"pause_queued_min": 5}
+    now0 = 1_800_000_000.0
+
+    def stamp(min_ago):
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now0 - 60 * min_ago))
+
+    def pm(i, status="completed", conclusion="success", sha=None):
+        return {**m(i, status, conclusion), "head_sha": sha or f"{i:040d}"}
+
+    def push_arm(runs, scope, jobs=None, setting=fresh, head=SHA_NEW, listings=None):
+        posts, seen = [], []
+        feed = list(listings or [runs])
+
+        def st(args, method="GET"):
+            if method == "POST":
+                posts.append(int(args[0].split("/")[-2]))
+                return {}
+            seen.append(args[0])
+            if args[0].endswith("/jobs"):
+                return jobs
+            return {"workflow_runs": feed.pop(0) if len(feed) > 1 else feed[0]}
+        pa = argparse.Namespace(repo=REPO, workflow=["ci.yml"], dry_run=False, head_sha=head, scope=scope)
+        with contextlib.redirect_stdout(io.StringIO()) as buf:
+            main_arm(pa, st, sleep=lambda s: None, now=lambda: now0, setting=lambda: setting)
+        return posts, seen, [l for l in buf.getvalue().splitlines() if l.startswith("CANCEL-MAIN")]
+
+    one_older = [pm(1), pm(2, "in_progress"), pm(3, "pending", sha=SHA_NEW)]
+    ok_jobs = {"jobs": [{"status": "in_progress", "started_at": stamp(20)},
+                        {"status": "queued", "started_at": stamp(1)}]}
+    check("#3885: a FULL push with one older main run in progress cancels it",
+          push_arm(one_older, "full", ok_jobs)[0], [2])
+    check("#3885: a light push (scope auto) cancels nothing and lists nothing",
+          push_arm(one_older, "auto", ok_jobs)[:2], ([], []))
+    check("#3885: a push whose scope is unknown cancels nothing (fail closed)",
+          push_arm(one_older, "unknown", ok_jobs)[0], [])
+    capped = [pm(1)] + [pm(i, conclusion="cancelled") for i in (2, 3, 4)] + [pm(5, "in_progress"), pm(6, "pending", sha=SHA_NEW)]
+    check("#3885: a FULL push at the cap (three in a row with no verdict) cancels nothing",
+          push_arm(capped, "full", ok_jobs)[0], [])
+    stuck = {"jobs": [{"status": "in_progress", "started_at": stamp(20)},
+                      {"status": "queued", "started_at": stamp(6)}]}
+    got_u = push_arm(one_older, "full", stuck)
+    check("#3885: unhealthy (a job of the run queued past pause_queued_min) cancels nothing and says so",
+          (got_u[0], any("GitHub is not granting runners" in l for l in got_u[2])), ([], True))
+    check("#3885: an unreadable jobs listing is unhealthy, never a cancel", push_arm(one_older, "full", None)[0], [])
+    check("#3885: an unreadable health setting cancels nothing", push_arm(one_older, "full", ok_jobs, setting=None)[0], [])
+    check("#3885: this push's run not yet listed: polled, then cancels nothing",
+          push_arm(one_older[:2], "full", ok_jobs), ([], [f"repos/{REPO}/actions/workflows/ci.yml/runs"] * MAIN_POLLS,
+                                                       ["CANCEL-MAIN: ci.yml: this push's run is not listed; cancelling nothing"]))
+    check("#3885: ... and once it is listed on a later poll, the older run is cancelled",
+          push_arm(one_older, "full", ok_jobs, listings=[one_older[:2], one_older])[0], [2])
+    check("#3885: a newer push's run already listed: this push cancels nothing (that push decides)",
+          push_arm(one_older + [pm(4, "pending")], "full", ok_jobs)[0], [])
+    check("#3885 null: by hand (no --scope, no --head-sha) the health gate still holds",
+          push_arm(one_older, None, stuck, head=None)[0], [])
     print(f"cancel_superseded self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
@@ -994,6 +1116,8 @@ def main(argv: list[str]) -> int:
     mn.add_argument("--repo", required=True)
     mn.add_argument("--workflow", action="append", required=True, help="a workflow file name, e.g. ci.yml; repeatable")
     mn.add_argument("--dry-run", action="store_true")
+    mn.add_argument("--head-sha", help="the push this runs for (main-cancel.yml): its run must be listed and the newest")
+    mn.add_argument("--scope", help="that push's prelude `scope`: only `full` cancels (#3885)")
     a = ap.parse_args(argv[1:])
     return {"sweep": sweep, "main": main_arm}.get(a.cmd, run)(a)
 
