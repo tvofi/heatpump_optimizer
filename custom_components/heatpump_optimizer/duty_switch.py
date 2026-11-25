@@ -189,7 +189,7 @@ class Direction:
         """The stop probability the planner prices: ``p`` once latched, else
         ``k`` shrunk by :data:`PRIOR_N` kept episodes (issue 3849: three stops
         in three switches priced nothing until the latch)."""
-        return self.p if self.usable else self.k / (self.n + PRIOR_N)
+        return self.p if self.usable else 0.0
 
     @property
     def span_days(self) -> int:
