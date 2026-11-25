@@ -960,10 +960,10 @@ def parse_bool(raw: Any, *, strict: bool = False) -> bool | None:
         return True
     if token in BOOL_FALSE:
         return False
-    try:
-        return float(token) != 0.0
-    except (TypeError, ValueError):
-        return None
+    # Only a finite number is a code (D1-s3-01): "nan", "inf" and "1e309" are
+    # no reading, not a fault or a defrost.
+    number = finite_float(token)
+    return None if number is None else number != 0.0
 
 
 class InputReader:
@@ -1029,6 +1029,11 @@ class InputReader:
         and return it as-is.
         """
         entity_id = entity_id if entity_id is not None else self.config.get(key)
+        # A slot an earlier release stored as a list or a dict names no entity
+        # (D1-s2-05): read as unset, it no longer raises out of every cycle as a
+        # state-machine key.
+        if not isinstance(entity_id, str):
+            entity_id = None
         # `isinstance` rather than `is UNBOUNDED`: identical for a private
         # sentinel with one instance, and it is what narrows the union so
         # the `float()` below is checked rather than suppressed.
