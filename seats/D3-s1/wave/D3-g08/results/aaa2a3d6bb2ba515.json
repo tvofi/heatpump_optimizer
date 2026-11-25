@@ -45,5 +45,19 @@
   "claim": "mutant aaa2a3d6bb2ba515 at custom_components/heatpump_optimizer/coordinator.py:9051 CMP_BOUND is killed by the full gate (python3 tests/stress.py)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aaa2a3d6bb2ba515",
   "value": "gate_rc=1; failing checks beyond the box null: python3 tests/stress.py: 1"
+ },
+ "kill_note": "The only check beyond the null is stress.py's timing check 'no scenario's simulate kernel got slower per call on an unchanged plan': summer/2z/space/wood-two-tank kernel CPU 76 ms vs baseline 42 ms = 1.81x against the 1.80x factor, on an unchanged plan (objective 21423.23656, counts 1.00x). The mutant sits in _outage_dhw_hold (coordinator.py:9051), which the simulate kernel does not call, so this kill is plausibly machine timing rather than the mutant (box load1 0.94..1.00; no other key's gate on this box tripped it). Counted KILLED, as fullgate.py's metric rules; a re-take of the gate is a lead, not done here (the brief re-takes only the null).",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_aaa2a3d6bb2ba515.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_aaa2a3d6bb2ba515.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_aaa2a3d6bb2ba515.out",
+  "result_lines": [
+   "RESULT exact_moved=2 count of 2",
+   "RESULT null_moved=0 count of 14"
+  ],
+  "baseline_value": "now == _outage_dhw_until, tank 55 degC: hold ended (False)",
+  "mutant_value": "hold continues (True): exact_moved=2 of 2, null_moved=0 of 14",
+  "inputs_tried": "offsets 0, -1 us, +1 s, -1 h from _outage_dhw_until; tank 55 and 30 degC; UTC and Europe/Stockholm stamps",
+  "note": "run for the record only: the key is killed, so no step-4 answer is owed; the probe shows the mutant moves behaviour at the exact end-instant tie"
  }
 }

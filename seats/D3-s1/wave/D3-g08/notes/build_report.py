@@ -113,7 +113,7 @@ rep = {
     "harnesses": ["dev/audit/rounds/round11/D3/s1/fullgate.py",
                   "gate_wave.sh (out of tree, dispatch/finder-r11-D3-g08: fullgate.py run per key of keys.tsv in order, one gate at a time, GATE_JOBS=1, 4 h cap, null first)",
                   f"{REL}/notes/build_result.py", f"{REL}/notes/build_report.py"] + probes,
-    "leads": [],
+    "leads": [{"key": k, "lead": "killed only by stress.py's kernel-CPU timing check on an unchanged plan; " + res[k]["kill_note"] + " Probe: " + "; ".join(res[k]["probe"]["result_lines"]), "next": "re-take fullgate.py run --src complete --key " + k + " on a quiet machine; if it survives, the probe makes it a candidate (exact-tie end of the post-outage DHW hold)"} for k in keys if res.get(k, {}).get("kill_note")],
     "gated": gated,
     "gate_survivors": surv,
     "equivalent_candidates": equiv,
@@ -144,7 +144,7 @@ for r in rows:
 for r in rows:
     x = res.get(r["key"])
     if x and x.get("class") == "killed":
-        md.append(f"**`{x['key']}`** {x['site']} KILLED by {x['killed_by']}: {x['non_finding']['value']}.")
+        md.append(f"**`{x['key']}`** {x['site']} `{x['patch']}` KILLED by {x['killed_by']}: {x['non_finding']['value']}." + (f" Caveat: {x['kill_note']} Probe (record only): {'; '.join(x['probe']['result_lines'])}." if x.get('kill_note') else ""))
         md.append("")
 if unfinished:
     md += ["## Unfinished", ""] + [f"- {u['what']}" for u in unfinished] + [""]
