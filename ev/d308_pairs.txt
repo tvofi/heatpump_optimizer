@@ -1,0 +1,33 @@
+61e49d1d83 prod=122 pairs=182/561 comparable=435 missing=['182 of the 561'] -> FAIL
+2c1ab82218 prod=122 pairs=182/561 comparable=435 missing=[] -> PASS
+b1930789751ce3d0418a4a628f86a9bf7c64674d prod=122 pairs=182/561 comparable=435 missing=[] -> PASS
+106578f8f0 prod=122 pairs=182/561 comparable=435 missing=[] -> PASS
+origin/main prod=121 pairs=182/561 comparable=435 missing=[] -> PASS
+MUTANT prior-note(180) on head closures: prod=122 pairs=182/561 comparable=435 missing=['182 of the 561'] -> FAIL
+MUTANT 182->181: prod=122 pairs=182/561 comparable=435 missing=['182 of the 561'] -> FAIL
+f0a1881e9d^1 d7324bbc583ad81a11e6d92c5cff282eb6b54f01 pairs=180/561
+  boost_drift_replay.py/config_flow_steps.py 84/106=0.7925
+  config_flow_steps.py/plan_view.py 84/106=0.7925
+  env_drift.py/manual_plan.py 95/119=0.7983
+  golden.py/manual_plan.py 95/119=0.7983
+f0a1881e9d^2 bb6377b4dad4e398d1a28bde54d30036a5b25a82 pairs=182/561
+  boost_drift_replay.py/config_flow_steps.py 85/106=0.8019
+  config_flow_steps.py/plan_view.py 85/106=0.8019
+  env_drift.py/manual_plan.py 95/119=0.7983
+  golden.py/manual_plan.py 95/119=0.7983
+f0a1881e9d f0a1881e9d41d3cd80c97b42a701a7637ebe3dbc pairs=182/561
+  boost_drift_replay.py/config_flow_steps.py 85/107=0.7944
+  config_flow_steps.py/plan_view.py 85/107=0.7944
+  env_drift.py/manual_plan.py 96/120=0.8000
+  golden.py/manual_plan.py 96/120=0.8000
+bb6377b4da bb6377b4dad4e398d1a28bde54d30036a5b25a82 pairs=182/561
+  boost_drift_replay.py/config_flow_steps.py 85/106=0.8019
+  config_flow_steps.py/plan_view.py 85/106=0.8019
+  env_drift.py/manual_plan.py 95/119=0.7983
+  golden.py/manual_plan.py 95/119=0.7983
+2c1ab82218 2c1ab82218a2859fde885beb590db3a279651756 pairs=182/561
+  boost_drift_replay.py/config_flow_steps.py 85/107=0.7944
+  config_flow_steps.py/plan_view.py 85/107=0.7944
+  env_drift.py/manual_plan.py 96/120=0.8000
+  golden.py/manual_plan.py 96/120=0.8000
+merged-tree closures blob 4bb6df853bf028cc09f5ff3ecca8fa614b07cf67 head 4bb6df853bf028cc09f5ff3ecca8fa614b07cf67 main 32bcd82cbbd52d29a17c679fda16cb500bf2a8a1
