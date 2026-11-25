@@ -1,0 +1,15 @@
+9849 tests/config_flow_steps.py tests/features.py
+5083 tests/block_duty.py tests/boost_drift_replay.py tests/config_flow_steps.py tests/doc_claims.py tests/entities.py tests/features.py tests/finite_boundary.py tests/manual_plan.py tests/solar_alignment.py
+5248 tests/config_flow_steps.py tests/entities.py tests/features.py
+5259 
+5156 tests/config_flow_steps.py tests/features.py
+5157 tests/block_duty.py tests/boost_drift_replay.py tests/config_flow_steps.py tests/entities.py tests/features.py tests/finite_boundary.py tests/manual_plan.py tests/solar_alignment.py
+5174 tests/features.py
+5176 tests/block_duty.py tests/boost_drift_replay.py tests/config_flow_steps.py tests/entities.py tests/features.py tests/finite_boundary.py tests/manual_plan.py tests/solar_alignment.py
+5182 tests/features.py
+7056 tests/config_flow_steps.py tests/entities.py tests/features.py tests/manual_plan.py
+7069 tests/config_flow_steps.py tests/entities.py tests/features.py tests/manual_plan.py
+10188 tests/config_flow_steps.py tests/entities.py tests/features.py
+10192 tests/entities.py tests/features.py
+10223 tests/config_flow_steps.py tests/entities.py tests/features.py
+10231 tests/config_flow_steps.py tests/entities.py tests/features.py

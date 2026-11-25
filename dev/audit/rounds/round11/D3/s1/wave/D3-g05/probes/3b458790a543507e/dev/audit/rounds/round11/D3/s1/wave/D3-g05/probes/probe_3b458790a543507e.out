@@ -1,0 +1,9 @@
+RESULT fresh suppressing=False free_heat_kw=0.0 baseline=None mutant=None
+RESULT after_fire_decayed suppressing=False free_heat_kw=0.0 baseline=None mutant=None
+RESULT disabled_after_fire suppressing=False free_heat_kw=0.0 baseline=None mutant=None
+RESULT override_off suppressing=False free_heat_kw=0.0 baseline=None mutant=None
+RESULT positive_suppressing sum_baseline=11.2500 sum_mutant=11.2500 kW
+RESULT moved_states=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.17
+RESULT swapins=0 count

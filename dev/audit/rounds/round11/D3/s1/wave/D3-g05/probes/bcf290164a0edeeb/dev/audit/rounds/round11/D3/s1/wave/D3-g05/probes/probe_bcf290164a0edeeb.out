@@ -1,0 +1,6 @@
+RESULT stale_probe_4_cycles baseline_value=None baseline_warnings=1 mutant_value=None mutant_warnings=0
+RESULT null_fresh_probe baseline=(True, 0) mutant=(True, 0)
+RESULT stale_warnings_moved=1 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.24
+RESULT swapins=0 count

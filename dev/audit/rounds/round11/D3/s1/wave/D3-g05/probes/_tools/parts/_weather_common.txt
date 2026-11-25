@@ -1,0 +1,16 @@
+WE = "weather.home"
+
+
+def fetch(fn, weather_entity, response, held=None):
+    """One _fetch_weather_forecast; (service calls, held forecast rows, outage cycles, warning texts)."""
+    c = coord({WE: FakeState("-5.0", attributes={"temperature": -5.0, "temperature_unit": "°C"})},
+              weather_entity=weather_entity)
+    if response is not ...:
+        async def handler(call):
+            return response
+        c.hass.services.async_register("weather", "get_forecasts", handler)
+    c._weather_forecast = list(held or [])
+    warns = []
+    with mock.patch.object(co._LOGGER, "warning", lambda *a, **k: warns.append(a[1] if len(a) > 1 else a[0])):
+        asyncio.run(fn(c))
+    return len(c.hass.services.calls), len(c._weather_forecast), c._weather_outage_cycles, warns

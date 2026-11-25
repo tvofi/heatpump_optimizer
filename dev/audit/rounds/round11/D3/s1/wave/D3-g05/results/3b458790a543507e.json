@@ -1,0 +1,57 @@
+{
+ "key": "3b458790a543507e",
+ "site": "coordinator.py:5248 GUARD_OFF",
+ "patch": "if not self._external_heat.suppressing: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._external_heat_forecast",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_forecast@5248-5259",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3605.6,
+  "child_cpu_s": 6063.9,
+  "load1_start": 0.86,
+  "load1_end": 0.85,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/3b458790a543507e.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3b458790a543507e",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_3b458790a543507e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_3b458790a543507e.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_3b458790a543507e.out",
+  "baseline_value": "None in 4 non-suppressing states",
+  "mutant_value": "None in the same 4",
+  "inputs_tried": [
+   "fresh detector",
+   "fire on, then off for 5 h (decay over)",
+   "fire on, then detection disabled (_reset)",
+   "override off"
+  ]
+ },
+ "m4_answer": "Equivalent: free_heat_kw is zeroed by _update_displacement whenever the detector is neither active nor fading (external_heat.py:355-357) and by _reset, so with suppressing False forecast_free_heat returns all zeros and line 5259 returns None in both arms (moved_states=0); the positive arm (suppressing, displacement 0.5) sums 11.25 kW in both.",
+ "should_fail": "none: no detector state separates the arms; traced by tests/config_flow_steps.py, tests/entities.py, tests/features.py",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "non_finding": "equivalent-candidate: Equivalent: free_heat_kw is zeroed by _update_displacement whenever the detector is neither active nor fading (external_heat.py:355-357) and by _reset, so with suppressing False forecast_free_heat returns all zeros and line 5259 returns None in both arms (moved_states=0); the positive arm (suppressing, displacement 0.5) sums 11.25 kW in both."
+}

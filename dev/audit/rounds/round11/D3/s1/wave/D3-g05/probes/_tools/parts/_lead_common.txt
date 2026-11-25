@@ -1,0 +1,47 @@
+from dataclasses import replace
+from custom_components.heatpump_optimizer.optimizer import OptimizationResult
+SOLVE = datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc)  # accuracy.PROMISE_HOUR (as_local patched to UTC)
+
+
+def lead_coord():
+    c = coord({"sensor.dhw": FakeState("50.0", unit="°C", last_updated=SOLVE)}, dhw_temp_entity="sensor.dhw")
+    c._mode = co.MODE_AUTO
+    return c
+
+
+_SOLVED = []
+
+
+def solved():
+    """One real 24 h, 15-min solve (tests/golden.py:make's default scenario), cached."""
+    if not _SOLVED:
+        import golden
+        from profiles import solve_inputs
+        s = golden.make()
+        _SOLVED.append(s["optimizer"].optimize(inputs=solve_inputs(
+            initial_state=s["state"], prices=s["prices"], outdoor_temps=s["outdoor"], wind_speeds=s["wind"],
+            precipitation=s["rain"], solar_radiation=s["solar"], start_time=golden.START)))
+    return _SOLVED[0]
+
+
+def counted(fn, traj, dt_h, room=False):
+    """Promises filed: (lead predictions noted, note_promise calls, day promises kept)."""
+    c = lead_coord()
+    leads, promises = [], []
+    target = c._accuracy if room else c._dhw_accuracy
+    real_promise = c._accuracy.note_promise
+    with mock.patch.object(target, "note_lead_prediction", lambda *a: leads.append(a)), \
+         mock.patch.object(c._accuracy, "note_promise", lambda *a: (promises.append(a), real_promise(*a))), \
+         mock.patch.object(c, "_dhw_probe_temperature", lambda: 50.0), \
+         mock.patch.object(co.dt_util, "as_local", lambda t: t):
+        if room:
+            fn(c, replace(solved(), room_temp_trajectory=list(traj), upper_temp_trajectory=[]), SOLVE)
+        else:
+            fn(c, replace(solved(), dhw_temp_trajectory=traj), SOLVE, dt_h)
+    return len(leads), len(promises), len(c._accuracy.promises)
+
+
+def solved_lengths():
+    """Trajectory lengths a real 24 h, 15-min solve hands these methods."""
+    res = solved()
+    return len(res.room_temp_trajectory), len(res.dhw_temp_trajectory)

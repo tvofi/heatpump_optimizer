@@ -1,0 +1,14 @@
+RESULT word_on baseline=True mutant=True
+RESULT word_off baseline=False mutant=False
+RESULT word_garbage baseline=None mutant=None
+RESULT empty_string baseline=None mutant=None
+RESULT whitespace baseline=None mutant=None
+RESULT word_on_old_stamp baseline=True mutant=True
+RESULT word_on_future_stamp baseline=True mutant=True
+RESULT numeric_with_bad_unit baseline=True mutant=True
+RESULT unavailable baseline=None mutant=None
+RESULT not_configured baseline=None mutant=None
+RESULT moved_inputs=0 of 10 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.24
+RESULT swapins=0 count

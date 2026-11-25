@@ -1,0 +1,55 @@
+{
+ "key": "8cfd8cf0d8a58c83",
+ "site": "coordinator.py:10192 CMP_BOUND",
+ "patch": "if 0 < idx < len(trajectory): -> if 0 < idx <= len(trajectory):",
+ "function": "HeatPumpOptimizerCoordinator._file_dhw_lead_predictions",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_dhw_lead_predictions@10188-10192",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3682.7,
+  "child_cpu_s": 6148.9,
+  "load1_start": 0.92,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/8cfd8cf0d8a58c83.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8cfd8cf0d8a58c83",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.out",
+  "baseline_value": "5 leads at the solved length 97",
+  "mutant_value": "5 leads; IndexError only at lengths 4/12/24/48/96",
+  "inputs_tried": [
+   "trajectory lengths 0..200 at dt_h 0.25",
+   "the solved length 97"
+  ]
+ },
+ "m4_answer": "Equivalent in production: the mutant only differs (IndexError) when len(trajectory) equals a lead index [4, 12, 24, 48, 96]; every solve's trajectory is n_steps + 1 = 97 because _forecast_arrays pads every series to n_steps = 96 and extend_price_series fills the price horizon, so no reachable length separates.",
+ "should_fail": "none reachable: the trajectory length is fixed at 97",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "non_finding": "equivalent-candidate: Equivalent in production: the mutant only differs (IndexError) when len(trajectory) equals a lead index [4, 12, 24, 48, 96]; every solve's trajectory is n_steps + 1 = 97 because _forecast_arrays pads every series to n_steps = 96 and extend_price_series fills the price horizon, so no reachable length separates."
+}
