@@ -9,18 +9,26 @@ def root():
         if (c/"custom_components"/"heatpump_optimizer"/"manifest.json").is_file(): return c
     raise RuntimeError("no root")
 ROOT = root(); sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT/"tests"/"hastub"))
-from custom_components.heatpump_optimizer import thermal_model as base  # noqa
+import subprocess
+import custom_components.heatpump_optimizer  # noqa  (package only; the module itself is loaded from git below)
 F = ROOT/"custom_components"/"heatpump_optimizer"/"thermal_model.py"
-def mutant(line, old, new):
-    lines = F.read_text().split("\n")
-    assert lines[line-1] == old, (lines[line-1], old)
-    lines[line-1] = new
-    name = "custom_components.heatpump_optimizer.thermal_model_mut"
+BASE_SHA = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+SRC = subprocess.run(["git","show",f"{BASE_SHA}:custom_components/heatpump_optimizer/thermal_model.py"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+_n = [0]
+def mutant(line=None, old=None, new=None):
+    """Load the BASELINE source from git (never the working tree, which a running gate mutates), optionally with one line replaced."""
+    lines = SRC.split("\n")
+    if line is not None:
+        assert lines[line-1] == old, (lines[line-1], old)
+        lines[line-1] = new
+    _n[0] += 1
+    name = "custom_components.heatpump_optimizer.thermal_model_m%d" % _n[0]
     spec = importlib.util.spec_from_file_location(name, F)
     m = importlib.util.module_from_spec(spec); m.__package__ = "custom_components.heatpump_optimizer"
     sys.modules[name] = m
     exec(compile("\n".join(lines), str(F), "exec"), m.__dict__)
     return m
+base = mutant()
 def vz_inputs():
     """Sweep of _valve_two_zone_delivery inputs incl. boundary values."""
     P = base.ThermalParameters
