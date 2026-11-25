@@ -79255,7 +79255,7 @@ R.check(
 )
 
 
-# Note 4 / class N-stale-step-actuation: the peak guard's transition publishes the step covering now.
+# Note 4 and carry 2's stale-step class sweep: the peak guard's transition publishes the step covering now.
 async def _r11awb_guard(minute):
     hass, c = _r11awb_coord(True)
     plan = _r11awb_plan()
@@ -79274,14 +79274,14 @@ async def _r11awb_guard(minute):
 _r11awb_g = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_guard(16)))
 _r11awb_g0 = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_guard(5)))
 R.check(
-    "N-stale-step-actuation (D16-s2-01): the peak guard's release publishes the displacement of the step "
+    "Stale-step sweep (D16-s2-01): the peak guard's release publishes the displacement of the step "
     "covering now (6), not the stale cut action's (2); its engage publishes that step's value less the same nudge",
     _r11ar_ok(_r11awb_g, lambda g: g[1] == "6" and not isinstance(_r11awb_g0, BaseException)
               and int(g[0]) == 6 - (int(_r11awb_g0[1]) - int(_r11awb_g0[0]))),
     f"{_r11awb_g} (null {_r11awb_g0})",
 )
 R.check(
-    "N-stale-step-actuation null control: a guard transition inside the step the action was cut for publishes "
+    "Stale-step sweep null control: a guard transition inside the step the action was cut for publishes "
     "that action's value (2) on release",
     _r11ar_ok(_r11awb_g0, lambda g: g[1] == "2" and int(g[0]) < 2),
     f"{_r11awb_g0}",

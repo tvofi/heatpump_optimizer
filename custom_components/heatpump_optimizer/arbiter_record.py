@@ -2,7 +2,7 @@
 
 What the arbiter wrote (:class:`ArbiterState`), the power-feedback loop's
 live run (:class:`FeedbackRun`), and the one persisted mapping a restart
-reloads (:func:`persist`, :func:`load`). The record's readers and writers are
+reloads (:func:`persist_record`, :func:`load_record`). The record's readers and writers are
 ``pump_arbiter``'s; this module holds no decision and writes no entity.
 """
 
@@ -149,7 +149,7 @@ def store_of(hass: Any, entry_id: str) -> QuarantiningStore[dict[str, Any]]:
     )
 
 
-async def persist(held: ArbiterState, store: QuarantiningStore[dict[str, Any]]) -> None:
+async def persist_record(held: ArbiterState, store: QuarantiningStore[dict[str, Any]]) -> None:
     """Save ``held``'s persisted slots to ``store``; a failure is logged, never raised."""
     payload = {
         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
@@ -162,7 +162,7 @@ async def persist(held: ArbiterState, store: QuarantiningStore[dict[str, Any]]) 
         _LOGGER.debug("Could not persist the pump duty record: %s", err)
 
 
-async def load(
+async def load_record(
     held: ArbiterState, open_store: Callable[[], QuarantiningStore[dict[str, Any]]], hass: Any,
 ) -> None:
     """Restore the ownership record once, so a restart keeps what it wrote;
@@ -183,11 +183,11 @@ async def load(
             continue
         if at is not None and writable(slot, value):
             held.written[slot] = (value, at)
-    held.dropped = _restored(raw.get("dropped"), (*SLOTS, *NIGHT_KEYS))
-    held.night_before = _restored(raw.get("night_before"), NIGHT_KEYS)
+    held.dropped = _restored_slots(raw.get("dropped"), (*SLOTS, *NIGHT_KEYS))
+    held.night_before = _restored_slots(raw.get("night_before"), NIGHT_KEYS)
 
 
-def _restored(raw: Any, slots: Any) -> dict[str, Any]:
+def _restored_slots(raw: Any, slots: Any) -> dict[str, Any]:
     """A stored slot map, each entry one the arbiter could have written to a slot of ``slots``."""
     return {k: v for k, v in raw.items() if k in slots and writable(k, v)} if isinstance(raw, dict) else {}
 

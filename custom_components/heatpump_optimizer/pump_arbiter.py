@@ -2270,12 +2270,12 @@ def _store(coord: Any) -> Any:
 
 
 async def _persist(coord: Any) -> None:
-    await arbiter_record.persist(state_for(coord), _store(coord))
+    await arbiter_record.persist_record(state_for(coord), _store(coord))
 
 
 async def _load(coord: Any) -> None:
-    """Restore the coordinator's record once (:func:`~.arbiter_record.load`)."""
-    await arbiter_record.load(state_for(coord), lambda: _store(coord), coord.hass)
+    """Restore the coordinator's record once (:func:`~.arbiter_record.load_record`)."""
+    await arbiter_record.load_record(state_for(coord), lambda: _store(coord), coord.hass)
 
 boost.bind_cold_lease(block_cold_lease)
 
