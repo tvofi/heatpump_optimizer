@@ -1,0 +1,21 @@
+diff --git a/custom_components/heatpump_optimizer/sysid.py b/custom_components/heatpump_optimizer/sysid.py
+index 443bca4821..4c9bb1b8d2 100644
+--- a/custom_components/heatpump_optimizer/sysid.py
++++ b/custom_components/heatpump_optimizer/sysid.py
+@@ -2501,6 +2501,6 @@ def arm_refusal(
+         return None
+     if not ident.config.enabled:
+         return ARM_REFUSED_DISABLED
+-    if ident.active:
++    if False:
+         return "an experiment is already armed or running"
+     return ident.result.reason or "the experiment cannot be armed now"
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  FAIL arm_refusal answers a press on an armed experiment with 'already armed or running', not the result's reason (null control: the switch off answers ARM_REFUSED_DISABLED)  [True '']
+1 of 6204 FEATURE CHECKS FAILED
+  ok   each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name (_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match
+
+1 of 6204 FEATURE CHECKS FAILED
+rc=1

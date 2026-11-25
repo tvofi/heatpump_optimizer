@@ -1,0 +1,20 @@
+diff --git a/custom_components/heatpump_optimizer/dhw_planner.py b/custom_components/heatpump_optimizer/dhw_planner.py
+index 5a8aa8adf9..4cd18028ea 100644
+--- a/custom_components/heatpump_optimizer/dhw_planner.py
++++ b/custom_components/heatpump_optimizer/dhw_planner.py
+@@ -93,7 +93,7 @@ def _dhw_next_window_hours(
+     Today's are the ones ``in_window[0]`` tests (entry 1); tomorrow's the first step past
+     midnight's, else, on a horizon ending first, the next weekday's with no holiday tier.
+     """
+-    if not len(hours_mod):
++    if not len(hours_mod):  # null
+         return None  # no step to read a day from
+     today = _dhw_windows_at(params, weekdays, 1, windows, holiday_flags)
+     wraps = np.nonzero(np.diff(hours_mod) < 0.0)[0]
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  ok   each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name (_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match
+
+ALL 6204 FEATURE CHECKS PASSED
+rc=0

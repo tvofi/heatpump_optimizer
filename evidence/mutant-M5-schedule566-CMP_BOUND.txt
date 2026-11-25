@@ -1,0 +1,20 @@
+diff --git a/custom_components/heatpump_optimizer/dhw_schedule.py b/custom_components/heatpump_optimizer/dhw_schedule.py
+index c1552d5dc9..8b79ca7666 100644
+--- a/custom_components/heatpump_optimizer/dhw_schedule.py
++++ b/custom_components/heatpump_optimizer/dhw_schedule.py
+@@ -563,7 +563,7 @@ def hours_until_next_window(
+     if windows and hour_in_windows(hour, windows):
+         return 0.0
+     h = hour % 24.0
+-    starts = [start - h for start, _ in windows if start > h] + [
++    starts = [start - h for start, _ in windows if start >= h] + [
+         start + 24.0 - h for start, _ in (windows if tomorrow is None else tomorrow)
+     ]
+     return min(starts, default=None)
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  ok   each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name (_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match
+
+ALL 6204 FEATURE CHECKS PASSED
+rc=0
