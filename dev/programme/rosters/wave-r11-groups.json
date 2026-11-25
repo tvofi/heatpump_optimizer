@@ -6511,7 +6511,8 @@
     "docs/img/",
     "docs/img/model/make_model_figures.py",
     "docs/img/card/make_card_figures.mjs",
-    "docs/img/model/make_card_weekly_figure.mjs"
+    "docs/img/model/make_card_weekly_figure.mjs",
+    "docs/heat-curve.md"
    ],
    "brief": "Reader docs carry each fact once and the number the code holds; verified last, after every user-facing change. 12 findings (1 merged in), size L; class tags I5, N-comment-style, N-orphan-doc. Plan: ADR-010. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it; each finding's harness is in dev/audit/rounds/round11/ISSUES.json under its class.",
    "carry": [
@@ -6525,7 +6526,7 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-010)",
-    "note": "overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-cycle-solve): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-cycle-solve): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json | set-files files ['README.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/setup.md', 'docs/CONTRIBUTING.md', 'docs/img/', 'docs/img/model/make_model_figures.py', 'docs/img/card/make_card_figures.mjs', 'docs/img/model/make_card_weekly_figure.mjs'] -> ['README.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/setup.md', 'docs/CONTRIBUTING.md', 'docs/img/', 'docs/img/model/make_model_figures.py', 'docs/img/card/make_card_figures.mjs', 'docs/img/model/make_card_weekly_figure.mjs', 'docs/heat-curve.md']"
    }
   },
   {
