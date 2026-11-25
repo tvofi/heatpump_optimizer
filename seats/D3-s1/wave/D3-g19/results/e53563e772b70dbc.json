@@ -1,0 +1,99 @@
+{
+ "key": "e53563e772b70dbc",
+ "site": "optimizer.py:4229 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/optimizer.py",
+ "line": 4229,
+ "patch": "solar_peak_mask = solar_radiation > 200.0 -> solar_peak_mask = solar_radiation >= 200.0",
+ "function": "HeatPumpOptimizer._analyze_forecast_trajectory",
+ "cluster": "optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory@4211-4272",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "reach_carried": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3637.3,
+  "load1_start": 0.93,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/e53563e772b70dbc.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/e53563e772b70dbc.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e53563e772b70dbc",
+ "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz, box D3-g19 alone on its machine",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_e53563e772b70dbc.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_e53563e772b70dbc.py",
+  "results": [
+   "RESULT peaks_baseline=0 count",
+   "RESULT peaks_mutant=1 count",
+   "RESULT moved=1 count",
+   "RESULT other_keys_delta=0 count",
+   "RESULT null_delta=0 count",
+   "RESULT wall=0.34 s (provisional)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.06",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": "Inputs tried: 200.0 at one step; 199.9; 200.1.",
+  "load1": "1.06",
+  "thread_factor": "1.000",
+  "baseline_value": "0 count",
+  "mutant_value": "1 count",
+  "metric_key": "peaks"
+ },
+ "reach": "executed every solve; the moving input is a radiation value of exactly 200.0 W/m2",
+ "should_fail": "tests/features.py / tests/block_duty.py (traced baselines execute optimizer.py:4229): no forecast with exactly 200.0 W/m2; they lack a check that a 200.0 W/m2 step is absent from solar_peak_indices",
+ "finding": {
+  "title": "No check pins the 200 W/m2 solar-peak boundary; > -> >= at optimizer.py:4229 is unseen",
+  "claim": "Changing optimizer.py:4229 `> 200.0` to `>= 200.0` survives the full gate and moves solar_peak_indices on a forecast with 200.0 W/m2 at one step from [] to [3]",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "len(solar_peak_indices) for an 8-step forecast with exactly 200.0 W/m2 at step 3",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._analyze_forecast_trajectory",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_e53563e772b70dbc.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_e53563e772b70dbc.py",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:4229 solar_peak_mask = solar_radiation > 200.0 -> solar_peak_mask = solar_radiation >= 200.0 (in memory)",
+   "expected_direction": "up",
+   "observed_value": "0 count -> 1 count"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_e53563e772b70dbc.py",
+   "value": "{\"null_delta\": \"0 count\"}",
+   "note": "inputs where the arms must agree; full-gate null on this box: gates/null.json"
+  },
+  "phenomenon_property": "only radiation strictly above 200 W/m2 is a solar peak",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_e53563e772b70dbc.py",
+  "proposed_fix_scope": "tests: a boundary case at 200.0 W/m2",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "tests/features.py"
+  ]
+ }
+}
