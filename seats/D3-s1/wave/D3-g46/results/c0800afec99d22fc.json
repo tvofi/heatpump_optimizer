@@ -19,9 +19,9 @@
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c0800afec99d22fc.py",
   "baseline_n_differing": 0,
   "mutant_n_differing": 0,
-  "n_inputs": null,
-  "null_n_differing": null,
-  "first_difference": null,
+  "n_inputs": 34560,
+  "null_n_differing": 0,
+  "first_difference": "None",
   "inputs_tried": "grid in probes/_mut.py (see generator for the function), ties and zero/non-finite-adjacent values included"
  },
  "class": "equivalent-candidate",

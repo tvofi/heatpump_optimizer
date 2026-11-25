@@ -19,7 +19,7 @@ NOTE = {  # (line, kind-class) -> why the number matters / why it cannot move
 }
 def probe(key):
     p = f"{W}/probes/probe_{key}.py"
-    out = subprocess.run([os.path.join(os.environ["HOME"], "venv-ci/bin/python3"), p], cwd=ROOT, env={**os.environ, "PYTHONPATH": "tests/hastub"}, capture_output=True, text=True).stdout
+    out = subprocess.run([os.path.join(os.environ["HOME"], "venv-ci/bin/python3"), p], cwd=ROOT, env={**os.environ, "PYTHONPATH": "tests/hastub"}, capture_output=True, text=True); print(out.stderr[-300:]) if not out.stdout else None; out = out.stdout
     v = {m.group(1): int(m.group(2)) for m in re.finditer(r"RESULT (\w+)=(\d+)", out)}
     fd = re.search(r"first_difference (.*)", out)
     return v, (fd.group(1) if fd else None)
