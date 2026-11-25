@@ -40,21 +40,26 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 
 ## Head
 
-`71af14b6d88998d59cef37e629dfde9ff5d05622`, measured against its merge base `d3d66c40408e76351ffc528686353cadf815a05c` (`origin/main` at the merge, #3864 merged). `git merge-tree --write-tree origin/main HEAD` exits 0.
+`0c8d0bd41e6ba209371052fb874129d2ec1cbc1a`, the merge of `origin/main` `91773476edb3` into the PR head `3c89b84f7bd8`; measured against its merge base `91773476edb3` (`origin/main`). `git merge-tree --write-tree origin/main HEAD` exits 0.
 
-Review round 2 (`review/3872` `66d0d4b2`, `verdict/3872` `9b11d200`) blocked `91cfc89fdade5cb556ad5e7fd3353ac4c3eae07b` as `unload-row-written`: the second unload restore, after `pump_arbiter.release` drops the latch, wrote the baseline row into the faulted pump. `fdde1320d3` answers it (`## Mutation proof`). The orchestrator's scope add (inbox `r11-merge-fault-hold`, command 1) put that fix in this merge pass.
+The commits since the last body's head `71af14b6d889` (tree identical to `1cd16648104d`, the handoff ref before this pass), `git log --first-parent 1cd16648104d..0c8d0bd41e6b`:
 
-The commits since the reviewed head, `git log --first-parent 91cfc89fdade..71af14b6d8`:
+- `1fe2ef2cfe` Merge `1cd16648104d` into `fix/r11-owner-fault-hold` (tree identical to `1cd16648104d`)
+- `3c89b84f7b` Merge `origin/main` `0e1eba2b4a` (#3892, the v10.1.4 stamp): no conflict
+- `0c8d0bd41e` Merge `origin/main` `91773476ed`: five conflicts, below
 
-- `da1f90c785` Merge origin/main `d3d66c4040` into R11-OWNER-FAULT-HOLD: resolve against R11-OWNER-COOLING-GUARD (#3864)
-- `fdde1320d3` R11-OWNER-FAULT-HOLD: the unload's second restore leaves the row owed under a held fault
-- `0bbd4dd92c` R11-OWNER-FAULT-HOLD: `_release_row`'s docstring rewrapped one line shorter (`module_excess_loc` back to the merged tree's measure)
-- `d8961f7a99` R11-OWNER-FAULT-HOLD: the harness's release-clears mutant re-texted around the unload mark
-- `71af14b6d8` R11-OWNER-FAULT-HOLD: `tests/deployment_shape.py`'s #1218 note carries the census `tests/entities.py` derives
-
-The reviewer's delta: `git diff 91cfc89fdade 71af14b6d8`; the code delta without main's: `git diff da1f90c785 71af14b6d8`. The earlier commits, rounds and merges are in this PR's history; the round-1 answer is `ce9619a4f4`.
+The resolution delta: `git diff 3c89b84f7bd8 0c8d0bd41e6b`; this branch's own delta at the new head: `git diff 91773476edb3 0c8d0bd41e6b`. Production code is unchanged since the reviewed `fdde1320d3` except for the merged import line below. Review round 2's block (`unload-row-written`) is answered at `fdde1320d3` (`## Mutation proof`).
 
 ## Merge resolution
+
+Sixth merge, `0c8d0bd41e` (`origin/main` `91773476ed`, R11-OWNER-FLOWCAP's `flow_limit.py` and the changes after the v10.1.4 stamp). `git merge-tree --write-tree` named five content conflicts. The dispatch's four (`README.md`, `coordinator.py`, `strings.json`, `translations/de.json`) were already resolved in the fifth merge, and this range left those files without conflict. Each conflict, both sides read back in the merged artifact:
+
+- `pump_arbiter.py`: the import line only. It is the union, `... duty_switch, fault_hold, flow_limit, issues ...`. Checked mechanically: the `-U0` changed lines of `git diff 91773476 0c8d0bd4` equal those of the branch's own `git diff 0e1eba2b 3c89b84f`, except that import line. So every hunk main added (`_space_limit_c`, `_heating_floor_c`, `_feedback_bounds`, `_map_inputs`, `_flow_target`, `_boost_ceiling_c`) is present unchanged, and so is this group's (`_observe` delegating to `duty_ledger.observe`, `_fault_stands`, `_release_row`'s unload clause). Main changed neither `_observe` nor `RUN_SETTLE` in this range, so the earlier move of both into `duty_ledger.py` carries nothing of main's away.
+- `docs/architecture.md`: 104 modules, 37 importing `homeassistant` at module level (main's 103 and 36, plus `fault_hold`). The map gains the `fault_hold.py` row after main's `duty_ledger.py` row, and `fault_hold` is named in the boundary list.
+- `dev/audit/rounds/round4/D6/claims.py`: 104, 104 and 37, each history clause extended with "until R11-OWNER-FAULT-HOLD's fault_hold.py". `claims.md` was regenerated. Re-running `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` on the merged tree exits 0 and changes no tracked file; C32 to C35 are true.
+- `tests/deployment_shape.py`: 123 package files (`git ls-files custom_components/heatpump_optimizer/ | wc -l` reads 123, against main's 122). The #1218 note reads 186 of 561 pairs at >= 0.80 (184 on each side before this merge; the merge places `card_drift.mjs` and `wood_advisor.py` each with `features.py` at the floor). The 1.00 triple shares 100 production modules. These numbers are derived by `tests/entities.py` on the merged `tests/closures.json` (`## Figures`), not added by hand.
+- `tests/structure_budgets.json` (ledger driver, no hand side): `python3 tests/structure.py` on the merged tree reads `STRUCTURE RATCHET PASSED`, with every metric equal to its budget. That is `module_excess_loc` 21728 (this branch's), and `class_excess_loc` 17288 and `max_class_loc` 7832 (main's). No metric rose, and none needed a re-record.
+- `tests/closures.json`: merged as sets by the ledger driver. `tools/pr/ci_predict.py` predicts no closures red.
 
 Fifth merge, `da1f90c785` (`origin/main` `d3d66c4040`, #3864 R11-OWNER-COOLING-GUARD). `git merge-tree --write-tree` named six content conflicts (`README.md`, `coordinator.py`, `strings.json`, `translations/en.json`, `sv.json`, `de.json`), not four; `tests/structure_budgets.json` went through the ledger driver. Each, both sides read back in the merged artifact:
 
@@ -99,16 +104,15 @@ Round 2: the two-pass unload check fails at `da1f90c785` (above), so the head se
 
 ## Figures
 
-At `71af14b6d8` unless named:
+At `0c8d0bd41e6b` (venv `/opt/hpo/venv-ci`, `PYTHONPATH=tests/hastub`):
 
-- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=d3d66c40408e ./tests/run.sh` (`PYTHON=/opt/hpo/venv-ci/bin/python`, `PYTHONPATH=tests/hastub`), run on the working tree at `fdde1320d3` plus `0bbd4dd92c`'s docstring: `MODE: SCOPED -- 31 script(s) run, 3 scoped out`; `1 TEST SCRIPT(S) FAILED`, `tests/entities.py`, on the #1218 note alone (`## Merge resolution`). `tests/features.py` there: `ALL 6231 FEATURE CHECKS PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` (`timeout 2400`) at this head: `ALL 2763 ENTITY CHECKS PASSED`.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, every metric at or below the merged budget. At `fdde1320d3` it read `module_excess_loc 21729 > 21728 (+1)`; `0bbd4dd92c` paid it.
-- `python3 tests/comment_ratchet.py`: `comment_ratchet: OK` (at `fd65e87415`, tree of `0bbd4dd92c`).
-- The fault-hold block (`features_block.py`, markers as before): `ALL 61 FEATURES BLOCK PASSED` at `fdde1320d3`; `1 of 59 FEATURES BLOCK FAILED` at `da1f90c785`.
-- `python3 dev/audit/harnesses/r11_owner_fault_hold_mutants.py HEAD`: `RESULT mutants=41`, `RESULT survived=0`.
-- `python3 tools/pr/ci_predict.py`: `CI PREDICT: no closures, fast, governance or instrument red predicted against d3d66c40408e`; `CI PREDICT: 42 unpinned site(s) the diff adds` (each under `## Unpinned sites`).
-- Not re-run in this pass: `tests/derive_closures.sh` (no closures red predicted), prepr's diff-mutant step, `tools/audit/archscore` (below).
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=91773476edb3 ./tests/run.sh`: `MODE: SCOPED -- 31 script(s) run, 3 scoped out`; every script passed except `tests/stress.py` and `tests/harness_headers.py`, which ended at 0s with `gate_lock: flock-wrap refused ... holds no lease`. That was this run's own fault: the lease label was set and no lease was taken. Each re-run directly on the same tree passes: `ALL 122 STRESS CHECKS PASSED`, `ALL 115 HARNESS HEADER CHECKS PASSED`.
+- `timeout 2400 python3 tests/entities.py`: `ALL 2766 ENTITY CHECKS PASSED`, with the #1218 note's 186 of 561 and the translation parity rows (each `translations/*.json` has exactly `strings.json`'s keys).
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, every metric at its budget.
+- `python3 tests/comment_ratchet.py`: `comment_ratchet: OK`.
+- `python3 dev/audit/harnesses/r11_owner_fault_hold_mutants.py HEAD`: `BASELINE 0 failing`, `RESULT mutants=41`, `RESULT survived=0`. The fault-hold block, which carries the failing-first unload check, passes unmutated, and each of its mutants dies on the merged tree.
+- `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures, fast, governance or instrument red predicted against 91773476edb3`; `CI PREDICT: 42 unpinned site(s) the diff adds`. The set of sites is the previous body's set; seven keys moved by a line with main's edits (`coordinator.py:7753`→`7754`; `pump_arbiter.py:1836`→`1837`, `1888`→`1889`, `1907`→`1908`, `1911`→`1912`, and `2191`→`2190` twice). Each key is listed under `## Unpinned sites` as measured here.
+- Not re-run in this pass: `tools/audit/archscore` (production unchanged but for the merged import line).
 
 ## Architecture score
 
@@ -126,9 +130,9 @@ Not re-measured after the fifth merge and the unload fix: the fix adds one modul
 
 ## Unpinned sites
 
-The sites `tools/pr/ci_predict.py` lists at this head. Every fault-hold predicate among them is killed by `r11_owner_fault_hold_mutants.py` above.
+The sites `tools/pr/ci_predict.py --base origin/main` lists at `0c8d0bd41e6b`. Every fault-hold predicate among them is killed by `r11_owner_fault_hold_mutants.py` (`## Figures`).
 
-- custom_components/heatpump_optimizer/coordinator.py:7753 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/coordinator.py:7754 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/coordinator.py:10796 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:62 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:62 CMP_BOUND: pinned by mutation-autofix
@@ -163,13 +167,13 @@ The sites `tools/pr/ci_predict.py` lists at this head. Every fault-hold predicat
 - custom_components/heatpump_optimizer/fault_hold.py:154 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/fault_hold.py:159 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/heat_curve.py:287 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1836 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1888 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1907 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1911 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1837 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1889 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1908 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1912 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/pump_arbiter.py:1940 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:2191 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:2191 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:2190 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:2190 GUARD_OFF: pinned by mutation-autofix
 
 ## Forward-carry
 
