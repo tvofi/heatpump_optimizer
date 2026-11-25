@@ -57,7 +57,7 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-recording finds 182 of the 561 script pairs (34 choose 2) sharing 0.80 or more
+recording finds 184 of the 561 script pairs (34 choose 2) sharing 0.80 or more
 of their production-module closure (169 of 528 before R11-SEAM-tests's
 cycle_lane.py, whose closure opens the whole package, and 180 on its branch
 before the merge bringing R11-SEAM-actuation-release's three production
