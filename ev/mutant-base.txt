@@ -1,0 +1,7 @@
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  ok   each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name (_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match
+
+ALL 6204 FEATURE CHECKS PASSED
+rc=0

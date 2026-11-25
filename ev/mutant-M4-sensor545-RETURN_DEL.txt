@@ -1,0 +1,20 @@
+diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/heatpump_optimizer/sensor.py
+index ab1324a768..479e127a53 100644
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -542,7 +542,7 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+         for row in self._rows():
+             if isinstance(row, dict) and row.get("estimated"):
+                 return payload_number(row.get("savings_sek"))
+-        return None
++        pass
+ 
+     @property
+     def _waiting_for(self) -> str | None:
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  ok   each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name (_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match
+
+ALL 6204 FEATURE CHECKS PASSED
+rc=0

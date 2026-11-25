@@ -1,0 +1,1 @@
+  FAIL arm_refusal answers a press on an armed experiment with 'already armed or running', not the result's reason (null control: the switch off answers ARM_REFUSED_DISABLED)  [True '']
