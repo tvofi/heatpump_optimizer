@@ -107,6 +107,8 @@ Mutant 213a122afd9ff3e1 (price_model.py:69 SHAPE_CONFIDENCE_DAYS 5 -> 10) surviv
 - D3.M4: universe 268, examined 225, not reached 43 line(s). Enumerator `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\tSURVIVED\t'`.
 - D3.M5: universe 27, examined 23, not reached 4 line(s). Enumerator `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts`.
 
+Redispatched C-items under D3.M3, carried verbatim from REPORT-D3-u1b.json: C3 not_reached, C5 examined.
+
 ## Leads
 
 - unknown custom_components/heatpump_optimizer/optimizer.py stored_heat_survival (line 3184-3186): The comment 'Capped before exp() so a near-zero demand underflows to 0.0 cleanly rather than raising' describes no reachable behaviour: math.exp of any negative argument underflows to 0.0 without raising (probe_f062e0cc415ee33e: raises 0 in both arms over exponents 720..1e301 and an overflowed one). A docs/comments seat (D5) owns the wording.
