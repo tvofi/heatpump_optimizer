@@ -14,3 +14,4 @@
 1795618097 CKPT prepr (MODE: FULL) running at e8dc2f0c; first 25 steps ok before a timeout kill snapshot 3856c2a071b9
 1795618121 DONE DONE: nothing to push; bot merge d74d12dd subsumes e8dc2f0c (main merges only). Combi red = features_block --emit-prelude artefact (unrestored _lbfgsb_restart patch), green at both heads, all 4 kernels; replay cancel = 30-min cap, main 1778 s vs PR 1745 s locally
 1795632226 INBOX acked through 2
+1795632243 CKPT start from mm/3805 2b83d911 (main 91773476 merged) snapshot 520887c13b39
