@@ -1,0 +1,1685 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "box": "D3-g35",
+ "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/REPORT.md",
+ "exposure": "Read COMMON.md, D3.md, dev/audit/README.md and finding.schema.json (through a haiku extractor), the u1 slice M4 answers for this box's 16 keys and the mutant records state/results/complete/<key>.json, REPORT-D3-u1b.json's coverage rows, REPORT-D3-rem.json's M3 row and two non-findings, m26_probe.py (the probe pattern), sysid.py 1890-2262 and 337-460, and the other 46 boxes' dispatch keys.tsv (key counts and sites only, for not_reached). No register, round11/J/, verifier report, docs/ page or GitHub record read; no gh run.",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "CARRIED verbatim from REPORT-D3-u1b.json (not re-driven on box D3-g35): carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)"
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 343,
+   "not_reached": [
+    "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+    "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+    "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+    "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+    "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+    "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+    "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+    "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+    "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+    "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+    "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+    "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+    "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+    "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+    "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+    "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+    "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+    "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+    "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+    "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+    "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+    "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+    "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+    "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+    "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+    "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+    "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+    "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+    "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "CARRIED verbatim from REPORT-D3-u1b.json (not re-driven on box D3-g35): box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice"
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+   "universe": 742,
+   "examined": 16,
+   "not_reached": [
+    "assigned to box D3-g01: 16 key(s): coordinator.py 16 key(s) lines 822-10331",
+    "assigned to box D3-g02: 16 key(s): coordinator.py 16 key(s) lines 4525-5800",
+    "assigned to box D3-g03: 16 key(s): coordinator.py 16 key(s) lines 4831-10855",
+    "assigned to box D3-g04: 16 key(s): coordinator.py 16 key(s) lines 4391-10445",
+    "assigned to box D3-g05: 16 key(s): coordinator.py 16 key(s) lines 5083-10231",
+    "assigned to box D3-g06: 16 key(s): coordinator.py 16 key(s) lines 5382-10231",
+    "assigned to box D3-g07: 16 key(s): coordinator.py 16 key(s) lines 5049-9402",
+    "assigned to box D3-g08: 16 key(s): coordinator.py 16 key(s) lines 5108-10603",
+    "assigned to box D3-g09: 16 key(s): coordinator.py 16 key(s) lines 8900-11091",
+    "assigned to box D3-g10: 16 key(s): coordinator.py 16 key(s) lines 5234-10678",
+    "assigned to box D3-g11: 16 key(s): coordinator.py 16 key(s) lines 490-11271",
+    "assigned to box D3-g12: 16 key(s): coordinator.py 7 key(s) lines 467-3417; defrost.py 9 key(s) lines 124-566",
+    "assigned to box D3-g13: 16 key(s): defrost.py 10 key(s) lines 169-804; dhw_planner.py 6 key(s) lines 2055-2075",
+    "assigned to box D3-g14: 16 key(s): dhw_planner.py 16 key(s) lines 1138-2106",
+    "assigned to box D3-g15: 16 key(s): dhw_planner.py 16 key(s) lines 596-807",
+    "assigned to box D3-g16: 16 key(s): dhw_planner.py 16 key(s) lines 470-2280",
+    "assigned to box D3-g17: 16 key(s): dhw_planner.py 16 key(s) lines 1510-2307",
+    "assigned to box D3-g18: 16 key(s): dhw_planner.py 10 key(s) lines 1613-1893; flow_lift.py 2 key(s) lines 51-232; grid_fee.py 4 key(s) lines 187-483",
+    "assigned to box D3-g19: 16 key(s): grid_fee.py 4 key(s) lines 219-496; optimizer.py 12 key(s) lines 2006-4272",
+    "assigned to box D3-g20: 16 key(s): optimizer.py 16 key(s) lines 3402-6097",
+    "assigned to box D3-g21: 16 key(s): optimizer.py 16 key(s) lines 3997-5962",
+    "assigned to box D3-g22: 16 key(s): optimizer.py 16 key(s) lines 4876-6509",
+    "assigned to box D3-g23: 16 key(s): optimizer.py 16 key(s) lines 5211-6038",
+    "assigned to box D3-g24: 16 key(s): optimizer.py 16 key(s) lines 3772-6559",
+    "assigned to box D3-g25: 16 key(s): optimizer.py 16 key(s) lines 6565-6655",
+    "assigned to box D3-g26: 16 key(s): optimizer.py 16 key(s) lines 2412-6661",
+    "assigned to box D3-g27: 16 key(s): optimizer.py 16 key(s) lines 1567-2494",
+    "assigned to box D3-g28: 16 key(s): optimizer.py 16 key(s) lines 1948-2172",
+    "assigned to box D3-g29: 16 key(s): optimizer.py 14 key(s) lines 2286-3338; price_model.py 2 key(s) lines 66-69",
+    "assigned to box D3-g30: 16 key(s): price_model.py 16 key(s) lines 72-400",
+    "assigned to box D3-g31: 16 key(s): price_model.py 16 key(s) lines 141-844",
+    "assigned to box D3-g32: 16 key(s): price_model.py 4 key(s) lines 544-855; sysid.py 12 key(s) lines 549-2411",
+    "assigned to box D3-g33: 16 key(s): sysid.py 16 key(s) lines 1541-1942",
+    "assigned to box D3-g34: 16 key(s): sysid.py 16 key(s) lines 1942-2126",
+    "assigned to box D3-g36: 16 key(s): sysid.py 16 key(s) lines 835-2381",
+    "assigned to box D3-g37: 16 key(s): sysid.py 16 key(s) lines 129-1073",
+    "assigned to box D3-g38: 15 key(s): sysid.py 15 key(s) lines 266-1279",
+    "assigned to box D3-g39: 15 key(s): sysid.py 3 key(s) lines 610-610; tariff.py 12 key(s) lines 128-904",
+    "assigned to box D3-g40: 15 key(s): tariff.py 15 key(s) lines 528-832",
+    "assigned to box D3-g41: 15 key(s): tariff.py 4 key(s) lines 588-1225; thermal_model.py 11 key(s) lines 3328-4482",
+    "assigned to box D3-g42: 15 key(s): thermal_model.py 15 key(s) lines 3366-5012",
+    "assigned to box D3-g43: 15 key(s): thermal_model.py 15 key(s) lines 3389-4714",
+    "assigned to box D3-g44: 15 key(s): thermal_model.py 15 key(s) lines 303-4822",
+    "assigned to box D3-g45: 15 key(s): thermal_model.py 15 key(s) lines 270-2583",
+    "assigned to box D3-g46: 15 key(s): thermal_model.py 15 key(s) lines 2583-2998",
+    "assigned to box D3-g47: 15 key(s): thermal_model.py 15 key(s) lines 2851-3080"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "examined"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "the wave list (742 keys) split over boxes D3-g01..D3-g47; SURVIVORS.tsv itself is not in this box's tree, so the universe and each box's share were re-counted from the 47 dispatch refs' keys.tsv (git ls-remote origin 'refs/heads/dispatch/finder-r11-D3-g*': 47 refs, 742 keys, box D3-g35 16). Box D3-g35 gated its 16 with `python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>` (GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh, one gate at a time, via gate_wave.sh run), records dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/<key>.json, null dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/null.json; earlier boxes' D3.M3 gates (D3-top6, D3-rem: 35 keys) are outside this 742-key universe and carried in their own reports. C3/C5: examined by box D3-rem (carried)."
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 268,
+   "examined": 225,
+   "not_reached": [
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+   ],
+   "redispatched": [],
+   "evidence": "CARRIED verbatim from REPORT-D3-u1b.json (not re-driven on box D3-g35): m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)"
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "assigned to box D3-m5: tests/card.mjs",
+    "assigned to box D3-m5: tests/card_drift.mjs",
+    "assigned to box D3-m5: tests/golden.py",
+    "assigned to box D3-m5: tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "CARRIED verbatim from REPORT-D3-u1b.json (not re-driven on box D3-g35): carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D3.M3",
+   "what": "finding ids: the 12 gate_survivors candidates carry no id (D3-s1-01..71 are taken); the orchestrator's consolidation assigns them before verification"
+  }
+ ],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "Box D3-g35 full-gate null control (comment-only marker): red only on instrument/artefact checks (closure.py selftest merge-reason pins, entities.py's scoped-path record check, harness_headers.py's round-4 D6 claims count and committed-output check in the stripped tree, and the inlined-walk check naming this box's own untracked probe helper); used as the kill threshold per script",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null",
+   "value": "gate_rc=1; fail_lines={'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 1, 'python3 tests/harness_headers.py': 4}; wall 3401.1 s, load1 0.47..0.92 (provisional)"
+  },
+  {
+   "claim": "D3.M3 full gate 31bb6bebd6b45f0e custom_components/heatpump_optimizer/sysid.py:2141 CMP_BOUND (if solution.shape[0] >= 3: -> if solution.shape[0] > 3:): RED-AS-NULL (read as survived) and equivalent-candidate: none possible: solution.shape[0] is 4 (four-column solve) or 2 (fallback), never 3, so >= 3 and > 3 agree on every reachable input",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_31bb6bebd6b45f0e.py",
+   "value": "differing_cases=0 of 29 inputs (clean, drift+0.01, drift-0.01, drift+0.05, noise0.02_s0, noise0.02_s1, noise0.02_s2, noise0.02_s3, noise0.02_s4, noise0.005_s0, noise0.005_s1, noise0.005_s2, gains0, gains-0.3, gains1.9, gains3, cadence30, cadence60, unsettled1.3, q0.1, q1e-5, q0, tau~200, ua~5, ua~0.01, tau~0.1, settle_dT_1e-6, prior0.05, short); hunt None; gate_rc=1, wall 3309.3 s (provisional)"
+  },
+  {
+   "claim": "D3.M3 full gate 078e78462859ff6b custom_components/heatpump_optimizer/sysid.py:2187 BOOLOP (if drift_c_per_h is not None and a.shape[1] >= 4: -> if drift_c_per_h is not None or a.shape[1] >= 4:): RED-AS-NULL (read as survived) and equivalent-candidate: none possible: drift_c_per_h is None exactly on the two-column fallback, where a.shape[1] == 2, so `and` and `or` agree on every reachable input",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_078e78462859ff6b.py",
+   "value": "differing_cases=0 of 29 inputs (clean, drift+0.01, drift-0.01, drift+0.05, noise0.02_s0, noise0.02_s1, noise0.02_s2, noise0.02_s3, noise0.02_s4, noise0.005_s0, noise0.005_s1, noise0.005_s2, gains0, gains-0.3, gains1.9, gains3, cadence30, cadence60, unsettled1.3, q0.1, q1e-5, q0, tau~200, ua~5, ua~0.01, tau~0.1, settle_dT_1e-6, prior0.05, short); hunt None; gate_rc=1, wall 3610.7 s (provisional)"
+  },
+  {
+   "claim": "D3.M3 full gate c303df62a0b7b9bc custom_components/heatpump_optimizer/sysid.py:2187 GUARD_OFF (if drift_c_per_h is not None and a.shape[1] >= 4: -> if False:): KILLED by python3 tests/structure.py -- Killed by the structural ratchet's improvement-not-recorded check (identify()'s cyclomatic complexity 44 -> 43 when the two-term guard becomes `if False:`), not by a behaviour check. The behaviour it removes (the excursion's drift correction) is the same one 5654f855fcc27724 (>= 4 -> > 4) removes without touching complexity, and that key SURVIVED the full gate with a moving probe (confidence 0.981307 -> 0.981529 on a +0.01 C/h drift); the probe for this key moves identically. Non-finding by the gate's rule; the behaviour gap is carried under 5654f855fcc27724.",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c303df62a0b7b9bc",
+   "value": "gate_rc=1; killed_by=['python3 tests/structure.py']; failing lines ['1 metric(s) IMPROVED and not yet recorded: max_cc budget 44 measured 43 delta -1 BETTER (lower is better)', '1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED', '>>> FAILED: python3 tests/structure.py']; wall 3799.7 s, load1 0.86..0.94 (provisional)"
+  },
+  {
+   "claim": "D3.M3 full gate ed00e6c2abf2aa66 custom_components/heatpump_optimizer/sysid.py:2208 CMP_BOUND (if drift_c_per_h is not None and a.shape[1] >= 4 and excursion > 1e-9: -> if drift_c_per_h is not None and a.shape[1] >= 4 and excursion >= 1e-9:): RED-AS-NULL (read as survived) and equivalent-candidate: none found: every completing fit tried has excursion >= 2.04e-7 C (q swept 1e-3..0); below that the fit is refused before publication, so excursion == 1e-9 never reaches a published result",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_ed00e6c2abf2aa66.py",
+   "value": "differing_cases=0 of 29 inputs (clean, drift+0.01, drift-0.01, drift+0.05, noise0.02_s0, noise0.02_s1, noise0.02_s2, noise0.02_s3, noise0.02_s4, noise0.005_s0, noise0.005_s1, noise0.005_s2, gains0, gains-0.3, gains1.9, gains3, cadence30, cadence60, unsettled1.3, q0.1, q1e-5, q0, tau~200, ua~5, ua~0.01, tau~0.1, settle_dT_1e-6, prior0.05, short); hunt hit=0 x=None secondary=None; gate_rc=1, wall 3703.0 s (provisional)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_31bb6bebd6b45f0e.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_501a5e7cda702183.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_20cde1046cbd5681.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_6cfdb101dc87a6ea.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d203230963349f60.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_078e78462859ff6b.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_5654f855fcc27724.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_c303df62a0b7b9bc.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_ed00e6c2abf2aa66.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4593852cf3862b3c.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_64f3ef1feaaf7bc9.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_784e362919d88a92.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d661d68f54982097.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_a5b06d898bf0ba03.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_c51115b0104a8bf5.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4da9d281d4714565.py"
+ ],
+ "leads": [],
+ "gated": [
+  {
+   "key": "31bb6bebd6b45f0e",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2141 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "501a5e7cda702183",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2146 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "20cde1046cbd5681",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2154 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "6cfdb101dc87a6ea",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2154 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "d203230963349f60",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2162 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "078e78462859ff6b",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2187 BOOLOP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "5654f855fcc27724",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2187 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "c303df62a0b7b9bc",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2187 GUARD_OFF",
+   "verdict": "KILLED",
+   "killed_by": [
+    "python3 tests/structure.py"
+   ],
+   "class": "killed"
+  },
+  {
+   "key": "ed00e6c2abf2aa66",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2208 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "4593852cf3862b3c",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2223 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "64f3ef1feaaf7bc9",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2223 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "784e362919d88a92",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2223 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "d661d68f54982097",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2223 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "a5b06d898bf0ba03",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2237 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "c51115b0104a8bf5",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2244 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "4da9d281d4714565",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  }
+ ],
+ "gate_survivors": [
+  {
+   "key": "501a5e7cda702183",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2146 GUARD_OFF",
+   "patch": "if drift_c_per_h is not None: -> if False:",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3306.3,
+    "load1_start": 0.79,
+    "load1_end": 0.92
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/501a5e7cda702183.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_501a5e7cda702183.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_501a5e7cda702183.py",
+    "baseline_value": "0.3000000499195061",
+    "mutant_value": "None",
+    "differing_cases": 18,
+    "cases": 30,
+    "hunt": null,
+    "inputs_tried": [
+     "KEY drift+0.01",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "a drifting-sensor identify() check asserting completed and internal_gains_kw == the drift-free gains (0.30 kW at +0.01 C/h drift)"
+   },
+   "title": "identify() drift subtraction from the intercept (sysid.py:2146) can be switched off with the full gate green",
+   "claim": "With the guard at sysid.py:2146 forced False, a clean step test on a sensor drifting +0.01 C/h no longer completes (baseline completed, gains 0.300 kW; mutant refuses 'sensor drift collapsed into heat-loss'), and 18 of 30 probe cases change; GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_501a5e7cda702183.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_501a5e7cda702183.py",
+   "perturbation": {
+    "change": "sysid.py:2146 if drift_c_per_h is not None: -> if False: (in memory)",
+    "expected_direction": "up",
+    "observed_value": "key case 0.3000000499195061 -> None; differing_cases 18/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "20cde1046cbd5681",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2154 CMP_BOUND",
+   "patch": "if not (-0.5 <= gains_kw <= 2.0): -> if not (-0.5 <= gains_kw < 2.0):",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3310.5,
+    "load1_start": 0.78,
+    "load1_end": 0.92
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/20cde1046cbd5681.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_20cde1046cbd5681.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_20cde1046cbd5681.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 1,
+    "cases": 30,
+    "hunt": "hit=1 x=2.000000002534201 secondary=3.2",
+    "inputs_tried": [
+     "KEY hunted",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check on a fit whose gains_kw is exactly 2.0 asserting it completes with internal_gains_kw == 2.0"
+   },
+   "title": "identify() gains band upper bound (sysid.py:2154) is not pinned at its edge",
+   "claim": "A step test whose fitted gains_kw is exactly 2.0 completes at the baseline and is refused 'fitted gains outside plausible bounds' under `gains_kw < 2.0`; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_20cde1046cbd5681.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_20cde1046cbd5681.py",
+   "perturbation": {
+    "change": "sysid.py:2154 if not (-0.5 <= gains_kw <= 2.0): -> if not (-0.5 <= gains_kw < 2.0): (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 1/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "6cfdb101dc87a6ea",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2154 CMP_BOUND",
+   "patch": "if not (-0.5 <= gains_kw <= 2.0): -> if not (-0.5 < gains_kw <= 2.0):",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3392.1,
+    "load1_start": 0.78,
+    "load1_end": 0.92
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/6cfdb101dc87a6ea.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_6cfdb101dc87a6ea.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_6cfdb101dc87a6ea.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 1,
+    "cases": 30,
+    "hunt": "hit=1 x=-0.5000000171684871 secondary=3.05",
+    "inputs_tried": [
+     "KEY hunted",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check on a fit whose gains_kw is exactly -0.5 asserting it completes with internal_gains_kw clipped to 0.0"
+   },
+   "title": "identify() gains band lower bound (sysid.py:2154) is not pinned at its edge",
+   "claim": "A step test whose fitted gains_kw is exactly -0.5 completes (gains clipped to 0.0) at the baseline and is refused 'fitted gains outside plausible bounds' under `-0.5 < gains_kw`; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_6cfdb101dc87a6ea.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_6cfdb101dc87a6ea.py",
+   "perturbation": {
+    "change": "sysid.py:2154 if not (-0.5 <= gains_kw <= 2.0): -> if not (-0.5 < gains_kw <= 2.0): (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 1/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "d203230963349f60",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2162 CLAMP_DROP",
+   "patch": "gains_kw = float(np.clip(gains_kw, 0.0, 2.0)) -> gains_kw = float((gains_kw))",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3473.5,
+    "load1_start": 0.72,
+    "load1_end": 1.0
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/d203230963349f60.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d203230963349f60.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d203230963349f60.py",
+    "baseline_value": "0.0",
+    "mutant_value": "-0.2999999803793181",
+    "differing_cases": 2,
+    "cases": 30,
+    "hunt": null,
+    "inputs_tried": [
+     "KEY gains-0.3",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check on a plant with gains -0.3 kW asserting internal_gains_kw == 0.0 (the clip)"
+   },
+   "title": "identify() publishes negative internal gains when the clip at sysid.py:2162 is dropped, gate green",
+   "claim": "Dropping np.clip(gains_kw, 0.0, 2.0) at sysid.py:2162 publishes internal_gains_kw -0.300 kW instead of 0.0 on a plant with true gains -0.3 kW; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d203230963349f60.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d203230963349f60.py",
+   "perturbation": {
+    "change": "sysid.py:2162 gains_kw = float(np.clip(gains_kw, 0.0, 2.0)) -> gains_kw = float((gains_kw)) (in memory)",
+    "expected_direction": "sign_flip",
+    "observed_value": "key case 0.0 -> -0.2999999803793181; differing_cases 2/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "5654f855fcc27724",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2187 CMP_BOUND",
+   "patch": "if drift_c_per_h is not None and a.shape[1] >= 4: -> if drift_c_per_h is not None and a.shape[1] > 4:",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3774.2,
+    "load1_start": 0.85,
+    "load1_end": 0.92
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/5654f855fcc27724.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_5654f855fcc27724.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_5654f855fcc27724.py",
+    "baseline_value": "0.9813074506931991",
+    "mutant_value": "0.9815294051605464",
+    "differing_cases": 14,
+    "cases": 30,
+    "hunt": null,
+    "inputs_tried": [
+     "KEY drift+0.01",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "a drifting-sensor identify() check asserting the published confidence equals the drift-corrected excursion's (0.98131 at +0.01 C/h)"
+   },
+   "title": "identify() excursion drift correction (sysid.py:2187, >= 4 -> > 4) is unpinned",
+   "claim": "With `a.shape[1] > 4` at sysid.py:2187 the excursion is no longer drift-corrected; on a +0.01 C/h drifting sensor the published confidence moves 0.981307 -> 0.981529 and 14 of 30 probe cases change; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_5654f855fcc27724.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_5654f855fcc27724.py",
+   "perturbation": {
+    "change": "sysid.py:2187 if drift_c_per_h is not None and a.shape[1] >= 4: -> if drift_c_per_h is not None and a.shape[1] > 4: (in memory)",
+    "expected_direction": "up",
+    "observed_value": "key case 0.9813074506931991 -> 0.9815294051605464; differing_cases 14/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "4593852cf3862b3c",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2223 CMP_BOUND",
+   "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 < tau <= 200.0) or not (0.01 <= ua <= 5.0):",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3604.8,
+    "load1_start": 0.92,
+    "load1_end": 1.06
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/4593852cf3862b3c.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4593852cf3862b3c.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4593852cf3862b3c.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 1,
+    "cases": 30,
+    "hunt": "hit=1 x=3.281805987386395 secondary=3.3",
+    "inputs_tried": [
+     "KEY hunted",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check on a fit whose tau is exactly 0.1 h asserting it completes"
+   },
+   "title": "identify() tau lower bound (sysid.py:2223) is not pinned at its edge",
+   "claim": "A fast-plant step test whose fitted tau is exactly 0.1 h completes at the baseline and is refused 'fitted parameters outside plausible bounds' under `0.1 < tau`; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4593852cf3862b3c.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4593852cf3862b3c.py",
+   "perturbation": {
+    "change": "sysid.py:2223 if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 < tau <= 200.0) or not (0.01 <= ua <= 5.0): (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 1/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "64f3ef1feaaf7bc9",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2223 CMP_BOUND",
+   "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 <= tau <= 200.0) or not (0.01 < ua <= 5.0):",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3794.9,
+    "load1_start": 0.9,
+    "load1_end": 0.92
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/64f3ef1feaaf7bc9.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_64f3ef1feaaf7bc9.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_64f3ef1feaaf7bc9.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 1,
+    "cases": 30,
+    "hunt": "hit=1 x=0.01000000000032415 secondary=3.35",
+    "inputs_tried": [
+     "KEY hunted",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check on a fit whose UA is exactly 0.01 kW/C asserting it completes"
+   },
+   "title": "identify() UA lower bound (sysid.py:2223) is not pinned at its edge",
+   "claim": "A step test whose fitted UA is exactly 0.01 kW/C completes at the baseline and is refused 'fitted parameters outside plausible bounds' under `0.01 < ua`; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_64f3ef1feaaf7bc9.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_64f3ef1feaaf7bc9.py",
+   "perturbation": {
+    "change": "sysid.py:2223 if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 <= tau <= 200.0) or not (0.01 < ua <= 5.0): (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 1/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "784e362919d88a92",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2223 CMP_BOUND",
+   "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 <= tau <= 200.0) or not (0.01 <= ua < 5.0):",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3744.5,
+    "load1_start": 0.86,
+    "load1_end": 0.87
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/784e362919d88a92.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_784e362919d88a92.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_784e362919d88a92.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 1,
+    "cases": 30,
+    "hunt": "hit=1 x=5.000009159199536 secondary=3.05",
+    "inputs_tried": [
+     "KEY hunted",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check on a fit whose UA is exactly 5.0 kW/C asserting it completes"
+   },
+   "title": "identify() UA upper bound (sysid.py:2223) is not pinned at its edge",
+   "claim": "A step test whose fitted UA is exactly 5.0 kW/C completes at the baseline and is refused 'fitted parameters outside plausible bounds' under `ua < 5.0`; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_784e362919d88a92.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_784e362919d88a92.py",
+   "perturbation": {
+    "change": "sysid.py:2223 if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 <= tau <= 200.0) or not (0.01 <= ua < 5.0): (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 1/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "d661d68f54982097",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2223 CMP_BOUND",
+   "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 <= tau < 200.0) or not (0.01 <= ua <= 5.0):",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3928.5,
+    "load1_start": 0.89,
+    "load1_end": 0.92
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/d661d68f54982097.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d661d68f54982097.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d661d68f54982097.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 1,
+    "cases": 30,
+    "hunt": "hit=0 x=None secondary=None",
+    "inputs_tried": [
+     "KEY tau==200",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check on a fit whose tau is exactly 200.0 h asserting it completes"
+   },
+   "title": "identify() tau upper bound (sysid.py:2223) is not pinned at its edge",
+   "claim": "A slow-plant step test whose fitted tau is exactly 200.0 h completes at the baseline and is refused 'fitted parameters outside plausible bounds' under `tau < 200.0`; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d661d68f54982097.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d661d68f54982097.py",
+   "perturbation": {
+    "change": "sysid.py:2223 if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 <= tau < 200.0) or not (0.01 <= ua <= 5.0): (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 1/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "a5b06d898bf0ba03",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2237 CMP_BOUND",
+   "patch": "and abs(drift_c_per_h) < self.config.sensor_drift_prior_c_per_h -> and abs(drift_c_per_h) <= self.config.sensor_drift_prior_c_per_h",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3824.2,
+    "load1_start": 0.92,
+    "load1_end": 0.85
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/a5b06d898bf0ba03.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_a5b06d898bf0ba03.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_a5b06d898bf0ba03.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 1,
+    "cases": 30,
+    "hunt": null,
+    "inputs_tried": [
+     "KEY prior==|drift|",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check with sensor_drift_prior_c_per_h equal to the fitted |drift| asserting the settle cross-check is skipped (completed)"
+   },
+   "title": "identify() settle cross-check precondition |drift| < prior (sysid.py:2237) is not pinned at its edge",
+   "claim": "With sensor_drift_prior_c_per_h equal to the fitted |drift| (0.009999981 C/h) on an unsettled settle, the baseline skips the cross-check and completes; under `<=` the cross-check runs and refuses 'sensor drift collapsed into heat-loss'; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_a5b06d898bf0ba03.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_a5b06d898bf0ba03.py",
+   "perturbation": {
+    "change": "sysid.py:2237 and abs(drift_c_per_h) < self.config.sensor_drift_prior_c_per_h -> and abs(drift_c_per_h) <= self.config.sensor_drift_prior_c_per_h (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 1/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "c51115b0104a8bf5",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2244 CMP_BOUND",
+   "patch": "if abs(den) > 1e-6: -> if abs(den) >= 1e-6:",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3619.0,
+    "load1_start": 0.39,
+    "load1_end": 0.92
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/c51115b0104a8bf5.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_c51115b0104a8bf5.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_c51115b0104a8bf5.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 2,
+    "cases": 30,
+    "hunt": null,
+    "inputs_tried": [
+     "KEY settle_dT_1e-6",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check whose last settling sample reads exactly 1e-6 C above outdoor asserting the cross-check is skipped (completed)"
+   },
+   "title": "identify() settle cross-check zero-\u0394T guard (sysid.py:2244) is not pinned at its edge",
+   "claim": "When the last settling sample reads exactly 1e-6 C above outdoor, the baseline skips the steady-state UA and completes; under `>= 1e-6` ua_ss = (P+G)/1e-6 refuses 'sensor drift collapsed into heat-loss'; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_c51115b0104a8bf5.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_c51115b0104a8bf5.py",
+   "perturbation": {
+    "change": "sysid.py:2244 if abs(den) > 1e-6: -> if abs(den) >= 1e-6: (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 2/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  },
+  {
+   "key": "4da9d281d4714565",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND",
+   "patch": "if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10: -> if ua_ss > 0.0 and abs(ua_ss - ua) / ua >= 0.10:",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3685.9,
+    "load1_start": 0.44,
+    "load1_end": 0.92
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/4da9d281d4714565.json",
+   "class": "candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4da9d281d4714565.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4da9d281d4714565.py",
+    "baseline_value": "True",
+    "mutant_value": "False",
+    "differing_cases": 1,
+    "cases": 30,
+    "hunt": "hit=1 x=1.3920022034486481 secondary=(4.1, 0.308)",
+    "inputs_tried": [
+     "KEY hunted",
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "an identify() check whose settle UA disagrees with the fit by exactly 10 % asserting it completes"
+   },
+   "title": "identify() settle cross-check 10 % tolerance (sysid.py:2246) is not pinned at its edge",
+   "claim": "A step test whose steady-state settle UA disagrees with the fit by exactly 0.10 completes at the baseline and is refused 'sensor drift collapsed into heat-loss' under `>= 0.10`; the full gate stays green.",
+   "step": "D3.M3",
+   "scope": "D3-s1",
+   "class_guess": "new",
+   "severity_claimed": "low",
+   "severity_reason": "identify() is the harness-only one-state regression (#1395: the production sequence with a declared plant routes to identify_slab), so the mutant reaches no installed house; hygiene of the suite's pin, not user-visible",
+   "stop_rule_class": "hygiene",
+   "metric_definition": "differing_cases: probe inputs whose published identify() result differs mutant vs baseline; plus the key case's value per arm",
+   "harness_paths": [
+    "dev/audit/rounds/round11/D3/s1/fullgate.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4da9d281d4714565.py",
+    "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/sysid_probe_common.py"
+   ],
+   "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_4da9d281d4714565.py",
+   "perturbation": {
+    "change": "sysid.py:2246 if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10: -> if ua_ss > 0.0 and abs(ua_ss - ua) / ua >= 0.10: (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "key case True -> False; differing_cases 1/30"
+   },
+   "null_control": {
+    "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py null (box D3-g35)",
+    "value": "see gates/null.json",
+    "note": "the probe's own null: the baseline arm vs itself is identical by construction (same module text, same inputs); differing_cases counts only mutant-vs-baseline"
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ]
+  }
+ ],
+ "equivalent_candidates": [
+  {
+   "key": "31bb6bebd6b45f0e",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2141 CMP_BOUND",
+   "patch": "if solution.shape[0] >= 3: -> if solution.shape[0] > 3:",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3309.3,
+    "load1_start": 0.72,
+    "load1_end": 0.93
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/31bb6bebd6b45f0e.json",
+   "class": "equivalent-candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_31bb6bebd6b45f0e.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_31bb6bebd6b45f0e.py",
+    "baseline_value": null,
+    "mutant_value": null,
+    "differing_cases": 0,
+    "cases": 29,
+    "hunt": null,
+    "inputs_tried": [
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "none possible: solution.shape[0] is 4 (four-column solve) or 2 (fallback), never 3, so >= 3 and > 3 agree on every reachable input"
+   }
+  },
+  {
+   "key": "078e78462859ff6b",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2187 BOOLOP",
+   "patch": "if drift_c_per_h is not None and a.shape[1] >= 4: -> if drift_c_per_h is not None or a.shape[1] >= 4:",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3610.7,
+    "load1_start": 0.93,
+    "load1_end": 1.0
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/078e78462859ff6b.json",
+   "class": "equivalent-candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_078e78462859ff6b.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_078e78462859ff6b.py",
+    "baseline_value": null,
+    "mutant_value": null,
+    "differing_cases": 0,
+    "cases": 29,
+    "hunt": null,
+    "inputs_tried": [
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "none possible: drift_c_per_h is None exactly on the two-column fallback, where a.shape[1] == 2, so `and` and `or` agree on every reachable input"
+   }
+  },
+  {
+   "key": "ed00e6c2abf2aa66",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2208 CMP_BOUND",
+   "patch": "if drift_c_per_h is not None and a.shape[1] >= 4 and excursion > 1e-9: -> if drift_c_per_h is not None and a.shape[1] >= 4 and excursion >= 1e-9:",
+   "function": "SystemIdentification.identify",
+   "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3703.0,
+    "load1_start": 0.8,
+    "load1_end": 1.0
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/ed00e6c2abf2aa66.json",
+   "class": "equivalent-candidate",
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_ed00e6c2abf2aa66.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_ed00e6c2abf2aa66.py",
+    "baseline_value": null,
+    "mutant_value": null,
+    "differing_cases": 0,
+    "cases": 29,
+    "hunt": "hit=0 x=None secondary=None",
+    "inputs_tried": [
+     "clean",
+     "drift+0.01",
+     "drift-0.01",
+     "drift+0.05",
+     "noise0.02_s0",
+     "noise0.02_s1",
+     "noise0.02_s2",
+     "noise0.02_s3",
+     "noise0.02_s4",
+     "noise0.005_s0",
+     "noise0.005_s1",
+     "noise0.005_s2",
+     "gains0",
+     "gains-0.3",
+     "gains1.9",
+     "gains3",
+     "cadence30",
+     "cadence60",
+     "unsettled1.3",
+     "q0.1",
+     "q1e-5",
+     "q0",
+     "tau~200",
+     "ua~5",
+     "ua~0.01",
+     "tau~0.1",
+     "settle_dT_1e-6",
+     "prior0.05",
+     "short"
+    ]
+   },
+   "should_fail": {
+    "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+    "assertion": "none found: every completing fit tried has excursion >= 2.04e-7 C (q swept 1e-3..0); below that the fit is refused before publication, so excursion == 1e-9 never reaches a published result"
+   }
+  }
+ ]
+}
