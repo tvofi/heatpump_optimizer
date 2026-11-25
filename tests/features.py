@@ -103936,6 +103936,21 @@ R.check(
     f"kept {_sa_fab1} null {_sa_fab0}",
 )
 
+# The plan's band stamp carries the learned entry energy, and the status
+# sensor's pump_min_power row shows it. Null: none learned stamps None.
+from heatpump_optimizer import sensor as _sa_sensor  # noqa: E402
+
+_SA_CAP = _sa_NS(plan_writes_power=lambda: False)
+_sa_band1 = _sa_dr.solve_band(_sa_d, _SA_P, _SA_CAP, _sa_t).as_dict()
+_sa_band0 = _sa_dr.solve_band(_sa_none, _SA_P, _SA_CAP, 1e9).as_dict()
+R.check(
+    "the solve band stamps the learned entry energy above the floor and pump_min_power shows it; none learned "
+    "stamps None",
+    abs(_sa_band1["approach_kwh"] - round(_sa_a.entry_kwh(0.53), 3)) < 1e-9 and _sa_band0["approach_kwh"] is None
+    and _sa_sensor._pump_min_power(_sa_band1)["pump_min_power"]["approach_kwh"] == _sa_band1["approach_kwh"],
+    f"{_sa_band1['approach_kwh']} null {_sa_band0['approach_kwh']}",
+)
+
 # 5. The generator: with no approach the masks are the base's; with one, a
 # run out of a pause books the entry's energy, so the committed plan runs
 # fewer floor steps for the same relaxed energy.

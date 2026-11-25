@@ -2193,7 +2193,7 @@ def _pump_min_power(band: Any) -> dict[str, Any]:
 _MAX_ROW = {k: k for k in ("configured_max_kw", "planned_max_kw", "learned_max_kw", "samples", "since_s")}
 _MIN_ROW = {
     "configured_min_kw": "configured_min_kw", "planned_min_kw": "planned_min_kw",
-    "learned_min_kw": "learned_min_kw", "samples": "min_samples",
+    "learned_min_kw": "learned_min_kw", "samples": "min_samples", "approach_kwh": "approach_kwh",
 }
 
 

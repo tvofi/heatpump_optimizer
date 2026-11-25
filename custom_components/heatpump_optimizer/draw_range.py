@@ -1092,6 +1092,9 @@ class SolveBand:
     min_reason: str = "awaiting"
     learned_min_kw: float | None = None
     min_samples: int = 0
+    #: The learned approach's entry energy above the floor this solve booked
+    #: per run out of a pause, kWh (``solve_approach``), or ``None``.
+    approach_kwh: float | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -1108,6 +1111,7 @@ class SolveBand:
             "min_reason": self.min_reason,
             "learned_min_kw": None if self.learned_min_kw is None else round(self.learned_min_kw, 3),
             "min_samples": self.min_samples,
+            "approach_kwh": None if self.approach_kwh is None else round(self.approach_kwh, 3),
         }
 
 
@@ -1136,6 +1140,8 @@ def solve_band(
     samples = len(draw.ceiling)
     bottom = _bottom_fields(draw, cfg_min, cfg_max, cap.plan_writes_power(), applies_floor)
     floor = bottom["learned_min_kw"] if bottom["min_source"] == "metered" else None
+    entry = solve_approach(draw, params, now_s)
+    bottom["approach_kwh"] = None if entry is None else entry.entry_kwh(approach_floor_kw(draw, params))
 
     def band(top: float, source: str, reason: str, learned: float | None = None) -> SolveBand:
         min_kw = cfg_min if floor is None and source == "configured" else min(floor or cfg_min, top)
