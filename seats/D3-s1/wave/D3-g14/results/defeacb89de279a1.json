@@ -1,0 +1,51 @@
+{
+ "key": "defeacb89de279a1",
+ "site": "dhw_planner.py:1348 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1348,
+ "patch": "suppress_steps = int(np.sum(mask & (schedule > 1e-6))) -> suppress_steps = int(np.sum(mask & (schedule >= 1e-6)))",
+ "function": "DhwPlanner._build_dhw_requirements",
+ "cluster": "dhw_planner.py:DhwPlanner._build_dhw_requirements@1138-1348",
+ "slice": "u1d",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3825.6,
+  "load1_start": 0.72,
+  "load1_end": 0.99,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/defeacb89de279a1.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key defeacb89de279a1"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_defeacb89de279a1.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_defeacb89de279a1.py",
+  "baseline_value": "inputs_separating=0 of 144; slots_in_0_1e-5_kw=0",
+  "mutant_value": "inputs_separating=0 of 144",
+  "inputs_tried": [
+   "external heat on; tanks 40-56 C step 2",
+   "cheap blocks 0-7, 1-7, 2-5, flat",
+   "windows 18-20 and 06-08, min 45 C",
+   "p_max 4.0 and 0.3"
+  ],
+  "production_reach": "none found: the min-run repair and the clamp zero every slot below min_run_power, so no slot in (0, 1e-5] kW reaches line 1348 (0 seen over 144 plans)"
+ },
+ "should_fail": {
+  "script": "none: no input separates the arms",
+  "assertion": "n/a"
+ }
+}
