@@ -6,7 +6,14 @@ Builds the approved design `design/R11-OWNER-MODE-LEGS` 0e59437a (rev 2, verdict
 
 ## Head
 
-81db193f15522b3dc7df087da32fac9e1cc11457, measured against merge base 8ef450936a1786abf4bb9610dc3336da4e77e8de (`origin/main`'s tip at 2026-11-22T16:28Z).
+39b182d75fa1b01fa9f063612378a78c4bd342a0, measured against merge base b18edd593c94c9ef5d2d1bcfded4021dbd78fb31 (`origin/main`'s tip 5594a34a4940 at 2026-11-25T03:46Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged). It merges this PR's head 1aa635d275c03eb12f81f16d9f46c679c00565c1 (the `mutation-autofix` pins) onto the repair commits 8630bbf58c..bc71899abf.
+
+## Repair (verdict 7c308abb at 8ca95413, and the fast red at 1aa635d2)
+
+Two defects, one commit each set:
+
+- **`tests/entities.py` red (`fast`).** #3734 on main added the numeric-option census after this branch forked; `_leg_minutes` reads a refused stored value as the key's default, as `_interval_minutes` and `_lead_minutes` do, so 8630bbf58c adds the two mode-leg keys to `_DEFAULTED_NUMBERS` and the census's numeric parses (`entry_config.py`, `tests/entities.py`, one line each). Baseline: `python3 tests/entities.py` at 1aa635d2 fails the census; at the head it passes.
+- **`mutation-vacuous: duty_legs.py:184 duty_legs.py:146`.** The verdict's three survivors (M09 left side of R2's sandwich dropped, M10 right side dropped, M12 forward fill's `before` replaced by `IDLE`) each get a check that fails on the mutant: T6b (a DHW-first heating leg under N at the plan's end; a space-first one after an idle step; null controls with hot water on the missing side merge), T6c (idle steps between the pump's hot-water leg and step 2's short hot-water leg join the two; null control, the pump in heating lengthens it). T6d and T6e kill four further prepr diff mutants (`duty_legs.py:154` `s_idx >= 0`, `:155` `idx[-2]`, `:74` clamp dropped and `None` read as 1.0, `:151` the run sums' zero column).
 
 ## Design departures
 
@@ -40,6 +47,10 @@ Driver: a one-off script (scratch, not committed) that applies each mutant to it
 
 Failing first: the same 15 checks as their own block (`"# --- R11-OWNER-MODE-LEGS (#3859)"` to `"# --- R10-CEILING-PROBE (#2498"`) with `custom_components/` stashed back to the merge base: T1, T1b and T2 FAIL, then `AttributeError: module 'heatpump_optimizer.duty_legs' has no attribute 'plan_legs'` at T3; at the head ALL 15 PASSED.
 
+- Repair round (verdict 7c308abb): driver `python3 tools/audit/seat/features_block.py "# T6b: R2's two sides" "def _ml_short(legs, heat" --prelude "exec(open('<prelude>').read())"`, the prelude written by `--emit-prelude <prelude>` with the same two markers (3 statements), each mutant applied by `sed` to `duty_legs.py` and restored by copy. Baseline at the head: ALL 4 FEATURES BLOCK PASSED (T6d, T6e, T6b, T6c). M12 (`:146` forward fill `before` -> `IDLE`): T6c FAIL. `:146` `known >= 0` -> `known >= -1`: T6c FAIL. M09 (`:184` `& (left[..., s_slot] == DHW)` dropped): T6b FAIL. M10 (`:184` `& (right[..., s_slot] == DHW)` dropped): T6b FAIL. Each `1 of 4 FEATURES BLOCK FAILED`; `git status --short` empty after the last restore.
+
+- Diff mutants (`prepr.sh` step 6d over the first 40 added mutants): the survivors at `duty_legs.py:154` (`s_idx >= 0`), `:155` (`idx[-2]`), `:74` (clamp dropped, `None` read as 1.0) and `:151` (the zero column shaped for one row) are killed by T6d and T6e (commits 186ccc5a8d, bc71899abf). This seat re-ran only the four verdict mutants above; `tests / mutation` in CI re-measures the rest at this head.
+
 ## Null control
 
 - Options at 0 reproduce today: the existing duty-switch, `_PaCoord` and `_rp2` checks run with both options at 0 and pass unchanged in value; T1, T1b and T2 each carry an options-off arm that writes main's sequence.
@@ -71,18 +82,18 @@ dS +0.0017 IMPROVES; no gate rise.
 
 ## Red checks
 
-- `mutation` (predicted by `prepr.sh` step 6d over the 54 unpinned sites below): the repair is `mutation-autofix`'s, which pins each site once the pull request exists (`ci-autofix.md`); the diff's predicates are killed by hand in Mutation proof and its one equivalent mutant is triaged. Cheaper detector: `tools/pr/ci_predict.py` already predicts it locally (seconds per run, run at every prepr); the red is the pinning step's normal state for new production lines, not a defect, so no countermeasure is owed.
+Each is in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints.
+
+- `tests / fast (3.14)` at 1aa635d2: `tests/entities.py`'s numeric-option census (#3734, merged to main after this branch forked) refused the two new mode-leg keys. Repaired by 8630bbf58c (Repair); `python3 tests/entities.py` at the head: ALL 2761 ENTITY CHECKS PASSED. Cheaper detector: the scoped gate, which selects `tests/entities.py` for this diff and runs it locally (`python3 tests/entities.py`, minutes); the census reached this branch through a merge of main, and that detector was not run between the merge and the push. It is an existing step (fixer.md step 6: steps 2-8 re-execute after a merge), so no new countermeasure is built.
+- `tests / mutation` at 1aa635d2: the unpinned sites below, plus the verdict's survivors, now killed (Mutation proof). The pinning is `mutation-autofix`'s, which runs once the head moves (`ci-autofix.md`). Cheaper detector: `tools/pr/ci_predict.py` predicts it at every prepr (seconds); no countermeasure is owed.
+- `pr-contract / pr-contract` at 1aa635d2: `policy_lint.mjs --pr-body` refused the body because `## Red checks` named neither `tests / fast (3.14)` nor `tests / mutation` (`PR-BODY: 2 error(s)`, job 137625468151). This body names both. Cheaper detector: `tools/pr/prepr.sh --body-check`, which `body_push.sh` runs before the push, in seconds; the red came from a head the autofix moved after the last body was set, so no countermeasure is built.
 
 ## Unpinned sites
 
-- custom_components/heatpump_optimizer/config_flow.py:4005 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:74 CLAMP_DROP*2 -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:74 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:95 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:112 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:113 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:117 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:121 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:128 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:146 CLAMP_DROP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:146 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
@@ -90,23 +101,14 @@ dS +0.0017 IMPROVES; no gate rise.
 - custom_components/heatpump_optimizer/duty_legs.py:154 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:155 CLAMP_DROP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:155 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:156 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:182 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:184 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:185 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:187 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:192 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:201 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:222 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:353 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:354 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:354 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_legs.py:356 CLAMP_DROP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_legs.py:357 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:490 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_switch.py:552 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:567 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_switch.py:569 BOOLOP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:569 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:571 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:572 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
@@ -121,14 +123,20 @@ dS +0.0017 IMPROVES; no gate rise.
 - custom_components/heatpump_optimizer/duty_switch.py:606 CMP_BOUND -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:606 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:607 CLAMP_DROP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/duty_switch.py:609 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:633 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/duty_switch.py:644 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/entry_config.py:81 BOOLOP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/entry_config.py:81 CMP_BOUND*2 -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
-- custom_components/heatpump_optimizer/entry_config.py:81 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/entry_config.py:112 BOOLOP -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/entry_config.py:112 CMP_BOUND*2 -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+- custom_components/heatpump_optimizer/entry_config.py:112 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/grid_fee.py:149 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
 - custom_components/heatpump_optimizer/grid_fee.py:153 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); the "Mutation proof" list kills the predicates by hand
+
+## Brief carries
+
+`git grep -c -E "_fault_stands|frost_holding" <ref> -- custom_components` prints nothing at this head 39b182d75f and at `origin/main` 5594a34a49; the null control is the same command with `_kept_leg` at this head, which prints `duty_switch.py`'s count. So neither hold exists for a pin to drive here.
+
+- Carry 0 (roster item 346bf281, from R11-OWNER-FAULT-HOLD: "the fault hold wins with a young leg latched"): not buildable at this head, as above. This group lands first, so the pin is owed by R11-OWNER-FAULT-HOLD, landing second, against `_kept_leg` once it is on main. Carry: R11-OWNER-FAULT-HOLD
+- Carry 1 (roster item 8bcbefe1, from R11-OWNER-FROST-HOLD: "frost wins with a young DHW leg latched"): not buildable at this head, as above; owed by R11-OWNER-FROST-HOLD, landing second. Carry: R11-OWNER-FROST-HOLD
 
 ## Forward-carry
 
