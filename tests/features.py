@@ -97153,16 +97153,19 @@ R.check(
 )
 _dsp_i49_rec = _dsp_ds._Record(None, None, learner=_dsp_i49, loaded=True)
 _dsp_i49_start = datetime(2026, 11, 21, 12, 30, tzinfo=UTC)
+_dsp_i49_res = SimpleNamespace(timestamps=[_dsp_i49_start, _dsp_i49_start + timedelta(minutes=15)],
+                               power_schedule=[2.0, 2.0], dhw_power_schedule=[2.0, 0.0], duty_floor_kw=None)
+_dsp_i49_cfg = SimpleNamespace(mode_leg_heat_min_minutes=0.0, mode_leg_dhw_min_minutes=0.0)
 _dsp_i49_legs = [
-    _dsp_ds.both_step_duty(_dsp_i49_rec, _dsp_i49_start, _dsp_i49_start + timedelta(minutes=m),
-                           2.0, 2.0, 15.0, "space")
+    _dsp_ds.served_leg(_dsp_i49_rec, _dsp_i49_res, 0, "both", _dsp_i49_start + timedelta(minutes=m),
+                       _dsp_i49_cfg, 15.0)
     for m in (0, 7, 8, 14)
 ]
 R.check(
     "the arbiter serves issue 3849's both step as before the learner existed: "
     "hot water for its share, then heating",
     _dsp_i49_legs == ["dhw", "dhw", "space", "space"]
-    and _dsp_i49_rec.order[1] == _dsp_dl.both_step_legs(2.0, 2.0, 15.0),
+    and _dsp_i49_rec.order[1] == _dsp_dl.plan_legs([2.0], [2.0], None, _dsp_dl.DEFAULT_RULE, 15.0)[0],
     f"{_dsp_i49_legs}",
 )
 _dsp_i49_solved = {
