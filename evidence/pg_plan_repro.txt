@@ -1,6 +1,0 @@
-base bb6377b4: rc=0 f='v1.10.0' -> PASS; stderr=[]
-head e04a759e: rc=128 f='x9' -> FAIL; stderr=["fatal: 'origin' does not appear to be a git repository"]
-                                        ~~~~~~~~~~~~~~~~~~~~~^^^^
-                                        ~~~~~~~~~~~~~~~~~~~~~^^^^
-bb6377b4 _pg_plan_defects: []
-e04a759e _pg_plan_defects: ["the release checkout took 'x9' (rc=128), not v1.10.0"]
