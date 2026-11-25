@@ -1,0 +1,36 @@
+{
+ "key": "d97762e31739dd75",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4003 CMP_BOUND",
+ "patch": "if dT_wood > dT_wood_cap: -> if dT_wood >= dT_wood_cap:",
+ "function": "ThermalModel._simulate_step_two_zone",
+ "cluster": "thermal_model.py:ThermalModel._simulate_step_two_zone@4003-4020",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2877.8,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/d97762e31739dd75.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d97762e31739dd75",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_d97762e31739dd75.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_d97762e31739dd75.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_d97762e31739dd75.txt",
+  "metric": "moved_inputs",
+  "baseline_value": "0",
+  "mutant_value": "0",
+  "inputs_tried": "two-tank plant (manual valve, two-zone, wood tank): wood temp cap-20/cap-1/cap-1e-9/cap/cap+1 x buffer 30/50/70 x power 0/1/3 kW x outdoor -10/0/10 x dt 0.25/1/12: 270 inputs, 0 moved; forced tie (_two_tank_rates patched in both arms to return dT_wood = cap = 0 at a wood tank at its cap): refused 0.0 in both, state identical"
+ },
+ "should_fail": "none can: at the tie the cap assignment is a no-op and refused = (dT_wood - cap) * C_w = 0"
+}
