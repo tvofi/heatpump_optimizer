@@ -10794,13 +10794,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._freq_map.observe(
             reported, float(self._measured_power), hz_min, hz_max
         )
-    async def _command_frequency(self) -> None:
+    async def _command_frequency(self) -> bool | None:
         """The control stage's single write path — every rail in one place.
 
         Rate-limited to one write per five minutes, clamped to the
         entity's own range, deduplicated against the last command
         (``FrequencyWatchdog.command``, the write's tail), and a
         map with no evidence writes NOTHING: None is never a frequency.
+        True only where the rate limit refused a target its record does not
+        hold: the step tick retries it (``pump_arbiter._step_writes``).
         """
         entity_id = getattr(self, "_ctx", self)._config.compressor_freq_entity
         if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or _plan_let_go(self) \
@@ -10820,7 +10822,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             and utc_elapsed_seconds(now, self._freq_last_write)
             < FREQ_WRITE_MIN_INTERVAL_S
         ):
-            return
+            return target != self._freq_watchdog.commanded
         try:
             if not await self._freq_watchdog.command(
                 target, lambda: off_restore.async_arm(self.hass, self.entry, _ctx_of(self)._config, number_restore.FREQUENCY_RESTORE),

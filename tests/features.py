@@ -78817,6 +78817,297 @@ R.check(
 )
 
 
+# ---- R11-SEAM-actuation-writes B (D16-s2-01, D16-s2-02, D16-s2-04): the step tick re-derives each step's writes ----
+# The minute tick (pump_arbiter.supply_tick, armed by the cycle's note_supply) re-cuts the action at a plan-step
+# boundary and runs the step tail (disinfection follower, publish, frequency, valve, pumps) under the arbiter's
+# tail_lock; the supply switch is its second half. Driven on the r11ar plant: the production cycle (cut,
+# _apply_action, the tail under the lock), then the production tick, every assertion read from the calls the
+# device took. A symbol the base lacks fails its check by name (_r11ar_try), never the script.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _r11awb_Opt  # noqa: E402
+
+# The r11ar plant this block reuses, named once so a block run alone resolves them (the guards below swallow a NameError).
+_R11AWB_PLANT = (_r11ar_aio, _r11ar_pa, _r11ar_dt, _r11ar_Entry, _r11ar_Reader, _r11ar_replace, _r11ar_plan, _r11ar_hass,
+                 _r11ar_config, _r11ar_coord, _r11ar_settle, _r11ar_key, _r11ar_try, _r11ar_ok, boost_mod, _R11AR_IDS, _R11AR_T0, _R11AR_AUTO,
+                 _r11ar_states, _R11AR_BASE, _R11AR_TUYA, _r11ar_json, _r11ar_Result, _r11ar_golden, _R11arCoord)
+_R11AWB_DISPLACE = [2.0, 6.0, 6.0, 6.0]  # the plan's own displace per step; ECL110 publishes it
+
+
+def _r11awb_plan(on=True):
+    """Four hot-water-free space steps from T0 whose displace differs between step 0 and step 1."""
+    base = _r11ar_plan("ssss")
+    return _r11ar_replace(base, displace_schedule=list(_R11AWB_DISPLACE), heat_pump_on_schedule=[on] * 4,
+                          valve_target_schedule=[20.0, 18.0, 18.0, 18.0])
+
+
+async def _r11awb_cycle(c, minute, plan):
+    """The production cycle at T0+minute: adopt and cut, apply, the step tail under the lock. Where the tree
+    has no step tail (the base) the same cycle runs in that tree's own order, so the nulls hold there."""
+    now = _R11AR_T0 + timedelta(minutes=minute)
+    _r11ar_dt.freeze(now)
+    c._optimization_result, c._last_optimization = plan, now
+    opt = _r11awb_Opt(c._thermal_model, c._ctx._opt_config)
+    if hasattr(c, "_async_step_tail"):
+        c._cut_action(opt)
+        await c._apply_action()
+        async with _r11ar_pa.state_for(c).tail_lock:
+            await c._async_step_tail()
+        return
+    await c._legionella.async_track_cycle(None)  # the base's follower ran before the solve's adoption
+    boost_mod.adopt_plan(c, opt.get_current_action(plan, now))
+    await c._apply_action()
+    await c._command_frequency()
+    await c._command_valve_target()
+    await c._async_drive_pumps()
+
+
+async def _r11awb_tick(c, minute):
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=minute))
+    held = _r11ar_pa.state_for(c)
+    wiring = getattr(held, "wiring", None) or _r11ar_pa.SupplyWiring(c.arbiter_inputs, boost_mod.held_for(c), c._write_supply)
+    if held.supply is not None or hasattr(held, "wiring"):  # the base arms its tick only with a supply switch
+        await _r11ar_pa.supply_tick(held, wiring)
+
+
+def _r11awb_coord(switch=True, hz=None):
+    hass = _r11ar_hass()
+    cfg = _r11ar_config()
+    if not switch:
+        cfg.pop("heat_pump_switch_entity")
+    entry = _r11ar_Entry(data=cfg, entry_id=f"r11awb_{next(_R11AR_IDS)}")
+    c = _r11ar_coord(hass, entry)
+    c._mode = _R11AR_AUTO
+    # input: a frequency map whose answer follows the step (40 Hz in step 0, 60 Hz after)
+    c._freq_map.recommend = lambda *_a, **_k: 40.0 if _r11ar_dt.now() < _R11AR_T0 + timedelta(minutes=15) else 60.0
+    return hass, c
+
+
+def _r11awb_vals(calls):
+    """What the device took: the last value per written thing, and the number of switch calls."""
+    last = {}
+    for _d, svc, data in calls:
+        k = _r11ar_key(data)
+        if k is not None:
+            last[k] = (data or {}).get("value", (data or {}).get("payload"))
+    return last, sum(1 for d, _s, _x in calls if d == "switch")
+
+
+async def _r11awb_boundary(switch):
+    """Cycle at minute 1 (step 0), tick inside step 0 (null), tick at minute 16 (step 1): the calls of each."""
+    hass, c = _r11awb_coord(switch)
+    plan = _r11awb_plan()
+    c._optimization_result = plan
+    await _r11awb_cycle(c, 1, plan)
+    _r11ar_settle(hass)
+    await _r11awb_tick(c, 5)
+    quiet = _r11ar_settle(hass)
+    await _r11awb_tick(c, 16)
+    return c, hass, quiet, _r11ar_settle(hass)
+
+
+for _r11awb_sw in (True, False):
+    _r11awb_r = _r11ar_try(lambda s=_r11awb_sw: _r11ar_aio.run(_r11awb_boundary(s)))
+    _r11awb_tag = "with switch.hp" if _r11awb_sw else "with no supply switch"
+    _r11awb_got = _r11ar_try(lambda r=_r11awb_r: _r11awb_vals(r[3]))
+    R.check(
+        f"D16-s2-01: a tick at the step boundary re-cuts and writes the new step's frequency, ECL110 displace "
+        f"and valve target ({_r11awb_tag})",
+        _r11ar_ok(_r11awb_got, lambda g: g[0].get("number.freq") == 60.0
+                  and g[0].get("mqtt:ecl110/displace/set") is not None
+                  and "6" in str(g[0]["mqtt:ecl110/displace/set"])
+                  and g[0].get("number.valve") == 18.0),
+        f"{_r11awb_got}",
+    )
+    _r11awb_q = _r11ar_try(lambda r=_r11awb_r: r[2])
+    R.check(
+        f"D16-s2-01 null control: a tick inside the unchanged step writes nothing ({_r11awb_tag})",
+        _r11ar_ok(_r11awb_q, lambda q: q == []),
+        f"{_r11awb_q}",
+    )
+    if not _r11awb_sw:
+        R.check(
+            "D16-s2-01 null control: with no supply switch configured no switch service call is made and "
+            "supply_held stays False",
+            _r11ar_ok(_r11awb_got, lambda g: g[1] == 0) and _r11ar_ok(_r11awb_r, lambda r: not _r11ar_pa.state_for(r[0]).supply_held),
+            f"{_r11awb_got}",
+        )
+
+
+# Note 9: a frequency write the rate limit refused at the boundary is sent by a later tick in the same step.
+async def _r11awb_retry(refuse):
+    hass, c = _r11awb_coord(True)
+    plan = _r11awb_plan()
+    await _r11awb_cycle(c, 1 if not refuse else 12, plan)  # the cycle's own write stamps the rate limit
+    _r11ar_settle(hass)
+    await _r11awb_tick(c, 15)  # the boundary: inside FREQ_WRITE_MIN_INTERVAL_S of minute 12 when refusing
+    at_boundary = _r11awb_vals(_r11ar_settle(hass))[0].get("number.freq")
+    later = []
+    for m in (16, 17, 19):
+        await _r11awb_tick(c, m)
+        later.append(_r11awb_vals(_r11ar_settle(hass))[0].get("number.freq"))
+    return at_boundary, later
+
+
+_r11awb_ref = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_retry(True)))
+_r11awb_free = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_retry(False)))
+R.check(
+    "D16-s2-01 (note 9): a frequency write refused by its rate limit at the boundary is sent by a later "
+    "minute's tick in the same step: the first tick past FREQ_WRITE_MIN_INTERVAL_S (minute 17), once",
+    _r11ar_ok(_r11awb_ref, lambda r: r[0] is None and r[1] == [None, 60.0, None]),
+    f"{_r11awb_ref}",
+)
+R.check(
+    "D16-s2-01 null control: no refusal at the boundary -> no later write",
+    _r11ar_ok(_r11awb_free, lambda r: r[1] == [None, None, None]),
+    f"{_r11awb_free}",
+)
+
+
+# Invariant 7: a tick fired while the tail holds the lock writes nothing; the next minute's tick does.
+async def _r11awb_locked(held_lock):
+    hass, c = _r11awb_coord(True)
+    plan = _r11awb_plan()
+    await _r11awb_cycle(c, 1, plan)
+    _r11ar_settle(hass)
+    held = _r11ar_pa.state_for(c)
+    if held_lock:
+        await held.tail_lock.acquire()
+    try:
+        await _r11awb_tick(c, 16)
+        first = _r11awb_vals(_r11ar_settle(hass))[0]
+    finally:
+        if held_lock:
+            held.tail_lock.release()
+    await _r11awb_tick(c, 17)
+    return first, _r11awb_vals(_r11ar_settle(hass))[0]
+
+
+_r11awb_l = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_locked(True)))
+_r11awb_f = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_locked(False)))
+R.check(
+    "D16-s2-01 (invariant 7): a tick fired while tail_lock is held writes nothing; the next minute's tick writes "
+    "the step",
+    _r11ar_ok(_r11awb_l, lambda r: r[0] == {} and r[1].get("number.freq") == 60.0),
+    f"{_r11awb_l}",
+)
+R.check(
+    "D16-s2-01 null control: lock free -> the first tick writes the step",
+    _r11ar_ok(_r11awb_f, lambda r: r[0].get("number.freq") == 60.0),
+    f"{_r11awb_f}",
+)
+
+
+# Note 4 / class N-stale-step-actuation: the peak guard's transition publishes the step covering now.
+async def _r11awb_guard(minute):
+    hass, c = _r11awb_coord(True)
+    plan = _r11awb_plan()
+    await _r11awb_cycle(c, 1, plan)  # the action is cut for step 0 (displace 2)
+    _r11ar_settle(hass)
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=minute))
+    out = []
+    for state in (True, False):  # engage, then release
+        c._peak_guard.suppressing = state
+        await c._async_peak_guard_transition()
+        pubs = [d for _do, s, d in _r11ar_settle(hass) if s == "publish" and d.get("topic") == "ecl110/displace/set"]
+        out.append(str(pubs[-1]["payload"]) if pubs else None)
+    return out
+
+
+_r11awb_g = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_guard(16)))
+_r11awb_g0 = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_guard(5)))
+R.check(
+    "N-stale-step-actuation (D16-s2-01): the peak guard's release publishes the displacement of the step "
+    "covering now (6), not the stale cut action's (2); its engage publishes that step's value less the same nudge",
+    _r11ar_ok(_r11awb_g, lambda g: g[1] == "6" and not isinstance(_r11awb_g0, BaseException)
+              and int(g[0]) == 6 - (int(_r11awb_g0[1]) - int(_r11awb_g0[0]))),
+    f"{_r11awb_g} (null {_r11awb_g0})",
+)
+R.check(
+    "N-stale-step-actuation null control: a guard transition inside the step the action was cut for publishes "
+    "that action's value (2) on release",
+    _r11ar_ok(_r11awb_g0, lambda g: g[1] == "2" and int(g[0]) < 2),
+    f"{_r11awb_g0}",
+)
+
+
+# D16-s2-02: the disinfection follower runs in the tail after adoption, so the switch is on inside the window.
+async def _r11awb_disinfect(window):
+    hass, c = _r11awb_coord(True)
+    plan = _r11awb_plan()
+    if window:
+        plan = _r11ar_replace(plan, dhw_reasons=[None, "legionella", "legionella", "legionella"])
+    c._legionella.disinfect.observe(_r11ar_Reader(hass, dict(c.entry.data)))
+    await _r11awb_cycle(c, 16, plan)  # one cycle, cut inside the booked window's first step
+    _r11ar_settle(hass)
+    return hass.states.get("switch.dis").state
+
+
+_r11awb_dw = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_disinfect(True)))
+_r11awb_dn = _r11ar_try(lambda: _r11ar_aio.run(_r11awb_disinfect(False)))
+R.check(
+    "D16-s2-02: the disinfection switch turns on on the cycle that adopts a plan booking the window (the "
+    "follower runs in the tail after adoption)",
+    _r11ar_ok(_r11awb_dw, lambda s: s == "on"),
+    f"{_r11awb_dw}",
+)
+R.check(
+    "D16-s2-02 null control: no window booked -> the switch is not turned on",
+    _r11ar_ok(_r11awb_dn, lambda s: s == "off"),
+    f"{_r11awb_dn}",
+)
+
+# D16-s2-04: a stop on a qualifying pass keeps the feedback run for one FEEDBACK_WINDOW; a non-qualifying pass resets.
+_R11AWB_RET = "sensor.r11awb_return"
+
+
+def _r11awb_fb(power, on=True, passes=((60, True),)):
+    """A running run last seen a minute ago, then one pass per ``(seconds later, ...)`` at ``power`` kW:
+    ``(run, run kept, held.feedback)`` after the last."""
+    hass = _r11ar_hass()
+    hass.states.set(_R11AWB_RET, FakeState("27.0", unit="°C"))
+    cfg = {**_r11ar_config(), "heat_pump_return_temp_entity": _R11AWB_RET}
+    c = _r11ar_coord(hass, _r11ar_Entry(data=cfg, entry_id=f"r11awb_{next(_R11AR_IDS)}"))
+    c._mode = _R11AR_AUTO
+    t = _R11AR_T0 + timedelta(minutes=30)
+    _r11ar_dt.freeze(t)
+    c._optimization_result = _r11ar_plan("ssssssss")
+    held = _r11ar_pa.state_for(c)
+    rec = held.feedback = _r11ar_pa.FeedbackRun(t - timedelta(minutes=10), 26.4, t - timedelta(seconds=60))
+    rec.running = True
+    rec.samples.append((t - timedelta(seconds=60), 1.5))
+    out = None
+    for secs, _ in passes:
+        now = t + timedelta(seconds=secs - 60)
+        _r11ar_dt.freeze(now)
+        inp = _r11ar_replace(c.arbiter_inputs(), measured_power_kw=power)
+        out = _r11ar_pa._feedback(held, inp, now, 26.4, on)
+    return rec, held.feedback, out
+
+
+_r11awb_w = _r11ar_pa.FEEDBACK_WINDOW.total_seconds()
+# one stop pass; a stop at exactly one window after the first (still kept); one pass past the window
+_r11awb_a = _r11ar_try(lambda: _r11awb_fb(0.0, passes=((60, 0),)))
+_r11awb_b = _r11ar_try(lambda: _r11awb_fb(0.0, passes=((60, 0), (60 + _r11awb_w, 0))))
+_r11awb_c = _r11ar_try(lambda: _r11awb_fb(0.0, passes=((60, 0), (60 + _r11awb_w, 0), (60 + _r11awb_w + 60, 0))))
+R.check(
+    "D16-s2-04: a compressor stop on a qualifying pass keeps the run (not reset) and sets its stopped instant",
+    _r11ar_ok(_r11awb_a, lambda r: r[1] is r[0] and r[0].stopped is not None and not r[0].running),
+    f"{_r11awb_a}",
+)
+R.check(
+    "D16-s2-04: the run is kept for at most one FEEDBACK_WINDOW of stop (kept at the window, reset a pass later)",
+    _r11ar_ok(_r11awb_b, lambda r: r[1] is r[0]) and _r11ar_ok(_r11awb_c, lambda r: r[1] is not r[0]),
+    f"at window {_r11awb_b}; past it {_r11awb_c}",
+)
+_r11awb_n1 = _r11ar_try(lambda: _r11awb_fb(0.0, on=False))
+_r11awb_n2 = _r11ar_try(lambda: _r11awb_fb(None))
+R.check(
+    "D16-s2-04 null control: a non-qualifying pass, or a missing meter reading, resets the run as before",
+    _r11ar_ok(_r11awb_n1, lambda r: r[1] is None and r[2] == 26.4)
+    and _r11ar_ok(_r11awb_n2, lambda r: r[1] is not r[0] and r[2] == 26.4),
+    f"off pass {_r11awb_n1}; no reading {_r11awb_n2}",
+)
+
+
 # ---- The round-3 design (design/R11-OUTSIDE-SELF-SETTING-PUMP at 0acbbc8b91):
 # a randomized dither of the scale, no fold while the verdict is pending.
 # Figures are the note's and the owner's three decisions, as literals:
