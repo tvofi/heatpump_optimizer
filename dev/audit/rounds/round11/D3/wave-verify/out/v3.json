@@ -12447,6 +12447,134 @@
   "claim": "Mutant 5371ee2b5e897750 (tariff.py:747 GUARD_OFF: if not np.any(x > 0): -> if False:) survives the GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict RED-AS-NULL, gate_rc 1) yet changes behaviour: on input 'all_negative' the probe reads 0.0 on the baseline and -1.0 under the mutant. the production caller passes non-negative excesses, where only the all-zero case is reachable and it is equal both arms; a negative or nan entry reaching it (a future caller, or a nan excess) would make the capacity charge negative or nan. Should have failed: tests/features.py, tests/stress.py execute the line on the traced baseline; no check calls _smooth_topk_sum on an all-negative or nan-only series and asserts 0.0."
  },
  {
+  "key": "5f094dbca9a593e9",
+  "box": "D3-g40",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 750,
+  "old": "    scale = max(tau * peak, 1e-9)",
+  "new": "    scale = (tau * peak)",
+  "symbol": "_smooth_topk_sum",
+  "function": "_smooth_topk_sum",
+  "reach": "executed",
+  "hit_by": "tests/env_drift.py,tests/features.py,tests/golden.py,tests/stress.py",
+  "prod_refs": 2,
+  "prod_ref_sample": [
+   "custom_components/heatpump_optimizer/tariff.py:791",
+   "custom_components/heatpump_optimizer/tariff.py:957"
+  ],
+  "divergent_stub": [],
+  "seam_rule": null,
+  "seam_kind": null,
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "fields": {
+   "claim": true,
+   "evidence": true,
+   "harness": true,
+   "metric": true,
+   "perturbation": true
+  },
+  "missing_fields": [],
+  "title": "Dropping _smooth_topk_sum's 1e-9 temperature floor moves the smooth top-k on sub-2e-8 kW plateaus, and no check fails",
+  "claim": "Under the mutant at tariff.py:750 the scalar smooth top-k (through its only caller _plateau_aware_topk_sum) returns a different value on 45 of 60 tiny-peak plateau excess vectors (peak < 2e-8 kW), max |delta| 5.7e-10 kW, and raises 906 RuntimeWarnings; plateaus at ordinary magnitudes are bit-identical. The full gate stays green: no check feeds a plateau below tau*peak = 1e-9."
+ },
+ {
+  "key": "996dce5148e02763",
+  "box": "D3-g40",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 806,
+  "old": "    scale = np.maximum(tau * peak, 1e-9)",
+  "new": "    scale = (tau * peak)",
+  "symbol": "_smooth_topk_sum_batch",
+  "function": "_smooth_topk_sum_batch",
+  "reach": "executed",
+  "hit_by": "tests/env_drift.py,tests/features.py,tests/golden.py,tests/stress.py",
+  "prod_refs": 1,
+  "prod_ref_sample": [
+   "custom_components/heatpump_optimizer/tariff.py:938"
+  ],
+  "divergent_stub": [],
+  "seam_rule": null,
+  "seam_kind": null,
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "fields": {
+   "claim": true,
+   "evidence": true,
+   "harness": true,
+   "metric": true,
+   "perturbation": true
+  },
+  "missing_fields": [],
+  "title": "Dropping _smooth_topk_sum_batch's 1e-9 temperature floor moves sub-2e-8 kW plateau rows, and no check fails",
+  "claim": "Under the mutant at tariff.py:806 the batch smooth top-k (through _plateau_aware_topk_sum_batch) differs on 67 caller-reachable rows (45 tiny single rows, 22 stacked), max |delta| 5.7e-10 kW, with 1356 RuntimeWarnings; ordinary plateaus are bit-identical. The scalar twin keeps its floor, so the batch/scalar bit-parity the docstring promises breaks on these rows."
+ },
+ {
+  "key": "3e9a439baa86a074",
+  "box": "D3-g40",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 528,
+  "old": "        if not math.isfinite(value) or value < 0.0:",
+  "new": "        if not math.isfinite(value) or value <= 0.0:",
+  "symbol": "_stored_peaks",
+  "function": "_stored_peaks",
+  "reach": "executed",
+  "hit_by": "tests/features.py,tests/finite_boundary.py",
+  "prod_refs": 2,
+  "prod_ref_sample": [
+   "custom_components/heatpump_optimizer/tariff.py:416",
+   "custom_components/heatpump_optimizer/tariff.py:419"
+  ],
+  "divergent_stub": [],
+  "seam_rule": null,
+  "seam_kind": null,
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "fields": {
+   "claim": true,
+   "evidence": true,
+   "harness": true,
+   "metric": true,
+   "perturbation": true
+  },
+  "missing_fields": [],
+  "title": "A restart drops every 0.0 kW stored peak when _stored_peaks' `< 0.0` becomes `<= 0.0`, and no check fails",
+  "claim": "Under the mutant at tariff.py:528 a PeakTracker reloaded from its own as_dict loses each peak stored as 0.0 (any peak under 0.0005 kW rounds there), so billed_peak_kw rises 1.333 -> 4.0 kW and threshold_kw 0.0 -> 4.0 kW for peaks [4.0, 0.0004, 0.0003]; the full gate stays green, so no test pins the zero-peak round trip."
+ },
+ {
+  "key": "1894e6dcd2251a30",
+  "box": "D3-g40",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 570,
+  "old": "    if house.size == 0:",
+  "new": "    if False:",
+  "symbol": "metering_windows",
+  "function": "metering_windows",
+  "reach": "executed",
+  "hit_by": "tests/backtest.py,tests/block_duty.py,tests/boost_drift_replay.py,tests/card.mjs,tests/card_drift.mjs,tests/config_flow_steps.py,tests/doc_claims.py,tests/edge.py,tests/entities.py,tests/env_drift.py,tests/features.py,tests/golden.py,tests/manual_plan.py,tests/optimality.py,tests/plan_view.py,tests/stress.py,tests/validate.py",
+  "prod_refs": 14,
+  "prod_ref_sample": [
+   "custom_components/heatpump_optimizer/tariff.py:541",
+   "custom_components/heatpump_optimizer/tariff.py:629",
+   "custom_components/heatpump_optimizer/tariff.py:710"
+  ],
+  "divergent_stub": [],
+  "seam_rule": null,
+  "seam_kind": null,
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "fields": {
+   "claim": true,
+   "evidence": true,
+   "harness": true,
+   "metric": true,
+   "perturbation": true
+  },
+  "missing_fields": [],
+  "title": "With metering_windows' empty-series guard off an empty plan meters as one nan window, and no check fails",
+  "claim": "Under the mutant at tariff.py:570 metering_windows on a zero-length series with more than one step per window returns [nan] (with RuntimeWarnings) instead of an empty array, so Optimizer._n_peak_windows' expression counts 1 window for a 0-step plan instead of 0 (10 of 315 inputs: every length-0 input with per_window > 1). _peak_charge and the tariff.py:1227 helper guard size 0 before calling and topology._window_peak guards an empty series, so the reachable consequence is the window count fed to window_factors/peak-day sizing for an empty plan."
+ },
+ {
   "key": "2d037a10caa62e28",
   "box": "D3-g41",
   "file": "custom_components/heatpump_optimizer/tariff.py",

@@ -12,8 +12,9 @@ Not run here, by the brief: the judge, dedup and the class sweep (they wait for 
 |---|---|---|---|
 | 1 | g01, g02, g03, g04, g05, g06, g07, g08, g09, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27, g28, g29, g30, g31, g32, g33, g34, g35, g37, g38, g39, g41 | 381 | {'verify': 369, 'weaken': 9, 'unresolved': 3} |
 | 2 | g36 | 14 | {'verify': 14} |
+| 3 | g40 | 4 | {'verify': 4} |
 
-Total: 395 findings; {'verify': 383, 'weaken': 9, 'unresolved': 3}.
+Total: 399 findings; {'verify': 387, 'weaken': 9, 'unresolved': 3}.
 
 ## Method
 
@@ -453,3 +454,7 @@ Carry: R11-D3-JUDGE
 | 2 | 5104733df3085998 | D3-g36 | sysid.py:835 | verify | medium | V1 2 arm pair(s) moved, null moved 0; e.g. ('_log_ua', ['4.605170', '6.907755']) | inconclusive by construction |
 | 2 | 373207a8e12c37c5 | D3-g36 | sysid.py:842 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('_x1', ['10.000000', '20.000000']) | inconclusive by construction |
 | 2 | 291748b42a54c1f6 | D3-g36 | sysid.py:846 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('', ['ua=0.690204601 cap=16.767323953 tau=24.293265972 conf=0.9984 | inconclusive by construction |
+| 3 | 5f094dbca9a593e9 | D3-g40 | tariff.py:750 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('runtime_warnings', ['0', '906']) | inconclusive by construction |
+| 3 | 996dce5148e02763 | D3-g40 | tariff.py:806 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('runtime_warnings', ['0', '1356']) | inconclusive by construction |
+| 3 | 3e9a439baa86a074 | D3-g40 | tariff.py:528 | verify | medium | V1 4 arm pair(s) moved, null moved 0; e.g. ('peaks_reloaded', ['3', '1']) | inconclusive by construction |
+| 3 | 1894e6dcd2251a30 | D3-g40 | tariff.py:570 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('nan_windows', ['0', '10']) | inconclusive by construction |

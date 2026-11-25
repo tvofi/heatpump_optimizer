@@ -63,6 +63,16 @@
    "votes": {
     "verify": 14
    }
+  },
+  {
+   "stage": 3,
+   "boxes": [
+    "D3-g40"
+   ],
+   "findings": 4,
+   "votes": {
+    "verify": 4
+   }
   }
  ],
  "votes": [
@@ -11625,6 +11635,123 @@
    "test_gap_mutation": "custom_components/heatpump_optimizer/sysid.py:846 `if np.isfinite(next_cost) and next_cost < cost:` -> `if np.isfinite(next_cost) or next_cost < cost:` (production file)",
    "missing_fields": [],
    "stage": 2
+  },
+  {
+   "id": "D3-wave-5f094dbca9a593e9",
+   "key": "5f094dbca9a593e9",
+   "box": "D3-g40",
+   "site": "custom_components/heatpump_optimizer/tariff.py:750",
+   "patch": "scale = max(tau * peak, 1e-9) -> scale = (tau * peak)",
+   "title": "Dropping _smooth_topk_sum's 1e-9 temperature floor moves the smooth top-k on sub-2e-8 kW plateaus, and no check fails",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 1 arm pair(s) moved, null moved 0; e.g. ('runtime_warnings', ['0', '906'])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines ['null_differing=0 count'])",
+    "contention: load1 50.9 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): inconclusive by construction: 0 of 1 moving arms change with the mutant on disk, because the probe sets the perturbed value explicitly in both arms (patched global or recompiled body)",
+    "gate mode: box gate RED-AS-NULL with failed 3 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 1 of 1 arm pairs moved (+0 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 1 (header)",
+   "independent_value": "inconclusive by construction: 0 of 1 moving arms change with the mutant on disk, because the probe sets the perturbed value explicitly in both arms (patched global or recompiled body)",
+   "reachable": "traced reach executed by 4 script(s); 2 production reference(s) to _smooth_topk_sum outside its definition (e.g. ['custom_components/heatpump_optimizer/tariff.py:791', 'custom_components/heatpump_optimizer/tariff.py:957']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green)",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/tariff.py:750 `scale = max(tau * peak, 1e-9)` -> `scale = (tau * peak)` (production file)",
+   "missing_fields": [],
+   "stage": 3
+  },
+  {
+   "id": "D3-wave-996dce5148e02763",
+   "key": "996dce5148e02763",
+   "box": "D3-g40",
+   "site": "custom_components/heatpump_optimizer/tariff.py:806",
+   "patch": "scale = np.maximum(tau * peak, 1e-9) -> scale = (tau * peak)",
+   "title": "Dropping _smooth_topk_sum_batch's 1e-9 temperature floor moves sub-2e-8 kW plateau rows, and no check fails",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 1 arm pair(s) moved, null moved 0; e.g. ('runtime_warnings', ['0', '1356'])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines ['null_differing=0 count'])",
+    "contention: load1 40.7 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): inconclusive by construction: 0 of 1 moving arms change with the mutant on disk, because the probe sets the perturbed value explicitly in both arms (patched global or recompiled body)",
+    "gate mode: box gate RED-AS-NULL with failed 3 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 1 of 1 arm pairs moved (+0 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 1 (header)",
+   "independent_value": "inconclusive by construction: 0 of 1 moving arms change with the mutant on disk, because the probe sets the perturbed value explicitly in both arms (patched global or recompiled body)",
+   "reachable": "traced reach executed by 4 script(s); 1 production reference(s) to _smooth_topk_sum_batch outside its definition (e.g. ['custom_components/heatpump_optimizer/tariff.py:938']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green)",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/tariff.py:806 `scale = np.maximum(tau * peak, 1e-9)` -> `scale = (tau * peak)` (production file)",
+   "missing_fields": [],
+   "stage": 3
+  },
+  {
+   "id": "D3-wave-3e9a439baa86a074",
+   "key": "3e9a439baa86a074",
+   "box": "D3-g40",
+   "site": "custom_components/heatpump_optimizer/tariff.py:528",
+   "patch": "if not math.isfinite(value) or value < 0.0: -> if not math.isfinite(value) or value <= 0.0:",
+   "title": "A restart drops every 0.0 kW stored peak when _stored_peaks' `< 0.0` becomes `<= 0.0`, and no check fails",
+   "vote": "verify",
+   "severity": "medium",
+   "severity_claimed": "medium",
+   "value": "V1 4 arm pair(s) moved, null moved 0; e.g. ('peaks_reloaded', ['3', '1'])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines ['null_delta=0 kW'])",
+    "contention: load1 57.9 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): inconclusive by construction: 0 of 4 moving arms change with the mutant on disk, because the probe sets the perturbed value explicitly in both arms (patched global or recompiled body)",
+    "gate mode: box gate RED-AS-NULL with failed 3 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)",
+    "severity: claimed medium, kept: not re-graded beyond reach in this stage"
+   ],
+   "reproduced": "rc 0; 4 of 4 arm pairs moved (+0 moved= lines); null pairs moved 0 of 0; finder's stated values matched 6 of 7 (header)",
+   "independent_value": "inconclusive by construction: 0 of 4 moving arms change with the mutant on disk, because the probe sets the perturbed value explicitly in both arms (patched global or recompiled body)",
+   "reachable": "traced reach executed by 2 script(s); 2 production reference(s) to _stored_peaks outside its definition (e.g. ['custom_components/heatpump_optimizer/tariff.py:416', 'custom_components/heatpump_optimizer/tariff.py:419']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green)",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/tariff.py:528 `if not math.isfinite(value) or value < 0.0:` -> `if not math.isfinite(value) or value <= 0.0:` (production file)",
+   "missing_fields": [],
+   "stage": 3
+  },
+  {
+   "id": "D3-wave-1894e6dcd2251a30",
+   "key": "1894e6dcd2251a30",
+   "box": "D3-g40",
+   "site": "custom_components/heatpump_optimizer/tariff.py:570",
+   "patch": "if house.size == 0: -> if False:",
+   "title": "With metering_windows' empty-series guard off an empty plan meters as one nan window, and no check fails",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 2 arm pair(s) moved, null moved 0; e.g. ('nan_windows', ['0', '10'])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines ['null_differing=0 count'])",
+    "contention: load1 57.9 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): inconclusive by construction: 0 of 2 moving arms change with the mutant on disk, because the probe sets the perturbed value explicitly in both arms (patched global or recompiled body)",
+    "gate mode: box gate RED-AS-NULL with failed 3 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 2 of 2 arm pairs moved (+0 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 1 (header)",
+   "independent_value": "inconclusive by construction: 0 of 2 moving arms change with the mutant on disk, because the probe sets the perturbed value explicitly in both arms (patched global or recompiled body)",
+   "reachable": "traced reach executed by 17 script(s); 14 production reference(s) to metering_windows outside its definition (e.g. ['custom_components/heatpump_optimizer/tariff.py:541', 'custom_components/heatpump_optimizer/tariff.py:629']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green)",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/tariff.py:570 `if house.size == 0:` -> `if False:` (production file)",
+   "missing_fields": [],
+   "stage": 3
   }
  ]
 }
