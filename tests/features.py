@@ -94242,10 +94242,10 @@ R.check(
     f"stop {_fb_stop_lo}, gate {_fb_gate_lo}, cuts {_fb_cuts}",
 )
 # The upper bound's filter is closed at the lowest heating write
-# (_heating_floor_c): a return-limit cut, or a controller upper-limit sensor
-# (_space_limit_c), exactly on it is kept and bounds the loop there; one a
-# step under it leaves no heating value and is set aside, so the heating
-# ceiling (32) binds -- the null control for both arms.
+# (_heating_floor_c). A return-limit cut or an upper-limit sensor
+# (_space_limit_c) exactly on it is kept and bounds the loop there. One a step
+# under it leaves no heating value, so the 32 degC ceiling binds: each arm's
+# null control.
 _fb_c, _fb_h, _fb_i = _fb_unit()
 _fb_lowest = _fb_pa._heating_floor_c(_fb_i)[1]
 _fb_edge_cut = {
