@@ -2,3 +2,4 @@
 1795604724 HB alive
 1795604730 CKPT setup ok, role pack read snapshot 77901997965b
 1795604839 CKPT round 2: delta identified (53f3c009, 5f1428a4, 2fc7cced, merges) snapshot e7193346130c
+1795604988 CKPT blocks green at head; mutants running snapshot cbbb7f800685
