@@ -103952,6 +103952,26 @@ R.check(
     f"{_sa_band1['approach_kwh']} null {_sa_band0['approach_kwh']}",
 )
 
+# Under a priced stop the received draw passes through the stop's share after
+# the approach (design note s6): delivered_space of runs.received, never the
+# reverse. Null: with no approach it is delivered_space of the shipped plan.
+from heatpump_optimizer import duty_legs as _sa_legs  # noqa: E402
+
+_sa_opt._approach = _sa_a
+_sa_hw = np.array([0.0, 0.0, 1.0, 0.0])
+_sa_av = np.array([1.0, 0.5, 1.0, 1.0])
+_sa_st = _sa_om._shipped_and_received(_sa_opt, _sa_plan, _sa_hw, _sa_av)[2]
+_sa_want = _sa_legs.delivered_space(_sa_runs.received(_sa_plan, _sa_hw, _sa_a, dt=0.25, p_max=3.0), _sa_hw, _sa_av, _sa_om._duty_floor(_sa_opt))
+_sa_opt._approach = None
+_sa_st0 = _sa_om._shipped_and_received(_sa_opt, _sa_plan, _sa_hw, _sa_av)[2]
+R.check(
+    "under a priced stop the received draw is the stop's share of the approach's draw; with no approach, of "
+    "the shipped plan",
+    np.array_equal(_sa_st, _sa_want) and not np.array_equal(_sa_st, _sa_st0)
+    and np.array_equal(_sa_st0, _sa_legs.delivered_space(_sa_plan, _sa_hw, _sa_av, _sa_om._duty_floor(_sa_opt))),
+    f"{_sa_st} vs {_sa_st0}",
+)
+
 # 5. The generator: with no approach the masks are the base's; with one, a
 # run out of a pause books the entry's energy, so the committed plan runs
 # fewer floor steps for the same relaxed energy.
