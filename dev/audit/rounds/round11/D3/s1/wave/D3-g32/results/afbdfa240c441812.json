@@ -1,0 +1,35 @@
+{
+ "key": "afbdfa240c441812",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1593 CMP_BOUND",
+ "patch": "return peak <= bound and final <= bound -> return peak < bound and final <= bound",
+ "function": "SystemIdentification._size_step_power.fits",
+ "cluster": "sysid.py:SystemIdentification._size_step_power.fits@1593-1593",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3189.2,
+  "load1_start": 0.72,
+  "load1_end": 0.93,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/afbdfa240c441812.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key afbdfa240c441812",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_afbdfa240c441812.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_afbdfa240c441812.py",
+  "baseline_value": "6.0 kW with the predictor stubbed to (0.8, 0.7)",
+  "mutant_value": "None",
+  "inputs_tried": "360 real rollouts (5 powers x 3 COPs x 2 baselines x 3 outdoors x 4 houses) moved 0; a peak exactly equal to the bound occurred only with the two-state predictor stubbed to return it (moved: 6.0 -> None); null stub 0.01 C under: 6.0 both",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_afbdfa240c441812.out"
+ },
+ "should_fail": "none reachable: an exact float tie of a rollout's peak with 0.65/0.8 C was not produced by any real input; the stubbed tie is a collaborator substitution, not an input"
+}

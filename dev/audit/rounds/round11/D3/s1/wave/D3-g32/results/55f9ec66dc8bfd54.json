@@ -1,0 +1,35 @@
+{
+ "key": "55f9ec66dc8bfd54",
+ "site": "custom_components/heatpump_optimizer/price_model.py:855 GUARD_OFF",
+ "patch": "if not config.get(CONF_PRICE_ENTITY): -> if False:",
+ "function": "pull_prices",
+ "cluster": "price_model.py:pull_prices@855-855",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3289.3,
+  "load1_start": 0.79,
+  "load1_end": 1.02,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/55f9ec66dc8bfd54.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 55f9ec66dc8bfd54",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_55f9ec66dc8bfd54.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_55f9ec66dc8bfd54.py",
+  "baseline_value": "('fail', 'Price entity is empty')",
+  "mutant_value": "('fail', 'Price entity is empty')",
+  "inputs_tried": "through the coordinator's composition _price_entity_state + pull_prices: entity absent / '' / None with a hass whose every lookup finds a valid sensor (moved 0/3); direct pull_prices with a valid state and no entity configured (moved 1: reason only), an input the one call site (coordinator._fetch_tibber_prices) cannot produce because _price_entity_state returns None when no entity is configured",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_55f9ec66dc8bfd54.out"
+ },
+ "should_fail": "none reachable: the only production caller hands None whenever the entity is unset, and prices_from_entity_state(None) returns the same ('fail', 'Price entity is empty'); features.py:58756's _g8_pull_noent check holds under both arms"
+}

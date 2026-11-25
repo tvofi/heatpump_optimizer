@@ -1,0 +1,84 @@
+{
+ "key": "b539d4504385a139",
+ "site": "custom_components/heatpump_optimizer/price_model.py:825 BOOLOP",
+ "patch": "isinstance(attrs, dict) and attrs -> isinstance(attrs, dict) or attrs",
+ "function": "prices_from_entity_state",
+ "cluster": "price_model.py:prices_from_entity_state@820-825",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3315.1,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/b539d4504385a139.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b539d4504385a139",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py",
+  "baseline_value": "'Price entity is empty'",
+  "mutant_value": "'Price entity published no today/tomorrow series'",
+  "inputs_tried": "state unknown/unavailable/'' with attributes {}, None, a non-dict tuple; null: numeric state with a 24-value series",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.out"
+ },
+ "should_fail": "tests/features.py ~58585-58600 ('an unavailable price sensor still counts if it carries the series anyway'): it feeds _G8SpState('unknown', {}) but asserts only isinstance(..., str), never the reason; the assertion lacking is _g8_state_unknown == 'Price entity is empty'",
+ "finding": {
+  "title": "No check reads the reason for an unknown price entity with empty attributes; the and/or swap at prices_from_entity_state is unseen",
+  "claim": "Mutant b539d4504385a139 at price_model.py:825 (`isinstance(attrs, dict) and attrs` -> `or attrs`) survives the full gate, yet the probe's failed-fetch reason moves on 4 of 5 empty-entity inputs: 'Price entity is empty' at baseline, 'Price entity published no today/tomorrow series' under the mutant (both still a failed fetch).",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "count of empty-entity inputs (unknown/unavailable/blank state, empty or non-dict attributes) whose returned reason string differs from the baseline's",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py",
+   "value": "4",
+   "unit": "inputs of 5 whose reason moved",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g32: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; probes ran while this box's gates ran (load1 ~1)"
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model:prices_from_entity_state",
+  "perturbation": {
+   "change": "the mutant edit at price_model.py:825 applied in memory by the probe; full gate: fullgate.py run --src complete --key b539d4504385a139",
+   "expected_direction": "up",
+   "observed_value": "4"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py",
+   "value": "0 count",
+   "note": "the probe's null arm, where the edit cannot matter, moves 0; the gate's null control is gates/null.json"
+  },
+  "phenomenon_property": "An empty price entity (unknown/unavailable/blank state with no usable attributes) is reported as 'Price entity is empty'",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this box's slice is dev/audit/rounds/round11/D3/s1/wave/D3-g32/keys.tsv)",
+  "should_fail": "tests/features.py ~58585-58600 ('an unavailable price sensor still counts if it carries the series anyway'): it feeds _G8SpState('unknown', {}) but asserts only isinstance(..., str), never the reason; the assertion lacking is _g8_state_unknown == 'Price entity is empty'",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b539d4504385a139"
+  ],
+  "proposed_fix_scope": "tests only: assert the reason string for an unknown state with {} attributes",
+  "files": [
+   "custom_components/heatpump_optimizer/price_model.py",
+   "tests/features.py"
+  ]
+ }
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py: D3 step-4 probe for b539d4504385a139; pins the mutant's effect on the instrumented symbol (header lists metric, expected, null)

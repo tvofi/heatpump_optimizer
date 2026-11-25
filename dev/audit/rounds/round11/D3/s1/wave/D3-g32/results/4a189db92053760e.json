@@ -1,0 +1,84 @@
+{
+ "key": "4a189db92053760e",
+ "site": "custom_components/heatpump_optimizer/sysid.py:2409 GUARD_OFF",
+ "patch": "if refusal is not None: -> if False:",
+ "function": "SystemIdentification._slab_outcome",
+ "cluster": "sysid.py:SystemIdentification._slab_outcome@2409-2411",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3311.0,
+  "load1_start": 0.89,
+  "load1_end": 0.96,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/4a189db92053760e.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4a189db92053760e",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py",
+  "baseline_value": "(False, 'fitted gains outside plausible bounds' | 'fitted parameters outside plausible bounds', None)",
+  "mutant_value": "(True, 'ok', gains clipped)",
+  "inputs_tried": "21 converged fits (ua 0.005/0.2/6.0 x C 4.0 x gains -0.8..2.5; negative capacities skipped, the solver works in log space): 16 moved from refused to completed; null in-band fit (0.2, 4.0, 0.4): 0",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.out"
+ },
+ "should_fail": "tests/features.py ~53988 (#1401) calls _slab_refusal directly and never drives _slab_outcome with an out-of-band fit; the assertion lacking is _slab_outcome on a converged out-of-band best_x (e.g. ua 0.2, gains 2.5, which the solver's (-5, 10) gains clip admits) returning completed=False with the refusal reason",
+ "finding": {
+  "title": "No check drives _slab_outcome with an implausible fit; dropping its refusal return publishes the fit as completed",
+  "claim": "Mutant 4a189db92053760e at sysid.py:2409 (`if refusal is not None:` -> `if False:`) survives the full gate, yet the probe's _slab_outcome result moves from refused (completed=False, 'fitted gains/parameters outside plausible bounds') to completed=True, reason 'ok' on 16 of 21 converged fits; the slab fit's solver clips gains only to (-5, 10) and leaves UA unbounded, so such fits reach this line.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "count of converged out-of-band slab fits whose _slab_outcome result is completed=True",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py",
+   "value": "16",
+   "unit": "fits of 21 (baseline 0 completed among the 16)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g32: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; probes ran while this box's gates ran (load1 ~1)"
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification._slab_outcome",
+  "perturbation": {
+   "change": "the mutant edit at sysid.py:2409 applied in memory by the probe; full gate: fullgate.py run --src complete --key 4a189db92053760e",
+   "expected_direction": "up",
+   "observed_value": "16"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py",
+   "value": "0 count",
+   "note": "the probe's null arm, where the edit cannot matter, moves 0; the gate's null control is gates/null.json"
+  },
+  "phenomenon_property": "A converged two-state fit outside the plausibility bands (_slab_refusal) is published as a refusal, never as completed",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this box's slice is dev/audit/rounds/round11/D3/s1/wave/D3-g32/keys.tsv)",
+  "should_fail": "tests/features.py ~53988 (#1401) calls _slab_refusal directly and never drives _slab_outcome with an out-of-band fit; the assertion lacking is _slab_outcome on a converged out-of-band best_x (e.g. ua 0.2, gains 2.5, which the solver's (-5, 10) gains clip admits) returning completed=False with the refusal reason",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4a189db92053760e"
+  ],
+  "proposed_fix_scope": "tests only: _slab_outcome on an out-of-band best_x asserting completed=False and the refusal reason",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ]
+ }
+}
