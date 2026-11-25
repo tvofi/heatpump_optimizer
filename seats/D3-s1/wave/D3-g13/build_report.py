@@ -133,7 +133,7 @@ L = [f"# D3-s1 round 11, box D3-g13: full gate for 16 D3.M3 full-net survivors (
      f"{NULL.get('failed_scripts')}, fail lines {NULL.get('fail_lines')}, summary {NULL.get('summary')}, wall "
      f"{NULL.get('wall_s')} s, load1 {NULL.get('load1_start')}..{NULL.get('load1_end')} (provisional). A mutant counts "
      "KILLED only when a script fails beyond this null; red with no script beyond it is RED-AS-NULL (read as survived).",
-     "", "Every wall, CPU and load figure is provisional (nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes it); "
+     "", "Every wall, CPU and load figure is provisional (nproc 4, Intel Xeon @ 2.30GHz for the null and the first 9 gates; a re-fired container, Intel Xeon @ 2.10GHz, for the last 7, the null reused: MACHINE.txt; the judge re-takes it); "
      "counts are final. Probes ran from a separate clean baseline worktree, never from the gate's tree.", "",
      "## Tally", "",
      f"Gated {len(RES) - len(timeouts)} of {len(ROWS)} keys; verdicts {tally}; classes {classes}.", "",
