@@ -572,15 +572,16 @@ def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, fl
     if not entity_id or state is None:
         return None, None
     unit = setpoint_unit(hass, entity_id, state)
-    low, high = _range_attrs(state, entity_id)
+    low, high = _own_range(entity_id, state)
     return temperature_c(low, unit), temperature_c(high, unit)
 
 
-def _range_attrs(state: Any, entity_id: str) -> tuple[Any, Any]:
-    """The entity's stated (min, max) attributes, raw, by its domain's keys."""
+def _own_range(entity_id: str, state: Any) -> tuple[float | None, float | None]:
+    """The (min, max) ``state`` states, in the entity's own unit; ``None`` for an
+    end it does not state as a number."""
     attrs = getattr(state, "attributes", None) or {}
     low_key, high_key = _RANGE_KEYS.get(entity_id.split(".", 1)[0], _NUMBER_RANGE_KEYS)
-    return attrs.get(low_key), attrs.get(high_key)
+    return finite_float(attrs.get(low_key)), finite_float(attrs.get(high_key))
 
 
 #: The step a set-point entity that states none accepts, in its own unit:
@@ -631,12 +632,13 @@ def on_entity_grid(hass: Any, entity_id: str, value: float) -> float:
 
     The nearest multiple of the entity's step (``setpoint_step``), its stated
     minimum rounded up onto the step and its maximum down, so the result is
-    a value the entity accepts. No unit conversion: the caller's value and
-    the entity's attributes are both in the entity's own unit.
+    a value the entity accepts; crossed ends give the maximum. No unit
+    conversion: the caller's value and the entity's attributes
+    (:func:`_own_range`) are both in the entity's own unit.
     """
     step = setpoint_step(hass, entity_id)
     out = _on_step(float(value), step, "nearest")
-    low, high = (finite_float(v) for v in _range_attrs(hass.states.get(entity_id), entity_id))
+    low, high = _own_range(entity_id, hass.states.get(entity_id))
     if low is not None:
         out = max(out, _on_step(low, step, "up"))
     if high is not None:
@@ -750,11 +752,15 @@ def quantise_setpoint_c(
 async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     """Write ``value``, already in the entity's own unit, to a set-point entity.
 
-    The one service call every set-point write goes through. The value
-    sent is on the entity's step inside its range (:func:`on_entity_grid`,
-    whole degrees where it states no step); a whole one is sent as an integer, which a pump that takes no
-    decimals accepts. ``False``, and nothing called, for a domain with no
-    set-point service.
+    The one service call every set-point write goes through. The value sent
+    is on the entity's step (``setpoint_step``, whole degrees where it states
+    none), a whole one as an integer, which a pump that takes no decimals
+    accepts. It is inside the range the entity states when written
+    (:func:`on_entity_grid`, the one clamp, reading :func:`_own_range`): the
+    maximum rounded down onto the step, the minimum up, whichever caller asked.
+    A caller's own bound (``SetpointGrid.bounded``) is the meaning of its
+    value; this one is what the entity accepts. Crossed ends send the maximum.
+    ``False``, and nothing called, for a domain with no set-point service.
     """
     domain = entity_id.split(".", 1)[0]
     service = SETPOINT_SERVICES.get(domain)
