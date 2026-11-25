@@ -44046,9 +44046,10 @@ R.section("The case runner and recorder (R11-CI-CASE-SELECT)")
 # tests/case_select.py cuts features.py and this script into spans, runs them
 # span by span, and records per span what it reads and which earlier spans it
 # needs, into tests/case_closures.json. Its self-test checks the splitter
-# against the R.section line count of both scripts, that a span-wise run prints
-# what python3 prints, the recorder's static and dynamic reads, the needs rules
-# (in-place binding, RNG draws, module moves) and the table's merge arm.
+# against the R.section line count of both scripts, and that a span-wise run
+# prints what python3 prints. It also checks the recorder's static and dynamic
+# reads, the needs rules (in-place binding, RNG draws, module moves) and the
+# table's merge arm.
 _csel_run = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("case_select.py")), "--self-test"],
                            capture_output=True, text=True, timeout=600)
 R.check(

@@ -14,20 +14,21 @@ statements, all sharing one namespace. This module cuts those spans from the
 AST, runs a script span by span in one namespace, and records per span what it
 reads, into `tests/case_closures.json`:
 
-- `files`: the repository units the span opened, the files of the code it
-  started (`sys.monitoring` PY_START), the files its started code and its own
-  names reach through a module-level import (one hop further through that
-  module's own imports), and the repository paths on its subprocess command
-  lines;
+- `files`: the repository units the span opened and the files of the code it
+  started (`sys.monitoring` PY_START). They also include the files its started
+  code and its own names reach through a module-level import (one hop further
+  through that module's own imports), and the repository paths on its
+  subprocess command lines;
 - `needs`: the earlier spans it depends on. A span needs an earlier one that
-  binds a name it reads (assignment, def, class, import, `global`, an
-  attribute or item store on the name, an in-place method call on it, or a
-  call of a function whose body does one of these). It also needs an earlier
-  span that moved a module-level value or a repository module's attribute it
-  can see (recorded by fingerprints taken at each span boundary), or moved
-  shared process state: the RNG (every span that draws both reads and moves
-  `@random`, so each drawing span needs the previous one), the environment,
-  `sys.path`, the logging root, the warning filters or the locale.
+  binds a name it reads. Binding means an assignment, def, class, import or
+  `global`, an attribute or item store on the name, an in-place method call on
+  it, or a call of a function whose body does one of these. It also needs an
+  earlier span that moved a module-level value or a repository module's
+  attribute it can see, recorded by fingerprints taken at each span boundary.
+  And it needs an earlier span that moved shared process state: the RNG, the
+  environment, `sys.path`, the logging root, the warning filters or the
+  locale. Every span that draws both reads and moves `@random`, so each
+  drawing span needs the previous one.
 
 Nothing here selects. `tests/run.sh` still runs each selected script whole;
 selection over this table is part P2 of the design (`design/R11-CI-CASE-SELECT`).
@@ -767,10 +768,10 @@ def _entries(d: dict) -> dict[str, dict]:
 def merge_tables(base: str, ours: str, theirs: str) -> str:
     """Three-way merge of two table texts (the `ledgermerge` arm for this file).
 
-    Per span: one side's entry when only that side changed it; both sides'
-    `files` and `needs` united when their text hashes agree; when both edited
-    the span differently, ours, with `files` and `needs` united (the script
-    itself conflicted and is re-recorded after). A span one side deleted
+    Per span: one side's entry when only that side changed it, and both sides'
+    `files` and `needs` united when their text hashes agree. When both edited
+    the span differently it takes ours, with `files` and `needs` united (the
+    script itself conflicted and is re-recorded after). A span one side deleted
     while the other left it is gone. `blob` and `header_hash` follow the side
     that moved them, ours when both did: a blob that matches neither the merge
     base nor the head makes the script run whole until it is re-recorded.
