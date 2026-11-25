@@ -1,0 +1,3 @@
+scenarios=108 errored=0 n_sub_histogram={1: 38, 2: 62, 7: 4, 25: 4} moved=0
+RESULT step_baseline_vs_mutant_max_abs_diff=0
+RESULT step_scenarios_moved=0
