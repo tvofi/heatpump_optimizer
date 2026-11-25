@@ -7,13 +7,16 @@ Refs #3885; leaves #3885 open for the audit's second pass.
 
 ## Head
 
-fddf2eb310fd506aa1a9ad9e20d3468f71e361e2
+92d719ab7f746bd985b8a139fe169e8dbed9d1bd: e04a759e plus one commit that repairs the `_PG_PLAN` fixture for the review's block.
 
 ## Mutation proof
 
 `tests/entities.py` pins both changes, each with a plant the check must catch. Both checks were run alone through an AST extraction, because Home Assistant is not installed locally:
 - gate-sweep: removing the `if:` line turns the check red with `want the job-level if ...`. The plant `a runner for a push completion` is caught.
 - pages: restoring `fetch-depth: 0` / `fetch-tags: true` turns the check red with `checkout [...] (want fetch-depth 1, no tags)`, and a release step without `ls-remote --tags` / `--depth 1` turns it red too. The plant is caught.
+
+- `_PG_PLAN`, the plan-page check, was run as its whole block, not as single extracted checks: lines 42806-42883 of `tests/entities.py` run verbatim with only their dependencies lifted (`_pg_run`, `_PG_WF`, `_PG_STAGE`, `_PG_GUARD`). Five mutants of the release step's version-order line were each run through the whole block, and the block killed all five: `--sort=-refname` (took v1.9.0), `--sort=v:refname` (took v1.9.0), no `refs/tags/v*` glob (took x9), `tail` for `head` (took v1.9.0), and no tag fetch (took x9, rc 1). The first of them is also in the tree as a null control.
+- Every block in `tests/entities.py` that parses either changed workflow was run whole, each section verbatim with its dependencies lifted. No other script parses either file. The pages section (lines 42572-42948): 7/7 checks green at 92d719ab, and 5/6 at e04a759e, where `_PG_PLAN` is the red one. The gate-sweep section with the U2 pin (lines 21590-21700): 2/2 green.
 
 ## Null control
 
@@ -25,7 +28,7 @@ none
 
 ## Red checks
 
-none
+- `tests/entities.py` at e04a759e (review/3894, blocked test-red). Its check "the Pages workflow stages the round's plan page before it checks out the newest release" ran the new release step in a scratch repository with no remote. `git ls-remote origin` exited 128 and the step took x9. Repaired at 92d719ab: the fixture is now a bare `origin` holding v1.9.0, v1.10.0 and x9, and the step runs in a `--depth 1 --no-tags` clone of it, as on the runner. The v1.10.0 assertion is unchanged. The whole block is red at e04a759e (`took 'x9' (rc=128)`) and green at 92d719ab. The cheaper detector was running that block before the handoff. The first mutation proof ran only the two new checks, through an AST extraction, because Home Assistant is not installed locally, so it never reached `_PG_PLAN`. The countermeasure is to run every block that reads a changed workflow file, whole. The rehearsal script that does it is outside the tree.
 
 ## Forward-carry
 
