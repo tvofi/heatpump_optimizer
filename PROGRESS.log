@@ -20,3 +20,4 @@
 1795583332 HB alive
 1795583463 CKPT classify rc 2 (instrument-self-tests cancelled); reading delta merges snapshot 0ae6670e1979
 1795583539 CKPT structure+claims ok at head; testing 3.13 rig fix snapshot 1d2f3795ce48
+1795583769 DONE merge verdict 0d68ee30 pushed to probe/rev-3738-d0e16720 0e9096fa; classify unreadable (instrument-self-tests cancelled)
