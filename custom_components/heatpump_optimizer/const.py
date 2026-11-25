@@ -855,6 +855,9 @@ DEFAULT_FLOW_HEAT_C: Final = 55.0
 #: _boost_ceiling_c``): above it the entity is no heating-flow set-point
 #: (a generic number helper reads 100), so a boost keeps the planned level.
 FLOW_HEAT_C_MAX: Final = 70.0
+#: The lowest heating-flow ceiling and manual high limit the options flow
+#: offers, °C: above the 25 °C gate, which a ceiling there would write as off.
+FLOW_LIMIT_C_MIN: Final = 30.0
 #: The flow set-point's lift over the measured inlet water at the modulation
 #: floor, K. Absent keeps :data:`thermal_model.FLOW_MIN_LIFT_K`. A controller
 #: that takes the set-point as its return-water target modulates on the gap
@@ -875,6 +878,9 @@ DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
 #: register 10001 (#3372 comment 6756915104). Unset, nothing reads them.
 CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY: Final = "space_setpoint_low_limit_entity"
 CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY: Final = "space_setpoint_high_limit_entity"
+#: The upper limit typed by hand, °C, for a controller that publishes none
+#: (``flow_limit``): with the sensor too, the lower of the two binds.
+CONF_SPACE_SETPOINT_HIGH_LIMIT_C: Final = "space_setpoint_high_limit_c"
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
