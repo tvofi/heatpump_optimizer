@@ -164,7 +164,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, draw_range, duty_ledger, duty_switch, issues, off_restore, pump_mode, quiet_windows
+from . import arbiter_record, boost, draw_range, duty_ledger, duty_switch, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -195,10 +195,10 @@ from .arbiter_record import (
     STATES as _STATES,
     ArbiterState,
     FeedbackRun,
-    load as _load,
-    persist as _persist,
     state_for,
+    store_of,
 )
+
 from .entry_config import EntryConfig
 from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
@@ -2256,6 +2256,20 @@ def _listen(coord: Any) -> None:
         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
     duty_switch.attach(duty_switch.record_for(coord))
 
+
+
+def _store(coord: Any) -> Any:
+    """The coordinator's record store (:func:`~.arbiter_record.store_of`)."""
+    return store_of(coord.hass, coord.entry.entry_id)
+
+
+async def _persist(coord: Any) -> None:
+    await arbiter_record.persist(state_for(coord), _store(coord))
+
+
+async def _load(coord: Any) -> None:
+    """Restore the coordinator's record once (:func:`~.arbiter_record.load`)."""
+    await arbiter_record.load(state_for(coord), lambda: _store(coord), coord.hass)
 
 boost.bind_cold_lease(block_cold_lease)
 

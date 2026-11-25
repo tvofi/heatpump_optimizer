@@ -139,39 +139,42 @@ def state_for(coord: Any) -> ArbiterState:
     return held
 
 
-def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
+def store_of(hass: Any, entry_id: str) -> QuarantiningStore[dict[str, Any]]:
+    """The record's store for one config entry."""
     return QuarantiningStore(
-        coord.hass,
+        hass,
         _STORE_VERSION,
-        f"{DOMAIN}_{coord.entry.entry_id}_pump_duty",
+        f"{DOMAIN}_{entry_id}_pump_duty",
         naive_zone=dt_util.DEFAULT_TIME_ZONE,  # load's zone
     )
 
 
-async def persist(coord: Any) -> None:
-    held = state_for(coord)
+async def persist(held: ArbiterState, store: QuarantiningStore[dict[str, Any]]) -> None:
+    """Save ``held``'s persisted slots to ``store``; a failure is logged, never raised."""
     payload = {
         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
         "dropped": dict(held.dropped),
         "night_before": dict(held.night_before),
     }
     try:
-        await _store(coord).async_save(payload)
+        await store.async_save(payload)
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not persist the pump duty record: %s", err)
 
 
-async def load(coord: Any) -> None:
-    """Restore the ownership record once, so a restart keeps what it wrote."""
-    held = state_for(coord)
+async def load(
+    held: ArbiterState, open_store: Callable[[], QuarantiningStore[dict[str, Any]]], hass: Any,
+) -> None:
+    """Restore the ownership record once, so a restart keeps what it wrote;
+    ``open_store`` is called only on that first load."""
     if held.loaded:
         return
     held.loaded = True
-    raw = await load_mapping(_store(coord), "the pump duty record")
+    raw = await load_mapping(open_store(), "the pump duty record")
     if raw is None:
         return
     if raw.get("manual"):
-        issues.clear_issue(coord.hass, ISSUE_MANUAL)
+        issues.clear_issue(hass, ISSUE_MANUAL)
     written = raw.get("written")
     for slot, pair in written.items() if isinstance(written, dict) else ():
         try:
