@@ -11,3 +11,15 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 python3: /opt/hpo/venv-ci/bin/python3 Python 3.14.7
 node: v22.23.5
+
+## resumed fire (new container), 2026-11-25T00:48:32Z
+nproc: 4
+cpu_model:  Intel(R) Xeon(R) Processor @ 2.10GHz
+load1: 0.67
+               total        used        free      shared  buff/cache   available
+Mem:           16087         745       14071          12        1541       15341
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+python3: /opt/hpo/venv-ci/bin/python3 Python 3.14.7
+null control: restored from the predecessor's checkpoint (same machine class, 4 cores, Xeon 2.10GHz); gate_wave.sh null keeps it.
