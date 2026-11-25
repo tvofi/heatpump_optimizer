@@ -608,6 +608,36 @@ def _kinds_arm() -> None:
     ]
     R.check("each kind's shape and parse conjuncts decide alone", not bad, f"{bad}")
 
+    # The debug row's accuracy-sample declarations are the sample's own fields,
+    # read off the production row (AccuracySample.as_dict), never another
+    # accuracy-store path (lead_sigma, draw, promises) re-keyed under it.
+    from heatpump_optimizer.accuracy import AccuracySample
+    row = AccuracySample(when=_dt.datetime(2026, 1, 1, tzinfo=_dt.timezone.utc), predicted_power_kw=1.0,
+                         actual_power_kw=1.0, predicted_temp=21.0, actual_temp=21.0, predicted_cost=None,
+                         actual_cost=None, outdoor_temp=0.0).as_dict()
+    sample_paths = {k for k in _store.DOMAINS["debug"] if k.startswith("rows/#/accuracy_sample/")}
+    R.check(
+        "the debug row declares exactly the accuracy sample's own fields under accuracy_sample",
+        sample_paths == {f"rows/#/accuracy_sample/{k}" for k in row},
+        f"{sorted(sample_paths ^ {f'rows/#/accuracy_sample/{k}' for k in row})}",
+    )
+
+    # A stored [value, samples] fold: a non-positive value is not one a fold
+    # wrote, at either floor of the count; the least positive value is (null).
+    pair = _coord_mod._learned_pair
+    verdicts = {}
+    for entry, least in (([0.0, 5], 1), ([0.0, 0], 0), ([-1.0, 5], 1), ([5e-324, 1], 1), ([5e-324, 0], 0)):
+        try:
+            verdicts[(tuple(entry), least)] = pair(entry, least=least) == entry
+        except ValueError:
+            verdicts[(tuple(entry), least)] = False
+    R.check(
+        "a stored fold with a zero or negative value is dropped and the least positive one is kept",
+        verdicts == {((0.0, 5), 1): False, ((0.0, 0), 0): False, ((-1.0, 5), 1): False,
+                     ((5e-324, 1), 1): True, ((5e-324, 0), 0): True},
+        f"{verdicts}",
+    )
+
     name = next(iter(_store.DOMAINS))
     got = _store.store_name(f"{const.DOMAIN}_{ENTRY_ID}_{name}")
     R.check(
