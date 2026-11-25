@@ -1,41 +1,27 @@
-Design review: revise e50b4a1f8b4befd9c3cb0e0865d7b4f1fc11f016 architecture-unsound, harness
+Design review: approve 25fa1f763e93dafe29de7bae8ca77fc527b67a25
 
-Group R11-CI-CASE-SELECT, note design.md at e50b4a1f (one commit, one file), base origin/main 34c7a3f610.
-Seams checked at the base: 248 and 64 top-level R.section spans (features.py, entities.py); features_block.py
-run/--emit-prelude; closure.py _exec_record and select(); harness.Results.section; .gitattributes ledgermerge
-on tests/closures.json; CI Python 3.14 (sys.monitoring available). The seam (a new case_select module, select()
-unchanged, FULL on main/nightly) is sound. Three points block:
+Group R11-CI-CASE-SELECT, revision 2 at 25fa1f76, a fast-forward on e50b4a1f (one file, design.md, +57/-17).
+Delta review under design-review.md: git diff e50b4a1f 25fa1f76, plus the three points of revise c90cde83.
 
-1. architecture-unsound -- design.md:88 (fail-safe, header): "blob matches neither the merge base nor the head,
-   AND the header hash moved" fails open. On an ordinary PR the table was recorded on main, so its blob equals the
-   merge base and the conjunction is false; a PR that edits the header (imports, shared fixtures, patches before
-   the first R.section) then runs only the diff-selected spans, and rule (ii) covers spans, not the header. Fix
-   wanted: the header hash differing from the table's header_hash alone forces CASES: FULL for that script
-   (or runs every span), independent of the blob test; evidence 4 adds that trigger as a mutation target.
+1. Header fail-safe (was design.md:88): resolved. A head header_hash differing from the table's forces CASES: FULL
+   on its own, independent of the blob arm; evidence 4 makes "header edit with blob = merge base gives FULL" a
+   failing-first case and the header_hash arm alone a mutation target.
+2. Backward-only needs (was :74/:79): resolved. Rule (iii) is now the forward closure from (i ∪ ii), rule (v) the
+   backward closure over everything selected, computed to a fixed point; static needs come from the head's AST at
+   plan time; in-place calls and setattr bind their target (top-level counts 116/24 confirmed at 34c7a3f610);
+   stdlib state is a pseudo-binding per setter family; an unclassifiable setter or a span-level
+   global/exec/globals() write forces FULL; the dynamic fingerprint adds length and content hash for containers.
+3. Replay without a null (was :121): resolved. Evidence 5 is driven by >=200 seeded, stratified mutation-ledger
+   pins at sample fraction 0, requiring a FAIL; null 1 (rule (i) off for the mutated file) must let >=90% pass,
+   null 2 (unmutated tree) prints no FAIL; the history replay stays as a second check, and the measurement table
+   names its same-runner FULL null.
 
-2. architecture-unsound -- design.md:74 and :79 (rule iii, needs* runs predecessors only). A span whose outcome
-   changes through an earlier span is not selected: (a) an edited span E (rule ii) that rebinds a global or patch
-   a later unchanged span L reads leaves L unrun, and E's new bindings are not in the base-recorded needs at all;
-   (b) a span S selected by (i) computes data that a later L consumes without calling into the changed file, so
-   L's own files miss it and L is skipped while its outcome moves. Fix wanted: add the forward closure
-   (every span whose needs* reaches a span in i or ii also runs), and compute the static half of needs from the
-   head's AST at plan time rather than from the table; state the hidden-state classes the id() snapshot cannot see
-   (stdlib module state such as the global random RNG -- features.py seeds _random at :20867 and :23302 -- and
-   in-place mutation of shared objects, 44 top-level mutating calls in features.py, 11 in entities.py) and route
-   them to a FULL trigger or to needs, rather than to the risk list at :144.
-
-3. harness -- design.md:121 (evidence 5, soundness replay) has no null control and is likely vacuous: merged PRs
-   were green at parent and head, so "spans whose outcome differs" is almost always just the edited spans that
-   rule (ii) selects trivially; the replay would pass with needs* and (i) both deleted. Fix wanted: drive the
-   soundness harness from the mutation ledger -- tests/mutation_ledger/killed_by holds 5968 pins naming the
-   killing script; for a sample of pins killed by features.py or entities.py, apply the mutant, plan with the
-   mutant's file as the diff and the sample fraction at 0, run the plan, and require the script to fail. Null
-   control: the same mutants with the plan restricted to spans that do not read the mutated file must pass (or
-   with rule (i) disabled must miss), so the harness is shown to move. The measurement table (:130) states its
-   null too: the FULL script-level seconds measured in the same run on the same host as each scoped figure.
-
-Not blocking (carries for the designer to fold, or the fixer): CASE UNDER-SCOPED printed on main without a commit
-(:106) needs an owner of the repair (the next closures-autofix or a nightly re-derive), or rule 1's backstop is a
-print nobody acts on; the selection decision itself should be logged per run (selected ids) so a miss found later is
-replayable. The #3885 case_sample.pick shape is not on origin; the note's adapt-the-call-site rule covers it.
+Carries for the fixer (not revise points):
+- Carry: R11-CI-CASE-SELECT (item rng-consume) -- an RNG consumer also advances the state, so count a consuming call
+  as binding its @random family as well as reading it; otherwise an edited span that draws a different number of
+  values changes later consumers without the forward closure seeing it. RNG drawn inside production code (not
+  visible to the span AST) needs the same rule through the recorder, or a FULL trigger.
+- Carry: R11-CI-CASE-SELECT (item pin-count) -- the note states 4229 pins killed by tests/features.py; a count of
+  "killed_by" values under tests/mutation_ledger at 34c7a3f610 gives 4215 (entities 305 matches). Derive the
+  number at run time and print it rather than carrying it.
 Routed: none.
