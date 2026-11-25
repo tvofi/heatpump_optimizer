@@ -31,3 +31,4 @@
 1795587836 CKPT a926cb4e44 pushed: entities 2761 ok; fixture repairs D,E in; F (suite tail), G (notes 5/7/10), H (harness both ends) running snapshot 84ab56d1146b
 1795588397 HB alive
 1795589001 HB alive
+1795589147 CKPT de6e36cc27 pushed: short-schedule gate fix, notes 5/7/10, fixture repairs; D-class check updates in flight snapshot 5c13cc7d0b0a
