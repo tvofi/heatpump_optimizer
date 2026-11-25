@@ -4879,7 +4879,7 @@ class HeatPumpOptimizer:
         temp_min_bounds, comfort_floors, mold_floors = raised_floor(
             low, temp_max_bounds, margins, min_temp_floors, n_steps)
         lifts = None
-        if room_lifts is not None:  # the same arithmetic on the margins less the lift
+        if False:  # the same arithmetic on the margins less the lift
             unlifted = raised_floor(low, temp_max_bounds, (0.0 if margins is None else margins)
                                     - _padded_nonneg(room_lifts, n_steps), min_temp_floors, n_steps)[0]
             lifts = np.maximum(temp_min_bounds - unlifted, 0.0)
