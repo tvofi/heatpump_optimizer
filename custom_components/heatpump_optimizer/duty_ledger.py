@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """The pump-duty step ledger: per plan step, the planned duty against what the pump did.
 
 Kept in observe and in control, from what the integration already reads --
@@ -63,6 +64,25 @@ def observe(held: Any, inp: Any, duty: str | None, now: datetime, *, ran: bool |
         row["ran"] = row["ran"] or ran
     row["dhw_mode"] = row["dhw_mode"] or dhw_mode
     row["faulted"] = row["faulted"] or faulted
+=======
+"""The pump arbiter's step verdicts: what the pump did over one step, against the plan.
+
+``pump_arbiter`` folds each pass into the step's ledger row (``_observe``);
+the row is closed here. A rise of :data:`TANK_RISE_C` over the step is hot
+water. Each step is ``delivered``, ``space-instead``, ``dhw-instead``,
+``idle-instead``, ``not-startable`` (a hot-water step left idle on a tank at
+or above the pump's own start temperature, the step's target less
+``dhw_hysteresis_entity``), ``unknown`` (no power meter and no tank rise) or
+``baseline``. A concurrent Heating + DHW run reads as hot water; a big draw
+can hide a tank rise. Pure: a row in, a verdict out.
+"""
+from __future__ import annotations
+
+from typing import Any
+
+#: The tank rise over a step that reads as hot water, K.
+TANK_RISE_C = 0.5
+>>>>>>> origin/main
 
 
 def _not_startable(row: dict[str, Any]) -> bool:
@@ -91,6 +111,7 @@ def step_verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
     else:
         actual = "dhw" if rose else None
     planned = row["planned"]
+<<<<<<< HEAD
     if row.get("faulted"):
         result = "device-fault"
     elif planned is None:
@@ -103,3 +124,15 @@ def step_verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
         result = _missed(row, planned, actual)
     return {"start": row["start"].isoformat(), "planned": planned,
             "actual": actual, "verdict": result}
+=======
+    if planned is None:
+        verdict = "baseline"
+    elif actual is None:
+        verdict = "unknown"
+    elif actual == planned or (planned == "both" and actual != "idle"):
+        verdict = "delivered"
+    else:
+        verdict = _missed(row, planned, actual)
+    return {"start": row["start"].isoformat(), "planned": planned,
+            "actual": actual, "verdict": verdict}
+>>>>>>> origin/main
