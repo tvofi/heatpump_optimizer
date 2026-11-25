@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
+from throwaway_git import throwaway_git_clone, throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -21917,6 +21917,13 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
+# #3885 closeout audit U3: ci.yml pushes run on main alone and a merge-queue run heads no pull
+# request, so sweep.py's first read (`SKIP run N: no pull request ...`) ends every such sweep; the
+# job's own `if:` decides it without a runner. The 48 h to 2026-11-25T10:20Z: 179 sweeps, 85.9
+# runner-minutes, 21 of a 24-log sample doing nothing.
+_GS_SKIP_IF = "github.event.workflow_run.event != 'push' && github.event.workflow_run.event != 'merge_group'"
+
+
 def _gs_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
     on = doc.get("on", doc.get(True)) or {}
@@ -21932,6 +21939,8 @@ def _gs_defects(text: str) -> "list[str]":
     if doc.get("permissions") != {} or job.get("permissions") != {
             "actions": "write", "contents": "read", "pull-requests": "read"}:
         out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
+    if job.get("if") != _GS_SKIP_IF:
+        out.append(f"if {job.get('if')!r} (want {_GS_SKIP_IF!r}: a completion with no pull request holds no runner)")
     steps = job.get("steps") or []
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
     if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
@@ -21967,10 +21976,11 @@ _GS_PLANTS = {
         "permissions: {}\n", "permissions: {}\n\nconcurrency:\n  group: sweep-${{ github.event.workflow_run.id }}\n", 1),
     "the PR's head checked out": _GS_TEXT.replace(
         "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}", 1),
+    "a runner for a push completion": _GS_TEXT.replace(f"    if: {_GS_SKIP_IF}\n", "", 1),
 }
 _GS_PLANT_MISSED = sorted(k for k, t in _GS_PLANTS.items() if t == _GS_TEXT or not _gs_defects(t))
 R.check(
-    "gate-sweep.yml: on CI's completion, no concurrency, main's program on "
+    "gate-sweep.yml: on CI's completion but a push's or a merge queue's (#3885 U3), no concurrency, main's program on "
     "the trigger's run id alone, its outcome read from the output's word "
     "(SWEEP-DONE / SKIP / SWEEP done, RATE-LIMITED and anything else red), "
     "never from the exit code (U0c)",
@@ -21981,6 +21991,31 @@ R.check(
     f"gate={_closure.is_gate_file(str(_GS_PATH))}; a sweep keyed on its exit "
     "code reads a rate limit as a crash, and one that reads a crash as done "
     "leaves a stale red `gate` unannounced",
+)
+
+
+# #3885 closeout audit U2: pages.yml's build reads no history (the site lists `git ls-files`; the
+# release step fetches its one tag), so it checks out one commit. Full history was 139.8 of the
+# build's 181.8 runner-minutes over the 171 plan-page dispatches in the 48 h to 2026-11-25T10:20Z.
+def _pages_defects(text: str) -> "list[str]":
+    job = ((_yaml.safe_load(text) or {}).get("jobs") or {}).get("pages-build") or {}
+    steps = job.get("steps") or []
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    out = []
+    if len(co) != 1 or (co[0].get("with") or {}).get("fetch-depth") != 1 or (co[0].get("with") or {}).get("fetch-tags"):
+        out.append(f"checkout {[s.get('with') for s in co]} (want fetch-depth 1, no tags)")
+    rel = next((str(s.get("run", "")) for s in steps if s.get("name") == "Check out the release"), "")
+    if "git ls-remote --tags" not in rel or "--depth 1" not in rel:
+        out.append("the release step does not fetch its one tag at depth 1")
+    return out
+
+
+_PAGES_TEXT = Path(".github/workflows/pages.yml").read_text()
+_PAGES_PLANT = _PAGES_TEXT.replace("          fetch-depth: 1\n", "          fetch-depth: 0\n          fetch-tags: true\n", 1)
+R.check(
+    "pages.yml: the build checks out one commit and the release step fetches its one tag (#3885 U2)",
+    not _pages_defects(_PAGES_TEXT) and _PAGES_PLANT != _PAGES_TEXT and bool(_pages_defects(_PAGES_PLANT)),
+    f"defects={_pages_defects(_PAGES_TEXT)} plant caught={bool(_pages_defects(_PAGES_PLANT))}",
 )
 
 
@@ -27443,6 +27478,26 @@ R.check(
         for k in ("solve_failures", "tibber_outage_cycles",
                   "tibber_reauth_started", "cop_samples")
     }),
+)
+# The mode is handed to the view by the coordinator (ADR-005), so a
+# coordinator that stopped handing it would report None behind a present key.
+# A real coordinator is told two modes through ``async_set_mode`` in turn: the
+# second is the null control, so a constant or stale value fails one of them.
+_diag_coord = _diag_entry.runtime_data
+_diag_modes = {}
+for _m in (const.MODE_BOOST, const.MODE_COMFORT):
+    asyncio.run(_diag_coord.async_set_mode(_m, refresh=False))
+    _diag_modes[_m] = (
+        _diag_coord.diagnostics_state().mode,
+        asyncio.run(_diag_mod.async_get_config_entry_diagnostics(
+            _diag_hass, _diag_entry))["coordinator"]["mode"],
+    )
+asyncio.run(_diag_coord.async_set_mode(const.MODE_AUTO, refresh=False))
+R.check(
+    "the diagnostics view and the download report the mode a real coordinator was "
+    "set to, for each of two modes",
+    all(got == (m, m) for m, got in _diag_modes.items()),
+    repr(_diag_modes),
 )
 
 # The view's tolerance, both ends: a coordinator that cannot produce the
@@ -43108,15 +43163,19 @@ def _pg_plan_defects(text: str) -> "list[str]":
     if "ref_type != 'tag'" not in str(co.get("if", "")):
         out.append("the release checkout is not skipped on a tag push")
     with tempfile.TemporaryDirectory() as tmp:
-        repo = Path(tmp) / "repo"
-        repo.mkdir()
+        # The runner's shape (#3885): the tags live on a bare `origin`, and the
+        # working repository is a one-commit `--no-tags` clone of it, so the
+        # step must find and fetch the newest tag from the remote itself.
+        src, origin, repo = (Path(tmp) / n for n in ("src", "origin.git", "repo"))
         git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
-        env = throwaway_git_init(repo, "-q")
+        env = throwaway_git_init(src, "-q")
         for tag in ("v1.9.0", "v1.10.0", "x9"):
-            (repo / "f").write_text(tag)
-            subprocess.run(git + ["add", "f"], cwd=repo, check=True, env=env)
-            subprocess.run(git + ["commit", "-qm", tag], cwd=repo, check=True, env=env)
-            subprocess.run(git + ["tag", tag], cwd=repo, check=True, env=env)
+            (src / "f").write_text(tag)
+            subprocess.run(git + ["add", "f"], cwd=src, check=True, env=env)
+            subprocess.run(git + ["commit", "-qm", tag], cwd=src, check=True, env=env)
+            subprocess.run(git + ["tag", tag], cwd=src, check=True, env=env)
+        throwaway_git_clone(src, origin, "-q", "--bare", cwd=tmp)
+        throwaway_git_clone(origin.as_uri(), repo, "-q", "--depth", "1", "--no-tags", cwd=tmp)
         rc = _pg_run(str(co.get("run", "")), repo)
         if rc != 0 or (repo / "f").read_text() != "v1.10.0":
             out.append(f"the release checkout took {(repo / 'f').read_text()!r} (rc={rc}), not v1.10.0")
@@ -43153,6 +43212,15 @@ R.check(
     "and adds it under plan/ only when one was staged",
     not _PG_PLAN_GOT,
     "; ".join(_PG_PLAN_GOT[:4]),
+)
+# Null control: the release step with its version sort turned into a string
+# sort must take v1.9.0 and be refused, or the fixture above orders nothing.
+_PG_PLAN_TEXT = _PG_WF.read_text() if _PG_WF.is_file() else ""
+_PG_PLAN_NULL = _pg_plan_defects(_PG_PLAN_TEXT.replace("--sort=-v:refname", "--sort=-refname", 1))
+R.check(
+    "and a release step that sorts tags as strings is refused (null control)",
+    "--sort=-v:refname" in _PG_PLAN_TEXT and any("took 'v1.9.0'" in d for d in _PG_PLAN_NULL),
+    f"string sort: {_PG_PLAN_NULL}",
 )
 
 # Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
