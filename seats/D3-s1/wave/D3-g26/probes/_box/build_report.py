@@ -165,6 +165,10 @@ for r in surv + equiv:
     para = (f"`{r['patch']}` in `{r['function']}`. Gate {r['gate']['verdict']} (gate_rc {r['gate']['gate_rc']}, wall {r['gate']['wall_s']} s provisional). "
             f"Probe `{p['path']}` (`{p['command']}`): {p['metric']} ({p['unit']}) baseline {p['baseline_value']}, mutant {p['mutant_value']}. "
             f"Inputs tried: {'; '.join(p['inputs_tried'])}. Should fail: {r['should_fail']['script']}: {r['should_fail']['assertion']}.")
+    if r.get("gate_note"):
+        para += " Gate takes: " + r["gate_note"] + " " + " | ".join(
+            f"take {t['take']}: {t['verdict']} (gate_rc {t['gate_rc']}, wall {t['wall_s']} s, load1 {t['load1_start']}..{t['load1_end']}) -- {t['read_as']}"
+            for t in r["gate_takes"]) + "."
     if r["class"] == "candidate":
         para += f" Candidate: {r['finding']['title']}."
     else:

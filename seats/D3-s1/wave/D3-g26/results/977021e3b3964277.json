@@ -104,5 +104,37 @@
    "custom_components/heatpump_optimizer/optimizer.py",
    "tests/features.py"
   ]
- }
+ },
+ "gate_takes": [
+  {
+   "take": 1,
+   "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/977021e3b3964277-take1.json",
+   "verdict": "KILLED",
+   "killed_by": [
+    "python3 tests/stress.py"
+   ],
+   "gate_rc": 1,
+   "wall_s": 2741.1,
+   "load1_start": 0.79,
+   "load1_end": 0.85,
+   "fail_lines": {
+    "python3 tests/closure.py selftest": 2,
+    "python3 tests/entities.py": 1,
+    "python3 tests/stress.py": 1,
+    "python3 tests/harness_headers.py": 3
+   },
+   "read_as": "timing artefact: the one extra FAIL line is stress.py's own per-call-cost self-test ('the per-call-cost arm reaches the rule the sweep applies ... (round-5 D9-07)', winter/1z/space: 41 ms plain vs 23 ms plain again, x0.56; evaluations 42 vs 42, simulate 131232 vs 131232) -- its two plain arms disagree, its count channels are flat, and its scenario sets no holiday date, so it never takes the mutated branch"
+  },
+  {
+   "take": 2,
+   "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/977021e3b3964277.json",
+   "verdict": "RED-AS-NULL",
+   "gate_rc": 1,
+   "wall_s": 3852.4,
+   "load1_start": 0.35,
+   "load1_end": 1.0,
+   "read_as": "re-taken once, alone on the machine, after every other gate finished: red only on the null's three scripts"
+  }
+ ],
+ "gate_note": "first take KILLED by a stress.py wall-time self-test line on a scenario that never reaches the line; re-taken once alone: RED-AS-NULL. The recorded verdict is the re-take's; both takes are kept."
 }
