@@ -1,0 +1,117 @@
+{
+ "key": "df4de55e12588fdf",
+ "site": "dhw_planner.py:2055 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2055,
+ "patch": "weak = np.where((plan > 1e-6) & (plan < min_run_power))[0] -> weak = np.where((plan >= 1e-6) & (plan < min_run_power))[0]",
+ "function": "DhwPlanner._apply_dhw_min_run",
+ "cluster": "dhw_planner.py:DhwPlanner._apply_dhw_min_run@2055-2106",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3012.7,
+  "child_cpu_s": 4966.5,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/df4de55e12588fdf.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df4de55e12588fdf",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+  "answer": "dhw_planner.py:2055 _apply_dhw_min_run, `> 1e-6` -> `>= 1e-6`: exact-boundary only; near-equivalent."
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py",
+  "rc": 0,
+  "results": [
+   "RESULT production_shaped_moved=0 of 144 []",
+   "RESULT baseline_paths joint_shortcut=48 per_slot=96 count",
+   "RESULT slot_at_1e-06_tank_room baseline=1e-06 mutant=0.6",
+   "RESULT slot_at_9.999999999999997e-07_tank_room baseline=9.999999999999997e-07 mutant=9.999999999999997e-07",
+   "RESULT slot_at_1.0000000000000002e-06_tank_room baseline=0.6 mutant=0.6",
+   "RESULT slot_at_1e-06_tank_full baseline=1e-06 mutant=0.0",
+   "RESULT slot_at_9.999999999999997e-07_tank_full baseline=9.999999999999997e-07 mutant=9.999999999999997e-07",
+   "RESULT slot_at_1.0000000000000002e-06_tank_full baseline=0.0 mutant=0.0",
+   "RESULT slot_kw_at_1e-6_baseline=1e-06",
+   "RESULT slot_kw_at_1e-6_mutant=0.6",
+   "RESULT boundary_inputs_moved=2 of 6",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.88",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "a 24-step plan with one slot at exactly 1e-6 kW and at its float neighbours, tank with room (35 C, ceiling 55) and full (50/50)",
+   "144 production-shaped fixtures"
+  ],
+  "baseline_value": "1e-06",
+  "mutant_value": "0.6",
+  "load1": 0.88,
+  "thread_factor": 1.0
+ },
+ "should_fail": "tests/features.py (its traced baseline executes dhw_planner.py:2055; also block_duty.py, manual_plan.py, optimality.py, plan_view.py, validate.py): its #1230 and min-run cases never plan a slot at exactly the 1e-6 kW weak floor",
+ "finding": {
+  "title": "No check plans a DHW slot at exactly the 1e-6 kW weak floor; moving the floor's comparison is unseen",
+  "claim": "Mutant df4de55e12588fdf (dhw_planner.py:2055, plan > 1e-6 -> plan >= 1e-6) survives the full gate (RED-AS-NULL), yet a slot planned at exactly 1e-6 kW is returned as a 1e-6 kW trickle on the baseline and raised to 0.6 kW (tank with room) or zeroed (tank full) under the mutant; its float neighbours agree in both arms.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "the kW _apply_dhw_min_run returns for a slot planned at exactly 1e-6 kW (min_run_power 0.6, p_dhw_max 3.0, tank 35 C under a 55 C ceiling)",
+  "phenomenon_property": "Which side of _apply_dhw_min_run's 1e-6 kW weak floor a slot exactly on it falls is pinned (a tolerance boundary: either side may be the intended one, but the suite does not say which)",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list); this key's row",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._apply_dhw_min_run",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py",
+   "value": "0.6",
+   "unit": "the kW _apply_dhw_min_run returns for a slot planned at exactly 1e-6 kW (min_run_power 0.6, p_dhw_max 3.0, tank 35 C under a 55 C ceiling)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g13: Linux x86_64, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probe ran on the box while its own full gates ran (GATE_JOBS=1)",
+   "tolerance": "exact",
+   "load1": 0.88,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "mutant df4de55e12588fdf (weak = np.where((plan > 1e-6) & (plan < min_run_power))[0] -> weak = np.where((plan >= 1e-6) & (plan < min_run_power))[0]) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df4de55e12588fdf",
+   "expected_direction": "up (1e-6 -> 0.6 kW)",
+   "observed_value": "0.6"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py",
+   "note": "the float neighbours of 1e-6 (nextafter either side) give the same answer in both arms; the 144 production-shaped fixtures do not move"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df4de55e12588fdf"
+  ],
+  "proposed_fix_scope": "tests only, or a ruling that the floor is a tolerance whose boundary is unspecified (then equivalent-by-intent)",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ],
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py (its traced baseline executes dhw_planner.py:2055; also block_duty.py, manual_plan.py, optimality.py, plan_view.py, validate.py): its #1230 and min-run cases never plan a slot at exactly the 1e-6 kW weak floor"
+ }
+}
