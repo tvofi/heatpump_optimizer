@@ -204,8 +204,17 @@
     "assigned to box D3-g46: 15 keys (c0800afec99d22fc, e18fa878eae99111, 2288dfa73cab6c1a, b341873adae0cf3c, c4e25319de746716, 02a5c98b8f46f724, 3b989943cc05b614, db984e8d4acfa08b, 884d2aba2bbd5409, a087d5efb15533ce, efd15cba428cdcf2, 968644425a4f97f8, c9a7d4d29d08c3b4, ca6ae797caf18708, 449caa49315447b2)",
     "assigned to box D3-g47: 15 keys (d2463d81efddd380, 0aa9e2e025b11284, 41063896cdb5ea71, b27ac4781778a34a, bed063118e10d683, 721aca562f60ab2c, 09412cb43997a47f, 4c3cfbe1e4ad2a14, 28b6107a17d9b814, 5b6489f7860d73b1, 1111a3e5d9c44e3f, 67a0550ee998a213, 75b300b2bc47485f, 92c063e90dafcc35, 6fa8436f09ad7e06)"
    ],
-   "redispatched": [],
-   "evidence": "Box D3-g32 ran the full gate (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh, one gate at a time, via gate_wave.sh run -> `dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>`) on its 16 keys (dev/audit/rounds/round11/D3/s1/wave/D3-g32/keys.tsv); records dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/<key>.json, null control dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/null.json. SURVIVORS.tsv is not in this box's tree; the 742-key wave list was re-assembled from the 47 dispatch refs' keys.tsv into dev/audit/rounds/round11/D3/s1/wave/D3-g32/WAVE-KEYS.tsv (742 keys, 0 duplicates). The 8 deduped keys gated earlier under other keys are box D3-top6's and D3-rem's D3.M3 rows (REPORT-D3-top6.json, REPORT-D3-rem.json), outside this universe. Examined 16 = this box's gated keys less TIMEOUTs."
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "examined"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "C3 (the full gate owed from round 10) is examined here: this box ran it on its keys; C5 (round 10 REPORT.md unwritten) is examined: this box writes REPORT.md. Box D3-g32 ran the full gate (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh, one gate at a time, via gate_wave.sh run -> `dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>`) on its 16 keys (dev/audit/rounds/round11/D3/s1/wave/D3-g32/keys.tsv); records dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/<key>.json, null control dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/null.json. SURVIVORS.tsv is not in this box's tree; the 742-key wave list was re-assembled from the 47 dispatch refs' keys.tsv into dev/audit/rounds/round11/D3/s1/wave/D3-g32/WAVE-KEYS.tsv (742 keys, 0 duplicates). The 8 deduped keys gated earlier under other keys are box D3-top6's and D3-rem's D3.M3 rows (REPORT-D3-top6.json, REPORT-D3-rem.json), outside this universe. Examined 16 = this box's gated keys less TIMEOUTs."
   }
  ],
  "unfinished": [],

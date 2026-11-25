@@ -38,8 +38,8 @@ def main(W, A, keys, gate, record):
     nr += [f"box D3-g32 not gated (run ended before it): {k}" for k in ungated]
     cov.append({
         "step": "D3.M3", "enumerator": ENUM, "universe": len(wave), "examined": examined,
-        "not_reached": nr, "redispatched": [],
-        "evidence": (f"Box D3-g32 ran the full gate (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF={BASE} GATE_JOBS=1 ./tests/run.sh, "
+        "not_reached": nr, "redispatched": [{"item": "C3", "state": "examined"}, {"item": "C5", "state": "examined"}],
+        "evidence": (f"C3 (the full gate owed from round 10) is examined here: this box ran it on its keys; C5 (round 10 REPORT.md unwritten) is examined: this box writes REPORT.md. Box D3-g32 ran the full gate (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF={BASE} GATE_JOBS=1 ./tests/run.sh, "
                      f"one gate at a time, via gate_wave.sh run -> `{FG} run --src complete --key <key>`) on its {len(rows)} keys "
                      f"({REL}/keys.tsv); records {REL}/gates/<key>.json, null control {REL}/gates/null.json. SURVIVORS.tsv is not in "
                      f"this box's tree; the 742-key wave list was re-assembled from the 47 dispatch refs' keys.tsv into {REL}/WAVE-KEYS.tsv "
