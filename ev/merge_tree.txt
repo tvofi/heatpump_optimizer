@@ -1,0 +1,4 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+LEDGER-MERGE: resolved tests/closures.json
+405b680ac6a5eea4332e38f90b84630a128e3ca3
