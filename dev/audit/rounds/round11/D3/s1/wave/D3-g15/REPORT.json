@@ -1,0 +1,1660 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "box": "D3-g15",
+ "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (box D3-u1b; not re-driven by box D3-g15): carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)"
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 343,
+   "not_reached": [
+    "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+    "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+    "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+    "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+    "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+    "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+    "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+    "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+    "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+    "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+    "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+    "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+    "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+    "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+    "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+    "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+    "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+    "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+    "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+    "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+    "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+    "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+    "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+    "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+    "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+    "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+    "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+    "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+    "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (box D3-u1b; not re-driven by box D3-g15): box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice"
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+   "universe": 742,
+   "examined": 16,
+   "not_reached": [
+    "assigned to box D3-g01: 16 keys (fafb0d2c15e72efb .. e0bd801049aba41a)",
+    "assigned to box D3-g02: 16 keys (cd1d099ef87f3ab9 .. 206a570d8cc784e3)",
+    "assigned to box D3-g03: 16 keys (ec4b6ee2ab420129 .. 420bcb8597761025)",
+    "assigned to box D3-g04: 16 keys (466c95cb8978ea1d .. 640a1a68b6c1eb23)",
+    "assigned to box D3-g05: 16 keys (0acf3cb312a5b76e .. ba1c58ad6dabbebd)",
+    "assigned to box D3-g06: 16 keys (d915157ffe509e58 .. 1a24365a55bfb2c7)",
+    "assigned to box D3-g07: 16 keys (d3cad40ffce9b765 .. 1ee0ec8960fb9a66)",
+    "assigned to box D3-g08: 16 keys (15456e64946920b5 .. aaa2a3d6bb2ba515)",
+    "assigned to box D3-g09: 16 keys (9cdf54d2309cfcc8 .. df697cc04154fbdd)",
+    "assigned to box D3-g10: 16 keys (205660ee362d1a07 .. f68e6ba7e28b251a)",
+    "assigned to box D3-g11: 16 keys (9efe002b48e1827d .. b247841f5466162d)",
+    "assigned to box D3-g12: 16 keys (7ffebcb567a4242e .. 0e3569fef6b39497)",
+    "assigned to box D3-g13: 16 keys (24d9995ccee4252e .. af8d4fddad8f298f)",
+    "assigned to box D3-g14: 16 keys (3685cdbd27c1680f .. c9404a6ea551b041)",
+    "assigned to box D3-g16: 16 keys (35d61c87783ebe66 .. 50ae25437a296deb)",
+    "assigned to box D3-g17: 16 keys (0aa6eaace756da92 .. 2074f3eefe8521aa)",
+    "assigned to box D3-g18: 16 keys (2580fdeb3923a03e .. 9297f123a6265555)",
+    "assigned to box D3-g19: 16 keys (911f3cf5172ffc44 .. 1b3cbaddab6e496f)",
+    "assigned to box D3-g20: 16 keys (a0722b8c635d2d93 .. b1926550efd8eac4)",
+    "assigned to box D3-g21: 16 keys (fd57e13959b23a4c .. 6b6eb0c1091c3c5c)",
+    "assigned to box D3-g22: 16 keys (ea0b9abd134c33cd .. af94ce8be7140e87)",
+    "assigned to box D3-g23: 16 keys (c6679b9b114e5732 .. 65e0ffa75d60d319)",
+    "assigned to box D3-g24: 16 keys (1dcb273b03f63a4e .. 68ee8d20663ac601)",
+    "assigned to box D3-g25: 16 keys (f3126cd40dc76143 .. 119b25afdd5d4988)",
+    "assigned to box D3-g26: 16 keys (35d104f30f878131 .. c2896572788698c0)",
+    "assigned to box D3-g27: 16 keys (e58e8eb0f54fe274 .. efea9d49d605beaa)",
+    "assigned to box D3-g28: 16 keys (9aa50bd32847b4dd .. e670e7e026a9f4ec)",
+    "assigned to box D3-g29: 16 keys (e196155b7525014c .. 213a122afd9ff3e1)",
+    "assigned to box D3-g30: 16 keys (b10967dd4ea185fd .. cee6857510fbe69e)",
+    "assigned to box D3-g31: 16 keys (ba9f6b92f678ab10 .. c1e06ebefdc5abad)",
+    "assigned to box D3-g32: 16 keys (0d159d7ddd1702d9 .. 1f4a10ae90bbf2d9)",
+    "assigned to box D3-g33: 16 keys (822c0c6477ed703e .. aa6d264aa0411bcd)",
+    "assigned to box D3-g34: 16 keys (b8d5ec03e8eba5c7 .. 87c3101b5663f17b)",
+    "assigned to box D3-g35: 16 keys (31bb6bebd6b45f0e .. 4da9d281d4714565)",
+    "assigned to box D3-g36: 16 keys (440c0a6d5ee72d19 .. 291748b42a54c1f6)",
+    "assigned to box D3-g37: 16 keys (ba25d4dc58c7fecc .. 66e79426a66d3362)",
+    "assigned to box D3-g38: 15 keys (c1ce480d20083d83 .. 4467ecd198f47483)",
+    "assigned to box D3-g39: 15 keys (559484953b5cdd5d .. 5371ee2b5e897750)",
+    "assigned to box D3-g40: 15 keys (5f094dbca9a593e9 .. 64a2ed644109fda3)",
+    "assigned to box D3-g41: 15 keys (2765114b9329f57f .. c5e678a5d1812e40)",
+    "assigned to box D3-g42: 15 keys (5a66d572bfdd1491 .. 256e285aadb8b31d)",
+    "assigned to box D3-g43: 15 keys (f2ab25c56b407ef9 .. e5a0d6a548f12244)",
+    "assigned to box D3-g44: 15 keys (140cd06a7d92f278 .. 05b5a15efaaf70de)",
+    "assigned to box D3-g45: 15 keys (b2faf84904db389e .. 39041ccf21eedba6)",
+    "assigned to box D3-g46: 15 keys (c0800afec99d22fc .. 449caa49315447b2)",
+    "assigned to box D3-g47: 15 keys (d2463d81efddd380 .. 6fa8436f09ad7e06)"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "the wave list (742 keys, the owner's 2026-11-22 ruling: every u1 full-net survivor gets the full gate) split over boxes D3-g01..D3-g47; this box's 16 keys from its dispatch keys.tsv, the other boxes' lists read from their dispatch/finder-r11-D3-g<NN> tips (sum 742). Per key: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key> (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven one at a time by the box's gate_wave.sh run; records dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/<key>.json and .log; null control dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/null.json. The 8 wave survivors already gated under other keys by boxes D3-top6 and D3-rem are those boxes' D3.M3 rows (REPORT-D3-top6.json, REPORT-D3-rem.json), outside this universe. Redispatched items carried verbatim from REPORT-D3-u1b.json's D3.M3 row."
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 268,
+   "examined": 225,
+   "not_reached": [
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+   ],
+   "redispatched": [],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (box D3-u1b; not re-driven by box D3-g15): m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)"
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "assigned to box D3-m5: tests/card.mjs",
+    "assigned to box D3-m5: tests/card_drift.mjs",
+    "assigned to box D3-m5: tests/golden.py",
+    "assigned to box D3-m5: tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (box D3-u1b; not re-driven by box D3-g15): carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2"
+  }
+ ],
+ "unfinished": [],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "full gate 0e752f692873e876 dhw_planner.py:740 CLAMP_DROP (runup_temps = np.zeros(max(n_steps, 0)) -> runup_temps = np.zeros((n_steps))): RED-AS-NULL; equivalent-candidate: identical on every n_steps >= 0 (14 inputs); separates only at n_steps=-1 (baseline empty arrays, mutant ValueError), and optimize() hands the planner min(len(prices), len(outdoor), config.n_steps) >= 0 (reach_min_n_steps=96): unreachable through production",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_0e752f692873e876.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0e752f692873e876",
+   "value": "moved_in_range=0 count | neg_n_mutant=raises ValueError; inputs tried: n_steps -1/0/1/2/96/192 x cycle step None/0/middle/last; a production optimize() spy; gate_rc=1, wall 3440.6 s (provisional)"
+  },
+  {
+   "claim": "full gate 3e26ea9048504c31 dhw_planner.py:743 CMP_BOUND (if c_dhw > 0.0 and legionella_step is not None and n_steps > 0 and ( -> if c_dhw > 0.0 and legionella_step is not None and n_steps >= 0 and (): RED-AS-NULL; equivalent-candidate: identical on n_steps >= 1 (12 inputs); separates only for a direct call at n_steps=0 WITH a cycle step (no-op -> IndexError); through the caller the due stage's own `n_steps > 0` guard returns step None at n_steps 0 (reach_n0_plan_moved=0), optimize() raises IndexError at n_steps 0 in both arms, and coordinator.py:6379 refuses a solve with fewer than 4 price steps: unreachable through production",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_3e26ea9048504c31.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3e26ea9048504c31",
+   "value": "direct_n0_step0_baseline=unchanged | direct_n0_step0_mutant=raises IndexError; inputs tried: n_steps 0/1/2/96 x cycle step None/0/middle/last; _dhw_legionella_plan at n_steps 0 for hours_since 20/150/400; optimize() on a 0-step horizon, both arms; gate_rc=1, wall 3486.1 s (provisional)"
+  },
+  {
+   "claim": "full gate 77d5e6c8ea98273a dhw_planner.py:783 CLAMP_DROP (need = (need + drawn - gain - rise) / max(decay, 1e-6) -> need = (need + drawn - gain - rise) / (decay)): RED-AS-NULL; equivalent-candidate: identical for every in-range decay (24 inputs: cooling 0.05/0.3/3.0 C/h, dt 0.25/1 h, draws 0 and 3 kW); separates only at decay 0 (UA*dt/C >= 1: dt 9 h at the 3 C/h cap; baseline returns, mutant ZeroDivisionError), while production's smallest decay at a 1 h step is 0.88 (separate tank) and 0.81 (combi store) and the step is 15 min: unreachable through production",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_77d5e6c8ea98273a.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 77d5e6c8ea98273a",
+   "value": "decay0_baseline=returned, run-up min -2.44e+08 | decay0_mutant=raises ZeroDivisionError; inputs tried: cooling rate 0.05/0.3/3.0 C/h x dt 0.25/1.0 h x draws 0/3 kW x cycle step middle/last; dt 9 h at 3 C/h; gate_rc=1, wall 3423.4 s (provisional)"
+  },
+  {
+   "claim": "full gate 1d455987c970dfde dhw_planner.py:790 CMP_BOUND (if need > everyday: -> if need >= everyday:): RED-AS-NULL; equivalent-candidate: 374 exact ties need == everyday found over 30 in-range configurations; at every one both arms agree (min(boost_top, everyday) is the value the ceiling already holds; each m is visited once); 60 random inputs agree: equivalent",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_1d455987c970dfde.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1d455987c970dfde",
+   "value": "moved_under_tie=0 count | moved_near_tie=0 count; inputs tried: cooling 0.05/0.1/0.3/1/3 C/h x outdoor -10/0/7 C x run 2/4 kW, draw bisected to the need == 55 C crossing +-50 floats (1414 inputs, 374 ties); 60 seeded random draws and steps; gate_rc=1, wall 3496.5 s (provisional)"
+  },
+  {
+   "claim": "full gate 8e9a502f439ceeeb dhw_planner.py:807 CMP_BOUND (if temp <= everyday: -> if temp < everyday:): RED-AS-NULL; equivalent-candidate: 8 exact ties temp == everyday (everyday set to the coast-down value 1..8 steps after the cycle); at every one both arms agree (max(everyday, everyday) into a ceiling already at everyday, and the next decay falls below it); 40 random inputs agree: equivalent",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8e9a502f439ceeeb.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8e9a502f439ceeeb",
+   "value": "ties_exact=8 count | ties_moved=0 count; inputs tried: cycle at step 40 of 96, everyday limit set to the exact coast-down value k = 1..8 steps after it; 40 seeded random cooling rates, limits and steps; gate_rc=1, wall 3251.5 s (provisional)"
+  },
+  {
+   "claim": "full gate f9c1b49fde6e1d52 dhw_planner.py:807 GUARD_OFF (if temp <= everyday: -> if False:): RED-AS-NULL; equivalent-candidate: 147 inputs (everyday limit 15/40/55/59 C, cooling 0.05/0.3/3 C/h, horizons 96x15 min, 192x15 min, 24x1 h, cycle step first/middle/last two, and a combi store) give identical outputs; the coast-down past the limit writes max(everyday, temp<everyday) = everyday, so the break only saves iterations: equivalent",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f9c1b49fde6e1d52.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f9c1b49fde6e1d52",
+   "value": "moved=0 count | coast_steps_written_baseline=3375 count  mutant=3375 count; inputs tried: everyday 15/40/55/59 C x cooling 0.05/0.3/3.0 C/h x (n, dt) (96, 0.25)/(192, 0.25)/(24, 1.0) x cycle step 0/mid/n-2/n-1; combi store 330 L at steps 10/48/90; gate_rc=1, wall 3250.0 s (provisional)"
+  },
+  {
+   "claim": "full gate 79ba0b9f6b3cf22d dhw_planner.py:596 CMP_BOUND (and interval_hours > 0 -> and interval_hours >= 0): RED-AS-NULL; equivalent-candidate: separates only at an interval of exactly 0 days (baseline no cycle, mutant overdue cycle at step 1); every positive interval (16 inputs incl. 0.01 d) agrees; the options flow's selector floor is 1 day and the set_parameters service refuses 0 (accepts from 0.01): unreachable through production",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_79ba0b9f6b3cf22d.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 79ba0b9f6b3cf22d",
+   "value": "interval0_baseline=(False, None) | interval0_mutant=(True, 1); inputs tried: interval 0, 0.01, 1, 7, 30 d x hours_since 0/20/150/1000 h; the flow selector and service schema bounds; gate_rc=1, wall 4046.2 s (provisional)"
+  },
+  {
+   "claim": "full gate 56d2279a568e8891 dhw_planner.py:598 CMP_BOUND (and n_steps > 0 -> and n_steps >= 0): RED-AS-NULL; equivalent-candidate: identical on n_steps >= 1 (15 inputs); at n_steps 0 an overdue clock separates (baseline no cycle, mutant ValueError from an empty argmin), but optimize() at n_steps 0 already fails in the baseline (IndexError; mutant ValueError) and coordinator.py:6379 refuses any solve with fewer than 4 price steps: unreachable through production",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_56d2279a568e8891.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 56d2279a568e8891",
+   "value": "n0_hours_since_400_baseline=(False, None, None) | n0_hours_since_400_mutant=raises ValueError; inputs tried: n_steps 0/1/2/96 x hours_since 0/20/150/167.9/168/400 h; optimize() on a 0-step horizon, both arms; gate_rc=1, wall 3794.8 s (provisional)"
+  },
+  {
+   "claim": "full gate 5224cce5f7a150cb dhw_planner.py:658 CLAMP_DROP (first = min(max(reach_step, 0), n_steps - 1) -> first = (max(reach_step, 0))): RED-AS-NULL; equivalent-candidate: 432 inputs over every hard-deadline branch (124 reachable, 156 overdue reachable, 8 unreachable) agree: in this branch reach_step < n_steps, so min(..., n_steps - 1) never binds: equivalent",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_5224cce5f7a150cb.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 5224cce5f7a150cb",
+   "value": "moved=0 count | inputs_tried=432 count; inputs tried: n_steps 4/96/192 x hours_since 0/100/150/167/168/170/400/2000 h x initial tank 20/45/55/59.5/60/65 C x Off window none/step 0/band, seeded random prices; gate_rc=1, wall 3692.5 s (provisional)"
+  },
+  {
+   "claim": "full gate c124ea447555a04a dhw_planner.py:658 CLAMP_DROP (first = min(max(reach_step, 0), n_steps - 1) -> first = min((reach_step), n_steps - 1)): RED-AS-NULL; equivalent-candidate: 432 inputs over every hard-deadline branch agree: reach_step is an np.where index or n_steps, never negative, so max(reach_step, 0) never binds (the carried u1d answer's negative reach_step does not occur): equivalent",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_c124ea447555a04a.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c124ea447555a04a",
+   "value": "moved=0 count | inputs_tried=432 count; inputs tried: n_steps 4/96/192 x hours_since 0/100/150/167/168/170/400/2000 h x initial tank 20/45/55/59.5/60/65 C x Off window none/step 0/band, seeded random prices; gate_rc=1, wall 3807.0 s (provisional)"
+  },
+  {
+   "claim": "full gate 8fb9093f7470e6aa dhw_planner.py:659 CLAMP_DROP (limit = max(first + 1, min(deadline_step + 1, n_steps)) -> limit = max(first + 1, (deadline_step + 1))): RED-AS-NULL; equivalent-candidate: 432 inputs over every hard-deadline branch agree: the branch runs only when deadline_step < n_steps, so min(deadline_step + 1, n_steps) never binds: equivalent",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8fb9093f7470e6aa.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8fb9093f7470e6aa",
+   "value": "moved=0 count | inputs_tried=432 count; inputs tried: n_steps 4/96/192 x hours_since 0/100/150/167/168/170/400/2000 h x initial tank 20/45/55/59.5/60/65 C x Off window none/step 0/band, seeded random prices; gate_rc=1, wall 4057.5 s (provisional)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/_lg_common.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_0e752f692873e876.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_3e26ea9048504c31.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_77d5e6c8ea98273a.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_1d455987c970dfde.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8e9a502f439ceeeb.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f9c1b49fde6e1d52.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_79ba0b9f6b3cf22d.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_56d2279a568e8891.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_5224cce5f7a150cb.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_c124ea447555a04a.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8fb9093f7470e6aa.py"
+ ],
+ "leads": [],
+ "procedure": "gate_wave.sh (shipped on dispatch/finder-r11-D3-g15): null once, then for each key of keys.tsv in order, one gate at a time: clean tree at the baseline, fullgate.py run --src complete --key <key> under a 4 h cap (SIGINT -> TIMEOUT, never KILLED), record, reset, checkpoint",
+ "gated": [
+  {
+   "key": "0e752f692873e876",
+   "site": "dhw_planner.py:740 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "3e26ea9048504c31",
+   "site": "dhw_planner.py:743 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "77d5e6c8ea98273a",
+   "site": "dhw_planner.py:783 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "a1ebeff0870dfa76",
+   "site": "dhw_planner.py:784 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "f1549576a94b99be",
+   "site": "dhw_planner.py:784 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "1d455987c970dfde",
+   "site": "dhw_planner.py:790 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "7cd9b966a3bd0008",
+   "site": "dhw_planner.py:793 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "8e9a502f439ceeeb",
+   "site": "dhw_planner.py:807 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "f9c1b49fde6e1d52",
+   "site": "dhw_planner.py:807 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "79ba0b9f6b3cf22d",
+   "site": "dhw_planner.py:596 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "56d2279a568e8891",
+   "site": "dhw_planner.py:598 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "31c1881164f2dcdf",
+   "site": "dhw_planner.py:626 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "7640e80a994db479",
+   "site": "dhw_planner.py:628 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "5224cce5f7a150cb",
+   "site": "dhw_planner.py:658 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "c124ea447555a04a",
+   "site": "dhw_planner.py:658 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "8fb9093f7470e6aa",
+   "site": "dhw_planner.py:659 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  }
+ ],
+ "gate_survivors": [
+  {
+   "key": "a1ebeff0870dfa76",
+   "site": "dhw_planner.py:784 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 784,
+   "patch": "if need > boost_top: -> if need >= boost_top:",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3381.9,
+    "load1_start": 0.72,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5588.8,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/a1ebeff0870dfa76.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a1ebeff0870dfa76"
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+    "baseline_value": "tie_runup_steps_baseline=6 count",
+    "mutant_value": "tie_runup_steps_mutant=0 count",
+    "results": {
+     "boost_top": "60.0 C",
+     "tie_inputs_tried": "601 count",
+     "tie_hits": "16 count",
+     "moved_near_tie": "16 count",
+     "moved_under_tie": "16 count",
+     "tie_draw_kw": "7.246988794418304",
+     "tie_runup_steps_baseline": "6 count",
+     "tie_runup_steps_mutant": "0 count",
+     "tie_ceiling_step39_baseline": "60.0 C  tie_ceiling_step39_mutant=55.0 C",
+     "tie_requirement_step39_baseline": "60.0000 C  mutant=20.0000 C",
+     "moved_random": "0 count",
+     "sweep_configs_with_ties": "16/30 count",
+     "sweep_ties_moved": "267 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.46",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "draw at the cycle step bisected to the need == 60 C crossing and +-300 floats (601 inputs), 200 L tank 55/60 C, cooling 0.1 C/h, 4 kW run, 0 C outdoor; a 30-configuration sweep (sweep_configs_with_ties) found ties in 16 of them; 60 seeded random draws",
+    "reading": "at an exact tie need == boost_top (16 of 601 draws scanned at the crossing, in-range parameters) the baseline keeps the run-up (6 steps; ceiling at step 39 60 C, requirement 60 C), the mutant cuts it (0 steps; 55 C, 20 C); off the tie no draw separates (moved_near_tie=16 = the ties; moved_random=0)",
+    "thread_factor": 1.0,
+    "load1": 3.46
+   },
+   "should_fail": "tests/features.py (executes line 784 on its traced baseline; its check 'legionella ceilings: with the rating at the charge limit no step's ceiling moves ...' at line 12109 drives _dhw_legionella_ceilings directly) lacks an assertion at the need == boost_top boundary that the run-up is kept",
+   "finding": {
+    "scope": "D3-s1",
+    "step": "D3.M3",
+    "title": "No check pins the legionella run-up walk at need == boost top (`>` vs `>=`)",
+    "severity": "low",
+    "claim": "Mutant a1ebeff0870dfa76 at dhw_planner.py:784 (if need > boost_top: -> if need >= boost_top:) survives the full gate (RED-AS-NULL), yet the probe moves: run-up steps the ceilings stage writes at an exact need == boost_top tie: baseline 6, mutant 0.",
+    "mechanism": "at an exact tie need == boost_top (16 of 601 draws scanned at the crossing, in-range parameters) the baseline keeps the run-up (6 steps; ceiling at step 39 60 C, requirement 60 C), the mutant cuts it (0 steps; 55 C, 20 C); off the tie no draw separates (moved_near_tie=16 = the ties; moved_random=0). Check that should have failed (D3.M4): tests/features.py (executes line 784 on its traced baseline; its check 'legionella ceilings: with the rating at the charge limit no step's ceiling moves ...' at line 12109 drives _dhw_legionella_ceilings directly) lacks an assertion at the need == boost_top boundary that the run-up is kept.",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "metric_definition": "count of run-up floor steps _dhw_legionella_ceilings writes when the walk's first need equals the boost top exactly",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_ceilings",
+    "phenomenon_property": "At need == boost_top the pump can still carry the ramp, so the run-up walk continues and writes its floors and ceilings",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+     "value": "0 count",
+     "unit": "count of run-up floor steps _dhw_legionella_ceilings writes when the walk's first need equals the boost top exactly",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "box D3-g15: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+     "cpu_or_wall": "n/a",
+     "contention_note": "deterministic value; probes ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+     "tolerance": "exact",
+     "load1": 3.46,
+     "thread_factor": 1.0
+    },
+    "perturbation": {
+     "change": "the mutant edit at dhw_planner.py:784 (if need > boost_top: -> if need >= boost_top:) applied in memory by the probe; full gate: fullgate.py run --src complete --key a1ebeff0870dfa76",
+     "expected_direction": "to_zero",
+     "observed_value": "0 count"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+     "value": 0,
+     "note": "off-tie draws (scanned floats that are not exact ties, and 60 seeded random draws): 0 inputs differ"
+    },
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a1ebeff0870dfa76"
+    ],
+    "proposed_fix_scope": "tests only: a features.py check at an exact need == boost_top draw (the probe's tie_draw_kw) pinning the run-up the baseline writes",
+    "files": [
+     "custom_components/heatpump_optimizer/dhw_planner.py",
+     "tests/features.py"
+    ]
+   }
+  },
+  {
+   "key": "f1549576a94b99be",
+   "site": "dhw_planner.py:784 GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 784,
+   "patch": "if need > boost_top: -> if False:",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3418.6,
+    "load1_start": 0.87,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5654.1,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/f1549576a94b99be.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f1549576a94b99be"
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+    "baseline_value": "req_at_boost_steps_baseline=0 count",
+    "mutant_value": "req_at_boost_steps_mutant=20 count",
+    "results": {
+     "boost_top": "60.0 C",
+     "runup_max_baseline": "0.0000 C",
+     "runup_max_mutant": "139.1276 C",
+     "runup_steps_above_boost_mutant": "20 count",
+     "req_at_boost_steps_baseline": "0 count",
+     "req_at_boost_steps_mutant": "20 count",
+     "ceiling_at_boost_steps_baseline": "1 count  mutant=21 count",
+     "null_moved": "0 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.46",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "200 L tank 55/60 C, 4 kW run, cycle at step 40 of 96, draws 0 (null) and 20 kW on steps 36-40",
+    "reading": "with a draw the pump cannot carry (20 kW-equivalent for the hour before the cycle on a 4 kW pump) the baseline cuts the walk at once (run-up max 0 C, 0 steps required at the 60 C boost top), the mutant walks on: run-up floors up to 139.13 C (20 above the boost top), 20 steps whose folded requirement is the 60 C boost top, 21 boost-top ceilings instead of 1; no draw: identical",
+    "thread_factor": 1.0,
+    "load1": 3.46
+   },
+   "should_fail": "tests/features.py (executes line 784; the legionella-ceilings check at line 12109) lacks a case where the pump cannot carry the ramp asserting no run-up floor exceeds the boost top and the walk stops",
+   "finding": {
+    "scope": "D3-s1",
+    "step": "D3.M3",
+    "title": "No check pins the legionella run-up cut when the pump cannot carry the ramp",
+    "severity": "medium",
+    "claim": "Mutant f1549576a94b99be at dhw_planner.py:784 (if need > boost_top: -> if False:) survives the full gate (RED-AS-NULL), yet the probe moves: steps whose folded DHW requirement is the 60 C boost top: baseline 0, mutant 20.",
+    "mechanism": "with a draw the pump cannot carry (20 kW-equivalent for the hour before the cycle on a 4 kW pump) the baseline cuts the walk at once (run-up max 0 C, 0 steps required at the 60 C boost top), the mutant walks on: run-up floors up to 139.13 C (20 above the boost top), 20 steps whose folded requirement is the 60 C boost top, 21 boost-top ceilings instead of 1; no draw: identical. Check that should have failed (D3.M4): tests/features.py (executes line 784; the legionella-ceilings check at line 12109) lacks a case where the pump cannot carry the ramp asserting no run-up floor exceeds the boost top and the walk stops.",
+    "class_guess": "new",
+    "severity_claimed": "medium",
+    "stop_rule_class": "hygiene",
+    "metric_definition": "count of steps before the cycle whose min(max(floor, run-up), ceiling) reaches the boost top, under a draw the pump cannot carry",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_ceilings",
+    "phenomenon_property": "The legionella run-up never asks for more than the boost top: where the pump cannot carry the ramp the walk stops",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+     "value": "20 count",
+     "unit": "count of steps before the cycle whose min(max(floor, run-up), ceiling) reaches the boost top, under a draw the pump cannot carry",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "box D3-g15: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+     "cpu_or_wall": "n/a",
+     "contention_note": "deterministic value; probes ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+     "tolerance": "exact",
+     "load1": 3.46,
+     "thread_factor": 1.0
+    },
+    "perturbation": {
+     "change": "the mutant edit at dhw_planner.py:784 (if need > boost_top: -> if False:) applied in memory by the probe; full gate: fullgate.py run --src complete --key f1549576a94b99be",
+     "expected_direction": "up",
+     "observed_value": "20 count"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+     "value": 0,
+     "note": "zero draws (the guard never fires): null_moved=0"
+    },
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f1549576a94b99be"
+    ],
+    "proposed_fix_scope": "tests only: a features.py check with a heavy pre-cycle draw asserting max(runup_temps) <= boost top and no boost-top ceiling before the walk's cut",
+    "files": [
+     "custom_components/heatpump_optimizer/dhw_planner.py",
+     "tests/features.py"
+    ]
+   }
+  },
+  {
+   "key": "7cd9b966a3bd0008",
+   "site": "dhw_planner.py:793 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 793,
+   "patch": "if need <= floor_temps[m]: -> if need < floor_temps[m]:",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3248.9,
+    "load1_start": 0.64,
+    "load1_end": 0.93,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5316.0,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/7cd9b966a3bd0008.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7cd9b966a3bd0008"
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+    "baseline_value": "tie_runup_steps_baseline=2 count",
+    "mutant_value": "tie_runup_steps_mutant=5 count",
+    "results": {
+     "reference_runup_steps": "5 count  (floor 20 C: steps 35..39)",
+     "ties_moved": "5/5 count",
+     "tie_step": "38 floor=np.float64(43.51385386005922) C",
+     "tie_runup_steps_baseline": "2 count",
+     "tie_runup_steps_mutant": "5 count",
+     "tie_req_sum_baseline": "855.7613 C  tie_req_sum_mutant=869.8499 C",
+     "tie_req_sum_delta_c": "14.0886 C",
+     "null_moved": "0 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.46",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "200 L tank 55/60 C, 4 kW run, cycle at step 40 of 96, floor 20 C with the tie placed on each walk step 39..35; null +1e-9 C",
+    "reading": "when the availability floor at a walk step equals that step's need exactly the baseline stops the walk (2 run-up steps at a tie on step 38), the mutant walks on (5 steps), raising the folded requirement before the cycle by 14.0886 C summed; every one of the 5 walk steps separates at its tie; a floor 1e-9 C higher: identical",
+    "thread_factor": 1.0,
+    "load1": 3.46
+   },
+   "should_fail": "tests/features.py (executes line 793 on its traced baseline) lacks an assertion at need == floor that the walk stops there",
+   "finding": {
+    "scope": "D3-s1",
+    "step": "D3.M3",
+    "title": "No check pins the legionella run-up stop at need == availability floor (`<=` vs `<`)",
+    "severity": "low",
+    "claim": "Mutant 7cd9b966a3bd0008 at dhw_planner.py:793 (if need <= floor_temps[m]: -> if need < floor_temps[m]:) survives the full gate (RED-AS-NULL), yet the probe moves: run-up steps written with the floor tied to the walk's need at step 38: baseline 2, mutant 5.",
+    "mechanism": "when the availability floor at a walk step equals that step's need exactly the baseline stops the walk (2 run-up steps at a tie on step 38), the mutant walks on (5 steps), raising the folded requirement before the cycle by 14.0886 C summed; every one of the 5 walk steps separates at its tie; a floor 1e-9 C higher: identical. Check that should have failed (D3.M4): tests/features.py (executes line 793 on its traced baseline) lacks an assertion at need == floor that the walk stops there.",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "metric_definition": "count of run-up floor steps _dhw_legionella_ceilings writes when one step's availability floor equals the walk's need there",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_ceilings",
+    "phenomenon_property": "Where the availability floor already meets the ramp's need the run-up walk stops; no run-up floor is written below it",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+     "value": "5 count",
+     "unit": "count of run-up floor steps _dhw_legionella_ceilings writes when one step's availability floor equals the walk's need there",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "box D3-g15: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+     "cpu_or_wall": "n/a",
+     "contention_note": "deterministic value; probes ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+     "tolerance": "exact",
+     "load1": 3.46,
+     "thread_factor": 1.0
+    },
+    "perturbation": {
+     "change": "the mutant edit at dhw_planner.py:793 (if need <= floor_temps[m]: -> if need < floor_temps[m]:) applied in memory by the probe; full gate: fullgate.py run --src complete --key 7cd9b966a3bd0008",
+     "expected_direction": "up",
+     "observed_value": "5 count"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+     "value": 0,
+     "note": "the same floor raised 1e-9 C: null_moved=0"
+    },
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7cd9b966a3bd0008"
+    ],
+    "proposed_fix_scope": "tests only: a features.py check with floor_temps[m] equal to the baseline run-up at m pinning the run-up steps",
+    "files": [
+     "custom_components/heatpump_optimizer/dhw_planner.py",
+     "tests/features.py"
+    ]
+   }
+  },
+  {
+   "key": "31c1881164f2dcdf",
+   "site": "dhw_planner.py:626 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 626,
+   "patch": "hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0] -> hot = np.where(ramp[1:] > params.dhw_legionella_temp - 1e-6)[0]",
+   "function": "DhwPlanner._dhw_legionella_due",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+   "slice": "u1a",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3833.5,
+    "load1_start": 0.93,
+    "load1_end": 1.09,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6336.4,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/31c1881164f2dcdf.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 31c1881164f2dcdf"
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+    "baseline_value": "tie_step_baseline=0  tie_step_mutant=1",
+    "mutant_value": "tie_step_mutant=None",
+    "results": {
+     "threshold": "59.999999 C",
+     "tie_inputs_tried": "3606 count",
+     "tie_hits": "6 count",
+     "moved_under_tie": "6 count",
+     "moved_off_tie": "0 count",
+     "tie_input": "dhw_temp 56.98949861028148 C, outdoor -10.0 C, run 2.0 kW",
+     "tie_step_baseline": "0  tie_step_mutant=1",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.18",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "initial tank temperature bisected to the ramp[1] == 59.999999 C crossing, +-300 floats, outdoor -10/0/7 C x run 2/4 kW, hours_since 150 h, price 0.1 at step 0",
+    "reading": "when the flat-out ramp ends step 0 exactly on the reach threshold 59.999999 C (6 exact ties in 3606 scanned initial temperatures over 6 in-range configurations) the baseline calls step 0 reachable and places the cycle on the cheap step 0, the mutant calls it unreachable and places it on step 1; off the tie no input separates",
+    "thread_factor": 1.0,
+    "load1": 3.18
+   },
+   "should_fail": "tests/features.py (executes line 626 on its traced baseline) lacks an assertion at ramp == legionella_temp - 1e-6 that the step counts as reachable",
+   "finding": {
+    "scope": "D3-s1",
+    "step": "D3.M3",
+    "title": "No check pins the legionella reach threshold as inclusive (`>=` vs `>`)",
+    "severity": "low",
+    "claim": "Mutant 31c1881164f2dcdf at dhw_planner.py:626 (hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0] -> hot = np.where(ramp[1:] > params.dhw_legionella_temp - 1e-6)[0]) survives the full gate (RED-AS-NULL), yet the probe moves: placed cycle step when the ramp ends step 0 exactly on the reach threshold: baseline 0, mutant 1.",
+    "mechanism": "when the flat-out ramp ends step 0 exactly on the reach threshold 59.999999 C (6 exact ties in 3606 scanned initial temperatures over 6 in-range configurations) the baseline calls step 0 reachable and places the cycle on the cheap step 0, the mutant calls it unreachable and places it on step 1; off the tie no input separates. Check that should have failed (D3.M4): tests/features.py (executes line 626 on its traced baseline) lacks an assertion at ramp == legionella_temp - 1e-6 that the step counts as reachable.",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "metric_definition": "the step _dhw_legionella_due places the cycle on when the simulated ramp hits legionella_temp - 1e-6 exactly at step 0's end",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_due",
+    "phenomenon_property": "A tank whose simulated ramp reaches the disinfection threshold exactly counts as able to be there (the reach test is inclusive)",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+     "value": null,
+     "unit": "the step _dhw_legionella_due places the cycle on when the simulated ramp hits legionella_temp - 1e-6 exactly at step 0's end",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "box D3-g15: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+     "cpu_or_wall": "n/a",
+     "contention_note": "deterministic value; probes ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+     "tolerance": "exact",
+     "load1": 3.18,
+     "thread_factor": 1.0
+    },
+    "perturbation": {
+     "change": "the mutant edit at dhw_planner.py:626 (hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0] -> hot = np.where(ramp[1:] > params.dhw_legionella_temp - 1e-6)[0]) applied in memory by the probe; full gate: fullgate.py run --src complete --key 31c1881164f2dcdf",
+     "expected_direction": "up",
+     "observed_value": null
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+     "value": 0,
+     "note": "scanned initial temperatures that are not exact ties: moved_off_tie=0"
+    },
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 31c1881164f2dcdf"
+    ],
+    "proposed_fix_scope": "tests only: a features.py check at the probe's tie input pinning the placed step",
+    "files": [
+     "custom_components/heatpump_optimizer/dhw_planner.py",
+     "tests/features.py"
+    ]
+   }
+  },
+  {
+   "key": "7640e80a994db479",
+   "site": "dhw_planner.py:628 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 628,
+   "patch": "if deadline_step < n_steps: -> if deadline_step <= n_steps:",
+   "function": "DhwPlanner._dhw_legionella_due",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3854.8,
+    "load1_start": 0.92,
+    "load1_end": 0.94,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6489.0,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/7640e80a994db479.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7640e80a994db479"
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+    "baseline_value": "edge_solve_due_baseline=False dhw_kwh=4.6915",
+    "mutant_value": "edge_solve_due_mutant=True dhw_kwh=4.8211",
+    "results": {
+     "deadline_step": "96 n_steps=96",
+     "edge_due_baseline": "False step=None",
+     "edge_due_mutant": "True step=1",
+     "null_moved": "0 count",
+     "edge_solve_due_baseline": "False dhw_kwh=4.6915",
+     "edge_solve_due_mutant": "True dhw_kwh=4.8211",
+     "edge_solve_dhw_kwh_delta": "0.1295 kWh",
+     "null_solve_moved": "0 count  (hours_since 143.75)",
+     "thread_factor": "1.001 ratio",
+     "load1": "3.33",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "hours_since 143.75 / 144 / 144.25 h on 96 x 15 min (deadline n+1, n, n-1), direct and through optimize()",
+    "reading": "with the hard deadline exactly at the horizon's end (hours_since 144 h of a 168 h interval: deadline_step 96 == n_steps, a 15-minute window the clock crosses once per interval) the baseline plans no cycle in this solve, the mutant buys it now: _dhw_legionella_due False -> True (step 1), the production optimize()'s published predictive_info dhw_legionella_due False -> True, planned hot water 4.6915 -> 4.8211 kWh (+0.1295 kWh); deadline n+1 and n-1: identical",
+    "thread_factor": 1.001,
+    "load1": 3.33
+   },
+   "should_fail": "tests/features.py (executes line 628 on its traced baseline) lacks a check at deadline_step == n_steps that the cycle is left to the elastic branch",
+   "finding": {
+    "scope": "D3-s1",
+    "step": "D3.M3",
+    "title": "No check pins the legionella hard-deadline branch at deadline == horizon end (`<` vs `<=`)",
+    "severity": "low",
+    "claim": "Mutant 7640e80a994db479 at dhw_planner.py:628 (if deadline_step < n_steps: -> if deadline_step <= n_steps:) survives the full gate (RED-AS-NULL), yet the probe moves: published dhw_legionella_due with the deadline exactly at the horizon's end: baseline False, mutant True.",
+    "mechanism": "with the hard deadline exactly at the horizon's end (hours_since 144 h of a 168 h interval: deadline_step 96 == n_steps, a 15-minute window the clock crosses once per interval) the baseline plans no cycle in this solve, the mutant buys it now: _dhw_legionella_due False -> True (step 1), the production optimize()'s published predictive_info dhw_legionella_due False -> True, planned hot water 4.6915 -> 4.8211 kWh (+0.1295 kWh); deadline n+1 and n-1: identical. Check that should have failed (D3.M4): tests/features.py (executes line 628 on its traced baseline) lacks a check at deadline_step == n_steps that the cycle is left to the elastic branch.",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "metric_definition": "predictive_info['dhw_legionella_due'] of one optimize() whose legionella deadline step equals n_steps",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_due",
+    "phenomenon_property": "A legionella deadline at or past the horizon's end leaves the cycle to the elastic branch; only a deadline inside the horizon forces it",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+     "value": "True dhw_kwh=4.8211",
+     "unit": "predictive_info['dhw_legionella_due'] of one optimize() whose legionella deadline step equals n_steps",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "machine": "box D3-g15: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+     "cpu_or_wall": "n/a",
+     "contention_note": "deterministic value; probes ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+     "tolerance": "exact",
+     "load1": 3.33,
+     "thread_factor": 1.001
+    },
+    "perturbation": {
+     "change": "the mutant edit at dhw_planner.py:628 (if deadline_step < n_steps: -> if deadline_step <= n_steps:) applied in memory by the probe; full gate: fullgate.py run --src complete --key 7640e80a994db479",
+     "expected_direction": "up",
+     "observed_value": "True dhw_kwh=4.8211"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+     "value": 0,
+     "note": "hours_since 143.75 h and 144.25 h (deadline n+1, n-1): null_moved=0, null_solve_moved=0"
+    },
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7640e80a994db479"
+    ],
+    "proposed_fix_scope": "tests only: a features.py check at hours_since = interval - horizon pinning due False with elastic off",
+    "files": [
+     "custom_components/heatpump_optimizer/dhw_planner.py",
+     "tests/features.py"
+    ]
+   }
+  }
+ ],
+ "equivalent_candidates": [
+  {
+   "key": "0e752f692873e876",
+   "site": "dhw_planner.py:740 CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 740,
+   "patch": "runup_temps = np.zeros(max(n_steps, 0)) -> runup_temps = np.zeros((n_steps))",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1a",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3440.6,
+    "load1_start": 0.78,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5686.0,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/0e752f692873e876.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0e752f692873e876"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_0e752f692873e876.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_0e752f692873e876.py",
+    "baseline_value": "moved_in_range=0 count",
+    "mutant_value": "neg_n_mutant=raises ValueError",
+    "results": {
+     "inputs_tried": "14 count",
+     "moved_in_range": "0 count",
+     "neg_n_baseline": "ok-empty",
+     "neg_n_mutant": "raises ValueError",
+     "reach_calls": "2 count",
+     "reach_min_n_steps": "96 count",
+     "thread_factor": "1.005 ratio",
+     "load1": "3.02",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "n_steps -1/0/1/2/96/192 x cycle step None/0/middle/last; a production optimize() spy",
+    "reading": "identical on every n_steps >= 0 (14 inputs); separates only at n_steps=-1 (baseline empty arrays, mutant ValueError), and optimize() hands the planner min(len(prices), len(outdoor), config.n_steps) >= 0 (reach_min_n_steps=96): unreachable through production",
+    "thread_factor": 1.005,
+    "load1": 3.02
+   },
+   "should_fail": "none through production; only a direct call with a negative n_steps separates (tests/features.py drives _dhw_legionella_ceilings directly at line 12099 but never with n_steps < 0)"
+  },
+  {
+   "key": "3e26ea9048504c31",
+   "site": "dhw_planner.py:743 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 743,
+   "patch": "if c_dhw > 0.0 and legionella_step is not None and n_steps > 0 and ( -> if c_dhw > 0.0 and legionella_step is not None and n_steps >= 0 and (",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3486.1,
+    "load1_start": 0.93,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5767.9,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/3e26ea9048504c31.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3e26ea9048504c31"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_3e26ea9048504c31.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_3e26ea9048504c31.py",
+    "baseline_value": "direct_n0_step0_baseline=unchanged",
+    "mutant_value": "direct_n0_step0_mutant=raises IndexError",
+    "results": {
+     "inputs_tried": "12 count",
+     "moved_in_range": "0 count",
+     "direct_n0_step0_baseline": "unchanged",
+     "direct_n0_step0_mutant": "raises IndexError",
+     "reach_n0_due_step_hours_since_20": "None",
+     "reach_n0_due_step_hours_since_150": "None",
+     "reach_n0_due_step_hours_since_400": "None",
+     "reach_n0_plan_moved": "0 count",
+     "reach_n0_optimize_baseline": "['optimize raised IndexError']",
+     "reach_n0_optimize_mutant": "['optimize raised IndexError']",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.18",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "n_steps 0/1/2/96 x cycle step None/0/middle/last; _dhw_legionella_plan at n_steps 0 for hours_since 20/150/400; optimize() on a 0-step horizon, both arms",
+    "reading": "identical on n_steps >= 1 (12 inputs); separates only for a direct call at n_steps=0 WITH a cycle step (no-op -> IndexError); through the caller the due stage's own `n_steps > 0` guard returns step None at n_steps 0 (reach_n0_plan_moved=0), optimize() raises IndexError at n_steps 0 in both arms, and coordinator.py:6379 refuses a solve with fewer than 4 price steps: unreachable through production",
+    "thread_factor": 1.0,
+    "load1": 3.18
+   },
+   "should_fail": "none through production; only a direct call with n_steps 0 and a cycle step separates"
+  },
+  {
+   "key": "77d5e6c8ea98273a",
+   "site": "dhw_planner.py:783 CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 783,
+   "patch": "need = (need + drawn - gain - rise) / max(decay, 1e-6) -> need = (need + drawn - gain - rise) / (decay)",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3423.4,
+    "load1_start": 0.93,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5727.9,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/77d5e6c8ea98273a.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 77d5e6c8ea98273a"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_77d5e6c8ea98273a.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_77d5e6c8ea98273a.py",
+    "baseline_value": "decay0_baseline=returned, run-up min -2.44e+08",
+    "mutant_value": "decay0_mutant=raises ZeroDivisionError",
+    "results": {
+     "inputs_tried": "24 count",
+     "moved_in_range": "0 count",
+     "decay_at_dt9h_rate3": "0.0",
+     "decay0_baseline": "returned, run-up min -2.44e+08",
+     "decay0_mutant": "raises ZeroDivisionError",
+     "reach_min_decay_tank_dt1h": "0.8800",
+     "reach_min_decay_combi_dt1h": "0.8077",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.33",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "cooling rate 0.05/0.3/3.0 C/h x dt 0.25/1.0 h x draws 0/3 kW x cycle step middle/last; dt 9 h at 3 C/h",
+    "reading": "identical for every in-range decay (24 inputs: cooling 0.05/0.3/3.0 C/h, dt 0.25/1 h, draws 0 and 3 kW); separates only at decay 0 (UA*dt/C >= 1: dt 9 h at the 3 C/h cap; baseline returns, mutant ZeroDivisionError), while production's smallest decay at a 1 h step is 0.88 (separate tank) and 0.81 (combi store) and the step is 15 min: unreachable through production",
+    "thread_factor": 1.0,
+    "load1": 3.33
+   },
+   "should_fail": "none through production; only a direct call at a step of >= 8.3 h separates"
+  },
+  {
+   "key": "1d455987c970dfde",
+   "site": "dhw_planner.py:790 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 790,
+   "patch": "if need > everyday: -> if need >= everyday:",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1a",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3496.5,
+    "load1_start": 0.85,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5787.4,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/1d455987c970dfde.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1d455987c970dfde"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_1d455987c970dfde.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_1d455987c970dfde.py",
+    "baseline_value": "moved_under_tie=0 count",
+    "mutant_value": "moved_near_tie=0 count",
+    "results": {
+     "everyday": "55.0 C",
+     "configs_tried": "30 count (cooling C/h / outdoor C / DHW run kW : ties)",
+     "tie_inputs_tried": "1414 count",
+     "tie_hits": "374 count",
+     "moved_near_tie": "0 count",
+     "moved_under_tie": "0 count",
+     "moved_random": "0 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.02",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "cooling 0.05/0.1/0.3/1/3 C/h x outdoor -10/0/7 C x run 2/4 kW, draw bisected to the need == 55 C crossing +-50 floats (1414 inputs, 374 ties); 60 seeded random draws and steps",
+    "reading": "374 exact ties need == everyday found over 30 in-range configurations; at every one both arms agree (min(boost_top, everyday) is the value the ceiling already holds; each m is visited once); 60 random inputs agree: equivalent",
+    "thread_factor": 1.0,
+    "load1": 3.02
+   },
+   "should_fail": "none: equivalent at the tie by construction"
+  },
+  {
+   "key": "8e9a502f439ceeeb",
+   "site": "dhw_planner.py:807 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 807,
+   "patch": "if temp <= everyday: -> if temp < everyday:",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3251.5,
+    "load1_start": 0.86,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5389.3,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/8e9a502f439ceeeb.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8e9a502f439ceeeb"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8e9a502f439ceeeb.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8e9a502f439ceeeb.py",
+    "baseline_value": "ties_exact=8 count",
+    "mutant_value": "ties_moved=0 count",
+    "results": {
+     "ties_exact": "8 count",
+     "ties_moved": "0 count",
+     "random_moved": "0 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.46",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "cycle at step 40 of 96, everyday limit set to the exact coast-down value k = 1..8 steps after it; 40 seeded random cooling rates, limits and steps",
+    "reading": "8 exact ties temp == everyday (everyday set to the coast-down value 1..8 steps after the cycle); at every one both arms agree (max(everyday, everyday) into a ceiling already at everyday, and the next decay falls below it); 40 random inputs agree: equivalent",
+    "thread_factor": 1.0,
+    "load1": 3.46
+   },
+   "should_fail": "none: equivalent at the tie by construction"
+  },
+  {
+   "key": "f9c1b49fde6e1d52",
+   "site": "dhw_planner.py:807 GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 807,
+   "patch": "if temp <= everyday: -> if False:",
+   "function": "DhwPlanner._dhw_legionella_ceilings",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3250.0,
+    "load1_start": 0.86,
+    "load1_end": 0.93,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5492.8,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/f9c1b49fde6e1d52.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f9c1b49fde6e1d52"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f9c1b49fde6e1d52.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f9c1b49fde6e1d52.py",
+    "baseline_value": "moved=0 count",
+    "mutant_value": "coast_steps_written_baseline=3375 count  mutant=3375 count",
+    "results": {
+     "inputs_tried": "147 count",
+     "moved": "0 count",
+     "coast_steps_written_baseline": "3375 count  mutant=3375 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.59",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "everyday 15/40/55/59 C x cooling 0.05/0.3/3.0 C/h x (n, dt) (96, 0.25)/(192, 0.25)/(24, 1.0) x cycle step 0/mid/n-2/n-1; combi store 330 L at steps 10/48/90",
+    "reading": "147 inputs (everyday limit 15/40/55/59 C, cooling 0.05/0.3/3 C/h, horizons 96x15 min, 192x15 min, 24x1 h, cycle step first/middle/last two, and a combi store) give identical outputs; the coast-down past the limit writes max(everyday, temp<everyday) = everyday, so the break only saves iterations: equivalent",
+    "thread_factor": 1.0,
+    "load1": 3.59
+   },
+   "should_fail": "none: equivalent (the break is an early exit)"
+  },
+  {
+   "key": "79ba0b9f6b3cf22d",
+   "site": "dhw_planner.py:596 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 596,
+   "patch": "and interval_hours > 0 -> and interval_hours >= 0",
+   "function": "DhwPlanner._dhw_legionella_due",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 4046.2,
+    "load1_start": 0.58,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6574.5,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/79ba0b9f6b3cf22d.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 79ba0b9f6b3cf22d"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_79ba0b9f6b3cf22d.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_79ba0b9f6b3cf22d.py",
+    "baseline_value": "interval0_baseline=(False, None)",
+    "mutant_value": "interval0_mutant=(True, 1)",
+    "results": {
+     "interval0_baseline": "(False, None)",
+     "interval0_mutant": "(True, 1)",
+     "null_moved": "0 count",
+     "reach_flow_min_days": "1",
+     "reach_service_min_days": "0.01",
+     "reach_service_accepts_0": "0 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.46",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "interval 0, 0.01, 1, 7, 30 d x hours_since 0/20/150/1000 h; the flow selector and service schema bounds",
+    "reading": "separates only at an interval of exactly 0 days (baseline no cycle, mutant overdue cycle at step 1); every positive interval (16 inputs incl. 0.01 d) agrees; the options flow's selector floor is 1 day and the set_parameters service refuses 0 (accepts from 0.01): unreachable through production",
+    "thread_factor": 1.0,
+    "load1": 3.46
+   },
+   "should_fail": "none through production; only a direct ThermalParameters(dhw_legionella_interval_days=0) separates"
+  },
+  {
+   "key": "56d2279a568e8891",
+   "site": "dhw_planner.py:598 CMP_BOUND",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 598,
+   "patch": "and n_steps > 0 -> and n_steps >= 0",
+   "function": "DhwPlanner._dhw_legionella_due",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3794.8,
+    "load1_start": 0.94,
+    "load1_end": 1.01,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6399.5,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/56d2279a568e8891.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 56d2279a568e8891"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_56d2279a568e8891.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_56d2279a568e8891.py",
+    "baseline_value": "n0_hours_since_400_baseline=(False, None, None)",
+    "mutant_value": "n0_hours_since_400_mutant=raises ValueError",
+    "results": {
+     "moved_in_range": "0 count",
+     "n0_hours_since_20_baseline": "(False, None, None)",
+     "n0_hours_since_20_mutant": "(False, None, None)",
+     "n0_hours_since_168_baseline": "(False, None, None)",
+     "n0_hours_since_168_mutant": "(False, None, None)",
+     "n0_hours_since_400_baseline": "(False, None, None)",
+     "n0_hours_since_400_mutant": "raises ValueError",
+     "reach_n0_optimize_baseline": "['optimize raised IndexError']",
+     "reach_n0_optimize_mutant": "['optimize raised ValueError']",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.18",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "n_steps 0/1/2/96 x hours_since 0/20/150/167.9/168/400 h; optimize() on a 0-step horizon, both arms",
+    "reading": "identical on n_steps >= 1 (15 inputs); at n_steps 0 an overdue clock separates (baseline no cycle, mutant ValueError from an empty argmin), but optimize() at n_steps 0 already fails in the baseline (IndexError; mutant ValueError) and coordinator.py:6379 refuses any solve with fewer than 4 price steps: unreachable through production",
+    "thread_factor": 1.0,
+    "load1": 3.18
+   },
+   "should_fail": "none through production; only a direct call at n_steps 0 separates"
+  },
+  {
+   "key": "5224cce5f7a150cb",
+   "site": "dhw_planner.py:658 CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 658,
+   "patch": "first = min(max(reach_step, 0), n_steps - 1) -> first = (max(reach_step, 0))",
+   "function": "DhwPlanner._dhw_legionella_due",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3692.5,
+    "load1_start": 0.96,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6133.7,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/5224cce5f7a150cb.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 5224cce5f7a150cb"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_5224cce5f7a150cb.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_5224cce5f7a150cb.py",
+    "baseline_value": "moved=0 count",
+    "mutant_value": "inputs_tried=432 count",
+    "results": {
+     "inputs_tried": "432 count",
+     "moved": "0 count",
+     "branch_hard_reachable": "124 count",
+     "branch_hard_overdue_reachable": "156 count",
+     "branch_hard_unreachable": "8 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.18",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "n_steps 4/96/192 x hours_since 0/100/150/167/168/170/400/2000 h x initial tank 20/45/55/59.5/60/65 C x Off window none/step 0/band, seeded random prices",
+    "reading": "432 inputs over every hard-deadline branch (124 reachable, 156 overdue reachable, 8 unreachable) agree: in this branch reach_step < n_steps, so min(..., n_steps - 1) never binds: equivalent",
+    "thread_factor": 1.0,
+    "load1": 3.18
+   },
+   "should_fail": "none: equivalent by the branch invariant"
+  },
+  {
+   "key": "c124ea447555a04a",
+   "site": "dhw_planner.py:658 CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 658,
+   "patch": "first = min(max(reach_step, 0), n_steps - 1) -> first = min((reach_step), n_steps - 1)",
+   "function": "DhwPlanner._dhw_legionella_due",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3807.0,
+    "load1_start": 0.92,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6411.3,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/c124ea447555a04a.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c124ea447555a04a"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_c124ea447555a04a.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_c124ea447555a04a.py",
+    "baseline_value": "moved=0 count",
+    "mutant_value": "inputs_tried=432 count",
+    "results": {
+     "inputs_tried": "432 count",
+     "moved": "0 count",
+     "branch_hard_reachable": "124 count",
+     "branch_hard_overdue_reachable": "156 count",
+     "branch_hard_unreachable": "8 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.46",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "n_steps 4/96/192 x hours_since 0/100/150/167/168/170/400/2000 h x initial tank 20/45/55/59.5/60/65 C x Off window none/step 0/band, seeded random prices",
+    "reading": "432 inputs over every hard-deadline branch agree: reach_step is an np.where index or n_steps, never negative, so max(reach_step, 0) never binds (the carried u1d answer's negative reach_step does not occur): equivalent",
+    "thread_factor": 1.0,
+    "load1": 3.46
+   },
+   "should_fail": "none: equivalent by the branch invariant"
+  },
+  {
+   "key": "8fb9093f7470e6aa",
+   "site": "dhw_planner.py:659 CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 659,
+   "patch": "limit = max(first + 1, min(deadline_step + 1, n_steps)) -> limit = max(first + 1, (deadline_step + 1))",
+   "function": "DhwPlanner._dhw_legionella_due",
+   "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 4057.5,
+    "load1_start": 0.78,
+    "load1_end": 1.02,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6779.1,
+    "provisional": true,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/8fb9093f7470e6aa.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8fb9093f7470e6aa"
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8fb9093f7470e6aa.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_8fb9093f7470e6aa.py",
+    "baseline_value": "moved=0 count",
+    "mutant_value": "inputs_tried=432 count",
+    "results": {
+     "inputs_tried": "432 count",
+     "moved": "0 count",
+     "branch_hard_reachable": "124 count",
+     "branch_hard_overdue_reachable": "156 count",
+     "branch_hard_unreachable": "8 count",
+     "thread_factor": "1.000 ratio",
+     "load1": "3.46",
+     "swapins": "0 count"
+    },
+    "inputs_tried": "n_steps 4/96/192 x hours_since 0/100/150/167/168/170/400/2000 h x initial tank 20/45/55/59.5/60/65 C x Off window none/step 0/band, seeded random prices",
+    "reading": "432 inputs over every hard-deadline branch agree: the branch runs only when deadline_step < n_steps, so min(deadline_step + 1, n_steps) never binds: equivalent",
+    "thread_factor": 1.0,
+    "load1": 3.46
+   },
+   "should_fail": "none: equivalent by the branch invariant"
+  }
+ ],
+ "null_control": {
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/null.json",
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3642.7,
+  "load1": [
+   0.74,
+   0.92
+  ],
+  "provisional": true
+ }
+}

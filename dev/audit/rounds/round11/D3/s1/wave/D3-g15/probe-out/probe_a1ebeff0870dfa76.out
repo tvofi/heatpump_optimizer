@@ -1,0 +1,16 @@
+RESULT boost_top=60.0 C
+RESULT tie_inputs_tried=601 count
+RESULT tie_hits=16 count
+RESULT moved_near_tie=16 count
+RESULT moved_under_tie=16 count
+RESULT tie_draw_kw=7.246988794418304
+RESULT tie_runup_steps_baseline=6 count
+RESULT tie_runup_steps_mutant=0 count
+RESULT tie_ceiling_step39_baseline=60.0 C  tie_ceiling_step39_mutant=55.0 C
+RESULT tie_requirement_step39_baseline=60.0000 C  mutant=20.0000 C
+RESULT moved_random=0 count
+RESULT sweep_configs_with_ties=16/30 count
+RESULT sweep_ties_moved=267 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.46
+RESULT swapins=0 count

@@ -1,0 +1,113 @@
+{
+ "key": "7cd9b966a3bd0008",
+ "site": "dhw_planner.py:793 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 793,
+ "patch": "if need <= floor_temps[m]: -> if need < floor_temps[m]:",
+ "function": "DhwPlanner._dhw_legionella_ceilings",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3248.9,
+  "load1_start": 0.64,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5316.0,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/7cd9b966a3bd0008.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7cd9b966a3bd0008"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+  "baseline_value": "tie_runup_steps_baseline=2 count",
+  "mutant_value": "tie_runup_steps_mutant=5 count",
+  "results": {
+   "reference_runup_steps": "5 count  (floor 20 C: steps 35..39)",
+   "ties_moved": "5/5 count",
+   "tie_step": "38 floor=np.float64(43.51385386005922) C",
+   "tie_runup_steps_baseline": "2 count",
+   "tie_runup_steps_mutant": "5 count",
+   "tie_req_sum_baseline": "855.7613 C  tie_req_sum_mutant=869.8499 C",
+   "tie_req_sum_delta_c": "14.0886 C",
+   "null_moved": "0 count",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.46",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "200 L tank 55/60 C, 4 kW run, cycle at step 40 of 96, floor 20 C with the tie placed on each walk step 39..35; null +1e-9 C",
+  "reading": "when the availability floor at a walk step equals that step's need exactly the baseline stops the walk (2 run-up steps at a tie on step 38), the mutant walks on (5 steps), raising the folded requirement before the cycle by 14.0886 C summed; every one of the 5 walk steps separates at its tie; a floor 1e-9 C higher: identical",
+  "thread_factor": 1.0,
+  "load1": 3.46
+ },
+ "should_fail": "tests/features.py (executes line 793 on its traced baseline) lacks an assertion at need == floor that the walk stops there",
+ "finding": {
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "title": "No check pins the legionella run-up stop at need == availability floor (`<=` vs `<`)",
+  "severity": "low",
+  "claim": "Mutant 7cd9b966a3bd0008 at dhw_planner.py:793 (if need <= floor_temps[m]: -> if need < floor_temps[m]:) survives the full gate (RED-AS-NULL), yet the probe moves: run-up steps written with the floor tied to the walk's need at step 38: baseline 2, mutant 5.",
+  "mechanism": "when the availability floor at a walk step equals that step's need exactly the baseline stops the walk (2 run-up steps at a tie on step 38), the mutant walks on (5 steps), raising the folded requirement before the cycle by 14.0886 C summed; every one of the 5 walk steps separates at its tie; a floor 1e-9 C higher: identical. Check that should have failed (D3.M4): tests/features.py (executes line 793 on its traced baseline) lacks an assertion at need == floor that the walk stops there.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "count of run-up floor steps _dhw_legionella_ceilings writes when one step's availability floor equals the walk's need there",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_ceilings",
+  "phenomenon_property": "Where the availability floor already meets the ramp's need the run-up walk stops; no run-up floor is written below it",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+   "value": "5 count",
+   "unit": "count of run-up floor steps _dhw_legionella_ceilings writes when one step's availability floor equals the walk's need there",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g15: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probes ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 3.46,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the mutant edit at dhw_planner.py:793 (if need <= floor_temps[m]: -> if need < floor_temps[m]:) applied in memory by the probe; full gate: fullgate.py run --src complete --key 7cd9b966a3bd0008",
+   "expected_direction": "up",
+   "observed_value": "5 count"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+   "value": 0,
+   "note": "the same floor raised 1e-9 C: null_moved=0"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7cd9b966a3bd0008"
+  ],
+  "proposed_fix_scope": "tests only: a features.py check with floor_temps[m] equal to the baseline run-up at m pinning the run-up steps",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}
