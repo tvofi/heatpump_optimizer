@@ -97,15 +97,13 @@ TTL=$(gh pr view "$N" -R $R --json title -q .title)
 _added=$(ensure_row . "$N" "$(row_line "$N" $R "$TTL")")
 ROW=""; [ -z "$_added" ] || ROW="adds one commit containing only this PR's own row, \`$_added\`"
 M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
-# A generated figure block names the head it was rendered at (figure_block.py refresh, as open_pr.sh's
-# op_figures), and the merges and the row above moved it: re-render at the head this run pushes or patches,
-# before either. A body with no block is untouched; a failed refresh refuses, pushing and patching nothing.
+# A body stores no figure block (pr-contract renders the registered instruments into its job summary), and
+# pr-contract refuses one: cut any a body written before that rule still carries, before the push or the
+# patch. A body with no block is untouched; a failed strip refuses, pushing and patching nothing.
 upd_figures() { # <where>
-  grep -q '^<!-- figure-block: ' "$B" || return 0
-  local fb=origin/main
-  fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
-  python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
-  pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
+  grep -q '^<!-- /\{0,1\}figure-block' "$B" || return 0
+  python3 -I "$PRT/figure_block.py" strip "$B" > $WT.fig.log 2>&1 && return 0
+  pr_refuse "the figure-block strip $1 failed; nothing is pushed or patched:
 $(tail -n 20 $WT.fig.log)"
 }
 # HPO_UPDATE_BODY_ONLY (cloud_relay.sh's handoff_arm, on a body-only move it does not review-freeze):
