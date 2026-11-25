@@ -1,0 +1,36 @@
+M4: KILLED rc=1
+      FAIL a keyed transcript stays keyed by its first user message through later user lines (a tool_result, another key): one local fixer row
+    token_ledger self-test: 17 passed, 1 failed
+M5: KILLED rc=1
+      FAIL a day's `t` is its latest stamp, not its last-written one
+    token_ledger self-test: 17 passed, 1 failed
+D1b key only for whole prompt: KILLED rc=1
+      FAIL a published fixer's stub ends its first line with the seat key its whole prompt carries
+      FAIL a published reviewer's stub ends its first line with the seat key its whole prompt carries
+      FAIL a group seat's prompt keys it, on its first line, by group, role, model and dispatch name, and its stub, the seat's first user message, ends its first line with the same key (R11-PRE-TOKEN-LEDG
+    cloud_dispatch self-test: 188 checks, 3 failed
+D2 missing classes dropped: KILLED rc=1
+    FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {'null control: the live D16 and D17 pass': True, 'a D16 block owned by two seats is refused': True, 'a D17 seat emptied lea
+D3 unkeyed dropped: KILLED rc=1
+    FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {'null control: the live D16 and D17 pass': True, 'a D16 block owned by two seats is refused': True, 'a D17 seat emptied lea
+D4 orchestrator exclusion dropped: KILLED rc=1
+    FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {'null control: the live D16 and D17 pass': True, 'a D16 block owned by two seats is refused': True, 'a D17 seat emptied lea
+D5 window ignored for classes: SURVIVED rc=0
+    FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+D6 unread print dropped: KILLED rc=1
+    FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {'null control: the live D16 and D17 pass': True, 'a D16 block owned by two seats is refused': True, 'a D17 seat emptied lea
+D7 unread returns early (refusal lost): KILLED rc=1
+    FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]
+    SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {'null control: the live D16 and D17 pass': True, 'a D16 block owned by two seats is refused': True, 'a D17 seat emptied lea
+
+[exited with code 0]
