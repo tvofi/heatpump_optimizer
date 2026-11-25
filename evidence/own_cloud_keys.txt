@@ -1,0 +1,2 @@
+t	seat_class	group	role	dimension	model	seat
+2026-11-25T15:40:41.277Z	cloud	-	-	-	claude-opus-5-5	-

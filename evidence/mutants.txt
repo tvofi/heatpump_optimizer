@@ -1,0 +1,12 @@
+M1-seen-guard: rc=1 fails=3 ::   FAIL a response written once per content block counts once (m1 twice is 1111, not 2222)|  FAIL every usage field is kept apart and `tokens` is their sum|  FAIL one cloud row makes it read, summing `tokens` (null control for the unread arm)|
+M2-class: rc=1 fails=3 ::   FAIL a session's own transcript with no key is the orchestrator's|  FAIL round_metrics reads the ledger and prints unread while the cloud class has no row|  FAIL one cloud row makes it read, summing `tokens` (null control for the unread arm)|
+M3-keep-pruned: rc=1 fails=2 ::   FAIL a transcript pruned since keeps its rows; the rest are replaced, not appended|  FAIL one cloud row makes it read, summing `tokens` (null control for the unread arm)|
+M4-first-only: rc=0 fails=0 :: 
+M5-t-max: rc=0 fails=0 :: 
+M6-reader: rc=1 fails=1 ::   FAIL round_metrics reads the ledger and prints unread while the cloud class has no row|
+M7-key-insert: rc=1 fails=2 ::   FAIL every role's prompt ends its first line with its seat key: the role, the model, the dispatch name|  FAIL a group seat's prompt keys it, on its first line, by group, role, model and dispatch name; its stub carries no key (R11-PRE-TOKEN-LEDGER)|
+M8-inherit: rc=1 fails=1 ::   FAIL a flag-path repair of part 2 on its own ref keeps the part's line, after its hand brief (carry: R11-PRE-TOOLCHAIN-PIN's repair held none)|
+M9-group-arg: rc=1 fails=1 ::   FAIL a group seat's prompt keys it, on its first line, by group, role, model and dispatch name; its stub carries no key (R11-PRE-TOKEN-LEDGER)|
+M10-wire: rc=1 :: FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]|FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]|   coverage arm drop D10's universe: refused=True names ['custom_components/heatpump_optimizer/py.typed']=True
+M11-window-lo: rc=1 :: FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]|FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]|   coverage arm drop D10's universe: refused=True names ['custom_components/heatpump_optimizer/py.typed']=True
+M12-reviewer-dropped: rc=1 :: FAIL D1 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]|FAIL D2 mode=cells seats=3 universe=102 [s1:102f/78011loc, s2:102f/78011loc, s3:102f/78011loc]|   coverage arm drop D10's universe: refused=True names ['custom_components/heatpump_optimizer/py.typed']=True
