@@ -1,0 +1,1 @@
+probe written+run on baseline worktree: first weather-failure WARNING (1 -> 0); class pending gate verdict (probe moves -> candidate if SURVIVED/RED-AS-NULL)

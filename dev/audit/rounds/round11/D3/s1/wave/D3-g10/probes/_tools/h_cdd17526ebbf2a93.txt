@@ -1,0 +1,16 @@
+# Metric: over five HeatPumpOptimizerCoordinator._update_current_state cycles on a two-tank install whose wood probes
+#   read healthy, healthy, unavailable, unavailable, healthy: the count of wood-tank WARNING and two-tank INFO
+#   records the coordinator logger emits, logging format errors among them, and the published
+#   wood_tank_temperature per cycle.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_cdd17526ebbf2a93.py
+# Expected: (warnings,infos,format_errors) (1, 2, 0) -> (3, 2, 0); temps identical; null_moved=0
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g10, 4 vCPU Intel Xeon @ 2.30GHz, 16 GB.
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._update_current_state
+#   (coordinator.py:6747 `if wood_mean is None and had:` / 6752 `elif wood_mean is not None and not had:`).
+# Perturbation: mutant cdd17526ebbf2a93, line 6747 `and` -> `or`, in memory (the coroutine recompiled from its own source and attached
+#   with mock.patch.object for the mutant arm only). Direction: a healthy probe with a held reading logs the stale WARNING, and so does a still-missing one: 1 -> 3.
+# Inputs: live coordinator (tests/harness FakeHass/FakeEntry) configured with wood_tank_top/bottom entities;
+#   ThermalParameters.two_tank_modelled forced True by a PropertyMock (topology_layout == TOPOLOGY_TWO_TANK_4WAY in
+#   production); the probe states are rewritten between cycles; asyncio.run per cycle.
+# Null control: a single healthy first read (both arms log the activation INFO alike); temps_moved also reports
+#   whether the published temperature moved (it must not: the guards only choose a log line).

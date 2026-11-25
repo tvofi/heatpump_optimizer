@@ -1,0 +1,56 @@
+{
+ "key": "3b6228b7d69c32bc",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:7693 CLAMP_DROP",
+ "patch": "np.clip(displace_value, self._ecl110_displace_min, self._ecl110_displace_max) -> (displace_value)",
+ "function": "HeatPumpOptimizerCoordinator.async_publish_ecl110_command",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator.async_publish_ecl110_command@7693-7693",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/structure.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3341.7,
+  "load1_start": 0.66,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/structure.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5565.1,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/gates/3b6228b7d69c32bc.json",
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3b6228b7d69c32bc",
+ "class": "killed",
+ "killed_by": [
+  "python3 tests/structure.py"
+ ],
+ "failing_check_lines": [
+  "########## 1 metric(s) IMPROVED and not yet recorded ##########",
+  "  seam_cut_total                            415          413         -2  BETTER (lower is better)",
+  "1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED",
+  ">>> FAILED: python3 tests/structure.py"
+ ],
+ "note": "non-finding by the metric (the full gate fails on this mutant: python3 tests/structure.py); see kill_nature and lead",
+ "kill_nature": "structural ratchet only: tests/structure.py refuses an unrecorded improvement (seam_cut_total 415 -> 413, the two self._ecl110_displace_min/max reads leave the coordinator); no behavioural assertion in any script failed beyond the null's three (closure.py selftest, entities.py, harness_headers.py)",
+ "probe_on_killed_key": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_3b6228b7d69c32bc.py",
+  "result": "at_min_plus_bias (sent,current): baseline (-20, -20.0), mutant (-24, -24.0); over_max baseline (20, 20.0)",
+  "note": "written before the gate verdict; the published ECL110 displace leaves the configured [-20, 20] K range under the mutant"
+ },
+ "lead": "killed by a size/seam metric, not by a check of the clamp: an equivalent behaviour change that kept the two attribute reads (e.g. clipping against a wrong bound) would pass the gate. Should-fail check absent: a coordinator check that publishes an ECL110 command at displace_min + negative bias and asserts the sent value stays within [displace_min, displace_max]."
+}

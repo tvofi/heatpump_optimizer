@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py: pins first weather-failure WARNING (1 -> 0) (baseline vs mutant in memory; output probe_aa6b718c979bf831.out)
