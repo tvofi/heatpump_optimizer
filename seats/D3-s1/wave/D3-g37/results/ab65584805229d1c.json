@@ -1,0 +1,86 @@
+{
+ "key": "ab65584805229d1c",
+ "site": "custom_components/heatpump_optimizer/sysid.py:892 GUARD_OFF",
+ "patch": "if not (-0.5 <= gains_kw <= 2.0): -> if False:",
+ "function": "_slab_refusal",
+ "cluster": "sysid.py:_slab_refusal@890-897",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3753.2,
+  "child_cpu_s": 6194.3,
+  "load1_start": 0.86,
+  "load1_end": 1.08,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/ab65584805229d1c.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/ab65584805229d1c.log",
+ "provisional": true,
+ "machine": "box D3-g37: nproc 4, Intel Xeon @ 2.10GHz, 16 GB; walls and load provisional",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_ab65584805229d1c.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_ab65584805229d1c.py",
+  "results": {
+   "unit0_args": "(0.2, 5.0, 3.0, 10.0)",
+   "unit0_baseline": "'fitted gains outside plausible bounds'",
+   "unit0_mutant": "'accept'",
+   "unit1_args": "(0.2, 5.0, -1.0, 10.0)",
+   "unit1_baseline": "'fitted gains outside plausible bounds'",
+   "unit1_mutant": "'accept'",
+   "unit2_args": "(0.2, 5.0, 2.0000001, 10.0)",
+   "unit2_baseline": "'fitted gains outside plausible bounds'",
+   "unit2_mutant": "'accept'",
+   "unit_moved": "3 count",
+   "null_moved": "0 count (over 3 null rows)",
+   "reach_runs": "360 count",
+   "reach_slab_refusal_calls": "108 count",
+   "reach_calls_separating": "0 count",
+   "reach_results_differ": "0 count",
+   "reach_ua_range": "[0.0568477, 0.965586]",
+   "reach_room_cap_range": "[4.06749, 14.5566]",
+   "reach_gains_kw_range": "[-2.24402e-06, 0.9]",
+   "reach_slab_mass_range": "[16.5, 23]",
+   "thread_factor": "1.000",
+   "load1": "2.03",
+   "swapins": "0"
+  },
+  "answer": "Unit: gains 3.0, -1.0, 2.0000001: refused -> accepted (then clipped to [0, 2] at sysid.py:2411); null rows do not move. unreachable through production: _slab_refusal's only caller is _slab_outcome (sysid.py:2408), fed ua=exp(x[0]) and room_cap=exp(x[1]) from _lm_solve, whose seeds are floored at log(1e-3)/log(1e-2) (sysid.py:2375-2376) and whose accepted candidates are clipped to [1e-4, 1e2] / [1e-3, 1e3] (sysid.py:836-839), so ua and room_cap never come near 1e-6; gains_kw=x[2] sits on the ridge prior gains_prior_kw = night_gains_prior_kw over ThermalParameters.internal_gains, which no config key, preset or coordinator write moves off 0.3 (the learned profile is clipped to [0, 0.9] at coordinator.py:9452 and is not published into the plant); measured: 360 production fits, 108 _slab_refusal calls, 0 separating, 0 published results differ, delivered gains in [-2.2e-6, 0.9], ua in [0.057, 0.97], room_cap in [4.07, 14.6]",
+  "harness": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_mut.py (in-memory mutant), dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_drive.py (production sweep)",
+  "baseline_value": {
+   "unit0_baseline": "'fitted gains outside plausible bounds'",
+   "unit1_baseline": "'fitted gains outside plausible bounds'",
+   "unit2_baseline": "'fitted gains outside plausible bounds'"
+  },
+  "mutant_value": {
+   "unit0_mutant": "'accept'",
+   "unit1_mutant": "'accept'",
+   "unit2_mutant": "'accept'"
+  },
+  "inputs_tried": [
+   "unit0",
+   "unit1",
+   "unit2",
+   "production sweep: 360 count runs (_drive.sweep / slab sweep)"
+  ]
+ },
+ "should_fail": "none through production; a direct unit call separates. tests/features.py:53988 calls _slab_refusal directly only at (0.0, 400.0, 0.0, 200.0) (the sign guard, decided identically by this mutant); the assertion it lacks is a direct call at the mutated boundary value"
+}
