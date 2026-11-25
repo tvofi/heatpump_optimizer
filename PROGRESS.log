@@ -101,3 +101,4 @@
 1795570788 HB gate done: 0b6e291153f1d738 KILLED | gated 8/16 left 8 KILLED=1 RED-AS-NULL=7
 1795570792 HB gate started: e38d4bea802156c3
 1795570879 CKPT D3-s1 48 file(s)
+1795570883 HB 0b6e291153f1d738 KILLED set aside as box artefact (probes in gated tree tripped harness_headers inlined-walk check); probes moved out; key re-gated after the pass
