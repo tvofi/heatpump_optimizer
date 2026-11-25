@@ -1,0 +1,10 @@
+M1-planner-ignores-flag | tests/manual_plan.py | rc-tail: ALL 132 manual plan checks PASSED | 8s
+M1-planner-ignores-flag | tests/edge.py | rc-tail: ALL EDGE CASES PASS | 39s
+M1-planner-ignores-flag | tests/cycle_lane.py | rc-tail: ALL 25 checks PASSED | 57s
+M1-planner-ignores-flag | tests/finite_boundary.py | rc-tail: ALL 119 FINITE BOUNDARY CHECKS PASSED | 112s
+M1-planner-ignores-flag | tests/stress.py | rc-tail: ALL 122 STRESS CHECKS PASSED | 348s
+M1-planner-ignores-flag | tests/guard_pins.py | rc-tail: ALL 91 GUARD PIN CHECKS PASSED | 5s
+M1-planner-ignores-flag | tests/features.py | rc-tail:   ok   null control: a plausible floor-loop return still seeds the slab, to the return + 1 K fixed point, and raises no repair | 900s
+M1-planner-ignores-flag | tests/optimality.py | rc-tail: ALL 84 OPTIMALITY CHECKS PASSED | 143s
+M1-planner-ignores-flag | tests/solar_alignment.py | rc-tail: ALL SOLAR ALIGNMENT CHECKS PASSED | 1s
+M1-planner-ignores-flag | tests/plan_view.py | rc-tail: plan reason codes, price provenance and slot energy OK | 1s
