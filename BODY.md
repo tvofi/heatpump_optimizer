@@ -64,7 +64,7 @@ What changes for a seat: a push to `main` is no longer always `full`. A push who
 
 ## Head
 
-7eb9b2fd81 (fix A c0dcc352f9 unchanged at the base of the range). Self-tests, mutants and the non-code prepr (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`, rc=0) are at ce0283e1d0; 8736b08a17 only restores one `if:` in `graders-head-copy` to main's text and b8ad8c02dd and 7eb9b2fd81 only add `dev/programme/carries/carry-3885.json` and its entry in `tests/entities.py`'s closure (entities reads every carry file); `tools/pr/ci_predict.py` predicts no red at 7eb9b2fd81; `tools/ci/prelude.py --self-test` is green at both, and `brief_lint.mjs` reads the carry file clean.
+7eb9b2fd81bbe71be048e730481470de62c0932c (fix A c0dcc352f9 unchanged at the base of the range). Self-tests, mutants and the non-code prepr (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`, rc=0) are at ce0283e1d0; 8736b08a17 only restores one `if:` in `graders-head-copy` to main's text and b8ad8c02dd and 7eb9b2fd81 only add `dev/programme/carries/carry-3885.json` and its entry in `tests/entities.py`'s closure (entities reads every carry file); `tools/pr/ci_predict.py` predicts no red at 7eb9b2fd81; `tools/ci/prelude.py --self-test` is green at both, and `brief_lint.mjs` reads the carry file clean.
 
 ## Mutation proof
 
