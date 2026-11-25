@@ -1,0 +1,6 @@
+tests/deployment_shape.py rc=0
+dev/audit/rounds/round4/D6/claims.py rc=0
+tests/entities.py rc=124
+tests/structure.py rc=0
+tests/doc_claims.py rc=0
+DONE
