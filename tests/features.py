@@ -27923,6 +27923,26 @@ R.check(
     f"never {_dsp_cfg_never.duty_switch_stop_probability}, read "
     f"{_dsp_cfg_read.duty_switch_stop_probability} {_dsp_cfg_read.duty_switch_off_seconds}",
 )
+# R11-OUTSIDE-3849: an unlatched record is priced shrunk and masked from the legs.
+_dsp_push_u = _dsp_push_ds.DutySwitchLearner({
+    "dhw_space": _dsp_push_d(k=2.0, kept_w=0.0, first_day=_dsp_push_day, last_day=_dsp_push_day,
+                             usable=False, off_s=[501.0]),
+    "space_dhw": _dsp_push_d(),
+})
+_dsp_cfg_unever, _dsp_cfg_uread, _ = _dsp_pushed(_dsp_push_u)
+R.check(
+    "the coordinator passes the unlatched mask with the pairs: none on a pump "
+    "never arbitrated (both directions unlatched, priced zero), the latched "
+    "learner's read latched, and an unlatched record's stop priced at "
+    "k / (n + PRIOR_N) beside its mask, its off time unread",
+    _dsp_cfg_never.duty_switch_unlatched == (True, True)
+    and _dsp_cfg_read.duty_switch_unlatched == (False, False)
+    and _dsp_cfg_uread.duty_switch_unlatched == (True, True)
+    and _dsp_cfg_uread.duty_switch_stop_probability == (2.0 / (2.0 + _dsp_push_ds.PRIOR_N), 0.0)
+    and _dsp_cfg_uread.duty_switch_off_seconds == (0.0, 0.0),
+    f"never {_dsp_cfg_never.duty_switch_unlatched} read {_dsp_cfg_read.duty_switch_unlatched} "
+    f"unlatched {_dsp_cfg_uread.duty_switch_stop_probability} {_dsp_cfg_uread.duty_switch_unlatched}",
+)
 
 _svc_sim_hass = FakeHass()
 _seed_prices(_svc_sim_hass)  # #924
@@ -89084,14 +89104,14 @@ class _ShLog(logging.Handler):
         self.seen.append(record.getMessage())
 
 
-_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh_log, _sh_level = _ShLog(), _sh._LOGGER.level
+_sh._LOGGER.addHandler(_sh_log)
+_sh._LOGGER.setLevel(logging.DEBUG)
 try:
     _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh._LOGGER.removeHandler(_sh_log)
+    _sh._LOGGER.setLevel(_sh_level)
 _sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "a held OFF is not logged as the cooling or blocked-mode skip",
@@ -89115,13 +89135,13 @@ async def _sh_blocked_write():
 
 
 _sh_log.seen.clear()
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh._LOGGER.addHandler(_sh_log)
+_sh._LOGGER.setLevel(logging.DEBUG)
 try:
     _sh_bcalls = _asyncio.run(_sh_blocked_write())
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh._LOGGER.removeHandler(_sh_log)
+    _sh._LOGGER.setLevel(_sh_level)
 _sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
@@ -89262,6 +89282,241 @@ except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
     _sh_ns = repr(_sh_err)
 R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
         _sh_ns == ([], False), f"{_sh_ns}")
+
+# Cooling is the user's season (``pump_arbiter.cooling_mode``). While the
+# pump's mode reads Cooling or Cooling + DHW, the cycle's supply gate writes
+# the power switch in neither direction, a live space boost included. It
+# raises ``ISSUE_COOLING`` once per episode, cleared when the mode leaves
+# cooling. Driven as the cycle drives it: ``cycle_supply`` with the
+# coordinator's own boost record, then ``_write_supply``.
+from heatpump_optimizer import pump_arbiter as _cg_pa  # noqa: E402
+from heatpump_optimizer import boost as _cg_boost  # noqa: E402
+from heatpump_optimizer import early_cutoff as _cg_ec  # noqa: E402
+from heatpump_optimizer import issues as _cg_issues  # noqa: E402
+from homeassistant.util import dt as _cg_dt  # noqa: E402
+
+_CG_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+
+
+def _cg_coord(mode_state, *, switch="off", power=0.0):
+    hass = FakeHass({
+        "switch.hp": FakeState(switch, last_updated=_CG_T0 - timedelta(hours=1)),
+        "select.hp_mode": FakeState(mode_state, last_updated=_CG_T0 - timedelta(hours=1)),
+    })
+    coord = Coord(hass, FakeEntry(data={
+        **_LC_DATA, "heat_pump_switch_entity": "switch.hp",
+        "heat_pump_mode_entity": "select.hp_mode", "pump_duty_mode": "observe",
+    }))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_CG_T0 + timedelta(minutes=15 * i) for i in range(4)],
+        power_schedule=[power] * 4, dhw_power_schedule=[0.0] * 4, optimal_setpoints=[21.0] * 4)
+    return hass, coord
+
+
+async def _cg_cycle(coord, *, boosted=True, minute=0):
+    """One cycle's supply write; the switch calls and the ON the plan or boost asked."""
+    now = _CG_T0 + timedelta(minutes=minute)
+    if boosted:
+        _cg_boost.held_for(coord).until[_cg_boost.CHANNEL_SPACE] = _CG_T0 + timedelta(hours=1)
+    _cg_dt.freeze(now)
+    try:
+        on = _cg_pa.cycle_supply(coord.arbiter_inputs(), _cg_boost.held_for(coord), False, now)
+        await coord._write_supply(on)
+    finally:
+        _cg_dt.freeze(None)
+    return on, [c for c in coord.hass.services.calls if c[0] == "switch"]
+
+
+def _cg_boost_run(mode_state, **kw):
+    hass, coord = _cg_coord(mode_state, **kw)
+    return _asyncio.run(_cg_cycle(coord))
+
+
+for _cg_name, _cg_mode, _cg_want_calls in (
+    ("a space boost with the mode reading Cooling writes no switch-on", "Cooling", 0),
+    ("a space boost with the mode reading Cooling + DHW writes no switch-on", "Cooling + DHW", 0),
+    ("null control: the same boost with the mode reading Heating switches the pump on", "Heating", 1),
+    ("null control: the same boost with the mode reading Heating + DHW switches the pump on", "Heating + DHW", 1),
+):
+    _cg_on, _cg_calls = _cg_boost_run(_cg_mode)
+    R.check(f"cooling hands-off: {_cg_name}",
+            _cg_on is True and len(_cg_calls) == _cg_want_calls
+            and all(c[1] == "turn_on" for c in _cg_calls), f"{_cg_on} {_cg_calls}")
+
+
+# A plan ON (no boost) is held off the switch the same way, and an OFF
+# (a pump the user left running in Cooling) is not written either.
+def _cg_plan_run(mode_state, power, switch):
+    hass, coord = _cg_coord(mode_state, switch=switch, power=power)
+    return _asyncio.run(_cg_cycle(coord, boosted=False))
+
+
+for _cg_name, _cg_args, _cg_want in (
+    ("a plan ON with the mode reading Cooling writes nothing", ("Cooling", 1.5, "off"), (True, [])),
+    ("a plan OFF with the pump running in Cooling writes nothing", ("Cooling", 0.0, "on"), (False, [])),
+    ("null control: a plan OFF with the pump running in Heating switches it off", ("Heating", 0.0, "on"), (False, [("switch", "turn_off")])),
+):
+    _cg_got = _cg_plan_run(*_cg_args)
+    _cg_got = (_cg_got[0], [c[:2] for c in _cg_got[1]])
+    R.check(f"cooling hands-off: {_cg_name}", _cg_got == _cg_want, f"{_cg_got}")
+
+
+# The cycle's reading carries the last good mode across a dropout: with the
+# select unavailable and the cycle's signals reading Cooling, a boost still
+# writes no switch-on (``cooling_mode``'s second arm).
+async def _cg_dropout(cooling):
+    hass, coord = _cg_coord("unavailable")
+    cap = importlib.import_module(_cg_pa.__package__ + ".pump_mode").MODES["cool" if cooling else "heat"]
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "mode": cap})
+    return await _cg_cycle(coord)
+
+
+for _cg_name, _cg_cool, _cg_n in (
+    ("the cycle's last good Cooling holds a boost's switch-on through a dropout", True, 0),
+    ("null control: the cycle's last good Heating lets it through", False, 1),
+):
+    _cg_on, _cg_calls = _asyncio.run(_cg_dropout(_cg_cool))
+    R.check(f"cooling hands-off: {_cg_name}", len(_cg_calls) == _cg_n, f"{_cg_on} {_cg_calls}")
+
+
+async def _cg_read(coord, minute):
+    _cg_dt.freeze(_CG_T0 + timedelta(minutes=minute))
+    try:
+        await coord._update_current_state()
+    finally:
+        _cg_dt.freeze(None)
+
+
+# The repair: raised once for the episode however many writes ask for heat,
+# cleared when the mode leaves cooling, and raised again in the next episode.
+async def _cg_episode():
+    hass, coord = _cg_coord("Cooling")
+    made = []
+    real = _cg_issues.create_issue
+    _cg_issues.create_issue = lambda h, d, i, **k: (made.append(i), real(h, d, i, **k))[1]
+    try:
+        seen = []
+        for minute in (0, 1):
+            await _cg_cycle(coord, minute=minute)
+        seen.append(([i[1] for i in getattr(hass, "issues", [])], list(made)))
+        coord._mode = "off"  # the clear does not wait for a supply write
+        await _cg_read(coord, 3)  # the cycle's own signal read, no heat asked
+        seen.append([i[1] for i in getattr(hass, "issues", [])])
+        hass.states.set("select.hp_mode", FakeState("Heating", last_updated=_CG_T0))
+        await _cg_read(coord, 4)
+        seen.append([i[1] for i in getattr(hass, "issues", [])])
+        coord._mode = "auto"
+        hass.states.set("select.hp_mode", FakeState("Cooling + DHW", last_updated=_CG_T0))
+        await _cg_cycle(coord, minute=2)
+        seen.append((([i[1] for i in getattr(hass, "issues", [])]), len(made)))
+        return seen
+    finally:
+        _cg_issues.create_issue = real
+
+
+try:
+    _cg_ep = _asyncio.run(_cg_episode())
+except Exception as _cg_err:  # noqa: BLE001 -- each check reports what raised
+    _cg_ep = [repr(_cg_err)] * 4
+_CG_ID = "pump_mode_cooling"
+R.check("cooling repair: raised once for two boosted writes in one Cooling episode",
+        _cg_ep[0] == ([_CG_ID], [_CG_ID]), f"{_cg_ep[0]}")
+R.check("cooling repair: a cycle that asks for no heat keeps it while the mode reads Cooling",
+        _cg_ep[1] == [_CG_ID], f"{_cg_ep[1]}")
+R.check("cooling repair: cleared when the mode leaves cooling", _cg_ep[2] == [], f"{_cg_ep[2]}")
+R.check("cooling repair: raised again in the next episode (Cooling + DHW)",
+        _cg_ep[3] == ([_CG_ID], 2), f"{_cg_ep[3]}")
+
+
+# Null control for the repair: a heating mode asked for heat raises nothing.
+async def _cg_no_episode():
+    hass, coord = _cg_coord("Heating")
+    await _cg_cycle(coord)
+    return [i[1] for i in getattr(hass, "issues", [])]
+
+
+R.check("cooling repair: null control: a boost in Heating raises no cooling repair",
+        _CG_ID not in _asyncio.run(_cg_no_episode()), "")
+
+
+# Nor does a write that asks for no heat: a plan OFF in Cooling.
+async def _cg_off_in_cooling():
+    hass, coord = _cg_coord("Cooling", switch="on")
+    await _cg_cycle(coord, boosted=False)
+    return [i[1] for i in getattr(hass, "issues", [])]
+
+
+_cg_off_issues = _asyncio.run(_cg_off_in_cooling())
+R.check("cooling repair: a plan OFF in Cooling asks for no heat and raises no cooling repair",
+        _CG_ID not in _cg_off_issues, f"{_cg_off_issues}")
+
+
+# The early cut-off writes the same switch (OFF) through ``switch_supply``:
+# a cooling mode exempts its step, as the gate leaves the switch alone.
+def _cg_cutoff(mode_state):
+    hass, coord = _cg_coord(mode_state, switch="on", power=1.5)
+    coord._current_action = {"heat_pump_on": True}
+    return _cg_ec._exempt(coord.arbiter_inputs(), _cg_boost.held_for(coord), _CG_T0)
+
+
+for _cg_mode, _cg_want in (("Cooling", "cooling"), ("Cooling + DHW", "cooling"), ("Heating", None)):
+    _cg_got = _cg_cutoff(_cg_mode)
+    R.check(f"early cut-off: a space step with the mode reading {_cg_mode} -> {_cg_want}",
+            _cg_got == _cg_want, f"{_cg_got}")
+
+
+# The live select, where it reads a known mode, outranks the cycle's reading:
+# a select reading Heating over a stale Cooling reading lets a boost through.
+async def _cg_stale(live, cooling):
+    hass, coord = _cg_coord(live)
+    cap = importlib.import_module(_cg_pa.__package__ + ".pump_mode").MODES["cool" if cooling else "heat"]
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "mode": cap})
+    _on, calls = await _cg_cycle(coord)
+    return [c[1] for c in calls], [i[1] for i in getattr(hass, "issues", [])]
+
+
+for _cg_name, _cg_args, _cg_want in (
+    ("a select reading Heating over a stale Cooling reading switches a boost on", ("Heating", True), ["turn_on"]),
+    ("null control: select Heating, reading Heating switches it on", ("Heating", False), ["turn_on"]),
+    ("null control: select Cooling over a stale Heating reading writes nothing", ("Cooling", False), []),
+):
+    _cg_calls, _cg_iss = _asyncio.run(_cg_stale(*_cg_args))
+    R.check(f"cooling hands-off: {_cg_name}",
+            _cg_calls == _cg_want and (_CG_ID in _cg_iss) is (not _cg_want), f"{_cg_calls} {_cg_iss}")
+
+
+# The refusal's release: a plan ON the cycle could not write in Cooling lands
+# at the step tick once the select leaves cooling, not at the next cycle.
+async def _cg_release(leave):
+    hass, coord = _cg_coord("Cooling", power=1.5)
+    held = _cg_pa.state_for(coord)
+    held.supply_unsub = lambda: None  # the tick is driven by hand below
+    on, _calls = await _cg_cycle(coord, boosted=False)
+    _cg_pa.note_supply(held, _cg_pa.SupplyWiring(coord.arbiter_inputs, _cg_boost.held_for(coord), coord._write_supply), on, _CG_T0)
+    if leave:
+        hass.states.set("select.hp_mode", FakeState("Heating", last_updated=_CG_T0 + timedelta(minutes=1)))
+    seen = []
+    for minute in (2, 15):
+        _cg_dt.freeze(_CG_T0 + timedelta(minutes=minute))
+        try:
+            await _cg_pa.supply_tick(held, _cg_pa.SupplyWiring(coord.arbiter_inputs, _cg_boost.held_for(coord), coord._write_supply))
+        finally:
+            _cg_dt.freeze(None)
+        seen.append([c[1] for c in hass.services.calls if c[0] == "switch"])
+    return seen, [i[1] for i in getattr(hass, "issues", [])]
+
+
+for _cg_name, _cg_leave, _cg_want in (
+    ("the select set to Heating: the refused ON lands at the next tick and the notice clears", True, ([["turn_on"], ["turn_on"]], [])),
+    ("null control: the select still Cooling: no tick writes the switch", False, ([[], []], [_CG_ID])),
+):
+    try:
+        _cg_got = _asyncio.run(_cg_release(_cg_leave))
+    except Exception as _cg_err:  # noqa: BLE001 -- the check reports what raised
+        _cg_got = repr(_cg_err)
+    R.check(f"cooling release: {_cg_name}", _cg_got == _cg_want, f"{_cg_got}")
+
 
 
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
@@ -94960,7 +95215,8 @@ R.check(
 )
 
 
-def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5.5, cyc=0.3):
+def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5.5, cyc=0.3,
+             unlatched=(False, False)):
     params = _DspTP()
     params.mixing_valve_mode = "none"
     params.buffer_tank_volume = 750.0
@@ -94969,6 +95225,7 @@ def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5
     cfg = _DspCfg(clamp_planned_levels=clamp, cycling_cost=cyc)
     if pair is not None:
         cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = pair, off
+        cfg.duty_switch_unlatched = unlatched
     return _DspOpt(_DspTM(params), cfg)
 
 
@@ -95360,10 +95617,11 @@ R.check(
 )
 
 
-def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, out_mean=2.0, **install):
+def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, out_mean=2.0,
+               unlatched=(False, False), **install):
     """One full ``optimize``; the planner builds, the published simulation's
     inputs and the objective closures are recorded beside the result."""
-    opt = _dsp_opt(pair, off, **install)
+    opt = _dsp_opt(pair, off, unlatched=unlatched, **install)
     seen = _DspNS(
         builds=[], sims=[], objectives=[], solves=[], solved=[], min_runs=[],
         energy=[None], vectors=[0], vectors_outside=[0], solving=[0], stages=[], opt=opt,
@@ -96461,7 +96719,8 @@ R.check(
     f"{_dsp_rt_back.directions}",
 )
 
-# The read: both pairs in the leaf's order, zeros unless the stored latch is on.
+# The read: both pairs in the leaf's order; an off time only once the stored
+# latch is on, a stop probability shrunk by PRIOR_N before it (R11-OUTSIDE-3849).
 _dsp_table = _dsp_ds.DutySwitchLearner()
 for _dsp_i in range(6):
     _dsp_stop(_dsp_table, _DSP_DAY + timedelta(hours=7 * _dsp_i), 501)
@@ -96479,9 +96738,17 @@ _DSP_LEARNERS = {
     "an install whose every switch was kept": _dsp_ds.DutySwitchLearner(
         {"dhw_space": _dsp_dir(0.0, 10.0, usable=False), "space_dhw": _dsp_dir(0.0, 10.0, usable=False)}),
 }
+_DSP_NULL_LEARNERS = ("an empty learner", "an install whose every switch was kept")
+_DSP_UNDER = _DSP_LEARNERS["a learner under its on-threshold, off times stored"]
 R.check(
-    "the read returns zeros while a direction is unlatched, its off times with it",
-    all(l.planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for l in _DSP_LEARNERS.values()),
+    "the read returns no off time while a direction is unlatched, and its stop "
+    "probability shrunk to k / (n + PRIOR_N): zeros with no evidence and with "
+    "every switch kept, 4 / 9 for four stops under the on-threshold; every "
+    "direction of the three reads unlatched",
+    all(_DSP_LEARNERS[n].planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for n in _DSP_NULL_LEARNERS)
+    and _DSP_UNDER.planner_pairs() == ((4.0 / (4.0 + _dsp_ds.PRIOR_N), 0.0), (0.0, 0.0))
+    and _dsp_ds.PRIOR_N == 5.0
+    and all(l.unlatched() == (True, True) for l in _DSP_LEARNERS.values()),
     f"{ {n: l.planner_pairs() for n, l in _DSP_LEARNERS.items()} }",
 )
 _dsp_two = _dsp_ds.DutySwitchLearner({
@@ -96498,8 +96765,9 @@ R.check(
 # 4, the learner arm: each null state's read, handed to a full optimize.
 _dsp_arm_bad = []
 for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
-    for _dsp_label, _dsp_l in _DSP_LEARNERS.items():
-        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), **_dsp_kw)
+    for _dsp_label in _DSP_NULL_LEARNERS:
+        _dsp_l = _DSP_LEARNERS[_dsp_label]
+        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), unlatched=_dsp_l.unlatched(), **_dsp_kw)
         if (
             not _dsp_same_plan(_dsp_null, _dsp_base[_dsp_name])
             or _dsp_null.bans or _dsp_null.opt._space_avail is not None
@@ -96507,9 +96775,9 @@ for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
         ):
             _dsp_arm_bad.append((_dsp_name, _dsp_label))
 R.check(
-    "null controls from learner state: an empty learner, one under its "
-    "on-threshold and an install whose every switch was kept each read a plan "
-    "identical to today's on all three install classes",
+    "null controls from learner state: an empty learner and an install whose "
+    "every switch was kept each read a plan identical to today's on all three "
+    "install classes (one under its on-threshold is priced since R11-OUTSIDE-3849)",
     not _dsp_arm_bad,
     f"{_dsp_arm_bad}",
 )
@@ -96520,6 +96788,146 @@ R.check(
         for n, kw in _DSP_INSTALLS.items()),
 )
 
+
+# R11-OUTSIDE-3849 (issue 3849, Bankaifan): the hot water to heating stop was
+# priced at zero until the learner latched (n >= N_ON over two days). An
+# install whose switch stopped the compressor three times in three was planned
+# as if it never did. Before the latch the planner now prices k / (n + PRIOR_N)
+# (``Direction.priced``); the arbiter's leg order and merge still move on a
+# latch only (``duty_legs.leg_rule``'s unlatched mask), so the plan prices the
+# legs the arbiter serves whatever the latch.
+def _dsp_3849(usable=False, k=2.0, kept_w=0.0, off_s=(501.0, 492.0, 530.0)):
+    """The issue's record: hot water to heating stopped 3, kept 0, n = 2."""
+    d = _dsp_dir(k, kept_w, usable=usable, off_s=off_s)
+    d.stopped = 3
+    return _dsp_ds.DutySwitchLearner({"dhw_space": d, "space_dhw": _dsp_ds.Direction()})
+
+
+_dsp_i49, _dsp_i49_on = _dsp_3849(), _dsp_3849(usable=True)
+R.check(
+    "issue 3849's record (three stops in three switches, n = 2, unlatched) prices "
+    "hot water to heating at 2 / (2 + PRIOR_N) and reads no off time; control: "
+    "the same record latched prices p = 1 and its median off time",
+    _dsp_i49.planner_pairs() == ((2.0 / (2.0 + _dsp_ds.PRIOR_N), 0.0), (0.0, 0.0))
+    and _dsp_i49.unlatched() == (True, True)
+    and _dsp_i49_on.planner_pairs() == ((1.0, 0.0), (501.0, 0.0))
+    and _dsp_i49_on.unlatched() == (False, True),
+    f"unlatched {_dsp_i49.planner_pairs()} latched {_dsp_i49_on.planner_pairs()}",
+)
+_dsp_grid = [(k / 2.0, w / 2.0) for k in range(int(2 * _dsp_ds.N_CAP) + 1)
+             for w in range(int(2 * _dsp_ds.N_CAP) + 1)]
+_dsp_shrunk_bad = [
+    (k, w, d.priced, d.p) for k, w in _dsp_grid
+    for d in [_dsp_dir(k, w, usable=False)]
+    if not (0.0 <= d.priced < 1.0 and (d.priced == 0.0) == (k == 0.0)
+            and (k == 0.0 or d.priced < d.p) and d.priced == k / (k + w + _dsp_ds.PRIOR_N))
+]
+_dsp_cap = _dsp_dir(_dsp_ds.N_CAP, 0.0, usable=False)
+R.check(
+    f"the shrunk price over every unlatched record on a half-episode grid to the "
+    f"cap ({len(_dsp_grid)} records): zero exactly where no stop weighs, under p "
+    "wherever one does, never a whole start; at the cap with every switch a stop "
+    "it is N_CAP / (N_CAP + PRIOR_N); latched it is p",
+    len(_dsp_grid) == (2 * int(_dsp_ds.N_CAP) + 1) ** 2 and not _dsp_shrunk_bad
+    and _dsp_cap.priced == _dsp_ds.N_CAP / (_dsp_ds.N_CAP + _dsp_ds.PRIOR_N)
+    and _dsp_dir(3.0, 1.0).priced == 0.75,
+    f"{_dsp_shrunk_bad[:5]} cap {_dsp_cap.priced!r}",
+)
+R.check(
+    "an unlatched direction moves neither the order nor the merge: issue "
+    "3849's read is DEFAULT_RULE, hot water first and never merged; control: "
+    "the same pairs read as latched serve space first",
+    _dsp_i49.split() == _dsp_dl.DEFAULT_RULE
+    and _dsp_dl.leg_rule(*_dsp_i49.planner_pairs()) == ("space", None)
+    and _dsp_i49_on.split() == ("space", None),
+    f"{_dsp_i49.split()} {_dsp_dl.leg_rule(*_dsp_i49.planner_pairs())} {_dsp_i49_on.split()}",
+)
+R.check(
+    "the mask is per direction: hot water to heating latched beside an unlatched, "
+    "priced switch the other way serves space first, as with that switch unpriced; "
+    "control: both latched serve hot water first and merge into heating",
+    _dsp_dl.leg_rule((1.0, 0.4), (501.0, 0.0), (False, True))
+    == _dsp_dl.leg_rule((1.0, 0.0), (501.0, 0.0)) == ("space", None)
+    and _dsp_dl.leg_rule((1.0, 0.4), (501.0, 0.0)) == ("dhw", 501.0 / 60.0)
+    and _dsp_dl.leg_rule((0.4, 1.0), (0.0, 300.0), (True, False)) == ("dhw", None)
+    and _dsp_dl.leg_rule((0.4, 1.0), (0.0, 300.0)) == ("dhw", 0.0),
+)
+# One rule, read twice: every learner state the census enumerates (each
+# direction empty, unlatched with a stop, latched with a stop, latched all kept)
+# gives the configuration the coordinator builds the leg rule the arbiter splits by.
+_dsp_states = {
+    "empty": lambda: _dsp_ds.Direction(),
+    "unlatched": lambda: _dsp_dir(2.0, 0.0, usable=False, off_s=[501.0]),
+    "latched": lambda: _dsp_dir(3.0, 1.0, off_s=[400.0, 620.0]),
+    "latched kept": lambda: _dsp_dir(0.0, 6.0),
+}
+_dsp_rule_pairs = [
+    (a, b, _dsp_ds.DutySwitchLearner({"dhw_space": _dsp_states[a](), "space_dhw": _dsp_states[b]()}))
+    for a in _dsp_states for b in _dsp_states
+]
+_dsp_rule_bad = [
+    (a, b) for a, b, l in _dsp_rule_pairs
+    if _dsp_om._leg_rule(_dsp_opt(*l.planner_pairs(), unlatched=l.unlatched())) != l.split()
+]
+_dsp_rule_nomask = [
+    (a, b) for a, b, l in _dsp_rule_pairs
+    if _dsp_om._leg_rule(_dsp_opt(*l.planner_pairs())) != l.split()
+]
+R.check(
+    f"the planner's leg rule is the arbiter's on all {len(_dsp_rule_pairs)} learner "
+    "states the census enumerates (four per direction); control: a configuration "
+    "without the mask disagrees exactly where an unlatched stop would move the "
+    "rule: hot water to heating unlatched beside anything, and heating to hot "
+    "water unlatched beside a latched stop the other way",
+    len(_dsp_rule_pairs) == len(_dsp_states) ** 2 and not _dsp_rule_bad
+    and sorted(_dsp_rule_nomask)
+    == sorted([("unlatched", b) for b in _dsp_states] + [("latched", "unlatched")]),
+    f"bad {_dsp_rule_bad} nomask {_dsp_rule_nomask}",
+)
+# A design choice, not an accident of the default. A configuration that never
+# sets the mask (a harness handed a pair, the R10 fixtures above) reads its
+# pair as latched. Every pair it prices then moves the legs as before.
+_dsp_nomask_cfg = _DspCfg()
+_dsp_nomask_cfg.duty_switch_stop_probability = (1.0, 0.0)
+R.check(
+    "a configuration that never sets the mask reads its pair as latched: hot "
+    "water to heating alone stopping serves space first",
+    _dsp_om._leg_rule(_DspOpt(_DspTM(_DspTP()), _dsp_nomask_cfg)) == ("space", None),
+)
+_dsp_i49_rec = _dsp_ds._Record(None, None, learner=_dsp_i49, loaded=True)
+_dsp_i49_start = datetime(2026, 11, 21, 12, 30, tzinfo=UTC)
+_dsp_i49_legs = [
+    _dsp_ds.both_step_duty(_dsp_i49_rec, _dsp_i49_start, _dsp_i49_start + timedelta(minutes=m),
+                           2.0, 2.0, 15.0, "space")
+    for m in (0, 7, 8, 14)
+]
+R.check(
+    "the arbiter serves issue 3849's both step as before the learner existed: "
+    "hot water for its share, then heating",
+    _dsp_i49_legs == ["dhw", "dhw", "space", "space"]
+    and _dsp_i49_rec.order[1] == _dsp_dl.both_step_legs(2.0, 2.0, 15.0),
+    f"{_dsp_i49_legs}",
+)
+_dsp_i49_solved = {
+    name: _dsp_solve(*_dsp_i49.planner_pairs(), unlatched=_dsp_i49.unlatched(), **kw)
+    for name, kw in _DSP_INSTALLS.items()
+}
+_dsp_i49_moved = [n for n, seen in _dsp_i49_solved.items() if not _dsp_same_plan(seen, _dsp_base[n])]
+_dsp_i49_w = {
+    n: (_dsp_dl.switch_weight(_dsp_base[n].space, _dsp_base[n].dhw, (1.0, 0.0), 5.5),
+        _dsp_dl.switch_weight(seen.space, seen.dhw, (1.0, 0.0), 5.5))
+    for n, seen in _dsp_i49_solved.items()
+}
+R.check(
+    "issue 3849's read reaches a full optimize: the switch is an operand of the "
+    "objective, the solve's leg rule is DEFAULT_RULE, and it moves the plan on "
+    "every install class (null control: the empty learner's read moves none, above)",
+    all(_dsp_om._switch_cost_fn(seen.opt)(seen.space, seen.dhw) is not None
+        and _dsp_om._leg_rule(seen.opt) == _dsp_dl.DEFAULT_RULE
+        for seen in _dsp_i49_solved.values())
+    and sorted(_dsp_i49_moved) == sorted(_DSP_INSTALLS),
+    f"moved {_dsp_i49_moved}; hot water to heating weight base -> priced {_dsp_i49_w}",
+)
 
 # R11-OUTSIDE-HONEST-STARTS-RUNS, the descents of a solve that prices a stop.
 # The relaxed descent weighs a switch at the combined draw and the true
@@ -101582,6 +101990,52 @@ R.check(
     _rh_ul_ok and not _rh_ul_before
     and _rh_ul_doc.get("data", _rh_ul_doc).get("times", "").split(",") == [str(_RH_M0), str(_RH_M0 + 30)],
     f"before={_rh_ul_before} after={_rh_ul_doc}",
+)
+
+R.section("R11-OWNER-CARD-EXTERNAL-HEAT: the binary sensors the card reads by id suffix")
+# The card derives a binary sensor's id from the plan sensor's device prefix
+# plus a suffix constant (`planBinaryTwin`): the status pill reads
+# EXTERNAL_HEAT_SUFFIX, the health page INPUT_PROBLEM_SUFFIX. Home Assistant
+# makes that id's tail from the entity's English name, so each constant must
+# be the slug of the en.json name of the translation key its sensor class
+# passes. The pill's behaviour is pinned in tests/card.mjs; this pins the
+# contract the card cannot see. Null control: a suffix one letter off fails
+# the same comparison.
+import ast as _oc_ast  # noqa: E402
+import json as _oc_json  # noqa: E402
+import re as _oc_re  # noqa: E402
+from pathlib import Path as _oc_Path  # noqa: E402
+
+_oc_card = _oc_Path("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js").read_text(encoding="utf-8")
+_oc_en = _oc_json.loads(_oc_Path("custom_components/heatpump_optimizer/translations/en.json").read_text(encoding="utf-8"))
+_oc_keys = {}
+for _oc_cls in _oc_ast.parse(_oc_Path("custom_components/heatpump_optimizer/binary_sensor.py").read_text(encoding="utf-8")).body:
+    if not isinstance(_oc_cls, _oc_ast.ClassDef):
+        continue
+    for _oc_call in _oc_ast.walk(_oc_cls):
+        if (isinstance(_oc_call, _oc_ast.Call) and isinstance(_oc_call.func, _oc_ast.Attribute)
+                and _oc_call.func.attr == "__init__" and len(_oc_call.args) == 4
+                and isinstance(_oc_call.args[3], _oc_ast.Constant)):
+            _oc_keys[_oc_cls.name] = _oc_call.args[3].value
+
+
+def _oc_slug(cls: str) -> str | None:
+    key = _oc_keys.get(cls)
+    name = ((_oc_en.get("entity", {}).get("binary_sensor", {}).get(key) or {}).get("name")) if key else None
+    return "_" + _oc_re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") if name else None
+
+
+_oc_pairs = [("EXTERNAL_HEAT_SUFFIX", "ExternalHeatBinarySensor"), ("INPUT_PROBLEM_SUFFIX", "InputHealthBinarySensor")]
+_oc_rows = []
+for _oc_const, _oc_cls_name in _oc_pairs:
+    _oc_m = _oc_re.search(rf'const {_oc_const} = "([a-z_]+)";', _oc_card)
+    _oc_rows.append((_oc_const, _oc_m and _oc_m.group(1), _oc_slug(_oc_cls_name)))
+R.check(
+    "each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name "
+    "(_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match",
+    all(card and card == want for _, card, want in _oc_rows)
+    and all(want and card[:-1] != want for _, card, want in _oc_rows),
+    str(_oc_rows),
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
