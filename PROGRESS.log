@@ -5,3 +5,4 @@
 1795613418 CKPT merge-tree: 6 real conflicts (README, coordinator, strings, de/en/sv); budgets by ledger driver snapshot b82444ab150c
 1795613528 CKPT merge committed da1f90c785 snapshot 27b55168a44b
 1795613744 CKPT unload-row fix committed fdde1320d3, failing-first shown at da1f90c785 snapshot 9cdd5fdd4578
+1795613881 HB alive
