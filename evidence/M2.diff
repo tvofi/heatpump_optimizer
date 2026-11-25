@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/boost.py b/custom_components/heatpump_optimizer/boost.py
+index 7c9738e4b2..56b1d7d6b8 100644
+--- a/custom_components/heatpump_optimizer/boost.py
++++ b/custom_components/heatpump_optimizer/boost.py
+@@ -623,7 +623,6 @@ def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) ->
+         hours = tail.get("boosted_h")
+         # A restored boost mode's unknown sum stays unknown, whichever restore ran first.
+         held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
+-                              and admitted("boost", {"space_settle": {"boosted_h": hours}})
+                               and held.space_boosted is not None else None)
+     space = raw.get(CHANNEL_SPACE)
+     since = _parse_until(space.get("since")) if isinstance(space, Mapping) else None
