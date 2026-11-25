@@ -21,3 +21,4 @@
 - 2026-11-25 00:46Z resumed from wip 31bc0f0c (6/16 gated, d06a2d8e53342785 had been running when the predecessor stalled; no record, re-run).
 - 01:32Z container restart killed gate d06a2d8e53342785 at 46 min (no record). Stale gate_lock lease D3-s1-r11 and slot run.sh-1224 released (owner pids gone); partial state/gates log removed; re-started 01:33Z. The gate counts only the completed run.
 - probe toolchain (_tools) restored to $HOME/pgen; probes run from a clean baseline worktree $HOME/probe-tree, never the gate tree.
+- 05:5xZ second container restart killed gate 201955bf671ce8aa (started 05:31Z, ~20 min in; no record). Lease and slot run.sh-29876 released, partial state removed, re-run.
