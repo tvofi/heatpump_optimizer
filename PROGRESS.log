@@ -17,3 +17,4 @@
 1795583693 HB alive
 1795584142 CKPT entities baseline green at 82b18b46e9 snapshot 5bcec18953f2
 1795584297 HB alive
+1795586253 CKPT 3525 GUARD_OFF killed by features.py in an anchor drive; pinning snapshot 08ea7573e2d5
