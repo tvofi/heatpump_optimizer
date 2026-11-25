@@ -1,0 +1,29 @@
+{
+ "key": "d4d032563b183133",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4752 CMP_BOUND",
+ "patch": "over = dT_buf > dT_cap -> over = dT_buf >= dT_cap",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3473.2,
+  "load1_start": 0.95,
+  "load1_end": 0.92,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_d4d032563b183133.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_d4d032563b183133.py",
+  "results": [
+   "RESULT scenarios_tried=112 count",
+   "RESULT scenarios_moved=0 count",
+   "RESULT max_abs_diff=0",
+   "RESULT null_max_abs_diff=0"
+  ]
+ },
+ "class": "equivalent-candidate",
+ "inputs_tried": "dT_buf>=dT_cap: at the tie the clamp writes the same value and refused heat is (0)*C",
+ "should_fail": "none identified: dT_buf>=dT_cap: at the tie the clamp writes the same value and refused heat is (0)*C"
+}
