@@ -1,0 +1,42 @@
+applied Ra_room_nextplan custom_components/heatpump_optimizer/coordinator.py
+applied Rb_alone_no_unplanned custom_components/heatpump_optimizer/heat_energy.py
+applied T1_tank_none custom_components/heatpump_optimizer/coordinator.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+applied T2_tank_okgate custom_components/heatpump_optimizer/coordinator.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT T1_tank_none rc=1 2 2 of 28 FEATURES BLOCK FAILED
+MUT Rb_alone_no_unplanned rc=1 2 2 of 28 FEATURES BLOCK FAILED
+MUT Ra_room_nextplan rc=1 1 1 of 28 FEATURES BLOCK FAILED
+MUT T2_tank_okgate rc=1 1 1 of 28 FEATURES BLOCK FAILED
+applied Rd_nosplit_true custom_components/heatpump_optimizer/heat_energy.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+applied Rc_accumulate_true custom_components/heatpump_optimizer/room_history.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+applied P_house_noevidence custom_components/heatpump_optimizer/coordinator.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+applied O_lower_noevidence custom_components/heatpump_optimizer/coordinator.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT Rc_accumulate_true rc=1 1 1 of 28 FEATURES BLOCK FAILED
+MUT Rd_nosplit_true rc=1 1 1 of 28 FEATURES BLOCK FAILED
+MUT P_house_noevidence rc=1 1 1 of 28 FEATURES BLOCK FAILED
+MUT O_lower_noevidence rc=1 1 1 of 28 FEATURES BLOCK FAILED
+applied X3_close_unplanned_false custom_components/heatpump_optimizer/heat_energy.py
+applied X1_tankpair_noshift custom_components/heatpump_optimizer/heat_energy.py
+applied X2_span_open_read custom_components/heatpump_optimizer/heat_energy.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+applied X4_booked_share custom_components/heatpump_optimizer/heat_energy.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT X1_tankpair_noshift rc=1 2 2 of 28 FEATURES BLOCK FAILED
+MUT X3_close_unplanned_false rc=1 1 1 of 28 FEATURES BLOCK FAILED
+MUT X2_span_open_read rc=1 1 1 of 28 FEATURES BLOCK FAILED
+MUT X4_booked_share rc=1 1 1 of 28 FEATURES BLOCK FAILED
+applied X5_observed_dropped custom_components/heatpump_optimizer/heat_energy.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+applied X6_drawgate_noevidence custom_components/heatpump_optimizer/coordinator.py
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT X5_observed_dropped rc=1 2 2 of 28 FEATURES BLOCK FAILED
+MUT X6_drawgate_noevidence rc=1 1 1 of 28 FEATURES BLOCK FAILED
