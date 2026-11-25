@@ -1,0 +1,51 @@
+{
+ "key": "c9404a6ea551b041",
+ "site": "dhw_planner.py:1943 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1943,
+ "patch": "if plan.size == 0: -> if False:",
+ "function": "DhwPlanner._clamp_dhw_to_capacity",
+ "cluster": "dhw_planner.py:DhwPlanner._clamp_dhw_to_capacity@1943-1943",
+ "slice": "u1d",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3878.6,
+  "load1_start": 0.92,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/c9404a6ea551b041.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c9404a6ea551b041"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_c9404a6ea551b041.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_c9404a6ea551b041.py",
+  "baseline_value": "typed_inputs_separating=0 of 20",
+  "mutant_value": "typed_inputs_separating=0 of 20",
+  "inputs_tried": [
+   "empty plan with max_temp 60, empty array, NaN, inf, None x initial_temp 50, NaN, inf, -inf",
+   "n=0 horizon through _build_dhw_requirements (both ok, size 0)",
+   "non-empty plan (null, identical)",
+   "out-of-type initial_temp None: baseline returns, mutant TypeError (outside the annotated float domain)"
+  ],
+  "production_reach": "none on the declared domain; only an out-of-type initial_temp=None separates (TypeError in the mutant)"
+ },
+ "should_fail": {
+  "script": "none on typed inputs",
+  "assertion": "n/a"
+ }
+}

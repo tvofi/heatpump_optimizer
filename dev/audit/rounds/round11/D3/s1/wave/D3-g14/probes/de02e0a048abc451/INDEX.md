@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_de02e0a048abc451.py: Metric: DhwPlan.external_heat_suppressed_steps (count) published by _build_dhw_requirements with blocked=True while external heat is active, and the schedule sum (kW). (needs _g14lib.py beside it; _mk.py regenerates the probes)

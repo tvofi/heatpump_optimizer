@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_3685cdbd27c1680f.py: Metric: max |plan| difference (kW) between baseline and mutant _apply_dhw_min_run on one plan whose entries lie outside [0, p_dhw_max] and whose weak slots all fit jointly (the line-2076 return). (needs _g14lib.py beside it; _mk.py regenerates the probes)

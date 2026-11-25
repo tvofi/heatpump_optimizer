@@ -1,0 +1,49 @@
+{
+ "key": "4813f0fd25bc8bb4",
+ "site": "dhw_planner.py:1138 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1138,
+ "patch": "p_dhw_run = max(0.1, min(p_max * 0.8, p_max)) -> p_dhw_run = max(0.1, (p_max * 0.8))",
+ "function": "DhwPlanner._build_dhw_requirements",
+ "cluster": "dhw_planner.py:DhwPlanner._build_dhw_requirements@1138-1348",
+ "slice": "u1b",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2646.0,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/4813f0fd25bc8bb4.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4813f0fd25bc8bb4"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_4813f0fd25bc8bb4.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_4813f0fd25bc8bb4.py",
+  "baseline_value": "inputs_separating=0 of 11",
+  "mutant_value": "inputs_separating=0 of 11",
+  "inputs_tried": [
+   "p_max 4, 0, -1, 1e-9, 0.125, +inf, -inf, NaN",
+   "p_max 4 with p_run_cap None, 0.05, 2.0"
+  ],
+  "production_reach": "none found: min(0.8p, p) differs from 0.8p only for p < 0 (and NaN), where max(0.1, .) returns 0.1 in both arms"
+ },
+ "should_fail": {
+  "script": "none: no input separates the arms",
+  "assertion": "n/a (equivalent on every input tried)"
+ }
+}

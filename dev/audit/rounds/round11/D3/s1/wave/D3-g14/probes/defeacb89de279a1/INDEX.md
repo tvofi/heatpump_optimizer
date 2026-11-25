@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_defeacb89de279a1.py: Metric: number of horizons on which DhwPlan.external_heat_suppressed_steps differs between baseline and mutant, and the count of planned slots in (0, 1e-5] kW (the only values `>=` and `>` 1e-6 can  (needs _g14lib.py beside it; _mk.py regenerates the probes)

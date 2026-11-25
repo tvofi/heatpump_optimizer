@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0b51e1d1975513aa.py: Metric: outcome of DhwPlanner._apply_dhw_pins on a pins array shorter than the plan: 1 = returns a plan, 0 = raises IndexError. (needs _g14lib.py beside it; _mk.py regenerates the probes)

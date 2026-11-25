@@ -1,0 +1,80 @@
+{
+ "key": "b25e80c59b31c20d",
+ "site": "dhw_planner.py:1184 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1184,
+ "patch": "if dhw_pins is not None: -> if False:",
+ "function": "DhwPlanner._build_dhw_requirements",
+ "cluster": "dhw_planner.py:DhwPlanner._build_dhw_requirements@1138-1348",
+ "slice": "u1c",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2611.5,
+  "load1_start": 0.72,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/b25e80c59b31c20d.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b25e80c59b31c20d"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_b25e80c59b31c20d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_b25e80c59b31c20d.py",
+  "baseline_value": "baseline_shortfall_c=0.2711 C (4.3727 kWh)",
+  "mutant_value": "mutant_shortfall_c=6.3719 C (3.5974 kWh)",
+  "inputs_tried": [
+   "manual DHW pins OFF on cheap night steps 8-15, window 18:00-20:00 min 45 C, tank 48 C (separates)",
+   "no pins (null, 0)",
+   "on-only pins (null, 0)"
+  ],
+  "production_reach": "production: a manual plan's DHW channel yields 0.0 pins on every step outside its slots (manual_plan.channel_pins), which optimize passes through _normalise_pins to _build_dhw_requirements"
+ },
+ "should_fail": {
+  "script": "tests/manual_plan.py (traced baseline executes dhw_planner.py:1184; the 'last safe DHW off' check near line 419-440)",
+  "assertion": "the off-pin check asserts only that the pinned step is 0 and not released; none asserts the tank still meets its requirement, i.e. that the energy removed by an off-pin is re-bought in the free steps"
+ },
+ "finding": {
+  "title": "No check asserts a DHW off-pin's energy is re-bought; dropping the pins' forced_off mask leaves the tank 6.4 C short unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant b25e80c59b31c20d at dhw_planner.py:1184 (if dhw_pins is not None: -> if False:) survives the full gate (RED-AS-NULL, gate_rc 1, no script beyond this box's null control), yet the probe's number moves: baseline baseline_shortfall_c=0.2711 C (4.3727 kWh), mutant mutant_shortfall_c=6.3719 C (3.5974 kWh). Reach: production: a manual plan's DHW channel yields 0.0 pins on every step outside its slots (manual_plan.channel_pins), which optimize passes through _normalise_pins to _build_dhw_requirements.",
+  "metric_definition": "worst simulated tank shortfall (C) below the plan's own floor/ready requirement, plan built with DHW pins OFF on the cheap night steps 8-15",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._build_dhw_requirements line 1184",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_b25e80c59b31c20d.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/_g14lib.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_b25e80c59b31c20d.py",
+  "perturbation": {
+   "change": "the one-line mutant b25e80c59b31c20d (if dhw_pins is not None: -> if False:) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b25e80c59b31c20d",
+   "direction": "up (0.27 -> 6.37 C)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_b25e80c59b31c20d.py",
+   "value": "null arm delta 0 (see the probe's null_* RESULT lines)",
+   "gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/manual_plan.py"
+  ]
+ }
+}
