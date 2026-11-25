@@ -21,7 +21,7 @@ rec = {
                                    "wall_s", "child_cpu_s", "load1_start", "load1_end", "summary", "cap_s", "note")},
     "gate_command": f"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src {src} --key {key}",
     "gate_record": f"dev/audit/rounds/round11/D3/s1/wave/D3-g01/gates/{key}.json",
-    "provisional": "wall/cpu/load are provisional (nproc 4, Intel Xeon @ 2.10GHz, box alone); counts final",
+    "provisional": "wall/cpu/load are provisional (nproc 4, Intel Xeon @ " + __import__("os").environ.get("GATE_CPU","2.10GHz") + ", box alone); counts final",
 }
 if verdict == "KILLED":
     log = (W / "gates" / f"{key}.log").read_text(errors="replace")
