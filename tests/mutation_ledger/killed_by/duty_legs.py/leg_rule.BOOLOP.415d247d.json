@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_rule BOOLOP 415d247d",
+  "killed_by": "tests/features.py",
+  "old": "    stops = [p > 0 and not free for p, free in zip(stop_probability, unlatched)]",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`stops = [p > 0 or not free for p, free in zip(stop_probability, unlatched)]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}
