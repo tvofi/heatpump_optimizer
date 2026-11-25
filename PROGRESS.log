@@ -50,3 +50,4 @@
 1795570655 CKPT CONST f34207b8 kill measured+recorded; mutation table re-running snapshot 2d8033e6eebe
 1795571591 CKPT prepr scoped running at c06dc46c snapshot daa77c6dda15
 1795571754 CKPT body updated for c06dc46c; prepr re-run snapshot ac2e8b5f4335
+1795571758 INBOX acked through 1
