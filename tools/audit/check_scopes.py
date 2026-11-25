@@ -850,10 +850,10 @@ def evaluation_self_test(tree, show):
         "B1 a disguised orchestrator or the same seat respelled is refused":
             all(only(run(edit(lambda c: c.update(**{k: v}))), "two seats") for k, v in (
                 ("evaluator", "orchestrator-r10"), ("evaluator", "the orchestrator"), ("reviewer", "Orchestrator"), ("reviewer", "Evaluator R8"))),
-        "B1 an evaluator or reviewer that is a seat of the graded round's token ledger is refused, either spelling":
-            ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "Evaluator_R8"}], 0, 2e9)
+        "B1 an evaluator or reviewer that is a seat of the graded round's token ledger is refused, either spelling, at the window's first second":
+            ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "Evaluator_R8"}], 1767312000, 2e9)
             == ["E evaluator 'evaluator-r8' is a seat in the graded round's token ledger: it worked the round it grades"]
-            and len(ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "plan-review-r8"}], 0, 2e9)) == 1,
+            and len(ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "plan-review-r8"}], 1767312000, 2e9)) == 1,
         "B1 null: the same seat outside the window, another seat, or a `-` seat is no gap":
             ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "evaluator-r8"}], 0, 1e9) == []
             and ledger_gaps("E", good, [{"t": "2026-01-02T00:00:00Z", "seat": "fixer-r8-x"},
@@ -1304,14 +1304,11 @@ def main():
         run_r1 = default_run(scopes, "--round", "1")
         cov["--round exits 1 with no evaluation in the tree"] = (run_r1.returncode == 1 and cited in run_r1.stdout
             and "FAIL start evaluation" in run_r1.stdout and "round1/EVALUATION.json is not in the tree" in run_r1.stdout)
-        # main()'s --round reads the token ledger (0018 section 6): ledger_gaps' arms cannot reach
-        # the wiring; the tree's round-11 record is read, its evaluator a seat of the ledger.
-        with tempfile.NamedTemporaryFile("w", suffix=".tsv") as led:
-            led.write(f"t\tseat_class\tseat\n{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - 60))}\tlocal\tr11-evaluator\n")
-            led.flush()
-            out11 = default_run(scopes, "--round", "11", "--tokens", led.name).stdout
-        cov["--round reads its token ledger: the graded round's evaluator seat is refused, or the window prints unread"] = (
-            "LEDGER unread: no tag v" in out11 or "is a seat in the graded round's token ledger" in out11)
+        # main()'s --round reads the token ledger (0018 section 6): run whole, an absent ledger
+        # prints unread whatever the tree's tags; round_ledger_gaps' window and rows below.
+        out11 = default_run(scopes, "--round", "11", "--tokens", str(Path(tempfile.gettempdir()) / "no-such-tokens.tsv")).stdout
+        cov["--round reads its token ledger: an absent one prints unread"] = "LEDGER unread: no token ledger (--tokens)" in out11
+        cov.update(ledger_round_self_test())
         run_oc = default_run(scopes, "--round", "1", "--open-cards")
         cov["--open-cards refuses a round with no evaluation, never an empty list"] = (run_oc.returncode == 2
             and "round1/EVALUATION.json tracked" in run_oc.stderr and "open_cards" not in run_oc.stdout)
@@ -1348,6 +1345,40 @@ def main():
             print(f"   PARALLEL {cid} accepted, not merged, gates no finder: builds beside them; open at P3, it is the architect's input (--open-cards)")
         ok = ok and not gaps
     sys.exit(0 if ok else 1)
+
+def ledger_round_self_test():
+    """round_ledger_gaps over a scratch repo tagged v9.0.0 (2026-01-01) and v10.0.0 (2026-01-03):
+    round 11's record grades round 10, the window [v9.0.0, v10.0.0)."""
+    from throwaway_git import throwaway_git_init  # main() put tests/ on the path
+    rec, arms = records(11)[1], {}
+    ev = {"evaluator": "r11-evaluator", "reviewer": "r11-evaluation-reviewer"}
+    with tempfile.TemporaryDirectory() as d:
+        env = throwaway_git_init(d, "-q")
+        for n, stamp in ((9, 1767225600), (10, 1767398400)):
+            subprocess.run(["git", "-C", d, "commit", "-q", "--allow-empty", "-m", f"v{n}"], check=True,
+                           env=dict(env, GIT_COMMITTER_DATE=f"{stamp} +0000", GIT_AUTHOR_DATE=f"{stamp} +0000"))
+            subprocess.run(["git", "-C", d, "tag", f"v{n}.0.0"], env=env, check=True)
+        led = Path(d) / "tokens.tsv"
+
+        def run(rows, tree=frozenset({rec}), tokens=str(led)):
+            led.write_text("t\tseat_class\tseat\n" + "".join(f"{t}\tlocal\t{s}\n" for t, s in rows))
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                got = round_ledger_gaps(argparse.Namespace(round=11, tokens=tokens, repo=d), lambda p: json.dumps(ev), tree)
+            return got, out.getvalue()
+        first, last = run([("2026-01-01T00:00:00Z", "r11-evaluator")]), run([("2026-01-02T23:59:59Z", "R11 evaluation reviewer")])
+        arms["--round: the evaluator a seat at the graded window's first second is refused"] = (
+            [g.split(" is a seat")[0] for g in first[0]] == [f"{rec} evaluator 'r11-evaluator'"])
+        arms["--round: the reviewer, respelled, a seat at its last second is refused"] = (
+            [g.split(" is a seat")[0] for g in last[0]] == [f"{rec} reviewer 'r11-evaluation-reviewer'"])
+        arms["--round null: a seat before or at the window's end, or another seat, is no gap"] = run(
+            [("2025-12-31T23:59:59Z", "r11-evaluator"), ("2026-01-03T00:00:00Z", "r11-evaluator"),
+             ("2026-01-02T00:00:00Z", "fixer-r11-x")]) == ([], "")
+        arms["--round null: a round with no record in the tree reads no ledger"] = run(
+            [("2026-01-01T00:00:00Z", "r11-evaluator")], tree=frozenset()) == ([], "")
+        gone = run([("2026-01-01T00:00:00Z", "r11-evaluator")], tokens=str(Path(d) / "none.tsv"))
+        arms["--round: an absent ledger prints unread, no gap"] = gone[0] == [] and "LEDGER unread: no token ledger" in gone[1]
+    return arms
+
 
 def round_ledger_gaps(a, show, tree):
     """`ledger_gaps` over --tokens (default $HPO_STATE_DIR/scorecard/tokens.tsv) in round
