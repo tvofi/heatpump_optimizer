@@ -47996,8 +47996,8 @@ R.check(
 # `manual` at 21 C; the law uses `slab_heat_transfer_floored`, which equals
 # `slab_heat_transfer` on every install above 1e-6 kW/K, this one included.
 # The install's upper-floor area ratio is 0.5, where the law's r and 1 - r arms
-# are interchangeable, so (a), (b) and (d) also run it at 0.3/0.7 and 0.7/0.3:
-# gains or losses weighted to the wrong floor then miss 21 C.
+# are interchangeable. So (a), (b) and (d) also run it at 0.3/0.7 and 0.7/0.3,
+# where gains or losses weighted to the wrong floor miss 21 C.
 def _tz_install(**over):
     return ThermalParameters.from_config(_tz_replay(**over))
 
