@@ -1,0 +1,60 @@
+{
+ "key": "aebea2e6b76b2dc3",
+ "site": "optimizer.py:4234 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/optimizer.py",
+ "line": 4234,
+ "patch": "n_6h = min(int(6 / dt_hours), n) -> n_6h = (int(6 / dt_hours))",
+ "function": "HeatPumpOptimizer._analyze_forecast_trajectory",
+ "cluster": "optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory@4211-4272",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach_carried": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3639.7,
+  "load1_start": 1.09,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/aebea2e6b76b2dc3.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/aebea2e6b76b2dc3.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aebea2e6b76b2dc3",
+ "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz, box D3-g19 alone on its machine",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_aebea2e6b76b2dc3.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_aebea2e6b76b2dc3.py",
+  "results": [
+   "RESULT grids_tried=35 count",
+   "RESULT grids_moved=0 count",
+   "RESULT wall=0.33 s (provisional)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.87",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": "Inputs tried: n in (1,3,5,6,7,12,24) x dt in (0.25,1.0,3.0,7.0,13.0) h, sun 500 W/m2, cold outdoor.",
+  "load1": "0.87",
+  "thread_factor": "1.000"
+ },
+ "equivalence": "equivalent: int(6/dt) > n only when 6/dt > n, and then solar_gains_kw[n_6h:n_12h] is empty in both arms because n_12h = min(int(12/dt), n) <= n; 0 of 35 (n, dt) grids moved",
+ "should_fail": "none: no input tried separates the arms (Inputs tried: n in (1,3,5,6,7,12,24) x dt in (0.25,1.0,3.0,7.0,13.0) h, sun 500 W/m2, cold outdoor.)"
+}
