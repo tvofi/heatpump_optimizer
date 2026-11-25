@@ -20,7 +20,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-SELF-SETTING-PUMP (stage carries-open, branch `fix/r11-outside-self-setting-pump-p2`): `git fetch origin fix/r11-outside-self-setting-pump-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-learners (stage in-progress, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-writes (stage in-progress, branch `handoff/r11-seam-actuation-writes`): `git fetch origin handoff/r11-seam-actuation-writes && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-cycle-solve (stage in-progress, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-cycle-solve (stage carries-open, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-reporting (stage in-progress, branch `handoff/r11-seam-cycle-reporting`): `git fetch origin handoff/r11-seam-cycle-reporting && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-entity-service (stage in-progress, branch `handoff/r11-seam-entity-service`): `git fetch origin handoff/r11-seam-entity-service && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-tests (stage carries-open, branch `handoff/r11-seam-tests`): `git fetch origin handoff/r11-seam-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
