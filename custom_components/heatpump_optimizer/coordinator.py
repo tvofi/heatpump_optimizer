@@ -7657,9 +7657,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not (action := self._current_action) or self._mode == MODE_OFF or _plan_let_go(self):
             return
         nudge = PEAK_GUARD_DISPLACE_NUDGE_C if self._peak_guard.suppressing else 0.0
-        await self.async_publish_ecl110_command(
-            displace_value=float(action.get("displace_value", 0.0)) - nudge,
-            heat_pump_on=self._cycle_on(), reason=reason, boundary=boundary)
+        await self.async_publish_ecl110_command(displace_value=float(action.get("displace_value", 0.0)) - nudge,
+                                                heat_pump_on=self._cycle_on(), reason=reason, boundary=boundary)
 
     def _cycle_on(self) -> bool:
         return pump_arbiter.cycle_supply(self.arbiter_inputs(), boost.held_for(self), bool((self._current_action or {}).get("heat_pump_on", False)))
@@ -10801,8 +10800,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entity's own range, deduplicated against the last command
         (``FrequencyWatchdog.command``, the write's tail), and a
         map with no evidence writes NOTHING: None is never a frequency.
-        True only where the rate limit refused a target its record does not
-        hold: the step tick retries it (``pump_arbiter._step_writes``).
         """
         entity_id = getattr(self, "_ctx", self)._config.compressor_freq_entity
         if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL or self._mode == MODE_OFF or _plan_let_go(self) \
@@ -10822,7 +10819,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             and utc_elapsed_seconds(now, self._freq_last_write)
             < FREQ_WRITE_MIN_INTERVAL_S
         ):
-            return target != self._freq_watchdog.commanded
+            return target != self._freq_watchdog.commanded  # True: refused and unheld, the step tick retries it
         try:
             if not await self._freq_watchdog.command(
                 target, lambda: off_restore.async_arm(self.hass, self.entry, _ctx_of(self)._config, number_restore.FREQUENCY_RESTORE),
