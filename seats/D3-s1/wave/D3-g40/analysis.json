@@ -1,0 +1,202 @@
+{
+ "3e9a439baa86a074": {
+  "probe_class": "candidate",
+  "severity": "medium",
+  "metric": [
+   "billed_peak_kw",
+   1.333333,
+   4.0,
+   "kW"
+  ],
+  "inputs": "PeakTracker peaks [4.0, 0.0004, 0.0003] (as_dict rounds to [4.0, 0.0, 0.0]), peaks_averaged 3, one as_dict->from_dict restart; null [4,3,2]",
+  "title": "A restart drops every 0.0 kW stored peak when _stored_peaks' `< 0.0` becomes `<= 0.0`, and no check fails",
+  "claim": "Under the mutant at tariff.py:528 a PeakTracker reloaded from its own as_dict loses each peak stored as 0.0 (any peak under 0.0005 kW rounds there), so billed_peak_kw rises 1.333 -> 4.0 kW and threshold_kw 0.0 -> 4.0 kW for peaks [4.0, 0.0004, 0.0003]; the full gate stays green, so no test pins the zero-peak round trip.",
+  "expected_direction": "up",
+  "observed": "billed_peak_kw 1.333333 -> 4.0 kW; threshold_kw 0.0 -> 4.0 kW; peaks reloaded 3 -> 1; closed-month billed 1.333 -> 4.0 kW; null delta 0",
+  "should_fail_assert": "a PeakTracker.from_dict(t.as_dict()) round-trip assertion with a 0.0 (or sub-0.0005 kW) peak: len(peaks) and billed_peak_kw/threshold_kw preserved"
+ },
+ "5f094dbca9a593e9": {
+  "probe_class": "candidate",
+  "severity": "low",
+  "metric": [
+   "max_delta_reachable_caller",
+   0.0,
+   5.6932e-10,
+   "kW"
+  ],
+  "inputs": "2322 inputs: plateau 600, tieband 300, uniform 300, spread 30, tiny 60 (peaks 1e-7..5e-324), zero 24, negative 8, exacttie 1000",
+  "title": "Dropping _smooth_topk_sum's 1e-9 temperature floor moves the smooth top-k on sub-2e-8 kW plateaus, and no check fails",
+  "claim": "Under the mutant at tariff.py:750 the scalar smooth top-k (through its only caller _plateau_aware_topk_sum) returns a different value on 45 of 60 tiny-peak plateau excess vectors (peak < 2e-8 kW), max |delta| 5.7e-10 kW, and raises 906 RuntimeWarnings; plateaus at ordinary magnitudes are bit-identical. The full gate stays green: no check feeds a plateau below tau*peak = 1e-9.",
+  "expected_direction": "up",
+  "observed": "differing 0 -> 45 of 60 tiny inputs; max delta 5.69e-10 kW; RuntimeWarnings 0 -> 906",
+  "should_fail_assert": "a _smooth_topk_sum / _plateau_aware_topk_sum unit on a tied plateau with peak below 2e-8 kW asserting the k*tie_level value and no RuntimeWarning"
+ },
+ "7b4d6225353952ed": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_all_direct",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same 2322-input corpus (scalar mode)",
+  "observed": "0 values differ; RuntimeWarnings 0 -> 2620 (exp overflow inside the bisection when the bracket is far from the plateau)",
+  "should_fail_assert": "only a warnings-as-errors run of a tiny-peak plateau would fail; no value-level assertion can"
+ },
+ "e6bcd13be86202b8": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_all_direct",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same corpus incl. exacttie family: 1000 one-lower-window plateaus n=2..6 at 200 offsets",
+  "observed": "0 differ, 0 warnings; no input hit |count - k| == 1e-6 exactly",
+  "should_fail_assert": "none at value level: the two arms differ only on a float-exact 1e-6 residual"
+ },
+ "e01cc20e67f1f720": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_all_direct",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same corpus",
+  "observed": "0 differ; count == k exactly already breaks at line 766 (|0| < 1e-6), and nan compares False under both > and >=: unreachable difference",
+  "should_fail_assert": "none: provably equivalent"
+ },
+ "f8eec0888776e8ff": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_all_direct",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same corpus incl. spread up to 1e9 and tiny to 5e-324",
+  "observed": "0 differ, 0 warnings: after the bisection mid <= peak + 5.25*scale and excess >= 0, so the final |z| <= ~26 < 60 and the clip never binds",
+  "should_fail_assert": "none for non-negative excess (the only caller's domain)"
+ },
+ "968c552b8acd9df9": {
+  "probe_class": "candidate",
+  "severity": "low",
+  "metric": [
+   "differing_all_direct",
+   0,
+   20,
+   "count"
+  ],
+  "inputs": "same corpus (batch mode, single rows and 3x3 stacked matrices)",
+  "title": "_smooth_topk_sum_batch's nothing-positive filter as `>= 0` admits max-0 rows and breaks its scalar twin's 0.0, and no check fails",
+  "claim": "Under the mutant at tariff.py:801 a row whose maximum is 0 with negative entries is no longer returned as 0.0: [0,-1,-2,-3] at k=4 returns -6.0 and 20 of 2622 direct inputs differ (max 6.0), against the scalar twin's guard that the docstring says it matches to the bit. Through the only production caller (_plateau_aware_topk_sum_batch on excess = max(0, windows - threshold)) 0 inputs differ: the difference needs negative excess, which the caller never sends.",
+  "expected_direction": "down",
+  "observed": "direct differing 0 -> 20; [0,-1,-2,-3] k=4: 0.0 -> -6.0; caller-reachable differing 0",
+  "should_fail_assert": "a batch-vs-scalar parity unit over rows whose max is <= 0 (the docstring's 'Rows with nothing positive return 0.0, as the scalar guard does')"
+ },
+ "996dce5148e02763": {
+  "probe_class": "candidate",
+  "severity": "low",
+  "metric": [
+   "max_delta_reachable_caller",
+   0.0,
+   5.6932e-10,
+   "kW"
+  ],
+  "inputs": "same corpus (batch mode)",
+  "title": "Dropping _smooth_topk_sum_batch's 1e-9 temperature floor moves sub-2e-8 kW plateau rows, and no check fails",
+  "claim": "Under the mutant at tariff.py:806 the batch smooth top-k (through _plateau_aware_topk_sum_batch) differs on 67 caller-reachable rows (45 tiny single rows, 22 stacked), max |delta| 5.7e-10 kW, with 1356 RuntimeWarnings; ordinary plateaus are bit-identical. The scalar twin keeps its floor, so the batch/scalar bit-parity the docstring promises breaks on these rows.",
+  "expected_direction": "up",
+  "observed": "reachable differing 0 -> 67; max delta 5.69e-10 kW; RuntimeWarnings 0 -> 1356",
+  "should_fail_assert": "a batch-vs-scalar bit-parity unit on a tied plateau row with peak below 2e-8 kW"
+ },
+ "754e4cb5fa60e129": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_all_direct",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same corpus (batch mode)",
+  "observed": "0 values differ; RuntimeWarnings 0 -> 2708 (exp overflow in the bisection loop)",
+  "should_fail_assert": "only a warnings-as-errors run; no value-level assertion"
+ },
+ "a074fb25836c2bc6": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_all_direct",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same corpus (batch mode) incl. exacttie 1000",
+  "observed": "0 differ, 0 warnings; no row hit |count - k| == 1e-6 exactly",
+  "should_fail_assert": "none at value level"
+ },
+ "22dd975583db1b89": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_all_direct",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same corpus (batch mode)",
+  "observed": "0 differ: count == k exactly is already `close` at line 824, and a done row's lo/hi/mid are frozen by np.where; provably equivalent. (The carried M4 states the patch as `>=` -> `>`; the mutant record and this probe use `>` -> `>=`.)",
+  "should_fail_assert": "none: provably equivalent"
+ },
+ "134d9411b323ef8a": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_all_direct",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same corpus (batch mode)",
+  "observed": "0 differ, 0 warnings: final |z| <= ~26 for non-negative rows",
+  "should_fail_assert": "none for non-negative excess"
+ },
+ "1894e6dcd2251a30": {
+  "probe_class": "candidate",
+  "severity": "low",
+  "metric": [
+   "n_peak_windows_differing",
+   0,
+   10,
+   "count"
+  ],
+  "inputs": "315: lengths 0,1,2,3,4,5,7,12,96 x (15,.25) (60,.25) (60,1) (30,.5) (60,.5) (15,1) (5,.25) x offsets 0,1,2,3,5",
+  "title": "With metering_windows' empty-series guard off an empty plan meters as one nan window, and no check fails",
+  "claim": "Under the mutant at tariff.py:570 metering_windows on a zero-length series with more than one step per window returns [nan] (with RuntimeWarnings) instead of an empty array, so Optimizer._n_peak_windows' expression counts 1 window for a 0-step plan instead of 0 (10 of 315 inputs: every length-0 input with per_window > 1). _peak_charge and the tariff.py:1227 helper guard size 0 before calling and topology._window_peak guards an empty series, so the reachable consequence is the window count fed to window_factors/peak-day sizing for an empty plan.",
+  "expected_direction": "up",
+  "observed": "length 0 -> 1 ([nan]); n_peak_windows 0 -> 1 on 10/315; RuntimeWarnings 0 -> 40",
+  "should_fail_assert": "a metering_windows(np.zeros(0), 60, 0.25) unit asserting size 0 (and _n_peak_windows(0, ...) == 0)"
+ },
+ "0e94685aa803560d": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_value_or_length",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same 315-input corpus",
+  "observed": "0 values or lengths differ; at per_window == 1 the partition is the identity (head empty, reshape(n,1).mean). Only the result's identity differs (a copy instead of the input array, 200 inputs), which no caller observes: every caller passes a fresh array and none writes into the result",
+  "should_fail_assert": "none at value level"
+ },
+ "64a2ed644109fda3": {
+  "probe_class": "equivalent-candidate",
+  "metric": [
+   "differing_value_or_length",
+   0,
+   0,
+   "count"
+  ],
+  "inputs": "same 315-input corpus",
+  "observed": "0 values or lengths differ; per_window = max(1, ...) so the disabled branch is the per_window == 1 identity again; only result aliasing differs (200 inputs)",
+  "should_fail_assert": "none at value level"
+ }
+}
