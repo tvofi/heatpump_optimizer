@@ -1,0 +1,39 @@
+{
+ "key": "977021e3b3964277",
+ "mutant": {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 2782,
+  "old": "            if self.holiday_comfort_night is not None:",
+  "new": "            if False:",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair GUARD_OFF 68bf32a9"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py",
+  "python3 tests/stress.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/stress.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "4 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 2741.1,
+ "child_cpu_s": 4527.2,
+ "load1_start": 0.79,
+ "load1_end": 0.85,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [
+  "python3 tests/stress.py"
+ ],
+ "verdict": "KILLED"
+}
