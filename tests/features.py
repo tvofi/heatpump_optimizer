@@ -20458,6 +20458,7 @@ from heatpump_optimizer import circulation as _circ  # noqa: E402
 _c6b = _t2_coord(vvc_pump_entity="switch.vvc")
 _c6b._thermal_params.dhw_enabled = False
 _circ.commanded(_c6b.entry)["switch.vvc"] = False  # last schedule-driven command
+_c6b.hass.states.set("switch.vvc", "off")  # a write to a stateless entity is never sent
 _asyncio.run(_c6b._async_drive_pumps())
 R.check(
     "hot water disabled leaves the loop pump ON, never stuck off",
@@ -20535,6 +20536,8 @@ def _stale_plan_coord(stale: bool):
     )
     if coord._plan_is_stale() is not stale:
         raise AssertionError("probe: the staleness precondition did not hold")
+    for _e in ("switch.vvc", "switch.space_pump"):
+        coord.hass.states.set(_e, "off")  # delivers_to: a stateless entity gets no write
     _asyncio.run(coord._async_drive_pumps())
     return coord
 
@@ -20615,7 +20618,7 @@ import inspect as _d102_inspect  # noqa: E402
 from heatpump_optimizer import coordinator as _d102_mod  # noqa: E402
 
 _D102_VERBS = {"turn_on", "turn_off", "set_value", "set_temperature"}
-_D102_DIRECT = {"async_publish_current_action", "command"}
+_D102_DIRECT = {"async_publish_current_action", "command", "_write_supply"}  # _write_supply: the supply write `_apply_action` sends
 _D102_FUNCS = (_d102_ast.FunctionDef, _d102_ast.AsyncFunctionDef)
 
 
@@ -20679,7 +20682,8 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
         )
 
     out = []
-    for ref in _d102_ast.walk(methods["_async_update_data"]):
+    # The cycle's step tail (`_async_step_tail`) is where the frequency, valve and pump writers run.
+    for ref in (r for entry in ("_async_update_data", "_async_step_tail") for r in _d102_ast.walk(methods[entry])):
         if isinstance(ref, _d102_ast.Call) and isinstance(
             ref.func, _d102_ast.Attribute
         ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
@@ -20707,6 +20711,7 @@ R.check(
             ("_apply_action", True),
             ("_async_drive_pumps", True),
             ("_command_frequency", True),
+            ("_command_valve_target", True),  # in the step tail, which the cycle runs
         ]
     ),
     f"the enumeration rule returned {_d102_paths}",
@@ -28372,20 +28377,27 @@ R.check(
 _g_pub: list[str] = []
 
 
-async def _g_rec(reason="optimizer", heat_pump_on=None):
+async def _g_rec(*, reason="optimizer", **_kw):
     _g_pub.append(reason)
 
 
-_g_coord.async_publish_current_action = _g_rec
+async def _g_cycle(coord):
+    """The cycle's actuation as production runs it: the apply, then the step tail (which publishes)."""
+    await coord._apply_action()
+    await coord._async_step_tail()
+
+
+# The stale gate now sits in async_publish_current_action itself: stub the MQTT send below it.
+_g_coord.async_publish_ecl110_command = _g_rec
 _g_coord._current_action = {"heat_pump_on": True, "displace_value": 2.0}
-_asyncio.run(_g_coord._apply_action())
+_asyncio.run(_g_cycle(_g_coord))
 R.check(
     "a stale plan's schedule step is not applied",
     not _g_pub,
     f"published {_g_pub}",
 )
 _g_coord._last_optimization = _g_dt.now()
-_asyncio.run(_g_coord._apply_action())
+_asyncio.run(_g_cycle(_g_coord))
 R.check(
     "a fresh plan actuates exactly as before",
     _g_pub == ["scheduled_update"],
@@ -28393,7 +28405,7 @@ R.check(
 )
 _g_coord._last_optimization = _g_dt.now() - timedelta(days=1)
 _g_coord._mode = "boost"
-_asyncio.run(_g_coord._apply_action())
+_asyncio.run(_g_cycle(_g_coord))
 R.check(
     "fixed-rule modes carry no horizon and ignore staleness",
     _g_pub == ["scheduled_update", "scheduled_update"],
@@ -44013,7 +44025,7 @@ from heatpump_optimizer.const import MODE_COMFORT as _gm_comfort  # noqa: E402
 
 
 def _gm_cycle(late):
-    """(the switch writes, the legacy payload's heat_pump_on) of one _apply_action."""
+    """(the switch writes, the legacy payload's heat_pump_on) of one _apply_action and its step tail."""
     coord = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_cycle_{late}", ecl110_command_topic="ecl/cmd")
     coord._mode = _gm_comfort
     coord._current_action = {"mode": "comfort", "heat_pump_on": False, "displace_value": 2.0}
@@ -44028,6 +44040,7 @@ def _gm_cycle(late):
         _gm_arb.cycle_supply = lambda _inp, _boosts, on, now=None: not on
     try:
         _asyncio.run(coord._apply_action())
+        _asyncio.run(coord._async_step_tail())  # the publish is the step tail's, run right after the apply
     finally:
         _gm_arb.cycle_supply = real
     return switch, [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(coord)]
@@ -53868,13 +53881,9 @@ async def _t3_gt_ecl(**kwargs):
     _t3_gt_idle._t3_published.append(("ecl110", kwargs))
 
 
-async def _t3_gt_action(**kwargs):
-    _t3_gt_idle._t3_published.append(("current_action", kwargs))
-
-
 _t3_gt_idle.async_update_listeners = _t3_gt_count
 _t3_gt_idle.async_publish_ecl110_command = _t3_gt_ecl
-_t3_gt_idle.async_publish_current_action = _t3_gt_action
+# async_publish_current_action itself refuses an empty action now: leave it real, stub the send below it.
 _t3_drive(_t3_gt_idle, "_async_peak_guard_transition")
 R.check(
     "a transition before the first plan refreshes listeners and publishes nothing",
@@ -56023,6 +56032,9 @@ class _T5Plan:
 def _t5_pumps(*, plan=None, action=None, fail=False, **config):
     """Run one pump tick at a fixed instant."""
     c = _t5_coord(**config)
+    for _e in (config.get("vvc_pump_entity"), config.get("space_circulation_pump_entity")):
+        if _e:
+            c.hass.states.set(_e, "off")  # delivers_to: a stateless entity gets no write
     if plan is not None:
         c._optimization_result = plan
     if action is not None:
@@ -56063,6 +56075,7 @@ R.check(
 )
 
 _t5_pump_twice = _t5_coord(vvc_pump_entity="switch.vvc")
+_t5_pump_twice.hass.states.set("switch.vvc", "off")  # delivers_to: a stateless entity gets no write
 dt_util.freeze(_T5_NOW)
 try:
     _t5_drive(_t5_pump_twice, "_async_drive_pumps")

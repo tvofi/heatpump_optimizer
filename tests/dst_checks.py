@@ -850,6 +850,7 @@ R.check(
 # every comfort rail out of the decision, so the command follows the plan.
 async def _pump_command(night):
     coord = _age_coord({const.CONF_SPACE_PUMP_ENTITY: "switch.space"})
+    coord.hass.states.set("switch.space", "on")  # delivers_to: a stateless entity gets no write
     schedule = [1.0 if 4 <= i < 8 else 0.0 for i in range(96)]
     try:
         dt_util.freeze(night[0])
