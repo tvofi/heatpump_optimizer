@@ -1,0 +1,5 @@
+  ok   every carry and every policy file this arm reads for citations selects this script, so a broken citation added to one is refused on the pull request and not on the next merge to main (#2312, F2)
+  ok   the disposition refusal is report-only and cannot set the record job's conclusion (card C5, tvofi 2026-11-05)
+  ok   the ruleset reader's answer moves when a rule it does not require moves
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+rc=0

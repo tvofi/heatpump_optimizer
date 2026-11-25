@@ -1,0 +1,14 @@
+== wt-main b4a8bbd567
+NOTE stale tree: b4a8bbd567b120d7117e014845615325ebb90152 lacks origin/main bb6377b4dad4e398d1a28bde54d30036a5b25a82; roster read at origin/main
+BAD-DEST body item f79b5bde: #3881: #3881 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-3881.json
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== wt-head 102620a3e4
+NOTE stale tree: 102620a3e4590a34461f3d0d154c925fd3da86a0 lacks origin/main bb6377b4dad4e398d1a28bde54d30036a5b25a82; roster read at origin/main
+NOTE body item f79b5bde: #3881
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== wt-cur bb6377b4da
+BAD-DEST body item f79b5bde: #3881: #3881 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-3881.json
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1

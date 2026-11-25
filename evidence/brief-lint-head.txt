@@ -1,0 +1,4 @@
+PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean
+
+REPIN ok: a moved pin warns with its line and is re-pinned; an ambiguous or lost anchor stays an error; a pin in place is untouched
+rc=0
