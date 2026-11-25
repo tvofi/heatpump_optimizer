@@ -16,7 +16,15 @@ Alternatives lost: D10-s1-02's other shape, making the sysid button unavailable 
 
 ## Head
 
-190e7f811abe51320f1c19cd49de9463beaf230b, measured against merge base 3210fcd7334af9a870a8a7c23322fcaead7e14eb (`origin/main` at 2026-11-25T01:56Z, `git fetch origin main`). The head is the reviewed head b0ee904f74 (verdict/3841: blocked, tests-red) plus the lane's `5ed002a6df` ("ci: pin killed mutants"), then:
+`0d024e2804f0da87234d8b9bf5fbbe0a5ef854dc` is the code head of this handoff, measured against merge base `d3d66c40408e76351ffc528686353cadf815a05c` (`origin/main` at 2026-11-25T13:20Z). It descends from `190e7f811a` through these commits:
+- `22da16839a` merges `190e7f811a` into the PR branch; `6cdee8b0b5`, `41a81888ae` and `d286ccb4f2` merge `origin/main` at `7f7e05118f`, `f52e700df1` (#3738) and `bb6377b4da` (#3893); `a4123b13fe` records `module_excess_loc` 21774 -> 21773 measured there.
+- `9a7b262f17` merges `origin/main` `d3d66c4040` (#3864). Its one conflict is `tests/structure_budgets.json`, resolved by the ledger merge driver; no other file conflicts, and `tests/deployment_shape.py` is unchanged by the merge.
+- `0d024e2804` re-records `tests/structure_budgets.json` from `python3 tests/structure.py --record` on the merged tree: `class_excess_loc` 17253, `max_class_loc` 7823, `module_excess_loc` 21762, each equal to the driver's sum and at or below `origin/main`'s (17290, 7834, 21763); `STRUCTURE RATCHET PASSED`. No metric rises, so no raise is owed.
+- Re-runs at `0d024e2804` with `PYTHONPATH=tests/hastub`: the scoped gate (`GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=d3d66c4040 ./tests/run.sh`) prints `MODE: SCOPED -- 32 script(s) run, 2 scoped out.` and exits 0, with `tests/features.py` `ALL 6182 FEATURE CHECKS PASSED` and `tests/entities.py` `ALL 2772 ENTITY CHECKS PASSED`; `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` prints `PRE-PR: 0d024e2804f0da87234d8b9bf5fbbe0a5ef854dc` rc=0.
+
+Delta for review of this merge: `git diff a4123b13fe 0d024e2804 -- tests/structure_budgets.json` against `git diff a4123b13fe...d3d66c4040 -- tests/structure_budgets.json`; every other path of `git diff a4123b13fe 0d024e2804` is main's own.
+
+The earlier head, `190e7f811abe51320f1c19cd49de9463beaf230b`, measured against merge base 3210fcd7334af9a870a8a7c23322fcaead7e14eb (`origin/main` at 2026-11-25T01:56Z, `git fetch origin main`). The head is the reviewed head b0ee904f74 (verdict/3841: blocked, tests-red) plus the lane's `5ed002a6df` ("ci: pin killed mutants"), then:
 - `bd9ef5b5d5` drives "a step past short holiday flags gets the ordinary DHW windows" through `dhw_planner._dhw_windows_at`'s five-argument signature (`params` carries `dhw_holiday_windows`, `dhw_weekly_windows` and `dhw_day_windows` None), both halves kept; and adds "the in-window flag, boost and the VVC pump take the holiday tier from the holiday calendar (D17-s3-51)", which drives a holiday date through the three readers the verdict's M6, M7 and M8 mutated.
 - `b0deb70783` merges `origin/main` 24e3f37620 (`tests/deployment_shape.py` conflicted).
 - `9ee96030d9` the holiday-tier VVC arm reads the on/off the coordinator hands `circulation.command`, which 24e3f37620 made the pump write's owner.
