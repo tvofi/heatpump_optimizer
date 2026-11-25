@@ -464,6 +464,7 @@ def run_checks():
        "the red named", rc == 0 and w.posts == [] and "STALE-PIN P0" in out and "tests / fast (3.14)" in out
        and "dispatches=0" in out)
     for label, edit in (("a body unit's red (the fresh run re-reads the body)", dict(name="pr-contract / pr-contract")),
+                        ("arch-score's red (a body unit no pin restores)", dict(name="arch-score / arch-score")),
                         ("a code unit red then green in a later run at the head",
                          dict(at="3")),
                         ("a code unit cancelled, not failed", dict(concl="cancelled"))):
@@ -500,9 +501,12 @@ def run_checks():
         ok("#3895: pinned_graders takes a job's name up to its first expression, else its key, and only a PINNED "
            "naming the event's base sha (null: one naming github.sha alone)",
            sweep.pinned_graders(d) == ("u / Leg (", "u / keyed"))
-    ok("#3895: unreadable workflows pin nothing and fail closed: code_red reads no red, so the dispatch stands",
+    w = pinned(run(1, "1", started="5", units=["6"]), code_red(), v=1)
+    ok("#3895: unreadable workflows pin nothing and fail closed: code_red reads no red beside a red fast (3.14), "
+       "so the dispatch stands (null: the tree's workflows read it)",
        sweep.pinned_graders("/nonexistent-hpo-dir") is None
-       and sweep.Sweep("o/r", None, None).code_red([], workflows="/nonexistent-hpo-dir") == [])
+       and sweep.Sweep("o/r", w.get, w.post).code_red(list(w.runs.values()), workflows="/nonexistent-hpo-dir") == []
+       and sweep.Sweep("o/r", w.get, w.post).code_red(list(w.runs.values())) == ["tests / fast (3.14)"])
     # M6/M7 (#3895 review): a newer job still running does not hide an older red (only completed jobs read), and
     # "newest" is the job's start, never the run id (a re-run executes a lower run's unit afresh).
     rs = [run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red()]
