@@ -48631,6 +48631,29 @@ R.check(
         "meter_calibration": None, "calibration_basis": None, "stored_heat_sek": 0.0, "comfort_sek": 0.0},
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
 )
+def _st_cal_row(planned_kw):
+    led = _SavLedger()
+    for _hh in range(2):
+        led.add_savings_settlement(
+            _SavDT(2026, 1, 3, _hh), baseline_kw=1.0, actual_kwh=3.0, spot=2.0, dt=1.0,
+            planned_kw=planned_kw, stored_kw_th=-1.0, steady_cop=2.0, comfort_kw=0.25,
+        )
+    return led.savings_months(_SavDT(2026, 2, 10))[0]
+
+
+_st_c1, _st_c15 = _st_cal_row(3.0), _st_cal_row(2.0)  # meter calibration 1.0 and 1.5
+R.check(
+    "R11-SEAM-tests (carry 0, M9): a calibrated month scales the stored-heat line as it scales the thermostat",
+    _st_c1["meter_calibration"] == 1.0 and _st_c15["meter_calibration"] == 1.5
+    and _st_c1["stored_heat_sek"] < 0.0
+    and _st_c15["stored_heat_sek"] == round(1.5 * _st_c1["stored_heat_sek"], 2),
+    f"{_st_c1} / {_st_c15}",
+)
+R.check(
+    "R11-SEAM-tests (carry 0, M10): a calibrated month scales the comfort line as it scales the thermostat",
+    _st_c1["comfort_sek"] > 0.0 and _st_c15["comfort_sek"] == round(1.5 * _st_c1["comfort_sek"], 2),
+    f"{_st_c1} / {_st_c15}",
+)
 _st_z = _SavLedger()
 _st_z.add_savings_settlement(
     _SavDT(2026, 1, 3), baseline_kw=2.0, actual_kwh=1.0, spot=2.0, dt=1.0,
@@ -94240,6 +94263,33 @@ R.check(
     abs(_fb_stop_lo - 25.8) < 1e-9 and abs(_fb_gate_lo - 20.01) < 1e-9
     and _fb_cuts == (26.5, 27.6),
     f"stop {_fb_stop_lo}, gate {_fb_gate_lo}, cuts {_fb_cuts}",
+)
+# The upper bound's filter is closed at the lowest heating write
+# (_heating_floor_c). A return-limit cut or an upper-limit sensor
+# (_space_limit_c) exactly on it is kept and bounds the loop there. One a step
+# under it leaves no heating value, so the 32 degC ceiling binds: each arm's
+# null control.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_lowest = _fb_pa._heating_floor_c(_fb_i)[1]
+_fb_edge_cut = {
+    off: _fb_pa._feedback_bounds(
+        _fb_h, _fb_running(3600, 0, cut_hi_c=round(_fb_lowest - off, 2)), _fb_i, 26.0)[1]
+    for off in (0.0, 0.1)
+}
+_fb_edge_sensor = {}
+for _fb_off in (0.0, 0.1):
+    _fb_c, _fb_h, _fb_i = _fb_unit(limits=(None, round(_fb_lowest - _fb_off, 2)))
+    _fb_edge_sensor[_fb_off] = (_fb_pa._space_limit_c(_fb_i), _fb_pa._feedback_bounds(
+        _fb_h, _fb_running(3600, 0), _fb_i, 26.0)[1])
+R.check(
+    "R11-OWNER-FLOWCAP: a return-limit cut or an upper-limit sensor exactly on the "
+    "lowest heating write bounds the loop there; one a 0.1 K step under it is set "
+    "aside and the 32 degC heating ceiling binds",
+    abs(_fb_edge_cut[0.0] - _fb_lowest) < 1e-9 and _fb_edge_cut[0.1] == 32.0
+    and _fb_edge_sensor[0.0][0] is not None
+    and abs(_fb_edge_sensor[0.0][1] - _fb_lowest) < 1e-9
+    and _fb_edge_sensor[0.1] == (None, 32.0),
+    f"lowest {_fb_lowest}, cut {_fb_edge_cut}, sensor {_fb_edge_sensor}",
 )
 # R1's bracket is closed at both ends: a reading exactly SETPOINT_TOLERANCE
 # under the replaced record, or over the write, is a cut.
