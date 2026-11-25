@@ -16,3 +16,4 @@
 1795611384 CKPT delta read; deriving pair counts snapshot fe786a98dc37
 1795611916 HB alive
 1795612049 CKPT delta verified; waiting CI snapshot 1cac38b4ae5e
+1795612345 DONE Fix review: merge 2c1ab822 (pending-ci: gate; head moved to 106578f8, review_carry CARRY); verdict at probe/rev-3870-eef32938 7e6473f3
