@@ -15,3 +15,4 @@
 1795634298 INBOX acked through 5
 1795634314 CKPT resumed from BLOCKED 3b3f4806 under NOTE 5 ruling; merging main 7aa6020f snapshot 9d8d363fc600
 1795634722 CKPT merged main 7aa6020f, payment P2 kept, budgets recorded at measured values snapshot 7d23b0dfcec2
+1795634838 CKPT block 55/55 passes; 17 mutants killed on merged tree snapshot 7d50ca1ba892
