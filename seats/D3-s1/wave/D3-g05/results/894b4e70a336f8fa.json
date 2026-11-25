@@ -1,0 +1,57 @@
+{
+ "key": "894b4e70a336f8fa",
+ "site": "coordinator.py:10188 GUARD_OFF",
+ "patch": "if not trajectory: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._file_dhw_lead_predictions",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_dhw_lead_predictions@10188-10192",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3462.1,
+  "child_cpu_s": 5752.6,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/894b4e70a336f8fa.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 894b4e70a336f8fa",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.out",
+  "baseline_value": "0 leads for [] and [x]; 5 for the solved 97",
+  "mutant_value": "identical; None raises TypeError",
+  "inputs_tried": [
+   "[]",
+   "None",
+   "[50.0]",
+   "the solved 97-point list"
+  ]
+ },
+ "m4_answer": "Equivalent on reachable inputs: with the guard off an empty list loops with 0 < idx < 0 false and files nothing; only None separates (TypeError), and OptimizationResult's one constructor (optimizer.py:3899) always delivers a list ([] or tolist()).",
+ "should_fail": "none: no reachable input separates the arms; traced by config_flow_steps, entities, features",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "non_finding": "equivalent-candidate: Equivalent on reachable inputs: with the guard off an empty list loops with 0 < idx < 0 false and files nothing; only None separates (TypeError), and OptimizationResult's one constructor (optimizer.py:3899) always delivers a list ([] or tolist())."
+}
