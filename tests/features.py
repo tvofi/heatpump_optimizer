@@ -66293,6 +66293,215 @@ R.check(
 )
 
 
+# ---- R11-SEAM-actuation-writes C (carries 0, 1, 2): the held record after a release, the night registers, full draw, the valve command ----
+from heatpump_optimizer import pump_arbiter as _r11awc_pa  # noqa: E402
+from heatpump_optimizer import const as _r11awc_const  # noqa: E402
+from heatpump_optimizer import thermal_model as _r11awc_tm  # noqa: E402
+from types import SimpleNamespace as _r11awc_NS  # noqa: E402
+
+
+async def _r11awc_release_scn(off):
+    """Carry 0: the owners' records right after Off, and the writes of the first cycle after On."""
+    hass, entry, c, _written = await _r11ar_plant(idle=False)
+    action = {"heat_pump_on": True, "displace_value": 2.0, "valve_target": 20.0}
+    _r11ar_settle(hass)
+    pre = _r11awc_pa.state_for(c).written.keys() - {"space_setpoint"}
+    after = None
+    if off:
+        await c.async_set_mode(_R11AR_OFF, refresh=False)
+        await _r11ar_cycle(c, 16)
+        _r11ar_settle(hass)
+        after = {
+            "valve": c._valve_target.commanded_c, "freq": c._freq_watchdog.commanded,
+            "circ": dict(_r11ar_circ.commanded(entry)),
+            "arbiter": sorted(set(_r11awc_pa.state_for(c).written) - {"space_setpoint"}),
+        }
+        await c.async_set_mode(_R11AR_AUTO, refresh=False)
+    c._mode, c._current_action = _R11AR_AUTO, dict(action)
+    c._freq_last_write = None
+    await _r11ar_cycle(c, 31)
+    return sorted(pre), after, _r11ar_settle(hass)
+
+
+_r11awc_rel = _r11ar_try(_r11ar_aio.run, _r11awc_release_scn(True))
+_r11awc_rel0 = _r11ar_try(_r11ar_aio.run, _r11awc_release_scn(False))
+R.check(
+    "design invariant 2 (carry 0), valve: the record is empty after Off and the first write after On is sent",
+    _r11ar_ok(_r11awc_rel, lambda r: r[1]["valve"] is None and _r11ar_vals(r[2], "number.valve") == [20]),
+    f"{_r11awc_rel!r}",
+)
+R.check(
+    "design invariant 2 (carry 0), frequency: the watchdog's record is empty after Off and the first write after On is sent",
+    _r11ar_ok(_r11awc_rel, lambda r: r[1]["freq"] is None and _r11ar_vals(r[2], "number.freq") == [45]),
+    f"{_r11awc_rel!r}",
+)
+R.check(
+    "design invariant 2 (carry 0), circulation pump: the record has no entry after Off and the first write after On is sent",
+    _r11ar_ok(_r11awc_rel, lambda r: "switch.vvc" not in r[1]["circ"]
+              and [s for _do, s, d in r[2] if _r11ar_key(d) == "switch.vvc"] == ["turn_off"]),
+    f"{_r11awc_rel!r}",
+)
+R.check(
+    "design invariant 2 (carry 0), arbiter: non-space slots are held before Off and none after it",
+    _r11ar_ok(_r11awc_rel, lambda r: r[0] != [] and r[1]["arbiter"] == []),
+    f"{_r11awc_rel!r}",
+)
+R.check(
+    "design invariant 2 (carry 0) null control: no Off between two cycles of unchanged commands sends no second "
+    "frequency, valve or circulation write",
+    _r11ar_ok(_r11awc_rel0, lambda r: r[2] is not None and not any(
+        _r11ar_key(d) in ("number.freq", "number.valve", "switch.vvc") for _do, _s, d in r[2])),
+    f"{_r11awc_rel0!r}",
+)
+
+# ---- carry 1 (D16-s3-01): the night registers' readings before the first write ----
+_R11AWC_FLAG = "binary_sensor.hp_night_mode_frequency_reduction_active"
+_R11AWC_SH, _R11AWC_SM = "number.hp_night_mode_start_hour", "number.hp_night_mode_start_minute"
+_R11AWC_EH, _R11AWC_EM = "number.hp_night_mode_end_hour", "number.hp_night_mode_end_minute"
+_R11AWC_NUMBERS = (_R11AWC_SH, _R11AWC_SM, _R11AWC_EH, _R11AWC_EM)
+_R11AWC_NIGHT = {_R11AWC_SH: "21", _R11AWC_SM: "0", _R11AWC_EH: "5", _R11AWC_EM: "0"}
+
+
+async def _r11awc_night_scn(readings):
+    hass = _r11ar_hass()
+    for eid, v in readings.items():
+        hass.states.set(eid, FakeState(v, attributes={"min": 0, "max": 59 if eid.endswith("minute") else 23}))
+    hass.states.set(_R11AWC_FLAG, FakeState("off"))
+    cfg = {**_r11ar_config(), _r11awc_const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: _R11AWC_FLAG, _r11awc_const.CONF_QUIET_SILENT_WINDOWS: "22:00-06:00", _r11awc_const.CONF_SILENT_MODE_FRACTION: 0.7}
+    entry = _r11ar_Entry(data=cfg, entry_id=f"r11awc_{next(_R11AR_IDS)}")
+    c = _r11ar_coord(hass, entry)
+    await _r11ar_drive(c, False, idle=False)
+    held = _r11awc_pa.state_for(c)
+    before = dict(getattr(held, "night_before", {}))
+    written = _r11ar_read(hass, _R11AWC_NUMBERS)
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    calls = _r11ar_settle(hass)
+    await _r11ar_cycle(c, 32, post=True)
+    calls += _r11ar_settle(hass)
+    return before, written, _r11ar_read(hass, _R11AWC_NUMBERS), {e: _r11ar_n(calls, e) for e in _R11AWC_NUMBERS}, dict(getattr(held, "night_before", {}))
+
+
+_r11awc_night = _r11ar_try(_r11ar_aio.run, _r11awc_night_scn(_R11AWC_NIGHT))
+_r11awc_want = {_R11AWC_SH: "21", _R11AWC_SM: "0", _R11AWC_EH: "5", _R11AWC_EM: "0"}
+R.check(
+    "D16-s3-01: the night registers' readings are captured before the first write, and the off restore writes "
+    "each changed register back to its reading",
+    _r11ar_ok(_r11awc_night, lambda r: r[0] == {"night_start_hour": 21, "night_start_minute": 0,
+                                                 "night_end_hour": 5, "night_end_minute": 0}
+              and r[1][_R11AWC_SH] != "21" and r[2] == _r11awc_want and r[3][_R11AWC_SH] == 1
+              and r[3][_R11AWC_EH] == 1 and r[4] == {}),
+    f"{_r11awc_night!r}",
+)
+R.check(
+    "D16-s3-01 null control: a register whose reading already equals the written value is not written again "
+    "(the minute registers, read 0 and written 0)",
+    _r11ar_ok(_r11awc_night, lambda r: r[3][_R11AWC_SM] == 0 and r[3][_R11AWC_EM] == 0
+              and r[1][_R11AWC_SM] == "0" and r[1][_R11AWC_EM] == "0"),
+    f"{_r11awc_night!r}",
+)
+
+
+# ---- carry 2(1), class P3: the full-draw set-point on a return unit is never the floor-level write ----
+_R11AWC_CEIL, _R11AWC_GATE, _R11AWC_PMIN, _R11AWC_PMAX = 45.0, 20.0, 1.0, 4.0
+
+
+def _r11awc_full_draw(lifts, return_unit):
+    """(cells, contradictions): a floor-level write at or above the full-draw set-point while the floor sits above the ceiling."""
+    saved = _r11awc_pa._return_unit, _r11awc_pa._flow_inlet_c
+    hits, cells = [], 0
+    try:
+        for lift in lifts:
+            cfg = {"flow_min_lift_k": lift}
+            for i in range(0, 39):
+                inlet = 25.0 + i / 2
+                floor_c = _r11awc_tm.modulation_floor_flow_c(inlet, _R11AWC_GATE, _r11awc_tm.start_flow_min_lift_k(cfg))
+                write = _r11awc_tm.flow_setpoint_for_level(
+                    _R11AWC_PMIN + 1e-9, _R11AWC_PMIN, _R11AWC_PMAX, _R11AWC_CEIL, floor_c)
+                _r11awc_pa._return_unit = lambda _c: return_unit
+                _r11awc_pa._flow_inlet_c = lambda _i, inlet=inlet: inlet
+                full = _r11awc_pa._full_draw_c(_r11awc_NS(config=cfg, state=None), _R11AWC_CEIL)
+                cells += 1
+                if write >= full - 1e-9 and floor_c > _R11AWC_CEIL + 1e-9:
+                    hits.append((lift, inlet, write, full))
+    finally:
+        _r11awc_pa._return_unit, _r11awc_pa._flow_inlet_c = saved
+    return cells, hits
+
+
+_R11AWC_LIFTS = [5.5 + 0.5 * k for k in range(20)]  # 5.5 .. 15 K
+_r11awc_fd = _r11ar_try(_r11awc_full_draw, _R11AWC_LIFTS, True)
+_r11awc_fd_rated = _r11ar_try(_r11awc_full_draw, [5.0], True)
+_r11awc_fd_flow = _r11ar_try(lambda: [
+    _r11awc_pa._full_draw_c(_r11awc_NS(config={"flow_min_lift_k": k, "space_setpoint_unit": "flow"}, state=None),
+                            _R11AWC_CEIL) for k in _R11AWC_LIFTS])
+R.check(
+    "P3 (carry 2): on a return-unit set-point at configured lifts 5.5 to 15 K the full-draw set-point is never the "
+    "floor-level write, and the floor's lift is the one the full draw reads",
+    _r11ar_ok(_r11awc_fd, lambda r: r[0] == 780 and r[1] == [])
+    and _r11awc_pa._floor_lift_k(_r11awc_NS(config={"flow_min_lift_k": 9.0}, state=None))
+    == _r11awc_tm.start_flow_min_lift_k({"flow_min_lift_k": 9.0}),
+    f"{(_r11awc_fd[0], _r11awc_fd[1][:3]) if isinstance(_r11awc_fd, tuple) else _r11awc_fd!r}",
+)
+R.check(
+    "P3 (carry 2) null control: a flow-unit target's full draw is the ceiling at every lift, and a return unit at "
+    "the rated 5 K lift has no floor write at the full draw",
+    _r11ar_ok(_r11awc_fd_flow, lambda r: r == [_R11AWC_CEIL] * len(_R11AWC_LIFTS))
+    and _r11ar_ok(_r11awc_fd_rated, lambda r: r[0] == 39 and r[1] == []),
+    f"{_r11awc_fd_flow!r} {_r11awc_fd_rated!r}",
+)
+
+
+# ---- carry 2(2), class P11: a command is not lost to an entity that is unavailable when it is sent ----
+async def _r11awc_lost_scn(ha):
+    """The cycle's frequency, valve and circulation writes at entities reading unavailable, then at the same
+    commands with the entities available again. The double is the stub's own ``FakeServices.async_call``; ``ha``
+    makes it skip a call whose target reads unavailable, as Home Assistant's entity service call does."""
+    hass = _r11ar_hass()
+    entry = _r11ar_Entry(data=_r11ar_config(), entry_id=f"r11awc_{next(_R11AR_IDS)}")
+    c = _r11ar_coord(hass, entry)
+    real, landed = hass.services.async_call, []
+
+    async def double(domain, service, data=None, **kw):
+        if ha and (st := hass.states.get((data or {}).get("entity_id"))) is not None and st.state == "unavailable":
+            return None
+        landed.append((domain, service, data))
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = double
+    c._mode = _R11AR_AUTO
+    c._optimization_result = _r11ar_plan("dd--dd--")
+    c._current_action = {"heat_pump_on": True, "displace_value": 2.0, "valve_target": 20.0}
+    for eid in ("number.freq", "number.valve", "switch.vvc"):
+        hass.states.get(eid).state = "unavailable"
+    await _r11ar_cycle(c, 1)
+    for eid in ("number.freq", "number.valve", "switch.vvc"):
+        hass.states.get(eid).state = _R11AR_BASE[eid]
+    c._freq_last_write = None
+    await _r11ar_cycle(c, 31)
+    return landed
+
+
+def _r11awc_lost(landed):
+    return {"freq": _r11ar_vals(landed, "number.freq") == [45],
+            "valve": _r11ar_vals(landed, "number.valve") == [20],
+            "pump": [s for _do, s, d in landed if _r11ar_key(d) == "switch.vvc"] == ["turn_off"]}
+
+
+_r11awc_ha = _r11ar_try(_r11ar_aio.run, _r11awc_lost_scn(True))
+_r11awc_fake = _r11ar_try(_r11ar_aio.run, _r11awc_lost_scn(False))
+for _r11awc_arm in ("freq", "valve", "pump"):
+    R.check(
+        f"P11 (carry 2), {_r11awc_arm}: a command first sent at an unavailable entity is delivered once the "
+        "entity is available again",
+        _r11ar_ok(_r11awc_ha, lambda r, a=_r11awc_arm: _r11awc_lost(r)[a]),
+        f"{_r11awc_ha!r}",
+    )
+    R.check(
+        f"P11 (carry 2) null control, {_r11awc_arm}: a double that lands every call loses no command",
+        _r11ar_ok(_r11awc_fake, lambda r, a=_r11awc_arm: _r11awc_lost(r)[a]),
+        f"{_r11awc_fake!r}",
+    )
+
+
 # ---- design note 3, a later key: a write racing the unload after the supply's restore landed ----
 async def _r11ar_late_race_scn(race):
     hass, entry, c, _written = await _r11ar_plant()
