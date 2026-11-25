@@ -1,0 +1,8 @@
+RESULT open_hours_default=6
+RESULT open_hours_flat=3
+RESULT start_hour_open=0
+RESULT open_hours_flat06=5
+RESULT open_hours_wrap2=4
+RESULT thread_factor=1.000
+RESULT load1=0.87
+RESULT swapins=0
