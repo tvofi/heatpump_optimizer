@@ -293,7 +293,7 @@ def unplanned_charge(a: Attribution, tank_rise_k: float | None) -> bool:
     tank thermometer, reads ``False``: the plan split stands, as before.
     """
     return (
-        not a.observed and a.dhw <= 0.0 < a.space
+        not a.observed and a.dhw < 0.0 < a.space
         and tank_rise_k is not None and tank_rise_k > UNPLANNED_CHARGE_RISE_K
     )
 
