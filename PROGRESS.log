@@ -8,3 +8,4 @@
 1795384653 HB alive
 1795616084 HB alive
 1795616178 CKPT delta read; merges equal auto-merge; running features/structure snapshot 591ab4c2be4f
+1795616305 CKPT merge-tree ok; budgets verified; mutants M1/M2 running snapshot c60c19f68f19
