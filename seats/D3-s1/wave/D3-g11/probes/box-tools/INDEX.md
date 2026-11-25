@@ -3,3 +3,4 @@
 - _common.txt, rig.txt, h_*.txt, b_*.txt: the fragments each probes/probe_<k8>.py is assembled from (header + _common + [rig] + body)
 - root/recorder.sh: the background loop that records each gated key and runs gate_wave.sh ckpt; root/waitev.sh: the event wait
 - root/ckptloop.sh: runs gate_wave.sh ckpt every 10 min while anything in the wave dir changed (owner NOTE 1 (d))
+- build_report.py, boxes.txt: REPORT.json/REPORT.md builder for seat D3-s1 box D3-g11 and the per-box wave key counts it names in D3.M3 not_reached
