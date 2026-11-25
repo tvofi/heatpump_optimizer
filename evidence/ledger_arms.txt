@@ -1,0 +1,4 @@
+base all held 8
+D2 ['--round: a seat class with no row in the window prints unread (review/3898: a silent pass)'] 8
+D3 ['--round: an unkeyed seat row prints unread, and a keyed seat found is still refused'] 8
+D5 all held 8

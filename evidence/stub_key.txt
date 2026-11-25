@@ -1,4 +1,0 @@
-PROMPT.md key : {'group': '-', 'role': 'reviewer', 'dimension': '-', 'model': 'm-1', 'seat': 'reviewer-rev-3898'}
-stub (the seat first user message) key: None
-stub: CLOUD REVIEWER seat for PR #3898 of o/n, at head b15a9f2cadb869915afbd317c08d1acd900259d2. Bus nonce: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
-Your full b
