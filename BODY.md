@@ -2,7 +2,7 @@ Closes #3855
 
 R11-OWNER-FROST-HOLD, built on the approved design e91a4e30 (design-verdict 774250ff). On every install with a heat-pump power switch, an OFF the integration would write on an idle step is held while the outdoor reading is below the *Frost hold below* option (+2 °C by default), or stale or missing; the hold clears at threshold + 1 K. The new module `frost_hold.py` is the one writer of the hold's `ArbiterState` fields and gates last in `coordinator._write_supply`, after `supply_hold.hold_supply`. The early cut-off asks `frost_hold.take_off` before it cuts. With Pump duty at Control, the arbiter serves the hold as space at `pump_arbiter._hold_floor_c`. The opt-out is `frost_hold` (default on).
 
-Release note: On every install with a heat pump power switch, the optimizer no longer switches the pump off on idle steps while it is below +2 °C outdoors (option *Frost hold below*), or while the outdoor reading is stale or missing: the pump stays on so it can defrost and protect itself. With *Pump duty* in control it is held at its own minimum set-point; otherwise it runs on its own curve while held, which can use energy the plan does not price, and learning pauses for those runs, and for the whole hold on an install without a power sensor. Quiet off windows are held too. Turn *Frost hold* off to keep the old behaviour.
+Release note: On every install with a heat pump power switch, the optimizer no longer switches the pump off on idle steps while it is below +2 °C outdoors (option *Frost hold below*), or while the outdoor reading is stale or missing: the pump stays on so it can defrost and protect itself. With *Pump duty* in control it is held at its own minimum set-point; otherwise it runs on its own curve while held, which can use energy the plan does not price, and learning pauses for those runs, and for the whole hold on an install without a power sensor. Quiet off windows are held too. Turn *Frost hold* off to keep the old behaviour; with it off, the pump can stay off for hours in freezing weather, and the heat pump and water-filled pipework can freeze.
 
 Where this departs from the design's text (no departure in behaviour):
 - `frost_hold.outdoor_reading(health, forecast_c, config)` reads the sensor slot through `EntryConfig`, which gains `outdoor_temp_entity`, so the coordinator reads no key off its config mapping.
@@ -15,7 +15,12 @@ All four shapes were chosen on measurement; see `## Architecture score`.
 
 ## Head
 
-3071796b00e0c6e113fc048b0f172dc664897cfc, on merge base 9276ddf6b122816149ecba82a607aedf38d87ba1 (origin/main at the merge). The handoff 8ea9f282 was cut on 1207ee13 and did not merge into main, so 5ee0a111 merges origin/main into it. No rebase or re-cut was done. The merge resolves seven conflicts by union. Main's R11-SEAM-actuation-release moved `pump_arbiter._verdict`, `_not_startable` and `_missed` into `duty_ledger.py`, so the frost-hold verdict is now the first branch of `duty_ledger.step_verdict`. In `coordinator._apply_action`, main's off-restore and stale-plan lines stand and the `early_cutoff.arm` call keeps `frost_off=`. The module counts are main's plus `frost_hold.py`, and the D6 claims outputs are regenerated. 3071796b re-records the structure table, with no raise. Fixer steps 2-8 re-ran at this head, inside `prepr.sh` (scoped gate, `PREPR_SKIP_CLOSURES=1`); its receipt is this body's `Prepr:` trailer.
+5f1428a42b3be4e9029144c31d15dbc051f229ad is the repair head. It is on 96523195a04a4abe456ffcf58c04076bf11474b3, the PR head the review blocked (review/3882 87e29eb0, `tests-red`), and has merge base 3153a635b4012d3f8a157c2aaaa34f8da5c8d357 with main. It adds two commits: 53f3c009, the repair, and 5f1428a4, the owner item below. Nothing was rebased.
+
+- 53f3c009: the 9 `tests/features.py` failures were main's #3812 restore fixtures (`_r11ar_config`). They configure `sensor.outdoor` but give it no reading. The frost hold is on by default and a missing reading sets its latch, so every idle step's supply stayed on. The fixtures were written for what an Off or an unload hands back, not for the hold. `_r11ar_config` and `_r11ar_plant` now take `frost=` (default off). A new check, `D16-s3-02 fixture: opted out of the frost hold the idle step switches the supply off; null control: left on with no outdoor reading, the hold keeps it on`, shows that the opt-out is what changes the result. It is the same opt-out the earlier commit 64c33675 made for `_LC_DATA` and the others. The `tests/doc_claims.py` comment ratchet refused one sentence over 40 words in the `duty_ledger.py` module docstring, which is now split into two.
+- 5f1428a4, owner item (tvofi, 2026-11-25): the *Frost hold* option stays, default on, and its description now warns that turning it off can let the pump and water-filled pipework freeze. The warning is in `strings.json`, `translations/en.json`, `sv.json` and `de.json` (all three languages carry the same sentence), and in `docs/configuration.md`'s option row and `docs/how-it-works.md`'s Frost hold section.
+
+At this head `python3 tests/features.py` prints `ALL 6170 FEATURE CHECKS PASSED`, `python3 tests/doc_claims.py` prints `ALL 441 checks PASSED` and `python3 tests/config_flow_steps.py` prints `ALL 609 checks PASSED`. Before the repair, at 96523195, CI's `tests / fast (3.14)` printed `9 of 6169 FEATURE CHECKS FAILED` and `1 of 441 checks FAILED`. `prepr.sh` (`PREPR_SKIP_CLOSURES=1`) ran twice at this head. Each run passed every step except prepr's own `--self-test`. The second run failed 2 of 571 rows there, both from the `red-ancestry/bare` fixture (`an ancestry no commit of which carries any check run skips, never refuses`). This diff touches no file under `tools/`, so the run wrote no receipt; CI's `governance` job runs that self-test as the authority. `pr-body` reported 0 errors, `ci predict` predicted no red against 3153a635, and the merged structure ratchet passed.
 
 ## Mutation proof
 
@@ -65,7 +70,7 @@ A hold's switch-on waits on no minimum, and that includes the early cut-off's `M
 
 ## Unpinned sites
 
-Every site is under `custom_components/`, so each is pinned by `mutation-autofix` (`ci-autofix.md`). The killer is `tests/features.py`, mostly its R11-OWNER-FROST-HOLD block. `prepr.sh` step 6d's diff-mutant run under that block found no survivor among the diff's first 40 mutants.
+Every site is under `custom_components/`, so `mutation-autofix` pins each one (`ci-autofix.md`). At 96523195 it reported `skip-measure-failed` and pushed no commit, because the drivers' baseline was red (`tests/features.py`). This head makes that baseline green, so the autofix's next run measures the kills. Most are killed by `tests/features.py`, chiefly its R11-OWNER-FROST-HOLD block. At 8ea9f282, `prepr.sh` step 6d ran the diff's first 40 added-line mutants under that block, and none survived. Neither repair commit adds a mutation site.
 
 - `custom_components/heatpump_optimizer/config_flow.py:1695 RETURN_DEL`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/duty_ledger.py:47 GUARD_OFF`: pinned by `mutation-autofix`
@@ -106,8 +111,11 @@ Every site is under `custom_components/`, so each is pinned by `mutation-autofix
 
 ## Red checks
 
-- `tests / mutation`, predicted red by `prepr.sh` step 6d for the 36 sites it lists at this head. They are named under `## Unpinned sites`. These are sites the diff adds with no ledger pin yet. `mutation-autofix` pins killed sites by a bot commit (`ci-autofix.md`), so this is its repair, not a hand-written pin. The cheaper detector already exists and ran: step 6d lists the same sites locally in seconds. No new detector is owed.
-
+- `tests / fast (3.14)` at 96523195 failed 9 `tests/features.py` checks (D16-s3-02 off/unload/remove, D16-s1-04 and its precondition, verdict item 9, design note 3 and its two null controls) and one `tests/doc_claims.py` check (the comment ratchet on `duty_ledger.py`). It is fixed in 53f3c009, as `## Head` says. The fixtures came from main's #3812 at the 5ee0a111 merge. The features run cited under `## Figures` (09b08a62) was taken before that merge. The cheaper detector exists: it is the scoped gate re-run after a main merge (`tests/features.py` takes about 22 min locally, `tests/doc_claims.py` 33 s), and the fixer contract already requires it after every merge (`fixer.md`, steps 2-8). Here it was not run at the merged head, so no new detector is owed.
+- `tests / mutation`: the 36 sites the diff adds, listed under `## Unpinned sites`. They are pinned by `mutation-autofix`.
+- `tests / mutation-autofix`: at 96523195 it reported `skip-measure-failed` because of the `fast` red above. It needs no detector of its own; the repair is the same.
+- `pr-contract`: at 96523195 this section did not name `tests / fast (3.14)`. It is named here.
+- `tests / nightly-ha (2025.2.0)` and `tests / nightly-ha (stable)` are not required checks, so they are not owed here.
 
 ## Forward-carry
 
