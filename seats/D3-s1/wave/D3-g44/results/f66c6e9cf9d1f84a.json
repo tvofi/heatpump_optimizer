@@ -1,0 +1,44 @@
+{
+ "key": "f66c6e9cf9d1f84a",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3567 CLAMP_DROP",
+ "patch": "cmd = float(np.clip(displace_command, p.ecl110_displace_min, p.ecl110_displace_max)) -> cmd = float((displace_command))",
+ "function": "ThermalModel.update_ecl110_displace_state",
+ "cluster": "thermal_model.py:ThermalModel.update_ecl110_displace_state@3567-3576",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3361.9,
+  "load1_start": 1.07,
+  "load1_end": 0.92,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_f66c6e9cf9d1f84a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_f66c6e9cf9d1f84a.py",
+  "results": [
+   "RESULT displace_limits=(-20.0,20.0)",
+   "RESULT inputs_tried=125 count",
+   "RESULT inputs_moved=50 count",
+   "RESULT inputs_moved_state_in_range=9 count",
+   "RESULT null_moved=0 count",
+   "RESULT example(eff,cmd,dt,baseline,mutant)=(-25.0, -29.0, 0.0, (-20.0, -20.0), (-29.0, -20.0))"
+  ]
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py:9982 ECL110 caller (update_ecl110_displace_state(displace_command=4.0)) asserts only in-range commands; no assertion that a command beyond ecl110_displace_max/min is clipped before being stored as ecl110_displace_command",
+ "title": "ECL110 command clip at thermal_model.py:3567 is unpinned",
+ "claim": "Removing np.clip on displace_command lets state.ecl110_displace_command and the effective displace move past the ECL110 limits; the full gate stays no redder than the null.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-assertion",
+ "severity_claimed": "medium",
+ "metric_definition": "count of (state,command,dt) inputs where (stored command, effective displace) differ",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_f66c6e9cf9d1f84a.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_f66c6e9cf9d1f84a.py",
+ "perturbation": "cmd = float(np.clip(displace_command, p.ecl110_displace_min, p.ecl110_displace_max)) -> cmd = float((displace_command)) at custom_components/heatpump_optimizer/thermal_model.py:3567; number moves baseline->mutant (see probe results)",
+ "null_control": "probe's old==new recompile: null_moved/null_max_abs_diff = 0; gate null control gates/null.json"
+}
