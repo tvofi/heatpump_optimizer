@@ -101,5 +101,5 @@
  "perturbation": "sysid.py:1073 `if solution.shape[0] >= 4:` -> `if False:`, in memory; direction: half-width DOWN (seed 1000: 0.3196 -> 0.1420), adoption admitted count UP (10 -> 11 of 168)",
  "null_control": "the two-column fallback arguments (size-2 solution) take the else branch either way: RESULT null_fallback_size2_moved=0; and the full gate's own null on this box (dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/null.json)",
  "property": "every branch of the published UA interval is pinned by a check that reads the published interval or the adoption verdict on it",
- "enumerator": "awk -F'\\t' '$6==\"sysid.py:_one_state_ua_halfwidth@1073-1073\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv"
+ "enumerator": "awk -F'\\t' '$5==\"_one_state_ua_halfwidth\"' dev/audit/rounds/round11/D3/s1/wave/D3-g37/keys.tsv"
 }
