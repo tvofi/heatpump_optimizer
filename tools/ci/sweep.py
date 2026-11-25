@@ -61,7 +61,10 @@ started while gate.busy() -- the gate's own predicate, called on the runs at the
 them at that start (`listed_at`) -- names a run is the deferral, no verdict, and is re-run in place, within
 ATTEMPT_CAP and `settled` like any red. A job busy() never reads (a report-only job, a higher-id run whose
 gate had started, #3584's review cases B and C) makes none. With nothing green (#3261's pair) it still
-dispatches. This sweep runs main's copy
+dispatches, unless a code unit (`code_red`: gate.REQUIRED["no-pr"], the head's own code, which no pin
+restores) is already red at the head in its newest-started job: a fresh run would grade that code a second
+time, and the stale red is left for the next push to replace (#3885: none of the 17 STALE-PIN dispatches of
+2026-11-22/23 ended green). A body unit's red still dispatches, because the fresh run re-reads the PR. This sweep runs main's copy
 (gate-sweep.yml), so the countermeasure reaches every PR at once; gate.py's `refresh` runs
 the pinned copy itself, which is why it lives here.
 
