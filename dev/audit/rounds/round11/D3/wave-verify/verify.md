@@ -22,6 +22,20 @@ Total: 381 findings; {'verify': 369, 'weaken': 9, 'unresolved': 3}.
 - **Gate.** The full gate was not re-taken (about 1 h per key on a quiet 4-core box; this host is shared at load 30-70). Every vote cites the box's gate record. Attack carried on every vote: the stripped finder tree's null is red on `closure.py selftest`, `entities.py` and `harness_headers.py`, so a kill by those three only shows as a rising fail count; the judge's runners should re-take the gate on an unstripped tree.
 - **Severity.** Highs whose consequence is a published attribute or report key, or a derate that re-learns, are graded medium (5); keys with no production reference would be cut to nit (none found by the scan; one cut by its own reach line).
 
+## Constraint on the judge's gate re-take: the null is still red on the unstripped tree (unverified cause)
+
+The three scripts red in every wave box's null, run once each on this seat's baseline tree (92d38ecb640bd462f2e19c0814d0f0b7df1ee692, unstripped, with the harvested D3 evidence copied over it), `PYTHONPATH=tests/hastub python3 <script>`, host load1 30-70:
+
+| script | wall | result |
+|---|---|---|
+| `tests/closure.py selftest` | 16 s | rc 0, all 118 closure shrink pins passed |
+| `tests/entities.py` | 2021 s | rc 1, 1 of 2722 entity checks failed |
+| `tests/harness_headers.py` | 513 s | rc 1, 1 of 115 harness header checks failed |
+
+Finding: removing the strip does not make the null green. `entities.py` and `harness_headers.py` still fail one check each, so a kill by either can still show only as a rising fail count. Cause unverified: the likeliest is the D3 evidence files copied into the tree (untracked to the suite's classification and header checks), but the failing check lines were not read. Constraint: before the judge's runners re-take any wave gate, they need a tree whose null is green, with its failing checks named and the cause confirmed. Re-running the two scripts per mutant here would cost about 42 min each (about 270 h for 381 keys), which is why this seat did not.
+
+Carry: R11-D3-JUDGE
+
 ## Votes other than verify
 
 | stage | key | box | site | vote | severity | value | why |
