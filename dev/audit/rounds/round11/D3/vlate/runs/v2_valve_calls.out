@@ -1,0 +1,2 @@
+RESULT 68_calls=287299 calls_where_arms_differ=0 max_delivered_delta_kw=0.000000 dt_hours_seen=[0.00198, 0.00199, 0.0049, 0.00495, 0.01923, 0.01961, 0.05, 0.05882, 0.125, 0.14286, 0.25, 0.5]
+rc=0

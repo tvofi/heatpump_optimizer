@@ -1,0 +1,13 @@
+ heatpump-optimizer-card  v10.0.2 
+file:///home/user/audit-r11-d3l-base/tests/card_drift.mjs:807
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+                                                      ^
+
+TypeError: Cannot read properties of undefined (reading 't')
+    at makeSide (file:///home/user/audit-r11-d3l-base/tests/card_drift.mjs:807:55)
+    at file:///home/user/audit-r11-d3l-base/tests/card_drift.mjs:842:33
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.23.5

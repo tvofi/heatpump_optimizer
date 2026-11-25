@@ -1,0 +1,2 @@
+70 guard_pins rc=0 
+70 features rc=0   ok   P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged

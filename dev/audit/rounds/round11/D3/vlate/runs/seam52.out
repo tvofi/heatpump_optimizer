@@ -1,0 +1,4 @@
+RESULT card_drift_cell_closure_edges=11
+RESULT cell_diffs_selecting_card_drift=11
+RESULT load1=1.05
+RESULT thread_factor=1.00

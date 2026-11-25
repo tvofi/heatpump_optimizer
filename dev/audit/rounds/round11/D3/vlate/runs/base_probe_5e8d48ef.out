@@ -1,0 +1,5 @@
+RESULT caseB_enabled_factor0_baseline=(5.0, 10.0) suppressing=False
+RESULT caseB_enabled_factor0_mutant=(0.0, 3.0) suppressing=False
+RESULT caseA_disabled_factor1_baseline=(5.0, 10.0) suppressing=False
+RESULT caseA_disabled_factor1_mutant=(5.0, 3.0) suppressing=True
+RESULT null_moved=0 count

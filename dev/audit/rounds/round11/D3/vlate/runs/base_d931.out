@@ -1,0 +1,8 @@
+RESULT scalar_k0=0.000000
+RESULT batch_k0=0.000000
+RESULT mismatch=0
+RESULT thread_factor=1.00
+RESULT scalar_k0=1.473806
+RESULT batch_k0=0.000000
+RESULT mismatch=1
+RESULT thread_factor=1.00

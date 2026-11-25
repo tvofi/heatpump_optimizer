@@ -1,0 +1,3 @@
+RESULT 69_cells=1 moved=1 max_abs_delta_kwh=1.0849
+RESULT 69_null_flat_moved=0
+RESULT 69_moved_cells=[('winter_typical', 1.0, 15.0, 13.4277, 1.0849)]

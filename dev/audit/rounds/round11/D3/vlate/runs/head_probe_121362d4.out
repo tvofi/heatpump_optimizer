@@ -1,0 +1,8 @@
+Invalid grid fee rules (Rule '0.5' has no '= rate' part); pricing with no ToU fees
+RESULT rules_baseline=-1 count
+RESULT rules_mutant=1 count
+RESULT rules_delta=2 count
+RESULT verdict_baseline=invalid_grid_fee_rules
+RESULT verdict_mutant=None
+RESULT null_delta=0 count
+RESULT reach_calls_without_eq=2 count

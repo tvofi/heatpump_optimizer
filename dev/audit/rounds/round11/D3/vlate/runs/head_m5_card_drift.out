@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/user/audit-r11-verify-D3-late/dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py", line 154, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/user/audit-r11-verify-D3-late/dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py", line 117, in main
+    orig = edit(tree / CARD_FILE, CARD_OLD, CARD_NEW)
+  File "/home/user/audit-r11-verify-D3-late/dev/audit/rounds/round11/D3/s1/m5_card_drift_payload.py", line 62, in edit
+    assert src.count(old + "\n") == 1, (path, old)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (PosixPath('/tmp/d3s1-carddrift-zdjpezsb/tree/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js'), '      ha-card { padding: 12px 12px 8px 12px; }')
+rc=1

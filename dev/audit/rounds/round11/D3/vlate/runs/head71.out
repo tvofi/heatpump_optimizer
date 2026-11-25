@@ -1,0 +1,2 @@
+RESULT head71_quarters base=0 mut=1
+RESULT head71_hourly(observe_day, sibling now sharing _usable_day) base=0 mut=1

@@ -1,0 +1,4 @@
+RESULT bias_baseline=3.638040 K
+RESULT bias_mutant=4.689280 K
+RESULT delta=1.051240 K
+RESULT null_delta=0.0 K

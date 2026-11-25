@@ -1,0 +1,13 @@
+{"note": "draft before full gates; gate fields pending", "votes": [
+{"id": "D3-s1-02", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-52", "stage": "V1+V2 done (no gate claim)"},
+{"id": "D3-s1-62", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-63", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-64", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-65", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-66", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-67", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-68", "stage": "probe+V2 done (V2: 0 of 287299 production calls separate), gate pending"},
+{"id": "D3-s1-69", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-70", "stage": "probe+V2 done, gate pending"},
+{"id": "D3-s1-71", "stage": "probe+V2 done, gate pending"}]}

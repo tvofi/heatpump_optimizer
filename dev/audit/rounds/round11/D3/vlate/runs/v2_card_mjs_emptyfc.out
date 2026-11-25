@@ -1,0 +1,83 @@
+ heatpump-optimizer-card  v10.0.2 
+defined elements: heatpump-optimizer-card, heatpump-optimizer-card-editor
+customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card","description":"Plots heat-pump price, power and temperature plans on one shared time axis with per-series toggles.","preview":true}]
+  ok    every card language is key-for-key with en and keeps en's placeholders
+  ok    and a planted missing key, dropped or unlisted extra placeholder, or extra key in any language fails it (null controls)
+  ok    a region-tagged hass.language reaches every card dictionary, de-DE included, and an unknown one falls back to en
+  ok    no navigation token in the card's code outside navigateTo
+  ok    renders an <svg>
+  ok    draws polyline/path data
+  ok    draws heating bars
+  ok    legend has all eight series
+  ok    shows a cost or energy summary
+  ok    default entity ids match a real install
+  FAIL  toggling a series changes the chart
+  ok    toggle persisted to localStorage
+  ok    discovers renamed entities by plan_kind
+  ok    falls back to name-suffix discovery
+  ok    resolves a pre-#1333 device-prefixed id with no marker
+  ok    the pre-#1333 pair resolves to the ids it was given
+  ok    the post-#1333 pair resolves to the ids it was given
+  ok    reports missing entities clearly
+  ok    explicit config is honoured
+  ok    collapsed card offers an expand affordance
+  ok    no dialog is rendered until asked for
+  ok    clicking the card opens a dialog
+  ok    the dialog uses showModal-capable markup
+  ok    expanding survives the properties Lovelace writes onto the element
+  ok    and the layout editor is still the card's own, not Lovelace's
+  ok    the dialog carries its own chart
+  ok    the dialog carries its own legend and close button
+  ok    the enlarged chart labels more of the time axis
+  ok    a legend click stops propagating to the card
+  ok    a legend click does not expand the card
+  ok    toggling inside the popup keeps it open
+  ok    closing removes the dialog
+  ok    the empty state is not clickable
+  ok    solar series has data
+  ok    the solar axis does not share the power scale
+  ok    solar is drawn in the price panel, topping out at its share of it
+  ok    solar gets no W/m2 axis title of its own
+  ok    hiding solar leaves the plot width as it was
+  ok    an emptied panel is dropped and the others take its height
+  ok    discovers a renamed solar sensor by plan_kind
+  ok    a missing solar sensor degrades cleanly
+  ok    the popup scales the legend up
+  ok    the popup scales the legend chips and dots
+  ok    the popup chart uses a larger in-viewBox font
+  ok    reason codes render as readable text
+  ok    a repeated reason is not repeated in the tooltip
+  ok    idle steps get no reason label
+  ok    an unknown reason code still shows something
+  ok    UX-1 an idle step is explained, as an inference
+  ok    UX-1 the explanation names the step's own quarter hour
+  ok    UX-1 a dear idle step gives its price rank within the horizon
+  ok    UX-1 it names the run it coasts on and the next run
+  ok    UX-1 it names the solar surplus ahead
+  ok    UX-1 both channels idle share one block and one price line
+  ok    UX-1 nothing is claimed the published fields cannot show
+  ok    UX-1 a step in the cheaper half claims no price reason
+  ok    UX-1 an active step is not explained here
+  ok    UX-1 a running step with no published reason is not explained
+  ok    UX-1 a step the pump's mode blocks is reasonHtml's, not this
+  ok    UX-1 a hidden channel is not explained
+  ok    UX-1 a hot-water step compares the tank with the published minimum
+  ok    UX-1 no tank line when the minimum is not published
+  ok    UX-1 no tank line when the tank is below the minimum
+  ok    UX-1 a step with nothing to say says nothing
+  ok    UX-5 a published sub-code says because and replaces the inferred lines
+  ok    UX-5 an idle step with no sub-code still says likely because
+  ok    UX-5 an idle sub-code is not also a reason label
+  ok    UX-1 hovering the fixture's dearest idle step explains it
+file:///home/user/audit-r11-d3l-base/tests/card.mjs:896
+  const on = (q) => q.dhw_power > 0.05;
+                      ^
+
+TypeError: Cannot read properties of undefined (reading 'dhw_power')
+    at on (file:///home/user/audit-r11-d3l-base/tests/card.mjs:896:23)
+    at file:///home/user/audit-r11-d3l-base/tests/card.mjs:904:11
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.23.5

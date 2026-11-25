@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/user/audit-r11-verify-D3-late/dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py", line 85, in <module>
+    with mock.patch.object(M, "observe_day_quarters", mutant_fn()):
+                                                      ~~~~~~~~~^^
+  File "/home/user/audit-r11-verify-D3-late/dev/audit/rounds/round11/D3/s1/probe_c38d53ab.py", line 55, in mutant_fn
+    assert src.count(old) == 1, "anchor line moved"
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: anchor line moved

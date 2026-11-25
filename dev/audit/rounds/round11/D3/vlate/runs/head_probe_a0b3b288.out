@@ -1,0 +1,5 @@
+RESULT bias_baseline=3.000000 K
+RESULT bias_mutant=3.666667 K
+RESULT delta=0.666667 K
+RESULT null_delta=0.0 K
+RESULT reach_samples_eq_min=1 count
