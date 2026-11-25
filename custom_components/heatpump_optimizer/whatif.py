@@ -173,19 +173,27 @@ def slot_counts(simulated: Any, dt_hours: float) -> dict[str, int]:
     }
 
 
+def reference_days(live: tuple[Any, Any], sim: tuple[Any, Any]) -> tuple[Any, Any]:
+    """Each side's ``reference_day``: its setpoints over the week ahead and its day energy.
+
+    Each side is an unsolved optimizer and its inputs, built at one instant
+    from one set of arrays. Model work, shipped off the loop (P10, D9-s1-04).
+    """
+    return tuple(o.reference_day(i) for o, i in (live, sim))
+
+
 def schedule_days(live: tuple[Any, Any], sim: tuple[Any, Any]) -> tuple[float, float] | None:
     """The live and the what-if side's day energy when the ask moves a comfort target; else None.
 
-    Each side is an unsolved optimizer and its inputs, built at one instant
-    from one set of arrays, and ``reference_day`` gives each one's setpoints
-    over the week ahead and the energy a thermostat holding them draws on its
-    average day. The branch is taken on
+    ``live`` and ``sim`` are each side's ``reference_day``: the setpoints a
+    thermostat holds over the week ahead and the energy it draws holding them
+    on its average day. The branch is taken on
     the setpoints, element by element, never on the energies: two schedules
     a thermostat cannot tell apart (held at the pump's maximum both ways) are
     still a schedule ask, whose figure is then 0, and an ask that moves no
     setpoint reads the pair whatever its energies.
     """
-    (live_targets, live_kwh), (sim_targets, sim_kwh) = (o.reference_day(i) for o, i in (live, sim))
+    (live_targets, live_kwh), (sim_targets, sim_kwh) = live, sim
     return None if live_targets == sim_targets else (live_kwh, sim_kwh)
 
 

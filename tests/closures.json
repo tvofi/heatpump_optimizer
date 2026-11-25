@@ -276,6 +276,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -454,6 +455,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
@@ -570,6 +572,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -684,6 +687,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -812,6 +816,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -952,6 +957,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -1084,6 +1090,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -1201,6 +1208,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -1351,6 +1359,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -1497,6 +1506,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -1894,6 +1904,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -1978,6 +1989,7 @@
    "dev/governance/roles/verifier.md",
    "dev/programme/HANDOVER.md",
    "dev/programme/carries/carry-1645.json",
+   "dev/programme/carries/carry-3885.json",
    "dev/programme/rosters/critical-path.json",
    "dev/programme/rosters/wave-r9-groups.json",
    "docs/architecture.md",
@@ -2441,6 +2453,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -2645,6 +2658,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -2810,6 +2824,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
@@ -2970,6 +2985,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -3157,6 +3173,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -3350,6 +3367,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/supply_hold.py",
@@ -3751,6 +3769,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -3932,6 +3951,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -4046,6 +4066,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -4223,6 +4244,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
@@ -4330,6 +4352,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
@@ -4465,6 +4488,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -4616,6 +4640,7 @@
    "dev/audit/harnesses/ceiling_probe.py",
    "dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py",
    "dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py",
+   "dev/audit/harnesses/ci3885_light.py",
    "dev/audit/harnesses/ci_script_seconds.py",
    "dev/audit/harnesses/claim_merge_census.py",
    "dev/audit/harnesses/claim_merge_mutants.py",
@@ -4909,6 +4934,7 @@
    "dev/audit/harnesses/r11_kernel_step_agree.py",
    "dev/audit/harnesses/r11_main_cancel_mutants.py",
    "dev/audit/harnesses/r11_money_currency_precedence.py",
+   "dev/audit/harnesses/r11_outside_3849_unlatched_price.py",
    "dev/audit/harnesses/r11_owner_criteria.py",
    "dev/audit/harnesses/r11_plan_page_inventory.py",
    "dev/audit/harnesses/r11_relay_3358_skip.py",
@@ -6217,7 +6243,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 31.8
+   "seconds": 73.4
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -6268,7 +6294,7 @@
    "seconds": 60.2
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 1338.1
   },
   "tests/env_drift.py": {
@@ -6277,7 +6303,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 422.7
+   "seconds": 1616.7
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -6289,11 +6315,11 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 1.2
+   "seconds": 1.1
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 8.3
+   "seconds": 18.2
   },
   "tests/ha_contract.py": {
    "rc": 0,
@@ -6337,7 +6363,7 @@
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 21.1
+   "seconds": 50.4
   },
   "tests/typing_ruler.py": {
    "rc": 0,
