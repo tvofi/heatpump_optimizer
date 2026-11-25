@@ -102606,8 +102606,8 @@ R.check(
 )
 
 # T6b: the pass record reads the served record through the same gate as the write
-# (_pass_record's own _settle call): a system-identification step or a return target on
-# the swap pass records the floor it records with no swap; null control, a plain flow
+# (_pass_record's own _settle call). A system-identification step or a return target on
+# the swap pass records the floor it records with no swap. Null control: a plain flow
 # target records the settled floor.
 _sk_pf = {
     name: tuple(_sk_e2e(swap, **kw)[0].last_pass.floor_c for swap in (True, False))
