@@ -1,0 +1,87 @@
+{
+ "key": "16f7665306eebdf3",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8419 BOOLOP",
+ "patch": "if isinstance(since, str) and since: -> if isinstance(since, str) or since:",
+ "function": "HeatPumpOptimizerCoordinator._async_load_energy_totals",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_load_energy_totals@8419-8419",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3203.2,
+  "load1_start": 0.73,
+  "load1_end": 0.94,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/16f7665306eebdf3.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/16f7665306eebdf3.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 16f7665306eebdf3",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_16f76653.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_16f76653.py",
+  "rc": 0,
+  "results": [
+   "RESULT since_int_baseline=None",
+   "RESULT since_int_mutant=12345",
+   "RESULT since_list_baseline=None",
+   "RESULT since_list_mutant=['2026-01-01']",
+   "RESULT since_dict_baseline=None",
+   "RESULT since_dict_mutant={'d': 1}",
+   "RESULT since_empty_str_baseline=None",
+   "RESULT since_empty_str_mutant=''",
+   "RESULT forms_moved=4 count",
+   "RESULT null_delta=0 count",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.87",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "None for every corrupt form",
+  "mutant_value": "12345 / ['2026-01-01'] / {'d': 1} / '' adopted",
+  "inputs_tried": "store `since` = int 12345, list, dict, empty string (all move); null: '2026-01-01', null",
+  "machine": "box D3-g03: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython"
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_load_energy_totals",
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "no check restores an energy-totals store whose `since` is non-string or empty and asserts it is ignored (the payload's energy_totals_counting_since stays an ISO date)"
+ },
+ "provisional": "gate wall_s and load1 are provisional; counts are final",
+ "title": "No suite check pins the string guard on the restored energy-totals `since`; a corrupt store value is adopted unseen",
+ "claim": "Mutating coordinator.py:8419 `isinstance(since, str) and since` to `or` survives the full gate, although a restored energy-totals store whose `since` is 12345, a list, a dict or '' is then adopted as _energy_totals_since (published as energy_totals_counting_since) instead of being ignored.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "P1",
+ "severity_claimed": "low",
+ "consequence": "a corrupt or empty `since` in the energy store is published as the accumulators' counting-since attribute",
+ "metric_definition": "the value HeatPumpOptimizerCoordinator._async_load_energy_totals adopts as `_energy_totals_since` (published as data[\"energy_totals_counting_since\"]) after a restart whose energy-totals store holds a corrupt, truthy, non-string `since` (the document is written to the stub Store's disk and read through the real QuarantiningStore and store.load_mapping), on a real coordinator from tests/harness.py.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_16f76653.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_16f76653.py",
+ "perturbation": {
+  "change": "key 16f7665306eebdf3: `if isinstance(since, str) and since:` -> `if isinstance(since, str) or since:` at custom_components/heatpump_optimizer/coordinator.py:8419, applied in memory by the probe (and on disk by fullgate.py for the gate)",
+  "direction": "None for every corrupt form -> 12345 / ['2026-01-01'] / {'d': 1} / '' adopted"
+ },
+ "null_control": {
+  "gate": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/null.json (fullgate.py null, comment-only marker, this box)",
+  "probe": "the probe's null_delta RESULT: inputs where the mutated line cannot matter; 0 = arms identical"
+ }
+}

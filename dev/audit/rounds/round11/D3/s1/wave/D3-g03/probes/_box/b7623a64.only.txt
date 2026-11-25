@@ -1,0 +1,11 @@
+MUT = mutant(CLS._close_score_day, 10564, "        if mean_spot <= 0.01:", "        if mean_spot < 0.01:")
+
+
+def book(mean):
+    return {"day": "2026-06-10", "kwh": 5.0, "sek": 5.0 * 0.8 * mean, "spot_sum": mean * 2.0, "spot_h": 2.0}
+
+
+b, m = close(CLS._close_score_day, book(0.01)), close(MUT, book(0.01))
+print(f"RESULT score_tie_baseline={b[0]} free_streak={b[1].get('free_streak')}")
+print(f"RESULT score_tie_mutant={m[0]} free_streak={m[1].get('free_streak')}")
+print(f"RESULT null_delta={sum(int(close(CLS._close_score_day, book(x)) != close(MUT, book(x))) for x in (0.0099, 0.0101))} count")

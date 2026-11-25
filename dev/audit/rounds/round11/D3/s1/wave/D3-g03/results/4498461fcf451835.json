@@ -1,0 +1,80 @@
+{
+ "key": "4498461fcf451835",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4945 GUARD_OFF",
+ "patch": "if result.valve_target_schedule: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._build_plan_views",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views@4831-4945",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3315.1,
+  "load1_start": 0.86,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/4498461fcf451835.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/4498461fcf451835.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4498461fcf451835",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_4498461f.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_4498461f.py",
+  "rc": 0,
+  "results": [
+   "RESULT valve_schedule_baseline=4 steps",
+   "RESULT valve_schedule_mutant=None steps",
+   "RESULT null_delta=0 count",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.88",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "4 steps",
+  "mutant_value": "None (key absent)",
+  "inputs_tried": "valve_target_schedule of 4 values; null: empty schedule",
+  "machine": "box D3-g03: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython"
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_plan_views",
+ "should_fail": {
+  "script": "tests/plan_view.py",
+  "assertion": "no check builds plan views from a result with an adopted valve hold schedule and asserts space_plan['valve_target_schedule']"
+ },
+ "provisional": "gate wall_s and load1 are provisional; counts are final",
+ "title": "No suite check pins valve_target_schedule in the space plan view; dropping it leaves the gate green",
+ "claim": "Mutating coordinator.py:4945 `if result.valve_target_schedule:` to `if False:` survives the full gate, although a result with an adopted valve hold schedule then publishes no valve_target_schedule in space_plan (4 steps -> absent).",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "P6",
+ "severity_claimed": "medium",
+ "consequence": "the space-heating plan sensor publishes space_plan as its attributes; the adopted mixing-valve hold schedule disappears from them",
+ "metric_definition": "whether the space plan view HeatPumpOptimizerCoordinator._build_plan_views returns carries `valve_target_schedule` (and its length) for a 4-step result whose solve adopted a valve hold schedule.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_4498461f.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_4498461f.py",
+ "perturbation": {
+  "change": "key 4498461fcf451835: `if result.valve_target_schedule:` -> `if False:` at custom_components/heatpump_optimizer/coordinator.py:4945, applied in memory by the probe (and on disk by fullgate.py for the gate)",
+  "direction": "4 steps -> None (key absent)"
+ },
+ "null_control": {
+  "gate": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/null.json (fullgate.py null, comment-only marker, this box)",
+  "probe": "the probe's null_delta RESULT: inputs where the mutated line cannot matter; 0 = arms identical"
+ }
+}

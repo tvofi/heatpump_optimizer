@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_b7623a64.py: key b7623a645f34e628, the operation score (EMA, prior 40.0) and the day book HeatPumpOptimizerCoordinator._close_score_day leaves (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_b7623a64.py)
