@@ -43274,7 +43274,7 @@ _R11_LOGGER_HANDOVERS = {
     # Prose docstrings that name a logger, each by the hash of its exact text,
     # so a reworded or replaced one is read again: none is a program any
     # evaluator runs (R11 #3729 round 6).
-    ("coordinator.py", "text sha256:1bae1cedbbbd1464"): 1,  # "Run one best-effort cycle step, logging ..."
+    ("coordinator.py", "text sha256:405e32c5bdc779ea"): 1,  # "Run one best-effort cycle step, logging ..."
     ("learner_progress.py", "text sha256:559299c54c5ae71d"): 1,  # "At DEBUG: why ``what`` took no sample ..."
     ("log_latch.py", "text sha256:82178ac44c5d08e8"): 1,  # "Whether condition ``key`` holds, logging ..."
 }
