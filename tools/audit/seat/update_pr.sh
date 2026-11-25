@@ -102,8 +102,8 @@ M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
 # before either. A body with no block is untouched; a failed refresh refuses, pushing and patching nothing.
 upd_figures() { # <where>
   grep -q '^<!-- figure-block: ' "$B" || return 0
-  local fb=origin/main
-  fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
+  local fb=origin/main  # LOCAL OVERLAY r8
+  [ "$1" = "at the head to push" ] || fb=$(pr_recorded_base $R "$N") || pr_refuse "the pull request's recorded base.sha could not be read for #$N, the base pr-contract verifies the figure block against; nothing is pushed or patched"  # mut:updbase
   python3 -I "$PRT/figure_block.py" refresh "$B" --base "$fb" --head HEAD > $WT.fig.log 2>&1 && return 0
   pr_refuse "the figure-block refresh $1 failed; nothing is pushed or patched:
 $(tail -n 20 $WT.fig.log)"
@@ -145,6 +145,7 @@ s=prefix(s,pre); open(p,'w').write(s)
 E
 upd_figures "at the head to push"  # mut:updfig1
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+_push=/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/update_pr-figbase-r8/head-tools/tools/pr/app_push.sh  # LOCAL OVERLAY r8: the head's app_push.sh + prepr.sh, figure verify by the base's program
 RO=""; [ "$(git rev-parse "$H^@")" != "$LIVE" ] || RO=--row-only  # mut:rowonly
 [ -n "$RO" ] || RO=--reuse  # mut:updreuse
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
