@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 390c789ef5..87e2593966 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -490,7 +490,7 @@ def _learned_pair(entry: Any, least: int = 1) -> list[Any]:
+     else ValueError: the entry is dropped, not installed.
+     """
+     value, count = float(entry[0]), _storable_sample_count(entry[1])
+-    if not (np.isfinite(value) and value > 0 and count >= least):
++    if not (np.isfinite(value) and value >= 0 and count >= least):
+         raise ValueError(f"stored fold {entry!r} is not one a fold wrote")
+     return [value, count]
+ 
