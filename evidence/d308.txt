@@ -1,0 +1,7 @@
+f52e700df1 121 182 of the 561 in note: True
+HEAD 122 184 of the 561 in note: True
+  new pairs vs f52e700df1 [('tests/env_drift.py', 'tests/manual_plan.py'), ('tests/golden.py', 'tests/manual_plan.py')] gone []
+merged-with-origin/main bb6377b4dad4e398d1a28bde54d30036a5b25a82 tree 34fc218ce2950be75e6097acdf050500317e6243
+HEAD 122 184 of the 561 in note: True
+34fc218ce2950be75e6097acdf050500317e6243 122 184 of the 561 in note: True
+  new pairs vs HEAD [] gone []
