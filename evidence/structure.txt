@@ -1,0 +1,3 @@
+RESULT module_excess_loc=21768 count
+  ok   module_excess_loc 21768 <= 21768
+STRUCTURE RATCHET PASSED
