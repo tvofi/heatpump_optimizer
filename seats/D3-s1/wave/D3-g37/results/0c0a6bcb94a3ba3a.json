@@ -39,6 +39,7 @@
  "probe": {
   "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_0c0a6bcb94a3ba3a.py",
   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_0c0a6bcb94a3ba3a.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_0c0a6bcb94a3ba3a.txt",
   "results": {
    "unit_ua_1e-9_baseline": "(inf, inf)",
    "unit_ua_1e-9_mutant": "(0.9199996590614319, 0.9199996590614319)",
@@ -56,7 +57,7 @@
    "reach_calls_separating": "0 count",
    "reach_outcomes_differ": "0 count",
    "thread_factor": "1.000",
-   "load1": "2.04",
+   "load1": "0.99",
    "swapins": "0"
   },
   "answer": "Unit: ua exactly 1e-9 returns (0.92, 0.92) instead of (inf, inf); 5e-10 and 2e-9 do not move. Production: the only caller (sysid.py:1627) logs a debug line and is reached only after _predict_step_excursion_plant found a fitting step, which its own guard (sysid.py:315-316, ua <= 1e-9) refuses first; 40 calls over the sweep, 0 separating, 0 outcomes differ",

@@ -39,6 +39,7 @@
  "probe": {
   "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_2b5a8949055ecd4c.py",
   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_2b5a8949055ecd4c.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_2b5a8949055ecd4c.txt",
   "results": {
    "unit_cap_1e-9_baseline": "(inf, inf)",
    "unit_cap_1e-9_mutant": "(17.5, 17.5)",
@@ -56,7 +57,7 @@
    "reach_calls_separating": "0 count",
    "reach_outcomes_differ": "0 count",
    "thread_factor": "1.000",
-   "load1": "2.17",
+   "load1": "0.99",
    "swapins": "0"
   },
   "answer": "Unit: capacity exactly 1e-9 returns (17.5, 17.5) instead of (inf, inf); 5e-10 and 2e-9 do not move. Production: unreachable as for 0c0a6bcb94a3ba3a (the plant sizer's capacity <= 1e-9 guard at sysid.py:316 refuses first); 40 calls, 0 separating, 0 outcomes differ",

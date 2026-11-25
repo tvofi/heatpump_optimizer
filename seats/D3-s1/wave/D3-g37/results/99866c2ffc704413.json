@@ -39,6 +39,7 @@
  "probe": {
   "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_99866c2ffc704413.py",
   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_99866c2ffc704413.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_99866c2ffc704413.txt",
   "results": {
    "unit_plateau_baseline": "(array([1.]), 1.0)",
    "unit_plateau_mutant": "(array([1.]), 1.0)",
@@ -63,7 +64,7 @@
    "reach_calls_separating": "0 count",
    "reach_outcomes_differ": "0 count",
    "thread_factor": "1.000",
-   "load1": "1.90",
+   "load1": "0.95",
    "swapins": "0"
   },
   "answer": "Stopping when max|delta| equals 1e-10 exactly. Unit: 0 of 200 random problems and 0 of the 5 shaped inputs move; production: 0 of 714 calls separate, 0 of 168 outcomes differ. An exact 1e-10 step is never produced",

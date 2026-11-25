@@ -39,6 +39,7 @@
  "probe": {
   "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_6db5003950426ce8.py",
   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_6db5003950426ce8.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_6db5003950426ce8.txt",
   "results": {
    "unit_step_1e-12_baseline": "(0.08246082627876561, 0.08246082627876561)",
    "unit_step_1e-12_mutant": "(0.08246082627870521, 0.08246082627870521)",
@@ -65,7 +66,7 @@
    "reach_calls_separating": "0 count",
    "reach_outcomes_differ": "0 count",
    "thread_factor": "1.000",
-   "load1": "2.86",
+   "load1": "1.00",
    "swapins": "0"
   },
   "answer": "Unit: a phase of exactly 1e-12 h takes one extra 1e-12 h substep, moving (peak, final) by ~6e-14 K; the quarter-hour grid and 2e-12 h do not move. Production: phase lengths are configured hours on the dt grid, so remaining reaches 0.0 or a value far from 1e-12: 560 calls over the sweep, 0 separating, 0 outcomes differ",

@@ -39,6 +39,7 @@
  "probe": {
   "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_e3ea72b8dc57884a.py",
   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_e3ea72b8dc57884a.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_e3ea72b8dc57884a.txt",
   "results": {
    "unit_relax_dominates_q3p6_baseline": "(0.6673482684515015, 0.6673482684515015)",
    "unit_relax_dominates_q3p6_mutant": "(0.019605280423839133, 0.6673482684515015)",
@@ -56,7 +57,7 @@
    "reach_calls_separating": "0 count",
    "reach_outcomes_differ": "0 count",
    "thread_factor": "1.000",
-   "load1": "2.18",
+   "load1": "1.00",
    "swapins": "0"
   },
   "answer": "Unit: where the relax endpoint is farther from the baseline the peak drops (q 3.6 kW: 0.667 -> 0.0196 K; q 0: 1.345 -> 0.686 K); the features.py:29790 input does not move. Production: the function's only consumer is the debug log at sysid.py:1627-1633, called with the sized step, where the step endpoint dominates: 40 calls over the sweep, 0 separating, 0 log lines or outcomes differ",

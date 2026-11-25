@@ -1,0 +1,45 @@
+RESULT unit_plateau_baseline=(array([1.]), 1.0)
+RESULT unit_plateau_mutant=(array([0.99999901]), 1.0)
+RESULT unit_plateau_moved=1 count
+RESULT unit_rosenbrock_baseline=(array([1., 1.]), 1.836566794967668e-30)
+RESULT unit_rosenbrock_mutant=(array([1., 1.]), 1.836566794967668e-30)
+RESULT unit_rosenbrock_moved=0 count
+RESULT unit_bound_baseline=(array([1.00000000e+01, 1.33143747e-08]), 100.0)
+RESULT unit_bound_mutant=(array([10.,  0.]), 100.0)
+RESULT unit_bound_moved=1 count
+RESULT unit_rankdef_baseline=(array([0.6, 0.4]), 0.0)
+RESULT unit_rankdef_mutant=(array([0.6, 0.4]), 0.0)
+RESULT unit_rankdef_moved=0 count
+RESULT unit_random_moved=51 count (over 200 random nonlinear least-squares problems)
+RESULT unit_moved=2 count
+RESULT null_linear_baseline=(array([ 3., -1.]), 4.388038785291878e-30)
+RESULT null_linear_mutant=(array([ 3., -1.]), 4.388038785291878e-30)
+RESULT null_linear_moved=0 count
+RESULT null_moved=0 count
+RESULT reach_runs=168 count
+RESULT reach_calls=714 count
+RESULT reach_calls_separating=185 count
+RESULT reach_outcomes_differ=22 count
+RESULT reach_differ_case=heavy_old,decl=True,truth={},noise=0.0,seed=0,cad=0.5: baseline[completed=True reason='ok' ua=0.314577373661 conf=0.246819198429 hw=inf] mutant[completed=True reason='ok' ua=0.314577373661 conf=0.246819198429 hw=inf | ua_prior_halfwidth: 0.029272993511322867 -> 0.02927299351132417]
+RESULT reach_differ_case=heavy_old,decl=True,truth={},noise=0.05,seed=1,cad=0.5: baseline[completed=True reason='ok' ua=0.355681714462 conf=0.222378351362 hw=inf] mutant[completed=True reason='ok' ua=0.355681714462 conf=0.222378351362 hw=inf | time_constant_hours: 85.34461685730994 -> 85.34461685730993; thermal_mass_kwh_per_c: 30.355519643913922 -> 30.355519643913915; slab_mode_tau_hours: 2.7865929128302542 -> 2.7865929128302525; ua_prior_halfwidth: 0.025924273870012303 -> 0.025924245648812082; ua_told_halfwidth: 0.019842436717962028 -> 0.019842443296287236]
+RESULT reach_differ_case=heavy_old,decl=True,truth={},noise=0.02,seed=2,cad=0.25: baseline[completed=True reason='ok' ua=0.287589009448 conf=0.290758738121 hw=inf] mutant[completed=True reason='ok' ua=0.287589009448 conf=0.290758738121 hw=inf | ua_told_halfwidth: 0.027736109268544373 -> 0.027736109268550534]
+RESULT reach_differ_case=heavy_old,decl=True,truth={'internal_gains': 2.5},noise=0.0,seed=0,cad=0.5: baseline[completed=True reason='ok' ua=0.229901251015 conf=0.267293983701 hw=inf] mutant[completed=True reason='ok' ua=0.229901251015 conf=0.267293983701 hw=inf | ua_prior_halfwidth: 0.04038771945879034 -> 0.04038771945878816; ua_told_halfwidth: 0.027276944859852704 -> 0.0272769448598526]
+RESULT reach_differ_case=heavy_old,decl=True,truth={'internal_gains': 2.5},noise=0.02,seed=0,cad=0.5: baseline[completed=True reason='ok' ua=0.214682333514 conf=0.263714803159 hw=inf] mutant[completed=True reason='ok' ua=0.214682333514 conf=0.263714803159 hw=inf | ua_told_halfwidth: 0.0019326643976711156 -> 0.001932664397674994]
+RESULT reach_differ_case=heavy_old,decl=True,truth={'internal_gains': -1.5},noise=0.0,seed=0,cad=0.5: baseline[completed=True reason='ok' ua=0.3825745778 conf=0.245049675381 hw=inf] mutant[completed=True reason='ok' ua=0.3825745778 conf=0.245049675381 hw=inf | ua_prior_halfwidth: 0.024048522040819177 -> 0.024048522040818088; ua_told_halfwidth: 0.018273138889154744 -> 0.018273120162812847]
+RESULT reach_differ_case=heavy_old,decl=True,truth={'internal_gains': -1.5},noise=0.02,seed=2,cad=0.25: baseline[completed=True reason='ok' ua=0.373323743549 conf=0.264666457756 hw=inf] mutant[completed=True reason='ok' ua=0.373323743549 conf=0.264666457756 hw=inf | ua_told_halfwidth: 0.014455122097544579 -> 0.014455122097544215]
+RESULT reach_differ_case=heavy_old,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.0,seed=0,cad=0.5: baseline[completed=True reason='ok' ua=0.918251096303 conf=0.249814892127 hw=0.00660072362399] mutant[completed=True reason='ok' ua=0.918251096303 conf=0.249814892127 hw=0.00660072371961 | time_constant_hours: 38.288394584497766 -> 38.28839458449775; heat_loss_kw_per_c: 0.9182510963034466 -> 0.9182510963034464; thermal_mass_kwh_per_c: 35.15836030291402 -> 35.158360302914; slab_mode_tau_hours: 3.976896029247488 -> 3.9768960292474813; ua_profile_halfwidth: 0.006600723623988603 -> 0.0066007237196061405; ua_prior_halfwidth: 0.010166482343356695 -> 0.010166482466471458; ua_told_halfwidth: 0.0009428289804709558 -> 0.0009428287207212834]
+RESULT reach_differ_case=heavy_old,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.02,seed=0,cad=0.5: baseline[completed=True reason='ok' ua=0.902477506505 conf=0.260673273886 hw=0.0290512994874] mutant[completed=True reason='ok' ua=0.902477506505 conf=0.260673273886 hw=0.0290512994874 | time_constant_hours: 36.2502147430508 -> 36.25021474305079; heat_loss_kw_per_c: 0.9024775065049232 -> 0.9024775065049231; thermal_mass_kwh_per_c: 32.71500341157649 -> 32.715003411576475; slab_mode_tau_hours: 3.4150245325542476 -> 3.415024532554245; ua_profile_halfwidth: 0.02905129948742024 -> 0.029051299487420253; ua_prior_halfwidth: 0.01033702201319314 -> 0.010337022630718826; ua_told_halfwidth: 0.0013256944583941584 -> 0.0013256997732507124]
+RESULT reach_differ_case=heavy_old,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.05,seed=1,cad=0.5: baseline[completed=True reason='ok' ua=0.937081423924 conf=0.23833435825 hw=inf] mutant[completed=True reason='ok' ua=0.937081423924 conf=0.23833435825 hw=inf | ua_told_halfwidth: 0.0005334849549367565 -> 0.0005334849549368884]
+RESULT adoption_differ_case=heavy_old,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.0,seed=0,cad=0.5: baseline=(True, 0.8724380345741685, 2.9621003106562793, 'adopted') mutant=(True, 0.8724380331607042, 2.9621003106562784, 'adopted')
+RESULT adoption_differ_case=heavy_old,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.02,seed=0,cad=0.5: baseline=(True, 0.6761725914724404, 2.911217762919107, 'adopted') mutant=(True, 0.676172586907237, 2.9112177629191067, 'adopted')
+RESULT adoption_differ_case=heavy_old,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.02,seed=2,cad=0.25: baseline=(True, 0.48113415951843397, 3.01573726399773, 'adopted') mutant=(True, 0.4811341595184344, 3.01573726399773, 'adopted')
+RESULT adoption_differ_case=heavy_old,decl=True,truth={'room_thermal_mass': 0.25},noise=0.0,seed=0,cad=0.5: baseline=(True, 0.10553395117636388, 0.999961958739227, 'adopted') mutant=(True, 0.1055339548765537, 0.999961958739227, 'adopted')
+RESULT adoption_differ_case=heavy_old,decl=True,truth={'room_thermal_mass': 0.25},noise=0.02,seed=0,cad=0.5: baseline=(True, 0.12225870158916441, 1.0073043758096532, 'adopted') mutant=(True, 0.12225870158916852, 1.0073043758096532, 'adopted')
+RESULT adoption_differ_case=typical_slab,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.02,seed=2,cad=0.25: baseline=(True, 0.7136180760841886, 2.9747617393073433, 'adopted') mutant=(True, 0.7136180760841313, 2.9747617393073433, 'adopted')
+RESULT adoption_admitted_baseline=10 count
+RESULT adoption_admitted_mutant=10 count
+RESULT adoption_decisions_differ=6 count
+RESULT max_rel_field_deviation=4.009e-06 (heavy_old,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.02,seed=0,cad=0.5:ua_told_halfwidth 0.0013256944583941584->0.0013256997732507124)
+RESULT thread_factor=1.000
+RESULT load1=0.85
+RESULT swapins=0

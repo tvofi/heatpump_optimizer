@@ -39,6 +39,7 @@
  "probe": {
   "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_67f17d97399379c0.py",
   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_67f17d97399379c0.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_67f17d97399379c0.txt",
   "results": {
    "unit_plateau_baseline": "(array([1.]), 1.0)",
    "unit_plateau_mutant": "(array([1.]), 1.0)",
@@ -63,7 +64,7 @@
    "reach_calls_separating": "1 count",
    "reach_outcomes_differ": "0 count",
    "thread_factor": "1.000",
-   "load1": "2.23",
+   "load1": "0.91",
    "swapins": "0"
   },
   "answer": "Dropping the 1e-12 damping floor. Unit: 16 of 200 random nonlinear problems end at a different x; the plateau, Rosenbrock, bound, rank-deficient and linear inputs do not move. Production: 1 of 714 _lm_solve calls returns a different x, and 0 of 168 runs publish a different outcome (every SysIdResult field, the override sequence, every sysid log line)",

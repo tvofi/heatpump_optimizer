@@ -39,6 +39,7 @@
  "probe": {
   "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_ba25d4dc58c7fecc.py",
   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_ba25d4dc58c7fecc.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/out/probe_ba25d4dc58c7fecc.txt",
   "results": {
    "unit_plateau_baseline": "(array([1.]), 1.0)",
    "unit_plateau_mutant": "(array([0.99999901]), 1.0)",
@@ -69,7 +70,7 @@
    "adoption_decisions_differ": "6 count",
    "max_rel_field_deviation": "4.009e-06 (heavy_old,decl=True,truth={'house_heat_loss_scale': 3.0},noise=0.02,seed=0,cad=0.5:ua_told_halfwidth 0.0013256944583941584->0.0013256997732507124)",
    "thread_factor": "1.000",
-   "load1": "2.03",
+   "load1": "0.85",
    "swapins": "0"
   },
   "answer": "_lm_solve accepts an equal-cost step. Unit: moves on a plateau residual (x 1.0 -> 0.99999901) and at a clip bound (x[1] 1.33e-8 -> 0.0), 51 of 200 random problems. Production: 22 of 168 runs publish a different SysIdResult, all at float-noise level: the largest relative change of any published float is 4.0e-6 (ua_told_halfwidth 0.0013256945 -> 0.0013256998), heat_loss_kw_per_c agrees to 1e-15, 6 adoption decisions differ only in weight (<= 4.6e-9 absolute) or scale (1 ulp), admitted 10 vs 10. Equivalent at every decision the integration publishes; the residual movement is below what a check can pin portably (solver floats do not reproduce across BLAS builds)",
