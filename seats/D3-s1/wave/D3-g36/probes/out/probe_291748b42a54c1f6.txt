@@ -1,0 +1,9 @@
+RESULT baseline=ua=0.690204524 cap=16.767321976 tau=24.293265833 conf=0.998410774 hw=inf
+RESULT mutant=ua=0.690204566 cap=16.767323052 tau=24.293265908 conf=0.998410774 hw=inf
+RESULT moved=1 count
+RESULT null_moved=0 count
+RESULT noisy_baseline=ua=0.097862713 cap=15.431340222 tau=157.683552920 conf=0.501584191 hw=inf
+RESULT noisy_mutant=ua=0.097862712 cap=15.431340284 tau=157.683553806 conf=0.501584191 hw=inf
+RESULT thread_factor=1.000
+RESULT load1=4.84
+RESULT swapins=0

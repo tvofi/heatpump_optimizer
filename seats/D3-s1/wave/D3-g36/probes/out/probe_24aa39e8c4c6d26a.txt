@@ -1,0 +1,8 @@
+RESULT baseline=ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.374061403 hw=0
+RESULT mutant=refused:slab mode too slow for the excitation window: tau_fast=4.17 h needs 12.5 h to settle, but the shortest phase of the 5.0 h window is 1.0 h
+RESULT moved=1 count
+RESULT null_moved=0 count
+RESULT gap_2p5_moved=0 count
+RESULT thread_factor=1.000
+RESULT load1=4.83
+RESULT swapins=0

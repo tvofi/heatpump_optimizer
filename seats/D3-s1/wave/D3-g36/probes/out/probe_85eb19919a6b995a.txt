@@ -1,0 +1,18 @@
+# UA=0.15 C_r=10.0 dt=0.5: |r1-r0|=0.000e+00 K, hw baseline=0.07032542966365868
+# UA=0.15 C_r=10.0 dt=0.0011: |r1-r0|=0.000e+00 K, hw baseline=0.06640975303406776
+# UA=0.15 C_r=10.0 dt=2.0: |r1-r0|=0.000e+00 K, hw baseline=0.10454481571099643
+# UA=0.01 C_r=1000.0 dt=0.5: |r1-r0|=0.000e+00 K, hw baseline=1.8985478208358533
+# UA=0.01 C_r=1000.0 dt=0.0011: |r1-r0|=0.000e+00 K, hw baseline=2.356516418139081
+# UA=0.01 C_r=1000.0 dt=2.0: |r1-r0|=0.000e+00 K, hw baseline=1.4836256497591092
+# UA=5.0 C_r=0.001 dt=0.5: |r1-r0|=1.816e-03 K, hw baseline=0.3896705344223853
+# UA=5.0 C_r=0.001 dt=0.0011: |r1-r0|=1.816e-03 K, hw baseline=2.119505875662385
+# UA=5.0 C_r=0.001 dt=2.0: |r1-r0|=1.816e-03 K, hw baseline=0.10089453711065477
+# UA=0.0001 C_r=1000.0 dt=0.5: |r1-r0|=0.000e+00 K, hw baseline=7.8167173281855495
+# UA=0.0001 C_r=1000.0 dt=0.0011: |r1-r0|=0.000e+00 K, hw baseline=8.018253326712877
+# UA=0.0001 C_r=1000.0 dt=2.0: |r1-r0|=0.000e+00 K, hw baseline=7.8167173281855495
+RESULT moved=0 count
+RESULT inputs=12 count
+RESULT min_abs_r1_minus_r0=0.000e+00 K
+RESULT thread_factor=1.000
+RESULT load1=4.97
+RESULT swapins=0

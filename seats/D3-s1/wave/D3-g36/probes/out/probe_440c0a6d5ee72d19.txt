@@ -1,0 +1,7 @@
+RESULT baseline=ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.125000000 hw=0
+RESULT mutant=refused:not enough samples
+RESULT moved=1 count
+RESULT null_moved=0 count
+RESULT thread_factor=1.000
+RESULT load1=4.84
+RESULT swapins=0

@@ -1,0 +1,8 @@
+RESULT baseline_log_ua=4.605170
+RESULT mutant_log_ua=6.907755
+RESULT baseline_out_of_band_rollouts=0 count  # ua=0.125671749 cap=5.010000000 tau=39.865761779 conf=0.000000000 hw=inf; 427 rollouts
+RESULT mutant_out_of_band_rollouts=1 count  # stopped at the first out-of-band rollout; after 5 rollouts
+RESULT null_moved=0 count
+RESULT thread_factor=1.000
+RESULT load1=4.90
+RESULT swapins=0

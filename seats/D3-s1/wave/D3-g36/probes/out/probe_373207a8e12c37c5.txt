@@ -1,0 +1,8 @@
+RESULT baseline_x1=10.000000
+RESULT mutant_x1=20.000000
+RESULT moved=1 count
+RESULT null_moved=0 count
+RESULT slab_hw_moved=0 count  # identify_slab nights: default, noise 0.05, gains -8 kW
+RESULT thread_factor=1.000
+RESULT load1=4.84
+RESULT swapins=0

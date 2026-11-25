@@ -1,0 +1,11 @@
+RESULT baseline_1e+160=refused:fit failed
+RESULT mutant_1e+160=refused:fitted parameters outside plausible bounds
+RESULT baseline_nan=ua=0.150000000 cap=8.333333333 tau=55.555555556 conf=nan hw=nan
+RESULT mutant_nan=refused:fitted parameters outside plausible bounds
+RESULT baseline_inf=ua=0.150000000 cap=8.333333333 tau=55.555555556 conf=0.000000000 hw=inf
+RESULT mutant_inf=refused:fitted parameters outside plausible bounds
+RESULT moved=3 count
+RESULT null_moved=0 count
+RESULT thread_factor=1.000
+RESULT load1=4.97
+RESULT swapins=0

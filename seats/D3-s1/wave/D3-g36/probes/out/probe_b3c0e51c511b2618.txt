@@ -1,0 +1,8 @@
+RESULT baseline_kw=0.2 kW
+RESULT mutant_kw=0.1 kW
+RESULT baseline_kw_cop0=0.2 kW
+RESULT mutant_kw_cop0=0 kW
+RESULT null_moved=0 count
+RESULT thread_factor=1.000
+RESULT load1=4.97
+RESULT swapins=0
