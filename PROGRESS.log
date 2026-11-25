@@ -5,3 +5,4 @@
 1795609984 CKPT delta read; harness running snapshot 224261e5c3d8
 1795610406 HB alive
 1795611009 HB alive
+1795611594 DONE blocked 91cfc89fdade unload-row-written; verdict ee5d9a0a6b on probe/rev-3872-51095a75
