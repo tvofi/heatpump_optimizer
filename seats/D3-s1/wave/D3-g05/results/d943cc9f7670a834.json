@@ -1,0 +1,107 @@
+{
+ "key": "d943cc9f7670a834",
+ "site": "coordinator.py:7069 BOOLOP",
+ "patch": "if result and weather_entity in result: -> if result or weather_entity in result:",
+ "function": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather_forecast@7056-7069",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "wall_s": 3352.8,
+  "child_cpu_s": 5598.7,
+  "load1_start": 0.77,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/d943cc9f7670a834.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d943cc9f7670a834",
+ "provisional": {
+  "wall_and_load": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.out",
+  "baseline_value": "0 held rows, else branch ('No forecast data returned')",
+  "mutant_value": "48 fabricated rows (except branch)",
+  "inputs_tried": [
+   "response holding only another entity",
+   "response None",
+   "response {}",
+   "forecast already held (null)"
+  ]
+ },
+ "m4_answer": "Moves: when the response lacks the configured entity (or is None) and no forecast is held, the mutant raises KeyError/TypeError inside the try, so the except branch fabricates the flat 48 h trajectory from the entity's current state (held rows 0 -> 48); the baseline takes the else branch and holds nothing (moved_held_rows=2).",
+ "should_fail": "tests/features.py ('a failed weather fetch latches the outage and marks the forecast stale', features.py:41558) returns None with no weather-entity state, so the except branch has nothing to fabricate from; it lacks an assertion that a no-data reply with a live entity holds no fabricated forecast",
+ "verdict_read": "RED-AS-NULL read as survived",
+ "finding": {
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "title": "No check sends a forecast reply lacking the entity with a live weather state; and->or fabricates a flat forecast",
+  "severity_claimed": "medium",
+  "severity": "medium",
+  "claim": "Mutant d943cc9f7670a834 (coordinator.py:7069, result and entity in result -> or) survives the full gate, yet a get_forecasts reply without the configured entity, with no forecast held, yields a fabricated 48-row flat forecast (0 -> 48 rows) instead of none.",
+  "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py ('a failed weather fetch latches the outage and marks the forecast stale', features.py:41558) returns None with no weather-entity state, so the except branch has nothing to fabricate from; it lacks an assertion that a no-data reply with a live entity holds no fabricated forecast.",
+  "class_guess": "I1",
+  "stop_rule_class": "hygiene",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+  "metric_definition": "rows in _weather_forecast after one fetch whose reply lacks the configured entity, nothing held, weather entity state live",
+  "perturbation": {
+   "change": "the mutant edit 'if result and weather_entity in result:' -> 'if result or weather_entity in result:' at custom_components/heatpump_optimizer/coordinator.py:7069, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d943cc9f7670a834",
+   "expected_direction": "up",
+   "observed_value": 48
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+   "value": "unchanged",
+   "note": "reply {} and a held forecast: rows identical in both arms"
+  },
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+  "phenomenon_property": "A get_forecasts reply that carries no data for the configured entity is a failed fetch through the else branch, never an exception that fabricates a forecast",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "tests only: the M2 weather check with a live entity state and a reply lacking the entity, asserting no forecast rows",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+   "value": 48,
+   "unit": "rows in _weather_forecast after one fetch whose reply lacks the configured entity, nothing held, weather entity state live",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "thread_factor": 1.0,
+   "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d943cc9f7670a834"
+  ]
+ }
+}
