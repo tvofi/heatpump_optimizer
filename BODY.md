@@ -8,7 +8,7 @@ While the latch holds:
 
 - `pump_arbiter.apply` consults once per pass, before the duty-off return, so the latch moves for every install. In control, `_arbitrate` returns before `_adopt`, `hold`, `_command` and the night schedule (`_fault_stands`). It drops `space_before` and the pending retries and clears `pump_write_ignored`.
 - `_lead_mode` writes no mode.
-- An unload writes no baseline row: `off_restore`'s release of the row (`pump_arbiter._release_row`, main's since #3812) answers False for `reason == "unload"` under the latch, so the row stays owed; `release` then drops the latch and the repair. The space set-point's own restore still runs. Off ends the hold, so entering Off hands the row back at once.
+- An unload writes no baseline row: `off_restore`'s release of the row (`pump_arbiter._release_row`, main's since #3812) answers False for `reason == "unload"` while `fault_hold.unload_holds` reads true, so the row stays owed. `async_unload_entry` restores twice, before and after `async_shutdown`; `release` between them drops the latch and the repair, and `fault_hold.release` marks an entry that was holding, so the second restore leaves the row owed too. The entry's next consult (a set-up afresh) clears the mark. The space set-point's own restore still runs. Off ends the hold, so entering Off hands the row back at once.
 - A stale plan's hand-back (`off_restore.async_cycle`'s stale half, #3812: supply on, frequency, valve, the row) is not run while the latch holds; it runs once the alarm clears.
 - The cycle's and the step tick's switch gate (`fault_hold.gate`, after `supply_hold.hold_supply` in `_write_supply`) turns an OFF into "leave" and marks `supply_held`, so the step tick lands it after the clear. An ON passes.
 - `early_cutoff.on_room_event` does not cut.
@@ -19,7 +19,7 @@ The step ledger lives in `duty_ledger.py` (main's module since #3812; this group
 
 The design's carries, each built here:
 
-- **skip-log**: the held mark suppresses the cooling debug line; the gate logs its own.
+- **skip-log**: the gate logs its own line; main's cooling gate (#3864, `supply_hold.supply_write`) prints its message only for a value it leaves, and it passed the OFF the fault gate holds.
 - **multi-entry**: one domain-wide id, cleared only when no entry on the same `hass` holds.
 - **hand-reset**: the repair text says to turn Optimizer active off first.
 - **entry-released / publish-released**: `holding(released=...)`, with `publish` given `released=self._entry_released` on the coordinator's existing argument line.
@@ -40,36 +40,29 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 
 ## Head
 
+`71af14b6d88998d59cef37e629dfde9ff5d05622`, measured against its merge base `d3d66c40408e76351ffc528686353cadf815a05c` (`origin/main` at the merge, #3864 merged). `git merge-tree --write-tree origin/main HEAD` exits 0.
 
-`1b5c1b29b83dbb6b25d0aec7ef77860a5e523507` merges the authored code head `07223afa29183c818afe339b045d8d5ee0b839f0` and then merges origin/main `bb6377b4da` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+Review round 2 (`review/3872` `66d0d4b2`, `verdict/3872` `9b11d200`) blocked `91cfc89fdade5cb556ad5e7fd3353ac4c3eae07b` as `unload-row-written`: the second unload restore, after `pump_arbiter.release` drops the latch, wrote the baseline row into the faulted pump. `fdde1320d3` answers it (`## Mutation proof`). The orchestrator's scope add (inbox `r11-merge-fault-hold`, command 1) put that fix in this merge pass.
 
-`07223afa29183c818afe339b045d8d5ee0b839f0`, measured against its merge base `6a58ba5cb3` (the `origin/main` merged in `07223afa29`). `origin/main` is `bb6377b4dad4e398d1a28bde54d30036a5b25a82` at the stamp; `git merge-tree --write-tree origin/main HEAD` exits 0, without the ledger driver too. Stamped 2026-11-25T11:52:40Z. Review round 1 (`review/3872` `d77b2da2`, `verdict/3872` `c61cfa41`) blocked `d6a54399a63b` as mutation-vacuous; `ce9619a4f4` answers it, and the commits after it merge main. The branch's own commits, `git log --first-parent 8ef450936a17..HEAD`:
+The commits since the reviewed head, `git log --first-parent 91cfc89fdade..71af14b6d8`:
 
-- `6477e5f7df` R11-OWNER-FAULT-HOLD: suspend actuation while the pump reports a latched fault
-- `149b770946` R11-OWNER-FAULT-HOLD: record block_duty's closure with the two new modules; harness INERT READS
-- `bac3d94412` R11-OWNER-FAULT-HOLD: closures re-recorded for the two new modules; the fault latch's value-age disposition; tree counts the modules move; the mutation harness
-- `62a9fe6873` R11-OWNER-FAULT-HOLD: INERT READS for the mutation harness
-- `dacb2f71db` R11-OWNER-FAULT-HOLD: entities.py closure gains the two new modules (two-step record: its only reds were the full-coverage checks it reads from that closure); deployment-shape note keeps 167 pairs
-- `5eb7083aaa` R11-OWNER-FAULT-HOLD: duty_ledger.step_verdict (tests/layout.py owns the name verdict); faulted keyword-required; the diagnostics row checked
-- `ce9619a4f4` R11-OWNER-FAULT-HOLD: one check per call site of the latch (consult released and Off through apply, publish at mode_off, the diagnostics since); the four mutants in the harness
-- `2b1f96e77b` Merge origin/main af4d89f763 into R11-OWNER-FAULT-HOLD: resolve against R11-SEAM-actuation-release (#3812)
-- `abc36b3f09` R11-OWNER-FAULT-HOLD: structure budgets re-recorded after the main merge: module_excess_loc 21775 -> 21741
-- `f8b1b7b9ea` R11-OWNER-FAULT-HOLD: drop the three mutation-ledger pins the merge left stale
-- `69d2557947` R11-OWNER-FAULT-HOLD: Off ends the hold, so its restore writes the baseline row at once; only an unload under the hold leaves the row owed; docs; the harness's two new mutants
-- `ed1b1ae98e` R11-OWNER-FAULT-HOLD: structure budgets re-recorded: module_excess_loc 21741 -> 21740
-- `fdcf373670` test: fault-hold Off check compares against its null control, which no longer fails under the Off-row mutant
-- `8d8b30aabf` R11-OWNER-FAULT-HOLD: config_flow fixture re-recorded with the fault_hold option; claimed
-- `e2e30e43ad` Merge origin/main `5594a34a49` (no conflict; the ledger driver merged `tests/closures.json` as sets)
-- `b29af9141c` R11-OWNER-FAULT-HOLD: D6 claims register regenerated (claims.py): 102 modules, 37 module-level homeassistant importers
-- `79265fe95b` R11-OWNER-FAULT-HOLD: tests/cycle_lane.py's closure gains fault_hold.py (derive_closures.sh --single)
-- `9924e94422` Merge origin/main `f52e700df1` (through #3738, #3875, #3868, #3887): module counts resolved against #3738's `solve_gate.py`; D6 claims register regenerated
-- `07223afa29` Merge origin/main `6a58ba5cb3`: `tests/closures.json` and `tests/structure_budgets.json` through the ledger driver (a merge without it conflicts, so CI would run nothing)
+- `da1f90c785` Merge origin/main `d3d66c4040` into R11-OWNER-FAULT-HOLD: resolve against R11-OWNER-COOLING-GUARD (#3864)
+- `fdde1320d3` R11-OWNER-FAULT-HOLD: the unload's second restore leaves the row owed under a held fault
+- `0bbd4dd92c` R11-OWNER-FAULT-HOLD: `_release_row`'s docstring rewrapped one line shorter (`module_excess_loc` back to the merged tree's measure)
+- `d8961f7a99` R11-OWNER-FAULT-HOLD: the harness's release-clears mutant re-texted around the unload mark
+- `71af14b6d8` R11-OWNER-FAULT-HOLD: `tests/deployment_shape.py`'s #1218 note carries the census `tests/entities.py` derives
 
-Read the diff three-dot. For the reviewer's delta from the reviewed head: `git diff d6a54399a63b HEAD`; from the previous handoff `79265fe95b`: `git diff 79265fe95b HEAD` (all of it main's but the count lines of `9924e94422`) (round 1's head, which already carried main to `e3cb5c019b`).
+The reviewer's delta: `git diff 91cfc89fdade 71af14b6d8`; the code delta without main's: `git diff da1f90c785 71af14b6d8`. The earlier commits, rounds and merges are in this PR's history; the round-1 answer is `ce9619a4f4`.
 
 ## Merge resolution
 
-`git merge origin/main` (`af4d89f763`) into `ce9619a4f4` conflicted in 8 files and 4 mutation-ledger rows, all from #3812 (R11-SEAM-actuation-release), which moved the step verdicts into its own `duty_ledger.py` and the off/unload baseline row into `off_restore` (`_release_row`, `ROW`). Each file, both sides read back in the merged artifact:
+Fifth merge, `da1f90c785` (`origin/main` `d3d66c4040`, #3864 R11-OWNER-COOLING-GUARD). `git merge-tree --write-tree` named six content conflicts (`README.md`, `coordinator.py`, `strings.json`, `translations/en.json`, `sv.json`, `de.json`), not four; `tests/structure_budgets.json` went through the ledger driver. Each, both sides read back in the merged artifact:
+
+- `coordinator.py` `_write_supply` (semantic): #3864 moved the switch gate to `supply_hold.supply_write(held, inputs, on, signals)`, which reads cooling and raises `pump_mode_cooling`; this group's `fault_hold.gate` stays outermost around main's whole expression, so a cooling ON is left by main's gate and a fault-held OFF is left by this group's. Main dropped the coordinator's cooling debug branch, which `fault_hold.gate`'s docstring named; the docstring now names `supply_write`'s message.
+- `strings.json`, `translations/en.json`, `sv.json`, `de.json`: both issues kept, `pump_fault_hold` then `pump_mode_cooling`; each file parses as JSON; `tests/entities.py` at this head passes "en.json has exactly strings.json's keys", the same for `sv.json` and `de.json`, and "en.json equals strings.json leaf for leaf".
+- `README.md`: both notice rows kept, the fault row before the cooling row; each is true of the merged gate order above.
+- `tests/structure_budgets.json`: `tests/structure.py` on the merged tree measures `module_excess_loc` 21728, the ledger driver's sum (21774 base; main -11, this branch -35); `class_excess_loc` and `max_class_loc` take main's lowered values. Recorded in the merge commit with its reason; no metric rose.
+- `tests/deployment_shape.py`'s #1218 note: the branch head `91cfc89fdade` already derived 184 of 561 pairs at >= 0.80 against a note of 182 (`tests/entities.py` red there, found by the scoped gate here); the two pairs are `manual_plan.py` with `env_drift.py` and with `golden.py`, each closure gaining `fault_hold.py` alone. Derived by `tests/entities.py`'s `_d308_pairs` on the merged `tests/closures.json`; main derives 182.`git merge origin/main` (`af4d89f763`) into `ce9619a4f4` conflicted in 8 files and 4 mutation-ledger rows, all from #3812 (R11-SEAM-actuation-release), which moved the step verdicts into its own `duty_ledger.py` and the off/unload baseline row into `off_restore` (`_release_row`, `ROW`). Each file, both sides read back in the merged artifact:
 
 - `custom_components/heatpump_optimizer/duty_ledger.py` (add/add): main's module is the base (its `_not_startable`, `_missed` and `step_verdict` are identical to ours but for the fault branch and the local name). This group's on top: `observe()` (the row fold `pump_arbiter._observe` delegates to), `RUN_SETTLE` (main kept `RUN_SETTLE = _TICK` in `pump_arbiter.py`, both one minute; it now lives here only), the `faulted` row key and `device-fault` first in `step_verdict`. The docstring opens with main's first line.
 - `custom_components/heatpump_optimizer/pump_arbiter.py` (5 hunks): module docstring is main's ledger paragraph plus this group's fault paragraph; imports are main's plus `fault_hold`; `_observe` is this group's (delegating to `duty_ledger.observe` with `faulted`); `release()` is main's (writes nothing, persists) plus `fault_hold.release(coord.hass, coord.entry)`. This group's old in-`release` baseline write is gone with main's: the unload's row is `_release_row`'s, which gains `(reason == "unload" and fault_hold.held(coord.entry))` in its first guard. Main's `_arbitrate` Off comment is taken as is.
@@ -90,42 +83,38 @@ Fourth merge, `07223afa29` (`origin/main` `6a58ba5cb3`, through #3888 and the du
 
 ## Mutation proof
 
-`python3 dev/audit/harnesses/r11_owner_fault_hold_mutants.py HEAD`. It runs 38 hand mutants, each deleting or weakening one production predicate in a `git archive` copy, and drives the fault-hold block of `tests/features.py` and `tests/block_duty.py`. Unmutated baseline: 0 failing. Result at this head: `RESULT mutants=38`, `RESULT survived=0`.
+`python3 dev/audit/harnesses/r11_owner_fault_hold_mutants.py HEAD`, at `d8961f7a99` (tree identical to `0c8bbfaa77`, where it ran; production unchanged since): 41 hand mutants, each deleting or weakening one production predicate in a `git archive` copy, driving the fault-hold block of `tests/features.py` and `tests/block_duty.py`. Unmutated baseline: `BASELINE 0 failing`. `RESULT mutants=41`, `RESULT survived=0`.
 
-The merge re-texted two mutants (`release row skip` now drops `_release_row`'s fault clause; `frequency guard` keeps `_plan_let_go`) and added two: `Off row held too` (the `reason == "unload"` clause dropped) and `stale hand-back held` (`async_cycle`'s stale half passed bare).
+Round 2's block, failing first: `_pa_unload` (`tests/features.py`) now runs restore, `release`, restore, as `async_unload_entry` does. At `da1f90c785` (the merge, no fix) the fault-hold block reads `1 of 59 FEATURES BLOCK FAILED`, the failure `unload under the hold writes no baseline row, and drops the latch [([('select', 'select.pump_mode', 'Heating + DHW')], False)]`; with the fix, `ALL 61 FEATURES BLOCK PASSED`. A new check pins the mark's lifetime: after an unload under the hold, a consult (the entry set up afresh) and a second unload write the owed row; its null control, the same sequence with no consult, writes none.
 
-Review round 1 found four call-site arguments the checks never drove: the earlier checks called `fault_hold.holding(off=..., released=...)` directly, so `consult`'s and `publish`'s own arguments could be replaced and nothing went red. Each now has a check through its call site, with a null control, and each mutant is in the harness:
+Three new mutants, each killed: `unload mark set` (`fault_hold.release` marks nothing; 2 failing), `unload mark read` (`unload_holds` reads the latch only; 2 failing), `unload mark cleared` (the consult keeps the mark; 1 failing). `release row skip` and `Off row held too` re-texted to `unload_holds`; `release clears` re-texted around the mark (it read `STALE` at `fdde1320d3`, the text it mutated having gained the mark's line). Each still killed.
 
-- `fault_hold.py:115`, `consult`'s `released=inp.entry_released` dropped: "a pass queued before the unload (entry_released) with a 30-minute fault raises no fault repair" (null control: the same `pump_arbiter.apply` pass on a loaded entry raises it).
-- `fault_hold.py:115`, `consult`'s `off=inp.mode == MODE_OFF` → `off=False`: "an Optimizer Off pass after a held pass clears the latch and the fault repair" (null control: the next pass in auto keeps both).
-- `heat_curve.py:287`, `publish`'s `off=mode_off` → `off=False`: "the Off displace under a held latch is published, and clears the latch and the fault repair" (null control: the same second displace outside Off is not sent and the hold stays).
-- `fault_hold.py:150`, `diagnostics_view`'s `since` → `None`: "the diagnostics row's since is the latch's start, the alarm's last change", at two starts (-30 and -45 minutes) so a constant cannot pass (null control: with no fault `since` is `None`).
-
-The four verdict sites, re-run at this head with `tools/audit/seat/mutant_run.py --spec` over the fault-hold block (its automatic NULL mutant first, SURVIVED): `KILLED fault_hold.py:115 released`, `KILLED fault_hold.py:115 off`, `KILLED heat_curve.py:287 mode_off`, `KILLED fault_hold.py:150 since`.
-
-Failing first: the same tests against the merge base's `custom_components/` (head `tests/` and `tools/`) stop at `ImportError: cannot import name 'fault_hold'`.
+Round 1's four call-site mutants (`consult released`, `consult Off`, `publish mode_off`, `diagnostics since`) are in the 41 and killed.
 
 ## Null control
 
 Every behaviour check is paired with today's behaviour on the same fixture: the alarm on for 9 minutes, reading off, or `fault_hold` off writes what the merge base writes. Section 12: unload with no fault writes the row; Off with no fault writes the same row as Off under the hold. Section 12b: the same stale cycle with no fault writes the supply switch back. The synthetic replay's null is `--opt-out`: `RESULT latched_actuating=260` against `0` with the hold; `RESULT repairs=0` against `1`; `RESULT short_held=0` both ways (measured at `5eb7083aaa`; the latch module is unchanged since).
 
+Round 2: the two-pass unload check fails at `da1f90c785` (above), so the head separates; the mark-lifetime check's null control is the sequence with no consult between the unloads, which leaves the row owed.
+
 ## Figures
 
-- `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude 'exec(open("P").read())' 'R.section("R11-OWNER-FAULT-HOLD' 'R.section("duty-switch restart learning, part A'`, P from `--emit-prelude P` with the same two markers, at `69d2557947`: `ALL 59 FEATURES BLOCK PASSED` (55 at `ce9619a4f4`: section 12 gains its Off pair, 12b adds two).
-- `python3 dev/audit/harnesses/r11_owner_fault_hold_mutants.py HEAD`: `RESULT mutants=38`, `RESULT survived=0` at this head.
-- `PYTHONPATH=tests/hastub python3 tests/features.py` at this head: `ALL 6206 FEATURE CHECKS PASSED` (6196 at `9924e94422`, 6175 at `79265fe95b`, 6173 at `fdcf373670`; main's merges add checks).
-- At this head: `tests/structure.py` `STRUCTURE RATCHET PASSED`; `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`.
-- Main's new and changed scripts that read this group's modules, at `9924e94422`: `tests/cycle_lane.py` `ALL 25 checks PASSED`; `tests/config_flow_steps.py` `ALL 684 checks PASSED`; `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`; `tests/structure.py` `STRUCTURE RATCHET PASSED`. At `79265fe95b`: `tests/cycle_lane.py` `ALL 25 checks PASSED`; `tests/config_flow_steps.py` `ALL 684 checks PASSED`; `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`.
-- The harness, the four verdict sites and the block were measured at `fdcf373670`. No commit of this branch after it changes production code; the merge `9924e94422` brings main's own production changes (#3738, #3875), which the full `features.py` run at this head covers. `8d8b30aabf` changes only `tests/golden/config_flow.json` and `tests/golden/claimed_drift.txt`, which no production module, harness or block check reads.
-- `python3 tests/structure.py` at this head: `STRUCTURE RATCHET PASSED`; `module_excess_loc` 21740 recorded (main 21775), every other row unchanged from main.
-- `python3 tests/comment_ratchet.py` at `69d2557947`: `comment_ratchet: OK`.
-- `python3 tools/pr/ci_predict.py` at this head: `CI PREDICT: no closures, fast, governance or instrument red predicted` (against `6a58ba5cb3`); `CI PREDICT: 41 unpinned site(s) the diff adds` (each under `## Unpinned sites`).
-- Not re-run after the merge (scoped, per the merge brief): `tests/derive_closures.sh` (no closures red predicted above; CI's closures job is the authority), prepr's diff-mutant step, and the lanes `5eb7083aaa` ran (`tests/backtest.py`, `tests/edge.py`, `tests/frontend.py`, `tests/md_tables.mjs`, `tests/open_meteo.py`, `tests/optimality.py`, `tests/validate.py`).
-- `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` at `fdcf373670`: `rc=0`. At `8d8b30aabf` its one refusal was `ci predict`, the `tests/cycle_lane.py` UNDER-SCOPED closure, repaired at this head; `tools/pr/ci_predict.py` at this head before that repair named that one red only. The full prepr runs at the push (`app_push.sh`). Its `self-test` step is skipped by a local overlay in this seat's tools checkout, because `prepr.sh --self-test` fails the same 4 rows (the ancestry-reds rows, `got 0`) on plain `origin/main` `5594a34a49` on this host; CI's `governance` job runs the self-test.
+At `71af14b6d8` unless named:
+
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=d3d66c40408e ./tests/run.sh` (`PYTHON=/opt/hpo/venv-ci/bin/python`, `PYTHONPATH=tests/hastub`), run on the working tree at `fdde1320d3` plus `0bbd4dd92c`'s docstring: `MODE: SCOPED -- 31 script(s) run, 3 scoped out`; `1 TEST SCRIPT(S) FAILED`, `tests/entities.py`, on the #1218 note alone (`## Merge resolution`). `tests/features.py` there: `ALL 6231 FEATURE CHECKS PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` (`timeout 2400`) at this head: `ALL 2763 ENTITY CHECKS PASSED`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, every metric at or below the merged budget. At `fdde1320d3` it read `module_excess_loc 21729 > 21728 (+1)`; `0bbd4dd92c` paid it.
+- `python3 tests/comment_ratchet.py`: `comment_ratchet: OK` (at `fd65e87415`, tree of `0bbd4dd92c`).
+- The fault-hold block (`features_block.py`, markers as before): `ALL 61 FEATURES BLOCK PASSED` at `fdde1320d3`; `1 of 59 FEATURES BLOCK FAILED` at `da1f90c785`.
+- `python3 dev/audit/harnesses/r11_owner_fault_hold_mutants.py HEAD`: `RESULT mutants=41`, `RESULT survived=0`.
+- `python3 tools/pr/ci_predict.py`: `CI PREDICT: no closures, fast, governance or instrument red predicted against d3d66c40408e`; `CI PREDICT: 42 unpinned site(s) the diff adds` (each under `## Unpinned sites`).
+- Not re-run in this pass: `tests/derive_closures.sh` (no closures red predicted), prepr's diff-mutant step, `tools/audit/archscore` (below).
 
 ## Architecture score
 
 `python3 tools/audit/archscore/score.py --diff af4d89f76325 HEAD` at `f8b1b7b9ea`: `Architecture score: dS +0.0006 IMPROVES`, `coord_footprint` 2521 → 2520. No gate metric rises.
+
+Not re-measured after the fifth merge and the unload fix: the fix adds one module-level set and one function to `fault_hold.py` and changes one call in `pump_arbiter.py`; `tests/structure.py` reads every gate metric flat.
 
 ## Red checks
 
@@ -133,52 +122,54 @@ Every behaviour check is paired with today's behaviour on the same fixture: the 
 - `tests / mutation` and `tests / mutation-autofix` at `d6a54399a63b`: red by construction on the sites under `## Unpinned sites`; mutation-autofix pins the killed sites after the push.
 - `pr-contract` and `gate` at `d6a54399a63b`: the body there did not name the two reds above; `gate` aggregates the required checks. No CI has run at this head yet.
 - Local `prepr.sh` step `self-test` (not a CI check; CI's `governance` job runs the self-test): `567 passed, 4 failed` on this host, the same 4 rows on plain `origin/main` `6a58ba5cb3`: "an ancestry no commit of which carries any check run skips, never refuses (got 0, wanted 3)", "and the skip line names the boundary (got 0, wanted 1)", "reds_arm refuses a body that leaves an ancestry red unanswered (P351) (got 0, wanted 1)", "and the refusal is the red gate's own sentence (got 0, wanted 1)". A host fault, not this head's: this update ran under a local overlay that skips that one step (logged as a workaround).
+- `tests/entities.py` at `91cfc89fdade` (local scoped gate, not a CI run): the #1218 note's "182 of the 561" against the 184 the branch's closures derive. Answered at this head (`## Merge resolution`). The cheaper detector is that script, which the scoped gate selects for any diff touching `tests/closures.json`; the earlier merges re-recorded closures and did not run it. Its standing cost is one `tests/entities.py` run (about 11 minutes here) per closure re-record before a handoff.
 
 ## Unpinned sites
 
 The sites `tools/pr/ci_predict.py` lists at this head. Every fault-hold predicate among them is killed by `r11_owner_fault_hold_mutants.py` above.
 
-- custom_components/heatpump_optimizer/coordinator.py:7752 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/coordinator.py:10803 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/coordinator.py:7753 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/coordinator.py:10796 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:62 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:62 CMP_BOUND: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:62 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:95 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/duty_ledger.py:97 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/early_cutoff.py:312 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:76 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:315 GUARD_OFF: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/fault_hold.py:79 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:81 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:84 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:84 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:86 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:88 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:90 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:90 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:90 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:95 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:95 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:100 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:100 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:104 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:109 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:109 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:115 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:121 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:121 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:131 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:135 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:141 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:142 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/fault_hold.py:144 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:83 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:85 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:88 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:88 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:90 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:92 CLAMP_DROP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:94 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:94 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:94 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:99 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:99 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:104 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:104 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:108 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:113 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:113 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:119 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:125 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:125 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:136 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:140 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:150 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:151 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:154 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/fault_hold.py:159 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/heat_curve.py:287 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1837 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1889 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1908 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1912 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1941 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:2195 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:2195 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1836 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1888 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1907 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1911 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1940 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:2191 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:2191 GUARD_OFF: pinned by mutation-autofix
 
 ## Forward-carry
 
