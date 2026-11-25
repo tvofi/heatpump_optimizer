@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:_mode_runs CLAMP_DROP a4744748",
+  "killed_by": "tests/features.py",
+  "old": "    right = np.where(e_idx < idx[-1], np.take_along_axis(codes, np.minimum(e_idx + 1, idx[-1]), axis=-1), IDLE)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`right = np.where(e_idx < idx[-1], np.take_along_axis(codes, (e_idx + 1), axis=-1), IDLE)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
