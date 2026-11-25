@@ -1,0 +1,103 @@
+{
+ "key": "bbcded8a73c6a2f1",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5145 CMP_BOUND",
+ "patch": "int(np.count_nonzero(refused > 1e-9)), -> int(np.count_nonzero(refused >= 1e-9)),",
+ "function": "HeatPumpOptimizer._tighten_buffer_caps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._tighten_buffer_caps@5120-5145",
+ "slice": "u1c",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2696.1,
+  "load1_start": 0.77,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 4471.5,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/bbcded8a73c6a2f1.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bbcded8a73c6a2f1",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/bbcded8a73c6a2f1.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+  "metric": "mutant_cases_moved",
+  "baseline_value": 0,
+  "mutant_value": 1,
+  "extra": {},
+  "moving_cases": [
+   "CASE refused_tie_1e-9_plus_real: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [2]) moved=1"
+  ],
+  "inputs_tried": "the 12 _tighten_core cases",
+  "thread_factor": "1.000",
+  "load1": "1.15"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/features.py"
+  ],
+  "assertion_lacking": "tests/features.py executes line 5145 but no check reads the debug count"
+ },
+ "class": "candidate",
+ "finding": {
+  "title": "No check reads the tightened-step count _tighten_buffer_caps logs; > 1e-9 -> >= is unseen",
+  "claim": "Mutant bbcded8a73c6a2f1 (optimizer.py:5145 `refused > 1e-9` -> `>= 1e-9` in the debug count) survives the full gate, yet with one step refusing exactly 1e-9 kW beside one refusing 0.5 kW the logged count is 1 on the baseline and 2 under the mutant.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "P2",
+  "severity_claimed": "low",
+  "severity_consequence": "a DEBUG log line over-counts tightened steps at the 1e-9 kW tie; no plan or published value moves",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "cases of _tighten_core.cases() whose (changed, caps, logged count) moves under the mutant",
+  "phenomenon_property": "The debug line counts the steps the loop tightened, the same > 1e-9 predicate as line 5123",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._tighten_buffer_caps",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+   "value": 1,
+   "unit": "count",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "tolerance": "exact",
+   "thread_factor": "1.000",
+   "load1": "1.15",
+   "machine": "box D3-g24: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14"
+  },
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:5145 int(np.count_nonzero(refused > 1e-9)), -> int(np.count_nonzero(refused >= 1e-9)), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bbcded8a73c6a2f1",
+   "expected_direction": "up",
+   "observed_value": 1
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+   "value": "null_cases_moved=0",
+   "note": "the baseline method against itself on the same inputs; the full-gate null is gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "proposed_fix_scope": "a check in tests/features.py pinning the boundary the probe's moving case exercises",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bbcded8a73c6a2f1"
+  ]
+ }
+}
