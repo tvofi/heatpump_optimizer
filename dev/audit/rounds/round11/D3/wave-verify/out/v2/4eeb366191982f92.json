@@ -1,0 +1,1 @@
+{"key": "4eeb366191982f92", "box": "D3-g34", "file": "custom_components/heatpump_optimizer/sysid.py", "line": 2032, "old": "        if len(d2_all) >= 3:", "new": "        if len(d2_all) > 3:", "applied": true, "rc": 1, "stdout": "", "stderr": "REFUSE sysid.py:2032 is '        if len(d2_all) > 3:\\n', not '        if len(d2_all) >= 3:'\n", "wall_s": 0.9, "load1": 42.3}

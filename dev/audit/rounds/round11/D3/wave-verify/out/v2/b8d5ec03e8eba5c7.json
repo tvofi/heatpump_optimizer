@@ -1,0 +1,1 @@
+{"key": "b8d5ec03e8eba5c7", "box": "D3-g34", "file": "custom_components/heatpump_optimizer/sysid.py", "line": 1942, "old": "        if len(rows) < 5:", "new": "        if False:", "applied": true, "rc": 1, "stdout": "", "stderr": "REFUSE sysid.py:1942 is '        if False:\\n', not '        if len(rows) < 5:'\n", "wall_s": 0.9, "load1": 42.3}

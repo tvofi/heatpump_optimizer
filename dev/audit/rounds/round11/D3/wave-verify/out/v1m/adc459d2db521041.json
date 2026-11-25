@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT consulted_tie=0\nRESULT refuses_tie=0\nRESULT halfwidth_tie=[]\nRESULT refuses_tie_stub=0\nRESULT consulted_below=1\nRESULT consulted_above=0\nRESULT consulted_null=1\nRESULT thread_factor=1.000\nRESULT load1=37.76\nRESULT swapins=0\n", "stderr": ""}

@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT reached_fit_6=1\nRESULT reached_fit_7=1\nRESULT reached_fit_7_gap=1\nRESULT reason_6='ok'\nRESULT thread_factor=1.000\nRESULT load1=69.50\nRESULT swapins=0\n", "stderr": "", "key": "aa6d264aa0411bcd", "box": "D3-g33", "wall_s": 1.1, "load1": 69.4951171875}

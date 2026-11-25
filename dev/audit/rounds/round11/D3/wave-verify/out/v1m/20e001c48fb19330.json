@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT open_hours=7\nRESULT end_hour_open=1\nRESULT open_hours_flat=4\nRESULT open_hours_wrap2=5\nRESULT thread_factor=1.000\nRESULT load1=37.94\nRESULT swapins=0\n", "stderr": ""}

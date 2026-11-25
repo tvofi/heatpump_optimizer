@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT open_hours=6\nRESULT end_hour_open=0\nRESULT open_hours_flat=4\nRESULT open_hours_wrap2=4\nRESULT thread_factor=1.000\nRESULT load1=69.50\nRESULT swapins=0\n", "stderr": "", "key": "20e001c48fb19330", "box": "D3-g33", "wall_s": 1.1, "load1": 69.4951171875}

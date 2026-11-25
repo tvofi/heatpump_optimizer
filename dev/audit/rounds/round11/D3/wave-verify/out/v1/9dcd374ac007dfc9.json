@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT no_cap_breach_key_baseline=0 mutant=1 (mutant value 0.0)\nRESULT no_cap_empty_breach_key_baseline=0 mutant=1 (mutant value 0.0)\nRESULT null_moved=0 count  (capped: (1, 0.0))\nRESULT thread_factor=1.000\nRESULT load1=39.56\nRESULT swapins=0 count\n", "stderr": "", "key": "9dcd374ac007dfc9", "box": "D3-g11", "wall_s": 37.2, "load1": 39.55859375}
