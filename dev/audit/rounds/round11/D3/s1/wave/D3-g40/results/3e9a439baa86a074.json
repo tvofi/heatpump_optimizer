@@ -1,0 +1,86 @@
+{
+ "key": "3e9a439baa86a074",
+ "site": "custom_components/heatpump_optimizer/tariff.py:528 CMP_BOUND",
+ "patch": "if not math.isfinite(value) or value < 0.0: -> if not math.isfinite(value) or value <= 0.0:",
+ "function": "_stored_peaks",
+ "cluster": "tariff.py:_stored_peaks@528-528",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4479.5,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/gates/3e9a439baa86a074.json",
+  "provisional": true
+ },
+ "machine": "box D3-g40, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (MACHINE.txt); wall/load provisional",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_3e9a439baa86a074.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_3e9a439baa86a074.py",
+  "metric": "billed_peak_kw",
+  "baseline_value": 1.333333,
+  "mutant_value": 4.0,
+  "unit": "kW",
+  "observed": "billed_peak_kw 1.333333 -> 4.0 kW; threshold_kw 0.0 -> 4.0 kW; peaks reloaded 3 -> 1; closed-month billed 1.333 -> 4.0 kW; null delta 0",
+  "inputs_tried": "PeakTracker peaks [4.0, 0.0004, 0.0003] (as_dict rounds to [4.0, 0.0, 0.0]), peaks_averaged 3, one as_dict->from_dict restart; null [4,3,2]",
+  "run_output": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/3e9a439baa86a074/RUN.txt",
+  "probe_class": "candidate"
+ },
+ "should_fail": {
+  "scripts": {
+   "line_executing_per_carried_m4": [
+    "tests/features.py",
+    "tests/finite_boundary.py"
+   ],
+   "full_net_scripts_run_green": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  "assertion_lacking": "a PeakTracker.from_dict(t.as_dict()) round-trip assertion with a 0.0 (or sub-0.0005 kW) peak: len(peaks) and billed_peak_kw/threshold_kw preserved"
+ },
+ "finding": {
+  "title": "A restart drops every 0.0 kW stored peak when _stored_peaks' `< 0.0` becomes `<= 0.0`, and no check fails",
+  "claim": "Under the mutant at tariff.py:528 a PeakTracker reloaded from its own as_dict loses each peak stored as 0.0 (any peak under 0.0005 kW rounds there), so billed_peak_kw rises 1.333 -> 4.0 kW and threshold_kw 0.0 -> 4.0 kW for peaks [4.0, 0.0004, 0.0003]; the full gate stays green, so no test pins the zero-peak round trip.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "metric_definition": "billed_peak_kw (kW) printed by the probe, baseline arm vs one-line-mutant arm",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:_stored_peaks (custom_components/heatpump_optimizer/tariff.py:528)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_3e9a439baa86a074.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_3e9a439baa86a074.py",
+  "perturbation": {
+   "change": "if not math.isfinite(value) or value < 0.0: -> if not math.isfinite(value) or value <= 0.0:",
+   "expected_direction": "up",
+   "observed_value": "billed_peak_kw 1.333333 -> 4.0 kW; threshold_kw 0.0 -> 4.0 kW; peaks reloaded 3 -> 1; closed-month billed 1.333 -> 4.0 kW; null delta 0"
+  },
+  "null_control": "the box's fullgate.py null gate (gates/null.json) for the gate; inside the probe the baseline arm run twice (null_differing 0) or an unaffected input (null_delta 0)",
+  "files": [
+   "custom_components/heatpump_optimizer/tariff.py"
+  ]
+ }
+}

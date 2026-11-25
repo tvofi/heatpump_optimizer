@@ -1,0 +1,35 @@
+{
+ "key": "754e4cb5fa60e129",
+ "mutant": {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 821,
+  "old": "        z = np.clip((x - mid[:, None]) / scale[:, None], -60.0, 60.0)",
+  "new": "        z = ((x - mid[:, None]) / scale[:, None])",
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch CLAMP_DROP 8322628c"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 4151.7,
+ "child_cpu_s": 6868.2,
+ "load1_start": 0.85,
+ "load1_end": 0.85,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}

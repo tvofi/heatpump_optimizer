@@ -1,0 +1,19 @@
+FAMILY plateau {"reach": 1, "n": 600, "diff_direct": 0, "diff_caller": 0, "max_delta_direct": 0.0, "max_delta_caller": 0.0, "nan_mutant": 0, "warn_baseline": 0, "warn_mutant": 0, "example": null}
+FAMILY tieband {"reach": 1, "n": 300, "diff_direct": 0, "diff_caller": 0, "max_delta_direct": 0.0, "max_delta_caller": 0.0, "nan_mutant": 0, "warn_baseline": 0, "warn_mutant": 0, "example": null}
+FAMILY uniform {"reach": 0, "n": 300, "diff_direct": 0, "diff_caller": 0, "max_delta_direct": 0.0, "max_delta_caller": 0.0, "nan_mutant": 0, "warn_baseline": 0, "warn_mutant": 0, "example": null}
+FAMILY spread {"reach": 1, "n": 30, "diff_direct": 0, "diff_caller": 0, "max_delta_direct": 0.0, "max_delta_caller": 0.0, "nan_mutant": 0, "warn_baseline": 0, "warn_mutant": 0, "example": null}
+FAMILY tiny {"reach": 1, "n": 60, "diff_direct": 0, "diff_caller": 0, "max_delta_direct": 0.0, "max_delta_caller": 0.0, "nan_mutant": 0, "warn_baseline": 0, "warn_mutant": 0, "example": null}
+FAMILY zero {"reach": 1, "n": 24, "diff_direct": 0, "diff_caller": 0, "max_delta_direct": 0.0, "max_delta_caller": 0.0, "nan_mutant": 0, "warn_baseline": 0, "warn_mutant": 0, "example": null}
+FAMILY negative {"reach": 0, "n": 8, "diff_direct": 0, "diff_caller": 0, "max_delta_direct": 0.0, "max_delta_caller": 0.0, "nan_mutant": 0, "warn_baseline": 0, "warn_mutant": 0, "example": null}
+FAMILY exacttie {"reach": 1, "n": 1000, "diff_direct": 0, "diff_caller": 0, "max_delta_direct": 0.0, "max_delta_caller": 0.0, "nan_mutant": 0, "warn_baseline": 0, "warn_mutant": 0, "example": null}
+RESULT inputs=2322 count
+RESULT differing_reachable_caller=0 count
+RESULT differing_reachable_direct=0 count
+RESULT differing_all_direct=0 count
+RESULT max_delta_reachable_caller=0 kW
+RESULT runtime_warnings_baseline=0 count
+RESULT runtime_warnings_mutant=0 count
+RESULT null_differing=0 count
+RESULT load1=1.54
+RESULT thread_factor=1.0 ratio  (single-threaded pure-value probe; thread pin set)
+RESULT swapins=0
