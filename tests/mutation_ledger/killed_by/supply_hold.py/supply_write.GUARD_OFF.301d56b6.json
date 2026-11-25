@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/supply_hold.py:supply_write GUARD_OFF 301d56b6",
+  "killed_by": "tests/features.py",
+  "old": "    if note_cooling(held, inp, signals, on) is None and (on or not (signals.space_blocked and signals.dhw_blocked)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=77."
+}
