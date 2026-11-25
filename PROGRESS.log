@@ -14,3 +14,4 @@
 1795570803 HB null gate done: gate_rc 1 failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']
 1795570807 HB gate started: 2765114b9329f57f
 1795570840 CKPT D3-s1 86 file(s)
+1795570843 HB null usable (3 artefact scripts, subset of prior null); gating 1/15
