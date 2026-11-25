@@ -65653,8 +65653,10 @@ def _r11ar_window(start_h, end_h):
     """A circulation window from T0+start_h to T0+end_h on the wall clock of the stub's zone (HASTUB_TZ):
     windows are local text and T0 a fixed instant, so a literal window misses the clock in another zone
     (the nightly runs this under Asia/Kolkata)."""
+    from homeassistant.util import dt as zone
+
     def at(h):
-        return dt_util.as_local(_R11AR_T0 + timedelta(hours=h)).strftime("%H:%M")
+        return zone.as_local(_R11AR_T0 + timedelta(hours=h)).strftime("%H:%M")
     return f"{at(start_h)}-{at(end_h)}"
 
 
