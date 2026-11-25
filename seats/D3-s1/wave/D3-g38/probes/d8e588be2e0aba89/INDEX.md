@@ -1,0 +1,1 @@
+- probe_d8e588be2e0aba89.py: Metric: refused (1) or accepted (0) by _slab_refusal(ua, room_cap, gains_kw=0.3, slab_mass) per input; RESULT lines give baseline/mutant p [needs _mutlib.py beside it]

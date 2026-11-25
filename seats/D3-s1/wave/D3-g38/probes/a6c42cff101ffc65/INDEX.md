@@ -1,0 +1,1 @@
+- probe_a6c42cff101ffc65.py: Metric: admit (1) or refuse (0) of slab_mode_identifiability(ThermalParameters with one slab constant set, SysIdConfig()) per input, the c [needs _mutlib.py beside it]

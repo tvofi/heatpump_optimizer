@@ -1,0 +1,1 @@
+- probe_6c7eefdfaf64ea5a.py: Metric: admit (1) or refuse (0) of adoption_decision(SysIdResult(completed, ua_profile_halfwidth=0.01, heat_loss 0.5), ThermalParameters(b [needs _mutlib.py beside it]

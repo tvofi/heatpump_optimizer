@@ -1,0 +1,1 @@
+- probe_56294c2224449394.py: Metric: _valve_regulates(plant behind a throttling valve, observed 20.5 C, outdoor 0 C) as 1/0 with the held state's tank temperature set  [needs _mutlib.py beside it]

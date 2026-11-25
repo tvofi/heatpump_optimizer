@@ -1,0 +1,1 @@
+- probe_7c25d8795fa2d46c.py: Metric: admit (1) or refuse (0) of slab_mode_one_state_identifiability(1e-3, 1e-3, 1e7 -> tau_fast 5e-11 h, config) per shortest-phase len [needs _mutlib.py beside it]

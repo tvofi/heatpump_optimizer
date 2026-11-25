@@ -1,0 +1,1 @@
+- probe_6f546669421ba07b.py: Metric: admit (1) or refuse (0) of slab_mode_one_state_identifiability(c_r=1, c_s=1, k_s=1 -> tau_fast 0.5 h, 3 tau 1.5 h, config) per Sys [needs _mutlib.py beside it]
