@@ -2,13 +2,13 @@
 
 Baseline tree 92d38ecb64 with e3cb5c019b's D3 evidence copied over; at-head readings in the evidence tree e3cb5c019b. All three lenses on every finding. Machine: cloud container, 4 vCPU; thread_factor 1.0 throughout; load1 quoted per number. This seat resumed a stalled predecessor's wip ref (aae12cc390): its probe, V2 and at-head outputs were kept, and the full gates it had not checkpointed were re-run.
 
-Incident (2026-11-25): during the first run of gate 050fdc4a20eba212 (D3-s1-67) a git index.lock appeared in the baseline worktree at 09:38:07Z (empty, no git process holding it); the gate's run.sh still ended 'ALL TEST SCRIPTS PASSED' with the mutant committed (kept as gates/incident/050fdc4a20eba212.firstrun.log), but fullgate.py's reset to the baseline then failed (exit 128), and the four gates after it refused at once ('HEAD a33eacf352 is not the baseline'). The lock was removed, the tree reset to 92d38ecb64, the dead lease released, and all five gates re-run; the numbers below are the re-runs.
+Incident (2026-11-25): during the first run of gate 050fdc4a20eba212 (D3-s1-67) a git index.lock appeared in the baseline worktree at 09:38:07Z (empty, no git process holding it); the gate's run.sh still ended 'ALL TEST SCRIPTS PASSED' with the mutant committed (kept as gates/incident/050fdc4a20eba212.firstrun.log), but fullgate.py's reset to the baseline then failed (exit 128), and the four gates after it refused at once ('HEAD a33eacf352 is not the baseline'). The lock was removed, the tree reset to 92d38ecb64, the dead lease released, and all five gates re-run; the numbers below are the re-runs. The same empty lock recurred at 13:38:12Z during the re-run of gate 5e8d48eff7e4fa8d (D3-s1-70; first-run log again 'ALL TEST SCRIPTS PASSED', kept as gates/incident/5e8d48eff7e4fa8d.firstrun.log), so gates 70 and 71 were re-run once more under an environment-only guard (lock_guard.sh: removes an empty index.lock older than 120 s while no git process runs, logging each removal to gates/lock_guard.log); no tracked file was changed. The lock's origin was not identified: 2 of 14 gate runs, each about 15 min after the gate started.
 
 Null full gate: gate_rc 0, failed_scripts 0, wall 3767 s, load1 1.0.
 
 At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.py` and `tests/features.py` only (seats/D3-vlate/athead.sh); the full gate was not re-run at head. A not-killed reading there is therefore 'not killed by those two scripts', not 'survives the full gate at head'.
 
-**Gates still pending:** D3-s1-70, D3-s1-71
+**Gates still pending:** D3-s1-71
 
 | id | vote | severity | full gate | at head |
 |---|---|---|---|---|
@@ -22,7 +22,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 | D3-s1-67 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-68 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-69 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
-| D3-s1-70 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
+| D3-s1-70 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-71 | weaken | nit | pending | KILLED at head; the full gate was not re-run at head (about an hour per mutant) |
 
 ## D3-s1-02
@@ -160,7 +160,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - vote: **verify**, severity low
 - value: tariff disabled with peaks held: threshold (5.0,10.0) -> (5.0,3.0), suppressing False -> True
 - metric: (projection, threshold) handed to GuardState.update and guard.suppressing after _on_power_event, base vs and->or
-- V1 reproduced: probe_5e8d48ef.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): enabled,factor0 (5.0,10.0) -> (0.0,3.0); disabled,factor1 (5.0,10.0) -> (5.0,3.0) suppressing False -> True; null_moved 0; full gate PENDING
+- V1 reproduced: probe_5e8d48ef.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): enabled,factor0 (5.0,10.0) -> (0.0,3.0); disabled,factor1 (5.0,10.0) -> (5.0,3.0) suppressing False -> True; null_moved 0; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 5e8d48eff7e4fa8d`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3788 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0
 - V2 independent: v2_power.py (own, real PeakTracker/GuardState): disabled+fuse 8 ((6,8),False) -> ((6,4),True); enabled factor0 no fuse ((6,inf),False) -> ((0,4),False); enabled factor0 fuse 8 unmoved; 2 of 3 cells moved; null 0
 - V3 reachable: yes: a tariff switched off while the tracker holds peaks restored by from_dict (coordinator.py:8378) suppresses heating against a stale peak
 - V3 class: I1; class_guess 'new' corrected

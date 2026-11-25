@@ -14,7 +14,6 @@
   "thread_factor": "1.0"
  },
  "gates_pending": [
-  "D3-s1-70",
   "D3-s1-71"
  ],
  "votes": [
@@ -256,15 +255,23 @@
    "severity": "low",
    "value": "tariff disabled with peaks held: threshold (5.0,10.0) -> (5.0,3.0), suppressing False -> True",
    "metric_definition": "(projection, threshold) handed to GuardState.update and guard.suppressing after _on_power_event, base vs and->or",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 5e8d48eff7e4fa8d`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3788 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "attacks": "null 0; one of three cells does not move (fuse caps the enabled-factor0 case); the disabled case alone carries the user-visible suppression",
-   "reproduced": "probe_5e8d48ef.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): enabled,factor0 (5.0,10.0) -> (0.0,3.0); disabled,factor1 (5.0,10.0) -> (5.0,3.0) suppressing False -> True; null_moved 0; full gate PENDING",
+   "reproduced": "probe_5e8d48ef.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): enabled,factor0 (5.0,10.0) -> (0.0,3.0); disabled,factor1 (5.0,10.0) -> (5.0,3.0) suppressing False -> True; null_moved 0; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 5e8d48eff7e4fa8d`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3788 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_power.py (own, real PeakTracker/GuardState): disabled+fuse 8 ((6,8),False) -> ((6,4),True); enabled factor0 no fuse ((6,inf),False) -> ((0,4),False); enabled factor0 fuse 8 unmoved; 2 of 3 cells moved; null 0",
    "reachable": "yes: a tariff switched off while the tracker holds peaks restored by from_dict (coordinator.py:8378) suppresses heating against a stale peak",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at coordinator.py:8774 (moved from 8806), then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "SURVIVED",
+    "gate_rc": "0",
+    "failed_scripts": "0",
+    "killed": "0",
+    "wall_s": "3788",
+    "load1": "0.92",
+    "thread_factor": "1.0"
+   }
   },
   {
    "id": "D3-s1-71",
