@@ -240,6 +240,8 @@ if [ -n "$HREF" ]; then
       FB=$(pr_recorded_base tvofi/heatpump_optimizer "$PRN") || { echo "body_push: REFUSE: the recorded base.sha of #$PRN could not be read, the base pr-contract verifies the figure block against" >&2; keep_refused; exit 1; }  # mut:bpbase
     fi
   fi
+  # OVERLAY P-R11-BODY-BASE-MISMATCH: render against the base the body-check verifies with (origin/main).
+  FB=origin/main
   (cd "$ROOT" && python3 -I "$HERE/../../pr/figure_block.py" refresh "$ABS" --base "$FB") # mut:keep
   # shellcheck disable=SC2086 # PRB is empty or exactly two words
   if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" $PRB 2>&1); then
