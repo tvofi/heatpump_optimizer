@@ -145,3 +145,8 @@
 1795584710 HB gate started: 201955bf671ce8aa
 1795584897 HB alive
 1795585501 HB alive
+1795586105 HB alive
+1795586145 HB container restart killed gate 201955bf671ce8aa; lease released, re-running
+1795586208 HB alive
+1795586209 HB gate started: 201955bf671ce8aa
+1795586227 HB container restart killed gate 201955bf671ce8aa; stale lease and comms lock released, gate re-run from 05:56Z
