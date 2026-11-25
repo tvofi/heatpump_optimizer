@@ -217,8 +217,8 @@ NOT_A_TEST = {
 DRIVEN_BY_OTHERS = {"dst_checks.py": "features.py"}
 
 # Scripts that run only under SLOW=1, and so never run in the `fast` job that
-# scoping applies to. Every other path -- push to main, nightly, dispatch --
-# forces GATE_SCOPE=full, so their closures could never decide anything
+# scoping applies to; the one path that runs them, the nightly's `slow` lane,
+# runs them directly and unscoped, so their closures could never decide anything
 # either. They are excluded from selection rather than recorded because
 # recording them is not free: rolling.py alone takes over an hour under the
 # audit hook (measured 62 min, against 37 unhooked), which was most of the

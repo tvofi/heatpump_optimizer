@@ -15,6 +15,18 @@ against your merge base. It runs `$PYTHON`, else `.venv/bin/python`, else `pytho
 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
 ```
 
+## A push to `main` is graded over its range
+
+The range runs from the head of the newest earlier push run on `main` that was
+not cancelled and whose prelude succeeded (`tools/ci/prelude.py`'s `push_range`;
+`HEAD^1` would drop the commits of a run CI-5 replaced while pending). A range
+touching production (`PRODUCTION_PREFIXES`, `PRODUCTION_FILES`) or `.github/`,
+or one the prelude cannot read, runs every lane `full`. Any other range is
+**light**: graded as a pull request over it, `GATE_SCOPE=auto` against the range
+base, with `stand_down`'s lanes reporting success unrun. A pull request touching
+no production file stands its product lanes down the same way. A wrong closure
+reddens the next push that is not light.
+
 **A shallow clone or stale `origin/main` is the environment too**: `git fetch --unshallow origin main`
 clears `tests/entities.py`'s history reds (#1693, #1699, #1704).
 

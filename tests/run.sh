@@ -75,9 +75,11 @@
 # worse, because it would look like a pass.
 #
 # The safety net that makes this acceptable: the full unscoped suite still
-# runs on every push to main and on every release (.github/workflows/tests.yml
-# forces GATE_SCOPE=full there). Scoping applies to pull requests only, so a
-# wrong closure turns main red within one gate instead of never.
+# runs on every push to main whose range touches production, and on every
+# release (.github/workflows/tests.yml runs GATE_SCOPE=full there; a light
+# push, touching no production file, is scoped as a pull request is,
+# tools/ci/prelude.py), so a wrong closure turns main red at the next such
+# push instead of never.
 #
 # In lane mode each script's output is captured and replayed in full, one
 # script at a time, after the lanes finish — interleaved output from four
@@ -862,8 +864,8 @@ if [ -n "$SCOPE_RUN" ]; then
   echo "  Each line above is a claim that no file changed by this branch is in"
   echo "  that script's MEASURED closure (tests/closures.json, recorded by"
   echo "  tests/derive_closures.sh from real instrumented runs). The claim is"
-  echo "  re-checked in full: every push to main runs this suite unscoped, so"
-  echo "  a closure that is wrong turns main red within one gate."
+  echo "  re-checked in full: every push to main touching production runs this"
+  echo "  suite unscoped, so a closure that is wrong turns main red at that push."
   echo "  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh"
 fi
 

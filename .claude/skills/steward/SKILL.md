@@ -50,8 +50,8 @@ Install the driver once per clone; a worktree shares its checkout's config.
 
 IF the scoped selection prints a mode line, THEN act on the mode. Both modes
 can print zero, and they mean opposite things. A push to the default branch
-prints no mode line at all, because the forced full run never calls the code
-that would.
+that is not light (`CLAUDE.md` rule 1) prints no mode line at all, because its
+full run never calls the code that would.
 
 ## S4 Never move a version
 

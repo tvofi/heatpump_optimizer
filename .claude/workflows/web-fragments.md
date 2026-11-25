@@ -41,9 +41,9 @@ destroyed the very budget table they were recording. Measure the scope:
     a file in no recorded closure -- and it then runs every script including
     stress.py. It prints ZERO selected scripts while meaning the opposite of
     zero, so key on the mode line, never on the count. That line only exists
-    on a branch; a push to main forces GATE_SCOPE=full through the job
-    environment, which skips the code that prints a mode line at all -- the
-    only evidence in that log is the env line GATE_SCOPE: full.
+    on a scoped run; a push to main that is not light runs GATE_SCOPE=full
+    through the job environment, which skips the code that prints a mode
+    line at all -- the only evidence in that log is the env line GATE_SCOPE: full.
   * "$D/scope.run" names tests/stress.py  ->  run.sh as below.
   * otherwise  ->  Run the scripts scope.run names, directly.
 
