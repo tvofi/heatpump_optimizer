@@ -1,0 +1,47 @@
+{
+ "key": "027e7746bfe5b7bb",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1792 RETURN_DEL",
+ "patch": "return None -> pass",
+ "function": "SystemIdentification.step",
+ "cluster": "sysid.py:SystemIdentification.step@1752-1792",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4036.3,
+  "load1_start": 1.0,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/gates/027e7746bfe5b7bb.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 027e7746bfe5b7bb",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_027e7746bfe5b7bb.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_027e7746bfe5b7bb.py",
+  "baseline_value": "0 count",
+  "mutant_value": "0 count",
+  "results": {
+   "moved": "0 count",
+   "inputs": "6 count",
+   "thread_factor": "1.000",
+   "load1": "4.81",
+   "swapins": "0"
+  },
+  "inputs_tried": "step and relax phases x {elapsed 2.5 h excursion up, 0.1 h excursion down, ceiling_probe kind elapsed 2.5 h}: 6 inputs, two calls each; moved 0"
+ },
+ "should_fail": "none: abort() always sets PHASE_ABORTED (the experiment is active there), and the fall-through matches neither the STEP nor the RELAX branch, so it reaches the final `return None`",
+ "class": "equivalent-candidate"
+}
