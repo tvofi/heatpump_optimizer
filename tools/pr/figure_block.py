@@ -1,33 +1,31 @@
 #!/usr/bin/env python3
-"""Generated figure blocks for a pull-request body (owner's card 7, option B).
+"""Registered figures for a pull request, rendered by the run and never stored in the body.
 
-A body's `## Figures` may carry a block whose text is *rendered*, not typed:
+``figure_registry.json`` names the instruments a figure may be rendered from. It
+is read from the BASE tree (``--base``), so a pull request cannot add an
+instrument and use it in the same pull request: **the author chooses no
+command**, only a registered name. Each registered instrument runs in a
+throwaway worktree of the head, with the registry's ``files`` overlaid from the
+base, so the program is the base's and the tree it measures is the head's.
 
-    <!-- figure-block: scope-line mb=<40 hex> head=<40 hex> -->
-    ~~~text
-    <what the registered instrument printed>
-    ~~~
-    <!-- /figure-block -->
+A rendered block names the head it was rendered at, so a block stored in a body
+went stale at every head move no seat made: the merge-main bot's commit, a
+recarry, a remerge (PC-1113-10, PC-1113-19;
+dev/audit/rca/R10-RCA-FAMILY-FIGURE-BLOCK-STALE.md). A body therefore stores
+none. ``pr-contract`` renders every registered instrument at the head it grades
+into its job summary, and no head move leaves anything in the body to redo.
 
-``figure_registry.json`` names the instruments a block may come from. It is read
-from the BASE tree (``--base``), as ``.claude/workflows/*`` already is, so a pull
-request can neither add an instrument nor choose a command and use it in the
-same pull request: **the author chooses no command**, only a registered name.
-Each registered instrument runs in a throwaway worktree of the head, with the
-registry's ``files`` overlaid from the base, so the program is the base's and the
-tree it measures is the head's.
-
-    figure_block.py render NAME   [--base REF] [--head REF]   print one block
-    figure_block.py refresh BODY  [--base REF] [--head REF]   re-render every block in place
-    figure_block.py verify  BODY  [--base REF] [--head REF]   refuse a block that is not what the
-                                                               registry renders (read-only)
+    figure_block.py render NAME  [--base REF] [--head REF]   print one rendered block
+    figure_block.py verify BODY                              refuse a body that carries a block,
+                                                             rendered, empty or typed (read-only)
+    figure_block.py strip  BODY                              delete every block from a body file
     figure_block.py --self-test
 
-``refresh`` is the seat-side writer (``body_push.sh``, ``prepr.sh``): a body
-carries an empty marker and the writer fills it at the head with no agent turn.
-``verify`` (``pr-contract``) renders and compares; it writes nothing. Only a
-*registered* figure is structurally non-stale: a free-form figure under
-``## Figures`` stays as it was, well-formed and resolvable, never executed.
+``verify`` (``pr-contract``, ``prepr.sh``) reads the body alone and runs no
+instrument. ``strip`` is the sweep for a body written before this rule: it
+deletes each block, marker to marker, and leaves every other byte. A free-form
+figure under ``## Figures`` stays as it was, well-formed and resolvable, never
+executed.
 """
 from __future__ import annotations
 
@@ -164,51 +162,56 @@ def cmd_render(root, base, head, name):
     print("\n".join(render_text(name, {"mb": mb, "head": head_sha}, out)))
 
 
-def cmd_refresh(root, base, head, body_path):
-    text = open(body_path, encoding="utf-8").read()
-    lines, blocks = parse(text)
-    if not blocks:
-        return 0
-    head_sha, mb = context(root, base, head)
-    reg = load_registry(root, base)
-    for i, j, name, _attrs, _b in reversed(blocks):
-        out = run_instrument(root, base, head_sha, mb, name, reg)
-        lines[i:j + 1] = render_text(name, {"mb": mb, "head": head_sha}, out)
-    open(body_path, "w", encoding="utf-8").write("\n".join(lines))
-    print(f"figure_block: refreshed {len(blocks)} block(s) at {head_sha[:12]}")
-    return 0
+MARKER = "<!-- figure-block"
+CLOSE_MARKER = "<!-- /figure-block"
 
 
-def verify_text(text: str, root: str, base: str, head: str) -> list[str]:
-    """Problems with the blocks in ``text``; none when every block is what the registry renders."""
-    _lines, blocks = parse(text)
-    if not blocks:
-        return []
-    head_sha, mb = context(root, base, head)
-    reg = load_registry(root, base)
-    problems = []
-    for i, _j, name, attrs, body in blocks:
-        if attrs.get("head") != head_sha or attrs.get("mb") != mb:
-            problems.append(f"line {i + 1}: block `{name}` names head={attrs.get('head', '-')[:12]} mb={attrs.get('mb', '-')[:12]}, "
-                            f"this run is head={head_sha[:12]} mb={mb[:12]}; re-render with `figure_block.py refresh <body>`")
-            continue
-        try:
-            want = render_text(name, attrs, run_instrument(root, base, head_sha, mb, name, reg))[1:-1]
-        except Refused as e:
-            problems.append(f"line {i + 1}: block `{name}`: {e}")
-            continue
-        if body != want:
-            problems.append(f"line {i + 1}: block `{name}` is not what the registered instrument printed at {head_sha[:12]}; "
-                            "a figure block is rendered, never typed -- run `figure_block.py refresh <body>`")
+def verify_text(text: str) -> list[str]:
+    """One problem per figure-block marker in ``text``; none for a body that stores no block.
+
+    Any marker is refused, whatever sits between a pair: a rendered block names
+    a head that the next head move makes false, an empty marker asks a writer
+    that no longer exists to fill it, and a typed one was never a measurement.
+    The read is of lines, not of well-formed blocks, so a malformed or unclosed
+    marker is refused like any other and cannot hide what follows it.
+    """
+    problems, opened = [], False
+    for i, line in enumerate(text.split("\n")):
+        if line.startswith(MARKER):
+            m = OPEN_RE.match(line)
+            opened = True
+            problems.append(f"line {i + 1}: a stored figure block ({'`' + m.group('name') + '`' if m else 'its marker does not parse'}); "
+                            "a body stores no rendered figure -- pr-contract renders the registered instruments at the head it "
+                            "grades into its job summary. Delete the block: `figure_block.py strip <body>`")
+        elif line.startswith(CLOSE_MARKER):
+            if not opened:
+                problems.append(f"line {i + 1}: a figure-block close marker with no block above it; delete the line")
+            opened = False
     return problems
 
 
-def cmd_verify(root, base, head, body_path):
-    problems = verify_text(open(body_path, encoding="utf-8").read(), root, base, head)
+def strip_text(text: str) -> tuple[str, int]:
+    """``text`` without its figure blocks, and how many were cut; every other line is kept as it was."""
+    lines, blocks = parse(text)
+    for i, j, _name, _attrs, _body in reversed(blocks):
+        del lines[i:j + 1]
+    return "\n".join(lines), len(blocks)
+
+
+def cmd_strip(body_path):
+    text = open(body_path, encoding="utf-8").read()
+    out, n = strip_text(text)
+    if n:
+        open(body_path, "w", encoding="utf-8").write(out)
+    print(f"figure_block: stripped {n} block(s)")
+    return 0
+
+
+def cmd_verify(body_path):
+    problems = verify_text(open(body_path, encoding="utf-8").read())
     for p in problems:
         print(f"  ERROR   [figure-block] {p}")
-    n = len(parse(open(body_path, encoding="utf-8").read())[1])
-    print(f"figure_block verify: {n} block(s), {len(problems)} refused")
+    print(f"figure_block verify: {len(problems)} stored block marker(s) refused")
     return 1 if problems else 0
 
 
@@ -262,27 +265,37 @@ def _self_test() -> int:
         head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp, capture_output=True, text=True).stdout.strip()
         mbsha = subprocess.run(["git", "rev-parse", "main"], cwd=tmp, capture_output=True, text=True).stdout.strip()
         body = os.path.join(tmp, "body.md")
-        empty = f"## Figures\n<!-- figure-block: mb -->\n<!-- /figure-block -->\nfree-form: `git log`\n"
-        open(body, "w").write(empty)
-        check("refresh fills an empty marker at the head with no agent turn", cmd_refresh(tmp, "main", "HEAD", body) == 0
-              and mbsha in open(body).read() and head in open(body).read())
-        check("verify accepts the refreshed body and the free-form line beside it", verify_text(open(body).read(), tmp, "main", "HEAD") == []
-              and "free-form: `git log`" in open(body).read())
-        typed = open(body).read().replace(mbsha + "\n~~~", "0" * 40 + "\n~~~", 1)
-        check("a hand-typed value in a block is refused", len(verify_text(typed, tmp, "main", "HEAD")) == 1)
-        moved = open(body).read().replace(head, "1" * 40)
-        check("a block naming another head is refused as stale", len(verify_text(moved, tmp, "main", "HEAD")) == 1)
-        g("commit", "-q", "--allow-empty", "-m", "head2")
-        check("a moved head is stale until the writer re-renders it", len(verify_text(open(body).read(), tmp, "main", "HEAD")) == 1
-              and cmd_refresh(tmp, "main", "HEAD", body) == 0 and verify_text(open(body).read(), tmp, "main", "HEAD") == [])
-        evil = "<!-- figure-block: evil -->\n<!-- /figure-block -->\n"
-        check("an instrument registered only by the head is refused (null: the base's own mb passes above)",
-              refused(lambda: cmd_refresh(tmp, "main", "HEAD", _w(body, evil))))
-        check("an unknown name is refused", refused(lambda: cmd_refresh(tmp, "main", "HEAD", _w(body, "<!-- figure-block: nope -->\n<!-- /figure-block -->\n"))))
-        check("an instrument that exits non-zero is refused", refused(lambda: cmd_refresh(tmp, "main", "HEAD", _w(body, "<!-- figure-block: bad -->\n<!-- /figure-block -->\n"))))
-        check("an unclosed block is refused", refused(lambda: parse("<!-- figure-block: mb -->\nx\n")))
-        check("a malformed marker is refused", refused(lambda: parse("<!-- figure-block: Mb -->\n")))
-        check("a body with no block is untouched (null control)", verify_text("## Figures\nnone\n", tmp, "main", "HEAD") == [])
+        free = "## Figures\nfree-form: `git log`\n"
+        check("a body with no block passes, its free-form line beside it (null control)", verify_text(free) == [])
+        rendered = "\n".join(render_text("mb", {"mb": mbsha, "head": head}, run_instrument(tmp, "main", head, mbsha, "mb", load_registry(tmp, "main"))))
+        check("render prints the base registry's instrument at the head", mbsha + "\n~~~" in rendered and f"head={head}" in rendered)
+        stored = verify_text(free + rendered + "\n")
+        check("a body storing a rendered block is refused, the block named", len(stored) == 1 and "(`mb`)" in stored[0] and stored[0].startswith("line 3:"))
+        check("an empty marker is refused: no writer fills it", len(verify_text(free + "<!-- figure-block: mb -->\n<!-- /figure-block -->\n")) == 1)
+        check("a typed block is refused", len(verify_text(free + "<!-- figure-block: mb -->\n~~~text\nMODE: SCOPED\n~~~\n<!-- /figure-block -->\n")) == 1)
+        check("two stored blocks are two refusals", len(verify_text(free + (rendered + "\n") * 2)) == 2)
+        check("a malformed marker is refused, not skipped", len(verify_text("<!-- figure-block: Mb -->\n")) == 1
+              and "does not parse" in verify_text("<!-- figure-block: Mb -->\n")[0])
+        check("an unclosed block is refused", len(verify_text("<!-- figure-block: mb -->\nx\n")) == 1)
+        check("a close marker with no block above it is refused", len(verify_text(free + "<!-- /figure-block -->\n")) == 1)
+        check("a second close marker after a closed block is refused too", len(verify_text(free + "<!-- figure-block: mb -->\n<!-- /figure-block -->\n<!-- /figure-block -->\n")) == 2)
+        check("a marker cut short of its name is refused", len(verify_text("<!-- figure-block-->\n")) == 1)
+        # The defect: a stored block named its head, so a head no seat moved (the
+        # merge-main bot, a recarry) left the body false. With nothing stored the
+        # same body passes at the moved head; cmd_verify reads no head at all.
+        _w(body, free)
+        g("commit", "-q", "--allow-empty", "-m", "a head move the seat did not make")
+        check("a body with no stored block passes at a head moved under it", cmd_verify(body) == 0)
+        check("and the block rendered at the old head, stored, is refused there", cmd_verify(_w(body, free + rendered + "\n")) == 1)
+        check("strip deletes each stored block and keeps every other line", cmd_strip(_w(body, "a\n" + rendered + "\nb\n" + rendered + "\nc\n")) == 0
+              and open(body).read() == "a\nb\nc\n" and cmd_verify(body) == 0)
+        check("null: strip writes nothing to a body with no block", cmd_strip(_w(body, free)) == 0 and open(body).read() == free)
+        check("strip refuses an unclosed block and leaves the file", refused(lambda: cmd_strip(_w(body, "<!-- figure-block: mb -->\nx\n")))
+              and open(body).read() == "<!-- figure-block: mb -->\nx\n")
+        check("an instrument registered only by the head is refused (null: the base's own mb renders above)",
+              refused(lambda: run_instrument(tmp, "main", head, mbsha, "evil", load_registry(tmp, "main"))))
+        check("an unknown name is refused", refused(lambda: run_instrument(tmp, "main", head, mbsha, "nope", load_registry(tmp, "main"))))
+        check("an instrument that exits non-zero is refused", refused(lambda: run_instrument(tmp, "main", head, mbsha, "bad", load_registry(tmp, "main"))))
         # The overlay is the program, never the head's diff: what `tests/closure.py`'s
         # `changed_files` adds to a branch's diff (tracked changes against HEAD,
         # untracked files) is empty inside the run, for a program main changed
@@ -338,16 +351,15 @@ def main(argv: list[str]) -> int:
             opts[a] = next(it, "")
         else:
             pos.append(a)
-    if len(pos) != 2 or pos[0] not in ("render", "refresh", "verify"):
+    if len(pos) != 2 or pos[0] not in ("render", "verify", "strip"):
         print(__doc__)
         return 2
-    root = _git(os.getcwd(), "rev-parse", "--show-toplevel")
     try:
         if pos[0] == "render":
-            cmd_render(root, opts["--base"], opts["--head"], pos[1])
+            cmd_render(_git(os.getcwd(), "rev-parse", "--show-toplevel"), opts["--base"], opts["--head"], pos[1])
             return 0
-        fn = cmd_refresh if pos[0] == "refresh" else cmd_verify
-        return fn(root, opts["--base"], opts["--head"], pos[1])
+        # verify and strip read the body alone; --base and --head are accepted and unread.
+        return cmd_verify(pos[1]) if pos[0] == "verify" else cmd_strip(pos[1])
     except Refused as e:
         print(f"  ERROR   [figure-block] {e}")
         return 1

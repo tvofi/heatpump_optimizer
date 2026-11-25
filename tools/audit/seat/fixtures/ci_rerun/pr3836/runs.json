@@ -1,0 +1,46 @@
+[
+ {
+  "id": 44945586204,
+  "name": "CI edit pr=3836 base=main sha=26d2b572b273547d9a10399896f67c2281b0d168",
+  "path": ".github/workflows/ci.yml",
+  "head_sha": "3a31408b81d84bce7b3aac58508a44cf415a3203",
+  "status": "completed",
+  "conclusion": "failure",
+  "run_attempt": 1,
+  "event": "pull_request",
+  "head_branch": "fix/r11-roster-copy"
+ },
+ {
+  "id": 44944865975,
+  "name": "CI edit pr=3836 base=main sha=26d2b572b273547d9a10399896f67c2281b0d168",
+  "path": ".github/workflows/ci.yml",
+  "head_sha": "3a31408b81d84bce7b3aac58508a44cf415a3203",
+  "status": "completed",
+  "conclusion": "failure",
+  "run_attempt": 1,
+  "event": "pull_request",
+  "head_branch": "fix/r11-roster-copy"
+ },
+ {
+  "id": 44944866503,
+  "name": "CI code pr=3836 base=main sha=26d2b572b273547d9a10399896f67c2281b0d168",
+  "path": ".github/workflows/ci.yml",
+  "head_sha": "3a31408b81d84bce7b3aac58508a44cf415a3203",
+  "status": "queued",
+  "conclusion": null,
+  "run_attempt": 1,
+  "event": "pull_request",
+  "head_branch": "fix/r11-roster-copy"
+ },
+ {
+  "id": 44944865613,
+  "name": "Dependabot auto-merge",
+  "path": ".github/workflows/dependabot-automerge.yml",
+  "head_sha": "3a31408b81d84bce7b3aac58508a44cf415a3203",
+  "status": "completed",
+  "conclusion": "skipped",
+  "run_attempt": 1,
+  "event": "pull_request_target",
+  "head_branch": "fix/r11-roster-copy"
+ }
+]
