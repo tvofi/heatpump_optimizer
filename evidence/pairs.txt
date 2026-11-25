@@ -1,0 +1,13 @@
+b4a8bbd567b1: prod=121 scripts=34 pairs>=0.80=182 of 561 comparable=435
+origin/main: prod=121 scripts=34 pairs>=0.80=182 of 561 comparable=435
+9516fcc55ccd: prod=117 scripts=33 pairs>=0.80=167 of 528 comparable=406
+d7029ade34c8: prod=122 scripts=34 pairs>=0.80=184 of 561 comparable=435
+bed836b449a9: prod=122 scripts=34 pairs>=0.80=184 of 561 comparable=435
+docstring at head: 182 of the 561
+ee0e11d51d: prod=117 scripts=33 pairs>=0.80=167 of 528 comparable=406 doc=
+129fd0d046: prod=118 scripts=33 pairs>=0.80=167 of 528 comparable=406 doc=
+c940f5606d: prod=122 scripts=34 pairs>=0.80=184 of 561 comparable=435 doc=182 of the 561
+388c164016: prod=122 scripts=34 pairs>=0.80=184 of 561 comparable=435 doc=182 of the 561
+6409098393: prod=122 scripts=34 pairs>=0.80=184 of 561 comparable=435 doc=182 of the 561
+90702254f2: prod=122 scripts=34 pairs>=0.80=184 of 561 comparable=435 doc=182 of the 561
+f52e700df1: prod=121 scripts=34 pairs>=0.80=182 of 561 comparable=435 doc=182 of the 561

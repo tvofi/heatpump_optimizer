@@ -1,41 +1,70 @@
-Fix review: blocked 9516fcc55ccd6c40d58ca1d6b3d152d0b17aed4a architecture-unsound: raised_floor and mark_room_floor moved into rooms.py against the approved note's owning seam, unraised in the body
+Fix review: blocked d7029ade34c87eb0baaad0313a90d352edb99f2f tests-red: tests/entities.py fails the #1218 selection-cost note, the merged closures derive 184 of the 561 pairs and tests/deployment_shape.py still says 182
 
-bus-nonce: 680c002128484fbc5fcc0a1d185290ec
+bus-nonce: e53823c3aee1358b3b7b83bdadcf0a90
 
-Round 2 (later round over the reviewed head `6ef32c22f3d3cc8e80207cd85900879ab1816d05`; review scope delta, per the packet's `## Review scope` line). Run as a local seat in place of the cloud reviewer.
+Delta round over the reviewed head `8800ed7c6f7006ddf75898f79ac7bc22f5e11467`. Five verdicts on this PR come before it, at `6ef32c22`, `48d28b55`, `8800ed7c` (archive and bus) and `9516fcc5`, so this is round 5 or later. From the fourth round, fix-review.md says a re-cut is owed. The packet's `## Review scope` line reads `full`, because `verdict/3838` names `9516fcc5`, not `8800ed7c`. Per the orchestrator's delta ruling, I reviewed `git diff 8800ed7c6f70 d7029ade34c8` and the findings of the latest verdict, `blocked 9516fcc5 architecture-unsound`. `9516fcc5` is `8800ed7c` plus the bot's pin commit.
 
 ## Block
 
-- **architecture-unsound (fix-review.md step 15; fixer.md step 17, "one owner per concern").** The delta's production commit `c03b640cd6` moves `_raised_floor` and `_mark_room_floor` out of `optimizer.py` into `rooms.py` as `raised_floor` and `mark_room_floor`. `optimizer.py` now imports both from `.rooms` (`ev/delta_c03b640cd6.diff`). The commit gives the reason: `optimizer.py` was 43 lines over `module_excess_loc`, and `rooms.py` is "a module under the 2000-line limit".
-  - The approved design note (`design/R11-OUTSIDE-ROOMS-3B` at `09049ddb`, `ev/design_note_09049ddb.md`) assigns the seam the other way. Line 13 says "**`optimizer.py` owns the attribution.** It records on `_Horizon` which part of the floor the solve held is the rooms' part, and it classifies steps from that". Line 15 says "`rooms.py` keeps the lift". Line 85 says the mold floor and ceiling clip are what "only `_build_comfort_bounds` sees".
-  - `raised_floor` is not a room concept. It is the T5 (#16 #54) comfort-floor arithmetic: confidence margins, the mold-guard maximum and the ceiling clip. Its own docstring calls it "the single site the bounds are built, so every consumer (objectives, safety releases, pin repair) sees the same effective floor". Every solve runs it, including one with no room list. After the move, the optimizer's core bound build depends on the room-list module, whose docstring says it "owns that list's reading record, its summary ... and the payload block".
-  - `mark_room_floor` is the step classification that the note gives to `optimizer.py`.
-  - The PR body raises one departure from the note (interface 4, the post-pass). It does not raise this one. Its `## Red checks` entry describes the move only as the repair for `tests / fast` and says the two helpers "belong to the room lift". That is true of the second, attribution-only call of `raised_floor`. It is not true of the function.
-  - Step 14 plant: moving any about 50 lines of `optimizer.py` into a module under its limit moves `module_excess_loc` the same way, whether or not the code is better placed. The 21779 -> 21770 re-record is earned here only by this move, which is the shape step 14 refuses unless the move improves the code.
-  - Repair (the fixer's choice): either keep both helpers on the optimizer side of the seam and pay the module budget by a move the note supports (code `optimizer.py` holds for a concept another module owns), or put them in a small new module owned by the bound build (fixer.md step 17: "the module owning the concept, or a small new one"). Alternatively, raise the departure in the body for design review. The re-record then follows whichever move lands.
+- **tests-red (C8: a head still red takes no merge verdict).** `classify` reads `RED d7029ade34c87eb0baaad0313a90d352edb99f2f pending: none red: gate` (`ev/classify.log`). The `gate` job (139155188742) prints one line, `FAIL tests / fast (3.14): failure (this run)`. `tests / fast (3.14)` (job 139103666783) ends with `1 TEST SCRIPT(S) FAILED`.
+  - I reproduced the failure at this head. `python3 tests/entities.py` exits 1 with `1 of 2762 ENTITY CHECKS FAILED` (`ev/entities_head_local.txt`, `ev/entities_rc.txt`). The one real failure is `FAIL and the lane's docstring records those measured numbers as the selection-cost note (#1218)  [... 184 of 561 pairs at >= 0.80 ...; missing markers -> ['184 of the 561']]`. The other `FAIL` lines in that file are the script's own null-control fixtures, inside checks that pass.
+  - Cause: this PR's diff. I re-derived the pair count with entities.py's own predicate (`ev/pairs.py`, `ev/pairs.txt`):
+    - At the merge base `b4a8bbd5` and at origin/main it is `182 of 561`.
+    - The PR's `tests/closures.json` adds `comfort_floor.py` to 27 closures and `cycle_lane.py`'s closure. Once merged with main's 34 scripts, it gives `184 of 561`. This is already true at `90702254f2`, the merge of `f52e700df1`, and at every later head.
+    - The PR updated the docstring's `all 122 files` but not its `182 of the 561 script pairs` (`tests/deployment_shape.py:60`).
+  - Repair: set the pair count in `tests/deployment_shape.py`'s #1218 note to the derived `184 of the 561`, adding a dated clause in the paragraph's style, and re-run `tests/entities.py`. A docstring edit is a test-tree change; the production delta is sound (below).
 
 ## Findings
 
-- Residual: the move dropped a clip that is unreachable today. Before the move, `_raised_floor` padded and clipped its `margins` at zero, so the unlifted build read `clip(margins - room_lifts, 0)`. At the head, `raised_floor` takes margins already padded, and the unlifted call passes `margins - _padded_nonneg(room_lifts, n_steps)` unclipped.
-  - On inputs shaped as `rooms.floor_limits` returns them (`margins = _margins(base) + lift`, `room_lifts = lift`), the two are identical: 20000 random cases, 0 differ (`ev/equiv.py`, `ev/equiv.txt`). Both production callers, `coordinator.py:6293` and `:11311`, splat `floor_limits`. My equivalence mutant E1, which restores the clip, survives both detectors for that reason.
-  - Null control: a `room_lifts` with `min_temp_margins` None, or a lift longer than the margins, makes the head attribute the whole lift where the old code attributed 0 (`old [0,0,0,0] new [1,1,1,1]`). No caller produces either input. Carry: dismissed: unreachable from every production caller (both splat rooms.floor_limits); the repair above re-cuts this code, and the fixer may restore the clip there
+- Note: root-cause-unanswered: `tests / fast (3.14)` (owed set). The body's `## Red checks` answers an earlier `fast` red (the structure ratchet at `271f2f1f85`), not this one. Its `## Head` says `ci_predict.py` predicted no `fast` red at `bed836b449` and at `1a73c6a6`, but `tests/entities.py` fails at both trees. `ci_predict.py` does not run the selection-cost check after a closures merge. That check is the cheapest detector short of entities.py's full run, which takes 584 s in CI. Carry: dismissed: the fixer answers it in the body with the repair above; the route is the fixer's own `## Red checks`
+- Residual: mutant K8, `comfort_floor.raised_floor` taking `floors` without the `[:n_steps]` cut, survives the 3B block, the `#224` comfort-envelope block and `tests/edge.py` (`ev/mutants_out.txt`, `ev/mutants_edge.txt`). The cut is carried byte-for-byte from the base's `f[:n_steps]` in `_build_comfort_bounds`. The production callers pass `_mold_floor_series(horizon.outdoor_temps)` (`coordinator.py:6295`, `:11301`), and no test hands a mold series longer than the horizon. Carry: dismissed: pre-existing guard moved unchanged, its survival is not this PR's behaviour
+
+## Prior findings
+
+- Round at `9516fcc5`, `architecture-unsound` (the helpers moved into `rooms.py`): resolved.
+  - `raised_floor` and `mark_room_floor` now live in the new `custom_components/heatpump_optimizer/comfort_floor.py`. It imports only `numpy` and `payload`'s two reason codes. This is the block's own second repair ("a small new module owned by the bound build").
+  - `git grep -nE "\b(raised_floor|mark_room_floor)\(" -- custom_components | grep -v "def "` returns three lines, all in `optimizer.py` (`ev/callers.txt`).
+  - `rooms.py`'s own diff is now only `floor_limits` and `FloorLimits`.
+  - The body raises the placement as a departure from the note.
+- Same verdict, the residual (the clip at zero on the unlifted margins): resolved. The outer `_padded_nonneg` is back on `margins - lifts`. My mutant O3, which removes it, is killed by the 3B block: `FAIL ... the room lifts never exceed the margins that carry them ...`.
 
 ## Evidence
 
-- Head reviewed: `9516fcc55ccd6c40d58ca1d6b3d152d0b17aed4a` (`ev/HEAD.txt`). The body's `## Head` names `8800ed7c6f` as the head. `9516fcc55c` is the bot's `ci: pin killed mutants` on top of it, and it changes only `tests/mutation_ledger/killed_by/`.
-- Role contracts current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- Delta: `git log --first-parent 6ef32c22f3..9516fcc55c` has one authored production commit (`c03b640cd6`), one test commit (`ffb12a9319`, the two coordinator-build checks), a delivery row (`5ac06973d1`), three bot pin commits and main merges.
-  - Main merges: `--cc` shows a resolution only in `tests/structure_budgets.json` (`9d3d6d129b`, `84ae6ce8aa`, `0c0b146b5a`), each taking the lower row.
-  - Per file, the PR's own diff at the reviewed head and at this head differs only in `optimizer.py`, `rooms.py`, `tests/features.py` and `tests/structure_budgets.json`.
-- Prior finding resolved. The round-1 block was mutant C1, the two coordinator splats reverted to `["min_temp_margins"]`. Under C1, C1a (scheduled build alone) and C1b (what-if alone), the P2 block now fails (`ev/mutants_out.txt`).
-  - C1 and C1a fail "the scheduled build hands the solve its room lifts ...". C1b fails "the what-if build hands its solve the baseline's room lifts ...". Unmutated: `ALL 26 FEATURES BLOCK PASSED`.
-  - Detector: `features_block.py` with an emitted prelude. The P2 emit exits 1 on the missing `asyncio` import the body names. I used the same local overlay: `import asyncio as _asyncio` prepended (`ev/mut.sh`).
-- Mutants on the moved code (`ev/mutants.py`; 3B block unmutated `ALL 8 FEATURES BLOCK PASSED`, `#224 stage 2` comfort-envelope block `ALL 8 FEATURES BLOCK PASSED`):
-  - Killed by the 3B block: `raised_floor`'s margin add, ceiling clip and mold maximum; `mark_room_floor`'s 0.15 K tolerance and its `- room_lifts[i]`; the unlifted build without the lift.
-  - Killed by the `#224` block: the call site's new `_padded_nonneg` replaced by an unclipped array.
-  - E1 (the old clip restored) survives, as explained under Findings.
-- `python3 tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`, `ok module_excess_loc 21770 <= 21770`, `ok class_excess_loc 17301 <= 17301` (`ev/structure.txt`).
-- Merges with main: `git merge-tree --write-tree origin/main 9516fcc55c` exits 0 at origin/main `9276ddf6b1`. The ledger driver printed `LEDGER-MERGE: resolved tests/structure_budgets.json` (`module_excess_loc: 21779 + both deltas = 21766`; `ev/merge_tree.txt`).
-- Finder's harness: none named (owner report #3616; the packet reads `none named`). The delta's production change is a code move. Its behaviour is pinned by the differential above and by the mutants. `dev/audit/harnesses/room_lift_solve.py` was not re-run at this head: the round-1 verdict measured it byte-identical across the feature, and this move is equivalent on every reachable input.
-- CI at the head: the last classify line is `23:43:43 rc=3 WAIT 9516fcc55ccd6c40d58ca1d6b3d152d0b17aed4a pending: gate red: none` (`ev/classify.log`). In the packet's digest, `tests / mutation` (job 137368604976) is `failure`, with `mutation-pins (1)/(2)` still running. Its log could not be read while run 45073670749 was in progress. It is in the owed-reds set. The body's `## Red checks` answers the same lane at `0edc7fbd8b` (unmeasured and unpinned sites, re-pinned by the bot). A block on code does not wait on CI.
-- Instrument friction (local): my `gate_lock.py slot-take --label rev-3838-local` held slot 3. At release it printed `no slot`, and slot 3 was held by `rev-3841-local`. The lease was taken without `--owner-pid`, and the run finished before the slot was lost.
+- Head `d7029ade34c87eb0baaad0313a90d352edb99f2f` (`ev/HEAD.txt`): re-read from `refs/pull/3838/head` before writing, unmoved. The body's `## Head` names it.
+- Roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty (`ev/roles_drift.txt`).
+- Merges with main: `git merge-tree --write-tree origin/main d7029ade34c8` rc 0 at origin/main `bb6377b4da` (`ev/merge_tree.txt`).
+- Delta: `git log --first-parent 8800ed7c..d7029ade` holds one bot pin, three bot main merges and two hand merges. The production delta in the PR's own three-dot diff is `comfort_floor.py` (new), `optimizer.py` (the two imports, plus the bound build padding the margins before `raised_floor` and clipping the unlifted margins) and `rooms.py` (the helpers removed).
+  - Production widening (step 12): none. The moved arithmetic is the only reviewed code the delta touches, and the mutants below cover it.
+- Mutation proof, in a detached worktree at the head; the tree was restored after each mutant (`git status: 0 modified`). Scripts are `ev/mut.sh` and `ev/mutants.py`. Detectors are the 3B block and the `#224` comfort-envelope block through `features_block.py` with emitted preludes, plus `tests/edge.py`.
+  - Unmutated: 3B `ALL 12 FEATURES BLOCK PASSED`, `#224` `ALL 8 FEATURES BLOCK PASSED`, `edge` rc 0.
+  - Killed by 3B:
+    - K1: margin add.
+    - K2: ceiling clip.
+    - K3: mold maximum.
+    - K4: 0.15 to 0.5.
+    - K5: `- room_lifts[i]` dropped.
+    - K6: `room_temps[i + 1]` unguarded (Traceback).
+    - K7: `room_temps[i]`.
+    - O1: the margins unpadded.
+    - O2: the unlifted build without the lift.
+    - O3: the unlifted margins unclipped.
+    - O4: a lift longer than the horizon not cut (Traceback).
+  - Killed by `tests/edge.py`:
+    - O5: `mark_room_floor` handed None.
+    - O6: `_build_comfort_bounds` handed no `room_lifts`.
+  - K8 survives every detector (under Findings).
+  - The body's K1 to K4 are re-derived by my K6, O1, O3 and O4.
+  - The body's `ALL 11 FEATURES BLOCK PASSED` is at `bed836b449`. At this head the block reads 12, because main's #3871 section now follows the 3B section and the start-only marker runs to the end of the file. It is not a figure this delta moves.
+- Structure: `python3 tests/structure.py` `STRUCTURE RATCHET PASSED`, `ok module_excess_loc 21765 <= 21765`, `ok class_excess_loc 17281 <= 17281` (`ev/structure.txt`).
+  - Three-dot against `b4a8bbd5`: `class_excess_loc` 17297 -> 17281, `module_excess_loc` 21774 -> 21765. No row is raised. The interim raise `afd32f78f0` is paid by `ee0e11d51d`.
+  - Step 14: the -9 on `module_excess_loc` comes from moving the two helpers out of `optimizer.py` into a new module that owns their concept. That is the move the previous block named as sound, so the drop is earned.
+- `archscore --diff b4a8bbd5`: `Architecture score: dS +0.0000 NULL` (`ev/archscore.txt`).
+- `VERSION`, the manifest version, `RELEASE_NOTES.md`, `tests/golden` and both claim files: the three-dot diff against the merge base is empty.
+  - The manifest's three-dot diff is empty. Its two-line change in `git diff 8800ed7c d7029ade` is main's, not the PR's.
+- Step 16: no actuator-write refusal is added; attribution only.
+- Owed reds (`ev/owed_reds.txt`):
+  - `tests / fast (3.14)` and `gate` are red. The block above covers them.
+  - `tests / mutation` is green at this head. The digest's `tests / nightly-status` failure is outside the owed set. `tests / replay` is cancelled and outside the set.
+- Finder's harness: none named (packet `## Finder's harness: none named`). The round-1 verdict measured `dev/audit/harnesses/room_lift_solve.py` byte-identical across the feature. This delta moves arithmetic; it does not change values, and the mutants above pin that arithmetic.
+- The orchestrator's local report of a full `features.py` pass (6160/6160) was not re-taken. CI's fast summary names one failed script, and `tests/entities.py` alone reproduces it. I stopped my own `features.py` run after that (by PID).
+- `carry_audit.py check` rc 0: `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)` (`ev/carry_audit.txt`). The `--body` I passed holds only the body's one `Carry:` item, the same one the packet's own head-time audit counts, and not the full PR body.
