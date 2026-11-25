@@ -160,3 +160,4 @@
 1795629823 CKPT D3-s1 95 file(s)
 1795629827 HB alive
 1795629877 CKPT D3-s1 168 file(s)
+1795629883 HB checkpoint gap 14:51-18:03Z: a stale comms lock left by the container restart made 4 ckpts (d661,a5b0,c511,4da9) fail silently and killed the loop; lock cleared, loop restarted, full checkpoint 18:03Z carries all 16 results + REPORT; probes mirrored under probes/<key>/ per inbox NOTE 2
