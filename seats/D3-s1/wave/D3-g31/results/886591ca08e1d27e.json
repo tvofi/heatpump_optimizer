@@ -1,0 +1,43 @@
+{
+ "key": "886591ca08e1d27e",
+ "site": "custom_components/heatpump_optimizer/price_model.py:535 CMP_BOUND",
+ "patch": "`if shape_mean > 1e-6:` -> `if shape_mean >= 1e-6:`",
+ "function": "extend_price_series",
+ "cluster": "price_model.py:extend_price_series@510-544",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3587.5,
+  "load1_start": 0.66,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5903.9,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/gates/886591ca08e1d27e.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 886591ca08e1d27e",
+ "machine": "box D3-g31: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB (walls and loads provisional)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_886591ca08e1d27e.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_886591ca08e1d27e.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_886591ca08e1d27e.out",
+  "baseline_value": "prod_differ=0 of 192; direct shape mean exactly 1e-6 -> tail 0.0",
+  "mutant_value": "prod identical; direct -> tail 0.45",
+  "inputs_tried": "production: 192 coordinator-shaped calls (n_steps 0,1,4,96,192; step offset 0,37; known lengths 0,1,n-1,n,n+3,n/2 with negative prices; models None, fresh, young (2 days), trusted from_dict); direct: step_start_times shorter than the horizon or the known run (len 0,1,2), known longer than n_steps; plus a model whose shape_for is exactly 1e-6"
+ },
+ "should_fail": "none through production (shape_for >= SHAPE_MIN 0.2: from_dict and the learner clip shapes to [0.2, 3.0]); only a model reading exactly 1e-6 separates",
+ "note": "Equivalent through the coordinator's call shape: none through production (shape_for >= SHAPE_MIN 0.2: from_dict and the learner clip shapes to [0.2, 3.0]); only a model reading exactly 1e-6 separates"
+}
