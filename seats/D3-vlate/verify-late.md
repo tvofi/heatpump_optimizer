@@ -8,7 +8,7 @@ Null full gate: gate_rc 0, failed_scripts 0, wall 3767 s, load1 1.0.
 
 At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.py` and `tests/features.py` only (seats/D3-vlate/athead.sh); the full gate was not re-run at head. A not-killed reading there is therefore 'not killed by those two scripts', not 'survives the full gate at head'.
 
-**Gates still pending:** D3-s1-69, D3-s1-70, D3-s1-71
+**Gates still pending:** D3-s1-70, D3-s1-71
 
 | id | vote | severity | full gate | at head |
 |---|---|---|---|---|
@@ -21,7 +21,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 | D3-s1-66 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-67 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-68 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
-| D3-s1-69 | weaken | nit | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
+| D3-s1-69 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-70 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-71 | weaken | nit | pending | KILLED at head; the full gate was not re-run at head (about an hour per mutant) |
 
@@ -147,7 +147,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - vote: **weaken**, severity nit
 - value: dhw_kwh 2.5056 -> 1.9948 at prices x1000; realistic profiles delta 0.0; separation needs >= 8000 per kWh
 - metric: solved DHW energy (kWh) from HeatPumpOptimizer.optimize, base vs mutant shortfall price, per price-profile cell
-- V1 reproduced: probe_0911281e.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 2.5056 -> 1.9948 kWh (delta -0.5108), null 0, realistic_delta 0.0, min_price_for_separation 8000; full gate PENDING
+- V1 reproduced: probe_0911281e.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 2.5056 -> 1.9948 kWh (delta -0.5108), null 0, realistic_delta 0.0, min_price_for_separation 8000; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 0911281eca895664`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3664 s, load1 0.99, thread_factor 1.0; null gate: gate_rc 0, failed 0
 - V2 independent: v2_dhw.py (own, tests/profiles.py profiles x1000): 32 cells, 0 moved, max |delta| 0.0000; positive control (shortfall price 0.0) moves 1 of 1 cell by 1.0849 kWh, so the harness can move
 - V3 reachable: only with a price spread of >= 8000 per kWh, which no real tariff carries; the shortfall penalty does not bind on any realistic input
 - V3 class: I1; class_guess 'new' corrected

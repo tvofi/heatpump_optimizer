@@ -14,7 +14,6 @@
   "thread_factor": "1.0"
  },
  "gates_pending": [
-  "D3-s1-69",
   "D3-s1-70",
   "D3-s1-71"
  ],
@@ -233,15 +232,23 @@
    "severity": "nit",
    "value": "dhw_kwh 2.5056 -> 1.9948 at prices x1000; realistic profiles delta 0.0; separation needs >= 8000 per kWh",
    "metric_definition": "solved DHW energy (kWh) from HeatPumpOptimizer.optimize, base vs mutant shortfall price, per price-profile cell",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 0911281eca895664`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3664 s, load1 0.99, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "attacks": "grid artefact: 0 of 32 cells move at x1000 prices (positive control moves); consequence only at absurd prices -> nit",
-   "reproduced": "probe_0911281e.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 2.5056 -> 1.9948 kWh (delta -0.5108), null 0, realistic_delta 0.0, min_price_for_separation 8000; full gate PENDING",
+   "reproduced": "probe_0911281e.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 2.5056 -> 1.9948 kWh (delta -0.5108), null 0, realistic_delta 0.0, min_price_for_separation 8000; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 0911281eca895664`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3664 s, load1 0.99, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_dhw.py (own, tests/profiles.py profiles x1000): 32 cells, 0 moved, max |delta| 0.0000; positive control (shortfall price 0.0) moves 1 of 1 cell by 1.0849 kWh, so the harness can move",
    "reachable": "only with a price spread of >= 8000 per kWh, which no real tariff carries; the shortfall penalty does not bind on any realistic input",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at dhw_planner.py:1559, then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "SURVIVED",
+    "gate_rc": "0",
+    "failed_scripts": "0",
+    "killed": "0",
+    "wall_s": "3664",
+    "load1": "0.99",
+    "thread_factor": "1.0"
+   }
   },
   {
    "id": "D3-s1-70",

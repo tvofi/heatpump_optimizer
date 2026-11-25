@@ -1,0 +1,8 @@
+RESULT gate_rc=0 code
+RESULT failed_scripts=0 count
+RESULT wall=3664 s
+RESULT thread_factor=1.0 ratio
+RESULT load1=0.99
+RESULT killed=0 count
+VERDICT 0911281eca895664 SURVIVED 
+rc=0
