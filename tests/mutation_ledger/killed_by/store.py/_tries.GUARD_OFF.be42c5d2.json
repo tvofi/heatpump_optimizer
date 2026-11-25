@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_tries GUARD_OFF be42c5d2",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "            elif last == \"~\":",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`elif False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=4."
+}
