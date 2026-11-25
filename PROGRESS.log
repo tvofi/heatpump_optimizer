@@ -31,3 +31,4 @@
 1795642111 HB alive
 1795642289 CKPT handoff/r11-owner-frost-hold 86a472eeb49b4d809c09d022feaa0d2361c2d613 pushed (ff from d05081fb); resolution delta d05081fb..86a472ee; body 8199208e snapshot d178eb728740
 1795642292 DONE returned: handoff/r11-owner-frost-hold at 86a472eeb49b4d809c09d022feaa0d2361c2d613, resolution delta d05081fb..86a472ee, raise max_class_loc +1/module_excess_loc +10 under mandate 6893738184 with Raise justification; body 8199208e
+1795642364 CKPT handoff/r11-owner-frost-hold 86a472eeb49b4d809c09d022feaa0d2361c2d613 pushed (ff from d05081fb); resolution delta d05081fb..86a472ee; body 8199208e; step-ref delete refused HTTP 403 snapshot 6062a4658797
