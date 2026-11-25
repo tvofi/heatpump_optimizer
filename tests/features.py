@@ -66685,6 +66685,195 @@ R.check(
 )
 
 
+# ---- R11-SEAM-actuation-writes A (D16-s1, D12-s3-02, D16-s2-03): grid, range, delivery, lead mode, gate, indoor boost ----
+from heatpump_optimizer import boost as _r11awa_boost  # noqa: E402
+from heatpump_optimizer import repairs as _r11awa_repairs  # noqa: E402
+from heatpump_optimizer import setpoint_check as _r11awa_sc  # noqa: E402
+
+
+def _r11awa_coord(states=None, config=None, duties="dd--dd--", plan=True):
+    """A coordinator on the round's plant: ``states`` update the entities, ``config`` the entry."""
+    hass = _r11ar_hass()
+    for ent, st in (states or {}).items():
+        hass.states.set(ent, st if hasattr(st, "attributes") else FakeState(st))
+    entry = _r11ar_Entry(data={**_r11ar_config(), **(config or {})}, entry_id=f"r11awa_{next(_R11AR_IDS)}")
+    c = _r11ar_coord(hass, entry)
+    c._mode = _R11AR_AUTO
+    if plan:
+        c._optimization_result = _r11ar_plan(duties)
+    return c
+
+
+async def _r11awa_freq(step, target=45.4, lo=20, hi=90):
+    c = _r11awa_coord({"number.freq": FakeState("70", attributes={"min": lo, "max": hi, "step": step})})
+    c._freq_map.recommend = lambda *_a, **_k: target
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=1))
+    c._last_optimization = _R11AR_T0 + timedelta(minutes=1)
+    c._current_action = {"heat_pump_on": True, "displace_value": 0.0, "valve_target": 22.0}
+    await c._command_frequency()
+    return [d["value"] for _do, s, d in c.hass.services.calls if d.get("entity_id") == "number.freq"]
+
+
+_r11awa_f_off = _r11ar_try(_r11ar_aio.run, _r11awa_freq(1))
+_r11awa_f_half = _r11ar_try(_r11ar_aio.run, _r11awa_freq(0.5, target=45.5))
+_r11awa_f_edge = _r11ar_try(_r11ar_aio.run, _r11awa_freq(1, target=95.0))
+R.check(
+    "D16-s1-01: a frequency target 45.4 Hz off a 1 Hz entity's step is written on the grid (45), "
+    "and one above the entity's maximum at the maximum",
+    _r11ar_ok(_r11awa_f_off, lambda r: r == [45]) and _r11ar_ok(_r11awa_f_edge, lambda r: r == [90]),
+    f"{_r11awa_f_off!r} / {_r11awa_f_edge!r}",
+)
+R.check(
+    "D16-s1-01 null control: a 45.5 Hz target on a 0.5 Hz entity is written unchanged",
+    _r11ar_ok(_r11awa_f_half, lambda r: r == [45.5]),
+    f"{_r11awa_f_half!r}",
+)
+
+
+# ---- D12-s3-02: the Fix stays inside the entity's own range ----
+def _r11awa_fix(lo, hi):
+    """(issue target, the value the confirmed Fix writes) on a tank set-point entity ranged [lo, hi]."""
+    c = _r11awa_coord({"number.dhw_set": FakeState("41", attributes={
+        "unit_of_measurement": "\u00b0C", "min": lo, "max": hi, "step": 1})}, plan=False)
+    c._thermal_params.dhw_legionella_enabled = True
+    c._thermal_params.dhw_legionella_temp = 60.0
+    c._thermal_params.dhw_min_temp = 45.0
+    c.hass.issues = []
+    _r11awa_sc.evaluate(c)
+    issue = next(i for i in c.hass.issues if i[1] == _r11awa_sc.ISSUE_DHW)
+    flow = _r11ar_aio.run(_r11awa_repairs.async_create_fix_flow(c.hass, _r11awa_sc.ISSUE_DHW, issue[2].get("data")))
+    flow.hass, flow.issue_id, flow.data = c.hass, _r11awa_sc.ISSUE_DHW, issue[2].get("data")
+    c.hass.services.calls.clear()
+    _r11ar_aio.run(flow.async_step_confirm({}))
+    return [d["value"] for _do, _s, d in c.hass.services.calls if d.get("entity_id") == "number.dhw_set"]
+
+
+_r11awa_capped = _r11ar_try(_r11awa_fix, 30, 55)
+_r11awa_holds = _r11ar_try(_r11awa_fix, 40, 65)
+R.check(
+    "D12-s3-02: the Fix on a tank set-point entity capped at 55 writes 55, never the floor 60 above its maximum",
+    _r11ar_ok(_r11awa_capped, lambda r: r == [55]),
+    f"{_r11awa_capped!r}",
+)
+R.check(
+    "D12-s3-02 null control: an entity whose range [40, 65] holds the floor is written 60 unchanged",
+    _r11ar_ok(_r11awa_holds, lambda r: r == [60]),
+    f"{_r11awa_holds!r}",
+)
+
+
+# ---- D16-s1-05: no record of a write Home Assistant skips ----
+async def _r11awa_unavail(state):
+    c = _r11awa_coord({"select.pump_mode": FakeState(state, attributes={"options": list(_R11AR_TUYA)})})
+    await _r11ar_cycle(c, 1)
+    calls = _r11ar_settle(c.hass)
+    return sorted(_r11ar_pa.state_for(c).written), _r11ar_n(calls, "select.pump_mode")
+
+
+_r11awa_un = _r11ar_try(_r11ar_aio.run, _r11awa_unavail("unavailable"))
+_r11awa_av = _r11ar_try(_r11ar_aio.run, _r11awa_unavail("Heating + DHW"))
+R.check(
+    "D16-s1-05: an arbiter write to a mode select reading unavailable leaves no record and sends no service call",
+    _r11ar_ok(_r11awa_un, lambda r: "mode" not in r[0] and r[1] == 0),
+    f"{_r11awa_un!r}",
+)
+R.check(
+    "D16-s1-05 null control: the same select available records the mode write and sends it",
+    _r11ar_ok(_r11awa_av, lambda r: "mode" in r[0] and r[1] == 1),
+    f"{_r11awa_av!r}",
+)
+
+
+# ---- D16-s2-03: a mode moved by a person while the switch reads off is led again ----
+async def _r11awa_lead(moved):
+    c = _r11awa_coord()
+    await _r11ar_cycle(c, 1)
+    _r11ar_settle(c.hass)
+    led = c.hass.states.get("select.pump_mode").state
+    if moved:
+        c.hass.states.get("select.pump_mode").state = "Heating"
+    c.hass.states.get("switch.hp").state = "off"
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=2))
+    await _r11ar_pa._lead_mode(c, True)
+    calls = _r11ar_settle(c.hass)
+    return led, [d["option"] for _do, s, d in calls if s == "select_option" and d.get("entity_id") == "select.pump_mode"]
+
+
+_r11awa_ld = _r11ar_try(_r11ar_aio.run, _r11awa_lead(True))
+_r11awa_ld0 = _r11ar_try(_r11ar_aio.run, _r11awa_lead(False))
+R.check(
+    "D16-s2-03: a mode select a person moved while the switch reads off is written back to the step's mode on switch-on",
+    _r11ar_ok(_r11awa_ld, lambda r: r[0] != "Heating" and r[1] == [r[0]]),
+    f"{_r11awa_ld!r}",
+)
+R.check(
+    "D16-s2-03 null control: an unmoved select writes nothing on switch-on",
+    _r11ar_ok(_r11awa_ld0, lambda r: r[1] == []),
+    f"{_r11awa_ld0!r}",
+)
+
+
+# ---- D16-s1-02: a space step with no Heating option does not ask a cold tank to charge ----
+async def _r11awa_gate(tank):
+    c = _r11awa_coord(
+        {"select.pump_mode": FakeState("Heat + DHW", attributes={"options": list(_R11AR_MODBUS)}),
+         "number.dhw_set": FakeState("50", attributes={"min": 10, "max": 63, "step": 1})},
+        duties="ssssssss")
+    c._current_state.dhw_temperature = tank
+    c._current_state.dhw_start_hysteresis_k = 5.0
+    await _r11ar_cycle(c, 1)
+    _r11ar_settle(c.hass)
+    return float(c.hass.states.get("number.dhw_set").state)
+
+
+_r11awa_cold = _r11ar_try(_r11ar_aio.run, _r11awa_gate(20.0))
+_r11awa_warm = _r11ar_try(_r11ar_aio.run, _r11awa_gate(48.0))
+R.check(
+    "D16-s1-02: a space step with no Heating option writes the tank set-point at tank 20 + hysteresis 5 = 25, "
+    "below the gate value",
+    _r11ar_ok(_r11awa_cold, lambda v: v == 25.0 < _r11ar_pa.DHW_GATE_C),
+    f"{_r11awa_cold!r} gate {_r11ar_pa.DHW_GATE_C}",
+)
+R.check(
+    "D16-s1-02 null control: at tank 48 the same row writes DHW_GATE_C as at base",
+    _r11ar_ok(_r11awa_warm, lambda v: v == _r11ar_pa.DHW_GATE_C),
+    f"{_r11awa_warm!r}",
+)
+
+
+# ---- D16-s1-03: a live space boost on an indoor set-point writes the boosted action's set-point ----
+async def _r11awa_indoor(boosted):
+    c = _r11awa_coord(
+        {"number.water_set": FakeState("20.5", attributes={"min": 5, "max": 30, "step": 0.5})},
+        {"space_setpoint_unit": "indoor"}, duties="ssssssss")
+    now = _R11AR_T0 + timedelta(minutes=1)
+    _r11ar_dt.freeze(now)
+    c._last_optimization = now
+    _r11awa_boost.adopt_plan(c, {"heat_pump_on": True, "displace_value": 0.0, "valve_target": 22.0, "setpoint": 21.0})
+    if boosted:
+        _r11awa_boost.held_for(c).set(_r11awa_boost.CHANNEL_SPACE, True, now)
+    _r11awa_boost.apply(c, _r11awa_boost.BoostOverlay(
+        float(c._thermal_model.params.max_electrical_power), float(c._opt_config.max_temp), float(c._ecl110_displace_max)))
+    await c._apply_action()
+    _r11ar_settle(c.hass)
+    return float(c.hass.states.get("number.water_set").state), c._current_action.get("setpoint")
+
+
+_r11awa_bo = _r11ar_try(_r11ar_aio.run, _r11awa_indoor(True))
+_r11awa_nb = _r11ar_try(_r11ar_aio.run, _r11awa_indoor(False))
+R.check(
+    "D16-s1-03: under a live space boost an indoor set-point is written the boosted action's set-point, "
+    "not the plan's room value 21",
+    _r11ar_ok(_r11awa_bo, lambda r: r[0] == r[1] != 21.0),
+    f"{_r11awa_bo!r}",
+)
+R.check(
+    "D16-s1-03 null control: with no boost the indoor set-point is written the plan's room value 21",
+    _r11ar_ok(_r11awa_nb, lambda r: r[0] == 21.0),
+    f"{_r11awa_nb!r}",
+)
+
+
 # ---- B14 (D7-s1-05): the two day-count notices share one raiser ----
 def _r11ar_guard(probe=False):
     """A coordinator whose guard is overdue: hot water and the cycle on, 20 days since the last one, a 7-day interval."""
