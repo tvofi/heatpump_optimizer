@@ -1,0 +1,6 @@
+box D3-g36 full-gate null control (fullgate.py null via gate_wave.sh null), 2026-11-25T00:53Z..01:57Z, nproc 4 Intel Xeon @ 2.10GHz, 16 GB,
+load1 0.54 -> 1.0 (the box's probes ran beside it for part of the window, load1 up to ~5), wall 3812.4 s, child CPU 5947.7 s (provisional).
+gate_rc=1, 3 scripts red: closure.py selftest 2 lines, entities.py 1 of 2723, harness_headers.py 4 of 115 -- the same three scripts and the
+same counts as box D3-rem's null (state/gates-prior/null-D3-rem-note.txt), which named each as a branch/strip artefact reading no production
+cell file: closure.py selftest's merge-reason pins [status='skip-not-under-scoped'], entities.py's scoped-gate pin, harness_headers.py walking
+the seat's untracked harnesses. No machine failure (no card.mjs heap error), so no re-take. Verdicts count a kill only beyond these lines.
