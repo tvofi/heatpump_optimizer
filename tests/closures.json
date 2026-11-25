@@ -1082,6 +1082,7 @@
    "custom_components/heatpump_optimizer/slab_seed.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_gate.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -6211,7 +6212,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 31.8
+   "seconds": 73.4
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -6262,7 +6263,7 @@
    "seconds": 60.2
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 1338.1
   },
   "tests/env_drift.py": {
@@ -6271,7 +6272,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 422.7
+   "seconds": 1616.7
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -6283,18 +6284,18 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 0.5
+   "seconds": 1.1
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 8.3
+   "seconds": 18.2
   },
   "tests/ha_contract.py": {
    "rc": 0,
    "seconds": 0.5
   },
   "tests/harness_headers.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 159.7
   },
   "tests/layout.py": {
@@ -6331,7 +6332,7 @@
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 21.1
+   "seconds": 50.4
   },
   "tests/typing_ruler.py": {
    "rc": 0,
