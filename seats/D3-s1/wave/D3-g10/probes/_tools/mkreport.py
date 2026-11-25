@@ -82,7 +82,7 @@ rep = {
                  "(the session-start toolchain line: OK)."),
     "coverage": cov, "unfinished": unfinished, "findings": [], "non_findings": nonf, "harnesses": harn,
     "harness_procedure": "gate_wave.sh (dispatch/finder-r11-D3-g10 tip): null once, then fullgate.py run per key in keys.tsv order, one gate at a time, 4 h cap (TIMEOUT), checkpoint after each",
-    "leads": [], "gated": gated_rows, "gate_survivors": cands, "equivalent_candidates": equivs,
+    "leads": [{"key": r["key"], "site": r["site"], "lead": r["lead"]} for r in recs.values() if r.get("lead")], "gated": gated_rows, "gate_survivors": cands, "equivalent_candidates": equivs,
     "null_control": {"command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null", "record": f"{REL}/gates/null.json",
                      "gate_rc": null.get("gate_rc"), "failed_scripts": null.get("failed_scripts"), "fail_lines": null.get("fail_lines"),
                      "wall_s": null.get("wall_s"), "load1": [null.get("load1_start"), null.get("load1_end")], "summary": null.get("summary")},
@@ -116,6 +116,8 @@ for r in cands + equivs:
           f"Should have failed: {', '.join(r['should_fail']['scripts_executing_line'])} execute the line (reach.tsv); {r['should_fail']['assertion_lacking']}.",
           (f"Candidate: {f.get('title')} (severity claimed {f.get('severity_claimed')}, class_guess {f.get('class_guess')})." if f else ""), ""]
 L += ["## KILLED (non-findings)", ""] + [f"- {n['claim']}: `{n['command']}` -> {n['value']}" for n in nonf if 'KILLED' in n['claim']] + [""]
+L += ["## Leads", ""] + ([f"- {x['key']} {x['site']}: {x['lead']}" for x in rep["leads"]] or ["- none"]) + [""]
+L += ["## KILLED: nature of each kill", ""] + [f"- {r['key']}: {r['kill_nature']}" for r in recs.values() if r.get("kill_nature")] + [""]
 L += ["## Unfinished", ""] + ([f"- {u['what']}" for u in unfinished] or ["- none"]) + [""]
 L += ["## Harnesses", ""] + [f"- {h}" for h in harn] + [f"- gate_wave.sh procedure: {rep['harness_procedure']}", ""]
 L += ["## Exposure", "", rep["exposure"], ""]

@@ -1,1 +1,2 @@
 - generator scripts: preamble.py + h_*.txt + body_*.py assembled by build.py into each probe; meta.py/mkrec.py/mkreport.py build results/ and REPORT
+- mkreport.py: leads and kill_nature carried into REPORT (successor seat edit)
