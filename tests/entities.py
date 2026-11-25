@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
+from throwaway_git import throwaway_git_clone, throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -42822,15 +42822,19 @@ def _pg_plan_defects(text: str) -> "list[str]":
     if "ref_type != 'tag'" not in str(co.get("if", "")):
         out.append("the release checkout is not skipped on a tag push")
     with tempfile.TemporaryDirectory() as tmp:
-        repo = Path(tmp) / "repo"
-        repo.mkdir()
+        # The runner's shape (#3885): the tags live on a bare `origin`, and the
+        # working repository is a one-commit `--no-tags` clone of it, so the
+        # step must find and fetch the newest tag from the remote itself.
+        src, origin, repo = (Path(tmp) / n for n in ("src", "origin.git", "repo"))
         git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
-        env = throwaway_git_init(repo, "-q")
+        env = throwaway_git_init(src, "-q")
         for tag in ("v1.9.0", "v1.10.0", "x9"):
-            (repo / "f").write_text(tag)
-            subprocess.run(git + ["add", "f"], cwd=repo, check=True, env=env)
-            subprocess.run(git + ["commit", "-qm", tag], cwd=repo, check=True, env=env)
-            subprocess.run(git + ["tag", tag], cwd=repo, check=True, env=env)
+            (src / "f").write_text(tag)
+            subprocess.run(git + ["add", "f"], cwd=src, check=True, env=env)
+            subprocess.run(git + ["commit", "-qm", tag], cwd=src, check=True, env=env)
+            subprocess.run(git + ["tag", tag], cwd=src, check=True, env=env)
+        throwaway_git_clone(src, origin, "-q", "--bare", cwd=tmp)
+        throwaway_git_clone(origin.as_uri(), repo, "-q", "--depth", "1", "--no-tags", cwd=tmp)
         rc = _pg_run(str(co.get("run", "")), repo)
         if rc != 0 or (repo / "f").read_text() != "v1.10.0":
             out.append(f"the release checkout took {(repo / 'f').read_text()!r} (rc={rc}), not v1.10.0")
@@ -42867,6 +42871,15 @@ R.check(
     "and adds it under plan/ only when one was staged",
     not _PG_PLAN_GOT,
     "; ".join(_PG_PLAN_GOT[:4]),
+)
+# Null control: the release step with its version sort turned into a string
+# sort must take v1.9.0 and be refused, or the fixture above orders nothing.
+_PG_PLAN_TEXT = _PG_WF.read_text() if _PG_WF.is_file() else ""
+_PG_PLAN_NULL = _pg_plan_defects(_PG_PLAN_TEXT.replace("--sort=-v:refname", "--sort=-refname", 1))
+R.check(
+    "and a release step that sorts tags as strings is refused (null control)",
+    "--sort=-v:refname" in _PG_PLAN_TEXT and any("took 'v1.9.0'" in d for d in _PG_PLAN_NULL),
+    f"string sort: {_PG_PLAN_NULL}",
 )
 
 # Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
