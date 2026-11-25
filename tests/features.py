@@ -65487,7 +65487,7 @@ _R11AR_BASE = {
 _R11AR_FOUR = ("switch.hp", "number.freq", "number.valve", "switch.vvc")
 
 
-def _r11ar_config(duty="control", windows="08:00-09:00"):
+def _r11ar_config(duty="control", windows="08:00-09:00", frost=False):
     return {
         **_r11ar_golden.coordinator_scenarios()["coord_all_features"],
         "dhw_setpoint": 50.0, "pump_duty_mode": duty,
@@ -65501,6 +65501,9 @@ def _r11ar_config(duty="control", windows="08:00-09:00"):
         "dhw_disinfection_switch_entity": "switch.dis", "dhw_disinfection_mode": "control",
         "dhw_windows": windows,  # the null arm's window covers the clock: the circulation pump stays on
         "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+        # The harness reads no outdoor sensor, so the frost hold (on by default) would hold every idle
+        # step's supply on; these checks are about what an Off or an unload hands back, not the hold.
+        "frost_hold": frost,
     }
 
 
@@ -65637,11 +65640,11 @@ async def _r11ar_drive(c, null=False, duties="dd--dd--", disinfect=False, idle=T
     return written
 
 
-async def _r11ar_plant(null=False, modbus=False, disinfect=False, duty="control", idle=True):
+async def _r11ar_plant(null=False, modbus=False, disinfect=False, duty="control", idle=True, frost=False):
     """(hass, entry, coord, written) after the write phase."""
     base = {**_R11AR_BASE, "select.pump_mode": "Heat + DHW"} if modbus else _R11AR_BASE
     hass = _r11ar_hass(base, _R11AR_MODBUS if modbus else _R11AR_TUYA)
-    entry = _r11ar_Entry(data=_r11ar_config(duty=duty, windows="05:00-09:00" if null else "08:00-09:00"),
+    entry = _r11ar_Entry(data=_r11ar_config(duty=duty, windows="05:00-09:00" if null else "08:00-09:00", frost=frost),
                          entry_id=f"r11ar_{next(_R11AR_IDS)}")
     c = _r11ar_coord(hass, entry)
     written = await _r11ar_drive(c, null, duties="ssssssss" if modbus else "dd--dd--", disinfect=disinfect, idle=idle)
@@ -65683,6 +65686,15 @@ async def _r11ar_off_scn(null=False, trigger="off"):
     return before, _r11ar_read(hass, _R11AR_FOUR), {e: _r11ar_n(calls, e) for e in _R11AR_FOUR}
 
 
+# The fixture's frost-hold opt-out is load-bearing: left on (the default) with no outdoor reading, the idle
+# step's off is held and the supply switch never leaves its baseline, which is what the checks below undo.
+_r11ar_fh = {f: _r11ar_aio.run(_r11ar_plant(frost=f))[0].states.get("switch.hp").state for f in (False, True)}
+R.check(
+    "D16-s3-02 fixture: opted out of the frost hold the idle step switches the supply off; null control: "
+    "left on with no outdoor reading, the hold keeps it on",
+    _r11ar_fh == {False: "off", True: "on"},
+    f"{_r11ar_fh}",
+)
 _r11ar_want = {e: _R11AR_BASE[e] for e in _R11AR_FOUR}
 for _r11ar_trig in ("off", "unload", "remove"):
     _r11ar_b, _r11ar_a, _r11ar_w = _r11ar_aio.run(_r11ar_off_scn(trigger=_r11ar_trig))
