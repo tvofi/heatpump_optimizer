@@ -1,6 +1,0 @@
-M8-repair-not-bound | tests/manual_plan.py | rc-tail: ALL 132 manual plan checks PASSED | 8s
-M8-repair-not-bound | tests/guard_pins.py | rc-tail: ALL 91 GUARD PIN CHECKS PASSED | 5s
-M8-repair-not-bound | tests/edge.py | rc-tail: ALL EDGE CASES PASS | 40s
-M9-place-drop-not-passed | tests/manual_plan.py | rc-tail: ALL 132 manual plan checks PASSED | 8s
-M9-place-drop-not-passed | tests/guard_pins.py | rc-tail: ALL 91 GUARD PIN CHECKS PASSED | 5s
-M9-place-drop-not-passed | tests/edge.py | rc-tail: ALL EDGE CASES PASS | 40s
