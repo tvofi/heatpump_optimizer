@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_213a122afd9ff3e1.py: Metric: the weekday shape confidence, predict() at 08:00 and expected_daily_min after N observed days (PriceShapeModel). (output probe_213a122afd9ff3e1.out; shared reach: reach_sweep.py)

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_f062e0cc415ee33e.py: Metric: the survival fraction stored_heat_survival returns when its exponent 0.5*ua*span/demand exceeds 700, and that value's effect on a terminal cost it is added into. (output probe_f062e0cc415ee33e.out; shared reach: reach_sweep.py)

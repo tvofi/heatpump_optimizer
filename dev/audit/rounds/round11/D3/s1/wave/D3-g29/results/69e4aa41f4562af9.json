@@ -1,0 +1,59 @@
+{
+ "key": "69e4aa41f4562af9",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2299 CMP_BOUND",
+ "patch": "room = room_temps[i + 1] if i + 1 < len(room_temps) else room_temps[-1] -> room = room_temps[i + 1] if i + 1 <= len(room_temps) else room_temps[-1]",
+ "function": "classify_space_steps",
+ "cluster": "optimizer.py:classify_space_steps@2286-2309",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3197.8,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5361.5,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/69e4aa41f4562af9.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 69e4aa41f4562af9",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_69e4aa41f4562af9.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_69e4aa41f4562af9.py",
+  "baseline_value": "last active step's reason 'terminal_value' when room_temps has n_steps samples",
+  "mutant_value": "IndexError on that call",
+  "inputs_tried": [
+   "room_temps of n_steps samples, active step 0, 5, n-2, n-1",
+   "null: n_steps + 1 samples at steps 0, 5, n-1"
+  ],
+  "reach": "production passes the simulated trajectory, n_steps + 1 states (optimizer.py:3844): golden matrix room_index_at_len 0 of 1999 active steps",
+  "results": {
+   "room_short_baseline": "'terminal_value'",
+   "room_short_mutant": "'raises IndexError'",
+   "room_short_step0_moved": "0",
+   "room_short_step5_moved": "0",
+   "room_short_step18_moved": "0",
+   "moved": "1 count",
+   "null_delta": "0 count",
+   "reach": "skipped (pass --reach to solve the 50 golden scenarios with spies)",
+   "thread_factor": "1.000",
+   "load1": "1.05",
+   "swapins": "0 count"
+  },
+  "reach_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/reach_sweep.py",
+  "null_delta": "0 count"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "none through production; a direct classify_space_steps call with a short room_temps separates the arms"
+ },
+ "note": "unreachable through production"
+}

@@ -1,0 +1,92 @@
+{
+ "key": "213a122afd9ff3e1",
+ "site": "custom_components/heatpump_optimizer/price_model.py:69 CONST",
+ "patch": "SHAPE_CONFIDENCE_DAYS = 5 -> SHAPE_CONFIDENCE_DAYS = 10",
+ "function": "<module>",
+ "cluster": "price_model.py:<module>@66-90",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3436.8,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5755.4,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/gates/213a122afd9ff3e1.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 213a122afd9ff3e1",
+  "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_213a122afd9ff3e1.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_213a122afd9ff3e1.py",
+  "baseline_value": "confidence 1.0, expected_daily_min 0.4478 after 5 days",
+  "mutant_value": "confidence 0.5, expected_daily_min None after 5 days (None until day 10)",
+  "inputs_tried": [
+   "1, 5 and 7 observed weekdays (all move)",
+   "null: 0, 10 and 12 observed days"
+  ],
+  "reach": "production: PriceShapeModel.confidence (shape_for, predict, sigma) and expected_daily_min (the elastic legionella gate) on every install with fewer than 10 observed days per profile",
+  "results": {
+   "days1_confidence_baseline": "0.2 mutant=0.1",
+   "days1_predict_h8_baseline": "1.117880795 mutant=1.058940397",
+   "days1_expected_daily_min_baseline": "None mutant=None",
+   "days5_confidence_baseline": "1.0 mutant=0.5",
+   "days5_predict_h8_baseline": "1.416504557 mutant=1.208252279",
+   "days5_expected_daily_min_baseline": "0.4478144593377484 mutant=None",
+   "days7_confidence_baseline": "1.0 mutant=0.7",
+   "days7_predict_h8_baseline": "1.358069606 mutant=1.250648724",
+   "days7_expected_daily_min_baseline": "0.46486963651645036 mutant=None",
+   "moved": "3 count of 3",
+   "null_delta": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.05",
+   "swapins": "0 count"
+  },
+  "reach_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/reach_sweep.py",
+  "null_delta": "0 count"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "a PriceShapeModel check asserting confidence == 1.0 and a non-None expected_daily_min after exactly 5 observed days (0.8 after 4)"
+ },
+ "title": "No check pins SHAPE_CONFIDENCE_DAYS; trusting the price shape half as fast is unseen",
+ "claim": "Mutant 213a122afd9ff3e1 (price_model.py:69 SHAPE_CONFIDENCE_DAYS 5 -> 10) survives the full gate, yet the probe's confidence after 5 observed weekdays moves: baseline 1.0, mutant 0.5, and expected_daily_min goes 0.4478 -> None. Full gate verdict RED-AS-NULL.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "metric_definition": "PriceShapeModel.confidence for the weekday profile after 5 observed days",
+ "instrumented_symbol": "custom_components/heatpump_optimizer/price_model.py:69 CONST",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_213a122afd9ff3e1.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_213a122afd9ff3e1.py",
+ "evidence_value": "1.0 -> 0.5",
+ "perturbation": {
+  "change": "the mutant 213a122afd9ff3e1 (SHAPE_CONFIDENCE_DAYS = 5 -> SHAPE_CONFIDENCE_DAYS = 10) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 213a122afd9ff3e1",
+  "expected_direction": "down"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_213a122afd9ff3e1.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null inputs, where the edit cannot matter: identical under both arms"
+ },
+ "phenomenon_property": "The price shape is fully trusted after exactly the documented 5 observed days",
+ "files": [
+  "custom_components/heatpump_optimizer/price_model.py",
+  "tests/features.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the boundary input above that pins the baseline value",
+ "reach": "production: PriceShapeModel.confidence (shape_for, predict, sigma) and expected_daily_min (the elastic legionella gate) on every install with fewer than 10 observed days per profile"
+}
