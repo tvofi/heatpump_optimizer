@@ -1,0 +1,63 @@
+{
+ "key": "597d6753c0939797",
+ "site": "dhw_planner.py:2055 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2055,
+ "patch": "weak = np.where((plan > 1e-6) & (plan < min_run_power))[0] -> weak = np.where((plan > 1e-6) & (plan <= min_run_power))[0]",
+ "function": "DhwPlanner._apply_dhw_min_run",
+ "cluster": "dhw_planner.py:DhwPlanner._apply_dhw_min_run@2055-2106",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3091.0,
+  "child_cpu_s": 5121.4,
+  "load1_start": 0.94,
+  "load1_end": 0.92,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/597d6753c0939797.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 597d6753c0939797",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+  "answer": "dhw_planner.py:2055 DhwPlanner._apply_dhw_min_run CMP_BOUND: `weak = np.where((plan > 1e-6) & (plan < min_run_power))[0]` -> `weak = np.where((plan > 1e-6) & (plan <= min_run_power))[0]`. Ran 16 closure scripts, none killed. Should fail: tests/block_duty.py, tests/entities.py, tests/features.py, tests/manual_plan.py, tests/optimality.py, tests/plan_view.py, tests/validate.py each execute line 2055 on the traced baseline yet no check of theirs reads an outcome the mutation changes."
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_597d6753c0939797.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_597d6753c0939797.py",
+  "rc": 0,
+  "results": [
+   "RESULT production_shaped_moved=0 of 144 []",
+   "RESULT baseline_paths joint_shortcut=48 per_slot=96 count",
+   "RESULT tie_at_min_run_moved=0 of 2",
+   "RESULT direct_min_run_above_pmax_moved=64 of 144",
+   "RESULT reach_caller_min_run_le_pmax=1 count",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.91",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "144 production-shaped fixtures (12 seeds x 4 tank states x 3 sizes; 48 take the joint shortcut)",
+   "a slot exactly at min_run_power alone and beside a weak slot, tank with room and full",
+   "144 direct fixtures with min_run_power 1.2 > p_dhw_max 1.0"
+  ],
+  "baseline_value": null,
+  "mutant_value": null,
+  "load1": 0.91,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none through production: a slot at exactly min_run_power is raised to the value it already holds; the plan moves only when min_run_power > p_dhw_max, which the only caller forbids (dhw_planner.py:1141 min_run_power = min(p_dhw_run, ...))",
+ "equivalence": "unreachable through production: production_shaped_moved 0 of 144, direct_min_run_above_pmax_moved 64 of 144"
+}
