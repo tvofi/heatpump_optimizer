@@ -7,3 +7,4 @@
 1795611009 HB alive
 1795611594 DONE blocked 91cfc89fdade unload-row-written; verdict ee5d9a0a6b on probe/rev-3872-51095a75
 1795618482 HB alive
+1795618559 CKPT delta read; unload fix commit fdde1320d3 under test snapshot a887c47238e6
