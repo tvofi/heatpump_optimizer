@@ -16,3 +16,5 @@
 1795601547 HB null gate done: gate_rc 1 failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']
 1795601566 HB gate started: d2463d81efddd380
 1795601571 HB null done gate_rc=1 3 artefact scripts (closure selftest, entities, harness_headers); run started
+1795630454 RESUMED from 61def6475aa0
+1795630454 INIT box D3-g47
