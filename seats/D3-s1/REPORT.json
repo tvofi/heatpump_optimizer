@@ -1,0 +1,1699 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "box": "D3-g30",
+ "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/REPORT.md",
+ "exposure": "No docs/ or GitHub read. Read COMMON.md, D3.md, dev/audit/README.md, finding.schema.json, bugclasses.json, the slice and box reports under dev/audit/rounds/round11/D3/s1/ the brief names (REPORT-D3-u1{a,b,c,d}, REPORT-u1a, REPORT-D3-top6, REPORT-D3-rem), the carried M4 answers for this box's keys, earlier probes as a pattern, price_model.py, coordinator.py:4330-4377 and the tests/features.py price-model blocks; and this box's dispatch, inbox and wip refs. venv-ci lives at /opt/hpo/venv-ci on this box; $HOME/venv-ci is a box-local symlink to it.",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)",
+   "carried": "verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json (box D3-u1b)"
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 343,
+   "not_reached": [
+    "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+    "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+    "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+    "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+    "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+    "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+    "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+    "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+    "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+    "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+    "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+    "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+    "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+    "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+    "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+    "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+    "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+    "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+    "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+    "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+    "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+    "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+    "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+    "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+    "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+    "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+    "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+    "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+    "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice",
+   "carried": "verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json (box D3-u1b)"
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+   "universe": 742,
+   "examined": 16,
+   "not_reached": [
+    "assigned to box D3-g01",
+    "assigned to box D3-g02",
+    "assigned to box D3-g03",
+    "assigned to box D3-g04",
+    "assigned to box D3-g05",
+    "assigned to box D3-g06",
+    "assigned to box D3-g07",
+    "assigned to box D3-g08",
+    "assigned to box D3-g09",
+    "assigned to box D3-g10",
+    "assigned to box D3-g11",
+    "assigned to box D3-g12",
+    "assigned to box D3-g13",
+    "assigned to box D3-g14",
+    "assigned to box D3-g15",
+    "assigned to box D3-g16",
+    "assigned to box D3-g17",
+    "assigned to box D3-g18",
+    "assigned to box D3-g19",
+    "assigned to box D3-g20",
+    "assigned to box D3-g21",
+    "assigned to box D3-g22",
+    "assigned to box D3-g23",
+    "assigned to box D3-g24",
+    "assigned to box D3-g25",
+    "assigned to box D3-g26",
+    "assigned to box D3-g27",
+    "assigned to box D3-g28",
+    "assigned to box D3-g29",
+    "assigned to box D3-g31",
+    "assigned to box D3-g32",
+    "assigned to box D3-g33",
+    "assigned to box D3-g34",
+    "assigned to box D3-g35",
+    "assigned to box D3-g36",
+    "assigned to box D3-g37",
+    "assigned to box D3-g38",
+    "assigned to box D3-g39",
+    "assigned to box D3-g40",
+    "assigned to box D3-g41",
+    "assigned to box D3-g42",
+    "assigned to box D3-g43",
+    "assigned to box D3-g44",
+    "assigned to box D3-g45",
+    "assigned to box D3-g46",
+    "assigned to box D3-g47"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "Box D3-g30 gated its 16 keys of keys.tsv, one at a time, by gate_wave.sh run (the dispatch tool: for each key `python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>`, i.e. the one-line mutant committed, GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh, reset), records dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/<key>.json and .log; null control dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json (gate_rc=1, failed_scripts=['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']). The other 726 wave keys are assigned to boxes D3-g01..D3-g47 (not_reached here by box). The 8 u1 survivors already gated under other keys by D3-top6/D3-rem are outside the 742. The redispatched items are carried verbatim from REPORT-D3-u1b.json's D3.M3 row."
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 268,
+   "examined": 225,
+   "not_reached": [
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+   ],
+   "redispatched": [],
+   "evidence": "m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)",
+   "carried": "verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json (box D3-u1b)"
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "assigned to box D3-m5: tests/card.mjs",
+    "assigned to box D3-m5: tests/card_drift.mjs",
+    "assigned to box D3-m5: tests/golden.py",
+    "assigned to box D3-m5: tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2",
+   "carried": "verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json (box D3-u1b)"
+  }
+ ],
+ "unfinished": [],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "79c65c4903e72ee2 custom_components/heatpump_optimizer/price_model.py:232 CLAMP_DROP: equivalent through production (full gate RED-AS-NULL). Every production path leaves the EWMA'd shape's mean >= 0.12 x SHAPE_MIN > 1e-6 (observe_day clips the day to [0.2, 3] and from_dict's _in_domain keeps stored bins positive), so the floor never binds: one day, two days, spiky days and from_dict-restored negative/zero/tiny rows give identical shapes in both arms. Only a model hand-built with a negative stored shape (bypassing from_dict) separates them.",
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_79c65c4903e72ee2.py",
+   "value": "shape17_production_one_day: 2.185792349726776 -> 2.185792349726776; shape17_handbuilt_negative_row_bypassing_from_dict: -617704.9180327869 -> 0.812769628990509"
+  },
+  {
+   "claim": "cee6857510fbe69e custom_components/heatpump_optimizer/price_model.py:275 CLAMP_DROP: equivalent through production (full gate RED-AS-NULL). Every production path keeps each hour's EWMA'd factors positive (an hour with mean <= 1e-6 gets factor 1.0, others are clipped to [0.25, 4]; from_dict's _in_domain repairs stored rows), so the hour mean never drops below 0.25 x 0.12 and the floor never binds: a zero-price hour, a negative hour after a normal day, spike/zero sequences and from_dict-restored negative/zero rows give identical factors in both arms. The carried M4 answer ('an hour whose quarter factors average 0') is not reachable: the usable mask sets such an hour to 1.0. Only a hand-built model with negative stored factors separates.",
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cee6857510fbe69e.py",
+   "value": "qf12_production_zero_price_hour: 1.0 -> 1.0; qf12_handbuilt_negative_bypassing_from_dict: -760000.0 -> 1.0"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_c4697335da324182.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_79c65c4903e72ee2.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cee6857510fbe69e.py"
+ ],
+ "leads": [],
+ "gated": [
+  {
+   "key": "b10967dd4ea185fd",
+   "site": "custom_components/heatpump_optimizer/price_model.py:72 CONST",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "7e5493bcbddd6c18",
+   "site": "custom_components/heatpump_optimizer/price_model.py:80 CONST",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "66686e3bc3bac9b9",
+   "site": "custom_components/heatpump_optimizer/price_model.py:81 CONST",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "5bf50f5d986f927d",
+   "site": "custom_components/heatpump_optimizer/price_model.py:84 CONST",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "cc96ce9e391ca6f2",
+   "site": "custom_components/heatpump_optimizer/price_model.py:85 CONST",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "b5aef00760fd5ea8",
+   "site": "custom_components/heatpump_optimizer/price_model.py:90 CONST",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "b9b6cf1d15a84248",
+   "site": "custom_components/heatpump_optimizer/price_model.py:337 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "a5c9796d35117839",
+   "site": "custom_components/heatpump_optimizer/price_model.py:342 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "13cadf1ab9a2de61",
+   "site": "custom_components/heatpump_optimizer/price_model.py:400 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "b5a482468c783209",
+   "site": "custom_components/heatpump_optimizer/price_model.py:207 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "0b10a7c76e2514d2",
+   "site": "custom_components/heatpump_optimizer/price_model.py:219 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "c4697335da324182",
+   "site": "custom_components/heatpump_optimizer/price_model.py:226 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "79c65c4903e72ee2",
+   "site": "custom_components/heatpump_optimizer/price_model.py:232 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "4e79ba6ea642d086",
+   "site": "custom_components/heatpump_optimizer/price_model.py:258 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "12cd6ddd79fb36fc",
+   "site": "custom_components/heatpump_optimizer/price_model.py:269 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "cee6857510fbe69e",
+   "site": "custom_components/heatpump_optimizer/price_model.py:275 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  }
+ ],
+ "gate_survivors": [
+  {
+   "key": "b10967dd4ea185fd",
+   "site": "custom_components/heatpump_optimizer/price_model.py:72 CONST",
+   "patch": "SHAPE_MIN = 0.2 -> SHAPE_MIN = 0.4",
+   "function": "<module>",
+   "cluster": "price_model.py:<module>@66-90",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3634.9,
+    "load1_start": 0.97,
+    "load1_end": 0.93,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/b10967dd4ea185fd.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py",
+    "baseline": {
+     "shape_min_winter_day": "0.291439",
+     "shape_min_one_hour_0p01": "0.198468"
+    },
+    "mutant": {
+     "shape_min_winter_day": "0.394538",
+     "shape_min_one_hour_0p01": "0.390283"
+    },
+    "moved": {
+     "shape_min_inputs_moved": "3 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "winter_day,one_hour_0p01,one_hour_negative,mild_day_ratios_0p8_1p2,flat",
+    "all_results": {
+     "shape_min_winter_day_baseline": "0.291439",
+     "shape_min_winter_day_mutant": "0.394538",
+     "shape_min_one_hour_0p01_baseline": "0.198468",
+     "shape_min_one_hour_0p01_mutant": "0.390283",
+     "shape_min_one_hour_negative_baseline": "0.197743",
+     "shape_min_one_hour_negative_mutant": "0.388938",
+     "null_shape_min_mild_day_ratios_0p8_1p2_baseline": "0.8",
+     "null_shape_min_mild_day_ratios_0p8_1p2_mutant": "0.8",
+     "null_shape_min_flat_baseline": "1.0",
+     "null_shape_min_flat_mutant": "1.0",
+     "shape_min_inputs_moved": "3 count",
+     "null_delta": "0 count",
+     "inputs_tried": "winter_day,one_hour_0p01,one_hour_negative,mild_day_ratios_0p8_1p2,flat",
+     "residual_var_max_baseline": "225.0",
+     "residual_var_max_mutant": "56.25",
+     "thread_factor": "1.000",
+     "load1": "0.81",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "Doubling the shape floor raises the cheapest learned hour of an ordinary winter weekday from 0.2914 to 0.3945 of the daily mean (and a 0.01 SEK hour from 0.1985 to 0.3903) through PriceShapeLearner.fold, and quarters RESIDUAL_VAR_MAX (225 -> 56.25), yet no gated script fails: the guessed price tail's night trough is flattened silently.",
+   "should_fail": "tests/features.py 'Unknown price horizon (item 7)' block (~3660-3700, traced executing price_model.py:72 via observe_day's clip): it checks only that a trough exists (predict(03:00) < predict(12:00)); it lacks an assertion that a learned hour below SHAPE_MIN x mean is stored at exactly SHAPE_MIN, i.e. shapes[idx] min after a day with a 0.01 hour.",
+   "finding": {
+    "title": "price_model.py:72 SHAPE_MIN 0.2 -> 0.4 survives the full gate: the learned price shape's floor is unpinned",
+    "claim": "Doubling the shape floor raises the cheapest learned hour of an ordinary winter weekday from 0.2914 to 0.3945 of the daily mean (and a 0.01 SEK hour from 0.1985 to 0.3903) through PriceShapeLearner.fold, and quarters RESIDUAL_VAR_MAX (225 -> 56.25), yet no gated script fails: the guessed price tail's night trough is flattened silently.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "smallest learned hourly shape factor (shapes[weekday] min) after one day folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b10967dd4ea185fd",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:72",
+    "perturbation": "the one-line mutant b10967dd4ea185fd: `SHAPE_MIN = 0.2` -> `SHAPE_MIN = 0.4`; direction shape_min_winter_day: 0.291439 -> 0.394538; shape_min_one_hour_0p01: 0.198468 -> 0.390283",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "7e5493bcbddd6c18",
+   "site": "custom_components/heatpump_optimizer/price_model.py:80 CONST",
+   "patch": "QUARTER_ALPHA = 0.12 -> QUARTER_ALPHA = 0.24",
+   "function": "<module>",
+   "cluster": "price_model.py:<module>@66-90",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3478.5,
+    "load1_start": 0.94,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/7e5493bcbddd6c18.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py",
+    "baseline": {
+     "qf_h7q0_two_days_up_down": "0.924"
+    },
+    "mutant": {
+     "qf_h7q0_two_days_up_down": "0.948"
+    },
+    "moved": {
+     "qf_h7q0_inputs_moved": "2 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "two_days_up_down,three_days_up_down_up,one_day_seed_only,two_identical_days",
+    "all_results": {
+     "qf_h7q0_two_days_up_down_baseline": "0.924",
+     "qf_h7q0_two_days_up_down_mutant": "0.948",
+     "qf_h7q0_three_days_up_down_up_baseline": "0.92112",
+     "qf_h7q0_three_days_up_down_up_mutant": "0.93648",
+     "null_qf_h7q0_one_day_seed_only_baseline": "0.9",
+     "null_qf_h7q0_one_day_seed_only_mutant": "0.9",
+     "null_qf_h7q0_two_identical_days_baseline": "0.9",
+     "null_qf_h7q0_two_identical_days_mutant": "0.9",
+     "qf_h7q0_inputs_moved": "2 count",
+     "null_delta": "0 count",
+     "inputs_tried": "two_days_up_down,three_days_up_down_up,one_day_seed_only,two_identical_days",
+     "thread_factor": "1.000",
+     "load1": "0.80",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "Doubling the quarter EWMA rate moves the learned 07:00 quarter factor after two opposite-ramp days from 0.924 to 0.948 through PriceShapeLearner.fold; no gated script reads a quarter factor after a second, different day.",
+   "should_fail": "tests/features.py quarter block (~18722-18800, traced executing observe_day_quarters' EWMA): it folds identical days only (6x the same _q_days day; 3x _spiked), where alpha cancels; it lacks an assertion of quarter_factors after two different days equal to (1-QUARTER_ALPHA)*day1 + QUARTER_ALPHA*day2 renormalised.",
+   "finding": {
+    "title": "price_model.py:80 QUARTER_ALPHA 0.12 -> 0.24 survives the full gate: the quarter-factor learning rate is unpinned",
+    "claim": "Doubling the quarter EWMA rate moves the learned 07:00 quarter factor after two opposite-ramp days from 0.924 to 0.948 through PriceShapeLearner.fold; no gated script reads a quarter factor after a second, different day.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "learned quarter factor of hour 7 quarter 0 (quarter_factors[weekday][28]) after quarter days folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_7e5493bcbddd6c18.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7e5493bcbddd6c18",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:80",
+    "perturbation": "the one-line mutant 7e5493bcbddd6c18: `QUARTER_ALPHA = 0.12` -> `QUARTER_ALPHA = 0.24`; direction qf_h7q0_two_days_up_down: 0.924 -> 0.948",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "66686e3bc3bac9b9",
+   "site": "custom_components/heatpump_optimizer/price_model.py:81 CONST",
+   "patch": "QUARTER_CONFIDENCE_DAYS = 5 -> QUARTER_CONFIDENCE_DAYS = 10",
+   "function": "<module>",
+   "cluster": "price_model.py:<module>@66-90",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3502.6,
+    "load1_start": 0.3,
+    "load1_end": 1.18,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/66686e3bc3bac9b9.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py",
+    "baseline": {
+     "predict_0700_5_days": "1.57377",
+     "predict_0700_7_days": "1.57377"
+    },
+    "mutant": {
+     "predict_0700_5_days": "1.661202",
+     "predict_0700_7_days": "1.62623"
+    },
+    "moved": {
+     "predict_0700_inputs_moved": "3 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "5_days,7_days,1_day,0_days,10_days",
+    "all_results": {
+     "predict_0700_5_days_baseline": "1.57377",
+     "predict_0700_5_days_mutant": "1.661202",
+     "predict_0700_7_days_baseline": "1.57377",
+     "predict_0700_7_days_mutant": "1.62623",
+     "predict_0700_1_day_baseline": "1.126732",
+     "predict_0700_1_day_mutant": "1.13823",
+     "null_predict_0700_0_days_baseline": "1.0",
+     "null_predict_0700_0_days_mutant": "1.0",
+     "null_predict_0700_10_days_baseline": "1.57377",
+     "null_predict_0700_10_days_mutant": "1.57377",
+     "predict_0700_inputs_moved": "3 count",
+     "null_delta": "0 count",
+     "inputs_tried": "5_days,7_days,1_day,0_days,10_days",
+     "thread_factor": "1.000",
+     "load1": "0.95",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "Doubling the quarter confidence ramp changes predict(weekday 07:00, level 1.0) after 5 learned quarter days from 1.57377 to 1.661202 (trust 1.0 -> 0.5) through PriceShapeLearner.fold; the gate's only quarter_confidence check (features.py ~18780) folds QUARTER_CONFIDENCE_DAYS days and reads the constant back, so it moves with the mutant.",
+   "should_fail": "tests/features.py ~18772-18800 (traced executing quarter_confidence): it derives its day count from QUARTER_CONFIDENCE_DAYS itself; it lacks a literal pin, e.g. quarter_confidence == 1.0 after exactly 5 quarter days (or 0.6 after 3).",
+   "finding": {
+    "title": "price_model.py:81 QUARTER_CONFIDENCE_DAYS 5 -> 10 survives the full gate: the quarter-confidence ramp length is unpinned",
+    "claim": "Doubling the quarter confidence ramp changes predict(weekday 07:00, level 1.0) after 5 learned quarter days from 1.57377 to 1.661202 (trust 1.0 -> 0.5) through PriceShapeLearner.fold; the gate's only quarter_confidence check (features.py ~18780) folds QUARTER_CONFIDENCE_DAYS days and reads the constant back, so it moves with the mutant.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "PriceShapeModel.predict(weekday 07:00, level 1.0) after n quarter days folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 66686e3bc3bac9b9",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:81",
+    "perturbation": "the one-line mutant 66686e3bc3bac9b9: `QUARTER_CONFIDENCE_DAYS = 5` -> `QUARTER_CONFIDENCE_DAYS = 10`; direction predict_0700_5_days: 1.57377 -> 1.661202; predict_0700_7_days: 1.57377 -> 1.62623",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "5bf50f5d986f927d",
+   "site": "custom_components/heatpump_optimizer/price_model.py:84 CONST",
+   "patch": "QUARTER_FACTOR_MIN = 0.25 -> QUARTER_FACTOR_MIN = 0.5",
+   "function": "<module>",
+   "cluster": "price_model.py:<module>@66-90",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3468.2,
+    "load1_start": 1.0,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/5bf50f5d986f927d.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py",
+    "baseline": {
+     "qf_h6q0_quarter_at_0p2_of_hour": "0.246914",
+     "stored_q0_stored_ratio_9": "0.2"
+    },
+    "mutant": {
+     "qf_h6q0_quarter_at_0p2_of_hour": "0.465116",
+     "stored_q0_stored_ratio_9": "0.465116"
+    },
+    "moved": {
+     "qf_h6q0_inputs_moved": "2 count",
+     "stored_q0_inputs_moved": "1 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "stored_ratio_9,stored_ratio_2",
+    "all_results": {
+     "qf_h6q0_quarter_at_0p2_of_hour_baseline": "0.246914",
+     "qf_h6q0_quarter_at_0p2_of_hour_mutant": "0.465116",
+     "qf_h6q0_negative_quarter_baseline": "0.211838",
+     "qf_h6q0_negative_quarter_mutant": "0.402367",
+     "null_qf_h6q0_ramp_0p9_1p1_baseline": "0.9",
+     "null_qf_h6q0_ramp_0p9_1p1_mutant": "0.9",
+     "qf_h6q0_inputs_moved": "2 count",
+     "null_delta": "0 count",
+     "inputs_tried": "stored_ratio_9,stored_ratio_2",
+     "stored_q0_stored_ratio_9_baseline": "0.2",
+     "stored_q0_stored_ratio_9_mutant": "0.465116",
+     "null_stored_q0_stored_ratio_2_baseline": "0.7",
+     "null_stored_q0_stored_ratio_2_mutant": "0.7",
+     "stored_q0_inputs_moved": "1 count",
+     "thread_factor": "1.000",
+     "load1": "0.82",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "Doubling the lower quarter clip raises a learned 06:00 quarter that sat at 0.2x its hour mean from 0.246914 to 0.465116 through PriceShapeLearner.fold, and a stored factor row with ratio 9 loads as 0.465116 instead of 0.2 through from_dict; no gated script feeds a quarter below 0.5x its hour.",
+   "should_fail": "tests/features.py quarter clip check 'a clipped quarter still leaves its hour's factors at mean 1.0' (~18748-18760, traced executing the np.clip): its _spiked hour [0.2,0.2,0.2,20] puts the low quarters at 0.034x, clipped by either bound, and it asserts only the hour mean and max < 4.5; it lacks min(_h6) == QUARTER_FACTOR_MIN / renormaliser as a literal (0.25-based) value.",
+   "finding": {
+    "title": "price_model.py:84 QUARTER_FACTOR_MIN 0.25 -> 0.5 survives the full gate: the lower quarter clip is unpinned",
+    "claim": "Doubling the lower quarter clip raises a learned 06:00 quarter that sat at 0.2x its hour mean from 0.246914 to 0.465116 through PriceShapeLearner.fold, and a stored factor row with ratio 9 loads as 0.465116 instead of 0.2 through from_dict; no gated script feeds a quarter below 0.5x its hour.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "learned quarter factor of hour 6 quarter 0 after one quarter day folded; and the stored factor after PriceShapeModel.from_dict; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_5bf50f5d986f927d.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 5bf50f5d986f927d",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:84",
+    "perturbation": "the one-line mutant 5bf50f5d986f927d: `QUARTER_FACTOR_MIN = 0.25` -> `QUARTER_FACTOR_MIN = 0.5`; direction qf_h6q0_quarter_at_0p2_of_hour: 0.246914 -> 0.465116; stored_q0_stored_ratio_9: 0.2 -> 0.465116",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "cc96ce9e391ca6f2",
+   "site": "custom_components/heatpump_optimizer/price_model.py:85 CONST",
+   "patch": "QUARTER_FACTOR_MAX = 4.0 -> QUARTER_FACTOR_MAX = 8.0",
+   "function": "<module>",
+   "cluster": "price_model.py:<module>@66-90",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3550.2,
+    "load1_start": 0.72,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/cc96ce9e391ca6f2.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py",
+    "baseline": {
+     "qf_h3q0_negative_quarters_q0_30x": "3.368421",
+     "stored_q0_stored_ratio_20": "3.129584"
+    },
+    "mutant": {
+     "qf_h3q0_negative_quarters_q0_30x": "3.657143",
+     "stored_q0_stored_ratio_20": "3.2"
+    },
+    "moved": {
+     "qf_h3q0_inputs_moved": "2 count",
+     "stored_q0_inputs_moved": "1 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "stored_ratio_20,stored_ratio_2",
+    "all_results": {
+     "qf_h3q0_negative_quarters_q0_30x_baseline": "3.368421",
+     "qf_h3q0_negative_quarters_q0_30x_mutant": "3.657143",
+     "qf_h3q0_negative_quarters_q0_5x_baseline": "3.368421",
+     "qf_h3q0_negative_quarters_q0_5x_mutant": "3.478261",
+     "qf_h3q0_q0_exactly_4x_baseline": "3.254237",
+     "qf_h3q0_q0_exactly_4x_mutant": "3.254237",
+     "null_qf_h3q0_nonnegative_max_possible_4x_baseline": "3.368421",
+     "null_qf_h3q0_nonnegative_max_possible_4x_mutant": "3.368421",
+     "null_qf_h3q0_ramp_baseline": "0.9",
+     "null_qf_h3q0_ramp_mutant": "0.9",
+     "qf_h3q0_inputs_moved": "2 count",
+     "null_delta": "0 count",
+     "inputs_tried": "stored_ratio_20,stored_ratio_2",
+     "stored_q0_stored_ratio_20_baseline": "3.129584",
+     "stored_q0_stored_ratio_20_mutant": "3.2",
+     "null_stored_q0_stored_ratio_2_baseline": "0.7",
+     "null_stored_q0_stored_ratio_2_mutant": "0.7",
+     "stored_q0_inputs_moved": "1 count",
+     "thread_factor": "1.000",
+     "load1": "0.81",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "With negative spot quarters (hour [3.0,-1.0,-1.0,-0.6], mean 0.1) the learned 03:00 quarter factor is 3.368421 at the baseline and 3.657143 under the mutant through PriceShapeLearner.fold, and a stored ratio-20 row loads as 3.2 instead of 3.129584; the gate's 'max(_h6) < 4.5' tolerates the mutant's clip because a non-negative hour can never exceed 4x its mean.",
+   "should_fail": "tests/features.py ~18748-18800 (traced executing the np.clip and 'max(_h6) < 4.5'): its spiked hour is non-negative, where 4x is the arithmetic ceiling, so the upper clip never binds differently; it lacks a negative-quarter hour (e.g. [3.0,-1.0,-1.0,-0.6]) asserting the raw factor is clipped at exactly QUARTER_FACTOR_MAX = 4.0.",
+   "finding": {
+    "title": "price_model.py:85 QUARTER_FACTOR_MAX 4.0 -> 8.0 survives the full gate: the upper quarter clip is pinned only by a loose bound",
+    "claim": "With negative spot quarters (hour [3.0,-1.0,-1.0,-0.6], mean 0.1) the learned 03:00 quarter factor is 3.368421 at the baseline and 3.657143 under the mutant through PriceShapeLearner.fold, and a stored ratio-20 row loads as 3.2 instead of 3.129584; the gate's 'max(_h6) < 4.5' tolerates the mutant's clip because a non-negative hour can never exceed 4x its mean.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "learned quarter factor of hour 3 quarter 0 after one quarter day folded; and the stored factor after PriceShapeModel.from_dict; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cc96ce9e391ca6f2",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:85",
+    "perturbation": "the one-line mutant cc96ce9e391ca6f2: `QUARTER_FACTOR_MAX = 4.0` -> `QUARTER_FACTOR_MAX = 8.0`; direction qf_h3q0_negative_quarters_q0_30x: 3.368421 -> 3.657143; stored_q0_stored_ratio_20: 3.129584 -> 3.2",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "b5aef00760fd5ea8",
+   "site": "custom_components/heatpump_optimizer/price_model.py:90 CONST",
+   "patch": "VAR_ALPHA = 0.15 -> VAR_ALPHA = 0.3",
+   "function": "<module>",
+   "cluster": "price_model.py:<module>@66-90",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3555.8,
+    "load1_start": 0.79,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/b5aef00760fd5ea8.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py",
+    "baseline": {
+     "weekday_sigma_17_two_days_day_reversed": "1.0936"
+    },
+    "mutant": {
+     "weekday_sigma_17_two_days_day_reversed": "0.9929"
+    },
+    "moved": {
+     "weekday_sigma_17_inputs_moved": "2 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "two_days_day_reversed,three_days,one_day_seed_only",
+    "all_results": {
+     "weekday_sigma_17_two_days_day_reversed_baseline": "1.0936",
+     "weekday_sigma_17_two_days_day_reversed_mutant": "0.9929",
+     "weekday_sigma_17_three_days_baseline": "1.0504",
+     "weekday_sigma_17_three_days_mutant": "0.9293",
+     "null_weekday_sigma_17_one_day_seed_only_baseline": "1.1858",
+     "null_weekday_sigma_17_one_day_seed_only_mutant": "1.1858",
+     "weekday_sigma_17_inputs_moved": "2 count",
+     "null_delta": "0 count",
+     "inputs_tried": "two_days_day_reversed,three_days,one_day_seed_only",
+     "thread_factor": "1.000",
+     "load1": "0.87",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "Doubling the residual-variance EWMA rate moves the published price_prior weekday_sigma[17] after two different days from 1.0936 to 0.9929 through PriceShapeLearner.fold and PriceShapeModel.summary; no gated script reads residual_var or sigma after a second day.",
+   "should_fail": "tests/features.py ~18820 (_vol block, traced executing observe_day's variance EWMA) and tests/finite_boundary.py's residual_var reads: they assert finiteness/positivity of sigma, not its value; they lack residual_var after two days == (1-VAR_ALPHA)*r1^2 + VAR_ALPHA*r2^2.",
+   "finding": {
+    "title": "price_model.py:90 VAR_ALPHA 0.15 -> 0.3 survives the full gate: the published price-prior sigma's learning rate is unpinned",
+    "claim": "Doubling the residual-variance EWMA rate moves the published price_prior weekday_sigma[17] after two different days from 1.0936 to 0.9929 through PriceShapeLearner.fold and PriceShapeModel.summary; no gated script reads residual_var or sigma after a second day.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "published price_prior weekday_sigma[17] (PriceShapeModel.summary) after days folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5aef00760fd5ea8.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b5aef00760fd5ea8",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:90",
+    "perturbation": "the one-line mutant b5aef00760fd5ea8: `VAR_ALPHA = 0.15` -> `VAR_ALPHA = 0.3`; direction weekday_sigma_17_two_days_day_reversed: 1.0936 -> 0.9929",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "b9b6cf1d15a84248",
+   "site": "custom_components/heatpump_optimizer/price_model.py:337 GUARD_OFF",
+   "patch": "if not day_types or not np.isfinite(level) or level <= 0.0: -> if False:",
+   "function": "PriceShapeModel.expected_daily_min",
+   "cluster": "price_model.py:PriceShapeModel.expected_daily_min@337-342",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3147.4,
+    "load1_start": 0.29,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/b9b6cf1d15a84248.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py",
+    "baseline": {
+     "edm_empty_day_types_level_0p8": "None",
+     "edm_level_nan": "None"
+    },
+    "mutant": {
+     "edm_empty_day_types_level_0p8": "'raises ValueError'",
+     "edm_level_nan": "nan"
+    },
+    "moved": {
+     "edm_inputs_moved": "5 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "empty_day_types_level_0p8,level_nan,level_zero,level_negative,level_inf,normal_level_0p8",
+    "all_results": {
+     "edm_empty_day_types_level_0p8_baseline": "None",
+     "edm_empty_day_types_level_0p8_mutant": "'raises ValueError'",
+     "edm_level_nan_baseline": "None",
+     "edm_level_nan_mutant": "nan",
+     "edm_level_zero_baseline": "None",
+     "edm_level_zero_mutant": "0.0",
+     "edm_level_negative_baseline": "None",
+     "edm_level_negative_mutant": "-0.116576",
+     "edm_level_inf_baseline": "None",
+     "edm_level_inf_mutant": "inf",
+     "null_edm_normal_level_0p8_baseline": "0.233151",
+     "null_edm_normal_level_0p8_mutant": "0.233151",
+     "edm_inputs_moved": "5 count",
+     "null_delta": "0 count",
+     "inputs_tried": "empty_day_types_level_0p8,level_nan,level_zero,level_negative,level_inf,normal_level_0p8",
+     "reach_caller_guards_empty_day_types": "0 count",
+     "thread_factor": "1.000",
+     "load1": "0.76",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "With the guard off, expected_daily_min([], 0.8) on a trained model raises ValueError (min() of an empty list) where the baseline returns None, and level nan/0/-0.4/inf return nan/0.0/-0.117/inf instead of None. The coordinator's #47 caller (coordinator.py:4355-4375) builds day_types from the days strictly after today up to the legionella deadline and guards only level > 1e-6, so an overdue or due-today cycle hands it []; no gated script calls it with an empty span.",
+   "should_fail": "tests/features.py '#47 the elastic legionella gate' block (~20012-20044, traced executing expected_daily_min): its four checks pass non-empty day types and level 1.0; it lacks expected_daily_min([], level) is None (the overdue-deadline span) and expected_daily_min([0], nan/0.0) is None.",
+   "finding": {
+    "title": "price_model.py:337 expected_daily_min's input guard deleted survives the full gate: an empty day-type span raises ValueError",
+    "claim": "With the guard off, expected_daily_min([], 0.8) on a trained model raises ValueError (min() of an empty list) where the baseline returns None, and level nan/0/-0.4/inf return nan/0.0/-0.117/inf instead of None. The coordinator's #47 caller (coordinator.py:4355-4375) builds day_types from the days strictly after today up to the legionella deadline and guards only level > 1e-6, so an overdue or due-today cycle hands it []; no gated script calls it with an empty span.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "medium",
+    "stop_rule_class": "bug",
+    "metric_definition": "PriceShapeModel.expected_daily_min(day_types, level) on a model with 5 folded weekday and weekend days: value, None, or the exception raised; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b9b6cf1d15a84248",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.expected_daily_min), custom_components/heatpump_optimizer/price_model.py:337",
+    "perturbation": "the one-line mutant b9b6cf1d15a84248: `if not day_types or not np.isfinite(level) or level <= 0.0:` -> `if False:`; direction edm_empty_day_types_level_0p8: None -> 'raises ValueError'; edm_level_nan: None -> nan",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "a5c9796d35117839",
+   "site": "custom_components/heatpump_optimizer/price_model.py:342 CMP_BOUND",
+   "patch": "if self.days[idx] < SHAPE_CONFIDENCE_DAYS: -> if self.days[idx] <= SHAPE_CONFIDENCE_DAYS:",
+   "function": "PriceShapeModel.expected_daily_min",
+   "cluster": "price_model.py:PriceShapeModel.expected_daily_min@337-342",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3137.3,
+    "load1_start": 0.78,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/a5c9796d35117839.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py",
+    "baseline": {
+     "edm_5_days_exactly_confident": "0.233151"
+    },
+    "mutant": {
+     "edm_5_days_exactly_confident": "None"
+    },
+    "moved": {
+     "edm_inputs_moved": "1 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "5_days_exactly_confident,4_days,6_days",
+    "all_results": {
+     "edm_5_days_exactly_confident_baseline": "0.233151",
+     "edm_5_days_exactly_confident_mutant": "None",
+     "null_edm_4_days_baseline": "None",
+     "null_edm_4_days_mutant": "None",
+     "null_edm_6_days_baseline": "0.233151",
+     "null_edm_6_days_mutant": "0.233151",
+     "edm_inputs_moved": "1 count",
+     "null_delta": "0 count",
+     "inputs_tried": "5_days_exactly_confident,4_days,6_days",
+     "thread_factor": "1.000",
+     "load1": "0.81",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "After exactly SHAPE_CONFIDENCE_DAYS = 5 folded weekdays the baseline answers expected_daily_min([0], 0.8) = 0.233151 and the mutant None (one more day of 'defer to the deadline' for the #47 legionella gate); the gate's checks use 0, 3, 10 and 30 days, never the boundary.",
+   "should_fail": "tests/features.py #47 block (~20012-20044, traced executing line 342): 'a partially trained prior still defers' uses days=3 and the trained arms 10 and 30; it lacks expected_daily_min([0], 1.0) is not None at days[0] == SHAPE_CONFIDENCE_DAYS exactly.",
+   "finding": {
+    "title": "price_model.py:342 expected_daily_min's confidence boundary < -> <= survives the full gate",
+    "claim": "After exactly SHAPE_CONFIDENCE_DAYS = 5 folded weekdays the baseline answers expected_daily_min([0], 0.8) = 0.233151 and the mutant None (one more day of 'defer to the deadline' for the #47 legionella gate); the gate's checks use 0, 3, 10 and 30 days, never the boundary.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "PriceShapeModel.expected_daily_min([weekday], 0.8) after n weekdays folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a5c9796d35117839",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.expected_daily_min), custom_components/heatpump_optimizer/price_model.py:342",
+    "perturbation": "the one-line mutant a5c9796d35117839: `if self.days[idx] < SHAPE_CONFIDENCE_DAYS:` -> `if self.days[idx] <= SHAPE_CONFIDENCE_DAYS:`; direction edm_5_days_exactly_confident: 0.233151 -> None",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "13cadf1ab9a2de61",
+   "site": "custom_components/heatpump_optimizer/price_model.py:400 CMP_BOUND",
+   "patch": "if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX: -> if var is not None and max(max(s) for s in var) < RESIDUAL_VAR_MAX:",
+   "function": "PriceShapeModel.from_dict",
+   "cluster": "price_model.py:PriceShapeModel.from_dict@400-400",
+   "slice": "u1a",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3156.6,
+    "load1_start": 0.85,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/13cadf1ab9a2de61.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py",
+    "baseline": {
+     "var_loaded_exactly_cap_225": "225.0"
+    },
+    "mutant": {
+     "var_loaded_exactly_cap_225": "0.0"
+    },
+    "moved": {
+     "var_loaded_inputs_moved": "1 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "exactly_cap_225,below_cap_224p9,above_cap_225p1,typical_0p3",
+    "all_results": {
+     "var_loaded_exactly_cap_225_baseline": "225.0",
+     "var_loaded_exactly_cap_225_mutant": "0.0",
+     "null_var_loaded_below_cap_224p9_baseline": "224.9",
+     "null_var_loaded_below_cap_224p9_mutant": "224.9",
+     "null_var_loaded_above_cap_225p1_baseline": "0.0",
+     "null_var_loaded_above_cap_225p1_mutant": "0.0",
+     "null_var_loaded_typical_0p3_baseline": "0.3",
+     "null_var_loaded_typical_0p3_mutant": "0.3",
+     "var_loaded_inputs_moved": "1 count",
+     "null_delta": "0 count",
+     "inputs_tried": "exactly_cap_225,below_cap_224p9,above_cap_225p1,typical_0p3",
+     "reach_max_var_written_adversarial": "18.8029 (cap 225.0)",
+     "thread_factor": "1.000",
+     "load1": "0.85",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "A stored residual_var bin exactly at RESIDUAL_VAR_MAX (225.0) loads as 225.0 at the baseline and restarts at 0.0 under the mutant through PriceShapeModel.from_dict (the restore path); 224.9 and 225.1 load alike in both arms. The learner itself wrote at most 18.8 on an adversarial sequence, so only a hand-edited or foreign store reaches the boundary.",
+   "should_fail": "tests/features.py D1-s5-02 check (~66815-66862, traced executing line 400): it plants 300.0 (above the cap), where both arms reset; it lacks a stored bin of exactly RESIDUAL_VAR_MAX asserting it loads as written.",
+   "finding": {
+    "title": "price_model.py:400 from_dict's variance load gate <= -> < survives the full gate (boundary only)",
+    "claim": "A stored residual_var bin exactly at RESIDUAL_VAR_MAX (225.0) loads as 225.0 at the baseline and restarts at 0.0 under the mutant through PriceShapeModel.from_dict (the restore path); 224.9 and 225.1 load alike in both arms. The learner itself wrote at most 18.8 on an adversarial sequence, so only a hand-edited or foreign store reaches the boundary.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "residual_var[weekday][0] after PriceShapeModel.from_dict of a stored variance row; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 13cadf1ab9a2de61",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.from_dict), custom_components/heatpump_optimizer/price_model.py:400",
+    "perturbation": "the one-line mutant 13cadf1ab9a2de61: `if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX:` -> `if var is not None and max(max(s) for s in var) < RESIDUAL_VAR_MAX:`; direction var_loaded_exactly_cap_225: 225.0 -> 0.0",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "b5a482468c783209",
+   "site": "custom_components/heatpump_optimizer/price_model.py:207 CMP_BOUND",
+   "patch": "if mean <= 1e-6: -> if mean < 1e-6:",
+   "function": "PriceShapeModel.observe_day",
+   "cluster": "price_model.py:PriceShapeModel.observe_day@207-232",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3295.8,
+    "load1_start": 0.78,
+    "load1_end": 0.93,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/b5a482468c783209.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py",
+    "baseline": {
+     "days_learned_mean_exactly_1e-6": "0"
+    },
+    "mutant": {
+     "days_learned_mean_exactly_1e-6": "1"
+    },
+    "moved": {
+     "days_learned_inputs_moved": "1 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "mean_exactly_1e-6,mean_zero,winter_day,mean_2e-6",
+    "all_results": {
+     "mean_is_exact": "1 count",
+     "days_learned_mean_exactly_1e-6_baseline": "0",
+     "days_learned_mean_exactly_1e-6_mutant": "1",
+     "null_days_learned_mean_zero_baseline": "0",
+     "null_days_learned_mean_zero_mutant": "0",
+     "null_days_learned_winter_day_baseline": "1",
+     "null_days_learned_winter_day_mutant": "1",
+     "null_days_learned_mean_2e-6_baseline": "1",
+     "null_days_learned_mean_2e-6_mutant": "1",
+     "days_learned_inputs_moved": "1 count",
+     "null_delta": "0 count",
+     "inputs_tried": "mean_exactly_1e-6,mean_zero,winter_day,mean_2e-6",
+     "thread_factor": "1.000",
+     "load1": "0.89",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "A 24-hour day of 12 x 0.0 and 12 x 2e-6 (np.mean exactly 1e-6) is rejected at the baseline (days 0) and learned under the mutant (days 1) through PriceShapeLearner.fold; mean 0, 2e-6 and a winter day behave alike in both arms. Sibling of D3-s1-71 (line 252).",
+   "should_fail": "tests/features.py 'Unknown price horizon (item 7)' block (~3660-3700) and tests/guard_pins.py observe_day calls (traced executing line 207): they test a partial day and a NaN hour; they lack a day whose mean is exactly 1e-6 asserting observe_day returns False.",
+   "finding": {
+    "title": "price_model.py:207 observe_day's mean guard <= -> < survives the full gate (float-exact boundary)",
+    "claim": "A 24-hour day of 12 x 0.0 and 12 x 2e-6 (np.mean exactly 1e-6) is rejected at the baseline (days 0) and learned under the mutant (days 1) through PriceShapeLearner.fold; mean 0, 2e-6 and a winter day behave alike in both arms. Sibling of D3-s1-71 (line 252).",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "days[weekday] after one hourly day folded through PriceShapeLearner.fold (1 = the day was learned); printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b5a482468c783209",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day), custom_components/heatpump_optimizer/price_model.py:207",
+    "perturbation": "the one-line mutant b5a482468c783209: `if mean <= 1e-6:` -> `if mean < 1e-6:`; direction days_learned_mean_exactly_1e-6: 0 -> 1",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "0b10a7c76e2514d2",
+   "site": "custom_components/heatpump_optimizer/price_model.py:219 GUARD_OFF",
+   "patch": "if self.days[idx] == 0: -> if False:",
+   "function": "PriceShapeModel.observe_day",
+   "cluster": "price_model.py:PriceShapeModel.observe_day@207-232",
+   "slice": "u1a",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3186.7,
+    "load1_start": 0.86,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/0b10a7c76e2514d2.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py",
+    "baseline": {
+     "weekday_sigma_17_one_winter_day": "1.1858"
+    },
+    "mutant": {
+     "weekday_sigma_17_one_winter_day": "0.4593"
+    },
+    "moved": {
+     "weekday_sigma_17_inputs_moved": "2 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "one_winter_day,one_reversed_day,one_flat_day",
+    "all_results": {
+     "weekday_sigma_17_one_winter_day_baseline": "1.1858",
+     "weekday_sigma_17_one_winter_day_mutant": "0.4593",
+     "weekday_sigma_17_one_reversed_day_baseline": "0.1658",
+     "weekday_sigma_17_one_reversed_day_mutant": "0.0642",
+     "null_weekday_sigma_17_one_flat_day_baseline": "0.0",
+     "null_weekday_sigma_17_one_flat_day_mutant": "0.0",
+     "weekday_sigma_17_inputs_moved": "2 count",
+     "null_delta": "0 count",
+     "inputs_tried": "one_winter_day,one_reversed_day,one_flat_day",
+     "thread_factor": "1.000",
+     "load1": "0.95",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "With the seed branch off the first observed day blends into the zero prior: the published price_prior weekday_sigma[17] after one winter day falls from 1.1858 to 0.4593 (sqrt(0.15) of it) through PriceShapeLearner.fold and summary(); a flat day gives 0.0 in both arms.",
+   "should_fail": "tests/features.py ~18820 (_vol block, traced executing line 219) and tests/finite_boundary.py residual_var reads: they assert sigma is finite/positive, not its value; they lack residual_var after one day == residuals**2 (or summary()['weekday_sigma'] after one day equal to |normalised - 1|).",
+   "finding": {
+    "title": "price_model.py:219 observe_day's first-day variance seed deleted survives the full gate",
+    "claim": "With the seed branch off the first observed day blends into the zero prior: the published price_prior weekday_sigma[17] after one winter day falls from 1.1858 to 0.4593 (sqrt(0.15) of it) through PriceShapeLearner.fold and summary(); a flat day gives 0.0 in both arms.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "published price_prior weekday_sigma[17] (PriceShapeModel.summary) after one hourly day folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0b10a7c76e2514d2",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day), custom_components/heatpump_optimizer/price_model.py:219",
+    "perturbation": "the one-line mutant 0b10a7c76e2514d2: `if self.days[idx] == 0:` -> `if False:`; direction weekday_sigma_17_one_winter_day: 1.1858 -> 0.4593",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "c4697335da324182",
+   "site": "custom_components/heatpump_optimizer/price_model.py:226 GUARD_OFF",
+   "patch": "if self.days[idx] == 0: -> if False:",
+   "function": "PriceShapeModel.observe_day",
+   "cluster": "price_model.py:PriceShapeModel.observe_day@207-232",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3301.1,
+    "load1_start": 0.8,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/c4697335da324182.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_c4697335da324182.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_c4697335da324182.py",
+    "baseline": {
+     "weekday_shape_17_one_winter_day": "2.186",
+     "weekday_shape_17_five_winter_days": "2.186"
+    },
+    "mutant": {
+     "weekday_shape_17_one_winter_day": "1.142",
+     "weekday_shape_17_five_winter_days": "1.56"
+    },
+    "moved": {
+     "weekday_shape_17_inputs_moved": "2 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "one_winter_day,five_winter_days,one_flat_day",
+    "all_results": {
+     "weekday_shape_17_one_winter_day_baseline": "2.186",
+     "weekday_shape_17_one_winter_day_mutant": "1.142",
+     "weekday_shape_17_five_winter_days_baseline": "2.186",
+     "weekday_shape_17_five_winter_days_mutant": "1.56",
+     "null_weekday_shape_17_one_flat_day_baseline": "1.0",
+     "null_weekday_shape_17_one_flat_day_mutant": "1.0",
+     "weekday_shape_17_inputs_moved": "2 count",
+     "null_delta": "0 count",
+     "inputs_tried": "one_winter_day,five_winter_days,one_flat_day",
+     "thread_factor": "1.000",
+     "load1": "0.89",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "With the seed branch off the first day is EWMA-blended into the flat prior instead of replacing it: the published price_prior weekday_shape[17] after one winter day is 1.142 instead of 2.186, and still 1.56 instead of 2.186 after five identical days (when the shape is fully trusted), through PriceShapeLearner.fold and summary(). The fully trusted guessed tail's evening peak is underpriced by 29% at day 5.",
+   "should_fail": "tests/features.py item-7 block (~3660-3700, traced executing line 226): 'the learned shape has a trough at night' and 'one day's evidence is heavily damped' hold in both arms; it lacks shapes[idx] after one observed day == the clipped normalised day exactly.",
+   "finding": {
+    "title": "price_model.py:226 observe_day's first-day shape seed deleted survives the full gate",
+    "claim": "With the seed branch off the first day is EWMA-blended into the flat prior instead of replacing it: the published price_prior weekday_shape[17] after one winter day is 1.142 instead of 2.186, and still 1.56 instead of 2.186 after five identical days (when the shape is fully trusted), through PriceShapeLearner.fold and summary(). The fully trusted guessed tail's evening peak is underpriced by 29% at day 5.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "medium",
+    "stop_rule_class": "bug",
+    "metric_definition": "published price_prior weekday_shape[17] (PriceShapeModel.summary) after one hourly day folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_c4697335da324182.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_c4697335da324182.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c4697335da324182",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day), custom_components/heatpump_optimizer/price_model.py:226",
+    "perturbation": "the one-line mutant c4697335da324182: `if self.days[idx] == 0:` -> `if False:`; direction weekday_shape_17_one_winter_day: 2.186 -> 1.142; weekday_shape_17_five_winter_days: 2.186 -> 1.56",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "4e79ba6ea642d086",
+   "site": "custom_components/heatpump_optimizer/price_model.py:258 CMP_BOUND",
+   "patch": "usable = hour_means > 1e-6 -> usable = hour_means >= 1e-6",
+   "function": "PriceShapeModel.observe_day_quarters",
+   "cluster": "price_model.py:PriceShapeModel.observe_day_quarters@252-275",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3405.2,
+    "load1_start": 0.86,
+    "load1_end": 1.12,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/4e79ba6ea642d086.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py",
+    "baseline": {
+     "qf_h3q3_hour_mean_exactly_1e-6": "1.0"
+    },
+    "mutant": {
+     "qf_h3q3_hour_mean_exactly_1e-6": "3.368421"
+    },
+    "moved": {
+     "qf_h3q3_inputs_moved": "1 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "hour_mean_exactly_1e-6,hour_all_zero,ramp",
+    "all_results": {
+     "hour_mean_is_exact": "1 count",
+     "qf_h3q3_hour_mean_exactly_1e-6_baseline": "1.0",
+     "qf_h3q3_hour_mean_exactly_1e-6_mutant": "3.368421",
+     "null_qf_h3q3_hour_all_zero_baseline": "1.0",
+     "null_qf_h3q3_hour_all_zero_mutant": "1.0",
+     "null_qf_h3q3_ramp_baseline": "1.1",
+     "null_qf_h3q3_ramp_mutant": "1.1",
+     "qf_h3q3_inputs_moved": "1 count",
+     "null_delta": "0 count",
+     "inputs_tried": "hour_mean_exactly_1e-6,hour_all_zero,ramp",
+     "thread_factor": "1.000",
+     "load1": "1.10",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "An hour of quarters [0, 0, 0, 4e-6] (mean exactly 1e-6) keeps factor 1.0 at the baseline and learns 3.368421 for its :45 quarter under the mutant through PriceShapeLearner.fold; an all-zero hour and an ordinary ramp behave alike in both arms.",
+   "should_fail": "tests/features.py G8 observe_day_quarters arms (~58809-58820) and tests/finite_boundary.py (traced executing line 258): they test a short, non-finite and all-zero day; they lack an hour whose mean is exactly 1e-6 asserting its factors stay 1.0.",
+   "finding": {
+    "title": "price_model.py:258 observe_day_quarters' usable-hour guard > -> >= survives the full gate (float-exact boundary)",
+    "claim": "An hour of quarters [0, 0, 0, 4e-6] (mean exactly 1e-6) keeps factor 1.0 at the baseline and learns 3.368421 for its :45 quarter under the mutant through PriceShapeLearner.fold; an all-zero hour and an ordinary ramp behave alike in both arms.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "learned quarter factor of hour 3 quarter 3 (quarter_factors[weekday][15]) after one quarter day folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4e79ba6ea642d086",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day_quarters), custom_components/heatpump_optimizer/price_model.py:258",
+    "perturbation": "the one-line mutant 4e79ba6ea642d086: `usable = hour_means > 1e-6` -> `usable = hour_means >= 1e-6`; direction qf_h3q3_hour_mean_exactly_1e-6: 1.0 -> 3.368421",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  },
+  {
+   "key": "12cd6ddd79fb36fc",
+   "site": "custom_components/heatpump_optimizer/price_model.py:269 GUARD_OFF",
+   "patch": "if self.quarter_days[idx] == 0: -> if False:",
+   "function": "PriceShapeModel.observe_day_quarters",
+   "cluster": "price_model.py:PriceShapeModel.observe_day_quarters@252-275",
+   "slice": "u1a",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3536.6,
+    "load1_start": 1.01,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/12cd6ddd79fb36fc.json",
+    "provisional_timing": true
+   },
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py",
+    "baseline": {
+     "qf_h7q0_1_day": "0.9",
+     "predict_0700_5_days": "1.57377"
+    },
+    "mutant": {
+     "qf_h7q0_1_day": "0.988",
+     "predict_0700_5_days": "1.666051"
+    },
+    "moved": {
+     "qf_h7q0_inputs_moved": "2 count",
+     "predict_0700_inputs_moved": "1 count",
+     "qf_flat_quarters_inputs_moved": "0 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "1_flat_day",
+    "all_results": {
+     "qf_h7q0_1_day_baseline": "0.9",
+     "qf_h7q0_1_day_mutant": "0.988",
+     "qf_h7q0_5_days_baseline": "0.9",
+     "qf_h7q0_5_days_mutant": "0.952773",
+     "qf_h7q0_inputs_moved": "2 count",
+     "null_delta": "0 count",
+     "inputs_tried": "1_flat_day",
+     "predict_0700_5_days_baseline": "1.57377",
+     "predict_0700_5_days_mutant": "1.666051",
+     "null_predict_0700_0_days_baseline": "1.0",
+     "null_predict_0700_0_days_mutant": "1.0",
+     "predict_0700_inputs_moved": "1 count",
+     "null_qf_flat_quarters_1_flat_day_baseline": "1.0",
+     "null_qf_flat_quarters_1_flat_day_mutant": "1.0",
+     "qf_flat_quarters_inputs_moved": "0 count",
+     "thread_factor": "1.000",
+     "load1": "0.91",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "With the seed branch off the first quarter day blends into the flat prior: the learned 07:00 quarter factor after one day is 0.988 instead of 0.9, and predict(weekday 07:00, 1.0) after five days (full quarter trust) is 1.666051 instead of 1.57377, through PriceShapeLearner.fold; a flat quarter day gives 1.0 in both arms.",
+   "should_fail": "tests/features.py quarter block (~18722-18770, traced executing line 269): it folds 6 or 3 identical days and checks only ordering (:45 above siblings) and the hour mean; it lacks quarter_factors after one observed day == the clipped per-hour ratios exactly.",
+   "finding": {
+    "title": "price_model.py:269 observe_day_quarters' first-day quarter seed deleted survives the full gate",
+    "claim": "With the seed branch off the first quarter day blends into the flat prior: the learned 07:00 quarter factor after one day is 0.988 instead of 0.9, and predict(weekday 07:00, 1.0) after five days (full quarter trust) is 1.666051 instead of 1.57377, through PriceShapeLearner.fold; a flat quarter day gives 1.0 in both arms.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "PriceShapeModel.predict(weekday 07:00, level 1.0) after five quarter days folded through PriceShapeLearner.fold, and the learned factor quarter_factors[weekday][28] after one; printed per input for the baseline and the mutant arm.",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 12cd6ddd79fb36fc",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day_quarters), custom_components/heatpump_optimizer/price_model.py:269",
+    "perturbation": "the one-line mutant 12cd6ddd79fb36fc: `if self.quarter_days[idx] == 0:` -> `if False:`; direction qf_h7q0_1_day: 0.9 -> 0.988; predict_0700_5_days: 1.57377 -> 1.666051",
+    "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+   }
+  }
+ ],
+ "equivalent_candidates": [
+  {
+   "key": "79c65c4903e72ee2",
+   "site": "custom_components/heatpump_optimizer/price_model.py:232 CLAMP_DROP",
+   "patch": "updated = updated / max(float(np.mean(updated)), 1e-6) -> updated = updated / (float(np.mean(updated)))",
+   "function": "PriceShapeModel.observe_day",
+   "cluster": "price_model.py:PriceShapeModel.observe_day@207-232",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3396.2,
+    "load1_start": 0.86,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/79c65c4903e72ee2.json",
+    "provisional_timing": true
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_79c65c4903e72ee2.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_79c65c4903e72ee2.py",
+    "baseline": {
+     "shape17_production_one_day": "2.185792349726776",
+     "shape17_handbuilt_negative_row_bypassing_from_dict": "-617704.9180327869"
+    },
+    "mutant": {
+     "shape17_production_one_day": "2.185792349726776",
+     "shape17_handbuilt_negative_row_bypassing_from_dict": "0.812769628990509"
+    },
+    "moved": {
+     "shape17_production_inputs_moved": "0 count",
+     "shape17_from_dict_inputs_moved": "0 count",
+     "shape17_handbuilt_inputs_moved": "1 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "negative_row_bypassing_from_dict",
+    "all_results": {
+     "shape17_production_one_day_baseline": "2.185792349726776",
+     "shape17_production_one_day_mutant": "2.185792349726776",
+     "shape17_production_two_days_baseline": "2.0633879781420763",
+     "shape17_production_two_days_mutant": "2.0633879781420763",
+     "shape17_production_spiky_days_baseline": "0.631578947368421",
+     "shape17_production_spiky_days_mutant": "0.631578947368421",
+     "shape17_production_inputs_moved": "0 count",
+     "null_delta": "0 count",
+     "inputs_tried": "negative_row_bypassing_from_dict",
+     "shape17_from_dict_stored_negative_row_baseline": "1.1422950819672133",
+     "shape17_from_dict_stored_negative_row_mutant": "1.1422950819672133",
+     "shape17_from_dict_stored_zero_row_baseline": "1.1422950819672133",
+     "shape17_from_dict_stored_zero_row_mutant": "1.1422950819672133",
+     "shape17_from_dict_stored_tiny_row_baseline": "2.185792341030966",
+     "shape17_from_dict_stored_tiny_row_mutant": "2.185792341030966",
+     "shape17_from_dict_inputs_moved": "0 count",
+     "shape17_handbuilt_negative_row_bypassing_from_dict_baseline": "-617704.9180327869",
+     "shape17_handbuilt_negative_row_bypassing_from_dict_mutant": "0.812769628990509",
+     "shape17_handbuilt_inputs_moved": "1 count",
+     "thread_factor": "1.000",
+     "load1": "0.84",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "Every production path leaves the EWMA'd shape's mean >= 0.12 x SHAPE_MIN > 1e-6 (observe_day clips the day to [0.2, 3] and from_dict's _in_domain keeps stored bins positive), so the floor never binds: one day, two days, spiky days and from_dict-restored negative/zero/tiny rows give identical shapes in both arms. Only a model hand-built with a negative stored shape (bypassing from_dict) separates them.",
+   "should_fail": "none through production; a direct construction PriceShapeModel(shapes=[[-1.0]*24, ...]) separates (baseline -617704.9, mutant 0.8128).",
+   "non_finding": {
+    "claim": "Every production path leaves the EWMA'd shape's mean >= 0.12 x SHAPE_MIN > 1e-6 (observe_day clips the day to [0.2, 3] and from_dict's _in_domain keeps stored bins positive), so the floor never binds: one day, two days, spiky days and from_dict-restored negative/zero/tiny rows give identical shapes in both arms. Only a model hand-built with a negative stored shape (bypassing from_dict) separates them.",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_79c65c4903e72ee2.py",
+    "value": "shape17_production_one_day: 2.185792349726776 -> 2.185792349726776; shape17_handbuilt_negative_row_bypassing_from_dict: -617704.9180327869 -> 0.812769628990509"
+   }
+  },
+  {
+   "key": "cee6857510fbe69e",
+   "site": "custom_components/heatpump_optimizer/price_model.py:275 CLAMP_DROP",
+   "patch": "updated = updated / np.maximum(updated.mean(axis=1, keepdims=True), 1e-6) -> updated = updated / (updated.mean(axis=1, keepdims=True))",
+   "function": "PriceShapeModel.observe_day_quarters",
+   "cluster": "price_model.py:PriceShapeModel.observe_day_quarters@252-275",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3411.9,
+    "load1_start": 0.85,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "more_fails_than_null": [],
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+    "cap_s": null,
+    "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/cee6857510fbe69e.json",
+    "provisional_timing": true
+   },
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cee6857510fbe69e.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cee6857510fbe69e.py",
+    "baseline": {
+     "qf12_production_zero_price_hour": "1.0",
+     "qf12_handbuilt_negative_bypassing_from_dict": "-760000.0"
+    },
+    "mutant": {
+     "qf12_production_zero_price_hour": "1.0",
+     "qf12_handbuilt_negative_bypassing_from_dict": "1.0"
+    },
+    "moved": {
+     "qf12_production_inputs_moved": "0 count",
+     "qf12_from_dict_inputs_moved": "0 count",
+     "qf12_handbuilt_inputs_moved": "1 count"
+    },
+    "null_delta": "0 count",
+    "inputs_tried": "negative_bypassing_from_dict",
+    "all_results": {
+     "qf12_production_zero_price_hour_baseline": "1.0",
+     "qf12_production_zero_price_hour_mutant": "1.0",
+     "qf12_production_negative_hour_two_days_baseline": "0.912",
+     "qf12_production_negative_hour_two_days_mutant": "0.912",
+     "qf12_production_spike_then_zero_baseline": "3.1238193282717797",
+     "qf12_production_spike_then_zero_mutant": "3.1238193282717797",
+     "qf12_production_inputs_moved": "0 count",
+     "null_delta": "0 count",
+     "inputs_tried": "negative_bypassing_from_dict",
+     "qf12_from_dict_stored_negative_baseline": "1.0",
+     "qf12_from_dict_stored_negative_mutant": "1.0",
+     "qf12_from_dict_stored_zero_baseline": "1.0",
+     "qf12_from_dict_stored_zero_mutant": "1.0",
+     "qf12_from_dict_inputs_moved": "0 count",
+     "qf12_handbuilt_negative_bypassing_from_dict_baseline": "-760000.0",
+     "qf12_handbuilt_negative_bypassing_from_dict_mutant": "1.0",
+     "qf12_handbuilt_inputs_moved": "1 count",
+     "thread_factor": "1.000",
+     "load1": "0.37",
+     "swapins": "0"
+    }
+   },
+   "step4_answer": "Every production path keeps each hour's EWMA'd factors positive (an hour with mean <= 1e-6 gets factor 1.0, others are clipped to [0.25, 4]; from_dict's _in_domain repairs stored rows), so the hour mean never drops below 0.25 x 0.12 and the floor never binds: a zero-price hour, a negative hour after a normal day, spike/zero sequences and from_dict-restored negative/zero rows give identical factors in both arms. The carried M4 answer ('an hour whose quarter factors average 0') is not reachable: the usable mask sets such an hour to 1.0. Only a hand-built model with negative stored factors separates.",
+   "should_fail": "none through production; a direct construction PriceShapeModel(quarter_factors=[...negative...]) separates (baseline -760000.0, mutant 1.0).",
+   "non_finding": {
+    "claim": "Every production path keeps each hour's EWMA'd factors positive (an hour with mean <= 1e-6 gets factor 1.0, others are clipped to [0.25, 4]; from_dict's _in_domain repairs stored rows), so the hour mean never drops below 0.25 x 0.12 and the floor never binds: a zero-price hour, a negative hour after a normal day, spike/zero sequences and from_dict-restored negative/zero rows give identical factors in both arms. The carried M4 answer ('an hour whose quarter factors average 0') is not reachable: the usable mask sets such an hour to 1.0. Only a hand-built model with negative stored factors separates.",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cee6857510fbe69e.py",
+    "value": "qf12_production_zero_price_hour: 1.0 -> 1.0; qf12_handbuilt_negative_bypassing_from_dict: -760000.0 -> 1.0"
+   }
+  }
+ ],
+ "tally": {
+  "gated": 16,
+  "verdicts": {
+   "RED-AS-NULL": 16
+  },
+  "killed_by": {},
+  "candidates": 14,
+  "equivalent_candidates": 2,
+  "timeouts": 0
+ },
+ "machine": "nproc: 4\ncpu:  Intel(R) Xeon(R) Processor @ 2.10GHz\n               total        used        free      shared  buff/cache   available\nMem:           16087        1016       13567          12        1802       15071\nSwap:              0           0           0\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda        252G   12G   58G  18% /\nload1: 0.87\ntaken: 2026-11-22T21:43:44Z\nnote: venv-ci lives at /opt/hpo/venv-ci; $HOME/venv-ci is a symlink to it (box-local, not pushed)\n\n## re-fire 2026-11-25T00:52:54Z (new container, successor seat)\nnproc: 4\nmodel name\t: Intel(R) Xeon(R) Processor @ 2.10GHz\n               total        used        free      shared  buff/cache   available\nMem:           16087         742       14057          12        1559       15345\nSwap:              0           0           0\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda        252G   12G   58G  17% /\nload1: 0.41\nnote: venv-ci at /opt/hpo/venv-ci; $HOME/venv-ci symlink (box-local)",
+ "null_control": {
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3777.3,
+  "load1_start": 0.83,
+  "load1_end": 1.05,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json"
+ }
+}
