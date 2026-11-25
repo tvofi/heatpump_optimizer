@@ -24,3 +24,4 @@
 1795585606 CKPT 970c3e5dff pushed; three builders writing failing-first features blocks A/B/C snapshot 5281c781d198
 1795585810 CKPT blocks A and C landed cc2bb1bac4; awaiting B and features run snapshot 9eed55bf3474
 1795585990 HB alive
+1795586148 CKPT block B landed, note-9 retry fixed in _command_frequency; dispatching fixture repairs snapshot 8b05db91f685
