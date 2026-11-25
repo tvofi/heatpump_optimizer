@@ -36,7 +36,7 @@ from .const import (
 )
 from .drift import utc_elapsed_seconds
 
-#: The sensors that measure the water the pump heats, best first: the
+#: The sensors that measure the water the pump heats, best first: the (null control)
 #: set-point is a power command (tvofi, 2026-10-19), so its floor sits a
 #: lift above that water. One precedence for every plant, because what a
 #: slot measures follows the plant (tvofi asked for every combination):
