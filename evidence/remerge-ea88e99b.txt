@@ -1,0 +1,40 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17301 + both deltas = 17296
+  max_class_loc: 7844 + both deltas = 7839
+  re-run the gate that owns this file before pushing
+ea88e99baaf3e23e8e1156a62afabd9462877c8c
+9673fea60bce74bb4e496dca1d1c3242871ea390 f52e700df1d291e6d60ed7d29625ed301908a108
+
+diff --git a/custom_components/heatpump_optimizer/boost.py b/custom_components/heatpump_optimizer/boost.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/boost.py
+index 522724ee74..7c9738e4b2 100644
+--- a/custom_components/heatpump_optimizer/boost.py
++++ b/custom_components/heatpump_optimizer/boost.py
+@@ -623,12 +623,8 @@ def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) ->
+         hours = tail.get("boosted_h")
+         # A restored boost mode's unknown sum stays unknown, whichever restore ran first.
+         held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
+-<<<<<<< 9673fea60b (ci: pin killed mutants)
+-                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf
++                              and admitted("boost", {"space_settle": {"boosted_h": hours}})
+                               and held.space_boosted is not None else None)
+-=======
+-                              and admitted("boost", {"space_settle": {"boosted_h": hours}}) else None)
+->>>>>>> f52e700df1 (Merge pull request #3738 from tvofi/fix/r11-seam-cycle-solve)
+     space = raw.get(CHANNEL_SPACE)
+     since = _parse_until(space.get("since")) if isinstance(space, Mapping) else None
+     if since is not None and CHANNEL_SPACE in held.until:
+diff --git a/tests/mutation_ledger/killed_by/boost.py/_restore_settle.CMP_BOUND.d165bc24.json b/tests/mutation_ledger/killed_by/boost.py/_restore_settle.CMP_BOUND.d165bc24.json
+deleted file mode 100644
+remerge CONFLICT (rename/delete): tests/mutation_ledger/killed_by/boost.py/_restore_settle.CMP_BOUND.81c29603.json renamed to tests/mutation_ledger/killed_by/boost.py/_restore_settle.CMP_BOUND.d165bc24.json in 9673fea60b (ci: pin killed mutants), but deleted in f52e700df1 (Merge pull request #3738 from tvofi/fix/r11-seam-cycle-solve).
+remerge CONFLICT (modify/delete): tests/mutation_ledger/killed_by/boost.py/_restore_settle.CMP_BOUND.d165bc24.json deleted in f52e700df1 (Merge pull request #3738 from tvofi/fix/r11-seam-cycle-solve) and modified in 9673fea60b (ci: pin killed mutants).  Version 9673fea60b (ci: pin killed mutants) of tests/mutation_ledger/killed_by/boost.py/_restore_settle.CMP_BOUND.d165bc24.json left in tree.
+index 5700fd9e01..0000000000
+--- a/tests/mutation_ledger/killed_by/boost.py/_restore_settle.CMP_BOUND.d165bc24.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/boost.py:_restore_settle CMP_BOUND d165bc24",
+-  "killed_by": "tests/features.py",
+-  "old": "                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`and not isinstance(hours, bool) and 0.0 < hours < math.inf`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+-}

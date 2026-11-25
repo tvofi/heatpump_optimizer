@@ -1,0 +1,40 @@
+  ok   with no electric counter the span's COP is refused as unaligned meters
+  ok   carry 1: a counter install with no electric counter publishes unaligned_meters and no measured COP; the aligned span publishes its COP
+  ok   a heat counter with the electric counter and no power entity folds its span's COP as heat over electricity; a cycle inside the span reads span_open, not no_measured_power
+  ok   null control on that install: heat equal to the model's COP times the electricity reproduces the model and the scale holds at 1.0
+  ok   on that install the duty floor is judged at the span close on its mean draw and ask: 0.5 kW refuses, the 2.0 kW span folds (null control)
+  ok   the span close judges the duty floor capped by the stored running-draw window: on a 3.0 kW minimum a 2.0 kW span folds once the window has metered the pump running at 1.8 kW, and is refused with an empty window
+  ok   one gated middle cycle refuses that learner's span and only its own; the span replays from its opening state over its plan
+  ok   the per-cycle span gate: a stale input, the boost freeze and ventilation gate it, the unmetered-power freeze lifts, and a cycle with no interval gates
+  ok   a 38 s boost cancelled owes the floor tail from its end and sums its 38 s; a window run to its end settles 12 h from that end (null control); a click inside a long tail adds to it, so the full tail runs again from the click's end
+  ok   a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its tail; a spent tail is not restored (null control)
+  ok   the boost store declares the settling tail's lead past the overlay's two hours, and a boosted sum of any length from zero, or unknown; a negative one is out of its domain
+  FAIL a stored boosted sum longer than two datetimes bound reads unknown and the overlay's start is still restored, one inside it is restored as stored, the declaration's ceiling is that span, and a run added to it does not overflow (D1-s2-06)  [{1.5: (datetime.timedelta(seconds=5400), True), 30000000000.0: 'OverflowError', 100000000000000.0: 'OverflowError'}]
+  ok   short boosts back to back owe no less than one boost of their summed length, over both surfaces; one short boost alone sums only itself (null control)
+  ok   the boosted sum clears once its tail ran out with nothing live, and not before
+  ok   a spent sum clears on an expiry alone, on a press alone and on a mode entered alone
+  ok   a boost mode restored with no start leaves an unknown sum when left; one seen to start sums its own length and owes its tail; the unknown one owes the full tail
+  ok   a restart keeps the boosted sum with the tail; an unreadable sum is unknown; a store main wrote restores with no start and no tail
+  ok   a boost store from an install that never boosted is main's payload, field for field
+  ok   a persisted tail past its declared look-ahead is bounded to it; one inside loads unchanged
+  ok   a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader keeps the tail (null control)
+  ok   no boost length owes more than the tail the refit waits; the tail grows with the length, from the 1.5 h floor, and an expired window owes the full tail
+  ok   the scaled tail: floor 1.5 h to 10 min, 3.68 h at 30 min, 7.84 h at 60 min, 10.27 h at 90 min, 12 h from the window's 2 h on and for an unknown length
+  ok   the freeze reasons keep main's order, the boost's after ventilation and before the tail freeze
+  ok   the boosted sum is not cleared while an overlay or the mode is live past an earlier boost's tail, so the live boost adds to it, over both surfaces
+  ok   an extended overlay sums from its first press; the mode entered after a spent tail sums only itself
+  ok   a settle ending before the running tail's end leaves it; one ending later moves it
+Traceback (most recent call last):
+  File "/root/W/M2/tests/features.py", line 87202, in <module>
+    [_bt_hours(h) for h in (-1.0, float("nan"), float("inf"), True, 0.0, 0.5)]
+     ~~~~~~~~~^^^
+  File "/root/W/M2/tests/features.py", line 87195, in _bt_hours
+    boost_mod._restore_settle(st, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                    "boosted_h": raw}}, NOW)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/W/M2/custom_components/heatpump_optimizer/boost.py", line 625, in _restore_settle
+    held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
+                          ~~~~~~~~~^^^^^^^^^^^^^
+ValueError: cannot convert float NaN to integer
+rc=1

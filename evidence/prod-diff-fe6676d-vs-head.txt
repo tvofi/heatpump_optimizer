@@ -1,0 +1,6 @@
+26,27c26,27
+< -                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf else None)
+< +                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf
+---
+> -                              and admitted("boost", {"space_settle": {"boosted_h": hours}}) else None)
+> +                              and admitted("boost", {"space_settle": {"boosted_h": hours}})

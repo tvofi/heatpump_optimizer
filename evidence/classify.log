@@ -1,38 +1,23 @@
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 00:51
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 00:53
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 00:54
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 00:55
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 00:56
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 00:57
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 00:58
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 00:59
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:00
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:01
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:02
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:04
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:05
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:06
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:07
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:08
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:09
-WAIT fe6676d8e461569d5924aaea4b26f3f86af85c1c pending: gate red: none
-rc=3 01:10
-REFUSE selftests: the head's governance / instrument-self-tests job 137417353350 concluded cancelled, which reads no step: re-run it: an introduced red cannot be ruled out (fail closed)
-rc=2 01:11
+14:17:55Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:19:27Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:20:58Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:22:30Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:24:02Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:25:33Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:27:05Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:28:37Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:30:09Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:31:41Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:33:13Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:34:45Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:36:17Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:37:49Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:39:22Z rc=2 REFUSE ci: the check runs at c6a3da6510a6 could not be read
+14:39:34Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:41:06Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:42:38Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:44:10Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:45:42Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:47:15Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:48:47Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
+14:50:20Z rc=3 WAIT c6a3da6510a6fc5c01e573672699ee9f00c7b621 pending: gate red: none
