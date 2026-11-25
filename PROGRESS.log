@@ -18,3 +18,4 @@
 1795584178 INBOX acked through 6
 1795584781 HB alive
 1795584874 CKPT extraction arbiter_record.py pushed f455d35490; paying coord_footprint +14 next snapshot 6929c51e15ff
+1795585081 CKPT coord_footprint paid 2517<=2521 (dS +0.0023), pushed; features.py full run in flight snapshot f9002f68b378
