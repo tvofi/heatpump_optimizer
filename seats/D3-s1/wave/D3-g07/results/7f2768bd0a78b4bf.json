@@ -1,0 +1,64 @@
+{
+ "key": "7f2768bd0a78b4bf",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5103 CLAMP_DROP",
+ "patch": "thermal_kw = params.max_electrical_power * max(cop, 1.0) -> thermal_kw = params.max_electrical_power * (cop)",
+ "function": "HeatPumpOptimizerCoordinator._max_pump_rise",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._max_pump_rise@5103-5108",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3792.3,
+  "child_cpu_s": 6309.8,
+  "load1_start": 1.18,
+  "load1_end": 0.92,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/7f2768bd0a78b4bf.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7f2768bd0a78b4bf",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "equivalent-candidate",
+ "red_as_null": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7f2768bd0a78b4bf.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7f2768bd0a78b4bf.py",
+  "rc": 0,
+  "baseline_value": "294",
+  "mutant_value": "294",
+  "baseline_result": "inputs_differing",
+  "mutant_result": "inputs_differing",
+  "all_results": {
+   "inputs_tried": "588",
+   "inputs_differing": "294",
+   "min_cop_seen": "1.0",
+   "forced_baseline": "123.153",
+   "forced_mutant": "61.576",
+   "thread_factor": "1.000",
+   "load1": "0.94",
+   "swapins": "0"
+  },
+  "inputs_tried": "outdoor -60..+34 C in 1 K steps plus NaN, +inf, -inf (98 values) x cop_scale 0.5 / 1.0 / 1.5 x tank dhw / buffer = 588 inputs: 0 differ, min COP seen 1.0 (ThermalModel.compute_cop's only return is _cop_law's max(cop, 1.0); max(nan, 1.0) is nan in both arms); positive arm: compute_cop forced to 0.5 gives 123.153 vs 61.576 degC/h, so the probe sees the clamp when it acts"
+ },
+ "traced_reach": [
+  "tests/block_duty.py",
+  "tests/boost_drift_replay.py",
+  "tests/config_flow_steps.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/finite_boundary.py",
+  "tests/manual_plan.py",
+  "tests/solar_alignment.py"
+ ],
+ "should_fail": "none: the clamp duplicates the floor compute_cop already applies; no input reaches cop < 1"
+}
