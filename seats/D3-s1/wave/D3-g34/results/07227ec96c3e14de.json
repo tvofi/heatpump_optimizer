@@ -72,5 +72,27 @@
   "  FAIL a9:no_growth  [ceiling tasks=1 listeners=4 stop=1; max t/l/s=3/4/3]",
   "  FAIL hb:changed_save  [max gap 1000.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]"
  ],
- "class": "killed"
+ "class": "killed",
+ "kill_lines": [
+  "  gain max_cc 43 (budget 44, -1; not yet recorded -- see below)",
+  "1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED",
+  ">>> FAILED: python3 tests/structure.py"
+ ],
+ "kill_note": "killed by tests/structure.py's ratchet reading the tree as IMPROVED (max_cc 44 -> 43: the GUARD_OFF removes an if and an or from identify()), not by a behavioural assertion; no other script failed beyond the null's three. Read as KILLED by the metric's definition (run.sh red with a script beyond the null). Behaviour probe, run for the record in the clean probe tree: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_07227ec9.py -> cases_differing=1 (of 1) [negative_ua: baseline refused 'fit gave implausible signs', mutant refused 'fitted parameters outside plausible bounds'], null_differing=0 (of 2); the outcome stays a refusal, only the reason string changes. Carried as a lead, not a finding.",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_07227ec9.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_07227ec9.py",
+  "baseline_value": "[refused:fit gave implausible signs]",
+  "mutant_value": "[refused:fitted parameters outside plausible bounds]",
+  "cases_differing": "1 count (of 1)",
+  "null_differing": "0 count (of 2)",
+  "inputs_tried": [
+   "negative_ua (differs=1)",
+   "plant (differs=0)",
+   "plant_noisy (differs=0)"
+  ],
+  "load1": 0.94,
+  "provisional": true
+ },
+ "should_fail": "n/a: KILLED (tests/structure.py, max_cc ratchet)"
 }
