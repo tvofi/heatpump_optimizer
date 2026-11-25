@@ -27,3 +27,8 @@ Body: handoff-body/r11-seam-actuation-writes at 4e2afe76c6c9655c4a39668505d88aa4
 
 Head, merge base, features/entities counts, the structure row, the post-merge gate line and the archscore line updated. `ci_predict.py --rekey-body --from a41db633` re-keyed 48 `## Unpinned sites` lines. 12 more were re-keyed by identical text at a41db633 (arbiter_record +2 past the new field, coordinator -7; pump_arbiter 2102 BOOLOP -> 2096 and 2112 GUARD_OFF -> 2106, whose text main's retry changed), and 2096 GUARD_OFF was added. `ci_predict.py --only mutation`: all 82 predicted sites listed, none missing.
 Notes: body_push printed "no Prepr: trailer" (the open runs the full prepr) and "could not delete the kept body handoff-wip/r11-seam-actuation-writes-body".
+
+## `_supply_half` anchor re-measure (`mutation_table.py --anchor ... --scripts tests/features.py`, records nothing)
+
+- `pump_arbiter.py:_supply_half BOOLOP 2b7310d1` (line 2096): killed by tests/features.py; baseline rc=0 failed=0 (1451s); null control pump_arbiter.py:232 NULL_COMMENT survived.
+- `_supply_half GUARD_OFF 2b7310d1` (2096) and `_supply_half GUARD_OFF f8d725b0` (2106): NOT RUN. The run hit its 90-minute background limit during the second anchor (about 25 minutes of features.py baseline per anchor). Both are under the body's `## Unpinned sites` for `mutation-autofix`.
