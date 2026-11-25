@@ -2995,7 +2995,9 @@
    "run_sha": "493783248b75a0de7544a6396b62a2bc2021aee6f8aa2b790cbfc7183cf607f0",
    "files": [
     ".github/workflows/governance.yml",
+    ".github/workflows/hassfest.yml",
     ".github/workflows/tests.yml",
+    ".github/workflows/validate.yml",
     "tests/closures.json",
     "tools/ci/fixtures/gate_requeued_needs_runs.json",
     "tools/ci/ghapi.py",
