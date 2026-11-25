@@ -13,3 +13,4 @@
 1795618416 HB alive
 1795619020 HB alive
 1795619374 CKPT 3841: handoff 0d024e2804 pushed; body_push running snapshot cae7c658c7fe
+1795619403 CKPT 3841 handed off: handoff 0d024e2804, body 5d07480448; delta a4123b13fe..0d024e2804 (merge 9a7b262f17 + record 0d024e2804) snapshot acfd8f3fb766
