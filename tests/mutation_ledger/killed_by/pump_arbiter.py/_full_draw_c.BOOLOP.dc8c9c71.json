@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_full_draw_c BOOLOP dc8c9c71",
-  "killed_by": "tests/features.py",
-  "old": "    headroom = inlet is not None and ceiling_c - inlet >= FLOW_MIN_LIFT_K",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): BOOLOP (`or`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 with an uncaught TypeError (failing_count reads the traceback as one): an unread return reaches `ceiling_c - None` in `_wrr_command`."
-}
