@@ -820,7 +820,17 @@ jobs:
     # The instrumented `fast` stage is the whole default gate minus the four
     # end-to-end scripts, run under a tracer that costs roughly a third again.
     timeout-minutes: 90
+    # A light diff that reaches no script, the tracer or its tools (#3885,
+    # tools/ci/prelude.py) measures nothing: a push carries its range base's
+    # trusted entry forward under this commit's key instead, so the next
+    # push still reuses. A miss carries nothing, and the next push measures.
+    env:
+      STAND_DOWN: ${{ contains(format(' {0} ', inputs.stand_down), ' coverage ') }}
     steps:
+      - name: Say whether this lane stands down
+        run: |
+          echo "coverage stand-down: $STAND_DOWN (prelude: '${{ inputs.stand_down }}')"
+
       # Full history: the scope below diffs against the merge base and reads
       # that base's tests/closures.json, as `fast`'s does.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -904,6 +914,7 @@ jobs:
           fi
 
       - name: Install pinned test dependencies
+        if: env.STAND_DOWN != 'true'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
@@ -911,6 +922,7 @@ jobs:
 
       # The runner's speed probe: see the `fast` job's.
       - name: Probe the runner's speed (python 3.13)
+        if: env.STAND_DOWN != 'true'
         run: python3 tests/host_probe.py
 
       # Deliberately NOT added to tests/requirements-ci.txt. env_drift's cache
@@ -921,6 +933,7 @@ jobs:
       # pattern is what decides whether an exempted line leaves the
       # denominator, and tests/coverage_ratchet.py counts against that pattern.
       - name: Install the tracer
+        if: env.STAND_DOWN != 'true'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
@@ -936,6 +949,7 @@ jobs:
       # `fast`'s to judge, on an uninstrumented run, where it is honest. What
       # this job judges is the JSON.
       - name: Measure the tree
+        if: env.STAND_DOWN != 'true'
         env:
           # CI-cost metrics (tests/ci_ratchet.py): coverage_tree.sh appends
           # one line per instrumented script execution here.
@@ -979,7 +993,7 @@ jobs:
       # measurements this run copied from the base instead of re-measuring,
       # with the bounded loss stated in the same line.
       - name: Summarize the per-script reuse
-        if: always()
+        if: always() && env.STAND_DOWN != 'true'
         run: |
           if test -s "$W5P_WORK/out/scripts.tsv"; then
             python tests/closure.py coverage-summary "$W5P_WORK/out/scripts.tsv" \
@@ -992,14 +1006,14 @@ jobs:
       # Kept on a failure too: the run that refuses because the floor moved is
       # exactly the run whose per-module numbers are wanted.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
+        if: always() && env.STAND_DOWN != 'true'
         with:
           name: coverage-json
           path: ${{ env.W5P_WORK }}/out/coverage.json
           if-no-files-found: ignore
 
       - name: Upload the coverage lane's CI metrics
-        if: always()
+        if: always() && env.STAND_DOWN != 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-metrics-coverage
@@ -1013,14 +1027,26 @@ jobs:
       # names, because a cache entry's version hashes its path: saved from
       # the mktemp directory, no restore would ever hit.
       - name: Stage this commit's per-script coverage
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.STAND_DOWN != 'true'
         run: |
           cp -R "$W5P_WORK/out/per" "$RUNNER_TEMP/coverage-base"
           printf '%s %s %s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$(git rev-parse HEAD)" \
             > "$RUNNER_TEMP/coverage-base/.measured-by"
 
+      # The stand-down's carry (#3885): no script's closure moved, so the
+      # range base's trusted data is this commit's, re-marked at this commit.
+      - name: Carry the range base's per-script coverage forward
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+          && env.STAND_DOWN == 'true' && steps.covtrust.outputs.trusted == 'true'
+        run: |
+          printf '%s %s %s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$(git rev-parse HEAD)" \
+            > "$RUNNER_TEMP/coverage-base/.measured-by"
+
       - name: Save this commit's per-script coverage
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+          && (env.STAND_DOWN != 'true' || steps.covtrust.outputs.trusted == 'true')
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/coverage-base
@@ -1047,7 +1073,14 @@ jobs:
       )
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Nothing to grade when `coverage` stood down (#3885): it measured nothing.
+    env:
+      STAND_DOWN: ${{ contains(format(' {0} ', inputs.stand_down), ' coverage ') }}
     steps:
+      - name: Say whether this lane stands down
+        run: |
+          echo "coverage-ratchet stand-down: $STAND_DOWN (prelude: '${{ inputs.stand_down }}')"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -1057,6 +1090,7 @@ jobs:
       # A missing artifact fails this step, so a measurement that never
       # happened is a red here, never a green.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: env.STAND_DOWN != 'true'
         with:
           name: coverage-json
           path: ${{ runner.temp }}/coverage
@@ -1071,6 +1105,7 @@ jobs:
       # a lint that refuses the forms known to break it. The pull
       # request's own copy runs in `graders-head-copy`, which is not required.
       - name: Ratchet the floor and the pragma count with the base's grader
+        if: env.STAND_DOWN != 'true'
         env:
           PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
         run: |
@@ -1606,6 +1641,7 @@ jobs:
         if: >-
           steps.changed.outputs.coverage_ratchet == 'true'
           && needs.coverage.result != 'skipped'
+          && !contains(format(' {0} ', inputs.stand_down), ' coverage ')
         with:
           name: coverage-json
           path: ${{ runner.temp }}/coverage
@@ -1618,6 +1654,7 @@ jobs:
         if: >-
           steps.changed.outputs.coverage_ratchet == 'true'
           && needs.coverage.result != 'skipped'
+          && !contains(format(' {0} ', inputs.stand_down), ' coverage ')
         run: |
           python3 tests/coverage_ratchet.py \
             --coverage "$RUNNER_TEMP/coverage/coverage.json"

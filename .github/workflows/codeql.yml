@@ -39,7 +39,9 @@ name: CodeQL
 #     which is what the weekly cadence existed to guarantee on a quiet default
 #     branch. A light push (#3885: no production file in its range,
 #     tools/ci/prelude.py) decides each leg as a pull request over that range
-#     does: a leg it skips is analyzed by the next push that is not light.
+#     does, except that every light run (pull request, dispatch or push)
+#     skips the python leg: a leg it skips is analyzed by the next push
+#     that is not light.
 #
 # A pull request's python leg also ignores tests/ and dev/ (r10-codeql-pr-paths,
 # orchestrator ruling under mandate 6715477401, scope all, not tvofi in person):

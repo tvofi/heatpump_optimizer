@@ -4,6 +4,7 @@
     python3 dev/audit/harnesses/ci3885_light.py mutants
     python3 dev/audit/harnesses/ci3885_light.py gaps [--since 2026-11-10] [--ref origin/main]
     python3 dev/audit/harnesses/ci3885_light.py cost RUN_ID [RUN_ID...]
+    python3 dev/audit/harnesses/ci3885_light.py share DAY [--event workflow_dispatch]
 
 `mutants` reverts one production line of the fix at a time, in place, runs
 `tools/ci/prelude.py --self-test` and prints the checks that fail; the file is
@@ -15,7 +16,8 @@ closure can now have before a full push reddens main. Its null control is the
 predicate with PRODUCTION_FILES emptied (`--prefixes-only`).
 `cost` sums runner minutes per job of a run, every attempt (`gh api`;
 started_at to completed_at, skipped jobs excluded), the job table a light run's
-cost is read from.
+cost is read from. `share` splits one day's runs of an event into light and full by
+prelude.light over the named PR's final file list, with their runner minutes.
 """
 from __future__ import annotations
 
@@ -68,6 +70,15 @@ MUTANTS = [
      "        if: needs.closure-scope.outputs.typing_skip != 'skip'\n"),
     ("M12 env-matrix stops reading the stand-down", WF / "governance.yml",
      " || contains(format(' {0} ', inputs.stand_down), ' env-matrix ') }}", " }}"),
+    ("M13 a light run analyzes the python leg", P,
+     'LIGHT_SKIP_LEGS = ("python",)', 'LIGHT_SKIP_LEGS = ()'),
+    ("M14 coverage stands down when the diff touches tests/", P,
+     '"coverage": (None, ("tests/", ', '"coverage": (None, ('),
+    ("M15 coverage-ratchet's job env stops reading the stand-down", WF / "tests.yml",
+     "    # Nothing to grade when `coverage` stood down (#3885): it measured nothing.\n    env:\n"
+     "      STAND_DOWN: ${{ contains(format(' {0} ', inputs.stand_down), ' coverage ') }}\n",
+     "    # Nothing to grade when `coverage` stood down (#3885): it measured nothing.\n    env:\n"
+     "      STAND_DOWN: false\n"),
 ]
 
 
@@ -153,6 +164,45 @@ def cost(run_ids: list[str]) -> int:
     return 0
 
 
+def share(day: str, event: str) -> int:
+    """Runs of ci.yml for `event` created on `day`, split by prelude.light over the file list of
+    the PR the title names (its final list: a per-head list is not kept); a run naming no PR is
+    full. Minutes as `cost` sums them (every attempt's latest jobs listing, filter=all). The light
+    runs' minutes are then split per job whose name carries a lane the fix stands down."""
+    lanes = ("python", "coverage", "browser", "typing", "hassfest", "validate", "closures", "env-matrix")
+    per = collections.Counter()
+    def api(path):
+        return json.loads(subprocess.run(["gh", "api", "--paginate", path], capture_output=True, text=True,
+                                         check=True).stdout.replace("}{", "},{").join(("[", "]")))
+    runs = [r for page in api(f"repos/{{owner}}/{{repo}}/actions/workflows/ci.yml/runs?event={event}"
+                              f"&created={day}&per_page=100") for r in page["workflow_runs"]]
+    cls, tot = {}, collections.Counter()
+    for r in runs:
+        t = prelude.parse_title(r.get("display_title") or "")
+        pr = t[1] if t else ""
+        if pr and pr not in cls:
+            files = [f["filename"] for page in api(f"repos/{{owner}}/{{repo}}/pulls/{pr}/files?per_page=100")
+                     for f in page]
+            cls[pr] = "light" if prelude.light(files) else "full"
+        c = cls.get(pr, "full")
+        m = 0.0
+        for page in api(f"repos/{{owner}}/{{repo}}/actions/runs/{r['id']}/jobs?filter=all&per_page=100"):
+            for j in page["jobs"]:
+                if j.get("conclusion") != "skipped" and j.get("started_at") and j.get("completed_at"):
+                    s, e = (dt.datetime.fromisoformat(j[k].replace("Z", "+00:00")) for k in ("started_at", "completed_at"))
+                    m += max((e - s).total_seconds() / 60, 0)
+                    hit = [x for x in lanes if x in j["name"]]
+                    if c == "light" and hit:
+                        per[j["name"]] += max((e - s).total_seconds() / 60, 0)
+        tot[c, "runs"] += 1
+        tot[c, "min"] += m
+    for c in ("light", "full"):
+        print(f"{event} {day} {c}: {tot[c, 'runs']} runs, {tot[c, 'min']:.0f} runner-min")
+    for name, m in per.most_common():
+        print(f"{event} {day} light job {name}: {m:.0f} runner-min")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -163,7 +213,12 @@ def main(argv: list[str]) -> int:
     g.add_argument("--prefixes-only", action="store_true")
     c = sub.add_parser("cost")
     c.add_argument("run_ids", nargs="+")
+    sh = sub.add_parser("share")
+    sh.add_argument("day")
+    sh.add_argument("--event", default="workflow_dispatch")
     a = ap.parse_args(argv)
+    if a.cmd == "share":
+        return share(a.day, a.event)
     if a.cmd == "mutants":
         return mutants()
     if a.cmd == "gaps":

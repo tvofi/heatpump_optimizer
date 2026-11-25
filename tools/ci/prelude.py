@@ -122,7 +122,17 @@ LIGHT_LANES = {
                                          "pyproject.toml")),
     "hassfest": (None, ()),
     "validate": (None, ()),
+    # Coverage measures the package under the suite: it moves only with the package (never
+    # light), the scripts and the tracer's own tools, which its cache key hashes. A light
+    # push it stands down carries its range base's entry forward (tests.yml).
+    "coverage": (None, ("tests/", "tools/coverage/")),
 }
+# The lanes whose every step past the first reads the stand-down; coverage keeps the
+# steps that carry its cache entry forward, and the push lanes gate by MACHINERY_IDLE.
+STEP_GATED = ("browser", "typing", "hassfest", "validate")
+# Orchestrator ruling under mandate 6893738184 (2026-11-25): a light run's python leg
+# stands down whatever its suffixes say; the next push that is not light analyzes it.
+LIGHT_SKIP_LEGS = ("python",)
 # On a light PUSH the full re-measurements its pull requests already made per
 # diff stand down as well: the closures re-record and the environment matrix.
 LIGHT_PUSH_LANES = ("closures", "env-matrix")
@@ -396,7 +406,8 @@ def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON, 
 #: (workflow, job) -> the `stand_down` lane name its steps gate on; `light_gates` pins it.
 LIGHT_GATE = {("tests.yml", "browser"): "browser", ("tests.yml", "typing"): "typing",
               ("tests.yml", "closures"): "closures", ("governance.yml", "env-matrix"): "env-matrix",
-              ("hassfest.yml", "hassfest"): "hassfest", ("validate.yml", "validate-hacs"): "validate"}
+              ("hassfest.yml", "hassfest"): "hassfest", ("validate.yml", "validate-hacs"): "validate",
+              ("tests.yml", "coverage"): "coverage", ("tests.yml", "coverage-ratchet"): "coverage"}
 
 
 def _job_text(workflows: Path, wf: str, job: str) -> str:
@@ -414,7 +425,7 @@ def light_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> 
         env = re.search(r"\n    env:\n((?:      [^\n]*\n)+)", "\n" + text)
         reads = re.findall(pat, "\n" + env.group(1)) if env else []
         names = {n for _, n in reads}
-        if lane in LIGHT_LANES:
+        if lane in STEP_GATED:
             steps = re.split(r"\n      - ", text.split("\n    steps:\n", 1)[-1])[2:]
             var = reads[0][0] if reads else "-"
             names |= {"every step reads it"} if steps and all(f"env.{var} != 'true'" in s for s in steps) else set()
@@ -607,7 +618,8 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     # and re-measures them.
     out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
     out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
-    out["legs"] = json.dumps({leg: codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
+    out["legs"] = json.dumps({leg: "skip" if out["light"] == "true" and leg in LIGHT_SKIP_LEGS
+                              else codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     if not why and kind == "edit":
         try:
@@ -1014,18 +1026,21 @@ def self_test() -> int:
         cj = Path(td) / "closures.json"
         cj.write_text(json.dumps({"closures": {"tests/plan_view.py": ["tests/harness.py", "tests/plan_view.py"],
                                                "tests/typing_ruler.py": ["tests/typing_budgets.json"]}}))
-        prod_lanes = ["browser", "hassfest", "typing", "validate"]
+        prod_lanes = ["browser", "coverage", "hassfest", "typing", "validate"]
         check("#3885: a light pull request stands the product lanes down",
               stand_down([rec], False, cj), prod_lanes)
         check("#3885: a light push also stands down the re-measurements its pull requests made",
               stand_down([rec], True, cj), sorted(prod_lanes + ["closures", "env-matrix"]))
         for f, lane in (("tests/harness.py", "browser"), ("tests/card_browser.mjs", "browser"),
                         ("tests/pwlane/package.json", "browser"), ("tests/typing_budgets.json", "typing"),
-                        ("pyproject.toml", "typing"), ("tests/requirements-ci.txt", "typing")):
+                        ("pyproject.toml", "typing"), ("tests/requirements-ci.txt", "typing"),
+                        ("tests/other.py", "coverage"), ("tools/coverage/coverage_tree.sh", "coverage")):
             check(f"#3885: {f}, a file {lane} reads, keeps {lane} grading", lane in stand_down([rec, f], False, cj),
                   False)
-        check("#3885: a file no lane reads keeps none (null control)", stand_down([rec, "tests/other.py"], False, cj),
+        check("#3885: a file no lane reads keeps none (null control)", stand_down([rec, "tools/ci/gate.py"], False, cj),
               prod_lanes)
+        check("#3885: a tests/ file keeps coverage and stands the rest down",
+              stand_down([rec, "tests/other.py"], False, cj), ["browser", "hassfest", "typing", "validate"])
         check("#3885: a production file stands nothing down", stand_down([rec, "hacs.json"], True, cj), [])
         check("#3885: an unreadable script table stands nothing down", stand_down([rec], True, Path(td) / "x"), [])
         cj.write_text(json.dumps({"closures": {"tests/plan_view.py": ["tests/plan_view.py"]}}))
@@ -1075,7 +1090,7 @@ def self_test() -> int:
     o = push_out(("P", [rec]))
     check("#3885: a light push is graded as a pull request over its range",
           (o["scope"], o["light"], o["range_base"], o["selftests"], o["stand_down"], set(json.loads(o["legs"]).values())),
-          ("auto", "true", "P", "sel P..H", "browser closures env-matrix hassfest typing validate", {"skip"}))
+          ("auto", "true", "P", "sel P..H", "browser closures coverage env-matrix hassfest typing validate", {"skip"}))
     o = push_out(("B", files_since["B"]))
     check("#3885: a push whose range holds production is graded in full, its range base kept (null control)",
           (o["scope"], o["light"], o["range_base"], o["selftests"], o["stand_down"], set(json.loads(o["legs"]).values())),
@@ -1084,16 +1099,30 @@ def self_test() -> int:
     check("#3885: an unranged push is graded in full", (o["scope"], o["light"], o["range_base"]), ("full", "false", ""))
     o = outputs(ctx("pull_request", action="synchronize", pull_request=pr), [rec], g(live))[0]
     check("#3885: a light pull request keeps its scope and stands only the product lanes down",
-          (o["scope"], o["light"], o["stand_down"]), ("auto", "true", "browser hassfest typing validate"))
+          (o["scope"], o["light"], o["stand_down"]), ("auto", "true", "browser coverage hassfest typing validate"))
+    py = "tools/ci/gate.py"
+    o = outputs(ctx("pull_request", action="synchronize", pull_request=pr), [rec, py], g(live))[0]
+    check("#3885: a light pull request touching python stands the python leg down",
+          json.loads(o["legs"])["python"], "skip")
+    # codeql_scope analyzes every leg when its own file changes; light still stands python down,
+    # since the next push that is not light analyzes it, and leaves the other legs to the scoper.
+    o = outputs(ctx("pull_request", action="synchronize", pull_request=pr), [rec, _codeql_scope().SELF], g(live))[0]
+    check("#3885: ... even where codeql_scope would analyze it, the other legs kept",
+          json.loads(o["legs"]), {"actions": "analyze", "javascript-typescript": "analyze", "python": "skip"})
+    o = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                [py, "custom_components/heatpump_optimizer/const.py"], g(live))[0]
+    check("#3885: ... and a production python file beside it analyzes (null control)",
+          (o["light"], json.loads(o["legs"])["python"], o["stand_down"]), ("false", "analyze", ""))
     o = outputs(ctx("merge_group", merge_group={"head_ref": "refs/heads/gh-readonly-queue/main/pr-12-" + "a" * 40}),
                 [rec], g(live))[0]
     check("#3885: a merge-queue run is never light", (o["light"], o["stand_down"]), ("false", ""))
     check("#3885: each light lane's job env reads exactly its own stand_down name, and every step of a "
           "product lane past its first reads that variable",
-          light_gates(), {k: {v} | ({"every step reads it"} if v in LIGHT_LANES else set())
+          light_gates(), {k: {v} | ({"every step reads it"} if v in STEP_GATED else set())
                           for k, v in LIGHT_GATE.items()})
+    check("#3885: the step-gated lanes are light lanes", set(STEP_GATED) <= set(LIGHT_LANES), True)
     check("#3885: the light lanes are exactly LIGHT_LANES and LIGHT_PUSH_LANES",
-          sorted(LIGHT_GATE.values()), sorted(set(LIGHT_LANES) | set(LIGHT_PUSH_LANES)))
+          sorted(set(LIGHT_GATE.values())), sorted(set(LIGHT_LANES) | set(LIGHT_PUSH_LANES)))
     print(f"prelude self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
