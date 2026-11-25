@@ -67,6 +67,8 @@ from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, de
                      run_jobs, standing, title, workset)
 
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet")}      # B3
+# The fast lane's unsharded job name; sharded, `fast (3.14, K/N)` per shard the prelude planned.
+FAST = "fast (3.14)"
 # The push-only job that is graded on its own and never fails the gate: a red
 # ci-ratchet is a debt the follow-up pays, and the merge it grades already
 # happened (tests.yml: "Not a required context"). It still runs, and
@@ -155,6 +157,17 @@ def lag_bound(why: list[str]) -> int:
     return GATE_ABSENT_MAX_S if any(w.endswith(OWN_ABSENT) for w in why) else GATE_WAIT_MAX_S
 
 
+def fast_names(shards) -> tuple[list[str], str]:
+    """(the fast lane's job names, '' or why the prelude's shard list is refused). None or [] is the one
+    unsharded job; otherwise exactly `1/N`..`N/N` in order, each its own `fast (3.14, K/N)` job."""
+    if not shards:
+        return [FAST], ""
+    n = len(shards) if isinstance(shards, list) else 0
+    if not n or shards != [f"{k}/{n}" for k in range(1, n + 1)]:
+        return [], f"the prelude's fast shards {shards!r} are not 1/N..N/N"
+    return [f"{FAST[:-1]}, {s})" for s in shards], ""
+
+
 def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
     """The 4.1 predicate over what gate.py read (gate_model.gate's `api` shape):
     prelude, jobs (this run's, latest), runs_at_head (every OTHER run here,
@@ -191,10 +204,13 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
     waiting = busy(ctx, others)
     if waiting:
         return False, [deferral(waiting)]
+    fast, why_fast = fast_names(pre.get("fast_shards"))
+    if why_fast:
+        return False, [why_fast]
     required: dict[str, list[str]] = {}
     for name in REQUIRED[event_class(ev, pr, api.get("reaches_cc"))]:
         u, n = name.split(" / ", 1)
-        required.setdefault(u, []).append(n)
+        required.setdefault(u, []).extend(fast if (u, n) == ("tests", FAST) else [n])
     me = {"id": ctx["run_id"], "title": title(kind, pr, base, ctx.get("sha", "")), "status": "completed",
           "jobs": api["jobs"], "starts": api.get("starts") or {}}
 
@@ -318,7 +334,11 @@ def status(jobs: dict, cls: str) -> tuple[str, str]:
         if any(j is not None and j[0] == "completed" and j[1] not in ("success", "cancelled") for j in ran):
             return RED
         return GREEN if ran and all(j is not None and j[1] == "success" for j in ran) else UNREAD
-    return verdict([n for n in REQUIRED[cls] if n not in MACHINERY_JOBS]), verdict(MACHINERY_JOBS)
+    # A sharded run lists `fast (3.14, K/N)` jobs in place of the one fast job (fast_names).
+    shards = sorted(n for n in jobs if n.startswith(f"tests / {FAST[:-1]}, "))
+    product = [m for n in REQUIRED[cls] if n not in MACHINERY_JOBS
+               for m in (shards if n == f"tests / {FAST}" and shards else [n])]
+    return verdict(product), verdict(MACHINERY_JOBS)
 
 
 def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
@@ -408,6 +428,11 @@ def main(argv: list[str], get=ghapi.get, post=ghapi.post, env=os.environ) -> int
         claim = {"kind": a.kind, "pr": a.pr}
         if env.get("WORKSET") is not None:          # the prelude's workset output (ci.yml's gate step)
             claim["workset"] = set(env["WORKSET"].split())
+        if env.get("FAST_SHARDS"):                  # the prelude's fast_shards output; empty: one unsharded job
+            try:
+                claim["fast_shards"] = json.loads(env["FAST_SHARDS"])
+            except ValueError:
+                claim["fast_shards"] = env["FAST_SHARDS"]   # refused by fast_names: red, never unsharded
         outcome, why, notes = judge(ctx, claim, get)
     except ghapi.RateLimited as e:
         outcome, why = f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", [str(e)]
@@ -464,6 +489,29 @@ def self_test() -> int:
         return get
     claim, cc = {"kind": "code", "pr": "7"}, (lambda b, h: True)
     check("null: every source green", judge(ctx, claim, fake(), cc)[0], "PASS")
+    # R11-CI-CASE-SELECT P2: the fast lane as the prelude's shards. Each shard is owed; none stands in.
+    # gate() over read_api() directly: an own job ABSENT is judge()'s lag wait, which this needs no clock for.
+    sh = ["1/3", "2/3", "3/3"]
+    sclaim = {**claim, "fast_shards": sh}
+    sgreen = [j for j in green if j["name"] != f"tests / {FAST}"] + [
+        {"name": f"tests / {FAST[:-1]}, {s})", "status": "completed", "conclusion": "success", "id": 1} for s in sh]
+
+    def first(cl, jobs):
+        ok, why = gate(ctx, read_api(ctx, cl, True, fake(jobs)))
+        return "PASS" if ok else why[0]
+    check("null: every fast shard green passes", first(sclaim, sgreen), "PASS")
+    check("a missing fast shard is red", first(sclaim, [j for j in sgreen if "2/3" not in j["name"]]),
+          f"tests / {FAST[:-1]}, 2/3){OWN_ABSENT}")
+    check("a skipped fast shard is red",
+          first(sclaim, [dict(j, conclusion="skipped") if "3/3" in j["name"] else j for j in sgreen]),
+          f"tests / {FAST[:-1]}, 3/3): SKIPPED (this run)")
+    check("the unsharded job does not stand in for claimed shards", first(sclaim, green),
+          f"tests / {FAST[:-1]}, 1/3){OWN_ABSENT}")
+    check("no shards claimed: the unsharded job is owed", first({**claim, "fast_shards": []}, sgreen),
+          f"tests / {FAST}{OWN_ABSENT}")
+    for bad in (["1/3", "3/3"], ["1/2", "2/3"], ["1/3", "2/3", "3/3", "3/3"], ["x"], "1/1"):
+        check(f"a shard list that is not 1..N ({bad!r}) is red",
+              first({**claim, "fast_shards": bad}, sgreen).startswith("the prelude's fast shards"), True)
     extra = green + [{"name": "tests / nightly-status", "status": "completed", "conclusion": "failure"}]
     check("a red job no class requires is reported, never gating", judge(ctx, claim, fake(extra), cc)[::2],
           ("PASS", ["tests / nightly-status: failure"]))
@@ -495,6 +543,11 @@ def self_test() -> int:
     check("a push run red only in tests / closures reads PRODUCT green, MACHINERY red", st(closures=red_job), (GREEN, RED))
     check("null: a push run red in tests / fast (3.14) reads PRODUCT red, MACHINERY green",
           st(**{"tests / fast (3.14)": red_job}), (RED, GREEN))
+    sj = {k: v for k, v in pj.items() if k != f"tests / {FAST}"}
+    sj.update({f"tests / {FAST[:-1]}, {k}/2)": ("completed", "success") for k in (1, 2)})
+    check("a sharded push run with every shard green reads PRODUCT green", status(sj, "push"), (GREEN, GREEN))
+    check("a sharded push run with one shard red reads PRODUCT red",
+          status({**sj, f"tests / {FAST[:-1]}, 2/2)": red_job}, "push"), (RED, GREEN))
     check("a member absent, unfinished or cancelled is unread, never green, in either verdict",
           [st(drop=("tests / typing",)), st(typing=running), st(typing=cancelled),
            st(drop=("tests / briefs",)), st(briefs=running), st(briefs=cancelled)],

@@ -652,8 +652,10 @@ def push_range(ctx: dict, get, diff=None, ancestor=None,
 
 
 def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
-            selftests=selftest_scope, dispatch_diff=dispatch_diff, push_range=push_range) -> tuple[dict, str]:
-    """(the outputs, '' or why the prelude fails)."""
+            selftests=selftest_scope, dispatch_diff=dispatch_diff, push_range=push_range,
+            fast=None) -> tuple[dict, str]:
+    """(the outputs, '' or why the prelude fails). `fast` is shards.outputs (main passes it):
+    the fast lane's shards, sized by the list the scope reads, its timings read at the base."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
     out = {"kind": kind, "pr": pr, "base": base, "head": ctx["head"],
@@ -693,6 +695,9 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     # and re-measures them.
     out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
     out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
+    if fast is not None:
+        out.update(fast(changed if scoped == "pull_request" else None,
+                        ctx.get("base_sha") or ctx.get("before") or ctx["head"]))
     out["legs"] = json.dumps({leg: "skip" if out["light"] == "true" and leg in LIGHT_SKIP_LEGS
                               else codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
@@ -719,7 +724,8 @@ def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
         return 2
     ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
     try:
-        out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get)
+        import shards                              # tools/ci/shards.py (R11-CI-CASE-SELECT P2)
+        out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get, fast=shards.outputs)
     except ghapi.RateLimited as e:
         print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
         return 3

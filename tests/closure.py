@@ -248,6 +248,10 @@ PRODUCERS = {
     "tests/card.mjs": ["tests/plan_view.py"],
     # The markup gate renders both sides against the same payload.
     "tests/card_drift.mjs": ["tests/plan_view.py"],
+    # The setup render reads the same payload (run.sh, lane_e2e). Not selectable
+    # (NOT_A_TEST), so only lane_edges reads this entry: a fast shard keeps it
+    # with its writer (tools/ci/shards.py).
+    "tests/setup_qa_render.mjs": ["tests/plan_view.py"],
 }
 
 # ---------------------------------------------------------------------------
