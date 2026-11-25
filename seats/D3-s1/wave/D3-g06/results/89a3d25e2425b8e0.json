@@ -1,0 +1,128 @@
+{
+ "key": "89a3d25e2425b8e0",
+ "site": "coordinator.py:9386 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/coordinator.py",
+ "patch": "if capacity <= 1e-6 or dt_h <= 1e-6: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture@9383-9402",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3155.3,
+  "load1_start": 1.08,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/gates/89a3d25e2425b8e0.json",
+  "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 89a3d25e2425b8e0",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py",
+  "rc": 0,
+  "baseline_value": "(0.0,1.0,0.0,0.0)",
+  "mutant_value": "(1.0,1.0,0.0392,0.0)",
+  "cases": {
+   "cap0": [
+    "(0.0,1.0,0.0,0.0)",
+    "(1.0,1.0,0.0392,0.0)"
+   ],
+   "dt0": [
+    "(0.0,1.0,0.0,0.0)",
+    "raisesZeroDivisionError"
+   ],
+   "dt_neg": [
+    "(0.0,1.0,0.0,0.0)",
+    "(1.0,1.0,0.0392,-0.16)"
+   ]
+  },
+  "cases_moved": 3,
+  "null_moved": 0,
+  "nulls": {
+   "cap10_dt0p5": "(1.0,1.0,0.0392,0.16)",
+   "default": "(1.0,1.0,0.0392,0.16)"
+  },
+  "inputs_tried": [
+   "cap0: capacity=0.0",
+   "dt0: dt_h=0.0",
+   "dt_neg: dt_h=-0.5",
+   "null cap10_dt0p5: capacity=10.0",
+   "null default: defaults"
+  ],
+  "thread_factor": "1.000",
+  "load1": "0.74",
+  "metric": "(n, scale, mx, my) of the solar-aperture regression after one fold, or the exception",
+  "reach": "capacity = _zone_capacity(params) and dt_h from the learning cycle; zero or negative needs a degenerate mass or a clock step"
+ },
+ "should_fail": "tests/features.py #36 aperture block folds only the default mass and dt_h 0.5; no check with a zero mass or zero dt_h",
+ "class": "candidate",
+ "finding": {
+  "title": "No check folds the solar aperture with zero mass or zero dt_h; dropping the guard is unseen",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "severity_claimed": "low",
+  "severity": "low",
+  "stop_rule_class": "hygiene",
+  "class_guess": "new",
+  "claim": "Mutant 89a3d25e2425b8e0 at coordinator.py:9386 GUARD_OFF (if capacity <= 1e-6 or dt_h <= 1e-6: -> if False:) RED-AS-NULL the full GATE_SCOPE=full GOLDEN_MODE=drift gate on box D3-g06, yet its probe moves on 3 of 3 inputs: cap0 baseline (0.0,1.0,0.0,0.0), mutant (1.0,1.0,0.0392,0.0).",
+  "mechanism": "Direction: baseline skips; the mutant folds a zero-mass sample (n 0 -> 1), raises ZeroDivisionError at dt_h 0, or folds a negative-dt sample. Reach: capacity = _zone_capacity(params) and dt_h from the learning cycle; zero or negative needs a degenerate mass or a clock step. Check that should have failed (D3.M4): tests/features.py #36 aperture block folds only the default mass and dt_h 0.5; no check with a zero mass or zero dt_h.",
+  "metric_definition": "(n, scale, mx, my) of the solar-aperture regression after one fold, or the exception",
+  "phenomenon_property": "_fold_solar_aperture folds nothing, and never raises, when capacity <= 1e-6 or dt_h <= 1e-6",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivor wave list; full-gate survivors are its keys whose gates/<key>.json verdict is SURVIVED or RED-AS-NULL)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_solar_aperture",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py",
+   "value": "(1.0,1.0,0.0392,0.0)",
+   "unit": "(n, scale, mx, my) of the solar-aperture regression after one fold, or the exception (input cap0; baseline (0.0,1.0,0.0,0.0))",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g06: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's full gates ran (one gate at a time)",
+   "tolerance": "exact",
+   "load1": 0.74,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant if capacity <= 1e-6 or dt_h <= 1e-6: -> if False: at coordinator.py:9386 GUARD_OFF, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 89a3d25e2425b8e0",
+   "expected_direction": "up",
+   "observed_value": "(1.0,1.0,0.0392,0.0)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py",
+   "value": "0 count",
+   "note": "null inputs cap10_dt0p5, default: both arms agree; full-gate null on this box: gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 89a3d25e2425b8e0"
+  ],
+  "proposed_fix_scope": "tests only: a check at the input above that pins the baseline outcome (cap0: (0.0,1.0,0.0,0.0))",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}
