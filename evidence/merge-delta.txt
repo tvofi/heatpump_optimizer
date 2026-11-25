@@ -1,0 +1,7 @@
+git merge-tree --write-tree origin/main 29187b1ebc0f2c83bbb411af0a22ddb92b8068c3
+88587044a56b38e583c397668030bf6ad8504bf2
+rc=0
+3210fcd7334af9a870a8a7c23322fcaead7e14eb
+roles diff lines: 0
+ tools/audit/seat/roster_lib.py | 4 ++++
+ 1 file changed, 4 insertions(+)

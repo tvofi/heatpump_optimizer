@@ -1,9 +1,0 @@
-== tools/audit/seat/roster_lib.py
-roster_lib self-test: 124 checks, 0 failed
-rc=0
-== tools/audit/seat/roster_queue.py
-roster_queue self-test: 69 checks, 0 failed
-rc=0
-== tools/audit/seat/closeout.py
-closeout self-test: 41 checks, 0 failed
-rc=0
