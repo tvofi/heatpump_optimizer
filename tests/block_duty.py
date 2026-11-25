@@ -1060,6 +1060,18 @@ def hysteresis_checks() -> None:
           lambda: list(start.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan, start_below: plan))
           == list(drop(plan, np.full(8, 51.0), temps_of)))
 
+    def replaces_first(plan, start_below):
+        # A repair that puts back the first-step charge on a 54 degC tank every round.
+        out = plan.copy()
+        out[0] = 1.0
+        return out
+
+    first = np.array([1.0, 0.0, 0.0])
+    check("with no charge under way a repair that keeps re-placing a first-step charge on a warm tank "
+          "still leaves a plan without it; null control, with one under way the charge stands",
+          lambda: list(start.place_startable(first, np.full(3, 51.0), temps_of, replaces_first, False)) == [0, 0, 0]
+          and list(start.place_startable(first, np.full(3, 51.0), temps_of, replaces_first, True)) == [1, 0, 0])
+
     # 8b. The clamp-then-zero step the placement stages share.
     from heatpump_optimizer.dhw_planner import DhwPlanner
     floor_kw = 1.0
@@ -1109,6 +1121,24 @@ def hysteresis_checks() -> None:
           "a 5 degC entity's pump starts below", lambda: stepped_late(None) > 0)
     check("handed the 5 degC entity's grid, no planned charge after step 0 begins at or above 51 degC",
           lambda: stepped_late(_step(5)) == 0)
+
+    windowed = {}
+
+    def window_plan(hysteresis, under_way):
+        # A 00:15 demand window at a 53 degC minimum on a 52 degC tank: the cheapest cover is a
+        # charge in step 0, which the pump makes only if one is under way (start below 51 with 4 K).
+        if (hysteresis, under_way) not in windowed:
+            windowed[hysteresis, under_way] = _solve_winter_mild(
+                hysteresis, under_way=under_way, window="00:15-02:00", min_c=53.0, tank_c=52.0)[0]
+        return windowed[hysteresis, under_way]
+
+    check("with no charge under way the planner drops a step-0 hot water run on a tank at or above "
+          "its start temperature and re-buys from step 1; null control, with one under way it charges step 0",
+          lambda: window_plan(4.0, False)[0] == 0.0 and window_plan(4.0, False)[1] > 0.0
+          and window_plan(4.0, True)[0] > 0.0)
+    check("null control: with no hysteresis read the step-0 run stands whether or not a charge is under way",
+          lambda: window_plan(None, False)[0] > 0.0
+          and np.array_equal(window_plan(None, False), window_plan(None, True)))
 
     pinned_plan, pinned_temps = _solve_winter_mild(None, dhw_pins=np.ones(96))
     check("a day with hot water pinned on at every step is still held to the tank's charge limit of 55 degC",
@@ -1283,8 +1313,13 @@ def hysteresis_checks() -> None:
           and gridded.dhw_setpoint_grid.step == 5.0 and none.dhw_setpoint_grid is None)
 
 
-def _solve_winter_mild(hysteresis, dhw_pins=None, setpoint_c=None, attrs=None):
-    """The 24 h solve of ``dev/audit/harnesses/r10_dhw_start_hysteresis.py`` (winter_typical, winter_mild, 53 degC)."""
+def _solve_winter_mild(hysteresis, dhw_pins=None, setpoint_c=None, attrs=None, under_way=True,
+                       window=None, min_c=None, tank_c=53.0):
+    """The 24 h solve of ``dev/audit/harnesses/r10_dhw_start_hysteresis.py`` (winter_typical, winter_mild, 53 degC).
+
+    ``under_way`` is the state's ``dhw_charge_under_way``; ``window`` (a ``parse_windows`` spec) and
+    ``min_c`` set a hot-water demand window and its usable minimum; ``tank_c`` is the tank at the start.
+    """
     import numpy as np
     from profiles import house, prices, solve_inputs, weather
     from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
@@ -1296,15 +1331,21 @@ def _solve_winter_mild(hysteresis, dhw_pins=None, setpoint_c=None, attrs=None):
     params.dhw_enabled = True
     if setpoint_c is not None:
         params.dhw_setpoint = setpoint_c
+    if window is not None:
+        from heatpump_optimizer.dhw_schedule import parse_windows
+        params.dhw_schedule_enabled, params.dhw_windows = True, parse_windows(window)
+    if min_c is not None:
+        params.dhw_min_temp = min_c
     opt = HeatPumpOptimizer(ThermalModel(params), OptimizationConfig(
         horizon_hours=24, time_step_minutes=15, target_temp=cfg["target_temperature"],
         min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"]))
     outdoor, wind, rain, sun = weather("winter_mild", begin)
     state = ThermalState(
         room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(outdoor[0]),
-        dhw_temperature=53.0, dhw_hours_since_legionella=20.0, upper_floor_temperature=21.0,
+        dhw_temperature=tank_c, dhw_hours_since_legionella=20.0, upper_floor_temperature=21.0,
         lower_floor_temperature=21.0, buffer_tank_temperature=40.0)
     state.dhw_start_hysteresis_k = hysteresis
+    state.dhw_charge_under_way = under_way
     if attrs:
         state.dhw_setpoint_grid = _start_state(hysteresis, attrs).dhw_setpoint_grid
     result = opt.optimize(inputs=solve_inputs(
