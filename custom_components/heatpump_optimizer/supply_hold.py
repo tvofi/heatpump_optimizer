@@ -65,7 +65,7 @@ from .plan_step import PLAN_STEP_MINUTES, plan_step_start
 from .pump_arbiter import ArbiterInputs, ArbiterState, cooling_mode, step_duty, step_supply, supply_switch
 from .runs import MIN_PAUSE, MIN_RUN
 
-#: The ``_learning_frozen`` reason for an interval in which a write was held.
+#: The ``_learning_frozen`` reason for an interval in which a write was held. (null control)
 FREEZE_HELD = "supply_held"
 
 #: Switch states that say nothing about the pump.
