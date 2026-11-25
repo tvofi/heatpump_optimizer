@@ -1,0 +1,43 @@
+{
+ "key": "3ceb6a076659004f",
+ "site": "custom_components/heatpump_optimizer/price_model.py:510 GUARD_OFF",
+ "patch": "`if known_count >= n_steps:` -> `if False:`",
+ "function": "extend_price_series",
+ "cluster": "price_model.py:extend_price_series@510-544",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3269.1,
+  "load1_start": 0.88,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5445.6,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/gates/3ceb6a076659004f.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3ceb6a076659004f",
+ "machine": "box D3-g31: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB (walls and loads provisional)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_3ceb6a076659004f.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_3ceb6a076659004f.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_3ceb6a076659004f.out",
+  "baseline_value": "prod_differ=0 of 192; direct_differ=0 of 6",
+  "mutant_value": "identical",
+  "inputs_tried": "production: 192 coordinator-shaped calls (n_steps 0,1,4,96,192; step offset 0,37; known lengths 0,1,n-1,n,n+3,n/2 with negative prices; models None, fresh, young (2 days), trusted from_dict); direct: step_start_times shorter than the horizon or the known run (len 0,1,2), known longer than n_steps"
+ },
+ "should_fail": "none: with known_count >= n_steps the general path computes the same level and its fill loop is empty",
+ "note": "Equivalent through the coordinator's call shape: none: with known_count >= n_steps the general path computes the same level and its fill loop is empty"
+}
