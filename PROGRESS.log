@@ -22,3 +22,4 @@
 1795585384 HB alive
 1795585403 CKPT fixed finite_boundary night_before domain, kw publish call, docs counts; pushed; full features/entities in flight snapshot e24003575b64
 1795585606 CKPT 970c3e5dff pushed; three builders writing failing-first features blocks A/B/C snapshot 5281c781d198
+1795585810 CKPT blocks A and C landed cc2bb1bac4; awaiting B and features run snapshot 9eed55bf3474
