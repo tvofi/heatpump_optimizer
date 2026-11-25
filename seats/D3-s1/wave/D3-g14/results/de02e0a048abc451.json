@@ -1,0 +1,80 @@
+{
+ "key": "de02e0a048abc451",
+ "site": "dhw_planner.py:1190 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1190,
+ "patch": "if blocked: -> if False:",
+ "function": "DhwPlanner._build_dhw_requirements",
+ "cluster": "dhw_planner.py:DhwPlanner._build_dhw_requirements@1138-1348",
+ "slice": "u1d",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3556.1,
+  "load1_start": 0.42,
+  "load1_end": 1.03,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/de02e0a048abc451.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key de02e0a048abc451"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_de02e0a048abc451.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_de02e0a048abc451.py",
+  "baseline_value": "suppressed_steps_baseline=0 (schedule sum 0.0)",
+  "mutant_value": "suppressed_steps_mutant=1 (schedule sum 0.0)",
+  "inputs_tried": [
+   "blocked=True, external heat on, tank 48 C, cheap steps 1-7 (separates the published count)",
+   "blocked=True, external heat off (null 0,0)",
+   "blocked=False (null, delta 0)"
+  ],
+  "production_reach": "production: a pump mode that makes no hot water (blocked) together with external heat or the peak guard active; only DhwPlan.external_heat_suppressed_steps moves, the schedule is zeroed at line 1368 in both arms"
+ },
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes dhw_planner.py:1190; also entities.py, manual_plan.py)",
+  "assertion": "no blocked-mode check asserts external_heat_suppressed_steps == 0 (nothing planned, so nothing suppressed) with external heat active"
+ },
+ "finding": {
+  "title": "No check pins the suppressed-step count in a blocked DHW mode; dropping the blocked forced_off reports a phantom suppression",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant de02e0a048abc451 at dhw_planner.py:1190 (if blocked: -> if False:) survives the full gate (RED-AS-NULL, gate_rc 1, no script beyond this box's null control), yet the probe's number moves: baseline suppressed_steps_baseline=0 (schedule sum 0.0), mutant suppressed_steps_mutant=1 (schedule sum 0.0). Reach: production: a pump mode that makes no hot water (blocked) together with external heat or the peak guard active; only DhwPlan.external_heat_suppressed_steps moves, the schedule is zeroed at line 1368 in both arms.",
+  "metric_definition": "DhwPlan.external_heat_suppressed_steps with blocked=True and external heat active",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._build_dhw_requirements line 1190",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_de02e0a048abc451.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/_g14lib.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_de02e0a048abc451.py",
+  "perturbation": {
+   "change": "the one-line mutant de02e0a048abc451 (if blocked: -> if False:) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key de02e0a048abc451",
+   "direction": "up (0 -> 1)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_de02e0a048abc451.py",
+   "value": "null arm delta 0 (see the probe's null_* RESULT lines)",
+   "gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}
