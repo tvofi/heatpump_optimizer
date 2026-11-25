@@ -6,7 +6,7 @@ Null full gate: gate_rc 0, failed_scripts 0, wall 3767 s, load1 1.0.
 
 At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.py` and `tests/features.py` only (seats/D3-vlate/athead.sh); the full gate was not re-run at head. A not-killed reading there is therefore 'not killed by those two scripts', not 'survives the full gate at head'.
 
-**Gates still pending:** D3-s1-65, D3-s1-66, D3-s1-67, D3-s1-68, D3-s1-69, D3-s1-70, D3-s1-71
+**Gates still pending:** D3-s1-66, D3-s1-67, D3-s1-68, D3-s1-69, D3-s1-70, D3-s1-71
 
 | id | vote | severity | full gate | at head |
 |---|---|---|---|---|
@@ -15,7 +15,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 | D3-s1-62 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-63 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-64 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
-| D3-s1-65 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
+| D3-s1-65 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-66 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-67 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-68 | weaken | nit | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
@@ -93,7 +93,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - vote: **verify**, severity low
 - value: learned flow bias 3.638040 K -> 4.689280 K (delta 1.051240 K)
 - metric: FlowBias learned bias after the probe's sample sequence, FLOW_BIAS_ALPHA 0.1 vs 0.2
-- V1 reproduced: probe_0c3e91a6.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 3.638040 -> 4.689280 K, null_delta 0.0; full gate PENDING
+- V1 reproduced: probe_0c3e91a6.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 3.638040 -> 4.689280 K, null_delta 0.0; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 0c3e91a6a349409a`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3631 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0
 - V2 independent: v2_simple.py own one-fold input: 1.0 -> 2.0; null 0.0
 - V3 reachable: yes: every fold after the warm-up (coordinator.py:986) on any plant with flow sensing
 - V3 class: I1 (an unpinned behaviour constant); class_guess 'new' corrected

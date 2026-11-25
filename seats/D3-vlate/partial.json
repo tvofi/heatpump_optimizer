@@ -14,7 +14,6 @@
   "thread_factor": "1.0"
  },
  "gates_pending": [
-  "D3-s1-65",
   "D3-s1-66",
   "D3-s1-67",
   "D3-s1-68",
@@ -141,15 +140,23 @@
    "severity": "low",
    "value": "learned flow bias 3.638040 K -> 4.689280 K (delta 1.051240 K)",
    "metric_definition": "FlowBias learned bias after the probe's sample sequence, FLOW_BIAS_ALPHA 0.1 vs 0.2",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 0c3e91a6a349409a`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3631 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "attacks": "null (0.0); a doc check reads the constant rather than pinning 0.1, so it follows the mutant (confirmed by the survivor)",
-   "reproduced": "probe_0c3e91a6.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 3.638040 -> 4.689280 K, null_delta 0.0; full gate PENDING",
+   "reproduced": "probe_0c3e91a6.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 3.638040 -> 4.689280 K, null_delta 0.0; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 0c3e91a6a349409a`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3631 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_simple.py own one-fold input: 1.0 -> 2.0; null 0.0",
    "reachable": "yes: every fold after the warm-up (coordinator.py:986) on any plant with flow sensing",
    "class": "I1 (an unpinned behaviour constant); class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at flow_lift.py:47, then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "SURVIVED",
+    "gate_rc": "0",
+    "failed_scripts": "0",
+    "killed": "0",
+    "wall_s": "3631",
+    "load1": "0.92",
+    "thread_factor": "1.0"
+   }
   },
   {
    "id": "D3-s1-66",
