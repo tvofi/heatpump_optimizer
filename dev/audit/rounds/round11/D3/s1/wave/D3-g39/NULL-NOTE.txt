@@ -1,0 +1,1 @@
+null control accepted 2026-11-25T01:39:16Z: gate_rc 1, failed_scripts [closure.py selftest (2), entities.py (1), harness_headers.py (4)], all three in the earlier boxes' null (state/gates-prior/null.json, which also had optimality.py and stress.py); artefact checks of the stripped tree, none machine-caused; not re-taken. wall 2698 s, load1 0.27->1.01 (provisional).

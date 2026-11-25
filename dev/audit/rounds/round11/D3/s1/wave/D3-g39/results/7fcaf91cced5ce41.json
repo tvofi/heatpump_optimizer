@@ -1,0 +1,100 @@
+{
+ "key": "7fcaf91cced5ce41",
+ "site": "tariff.py:235 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/tariff.py",
+ "line": 235,
+ "patch": "if not np.isfinite(house_power_kw) or house_power_kw < 0: -> if False:",
+ "function": "PeakTracker.observe",
+ "cluster": "tariff.py:PeakTracker.observe@235-279",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2749.3,
+  "load1_start": 0.82,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/7fcaf91cced5ce41.json",
+ "provisional": true,
+ "machine": "box D3-g39: 4 vCPU Intel Xeon @ 2.30GHz, 16 GB (MACHINE.txt)",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7fcaf91cced5ce41.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7fcaf91cced5ce41.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/out/probe_7fcaf91cced5ce41.out",
+  "cases_moved": 3,
+  "null_cases_moved": 0,
+  "inputs_tried": {
+   "inf_peaks": {
+    "baseline": "((2.0,), 1)",
+    "mutant": "(('inf',), 1)"
+   },
+   "nan_peaks": {
+    "baseline": "((2.0,), 1)",
+    "mutant": "(('nan',), 1)"
+   },
+   "neg_peaks": {
+    "baseline": "((2.0,), 1)",
+    "mutant": "((0.5,), 1)"
+   },
+   "ok_peaks": {
+    "baseline": "((1.5,), 1)",
+    "mutant": "((1.5,), 1)"
+   }
+  },
+  "metric_case": "nan_peaks",
+  "baseline_value": "((2.0,), 1)",
+  "mutant_value": "(('nan',), 1)"
+ },
+ "should_fail": {
+  "scripts": [
+   "tests/config_flow_steps.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/finite_boundary.py"
+  ],
+  "trace_source": "dev/audit/rounds/round11/D3/s1/state/baselines.json (fast-net traced baseline hits)",
+  "assertion": "no check folds a nan, inf or negative house_power_kw into PeakTracker.observe and asserts the closed window's peak is unchanged"
+ },
+ "finding": {
+  "title": "PeakTracker.observe's non-finite/negative sample guard is unpinned: with it off a nan sample makes the month's peak nan and a negative one lowers it 2.0 -> 0.5 kW, and the full gate fails nothing beyond its null (RED-AS-NULL)",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "claim": "Mutant 7fcaf91cced5ce41 (tariff.py:235 GUARD_OFF: if not np.isfinite(house_power_kw) or house_power_kw < 0: -> if False:) survives the GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict RED-AS-NULL, gate_rc 1) yet changes behaviour: on input 'nan_peaks' the probe reads ((2.0,), 1) on the baseline and (('nan',), 1) under the mutant. a non-finite or negative meter reading reaching observe poisons the billed-peak record (nan/inf peak, or a peak lowered below what was drawn) that threshold_kw feeds to the solver. Should have failed: tests/config_flow_steps.py, tests/entities.py, tests/features.py, tests/finite_boundary.py execute the line on the traced baseline; no check folds a nan, inf or negative house_power_kw into PeakTracker.observe and asserts the closed window's peak is unchanged.",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:PeakTracker.observe (line 235)",
+  "metric_definition": "PeakTracker peaks after a 07:00 window of samples [2.0, X] closes (X non-finite or negative); baseline drops X (peak 2.0).",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7fcaf91cced5ce41.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7fcaf91cced5ce41.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7fcaf91cced5ce41",
+  "perturbation": "if not np.isfinite(house_power_kw) or house_power_kw < 0: -> if False: (the one-line mutant). Direction: non-finite/negative sample: dropped -> folded into the window mean (nan or a lowered peak).",
+  "null_control": "samples [2.0, 1.0] (both arms agree). Gate null: fullgate.py null on this box (dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/null.json, failed_scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']).",
+  "value": "nan_peaks: baseline ((2.0,), 1), mutant (('nan',), 1); null cases moved 0"
+ }
+}

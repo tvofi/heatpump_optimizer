@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_cb38833c854f6257.py (+ _mutload.py): pins slab_mode_tau_fast's return (hours) at c_r exactly 1e-9 (the guard's bound); baseline 0.0.

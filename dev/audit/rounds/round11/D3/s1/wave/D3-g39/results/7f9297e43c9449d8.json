@@ -1,0 +1,96 @@
+{
+ "key": "7f9297e43c9449d8",
+ "site": "tariff.py:491 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/tariff.py",
+ "line": 491,
+ "patch": "elif day not in best or kw > best[day][0]: -> elif day not in best or kw >= best[day][0]:",
+ "function": "_one_per_day",
+ "cluster": "tariff.py:_one_per_day@489-491",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2765.6,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/7f9297e43c9449d8.json",
+ "provisional": true,
+ "machine": "box D3-g39: 4 vCPU Intel Xeon @ 2.30GHz, 16 GB (MACHINE.txt)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7f9297e43c9449d8.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7f9297e43c9449d8.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/out/probe_7f9297e43c9449d8.out",
+  "cases_moved": 0,
+  "null_cases_moved": 0,
+  "inputs_tried": {
+   "ordered": {
+    "baseline": "[('3.0', 'd')]",
+    "mutant": "[('3.0', 'd')]"
+   },
+   "signbit_tie_info": {
+    "baseline": "[False]",
+    "mutant": "[True]"
+   },
+   "tie": {
+    "baseline": "[('2.0', '2026-01-05')]",
+    "mutant": "[('2.0', '2026-01-05')]"
+   },
+   "tie_billed": {
+    "baseline": "1.5",
+    "mutant": "1.5"
+   },
+   "tie_nan": {
+    "baseline": "[('nan', '2026-01-05')]",
+    "mutant": "[('nan', '2026-01-05')]"
+   },
+   "tie_signed_zero": {
+    "baseline": "[('0.0', '2026-01-05')]",
+    "mutant": "[('0.0', '2026-01-05')]"
+   },
+   "tie_then_lower": {
+    "baseline": "[('2.0', 'd')]",
+    "mutant": "[('2.0', 'd')]"
+   }
+  },
+  "baseline_value": "equal on every input tried",
+  "mutant_value": "equal on every input tried"
+ },
+ "should_fail": {
+  "scripts": [
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/finite_boundary.py"
+  ],
+  "trace_source": "dev/audit/rounds/round11/D3/s1/state/baselines.json (fast-net traced baseline hits)",
+  "assertion": "none can by value: a same-day tie replaces (kw, day) by an equal (kw, day); the only difference is the sign bit of a 0.0/-0.0 tie, which no tracker path produces (window sums start at 0.0)"
+ },
+ "non_finding": {
+  "claim": "tariff.py:491 CMP_BOUND mutant 7f9297e43c9449d8 survives the full gate but is equivalent on every input tried",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7f9297e43c9449d8.py",
+  "value": "cases_moved=0 over 7 inputs (ordered, signbit_tie_info, tie, tie_billed, tie_nan, tie_signed_zero, tie_then_lower); none can by value: a same-day tie replaces (kw, day) by an equal (kw, day); the only difference is the sign bit of a 0.0/-0.0 tie, which no tracker path produces (window sums start at 0.0)"
+ }
+}

@@ -1,0 +1,102 @@
+{
+ "key": "4ad3dc13bfdb70a8",
+ "site": "tariff.py:465 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/tariff.py",
+ "line": 465,
+ "patch": "or not 0.0 <= tracker._window_factor <= 1.0 -> or not 0.0 < tracker._window_factor <= 1.0",
+ "function": "PeakTracker.from_dict",
+ "cluster": "tariff.py:PeakTracker.from_dict@437-465",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2807.2,
+  "load1_start": 0.86,
+  "load1_end": 0.97,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/4ad3dc13bfdb70a8.json",
+ "provisional": true,
+ "machine": "box D3-g39: 4 vCPU Intel Xeon @ 2.30GHz, 16 GB (MACHINE.txt)",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_4ad3dc13bfdb70a8.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_4ad3dc13bfdb70a8.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/out/probe_4ad3dc13bfdb70a8.out",
+  "cases_moved": 1,
+  "null_cases_moved": 0,
+  "inputs_tried": {
+   "f05_state": {
+    "baseline": "('2026-01-10T07:00:00|60', 2.0, 1, 0.5)",
+    "mutant": "('2026-01-10T07:00:00|60', 2.0, 1, 0.5)"
+   },
+   "f0_peaks": {
+    "baseline": "(1.0,)",
+    "mutant": "(1.0,)"
+   },
+   "f0_state": {
+    "baseline": "('2026-01-10T07:00:00|60', 2.0, 1, 0.0)",
+    "mutant": "('', 0.0, 0, 1.0)"
+   },
+   "f1_state": {
+    "baseline": "('2026-01-10T07:00:00|60', 2.0, 1, 1.0)",
+    "mutant": "('2026-01-10T07:00:00|60', 2.0, 1, 1.0)"
+   },
+   "fneg_state": {
+    "baseline": "('', 0.0, 0, 1.0)",
+    "mutant": "('', 0.0, 0, 1.0)"
+   }
+  },
+  "metric_case": "f0_state",
+  "baseline_value": "('2026-01-10T07:00:00|60', 2.0, 1, 0.0)",
+  "mutant_value": "('', 0.0, 0, 1.0)"
+ },
+ "should_fail": {
+  "scripts": [
+   "tests/features.py",
+   "tests/finite_boundary.py"
+  ],
+  "trace_source": "dev/audit/rounds/round11/D3/s1/state/baselines.json (fast-net traced baseline hits)",
+  "assertion": "no check restores a PeakTracker whose window_factor is 0.0 and asserts the window is kept (key, sum, samples, factor 0.0) with no warning"
+ },
+ "finding": {
+  "title": "PeakTracker.from_dict's 0.0 <= window_factor bound is unpinned at 0.0: a legitimately persisted factor-0 (masked-month) window is restarted empty with a warning, and the full gate fails nothing beyond its null (RED-AS-NULL)",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "claim": "Mutant 4ad3dc13bfdb70a8 (tariff.py:465 CMP_BOUND: or not 0.0 <= tracker._window_factor <= 1.0 -> or not 0.0 < tracker._window_factor <= 1.0) survives the GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict RED-AS-NULL, gate_rc 1) yet changes behaviour: on input 'f0_state' the probe reads ('2026-01-10T07:00:00|60', 2.0, 1, 0.0) on the baseline and ('', 0.0, 0, 1.0) under the mutant. the restored masked window is dropped and a misleading 'outside what the tracker writes' warning logged after every restart in a masked month; the closed peaks are unchanged (f0_peaks equal both arms) because a factor-0 window bills nothing. Should have failed: tests/features.py, tests/finite_boundary.py execute the line on the traced baseline; no check restores a PeakTracker whose window_factor is 0.0 and asserts the window is kept (key, sum, samples, factor 0.0) with no warning.",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:PeakTracker.from_dict (line 465)",
+  "metric_definition": "PeakTracker.from_dict of a mid-window payload whose window_factor is 0.0 (what sample_factor returns in a masked month): restored window state, and peaks after the next window closes it.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_4ad3dc13bfdb70a8.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_4ad3dc13bfdb70a8.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4ad3dc13bfdb70a8",
+  "perturbation": "or not 0.0 <= tracker._window_factor <= 1.0 -> or not 0.0 < tracker._window_factor <= 1.0 (the one-line mutant). Direction: factor == 0.0: window kept -> window discarded and a 'outside what the tracker writes' warning logged.",
+  "null_control": "window_factor 1.0, 0.5 and -0.1 (both arms agree). Gate null: fullgate.py null on this box (dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/null.json, failed_scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']).",
+  "value": "f0_state: baseline ('2026-01-10T07:00:00|60', 2.0, 1, 0.0), mutant ('', 0.0, 0, 1.0); null cases moved 0"
+ }
+}

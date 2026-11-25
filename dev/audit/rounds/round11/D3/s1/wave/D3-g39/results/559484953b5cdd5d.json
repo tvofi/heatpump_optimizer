@@ -1,0 +1,98 @@
+{
+ "key": "559484953b5cdd5d",
+ "site": "sysid.py:610 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/sysid.py",
+ "line": 610,
+ "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9): -> if not (c_r > 1e-9 and c_s > 1e-9 and k_s >= 1e-9):",
+ "function": "slab_mode_tau_fast",
+ "cluster": "sysid.py:slab_mode_tau_fast@610-610",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2732.4,
+  "load1_start": 0.93,
+  "load1_end": 0.96,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/559484953b5cdd5d.json",
+ "provisional": true,
+ "machine": "box D3-g39: 4 vCPU Intel Xeon @ 2.30GHz, 16 GB (MACHINE.txt)",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_559484953b5cdd5d.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_559484953b5cdd5d.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/out/probe_559484953b5cdd5d.out",
+  "cases_moved": 1,
+  "null_cases_moved": 0,
+  "inputs_tried": {
+   "boundary_k_s": {
+    "baseline": "0.0",
+    "mutant": "1200000000.0"
+   },
+   "just_above_k_s": {
+    "baseline": "600000000.0",
+    "mutant": "600000000.0"
+   },
+   "ordinary": {
+    "baseline": "2.4",
+    "mutant": "2.4"
+   },
+   "zero_k_s": {
+    "baseline": "0.0",
+    "mutant": "0.0"
+   }
+  },
+  "metric_case": "boundary_k_s",
+  "baseline_value": "0.0",
+  "mutant_value": "1200000000.0"
+ },
+ "should_fail": {
+  "scripts": [
+   "tests/entities.py",
+   "tests/features.py"
+  ],
+  "trace_source": "dev/audit/rounds/round11/D3/s1/state/baselines.json (fast-net traced baseline hits)",
+  "assertion": "no check calls slab_mode_tau_fast with k_s exactly 1e-9 and asserts 0.0 (the unset-plant answer)"
+ },
+ "finding": {
+  "title": "slab_mode_tau_fast's k_s > 1e-9 guard is unpinned at its bound: k_s == 1e-9 returns 1.2e9 h instead of 0.0 and the full gate fails nothing beyond its null (RED-AS-NULL)",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "claim": "Mutant 559484953b5cdd5d (sysid.py:610 CMP_BOUND: if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9): -> if not (c_r > 1e-9 and c_s > 1e-9 and k_s >= 1e-9):) survives the GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict RED-AS-NULL, gate_rc 1) yet changes behaviour: on input 'boundary_k_s' the probe reads 0.0 on the baseline and 1200000000.0 under the mutant. a declared plant with k_s at the 1e-9 floor reads as a 1.2e9 h fast mode instead of 'constants unset'; config k_s that small is not a physical value, so reach is a hand-built or corrupted config. Should have failed: tests/entities.py, tests/features.py execute the line on the traced baseline; no check calls slab_mode_tau_fast with k_s exactly 1e-9 and asserts 0.0 (the unset-plant answer).",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:slab_mode_tau_fast (line 610)",
+  "metric_definition": "slab_mode_tau_fast's return (hours) at k_s exactly 1e-9 (the guard's bound); baseline 0.0.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_559484953b5cdd5d.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_559484953b5cdd5d.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 559484953b5cdd5d",
+  "perturbation": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9): -> if not (c_r > 1e-9 and c_s > 1e-9 and k_s >= 1e-9): (the one-line mutant). Direction: k_s == 1e-9: 0.0 (unset plant) -> a finite tau.",
+  "null_control": "k_s = 0.0 and k_s = 2e-9 (both arms agree); ordinary plant (2, 3, 0.5). Gate null: fullgate.py null on this box (dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/null.json, failed_scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']).",
+  "value": "boundary_k_s: baseline 0.0, mutant 1200000000.0; null cases moved 0"
+ }
+}

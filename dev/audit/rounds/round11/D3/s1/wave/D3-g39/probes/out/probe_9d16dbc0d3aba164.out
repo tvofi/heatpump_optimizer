@@ -1,0 +1,14 @@
+RESULT empty_60_baseline=None
+RESULT empty_60_mutant=None
+RESULT empty_15_baseline=None
+RESULT empty_15_mutant=None
+RESULT empty_off2_baseline=None
+RESULT empty_off2_mutant=None
+RESULT empty_factors_baseline=None
+RESULT empty_factors_mutant=None
+RESULT empty_factors1_baseline=None
+RESULT empty_factors1_mutant=None
+RESULT four_steps_baseline=(np.float64(2.0),)
+RESULT four_steps_mutant=(np.float64(2.0),)
+RESULT cases_moved=0
+RESULT null_cases_moved=0

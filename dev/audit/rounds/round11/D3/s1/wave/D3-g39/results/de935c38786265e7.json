@@ -1,0 +1,106 @@
+{
+ "key": "de935c38786265e7",
+ "site": "tariff.py:437 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/tariff.py",
+ "line": 437,
+ "patch": "if not math.isfinite(tracker._window_factor): -> if False:",
+ "function": "PeakTracker.from_dict",
+ "cluster": "tariff.py:PeakTracker.from_dict@437-465",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2715.6,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/de935c38786265e7.json",
+ "provisional": true,
+ "machine": "box D3-g39: 4 vCPU Intel Xeon @ 2.30GHz, 16 GB (MACHINE.txt)",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_de935c38786265e7.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_de935c38786265e7.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/out/probe_de935c38786265e7.out",
+  "cases_moved": 4,
+  "null_cases_moved": 0,
+  "inputs_tried": {
+   "f05_peaks": {
+    "baseline": "(1.0, 1.0)",
+    "mutant": "(1.0, 1.0)"
+   },
+   "f1_state": {
+    "baseline": "('2026-01-10T07:00:00|60', 2.0, 1, 1.0)",
+    "mutant": "('2026-01-10T07:00:00|60', 2.0, 1, 1.0)"
+   },
+   "inf_peaks": {
+    "baseline": "(2.0, 1.0)",
+    "mutant": "(1.0,)"
+   },
+   "inf_state": {
+    "baseline": "('2026-01-10T07:00:00|60', 2.0, 1, 1.0)",
+    "mutant": "('', 0.0, 0, 1.0)"
+   },
+   "nan_peaks": {
+    "baseline": "(2.0, 1.0)",
+    "mutant": "(1.0,)"
+   },
+   "nan_state": {
+    "baseline": "('2026-01-10T07:00:00|60', 2.0, 1, 1.0)",
+    "mutant": "('', 0.0, 0, 1.0)"
+   }
+  },
+  "metric_case": "nan_peaks",
+  "baseline_value": "(2.0, 1.0)",
+  "mutant_value": "(1.0,)"
+ },
+ "should_fail": {
+  "scripts": [
+   "tests/features.py",
+   "tests/finite_boundary.py"
+  ],
+  "trace_source": "dev/audit/rounds/round11/D3/s1/state/baselines.json (fast-net traced baseline hits)",
+  "assertion": "no check restores a PeakTracker from a payload with window_factor 'nan' or 'inf' and a non-empty window and asserts the factor is 1.0 with the window kept (or the closed peak)"
+ },
+ "finding": {
+  "title": "PeakTracker.from_dict's non-finite window_factor reset is unpinned: with it off a restored 'nan'/'inf' factor discards the open window and its 2 kW peak, and the full gate fails nothing beyond its null (RED-AS-NULL)",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "claim": "Mutant de935c38786265e7 (tariff.py:437 GUARD_OFF: if not math.isfinite(tracker._window_factor): -> if False:) survives the GATE_SCOPE=full GOLDEN_MODE=drift gate (verdict RED-AS-NULL, gate_rc 1) yet changes behaviour: on input 'nan_peaks' the probe reads (2.0, 1.0) on the baseline and (1.0,) under the mutant. a persisted non-finite factor makes the line-465 domain check restart the window empty: the restored window's consumption never reaches the month's peaks, under-stating the billed peak that the optimizer plans against. Should have failed: tests/features.py, tests/finite_boundary.py execute the line on the traced baseline; no check restores a PeakTracker from a payload with window_factor 'nan' or 'inf' and a non-empty window and asserts the factor is 1.0 with the window kept (or the closed peak).",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.tariff:PeakTracker.from_dict (line 437)",
+  "metric_definition": "PeakTracker.from_dict of a mid-window payload (window_sum 2.0, 1 sample) whose window_factor is 'nan'/'inf': the restored window state, and the peaks after the next window closes it.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_de935c38786265e7.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_de935c38786265e7.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key de935c38786265e7",
+  "perturbation": "if not math.isfinite(tracker._window_factor): -> if False: (the one-line mutant). Direction: non-finite factor: reset to 1.0 keeping the window -> the domain check at line 465 discards the whole window; its 2 kW peak is lost.",
+  "null_control": "window_factor 1.0 and 0.5 (both arms agree). Gate null: fullgate.py null on this box (dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/null.json, failed_scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']).",
+  "value": "nan_peaks: baseline (2.0, 1.0), mutant (1.0,); null cases moved 0"
+ }
+}

@@ -1,0 +1,10 @@
+2026-11-25T00:53:17Z
+nproc 4
+model name	: Intel(R) Xeon(R) Processor @ 2.30GHz
+               total        used        free      shared  buff/cache   available
+Mem:           16087         778       14066          12        1514       15309
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1 0.35
+python3 /opt/hpo/venv-ci/bin/python3 (venv-ci at /opt/hpo/venv-ci; $HOME/venv-ci symlinked to it, outside the repo)

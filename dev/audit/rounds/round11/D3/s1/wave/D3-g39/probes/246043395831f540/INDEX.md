@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_246043395831f540.py (+ _mutload.py): pins marginal_price_per_kw of an enabled CapacityTariff(price_per_kw=50) at peaks_averaged 0; baseline 0.0.
