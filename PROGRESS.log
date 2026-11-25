@@ -44,3 +44,5 @@
 1795608290 HB alive
 1795608894 HB alive
 1795609498 HB alive
+1795610101 HB alive
+1795610101 CKPT self-test survivors removed via mock.patch.dict; rerunning full prepr snapshot 82f9a7ec6957
