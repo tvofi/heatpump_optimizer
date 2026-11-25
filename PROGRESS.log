@@ -1,3 +1,4 @@
 1795612974 INIT r11-merge-3841-3845
 1795612982 HB alive
 1795613097 CKPT 3841: merged d3d66c40, structure re-recorded (no raise) snapshot 23cf983ed817
+1795613106 CKPT 3841: merged d3d66c40, structure re-recorded (no raise) snapshot 6e675ac77f14
