@@ -79126,6 +79126,186 @@ R.check(
 )
 
 
+# ---- R11-SEAM-actuation-writes G (design notes 5, 7, 10) ----
+# Note 5: the disinfection notice stands or clears with the confirmed cycle within one cycle, whatever order the
+# follower and check_overdue run in; note 7: the map folds a sent value into the bucket of the value on the entity's
+# grid; note 10: a tick queued across a solve changes nothing in a step, writes the newer step's action across a
+# boundary, and the gate refuses it over an experiment's override. A symbol the base lacks fails its check by name.
+_R11AWG_PLANT = (_R11AWB_PLANT, _R11AWB_DISPLACE, _r11awb_coord, _r11awb_plan, _r11awb_cycle, _r11awb_tick, _r11awb_vals, _r11awb_Opt, _r11ar_aio, _r11ar_dt,
+                 _r11ar_pa, _r11ar_try, _r11ar_ok, _r11ar_settle, _r11ar_replace, _r11ar_Reader, _r11ar_states, boost_mod,
+                 _R11AR_T0, FakeState)
+
+
+def _r11awg_overdue(c):
+    return [i for i in getattr(c.hass, "issues", []) if i[1] == "dhw_legionella_overdue"]
+
+
+# Note 5. One cycle = the observer on the tank reading (as the cycle's observe), then the tail's follower.
+async def _r11awg_notice(tank_c, window):
+    hass, c = _r11awb_coord(True)
+    hass.states.set("sensor.tank", FakeState(str(tank_c), unit="°C"))
+    g = c._legionella
+    g._config = {**dict(c.entry.data), "dhw_temp_entity": "sensor.tank"}  # the notice watches an install with a probe
+    c._thermal_params.dhw_enabled = c._thermal_params.dhw_legionella_enabled = True
+    c._thermal_params.dhw_legionella_interval_days = 7.0
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=16))
+    g.last_cycle = _r11ar_dt.now() - timedelta(days=20)
+    g.check_overdue()
+    raised = g.overdue_notice
+    plan = _r11awb_plan()
+    if window:
+        plan = _r11ar_replace(plan, dhw_reasons=[None, "legionella", "legionella", "legionella"])
+    await g.async_observe(tank_c, _r11ar_Reader(hass, dict(c.entry.data)))
+    await _r11awb_cycle(c, 16, plan)
+    return raised, g.overdue_notice, g.last_cycle, g.attempt
+
+
+_r11awg_n1 = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_notice(61.0, True)))
+_r11awg_n0 = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_notice(40.0, False)))
+R.check(
+    "D16-s2-02 (note 5): a boost the plan books and the tank completes (observer credit, follower after it in the "
+    "same cycle) clears the overdue notice within that cycle, last_cycle moved to now",
+    _r11ar_ok(_r11awg_n1, lambda r: r[0] is not None and r[1] is None and r[2] == _R11AR_T0 + timedelta(minutes=16)),
+    f"{_r11awg_n1}",
+)
+R.check(
+    "D16-s2-02 (note 5) null control: no cycle confirmed (cold tank, no window, no attempt) -> the overdue notice stays",
+    _r11ar_ok(_r11awg_n0, lambda r: r[0] is not None and r[1] == r[0] and r[3] is None),
+    f"{_r11awg_n0}",
+)
+
+
+# Note 7. The grid's step (10 Hz) on a 20..90 Hz entity: the decile mid 44.5 sits in bucket 3 but is sent as 40.
+async def _r11awg_bucket(target):
+    hass, c = _r11awb_coord(True)
+    hass.states.set("number.freq", FakeState("70", attributes={"min": 20, "max": 90, "step": 10}))
+    c._freq_map.recommend = lambda *_a, **_k: target
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=1))
+    await c._command_frequency()
+    sent = [d["value"] for _do, s, d in _r11ar_settle(hass) if d.get("entity_id") == "number.freq"]
+    reported, hz_min, hz_max, _src = c._freq_entity_reading()
+    c._freq_map.observe(reported, 2.0, hz_min, hz_max)  # the fold path folds the entity's own reading
+    return sent, reported, sorted(c._freq_map.buckets), int((sent[-1] - hz_min) / ((hz_max - hz_min) / 10.0))
+
+
+_r11awg_b = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_bucket(44.5)))
+_r11awg_g = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_bucket(40.0)))
+R.check(
+    "D16-s1-01 (note 7): a target off the entity's 10 Hz grid is sent on it (44.5 -> 40) and the map's evidence "
+    "bucket is that of the value sent (decile 2), not of the unrounded target (decile 3)",
+    _r11ar_ok(_r11awg_b, lambda r: r[0] == [40.0] and r[1] == 40.0 and r[2] == [r[3]] == [2]),
+    f"{_r11awg_b}",
+)
+R.check(
+    "D16-s1-01 (note 7) null control: a target already on the grid (40) lands in its own bucket (decile 2)",
+    _r11ar_ok(_r11awg_g, lambda r: r[0] == [40.0] and r[2] == [r[3]] == [2]),
+    f"{_r11awg_g}",
+)
+
+
+# Note 10. A solve's cut, the tick, then the cycle's write half, at the clocks given.
+def _r11awg_cut(c, plan, minute):
+    now = _R11AR_T0 + timedelta(minutes=minute)
+    _r11ar_dt.freeze(now)
+    c._optimization_result, c._last_optimization = plan, now
+    opt = _r11awb_Opt(c._thermal_model, c._ctx._opt_config)
+    if hasattr(c, "_cut_action"):
+        c._cut_action(opt)
+    else:
+        boost_mod.adopt_plan(c, opt.get_current_action(plan, now))
+
+
+async def _r11awg_write(c, minute):
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=minute))
+    await c._apply_action()
+    if hasattr(c, "_async_step_tail"):
+        async with _r11ar_pa.state_for(c).tail_lock:
+            await c._async_step_tail()
+    else:
+        await c._command_frequency()
+        await c._command_valve_target()
+        await c._async_drive_pumps()
+
+
+async def _r11awg_queued(tick_at, cut_at, write_at, override=False):
+    """Armed by a cycle at minute 1 on plan P0; a new plan P1 (displace 9 from step 1) is cut at ``cut_at``;
+    ``tick_at`` (or None) fires a tick before the cycle's write half at ``write_at``. The calls after the arming."""
+    hass, c = _r11awb_coord(True)
+    await _r11awb_cycle(c, 1, _r11awb_plan())
+    _r11ar_settle(hass)
+    p1 = _r11ar_replace(_r11awb_plan(), displace_schedule=[2.0, 9.0, 9.0, 9.0])
+    _r11awg_cut(c, p1, cut_at)
+    if override:  # what _run_system_identification lays over the cut action (it rides adopt_plan)
+        boost_mod.adopt_plan(c, {**c._current_action, "mode": "system_identification", "displace_value": 7.0,
+                                 "power": 1.0, "heat_pump_on": True})
+    if tick_at is not None:
+        await _r11awb_tick(c, tick_at)
+    mid = _r11ar_settle(hass)
+    await _r11awg_write(c, write_at)
+    after = _r11ar_settle(hass)
+    final = dict(c._current_action)
+    boost_mod.held_for(c).until[boost_mod.CHANNEL_SPACE] = _R11AR_T0 + timedelta(hours=2)
+    overlay = getattr(c, "_overlay_boost", lambda: None)  # the base has no re-cut, so no overlay seam
+    overlay()
+    once = dict(c._current_action)
+    overlay()
+    return mid, after, final, once, dict(c._current_action)
+
+
+# (a) the tick inside the step the solve cut for changes nothing: the same calls as the run without it.
+_r11awg_ta = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_queued(16, 16, 16)))
+_r11awg_tn = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_queued(None, 16, 16)))
+R.check(
+    "D16-s2-01 (note 10a): a tick fired after the solve's cut and before _apply_action in the same step writes "
+    "nothing and leaves the cycle's own calls what they are without it",
+    _r11ar_ok(_r11awg_ta, lambda r: r[0] == [] and r[1] == _r11awg_tn[1] and _r11awb_vals(r[1])[0].get("number.freq") == 60.0),
+    f"{_r11awg_ta} vs {_r11awg_tn}",
+)
+R.check(
+    "D16-s2-01 (note 10a) null control: the cycle without a tick writes the step's own values (60 Hz, displace 9)",
+    _r11ar_ok(_r11awg_tn, lambda r: _r11awb_vals(r[1])[0].get("number.freq") == 60.0
+              and "9" in str(_r11awb_vals(r[1])[0].get("mqtt:ecl110/displace/set"))),
+    f"{_r11awg_tn}",
+)
+
+# (b) the solve cut P1 inside step 0, the clock is in step 1 when the tick and the write half run.
+_r11awg_tb = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_queued(16, 14, 16)))
+_r11awg_tbn = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_queued(None, 14, 16)))
+R.check(
+    "D16-s2-01 (note 10b): across a boundary the action the cycle writes is the newer step's, cut from the new plan "
+    "(displace 9, 60 Hz); a boost overlay re-laid on it changes nothing (idempotent), though a live boost does overlay",
+    _r11ar_ok(_r11awg_tb, lambda r: r[2].get("displace_value") == 9.0
+              and "9" in str(_r11awb_vals(r[0] + r[1])[0].get("mqtt:ecl110/displace/set"))
+              and _r11awb_vals(r[0] + r[1])[0].get("number.freq") == 60.0 and r[3] == r[4] and r[3] != r[2]),
+    f"{_r11awg_tb}",
+)
+R.check(
+    "D16-s2-01 (note 10b) null control: with no tick queued the cycle writes the action cut at the solve (step 0's "
+    "displace 2); the tick is what carries the newer step",
+    _r11ar_ok(_r11awg_tbn, lambda r: r[2].get("displace_value") == 2.0
+              and "2" in str(_r11awb_vals(r[1])[0].get("mqtt:ecl110/displace/set"))),
+    f"{_r11awg_tbn}",
+)
+
+# (c) an experiment's override over the cut action: the gate refuses the re-cut, the experiment's action stays.
+_r11awg_tc = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_queued(16, 14, 16, override=True)))
+_r11awg_tcn = _r11ar_try(lambda: _r11ar_aio.run(_r11awg_queued(16, 14, 16, override=False)))
+R.check(
+    "D16-s2-01 (note 10c): a tick after the experiment's override is refused by the gate (no re-cut, no tail): the "
+    "experiment's action stays and nothing but it is published",
+    _r11ar_ok(_r11awg_tc, lambda r: r[0] == [] and r[2].get("mode") == "system_identification"
+              and r[2].get("displace_value") == 7.0),
+    f"{_r11awg_tc}",
+)
+R.check(
+    "D16-s2-01 (note 10c) null control: the same tick with no experiment re-cuts and writes the new step "
+    "(60 Hz, displace 9)",
+    _r11ar_ok(_r11awg_tcn, lambda r: _r11awb_vals(r[0])[0].get("number.freq") == 60.0
+              and r[2].get("displace_value") == 9.0),
+    f"{_r11awg_tcn}",
+)
+
+
 # ---- The round-3 design (design/R11-OUTSIDE-SELF-SETTING-PUMP at 0acbbc8b91):
 # a randomized dither of the scale, no fold while the verdict is pending.
 # Figures are the note's and the owner's three decisions, as literals:
