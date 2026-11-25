@@ -1,0 +1,58 @@
+{
+ "key": "a6cebb125b72f083",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3328 CLAMP_DROP",
+ "patch": "cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale -> cop = self.params.cop_nominal * (factor) * self.params.cop_scale",
+ "function": "ThermalModel._cop_law",
+ "cluster": "thermal_model.py:ThermalModel._cop_law@3328-3328",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2824.6,
+  "load1_start": 0.85,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/a6cebb125b72f083.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a6cebb125b72f083",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_a6cebb125b72f083.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_a6cebb125b72f083.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_a6cebb125b72f083.txt",
+  "metric": "cop_out30",
+  "baseline_value": "5.25",
+  "mutant_value": "5.5125",
+  "inputs_tried": "12 outdoor temps -25..35 C via compute_cop (fresh model per arm): 3 moved (27.5, 30, 35 C), 0 at <= 27 C; batch/scalar parity breaks under the mutant: 3"
+ },
+ "should_fail": "tests/features.py, tests/validate.py and 12 more reach line 3328 (state/reach.tsv row 1183) but none evaluates compute_cop above 27 C outdoor (the _grad_parity cells top out near 16 C) and asserts the 1.5x ceiling or batch parity there",
+ "title": "The scalar COP law's 1.5x nominal ceiling is pinned by no check: dropping it overstates COP above 27 C outdoor",
+ "claim": "Mutant a6cebb125b72f083 (thermal_model.py:3328 `min(factor, 1.5)` -> `(factor)`) survives the full gate; under it ThermalModel.compute_cop returns 5.5125 at 30 C outdoor where the baseline returns 5.25, for every outdoor temperature above 27 C (3 of 12 tried), and the batch twin then disagrees with it.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "metric_definition": "ThermalModel.compute_cop at 30 C outdoor, default ThermalParameters(two_zone_enabled=True)",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_a6cebb125b72f083.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_a6cebb125b72f083.py",
+ "perturbation": {
+  "change": "`min(factor, 1.5)` -> `(factor)` at thermal_model.py:3328 (in memory)",
+  "expected_direction": "up",
+  "observed_value": "5.5125"
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:ThermalModel._cop_law",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "null_control": "probe null rows (see dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_a6cebb125b72f083.txt) and the box null gate dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/null.json (gate_rc 1, failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'])"
+}
