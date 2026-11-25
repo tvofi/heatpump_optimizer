@@ -1774,6 +1774,7 @@ async def options_fault_text_list():
         and entry.options.get(key) == members[:4],
         f"errors={refused.get('errors')!r} saved={entry.options.get(key)!r}",
     )
+    await recover(flow, "entities_pump", {key: members[:4], **SAVE_CLOSE})
     flow2, entry2, _ = fresh_options(pre_options={key: ["sensor.fd"]})
     await flow2.async_step_entities_pump(None)
     await submit(flow2, "entities_pump", {})
