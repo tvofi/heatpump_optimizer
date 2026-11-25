@@ -1,0 +1,25 @@
+== M7 at 29187b1ebc0f2c83bbb411af0a22ddb92b8068c3
+                    x.isupper() and (rel, x) not in ROUND_RECORDS for x in names):
+diff --git a/tools/audit/seat/roster_lib.py b/tools/audit/seat/roster_lib.py
+index 4d8054d4a3..7ae6a817c4 100644
+--- a/tools/audit/seat/roster_lib.py
++++ b/tools/audit/seat/roster_lib.py
+@@ -451,7 +451,7 @@ def round_literal_hits(rel: str, src: str) -> list:
+             if names & params:
+                 hit(n.value, "parameter fallback")
+             if top and n.value is not None and any(
+-                    x.isupper() and (rel, x) not in ROUND_RECORDS for x in names):
++                    x.isupper() and x not in {k for _, k in ROUND_RECORDS} for x in names):
+                 hit(n.value, "module constant")
+         for c in ast.iter_child_nodes(n):
+             visit(c, params, top and not isinstance(n, ast.ClassDef))
+roster_lib self-test: 125 checks, 1 failed
+FAIL a ROUND_RECORDS key admits its constant in its own file and no other (got: [])
+rc=1
+== M7b: file half dropped entirely (any uppercase constant exempt if in records by file only)
+ tools/audit/seat/roster_lib.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+roster_lib self-test: 125 checks, 1 failed
+FAIL a ROUND_RECORDS key admits its own constant and no other (got: )
+== restored
+roster_lib self-test: 125 checks, 0 failed
