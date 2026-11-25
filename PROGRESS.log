@@ -17,3 +17,4 @@
 1795617749 HB alive
 1795618353 HB alive
 1795618530 DONE merge-mode-legs returned: handoff/r11-owner-mode-legs 180da49d412bbceb8843c2c6c021227db0c49d23 (ff from 39b182d75f), resolution delta 02fc3cde92e3..180da49d412b, body 6ecd4a0570; prepr scoped rc=0; owed: delta review, CI on the merged head
+1795618548 DONE merge-mode-legs returned: handoff/r11-owner-mode-legs 180da49d412bbceb8843c2c6c021227db0c49d23 (ff from 39b182d75f), resolution delta 02fc3cde92e3..180da49d412b, body ref 6ecd4a0570; scoped prepr rc=0; step-ref delete refused 403; owed: delta review
