@@ -1,0 +1,64 @@
+{
+ "key": "6b6eb0c1091c3c5c",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5284 CLAMP_DROP",
+ "patch": "return min(floor, upper) -> return (floor)",
+ "function": "HeatPumpOptimizer._pin_on_power",
+ "cluster": "optimizer.py:HeatPumpOptimizer._pin_on_power@5283-5284",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2435.3,
+  "load1_start": 1.0,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/6b6eb0c1091c3c5c.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/6b6eb0c1091c3c5c.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes them)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6b6eb0c1091c3c5c.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6b6eb0c1091c3c5c.py",
+  "metric": "_pin_on_power(upper < floor) direct, and the solver bounds _apply_pins_to_bounds builds plus the plan through optimize()",
+  "baseline_value": "0.5 kW",
+  "mutant_value": "1.0 kW",
+  "baseline_name": "direct_baseline",
+  "mutant_name": "direct_mutant",
+  "inputs_tried": [
+   "direct upper 0.5 < floor 1.0 (moves 0.5 -> 1.0)",
+   "fuse caps 0.5 kW under min 1.0 kW with pins",
+   "min 6 kW above max 5 kW with pins",
+   "min below ceiling (null)"
+  ],
+  "results": {
+   "direct_baseline": "0.5 kW",
+   "direct_mutant": "1.0 kW",
+   "bounds_differ": "0 count",
+   "plan_maxabs_diff_kw": "0.0000 kW",
+   "bounds_calls": "4 count",
+   "thread_factor": "1.000",
+   "load1": "1.71",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_6b6eb0c1091c3c5c.txt"
+ },
+ "should_fail": "none: the clamp is re-applied downstream",
+ "note": "Every production caller passes upper=p_max and _apply_pins_to_bounds (optimizer.py:2418) re-clamps min(min_on_power, high) with high <= p_max: 0 of 4 bounds lists differ and the plans are identical. Equivalent at every production-reachable input."
+}
