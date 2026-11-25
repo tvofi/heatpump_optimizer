@@ -1,0 +1,52 @@
+{
+ "key": "94c2cc27ea61db25",
+ "site": "dhw_planner.py:1346 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1346,
+ "patch": "if legionella_step is not None: -> if False:",
+ "function": "DhwPlanner._build_dhw_requirements",
+ "cluster": "dhw_planner.py:DhwPlanner._build_dhw_requirements@1138-1348",
+ "slice": "u1c",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3762.4,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/94c2cc27ea61db25.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 94c2cc27ea61db25"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_94c2cc27ea61db25.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_94c2cc27ea61db25.py",
+  "baseline_value": "inputs_separating=0 of 321",
+  "mutant_value": "inputs_separating=0 of 321",
+  "inputs_tried": [
+   "legionella 60 C / 7 d, hours since 160-169 (legionella steps 0,1,3,5,7)",
+   "tank 58-62 C in 0.1 C",
+   "single cheap step at 1/3/5/7 or none",
+   "windows 18-20, 01-03, 04-06, 10-12 with min 45/55 C and draw 150/400 L/day, step 0 at 0.01 vs 3.0",
+   "external heat on"
+  ],
+  "production_reach": "none found: when coasting covers the legionella step (>= requirement - 0.5) the planners leave that step unpowered, so the mask has nothing to remove there"
+ },
+ "should_fail": {
+  "script": "none found: no horizon tried separates the arms",
+  "assertion": "n/a"
+ }
+}
