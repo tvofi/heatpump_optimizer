@@ -53,3 +53,4 @@
 1795571758 INBOX acked through 1
 1795574166 CKPT merged 3210fcd7 (semantic #1218 count re-measured), identity fixed, head d4e4e66f; prepr re-run snapshot 0c397d49b2b6
 1795576563 CKPT handoff pushed d4e4e66f; body b9a9f46b snapshot ccd20dc5a979
+1795576566 DONE handoff d4e4e66f6b: mutation ledger refusal repaired (stale cd4695fb dropped), CONST f34207b8 kill recorded, main 3210fcd7 merged
