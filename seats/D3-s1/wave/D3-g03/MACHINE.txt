@@ -7,3 +7,13 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 load1: 0.89
 Sun Nov 22 21:37:42 UTC 2026
+
+## re-fire container (resume seat), Wed Nov 25 00:46:06 UTC 2026
+nproc: 4
+               total        used        free      shared  buff/cache   available
+Mem:           16087         760       14049          12        1549       15326
+Swap:              0           0           0
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1: 0.63
