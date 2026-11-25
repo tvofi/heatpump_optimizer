@@ -1,6 +1,0 @@
-applied 1
--        tank, running = (ctx, initial_state.dhw_temperature, draw_rates), initial_state.dhw_charge_under_way
-+        tank, running = (ctx, initial_state.dhw_temperature, draw_rates), True
-  FAIL with no charge under way the planner drops a step-0 hot water run on a tank at or above its start temperature and re-buys from step 1; null control, with one under way it charges step 0  [predicate false]
-1 of 161 BLOCK DUTY CHECKS FAILED
-rc=1

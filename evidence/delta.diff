@@ -1,0 +1,26 @@
+diff --git a/docs/architecture.md b/docs/architecture.md
+index bbac9eccfd..6bd26ee92d 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -303,7 +303,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency
+ reaches for `homeassistant.util.dt` inside a function, as the fallback when no
+ clock function was injected.
+ 
+-The other 65 modules are deliberately free of it, so each can be driven
++The other 66 modules are deliberately free of it, so each can be driven
+ directly by `tests/features.py` with no Home Assistant running. That matters
+ because the failure mode of this integration is a *plausible* plan: a detector
+ that never fires, or a watchdog that lets a flatline through, produces output
+diff --git a/tests/deployment_shape.py b/tests/deployment_shape.py
+index 10107eba68..96e1c0bb9a 100644
+--- a/tests/deployment_shape.py
++++ b/tests/deployment_shape.py
+@@ -57,7 +57,7 @@ which drives the CI ratchet's archscore measurement and so opens the package
+ the way this lane's recorder does. A diff touching any production file
+ therefore selects this lane. That is a selection cost, not a
+ duplicate-assertion one: the same
+-recording finds 182 of the 561 script pairs (34 choose 2) sharing 0.80 or more
++recording finds 184 of the 561 script pairs (34 choose 2) sharing 0.80 or more
+ of their production-module closure (169 of 528 before R11-SEAM-tests's
+ cycle_lane.py, whose closure opens the whole package, and 180 on its branch
+ before the merge bringing R11-SEAM-actuation-release's three production

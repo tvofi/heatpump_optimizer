@@ -1,4 +1,0 @@
-  ok   architecture.md's HA-free count is the tree's
-  ok   and the lane's docstring records those measured numbers as the selection-cost note (#1218)
-ALL 2763 ENTITY CHECKS PASSED
-rc=0
