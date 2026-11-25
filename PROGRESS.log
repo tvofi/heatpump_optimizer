@@ -14,3 +14,4 @@
 1795632860 DONE BLOCKED 3b3f4806: merge of main 91773476 needs owner ruling on max_class_loc 7832->7833, module_excess_loc 21763->21773; handoff/ untouched at d05081fb
 1795634298 INBOX acked through 5
 1795634314 CKPT resumed from BLOCKED 3b3f4806 under NOTE 5 ruling; merging main 7aa6020f snapshot 9d8d363fc600
+1795634722 CKPT merged main 7aa6020f, payment P2 kept, budgets recorded at measured values snapshot 7d23b0dfcec2
