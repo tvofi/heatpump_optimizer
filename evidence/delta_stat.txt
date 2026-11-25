@@ -1,0 +1,6 @@
+ tools/audit/check_scopes.py                     | 33 ++++++++++++++++++--
+ tools/audit/seat/cloud_dispatch.py              | 40 +++++++++++++++----------
+ tools/audit/seat/instruments/token_ledger.py.md |  6 ++--
+ tools/audit/seat/token_ledger.py                | 28 +++++++++++++++--
+ tools/ci/selftest_closures.json                 |  5 ++--
+ 5 files changed, 86 insertions(+), 26 deletions(-)

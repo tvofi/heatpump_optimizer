@@ -1,16 +1,16 @@
-Fix review: blocked b15a9f2cadb869915afbd317c08d1acd900259d2 class-open: axis dispatch paths that write the seat key unenumerated (e.g. publish_seat stub)
+Fix review: blocked e60d25b9bdf1533647cace5cb190901109d8829c mutation-vacuous: ledger_unread window filter survives (check_scopes.py:1427 win = rows unfiltered)
 
-bus-nonce: aec2337b7b02b00abd51dfa9089150c0
+bus-nonce: 8f5a11f8a7bcd0b24b526d29b3bdd3e3
 
-Round: 1 (first review of #3898, full diff against merge base 0e1eba2b4a).
+Round: 2. This is a delta review over the reviewed head b15a9f2cadb869915afbd317c08d1acd900259d2: `git diff b15a9f2c e60d25b9`, which is the repair 9ff0d214 and 2aa21692 merged onto b15a9f2c. e60d25b9 merges no main commit, so the delta has no main resolution to check.
 
 ## Block
 
-- class-open: axis dispatch paths that write the seat key unenumerated (e.g. publish_seat stub). The body claims a seat is "keyed by the `Seat key:` line that `cloud_dispatch.render` now ends every prompt's first line with", and `token_ledger.read_transcript` reads the key only from a transcript's first user message. But every real cloud dispatch goes through `publish_seat`: `dispatch_group` calls it at `tools/audit/seat/cloud_dispatch.py:743`, and `main --publish` at `:1691`. The seat's first user message is then the `_pointer` stub (`cloud_dispatch.py:220-228`), and that stub deliberately carries no key: `if not publish_ref:` at `:420`, asserted by the self-test arm "its stub carries no key". The key sits only in PROMPT.md, which the seat reads through a tool call, so the ledger never sees it. Measured at this head: the PROMPT.md first line parses as `{'role': 'reviewer', 'seat': 'reviewer-rev-3898', ...}`, while `parse_header(stub)` is `None` (`ev/stub_key.txt`). `collect --seat-class cloud` over this seat's own transcript, whose first user message is exactly such a stub, writes `group=- role=- dimension=- seat=-` (`ev/own_cloud_keys.txt`). Local spawns are the other member of the set. The key is written there only by the convention in `instruments/token_ledger.py.md:7-10`, which no rule reads and no check enforces; an unkeyed subagent gets `seat=-`.
-  Consequence on the refusal this PR adds: `ledger_gaps` drops `-` seats, and `round_ledger_gaps` prints `LEDGER unread` only when the ledger or the window is absent. An evaluator or reviewer run as a published cloud seat, or as an unkeyed local spawn, therefore reads `ok start evaluation` with no gap and no unread line. That is a silent pass, not the "unread, never a partial" the body states for `token_line`. Owed: either put the key where the reader looks (the stub's first line; the key is about 80 bytes against the stub's 1 KB bound), or have the reader take it from the pinned PROMPT.md. Disposition the local-spawn member by a rule or a stated residue category. Make `round_ledger_gaps` print unread while a seat class, or the seat column, the refusal depends on is unledgered.
-- Surviving mutants in `token_ledger.read_transcript`, my own targeted runs at this head (`ev/mutants.txt`); the fix round pins them:
-  - M4 `if first and o.get("type") == "user":` changed to `if o.get("type") == "user":` survives. Every later user line, which in a real transcript includes each tool_result, would then overwrite the key, usually with `None`, and no self-test transcript holds a second user message.
-  - M5 `d["t"] = max(d["t"], stamp)` changed to `d["t"] = stamp` survives, because the fixtures' stamps only ascend.
+- mutation-vacuous: the window filter in the new `ledger_unread` (`tools/audit/check_scopes.py:1427`, `win = [r for r in rows if r.get("t") and a <= at(r["t"]) < b]`) can be replaced by `win = [r for r in rows if r.get("t")]`, so it reads the whole ledger. After that change every self-test still passes. The whole `check_scopes.py --repo . --self-test` exits 0 (`ev/mutants.txt`, D5), and `ledger_round_self_test` holds all 8 arms (`ev/ledger_arms.txt`).
+  - Why the arms miss it: every arm puts the class rows (`whole`, 2026-01-01T12:00:00Z) inside the graded window. No arm has a class whose only row falls outside the window.
+  - What it breaks: `tokens.tsv` is cumulative, because `collect` runs daily over every transcript. With the filter gone, a cloud row from any other round satisfies the "seat class with no row" check. `round_ledger_gaps` would then print no `LEDGER unread` for a graded window with no cloud row. That is the same silent pass review/3898 blocked in round 1, now one line from regressing unseen.
+  - Owed: one arm where a seat class has a row only outside the window, for example the cloud row dated before tag v9.0.0. It must print `seat classes with no row in the window: cloud`.
+  - The other new lines are pinned. D2 (drop the missing-classes clause), D3 (drop the unkeyed clause), D4 (drop the orchestrator exemption), D6 (drop the unread print) and D7 (return `[]` on unread, losing the refusal) are each killed by the intended arm (`ev/mutants.txt`, `ev/ledger_arms.txt`).
 
 ## Findings
 
@@ -18,11 +18,21 @@ none
 
 ## Evidence
 
-- RESULT: head reviewed b15a9f2cadb869915afbd317c08d1acd900259d2 (`ev/HEAD.txt`). The body's `## Head` names 8bafe16f10 and merge base e3cb5c01. The head adds main's merge 99e805acaf and the delivery row b15a9f2cad, and the code is unchanged.
-- RESULT: `git merge-tree --write-tree origin/main b15a9f2cadb869915afbd317c08d1acd900259d2` rc=0, no conflict (`ev/merge_tree.txt`). `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
-- RESULT: VERSION, the manifest and RELEASE_NOTES are untouched, and no golden or claim file is in the diff (`ev/changed_files.txt`), so step 4 has nothing to compare.
-- RESULT: self-tests at the head (`ev/selftests.txt`): token_ledger 16 passed, 0 failed; cloud_dispatch 186 checks, 0 failed; beat_jobs 313 checks, 0 failed; check_scopes `SELF-TEST passed`; `tests/structure.py` `STRUCTURE RATCHET PASSED` (`ev/structure.txt`).
-- RESULT: the body's mutation proof re-run (`ev/mutants.txt`). These are killed: M1 the seen guard; M2 the class rule; M3 keeping a pruned transcript's rows; M6 round_metrics `if missing or not prod`; M7 the key insertion; M8 inherit_part; M9 `group=group_id`; M10 `gaps += round_ledger_gaps`; M11 the window lower bound `a <`; M12 dropping `reviewer` from ledger_gaps. M4 and M5 survive (see the Block section). I ran no diff-mutant table; that is CI's to run.
-- RESULT: usage is the same on every content-block line of one response (12 multi-line responses, 0 differing) in this seat's own transcript, so the once-per-(id, requestId) count is sound on real data.
-- RESULT: no finder's harness is named; the packet reads "none named". This group is instrument-building (card P4), not an audit finding.
-- CI: `merge_train.py classify b15a9f2cadb869915afbd317c08d1acd900259d2 --pr 3898` still WAIT at the last poll (`ev/classify.txt`), with no red. I did not wait for GREEN because the verdict blocks on code.
+- RESULT: head reviewed e60d25b9bdf1533647cace5cb190901109d8829c (`ev/HEAD.txt`). `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- RESULT: `git merge-tree --write-tree origin/main e60d25b9` rc=0, no conflict (`ev/merge_tree.txt`), with the driver line `LEDGER-MERGE: resolved tests/closures.json`. The head is 79 commits behind origin/main 7aa6020f2a and merges cleanly.
+- RESULT: the round-1 block's axis, dispatch paths that write the seat key, is resolved.
+  - Rule: `render` now ends the first line of every event with the key, whether the event is the `publish_seat` stub or the whole prompt (`cloud_dispatch.py:421-428`). Self-test arms pin this per role and for the group seat.
+  - Enumeration check: I swept `tools/` and `.claude/` with git grep, through a scout subagent. Patterns: `CLOUD (REVIEWER|FIXER|PROBE|DESIGNER)`, `environment_id`, `job_config`, `RemoteTrigger`, `PAYLOAD.json`, `seat for PR`. No cloud event or payload builder exists outside `cloud_dispatch.py`. The other hits are readers (`cloud_relay.sh:844`, `review_packet.py:673`), self-test fixtures (`cloud_relay.sh:2102`, `owed_watch.py:355-369`) or docs. The rule's output matches the stated set.
+  - Residue: the local spawn is named by category, a host session's Agent tool. Its `seat=-` row now prints `LEDGER unread`, through D3 and D6, both killed.
+  - Real transcript: this seat's own transcript has the dispatch event as its first `type=user` message, with no wrapper, and `HEADER` is `re.M`. So a keyed stub would be read. This seat's stub has no key because it was rendered by main's pre-PR code.
+- RESULT: the round-1 surviving mutants M4 (`if first and` dropped) and M5 (`max(d["t"], stamp)` to `stamp`) are now killed by the two new token_ledger arms (`ev/mutants.txt`).
+- RESULT: D1b, the key applied only when `not publish_ref`, is killed by 3 cloud_dispatch checks.
+- RESULT: self-tests at the head (`ev/selftests.txt`): token_ledger 18 passed, 0 failed; cloud_dispatch 188 checks, 0 failed; check_scopes `SELF-TEST passed`.
+- CI: the earlier reds are answered.
+  - `codeql / Analyze (javascript-typescript)` was red at b15a9f2c, a SARIF upload server error answered in `## Red checks`. It is success at this head.
+  - `gate` failure job 139469039562 is the provisional gate. Its log reads `FAIL run(s) [45688465651] at this head are still being judged; their gate decides`, and classify reads `gate red: none`.
+  - `pr-contract` is skipped behind that gate.
+  - `tests / nightly-status` failure is not in the owed-reds set.
+  - `merge_train.py classify e60d25b9... --pr 3898` read WAIT, `pending: gate red: none`, at every poll from 20:02 to 20:10Z (`ev/classify.txt`). I did not wait for GREEN, because the verdict blocks on tests.
+- Note: stale-body: `## Head` names merge base e3cb5c01. The head's merge base with main is 0e1eba2b.
+- The selftest_closures.json delta (beat-job-rows reads `selftest_absorb.py`; `carries/**`) is instrument scope, which CI checks. It does not widen this review.
