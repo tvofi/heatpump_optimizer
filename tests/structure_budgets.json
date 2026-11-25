@@ -1,5 +1,5 @@
 {
- "class_excess_loc": 17251,
+ "class_excess_loc": 17244,
  "const_modules_over_50": 4,
  "coordinator_attrs": 134,
  "coordinator_multiassigned_attrs": 101,

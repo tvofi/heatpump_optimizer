@@ -33137,6 +33137,39 @@ R.check(
                    branch="b", run_id=13) == [],
     "a same-SHA twin must survive",
 )
+# #3885: a superseded MAIN push run is cancelled from main-cancel.yml, never from
+# ci.yml, whose workflow-level `CI-main` group holds the newer push's run pending
+# until the older one ends. The job reads the push's prelude `scope` and hands it
+# to `cancel_superseded.py main --scope`, which cancels only for `full`, within
+# the three-run bound and while GitHub grants runners (its self-test).
+def _mc_shape(doc: dict) -> bool:
+    on = doc.get("on", doc.get(True)) or {}
+    job = (doc.get("jobs") or {}).get("main-cancel") or {}
+    run = " ".join(str(s.get("run") or "") for s in job.get("steps") or [])
+    return (list(on) == ["push"] and (on["push"] or {}).get("branches") == ["main"]
+            and "concurrency" not in doc and "concurrency" not in job
+            and (job.get("permissions") or {}).get("actions") == "write"
+            and "python3 -I tools/ci/prelude.py" in run
+            and "cancel_superseded.py main --repo" in run and '--scope "${scope:-unknown}"' in run
+            and '--head-sha "$HEAD_SHA"' in run)
+
+
+_MC_PATH = Path(".github/workflows/main-cancel.yml")
+_MC_TEXT = _MC_PATH.read_text() if _MC_PATH.exists() else ""
+_MC_DOC = _RC_DOCS.get("main-cancel.yml") or {}
+R.check(
+    "#3885: main-cancel.yml cancels superseded main runs on a push to main only, outside any "
+    "concurrency group, passing the push's prelude scope and head",
+    _mc_shape(_MC_DOC) and "main-cancel" not in (_RC_DOCS["ci.yml"].get("jobs") or {}),
+    f"on={list(_MC_DOC.get('on', _MC_DOC.get(True)) or [])} jobs={sorted(_MC_DOC.get('jobs') or {})}",
+)
+R.check(
+    "and a main-cancel.yml in a concurrency group, on pull_request, or not passing the scope is refused (null control)",
+    not _mc_shape({**_MC_DOC, "concurrency": {"group": "CI-main"}})
+    and not _mc_shape({**_MC_DOC, "on": {"push": {"branches": ["main"]}, "pull_request": None}})
+    and not _mc_shape(_yaml.safe_load(_MC_TEXT.replace('--scope "${scope:-unknown}"', "")) or {}),
+    "the predicate over three shapes the workflow must not take",
+)
 # pr-contract.yml is a callee since U6: it lists `workflow_call` alone and no
 # `concurrency`, so no event can start it and no group can cancel its run. The
 # same-SHA twins of a body edit are ci.yml's, held by its run-id group (the
