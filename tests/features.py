@@ -90525,6 +90525,39 @@ R.check(
     _ml_t6 == (["dhw:15", "dhw:10 space:5", "idle:15", "dhw:15"], ["dhw:15", "dhw:15", "dhw:15"]),
     str(_ml_t6),
 )
+# T6b: R2's two sides, each alone. (a) a DHW-first both step at the plan's end, heating 9 < N = 10,
+# nothing to its right; null, a hot-water step after it. (b) a space-first rule: an idle step, then a
+# both step with heating 9 first; null, a hot-water step in place of the idle one.
+_ml_space_first = _ds_legs.LegRule("space", None, 10.0, 0.0, _ds_legs.IDLE)
+
+
+def _ml_space_first_legs(space_kw, dhw_kw):
+    return [" ".join(f"{d}:{m:g}" for d, m in step)
+            for step in _ds_legs.plan_legs(space_kw, dhw_kw, rule=_ml_space_first)]
+
+
+_ml_t6b = (_ml_legs([1.5], [1.0], heat=10), _ml_legs([1.5, 0.0], [1.0, 1.0], heat=10),
+           _ml_space_first_legs([0.0, 1.5, 0.0], [0.0, 1.0, 1.0]),
+           _ml_space_first_legs([0.0, 1.5, 0.0], [1.0, 1.0, 1.0]))
+R.check(
+    "T6b, R2 merges a heating leg only with hot water on both sides: a 9-min heating leg at the plan's end, "
+    "nothing to its right, is kept at N = 10, and so is a space-first 9-min heating leg after an idle step; null "
+    "controls, a hot-water step after the first and in place of the idle step before the second merge each",
+    _ml_t6b == (["dhw:6 space:9"], ["dhw:15", "dhw:15"], ["idle:15", "space:9 dhw:6", "dhw:15"],
+                ["dhw:15", "dhw:15", "dhw:15"]),
+    str(_ml_t6b),
+)
+# T6c: idle steps continue the leg the pump is in. The pump in hot water, two idle steps, then a
+# DHW-first both step with a 6-min hot-water leg at M = 10: the leg joins the pump's, of unknown
+# length, so it is not lengthened; null control, the pump in heating lengthens it.
+_ml_t6c = (_ml_legs([0.0, 0.0, 1.5], [0.0, 0.0, 1.0], dhw=10, before=_ds_legs.DHW),
+           _ml_legs([0.0, 0.0, 1.5], [0.0, 0.0, 1.0], dhw=10, before=_ds_legs.SPACE))
+R.check(
+    "T6c, idle steps between the pump's hot-water leg and step 2's 6-min hot-water leg join the two, so M = 10 "
+    "does not lengthen it; null control, the pump in heating lengthens it to 10",
+    _ml_t6c == (["idle:15", "idle:15", "dhw:6 space:9"], ["idle:15", "idle:15", "dhw:10 space:5"]),
+    str(_ml_t6c),
+)
 
 
 def _ml_short(legs, heat, dhw, before):
