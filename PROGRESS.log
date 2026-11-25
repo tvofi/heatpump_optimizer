@@ -37,3 +37,4 @@
 1795590804 HB alive
 1795591108 CKPT fabcb36186 pushed: full features 6168 ok (UTC); carry 5 reproduced under Asia/Kolkata and fixed (test defect); Kolkata full run + scoped gate in flight snapshot 93392d3264a3
 1795591401 HB alive
+1795591882 CKPT 2536f36b3e pushed: scoped-gate reds repaired (typing, block_duty, doc_claims, harness headers); final verification runs in flight snapshot b2366580e61f
