@@ -1,0 +1,12 @@
+RESULT cop_out0_baseline=np.float64(2.8874999999999997)
+RESULT cop_out0_mutant=[2.8875,2.8875,2.567558,2.11964,1.821027]
+RESULT cop_out0_scalar_unthrottled=2.8874999999999997
+RESULT moved=12 count (of 12 outdoor temps x 5 tanks)
+RESULT parity_breaks_baseline=0 count
+RESULT parity_breaks_mutant=12 count
+RESULT null_eligible_moved=0 count
+RESULT null_carnot_off_moved=0 count
+RESULT throttled_carnot_off_moved=12 count (eligible True, cop_flow_carnot False: the mutant enters the branch)
+RESULT thread_factor=0.998 ratio
+RESULT load1=1.06
+RESULT swapins=0 count

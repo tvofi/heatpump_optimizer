@@ -1,0 +1,12 @@
+RESULT moved_ref35=0 count (of 12)
+RESULT moved_ref20=0 count (of 12)
+RESULT moved_ref8=0 count (of 12)
+RESULT moved_ref7.5=0 count (of 12)
+RESULT moved_ref7=8 count (of 12)
+RESULT moved_ref5=8 count (of 12)
+RESULT production_moved=0 count
+RESULT inputs_tried=72 count
+RESULT defaults_cop_flow_reference_temp=35.0 C, cop_reference_temp=7.0 C
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.06
+RESULT swapins=0 count

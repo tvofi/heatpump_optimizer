@@ -1,0 +1,36 @@
+{
+ "key": "29065b9e48071934",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4475 CLAMP_DROP",
+ "patch": "carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0) -> carnot_ref = (ref + 273.15) / (ref + 273.15 - t_out)",
+ "function": "ThermalModel._batch_cop",
+ "cluster": "thermal_model.py:ThermalModel._batch_cop@4453-4482",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2968.3,
+  "load1_start": 1.0,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/29065b9e48071934.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 29065b9e48071934",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_29065b9e48071934.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_29065b9e48071934.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_29065b9e48071934.txt",
+  "metric": "production_moved",
+  "baseline_value": "0",
+  "mutant_value": "0",
+  "inputs_tried": "cop_flow_reference_temp 35 (the ThermalParameters default; no config key sets it, nor cop_reference_temp 7) x 12 outdoor temps x 5 tanks, throttled, Carnot on: 0 moved; off-production references 20, 8, 7.5: 0 moved; 7 and 5 C: 8 of 12 moved each (unreachable)"
+ },
+ "should_fail": "none can on reachable parameters: t_out is clipped at cop_reference_temp (7 C), so ref + 273.15 - t_out >= 28 K at the fixed 35 C reference"
+}

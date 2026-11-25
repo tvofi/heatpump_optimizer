@@ -1,0 +1,36 @@
+{
+ "key": "2765114b9329f57f",
+ "site": "custom_components/heatpump_optimizer/tariff.py:588 GUARD_OFF",
+ "patch": "if not pieces: -> if False:",
+ "function": "metering_windows",
+ "cluster": "tariff.py:metering_windows@570-588",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2850.0,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/2765114b9329f57f.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2765114b9329f57f",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_2765114b9329f57f.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_2765114b9329f57f.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_2765114b9329f57f.txt",
+  "metric": "moved_inputs",
+  "baseline_value": "0",
+  "mutant_value": "0",
+  "inputs_tried": "12992 inputs: 29 series (empty, [nan], [inf,-inf], [1e308,1e308], arange(1..25)) x window_minutes {0,1,7,15,30,60,120,1440} x dt_hours {0,1e-9,1/60,1/12,0.25,0.5,1,2} x offset {-7,-1,0,1,3,5,1000}"
+ },
+ "should_fail": "none can: pieces is non-empty for every non-empty series (head/full/tail cover it) and the empty series returns at line 571; reached by tests/features.py, tests/validate.py and 9 more (state/reach.tsv row 1082)"
+}
