@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_205d200980d58e9e.py: baseline vs in-memory mutant 205d200980d58e9e on the production symbol; pins: No check folds the solar aperture at a modelled gain of exactly 1e-6 kW; the x boundary is unpinned

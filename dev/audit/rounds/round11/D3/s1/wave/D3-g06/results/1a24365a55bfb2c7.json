@@ -1,0 +1,128 @@
+{
+ "key": "1a24365a55bfb2c7",
+ "site": "coordinator.py:9402 BOOLOP",
+ "file": "custom_components/heatpump_optimizer/coordinator.py",
+ "patch": "if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6: -> if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES or m[\"var\"] > 1e-6:",
+ "function": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture@9383-9402",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3511.8,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/gates/1a24365a55bfb2c7.json",
+  "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1a24365a55bfb2c7",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py",
+  "rc": 0,
+  "baseline_value": "(1.0,1.0,0.0392,0.16)",
+  "mutant_value": "(1.0,2.0,0.0392,0.16)",
+  "cases": {
+   "n1": [
+    "(1.0,1.0,0.0392,0.16)",
+    "(1.0,2.0,0.0392,0.16)"
+   ],
+   "n10_varied": [
+    "(10.0,1.0,0.458124495,2.784389)",
+    "(10.0,2.0,0.458124495,2.784389)"
+   ],
+   "n40_var0": [
+    "(41.0,1.0,1.96,0.65)",
+    "(41.0,0.3,1.96,0.65)"
+   ]
+  },
+  "cases_moved": 3,
+  "null_moved": 0,
+  "nulls": {
+   "preset_n29_var0p5": "(30.0,1.087994,1.9992,0.65)",
+   "preset_n40_var0p5": "(41.0,1.087994,1.9992,0.65)"
+  },
+  "inputs_tried": [
+   "n1: defaults",
+   "n10_varied: samples=10, vary=True",
+   "n40_var0: preset={'n': 40.0, 'var': 0.0, 'cov': 0.0, 'mx': 1.96, 'my': 0.5}",
+   "null preset_n29_var0p5: preset={'n': 29.0, 'var': 0.5, 'cov': 0.05, 'mx': 2.0, 'my': 0.5}",
+   "null preset_n40_var0p5: preset={'n': 40.0, 'var': 0.5, 'cov': 0.05, 'mx': 2.0, 'my': 0.5}"
+  ],
+  "thread_factor": "1.000",
+  "load1": "0.73",
+  "metric": "(n, scale, mx, my) of the solar-aperture regression after the folds",
+  "reach": "every installation's first sunny samples: n < SOLAR_APERTURE_MIN_SAMPLES (30) with a non-zero EWMA variance after the first fold"
+ },
+ "should_fail": "tests/features.py 'the aperture regression converges on the true scale' (_c36) runs 180 samples and reads only the end; no check asserts the scale stays 1.0 before SOLAR_APERTURE_MIN_SAMPLES",
+ "class": "candidate",
+ "finding": {
+  "title": "No check holds the aperture scale at 1.0 before 30 samples; and->or adopts it from the first sample",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "severity_claimed": "medium",
+  "severity": "medium",
+  "stop_rule_class": "bug",
+  "class_guess": "new",
+  "claim": "Mutant 1a24365a55bfb2c7 at coordinator.py:9402 BOOLOP (if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6: -> if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES or m[\"var\"] > 1e-6:) RED-AS-NULL the full GATE_SCOPE=full GOLDEN_MODE=drift gate on box D3-g06, yet its probe moves on 3 of 3 inputs: n1 baseline (1.0,1.0,0.0392,0.16), mutant (1.0,2.0,0.0392,0.16).",
+  "mechanism": "Direction: baseline keeps the scale at 1.0 until 30 samples; the mutant adopts cov/var from the first sample (scale 1.0 -> 2.0, the clamp), and past 30 samples with a near-zero variance (a constant modelled gain) takes cov/var of a degenerate regression and pins the scale at the 0.3 clamp. Reach: every installation's first sunny samples: n < SOLAR_APERTURE_MIN_SAMPLES (30) with a non-zero EWMA variance after the first fold. Check that should have failed (D3.M4): tests/features.py 'the aperture regression converges on the true scale' (_c36) runs 180 samples and reads only the end; no check asserts the scale stays 1.0 before SOLAR_APERTURE_MIN_SAMPLES.",
+  "metric_definition": "(n, scale, mx, my) of the solar-aperture regression after the folds",
+  "phenomenon_property": "The solar-aperture scale moves only once n >= SOLAR_APERTURE_MIN_SAMPLES and the EWMA variance is > 1e-6",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivor wave list; full-gate survivors are its keys whose gates/<key>.json verdict is SURVIVED or RED-AS-NULL)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_solar_aperture",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py",
+   "value": "(1.0,2.0,0.0392,0.16)",
+   "unit": "(n, scale, mx, my) of the solar-aperture regression after the folds (input n1; baseline (1.0,1.0,0.0392,0.16))",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g06: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's full gates ran (one gate at a time)",
+   "tolerance": "exact",
+   "load1": 0.73,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6: -> if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES or m[\"var\"] > 1e-6: at coordinator.py:9402 BOOLOP, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1a24365a55bfb2c7",
+   "expected_direction": "up",
+   "observed_value": "(1.0,2.0,0.0392,0.16)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py",
+   "value": "0 count",
+   "note": "null inputs preset_n29_var0p5, preset_n40_var0p5: both arms agree; full-gate null on this box: gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_1a24365a55bfb2c7.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1a24365a55bfb2c7"
+  ],
+  "proposed_fix_scope": "tests only: a check at the input above that pins the baseline outcome (n1: (1.0,1.0,0.0392,0.16))",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

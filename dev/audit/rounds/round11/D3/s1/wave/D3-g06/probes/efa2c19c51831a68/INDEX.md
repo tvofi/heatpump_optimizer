@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_efa2c19c51831a68.py: baseline vs in-memory mutant efa2c19c51831a68 on the production symbol; pins: No check folds the solar aperture at a zone mass of exactly 1e-6; the capacity boundary is unpinned

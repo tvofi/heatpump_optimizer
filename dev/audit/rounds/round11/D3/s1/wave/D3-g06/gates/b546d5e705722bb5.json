@@ -1,0 +1,41 @@
+{
+ "key": "b546d5e705722bb5",
+ "mutant": {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "line": 5382,
+  "old": "        if modelled_cop <= 0.1:",
+  "new": "        if False:",
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_cop_evidence GUARD_OFF 6deb0603"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "node tests/card.mjs",
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py",
+  "python3 tests/stress.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/stress.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "5 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3252.1,
+ "child_cpu_s": 5389.9,
+ "load1_start": 0.89,
+ "load1_end": 0.92,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [
+  "node tests/card.mjs",
+  "python3 tests/stress.py"
+ ],
+ "verdict": "KILLED"
+}

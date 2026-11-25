@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_89a3d25e2425b8e0.py: baseline vs in-memory mutant 89a3d25e2425b8e0 on the production symbol; pins: No check folds the solar aperture with zero mass or zero dt_h; dropping the guard is unseen

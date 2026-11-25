@@ -1,0 +1,1 @@
+- _generator/*.txt: out-of-tree generator (gen.py writes each probe_<key>.py from specs/drivers/preamble), record and report builders; .txt so no tree scan reads them as harnesses

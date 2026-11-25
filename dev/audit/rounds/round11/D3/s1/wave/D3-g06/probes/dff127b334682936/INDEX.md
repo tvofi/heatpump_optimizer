@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_dff127b334682936.py: baseline vs in-memory mutant dff127b334682936 on the production symbol; pins: No check folds a thermal figure of exactly 0 kW into the capacity envelope; <= 0 -> < 0 is unseen
