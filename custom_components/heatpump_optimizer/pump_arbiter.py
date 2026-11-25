@@ -398,6 +398,8 @@ class ArbiterState:
     supply_held: bool = False
     #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
     held_until: datetime | None = None
+    #: ``supply_hold.ISSUE_COOLING`` is raised for this cooling episode.
+    cooling_asked: bool = False
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
 
@@ -1291,11 +1293,8 @@ def cycle_write(hass: Any, config: Any, params: Any) -> CycleWrite | None:
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = inp.plan
-    mode_state = _slot_state(inp, "mode")
     dhw = _dhw_write(inp)
-    if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
-        # Cooling is the user's season, not a duty the plan chose: hands off,
-        # the silent switch included.
+    if cooling_mode(inp):  # hands off, the silent switch included
         return PumpCommand(None, None, None)
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
@@ -1379,7 +1378,7 @@ def _mode_for(inp: ArbiterInputs, duty: str | None) -> str | None:
     A single duty the select does not offer is Heating + DHW, where offered.
     """
     mode_state, duty = _slot_state(inp, "mode"), _disinfecting(inp, duty)
-    if duty == "idle" or pump_mode.capability(getattr(mode_state, "state", None)).cooling:
+    if duty == "idle" or cooling_mode(inp):
         return None
     single = {"space": pump_mode.MODE_HEAT, "dhw": pump_mode.MODE_DHW}.get(duty or "")
     if single is not None and _option_for(mode_state, single):
@@ -2018,18 +2017,15 @@ async def write_supply(coord: Any, entity_id: str, on: bool) -> None:
     await switch_supply(coord.hass, coord.entry, coord.arbiter_inputs().config, entity_id, on)
 
 
-def supply_write(on: bool, signals: Any) -> bool | None:
-    """The switch value to write for ``on``, or ``None`` to leave the switch.
+def cooling_mode(inp: ArbiterInputs, signals: Any = None) -> Any:
+    """The cooling mode the pump reads, or ``None``: the user's season, which no writer touches.
 
-    OFF is skipped only when the pump's own mode is cooling or blocks both
-    channels: an empty plan is then this integration's doing, not a decision
-    to stop the pump. A single-channel block (DHW-only, heating-only) still
-    commands OFF, or a summer DHW pulse would leave the supply latched while
-    the tank is supposed to drift.
+    The live select where it reads a known mode, else ``signals``, the cycle's
+    last good reading across a dropout. Nothing writes Heating back over it.
     """
-    if on or not ((signals.space_blocked and signals.dhw_blocked) or signals.mode.cooling):
-        return on
-    return None
+    live = pump_mode.capability(getattr(_slot_state(inp, "mode"), "state", None))
+    mode = live if live.known else getattr(signals, "mode", live)
+    return mode if mode.cooling else None
 
 
 def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
@@ -2101,16 +2097,16 @@ def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetim
 async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | None = None) -> None:
     """At a step boundary, write the supply where the plan's command changes.
 
-    The cycle writes the switch once per interval, so without this a step
-    change reached the pump only at the next cycle, as late as one interval
-    after the boundary, and a step's duty verdict depended on the cycle's
-    phase against the step grid (#2492). Only a change is written: a step
-    that commands what the last one did leaves the switch alone, so an early
-    cut-off still holds until the next cycle, as ``early_cutoff`` documents.
+    The cycle writes once per interval: without this a step change reached
+    the pump up to one interval late, and a step's duty verdict hung on the
+    cycle's phase against the step grid (#2492). Only a change, a held write
+    or one the cooling gate refused (``cooling_asked``) is written: an early
+    cut-off holds until the next cycle, as ``early_cutoff`` documents.
     """
     now = now or dt_util.now()
     step = plan_step_start(now)
-    if held.supply is None or (held.supply[0] == step and not held.supply_held):
+    retry = held.supply_held or held.cooling_asked
+    if held.supply is None or (held.supply[0] == step and not retry):
         return
     inp = wiring.inputs()
     on = None if inp.entry_released else step_supply(inp, wiring.boosts, now)
@@ -2120,7 +2116,7 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
         held.supply_held = False  # a held write dies with its command
         return
     last, held.supply = held.supply[1], (step, on)
-    if on != last or held.supply_held:
+    if on != last or retry:
         await wiring.write(on)
 
 
