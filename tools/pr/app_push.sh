@@ -5,7 +5,7 @@
 # contract check FIRST so nothing reaches the remote until the body passes.
 #
 #   tools/pr/app_push.sh [--dry-run] [--recarry|--row-only|--reuse] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
-#   tools/pr/app_push.sh --branch-only <owner/repo> <worktree> batch/<name>
+#   tools/pr/app_push.sh --branch-only <owner/repo> <worktree> batch/<name>|handoff/selftest-absorb
 #   tools/pr/app_push.sh --self-test
 #
 # WHY THIS EXISTS. The seat account that authored pull requests is spam-flagged:
@@ -82,7 +82,12 @@
 # --branch-only pushes a `batch/` branch and opens nothing: merge_train.py's
 # proof commit, a merge of pull requests already past prepr, so there is no
 # body to check and no pull request to open. Any other branch name refuses,
-# so the flag cannot carry a fix branch past prepr.
+# so the flag cannot carry a fix branch past prepr -- but one: the standing
+# ref `handoff/selftest-absorb` the selftest-absorb beat row
+# (tools/audit/seat/selftest_absorb.py) re-cuts at main's tip each beat. It is
+# a handoff ref, so no pull request opens from it here (the opener's
+# open_pr.sh runs prepr on it), and it alone is FORCE-pushed: each beat's
+# commit has main's newer tip for its parent, never the last beat's commit.
 #
 # --recarry is remerge_main.sh's push of origin/main merged into an open pull
 # request (merge_train.py's recarry; decision on #201, comment 6070202495).
@@ -461,6 +466,9 @@ judge_commits() { # worktree branch head -> rc 0 when ref_privacy's guard passes
     --over refs/remotes/origin/main -C "$1"
 }
 
+#: The one standing ref --branch-only force-pushes (selftest_absorb.py's STANDING).
+STANDING_ABSORB=handoff/selftest-absorb
+
 push_and_open() {
   local dry=0 bonly=0 recarry=0 rowonly=0 reuse=0 reused=0
   [ "${1:-}" = "--dry-run" ] && { dry=1; shift; }
@@ -469,8 +477,9 @@ push_and_open() {
   [ "${1:-}" = "--reuse" ] && { reuse=1; shift; }
   if [ "${1:-}" = "--branch-only" ]; then
     bonly=1; shift
-    [ $# -eq 3 ] || die "usage: app_push.sh --branch-only <owner/repo> <worktree> batch/<name>"
-    [[ ${3:-} == batch/* ]] || die "--branch-only pushes a batch/ branch only, never '${3:-}'"
+    [ $# -eq 3 ] || die "usage: app_push.sh --branch-only <owner/repo> <worktree> batch/<name>|$STANDING_ABSORB"
+    [[ ${3:-} == batch/* || ${3:-} == "$STANDING_ABSORB" ]] \
+      || die "--branch-only pushes a batch/ branch or $STANDING_ABSORB only, never '${3:-}'"
     set -- "$1" "$2" "$3" /dev/null
   fi
   [ "$recarry$bonly" != 11 ] || die "--recarry and --branch-only do not combine: a batch/ branch has no pull request to recarry"
@@ -619,7 +628,7 @@ HELPER
   # rejection answers at once), as remerge_main.sh's fetches are.
   GIT_TERMINAL_PROMPT=0 python3 "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/gh_read.py" --git-retry \
     git -C "$wt" -c credential.helper= -c "credential.helper=$PRIV/credhelper.sh" \
-    -c http.postBuffer=64m push "https://github.com/$repo.git" "$br" &
+    -c http.postBuffer=64m push "https://github.com/$repo.git" "$([ "$br" = "$STANDING_ABSORB" ] && echo +)$br" &
   wait $! || push_rc=$?
   [ "$push_rc" = 0 ] || die "the App's push of $br to $repo was refused; no pull request was opened or re-bodied"
   if [ "$bonly" = 1 ]; then
@@ -1025,6 +1034,14 @@ run bonly --branch-only o/r "$W/tool-wt" batch/proof-1; st $? 0 "--branch-only p
 st "$(grep -c ' push https://github.com/o/r.git batch/proof-1' "$W/bonly/log")" 1 "through the App's helper, once"
 st "$(grep -c '^curl \(POST\|PATCH\|GET\) repos/o/r/pulls' "$W/bonly/log")$(calls bonly prepr)$(calls bonly gh)" 000 "and opens, re-bodies and reads no pull request, runs no prepr and asks gh nothing"
 st "$(calls bonly 'curl DELETE installation/token')$(leftover bonly)$(leaks bonly)" 100 "the token is revoked, the private directory gone, nothing leaked"
+# The selftest-absorb beat row's standing ref: pushed the same way, forced.
+mkcase bstand; : > "$W/bstand/prepr-fails"
+run bstand --branch-only o/r "$W/tool-wt" handoff/selftest-absorb; st $? 0 "--branch-only pushes the standing handoff/selftest-absorb ref without a body"
+st "$(grep -c ' push https://github.com/o/r.git +handoff/selftest-absorb$' "$W/bstand/log")$(grep -c ' push https://github.com/o/r.git +batch/' "$W/bonly/log")" 10 "force-pushed, it alone (a batch/ branch is not forced)"
+st "$(grep -c '^curl \(POST\|PATCH\|GET\) repos/o/r/pulls' "$W/bstand/log")$(calls bstand prepr)" 00 "and opens no pull request and runs no prepr"
+mkcase bhand
+run bhand --branch-only o/r "$W/tool-wt" handoff/selftest-absorb-x; st $? 1 "REFUSE: --branch-only on any other handoff ref (null control: one character more)"
+st "$(wc -l < "$W/bhand/log" | tr -d ' ')" 0 "before any call"
 mkcase bonlyfix
 run bonlyfix --branch-only o/r "$W/tool-wt" "$BR"; st $? 1 "REFUSE: --branch-only on a fix branch, which would skip its prepr"
 st "$(wc -l < "$W/bonlyfix/log" | tr -d ' ')" 0 "before any call (null control for the pair above: same flag, another branch)"
