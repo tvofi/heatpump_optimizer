@@ -6844,9 +6844,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r11-arch-cycle-surface",
-    "commit": null,
+    "commit": "91773476edb3c66e60296c8a3e471b6855ea5796",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-005)",
     "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-entity-service): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
