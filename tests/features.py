@@ -64890,11 +64890,13 @@ from heatpump_optimizer import off_restore as _pa_orr  # noqa: E402
 
 
 def _pa_unload(coord):
-    """The unload's two halves, as ``async_unload_entry`` runs them: the restore, which
-    writes the baseline row back (ADR-004), then the arbiter's release, which writes nothing."""
+    """The unload as ``async_unload_entry`` runs it: the restore, which writes the baseline
+    row back (ADR-004), the arbiter's release (``async_shutdown``), which writes nothing,
+    then the restore once more behind the released latch."""
     coord.entry.runtime_data = coord
     _pa_aio.run(_pa_orr.async_restore(coord.hass, coord.entry, coord._config, "unload"))
     _pa_aio.run(_pa.release(coord))
+    _pa_aio.run(_pa_orr.async_restore(coord.hass, coord.entry, coord._config, "unload"))
 
 
 def _pa_enter_off(coord):
@@ -89783,6 +89785,33 @@ def _fh_handback(fault, how):
 _fh_unl, _fh_unl_null = _fh_handback(True, "unload"), _fh_handback(False, "unload")
 R.check("unload under the hold writes no baseline row, and drops the latch", _fh_unl == ([], False), f"{_fh_unl}")
 R.check("null control: unload with no fault writes the baseline row", bool(_fh_unl_null[0]), f"{_fh_unl_null}")
+
+
+def _fh_reunload(consult):
+    """Row writes of an unload restore after an unload under the hold, the alarm since cleared;
+    the entry consulted again first (set up afresh) when ``consult``."""
+    c = _fh_coord(state="off")
+    _pa_run(c, 0)
+    _fh_fault(c, "on", -30)
+    _pa_run(c, 1)
+    _sa_dt.freeze(_PA_T0 + timedelta(minutes=2))
+    try:
+        _pa_unload(c)
+        _fh_fault(c, "off", 1)
+        if consult:
+            _fh.holding(c.entry, c.hass, c._config, off=False)
+        c.hass.services.calls.clear()
+        _pa_aio.run(_pa_orr.async_restore(c.hass, c.entry, c._config, "unload"))
+        return _fh_row_writes(c)
+    finally:
+        _sa_dt.freeze(None)
+
+
+_fh_reu, _fh_reu_null = _fh_reunload(True), _fh_reunload(False)
+R.check("the unload's held mark lasts only until the entry's next consult: the next unload writes the owed row",
+        bool(_fh_reu), f"{_fh_reu}")
+R.check("null control: with no consult between them the mark holds and the row stays owed",
+        _fh_reu_null == [], f"{_fh_reu_null}")
 _fh_off, _fh_off_null = _fh_handback(True, "off"), _fh_handback(False, "off")
 R.check("Off ends the hold: entering Off under it writes the baseline row at the mode change, and Off's pass clears the latch",
         bool(_fh_off[0]) and _fh_off[0] == _fh_off_null[0] and _fh_off[1] is False, f"{_fh_off} vs {_fh_off_null}")
