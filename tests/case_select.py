@@ -4,6 +4,7 @@
     python3 tests/case_select.py split <script>                   print the spans, one line each
     python3 tests/case_select.py run <script> [--plan FILE]       run the script span by span
     python3 tests/case_select.py record <script> [--union] [--table T]
+    python3 tests/case_select.py stats <script>                   selectivity figures from the table
     python3 tests/case_select.py scripts                          the scripts recorded per span
     python3 tests/case_select.py --self-test
 
@@ -812,6 +813,29 @@ def merge_tables(base: str, ours: str, theirs: str) -> str:
     return dumps(out, order, rec)
 
 
+def stats(script: str, table: Path = TABLE) -> int:
+    """Print one script's selectivity figures from the table (the enumerator P2 plans from)."""
+    import statistics
+    d = load(table)
+    rel = os.path.relpath(os.path.realpath(script), ROOT)
+    e = entry(d, rel) if d else None
+    if e is None:
+        print(f"STATS: {rel} has no entry in {os.path.relpath(table, ROOT)}")
+        return 1
+    sp = e["spans"]
+    files = [len(v["files"]) for v in sp.values()]
+    needs = [len(v["needs"]) for v in sp.values()]
+    cc = {f for v in sp.values() for f in v["files"] if f.startswith("custom_components/")}
+    wide = sum(1 for v in sp.values()
+               if sum(f.startswith("custom_components/") for f in v["files"]) > len(cc) / 2)
+    print(f"STATS: {rel}: {len(sp)} spans; table {table.stat().st_size} bytes, {len(d['files'])} paths;"
+          f" files/span median {statistics.median(files)} max {max(files)};"
+          f" needs/span median {statistics.median(needs)} max {max(needs)};"
+          f" {wide} spans read over half of the {len(cc)} custom_components files recorded;"
+          f" span seconds {round(sum(v['seconds'] for v in sp.values()), 1)}")
+    return 0
+
+
 def record(script: str, union: bool, table: Path = TABLE) -> int:
     """Run `script` under the recorder and write its entry into the table."""
     rel = os.path.relpath(os.path.realpath(script), ROOT)
@@ -1069,6 +1093,8 @@ def _self_test() -> int:
 def _main(argv: list[str]) -> int:
     if argv[:1] == ["--self-test"]:
         return _self_test()
+    if len(argv) >= 2 and argv[0] == "stats":
+        return stats(argv[1], Path(argv[argv.index("--table") + 1]) if "--table" in argv else TABLE)
     if argv[:1] == ["scripts"]:
         print("\n".join(SCRIPTS))
         return 0
