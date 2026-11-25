@@ -1,0 +1,4 @@
+dc2b2bab316419ced8f919c256908275a2cc3e25 on main: Merge pull request #3875 from tvofi/fix/r11-seam-store
+f52e700df1d291e6d60ed7d29625ed301908a108 on main: Merge pull request #3738 from tvofi/fix/r11-seam-cycle-solve
+34c7a3f6100322063f675672cfdf51662ef53959 on main: Merge pull request #3871 from tvofi/fix/r11-owner-card-external-heat
+dc5face1f630d6e2994c40922d6dbd6a6c85cec9 on main: Merge pull request #3877 from tvofi/fix/r11-outside-3849-pr
