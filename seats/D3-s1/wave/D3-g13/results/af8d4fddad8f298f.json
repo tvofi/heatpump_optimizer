@@ -1,0 +1,101 @@
+{
+ "key": "af8d4fddad8f298f",
+ "site": "dhw_planner.py:2075 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2075,
+ "patch": "if bool(np.all(joint_temps <= joint_limit + 1e-9)): -> if bool(np.all(joint_temps < joint_limit + 1e-9)):",
+ "function": "DhwPlanner._apply_dhw_min_run",
+ "cluster": "dhw_planner.py:DhwPlanner._apply_dhw_min_run@2055-2106",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3140.9,
+  "child_cpu_s": 5213.3,
+  "load1_start": 0.89,
+  "load1_end": 1.0,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/af8d4fddad8f298f.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key af8d4fddad8f298f",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+  "answer": {
+   "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_min_run CMP_BOUND 0d9190a8",
+   "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+   "line": 2075,
+   "kind": "CMP_BOUND",
+   "old": "if bool(np.all(joint_temps <= joint_limit + 1e-9)):",
+   "new": "if bool(np.all(joint_temps < joint_limit + 1e-9)):",
+   "fast_net_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/env_drift.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/validate.py"
+   ],
+   "deferred_slow": [
+    "tests/optimality.py",
+    "tests/harness_headers.py",
+    "tests/boost_drift_replay.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/validate.py"
+   ],
+   "full_net": "SURVIVED",
+   "full_net_killed_by": []
+  }
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_af8d4fddad8f298f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_af8d4fddad8f298f.py",
+  "rc": 0,
+  "results": [
+   "RESULT production_shaped_moved=0 of 144 []",
+   "RESULT baseline_paths joint_shortcut=48 per_slot=96 count",
+   "RESULT shortcut_always_off_moved=0 of 144",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.47",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "144 production-shaped fixtures (48 joint-shortcut)",
+   "bound: the same sweep with the shortcut disabled outright"
+  ],
+  "baseline_value": null,
+  "mutant_value": null,
+  "load1": 0.47,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none: the mutant only skips the joint shortcut on an exact float tie joint_temps == joint_limit + 1e-9, and skipping it always moves no plan (shortcut_always_off_moved 0 of 144)",
+ "equivalence": "production_shaped_moved 0 of 144; bounded by shortcut_always_off_moved 0 of 144"
+}
