@@ -40,7 +40,7 @@
    "null_moved": "0 count",
    "zero_dt_moved": "0 count",
    "thread_factor": "1.000",
-   "load1": "4.81",
+   "load1": "0.16",
    "swapins": "0"
   },
   "inputs_tried": "one interval of exactly 1e-3 h (3.6 s) [moves]; all 0.5 h [null]; one 0 s duplicate [refused by both]"
@@ -71,9 +71,9 @@
    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
    "machine": "box D3-g36: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, alone on the box",
    "cpu_or_wall": "count",
-   "contention_note": "full gates ran beside the probe (GATE_JOBS=1)",
+   "contention_note": "final re-take after the last gate, nothing else running (counts; first takes ran beside the gates with the same values)",
    "tolerance": "exact",
-   "load1": 4.81,
+   "load1": 0.16,
    "thread_factor": 1.0
   },
   "perturbation": {

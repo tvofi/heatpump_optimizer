@@ -14,5 +14,5 @@ RESULT moved=0 count
 RESULT inputs=12 count
 RESULT min_abs_r1_minus_r0=0.000e+00 K
 RESULT thread_factor=1.000
-RESULT load1=4.97
+RESULT load1=0.87
 RESULT swapins=0

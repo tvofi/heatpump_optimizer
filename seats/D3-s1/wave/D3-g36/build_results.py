@@ -74,7 +74,7 @@ for r in rows:
                 "evidence_command": cmd,
                 "evidence": {"command": cmd, "harness_path": f"{REL}/probes/probe_{key}.py",
                              "value": res.get(sp["m"]), "unit": "outcome", "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
-                             "machine": MACHINE, "cpu_or_wall": "count", "contention_note": "full gates ran beside the probe (GATE_JOBS=1)",
+                             "machine": MACHINE, "cpu_or_wall": "count", "contention_note": "final re-take after the last gate, nothing else running (counts; first takes ran beside the gates with the same values)",
                              "tolerance": "exact", "load1": float(res.get("load1", "0") or 0), "thread_factor": float(res.get("thread_factor", "1") or 1)},
                 "perturbation": {"change": f"sysid.py:{mut['line']} `{mut['old'].strip()}` -> `{mut['new'].strip()}`",
                                  "expected_direction": sp["direction"], "observed_value": res.get(sp["m"])},

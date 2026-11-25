@@ -87,8 +87,8 @@ md = [f"# D3-s1, box D3-g36: full gate for 16 u1 full-net survivors (sysid.py), 
       f"wall {null['wall_s']} s, load1 {null['load1_start']} -> {null['load1_end']} (provisional). Same three scripts and counts as box D3-rem's null; all artefact checks "
       "(gates/null-note.txt). A verdict is KILLED only when a script fails beyond these lines. The gates ran one at a time (GATE_JOBS=1, 4 h cap) through gate_wave.sh, "
       "which applies the mutant, commits, runs `GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh` under the gate_lock lease, records and resets. "
-      "The probes load sysid.py from `git show <baseline>` and apply the mutant in memory, so a gate's committed mutant never reaches them. They ran beside the gates "
-      "(load1 up to ~5 while they ran). Counts are exact; walls are provisional.", "",
+      "The probes load sysid.py from `git show <baseline>` and apply the mutant in memory, so a gate's committed mutant never reaches them. Their first takes ran beside the gates (load1 up to ~5); "
+      "the numbers quoted are a final re-take after the last gate, nothing else running, with the same values. Counts are exact; walls are provisional.", "",
       "## Tally", "",
       f"- gated: {len(gated)} of {len(keys)}; verdicts {tally}",
       f"- KILLED by script: {killed_by or 'none'}",

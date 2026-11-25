@@ -37,7 +37,7 @@
    "moved": "0 count",
    "inputs": "6 count",
    "thread_factor": "1.000",
-   "load1": "4.81",
+   "load1": "0.16",
    "swapins": "0"
   },
   "inputs_tried": "step and relax phases x {elapsed 2.5 h excursion up, 0.1 h excursion down, ceiling_probe kind elapsed 2.5 h}: 6 inputs, two calls each; moved 0"
