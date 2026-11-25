@@ -22,3 +22,4 @@
 1795589309 CKPT mutation proof M1-M15 running at head and 0d345358 snapshot 9b28e58dce35
 1795589452 CKPT body drafted; scoped prepr running at 34cefdc5 snapshot 0f273447e4c3
 1795591954 CKPT BLOCKED pushed 451fa9e9: prepr carry step cannot see PR-added carry-3881.json snapshot 834d6d130378
+1795591958 DONE blocked: prepr carry refusal on PR-added carry-3881.json; code 34cefdc5 on handoff-wip, BLOCKED.md 451fa9e9
