@@ -101630,14 +101630,14 @@ R.section("#3616 R11-OUTSIDE-ROOMS-3B: the room lift on the solve's record, the 
 # room_lift row. The 4-step case is the note's: floor 19.5, a 0.5 K lift on
 # steps 1-3, next temperatures 19.6 / 19.95 / 20.0 / 21.0, every step heating.
 from heatpump_optimizer import narrative as _r3_nar, slot_drivers as _r3_sd  # noqa: E402
-from heatpump_optimizer import optimizer as _r3_opt, payload as _r3_pay  # noqa: E402
+from heatpump_optimizer import comfort_floor as _r3_cf, optimizer as _r3_opt, payload as _r3_pay  # noqa: E402
 
 _R3_LIFT = np.array([0.0, 0.5, 0.5, 0.5])
 _R3_ROOM = np.array([19.5, 19.6, 19.95, 20.0, 21.0])
 
 
 def _r3_classify(lifts):
-    return _rh_rooms.mark_room_floor(_r3_opt.classify_space_steps(
+    return _r3_cf.mark_room_floor(_r3_opt.classify_space_steps(
         np.full(4, 2.0), np.ones(4), _R3_ROOM, 19.5 + _R3_LIFT, np.ones(4), None, 4,
     ), _R3_ROOM, 19.5 + _R3_LIFT, lifts)
 
@@ -101658,12 +101658,22 @@ R.check(
 # temperature (20.1: room_floor), not the one before it (19.6), and step 0,
 # exactly at the floor plus 0.15 K (19.65), stays comfort_floor.
 _R3_ROOM2 = np.array([19.5, (20.0 - 0.5) + 0.15, 19.95, 19.6, 20.1])
-_r3_edge = _rh_rooms.mark_room_floor(["comfort_floor"] * 4, _R3_ROOM2, 19.5 + _R3_LIFT, _R3_LIFT)
+_r3_edge = _r3_cf.mark_room_floor(["comfort_floor"] * 4, _R3_ROOM2, 19.5 + _R3_LIFT, _R3_LIFT)
 R.check(
     "R11-OUTSIDE-ROOMS-3B: the last step is judged on the trajectory's last temperature and a step exactly at "
     "the floor less the lift plus 0.15 K is not the lift's; null control, step 1 (19.95) is room_floor",
     _r3_edge == ["comfort_floor", "room_floor", "comfort_floor", "room_floor"],
     f"{_r3_edge}",
+)
+# A trajectory no longer than the steps (classify_space_steps' own fallback):
+# the last step reads the last temperature it has (20.1), as step 2 does.
+_r3_short = _r3_cf.mark_room_floor(["comfort_floor"] * 4, np.array([19.6, 19.95, 19.6, 20.1]),
+                                     19.5 + _R3_LIFT, _R3_LIFT)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: with a trajectory as long as the steps the last step reads its last temperature "
+    "(20.1: room_floor); null control, step 1 reads 19.6 and stays comfort_floor",
+    _r3_short == ["room_floor", "comfort_floor", "room_floor", "room_floor"],
+    f"{_r3_short}",
 )
 
 # Invariant (iv): a room_floor step is a step that is comfort_floor today, so
@@ -101792,6 +101802,34 @@ R.check(
     and np.allclose(_r3_tight_none, [22.8, 22.3]) and np.allclose(_r3_tight_zero, [22.5, 22.3]),
     f"{_r3_cb_fl[2]} {_r3_cb_mold[2]} {_r3_cb_clip[2]} {_r3_cb_none[2]} clip={_r3_cb_clip_min} "
     f"tight={_r3_tight_none} {_r3_tight_zero}",
+)
+# The margins less the lift are clipped at zero, so a lift the margins do not
+# carry is not attributed to the room (the residual review/3838 fc7ae551 found).
+_r3_cb_short = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.2, 0.0]), None, room_lifts=_r3_cb_lift)[3][2]
+_r3_cb_bare = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None, room_lifts=_r3_cb_lift)[3][2]
+# A lift array longer than the horizon is cut to it, as the margins are.
+_r3_cb_long = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, _r3_cb_lift, None, room_lifts=np.array([0.5, 0.5, 0.5]))[3][2]
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the room lifts never exceed the margins that carry them (0.2 and 0 of a 0.5 K lift "
+    "over margins 0.2 and 0; 0 with no margins), and a lift longer than the horizon is cut to it; null "
+    "control, margins carrying the whole lift attribute 0.5",
+    np.allclose(_r3_cb_short, [0.2, 0.0]) and np.allclose(_r3_cb_bare, [0.0, 0.0])
+    and np.allclose(_r3_cb_long, [0.5, 0.5]) and np.allclose(_r3_cb_fl[2], [0.5, 0.5]),
+    f"short={_r3_cb_short} bare={_r3_cb_bare} long={_r3_cb_long} full={_r3_cb_fl[2]}",
+)
+# The margins are fitted to the horizon before the floor is raised: a forecast
+# shorter than the horizon pads with zeros and a negative margin lowers nothing.
+_r3_cb_base = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None)[1]
+_r3_cb_pad = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.3]), None)[1] - _r3_cb_base
+_r3_cb_neg = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([-0.2, 0.3]), None)[1] - _r3_cb_base
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: a margin series shorter than the horizon raises only its own steps, and a negative "
+    "margin raises nothing (0.3 then 0; 0 then 0.3); null control, the same margins at full length raise both",
+    np.allclose(_r3_cb_pad, [0.3, 0.0]) and np.allclose(_r3_cb_neg, [0.0, 0.3])
+    and np.allclose(_cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.3, 0.3]), None)[1] - _r3_cb_base,
+                    [0.3, 0.3]),
+    f"pad={_r3_cb_pad} neg={_r3_cb_neg}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

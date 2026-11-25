@@ -66,7 +66,7 @@ from .dhw_planner import DhwPlanner
 from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
-from .rooms import mark_room_floor, raised_floor
+from .comfort_floor import mark_room_floor, raised_floor
 from .payload import (
     CurrentAction,
     IDLE_REASONS,
@@ -4878,10 +4878,10 @@ class HeatPumpOptimizer:
         temp_min_bounds, comfort_floors, mold_floors = raised_floor(
             low, temp_max_bounds, margins, min_temp_floors, n_steps)
         lifts = None
-        if room_lifts is not None:  # the same arithmetic on the margins less the lift
-            unlifted = raised_floor(low, temp_max_bounds, (0.0 if margins is None else margins)
-                                    - _padded_nonneg(room_lifts, n_steps), min_temp_floors, n_steps)[0]
-            lifts = np.maximum(temp_min_bounds - unlifted, 0.0)
+        if room_lifts is not None:  # the same arithmetic on the margins less the lift, clipped at 0
+            lifts = temp_min_bounds - raised_floor(low, temp_max_bounds, _padded_nonneg(
+                (0.0 if margins is None else margins) - _padded_nonneg(room_lifts, n_steps), n_steps),
+                min_temp_floors, n_steps)[0]  # >= 0: each step is monotone in the margins
         return comfort_targets, temp_min_bounds, temp_max_bounds, (comfort_floors, mold_floors, lifts)
 
     def _build_space_power_caps(
