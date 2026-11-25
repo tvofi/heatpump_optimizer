@@ -1,0 +1,93 @@
+{
+ "key": "be3a3a75280c7b7e",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5016 CLAMP_DROP",
+ "patch": "take = min(n_steps, src.size) -> take = (n_steps)",
+ "function": "HeatPumpOptimizer._normalise_pins",
+ "cluster": "optimizer.py:HeatPumpOptimizer._normalise_pins@5016-5016",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2716.9,
+  "load1_start": 0.12,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/be3a3a75280c7b7e.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/be3a3a75280c7b7e.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_be3a3a75280c7b7e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_be3a3a75280c7b7e.py",
+  "metric": "what _normalise_pins returns for a pin array shorter than the horizon; the same through optimize(SolveLimits(space_pins=short))",
+  "baseline_value": "array:1,0,nan,nan",
+  "mutant_value": "raise:ValueError",
+  "baseline_name": "short_baseline",
+  "mutant_name": "short_mutant",
+  "inputs_tried": [
+   "2 pins on a 4-step horizon",
+   "exact-length and longer pins (null)",
+   "optimize() with 3 pins on 24 steps",
+   "optimize() with 24 pins and a 20-step weather series (coordinator sizing: equal plans)"
+  ],
+  "results": {
+   "short_baseline": "array:1,0,nan,nan",
+   "short_mutant": "raise:ValueError",
+   "null_delta": "0 count",
+   "optimize_short_pins_baseline": "ok",
+   "optimize_short_pins_mutant": "raise:ValueError",
+   "reach_plan_maxabs_diff_kw": "0.0000 kW",
+   "thread_factor": "1.000",
+   "load1": "1.62",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_be3a3a75280c7b7e.txt"
+ },
+ "should_fail": "tests/manual_plan.py (traced baseline executes optimizer.py:5016; tests/block_duty.py, features.py, optimality.py, stress.py too): no check passes a short pin array and asserts the NaN padding",
+ "title": "No check feeds _normalise_pins a pin array shorter than the horizon; dropping min() makes optimize() raise",
+ "claim": "Mutant be3a3a75280c7b7e at custom_components/heatpump_optimizer/optimizer.py:5016 (take = min(n_steps, src.size) -> take = (n_steps)) is not failed by the full gate (RED-AS-NULL), yet the probe's what _normalise_pins returns for a pin array shorter than the horizon; the same through optimize(SolveLimits(space_pins=short)) moves: baseline array:1,0,nan,nan, mutant raise:ValueError.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "A pin array shorter than the horizon is padded with free (NaN) steps, as _normalise_pins' docstring states, never an error",
+ "metric_definition": "what _normalise_pins returns for a pin array shorter than the horizon; the same through optimize(SolveLimits(space_pins=short))",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._normalise_pins",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_be3a3a75280c7b7e.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_be3a3a75280c7b7e.py",
+ "perturbation": {
+  "change": "optimizer.py:5016 take = min(n_steps, src.size) -> take = (n_steps), applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key be3a3a75280c7b7e",
+  "expected_direction": "the outcome moves from a padded array to ValueError, and optimize() from a plan to ValueError; the coordinator sizes pins to len(prices) >= n_steps, so its live path does not reach it"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_be3a3a75280c7b7e.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/manual_plan.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}

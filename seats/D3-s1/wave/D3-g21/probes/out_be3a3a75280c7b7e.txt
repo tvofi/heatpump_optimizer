@@ -1,0 +1,9 @@
+RESULT short_baseline=array:1,0,nan,nan
+RESULT short_mutant=raise:ValueError
+RESULT null_delta=0 count
+RESULT optimize_short_pins_baseline=ok
+RESULT optimize_short_pins_mutant=raise:ValueError
+RESULT reach_plan_maxabs_diff_kw=0.0000 kW
+RESULT thread_factor=1.000
+RESULT load1=1.62
+RESULT swapins=0
