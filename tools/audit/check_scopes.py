@@ -1304,6 +1304,14 @@ def main():
         run_r1 = default_run(scopes, "--round", "1")
         cov["--round exits 1 with no evaluation in the tree"] = (run_r1.returncode == 1 and cited in run_r1.stdout
             and "FAIL start evaluation" in run_r1.stdout and "round1/EVALUATION.json is not in the tree" in run_r1.stdout)
+        # main()'s --round reads the token ledger (0018 section 6): ledger_gaps' arms cannot reach
+        # the wiring; the tree's round-11 record is read, its evaluator a seat of the ledger.
+        with tempfile.NamedTemporaryFile("w", suffix=".tsv") as led:
+            led.write(f"t\tseat_class\tseat\n{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - 60))}\tlocal\tr11-evaluator\n")
+            led.flush()
+            out11 = default_run(scopes, "--round", "11", "--tokens", led.name).stdout
+        cov["--round reads its token ledger: the graded round's evaluator seat is refused, or the window prints unread"] = (
+            "LEDGER unread: no tag v" in out11 or "is a seat in the graded round's token ledger" in out11)
         run_oc = default_run(scopes, "--round", "1", "--open-cards")
         cov["--open-cards refuses a round with no evaluation, never an empty list"] = (run_oc.returncode == 2
             and "round1/EVALUATION.json tracked" in run_oc.stderr and "open_cards" not in run_oc.stdout)
