@@ -44011,4 +44011,19 @@ R.check(
 )
 
 
+R.section("The case sampler (#3885)")
+# tests/case_sample.py decides which sections of features.py and of this
+# script a pull request runs. Its self-test drives the dependency rule (a
+# reader never runs without what it reads, an order-dependent section always
+# runs), the seed (a rerun repeats the subset), the fraction bounds and the
+# FULL line, each against a fixture script it writes and runs.
+_cs_run = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("case_sample.py")), "--self-test"],
+                         capture_output=True, text=True, timeout=600)
+R.check(
+    "the case sampler's self-test passes: a sampled run keeps every section a kept one reads, repeats its "
+    "subset for the same seed, and a full run prints FULL n/n",
+    _cs_run.returncode == 0 and "CASE-SAMPLE SELF-TEST: PASSED" in _cs_run.stdout,
+    (_cs_run.stdout + _cs_run.stderr)[-600:],
+)
+
 sys.exit(R.close("ENTITY CHECKS"))

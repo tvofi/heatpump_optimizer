@@ -125,6 +125,10 @@ NOT_A_TEST = {
     # runs, kept out of features.py so CodeQL's extraction of that module
     # fits its job limit. Measured through features.py's closure.
     "worker_deadlines.py",
+    # The case sampler (#3885): a module features.py and entities.py import
+    # and run first. Measured through their closures; entities.py runs its
+    # self-test.
+    "case_sample.py",
     # The comment ratchet (R11-SEAM-comments-tests): an arm of doc_claims.py,
     # which imports and runs it. Measured through doc_claims.py's closure.
     "comment_ratchet.py",
