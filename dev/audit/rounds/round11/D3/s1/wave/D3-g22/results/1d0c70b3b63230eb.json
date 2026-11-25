@@ -1,0 +1,43 @@
+{
+ "key": "1d0c70b3b63230eb",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4913 CMP_BOUND",
+ "patch": "planned = planned[1:] if planned.size > req.size else planned -> planned = planned[1:] if planned.size >= req.size else planned",
+ "function": "HeatPumpOptimizer._publish_breach_reports",
+ "cluster": "optimizer.py:HeatPumpOptimizer._publish_breach_reports@4876-4917",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3599.2,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/1d0c70b3b63230eb.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1d0c70b3b63230eb",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_1d0c70b3.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_1d0c70b3.py",
+  "baseline_value": "DHW trajectory as long as the requirement, short at step 0: dhw_floor_breach_c=5.0",
+  "mutant_value": "0.0",
+  "inputs_tried": [
+   "trajectory n / requirement n (moves 5.0 -> 0.0)",
+   "trajectory n+1 / requirement n (null_delta=0)",
+   "7 real solves (reach_scan.py: breach_dhw_traj_eq_req=0)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "unreachable through production: the DHW trajectory carries n+1 entries against an n-entry requirement"
+ },
+ "should_fail": "none reachable"
+}

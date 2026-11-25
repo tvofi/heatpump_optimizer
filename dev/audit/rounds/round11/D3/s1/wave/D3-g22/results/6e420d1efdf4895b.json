@@ -1,0 +1,43 @@
+{
+ "key": "6e420d1efdf4895b",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4915 CMP_BOUND",
+ "patch": "if steps > 0: -> if steps >= 0:",
+ "function": "HeatPumpOptimizer._publish_breach_reports",
+ "cluster": "optimizer.py:HeatPumpOptimizer._publish_breach_reports@4876-4917",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3664.0,
+  "load1_start": 0.89,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/6e420d1efdf4895b.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6e420d1efdf4895b",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_6e420d1e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_6e420d1e.py",
+  "baseline_value": "empty requirement: dhw_floor_breach_c=0.0",
+  "mutant_value": "ValueError",
+  "inputs_tried": [
+   "requirement [] (moves)",
+   "one-entry trajectory (trimmed? no: size 1 not > 4; steps 1; delta 0)",
+   "production shape (null_delta=0)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "unreachable through production: the requirement carries n_steps >= 1 entries (reach_scan.py req 48)"
+ },
+ "should_fail": "none reachable"
+}

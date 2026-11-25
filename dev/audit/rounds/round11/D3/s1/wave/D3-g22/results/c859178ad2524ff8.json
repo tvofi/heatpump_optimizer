@@ -1,0 +1,43 @@
+{
+ "key": "c859178ad2524ff8",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4876 CMP_BOUND",
+ "patch": "planned = trajectory[1:] if trajectory.size > n_steps else trajectory -> planned = trajectory[1:] if trajectory.size >= n_steps else trajectory",
+ "function": "HeatPumpOptimizer._publish_breach_reports",
+ "cluster": "optimizer.py:HeatPumpOptimizer._publish_breach_reports@4876-4917",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3847.0,
+  "load1_start": 0.93,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/c859178ad2524ff8.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c859178ad2524ff8",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_c859178a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_c859178a.py",
+  "baseline_value": "n-long trajectory breaching at step 0: power_cap_breach_c=1.0",
+  "mutant_value": "0.0",
+  "inputs_tried": [
+   "trajectory n long (moves 1.0 -> 0.0)",
+   "trajectory n+1 long (null_delta=0)",
+   "7 real solves (reach_scan.py: breach_traj_eq_n=0)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "unreachable through production: result.sensor_trajectory carries n+1 entries in every solve (traj 49 for n 48)"
+ },
+ "should_fail": "none reachable: the n-long trajectory is never produced"
+}

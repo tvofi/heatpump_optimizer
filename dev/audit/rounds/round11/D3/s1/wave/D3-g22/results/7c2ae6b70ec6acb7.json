@@ -1,0 +1,42 @@
+{
+ "key": "7c2ae6b70ec6acb7",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5693 CMP_BOUND",
+ "patch": "if not np.any(self._pv_surplus > 1e-6): -> if not np.any(self._pv_surplus >= 1e-6):",
+ "function": "HeatPumpOptimizer._pv_surplus_list",
+ "cluster": "optimizer.py:HeatPumpOptimizer._pv_surplus_list@5693-5693",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4159.8,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/7c2ae6b70ec6acb7.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7c2ae6b70ec6acb7",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7c2ae6b7.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7c2ae6b7.py",
+  "baseline_value": "surplus max exactly 1e-6 kW: pv_surplus [] (each forecast step's pv_surplus null)",
+  "mutant_value": "[0.0] * 48",
+  "inputs_tried": [
+   "exactly 1e-6 everywhere (moves: [] -> 48 x 0.0)",
+   "zeros, 9.99e-7, 1.01e-6, 3 kW block (null_delta=0)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "moves only when the surplus maximum is exactly 1e-6 kW (1 mW), a measure-zero value of clip(production - load, 0) (pv.py:80-91); its consequence is a published 0.0 instead of null per step; recorded as equivalent-candidate with the moving input disclosed so a later seat may promote it"
+ },
+ "should_fail": "none practical: a check would pin the threshold's tie at 1e-6"
+}

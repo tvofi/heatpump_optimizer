@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py: pins dhw_floor_breach_c (C) a real DHW-blocked solve publishes (features.py's v5.3.0 January scenario) with (shared: g22_rig.py, reach_scan.py, breach_rig.py)
