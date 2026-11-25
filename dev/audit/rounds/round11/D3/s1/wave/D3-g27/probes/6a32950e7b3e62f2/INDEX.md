@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6a32950e7b3e62f2.py: pins 6a32950e7b3e62f2 (candidate if the full gate survives): moves on 29 of 4685 production-domain inputs (centred boxes narrower than 2e-4); 0 of 57 production calls

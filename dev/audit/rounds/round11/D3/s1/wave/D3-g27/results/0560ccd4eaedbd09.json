@@ -1,0 +1,58 @@
+{
+ "key": "0560ccd4eaedbd09",
+ "site": "optimizer.py:2492 CLAMP_DROP",
+ "patch": "for i in range(min(len(out), len(pins))): -> for i in range((len(out))):",
+ "function": "_mark_manual_reasons",
+ "cluster": "optimizer.py:_mark_manual_reasons@2492-2494",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3498.8,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/0560ccd4eaedbd09.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0560ccd4eaedbd09",
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0560ccd4eaedbd09.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0560ccd4eaedbd09.py",
+  "baseline_value": "('ok',('idle','idle','idle'))",
+  "mutant_value": "('raised','IndexError')",
+  "example_input": "reasons=['idle', 'idle', 'idle'],pins=[1.0]",
+  "results": [
+   "example_input=reasons=['idle', 'idle', 'idle'],pins=[1.0]",
+   "output_baseline=('ok',('idle','idle','idle'))",
+   "output_mutant=('raised','IndexError')",
+   "grid_inputs_tried=54 count",
+   "grid_inputs_moved=12 count",
+   "domain_inputs_tried=18 count",
+   "domain_inputs_moved=0 count",
+   "production_calls=8 count",
+   "production_calls_len_mismatch=0 count",
+   "production_calls_moved=0 count",
+   "production_manual_labels_baseline=3 count",
+   "production_manual_labels_mutant=3 count",
+   "production_reason_labels_changed=0 count",
+   "null_inputs_moved=0 count",
+   "null_reason_labels_changed=0 count"
+  ],
+  "inputs_tried": "production domain: reasons and pins of equal length (both the horizon's n_steps) with pins 1.0/0.0/NaN; grid_inputs_tried=54 count; domain_inputs_tried=18 count",
+  "null": [
+   "null_inputs_moved=0 count",
+   "null_reason_labels_changed=0 count"
+  ]
+ },
+ "step4": "moves only on a pins array shorter than the reasons (IndexError, 12 of 54 grid inputs); 0 of 18 production-domain inputs, 0 of 6 production calls had a length mismatch, 0 labels changed",
+ "should_fail": "tests/manual_plan.py (executes optimizer.py:2492; also tests/block_duty.py, tests/features.py, tests/optimality.py); none is owed through production, where both arrays are n_steps long",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "non_finding": {
+  "claim": "optimizer.py:2492 CLAMP_DROP 0560ccd4eaedbd09 survives the full gate but is equivalent at every production-reachable input tried: moves only on a pins array shorter than the reasons (IndexError, 12 of 54 grid inputs); 0 of 18 production-domain inputs, 0 of 6 production calls had a length mismatch, 0 labels changed",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_0560ccd4eaedbd09.py",
+  "value": "grid_inputs_moved=12 count; domain_inputs_moved=0 count; production_calls_moved=0 count; production_reason_labels_changed=0 count; null_inputs_moved=0 count; null_reason_labels_changed=0 count"
+ }
+}

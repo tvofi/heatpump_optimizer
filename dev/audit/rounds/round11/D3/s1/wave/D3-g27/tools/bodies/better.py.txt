@@ -1,0 +1,69 @@
+
+# ---- _better_objective: a value grid plus a production reach count ----
+from types import SimpleNamespace  # noqa: E402
+F = "_better_objective"
+base = opt._better_objective
+mut = mutant(F, OLD, NEW)
+VALUES = [0.0, 1.0, 1.0 - 1e-9, 1.0 - 2e-9, 1.0 + 1e-9, 0.0 - 1e-9, 5.0, 10.0, 69.47964532244127,
+          69.47964532244127 - 1e-9, -3.0, float("inf"), float("-inf"), float("nan")]
+
+tried = moved = dom_tried = dom_moved = 0
+example = dom_example = None
+for lo in VALUES:
+    for ro in VALUES:
+        left, right = SimpleNamespace(objective_value=lo, tag="left"), SimpleNamespace(objective_value=ro, tag="right")
+        tried += 1
+        # the production domain: an objective is any float a solve returns; finite on a sound solve
+        dom = math.isfinite(lo) and math.isfinite(ro)
+        dom_tried += dom
+        cb, cm = base(left, right).tag, mut(left, right).tag
+        if cb != cm:
+            moved += 1
+            ex = (lo, ro, cb, cm)
+            example = example or ex
+            if dom:
+                dom_moved += 1
+                dom_example = dom_example or ex
+# the metric itself: the objective of the plan kept, left 10.0 against a better right 5.0
+kept_b = base(SimpleNamespace(objective_value=10.0), SimpleNamespace(objective_value=5.0)).objective_value
+kept_m = mut(SimpleNamespace(objective_value=10.0), SimpleNamespace(objective_value=5.0)).objective_value
+
+calls = diff_calls = 0
+
+
+def _rec(left, right):
+    global calls, diff_calls
+    calls += 1
+    rb = base(left, right)
+    if mut(left, right) is not rb:
+        diff_calls += 1
+    return rb
+
+
+mp = load_mp()
+run_arms(mp, (F, _rec))
+
+if dom_example is not None:
+    example = dom_example
+if example is not None:
+    lo, ro, cb, cm = example
+    result("example_input", f"left={lo!r},right={ro!r}")
+    result("kept_baseline", cb)
+    result("kept_mutant", cm)
+result("kept_objective_baseline_left10_right5", kept_b)
+result("kept_objective_mutant_left10_right5", kept_m)
+result("grid_inputs_tried", tried, "count")
+result("grid_inputs_moved", moved, "count")
+result("domain_inputs_tried", dom_tried, "count")
+result("domain_inputs_moved", dom_moved, "count")
+result("production_calls", calls, "count")
+result("production_calls_moved", diff_calls, "count")
+
+# null arm: the same function re-compiled with the line unchanged moves nothing on the grid
+nul = mutant(F, OLD, OLD)
+null_moved = 0
+for lo in VALUES:
+    for ro in VALUES:
+        left, right = SimpleNamespace(objective_value=lo, tag="left"), SimpleNamespace(objective_value=ro, tag="right")
+        null_moved += base(left, right).tag != nul(left, right).tag
+result("null_inputs_moved", null_moved, "count")

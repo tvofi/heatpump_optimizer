@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py: pins d128afa0c1ce3d28 (candidate if the full gate survives): moves on production inputs: 10 of 60 production-domain grid inputs give an inverted box, and the capped pinned production solve's objective moves by 18.0096 (plan max delta 3.05687 kW)
