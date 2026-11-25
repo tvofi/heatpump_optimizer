@@ -3070,7 +3070,7 @@
     "branch": "fix/r11-outside-self-setting-pump-p2",
     "commit": "3f7f29e778e009f12a2008318b1f879f531ef3a1",
     "last_step": null,
-    "next_step": "designer first (L, decision 0014)",
+    "next_step": null,
     "note": "created 2026-11-15 for owner ruling D4 (self-setting pump residual of PR 3593), design first. The design of record for the round-3 shape and the owner decisions of 2026-11-16 is 0acbbc8b91, not the head of design/R11-OUTSIDE-SELF-SETTING-PUMP (d34eaeec5f), which no longer contains them; the round-4 design review approved d34eaeec5f (verdict e05cbc62d4). No fixer is owed: the group closes on its carries.",
     "pr": 3662
    }
