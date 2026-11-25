@@ -99689,10 +99689,11 @@ R.check(
 # plans; one committed build follows on the settled flux and ships only
 # where the store, under the flux that plan itself leaves, falls no further
 # under the requirement than the last round's.
-def _hdr_combi(cost, slack=None):
+def _hdr_combi(cost, slack=None, plans=None):
     opt = _StoreOpt(ThermalModel(_ct_params()), _StoreCfg(
         horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=19.0, max_temp=23.0, cycling_cost=cost))
     real, saved, calls = _hdr_om._combi_flux_exchange, _hdr_om._COMBI_COMMIT_SLACK_K, []
+    dhw_build = _hdr_om._dhw_build
 
     def exchange(o, h, planner, *rest):
         build, charge = DhwPlanner._build_dhw_requirements, planner.charge_runs
@@ -99705,11 +99706,18 @@ def _hdr_combi(cost, slack=None):
                 builds.append((self.charge_runs is not None, np.array(got[0].schedule)))
                 return got
 
+            def handed(by, *a, **k):
+                got, req = dhw_build(by, *a, **k)
+                return SimpleNamespace(schedule=plans(len(builds), np.asarray(got.schedule))), req
+
             DhwPlanner._build_dhw_requirements, planner.charge_runs = counted, runs_planned
+            if plans is not None:
+                _hdr_om._dhw_build = handed
             try:
                 out = real(o, h, planner, *rest)
             finally:
                 DhwPlanner._build_dhw_requirements, planner.charge_runs = build, charge
+                _hdr_om._dhw_build = dhw_build
             return SimpleNamespace(rounds=[s for c, s in builds if not c], commits=[s for c, s in builds if c], out=out)
 
         # The same exchange with the planner handed no ChargeRuns, then as the solve runs it.
@@ -99833,11 +99841,19 @@ R.check(
     and bool(_hdr_h_prog._to_ceiling(0, _hdr_h_mark - 1.0)[1][0]),
     f"{np.flatnonzero(_hdr_h_out > 0).tolist()}",
 )
+# Whether a real solve's exchange settles before the cap is the solver's
+# arithmetic: the unengaged solve above stops short of it on one BLAS build
+# and oscillates to it on another (round-to-round moves of 4.0, 4.0 and
+# 0.6 kW). The exit is pinned on builds the check hands the rounds instead:
+# one plan built again and again repeats from the second round, and a plan
+# that alternates never repeats, so only the exit tells the two apart.
+_hdr_x_same = _hdr_combi(0.0, plans=lambda n, built: np.full(built.shape, 1.0))[0]
+_hdr_x_flip = _hdr_combi(0.0, plans=lambda n, built: np.full(built.shape, 1.0 + n % 2))[0]
 R.check(
-    "combi: the exchange leaves its rounds when a round's plan repeats the one before: the unengaged "
-    "solve stops short of the cap",
-    0 < len(_hdr_x_free.rounds) < _hdr_om._COMBI_EXCHANGE_ROUNDS,
-    f"{len(_hdr_x_free.rounds)} of {_hdr_om._COMBI_EXCHANGE_ROUNDS}; engaged {len(_hdr_x.rounds)}",
+    "combi: the exchange leaves its rounds when a round's plan repeats the one before: a build that "
+    "repeats stops short of the cap, one that alternates runs to it",
+    0 < len(_hdr_x_same.rounds) <= 2 < len(_hdr_x_flip.rounds) == _hdr_om._COMBI_EXCHANGE_ROUNDS,
+    f"repeating {len(_hdr_x_same.rounds)}, alternating {len(_hdr_x_flip.rounds)} of {_hdr_om._COMBI_EXCHANGE_ROUNDS}",
 )
 
 # The kernel hands an action whether the cells it leaves were running, and
