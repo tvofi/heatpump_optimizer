@@ -9,3 +9,4 @@
 1795584790 DONE verdict pushed: blocked ef876fecad ci-red (config_flow_steps unrecovered too_many_fault_text_entities); probe e7089d74b6
 1795607563 HB alive
 1795607628 CKPT setup done, classify poll started snapshot ca9d74cfc878
+1795607739 CKPT repair verified + mutant killed; merge hunks verified union; local checks running snapshot 234a0850f420
