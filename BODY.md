@@ -1,4 +1,4 @@
-R11-PRE-TOKEN-LEDGER (owner ruling 2026-11-13, card P4; decision 0018 section 2 `tokens_per_change`, section 6 "Cannot read"). `tools/audit/seat/token_ledger.py` sums Claude transcript usage per (session, agent, UTC day), the four usage fields kept apart and `tokens` their sum, keyed by the `Seat key: group= role= dimension= model= seat=` line that `cloud_dispatch.render` now ends every prompt's first line with. The beat's `scorecard` row runs `collect` daily into `<state>/scorecard/tokens.tsv` in the shape `round_metrics.token_line` reads (columns `t`, `seat_class`, `tokens`, unchanged reader). `sessions()` is the importable per-session iterator yielding each session's own transcript and its `subagents/agent-*.jsonl` files (carry 6's precondition for part C). `check_scopes.py --round` refuses an evaluator or reviewer named as a `seat` of a ledger row in the graded round's window (`ledger_gaps`, wired by `round_ledger_gaps`), and prints `LEDGER unread` with no ledger or no window. A flag-path fixer re-dispatch keeps its ref's part line (`cloud_dispatch.inherit_part`, carry 4).
+R11-PRE-TOKEN-LEDGER (owner ruling 2026-11-13, card P4; decision 0018 section 2 `tokens_per_change`, section 6 "Cannot read"). `tools/audit/seat/token_ledger.py` sums Claude transcript usage per (session, agent, UTC day), the four usage fields kept apart and `tokens` their sum, keyed by the `Seat key: group= role= dimension= model= seat=` line that `cloud_dispatch.render` now ends the first line of every cloud event with, the `publish_seat` stub included, so a cloud seat's first user message carries it. The beat's `scorecard` row runs `collect` daily into `<state>/scorecard/tokens.tsv` in the shape `round_metrics.token_line` reads (columns `t`, `seat_class`, `tokens`, unchanged reader). `sessions()` is the importable per-session iterator yielding each session's own transcript and its `subagents/agent-*.jsonl` files (carry 6's precondition for part C). `check_scopes.py --round` refuses an evaluator or reviewer named as a `seat` of a ledger row in the graded round's window (`ledger_gaps`, wired by `round_ledger_gaps`), and prints `LEDGER unread` with no ledger, no window, a seat class (`round_metrics.SEAT_CLASSES`) with no row in the window, or a non-orchestrator row with no seat key (`ledger_unread`); a keyed seat it does find is still refused. A flag-path fixer re-dispatch keeps its ref's part line (`cloud_dispatch.inherit_part`, carry 4).
 
 Brief carries, each built here:
 
@@ -9,13 +9,24 @@ Brief carries, each built here:
 - Carry 5 (ee874351): the ledger reads Claude project transcripts, not the gh shim's host log, so nothing here reads that log (`## Friction`).
 - Carry 6 (221c4254): `token_ledger.sessions()` is the importable per-session iterator yielding each session's own transcript and its subagent transcript files, the precondition for part C; part C and its [paths] stay the orchestrator's dispatch.
 
+Paths that write the seat key, by rule and residue: every cloud seat is fired with a `cloud_dispatch.render` event (`dispatch_group` and `main --publish` through `publish_seat`, the flag path directly), and `render` ends that event's first line with the key, stub or whole prompt alike. Residue, by category: a local seat spawned by a host session's Agent tool, whose first message the spawning session writes and no rule keys; its row is `seat=-`, and `check_scopes.py --round` prints its refusal unread while the graded window holds such a row.
+
 Cloud half, measured: a cloud seat's transcript is readable per session, but only inside its own container, at `~/.claude/projects/<cwd slug>/$CLAUDE_CODE_SESSION_ID.jsonl`; no tracked path carries it to the host the beat runs on. So the cloud class has no ledger row and `token_line` prints unread, never a partial (0018 section 2). `collect --seat-class cloud` labels a cloud seat's own rows, for whatever channel later carries them.
 
 ## Head
 
-8bafe16f10165288b0f203b5654efa94487270ea, merge base e3cb5c019b464a770cc7c6fe2fbc858ed29debf7 (origin/main 7f7e05118f at 2026-11-25T13:02Z).
+2aa2169254ba28c6ad8bc878610b064af862af7e, merge base e3cb5c019b464a770cc7c6fe2fbc858ed29debf7; repair round 2 over b15a9f2cadb869915afbd317c08d1acd900259d2 (review/3898).
 
 ## Mutation proof
+
+Round 2 (review/3898's block and its surviving mutants), each at the head, the named self-test run, then restored:
+
+- M4, `read_transcript`'s `if first and o.get("type") == "user":` to `if o.get("type") == "user":`: `python3 -I tools/audit/seat/token_ledger.py --self-test` fails `a keyed transcript stays keyed by its first user message through later user lines (a tool_result, another key): one local fixer row`.
+- M5, `d["t"] = max(d["t"], stamp)` to `d["t"] = stamp`: the same self-test fails `a day's t is its latest stamp, not its last-written one`.
+- `render`'s key insertion guarded back to `if not publish_ref:` (the stub unkeyed): `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` exits 1, failing `a published fixer's stub ends its first line with the seat key its whole prompt carries` and the group seat's stub arm.
+- `round_ledger_gaps`' `why = ledger_unread(...)` to `why = ""`; `ledger_unread`'s unkeyed clause dropped; its orchestrator exemption dropped; and a partial read returning `[]` in place of the keyed gaps: `python3 -I tools/audit/check_scopes.py --repo . --self-test` exits 1 on each, against the arms `--round: a seat class with no row in the window prints unread`, `--round: an unkeyed seat row prints unread, and a keyed seat found is still refused` and `--round null: every class keyed in the window, an orchestrator's - included, prints no unread`.
+
+Round 1:
 
 Each production line deleted or neutered at the head, the named self-test run, then restored:
 
@@ -29,7 +40,7 @@ Each production line deleted or neutered at the head, the named self-test run, t
 
 ## Null control
 
-At the merge base no `tokens.tsv` writer exists: `round_metrics.token_line` returns `tokens unread (no token ledger tokens.tsv; R11-PRE-TOKEN-LEDGER builds it)`. In the head's self-test the ledger with no cloud row prints `seat classes with no ledger row: cloud;`, and one appended cloud row turns it into `tokens 4449 per production merge` (the unread arm's control). `ledger_gaps`' null arm: the same seat outside the window, another seat, or a `-` seat is no gap.
+At the merge base no `tokens.tsv` writer exists: `round_metrics.token_line` returns `tokens unread (no token ledger tokens.tsv; R11-PRE-TOKEN-LEDGER builds it)`. `ledger_unread`'s null arm: every seat class with a keyed row in the window, the orchestrator's `-` seat included, prints no unread. In the head's self-test the ledger with no cloud row prints `seat classes with no ledger row: cloud;`, and one appended cloud row turns it into `tokens 4449 per production merge` (the unread arm's control). `ledger_gaps`' null arm: the same seat outside the window, another seat, or a `-` seat is no gap.
 
 ## Figures
 
@@ -48,7 +59,7 @@ At the merge base no `tokens.tsv` writer exists: `round_metrics.token_line` retu
 
 ## Red checks
 
-none
+- `codeql / Analyze (javascript-typescript)` (job 139320652933, at b15a9f2c): the analysis finished and the SARIF upload to code scanning returned `Server Error` at 15:54:45Z, so the job failed on GitHub's upload endpoint, not on a finding; this diff changes no JavaScript or TypeScript. No cheaper detector exists: a server error on the upload is not decidable before the upload runs, and the run on this head re-proves the job.
 
 ## Forward-carry
 
