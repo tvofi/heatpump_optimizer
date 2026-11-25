@@ -76,5 +76,6 @@
    ]
   },
   "assertion_lacking": "a batch-vs-scalar parity unit over rows whose max is <= 0 (the docstring's 'Rows with nothing positive return 0.0, as the scalar guard does')"
- }
+ },
+ "kill_note": "killed by tests/structure.py's ratchet alone: duplication_copies measured 7 against budget 8 (a gain the ratchet refuses), i.e. the mutated text breaks one duplicated block -- a structural count, not a behavioural assertion. The probe's reading stands beside it: 0 caller-reachable values move; 20 direct-call inputs (rows with max 0 and negative entries) do."
 }

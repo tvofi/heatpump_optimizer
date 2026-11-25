@@ -93,7 +93,8 @@
   "claim": "Under the mutant at tariff.py:801 a row whose maximum is 0 with negative entries is no longer returned as 0.0: [0,-1,-2,-3] at k=4 returns -6.0 and 20 of 2622 direct inputs differ (max 6.0), against the scalar twin's guard that the docstring says it matches to the bit. Through the only production caller (_plateau_aware_topk_sum_batch on excess = max(0, windows - threshold)) 0 inputs differ: the difference needs negative excess, which the caller never sends.",
   "expected_direction": "down",
   "observed": "direct differing 0 -> 20; [0,-1,-2,-3] k=4: 0.0 -> -6.0; caller-reachable differing 0",
-  "should_fail_assert": "a batch-vs-scalar parity unit over rows whose max is <= 0 (the docstring's 'Rows with nothing positive return 0.0, as the scalar guard does')"
+  "should_fail_assert": "a batch-vs-scalar parity unit over rows whose max is <= 0 (the docstring's 'Rows with nothing positive return 0.0, as the scalar guard does')",
+  "kill_note": "killed by tests/structure.py's ratchet alone: duplication_copies measured 7 against budget 8 (a gain the ratchet refuses), i.e. the mutated text breaks one duplicated block -- a structural count, not a behavioural assertion. The probe's reading stands beside it: 0 caller-reachable values move; 20 direct-call inputs (rows with max 0 and negative entries) do."
  },
  "996dce5148e02763": {
   "probe_class": "candidate",

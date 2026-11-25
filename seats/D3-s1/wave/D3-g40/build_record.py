@@ -88,6 +88,8 @@ def main(key):
         rec["class"] = "killed"
         rec["killed_by"] = g.get("killed_by")
         rec["failing_check_lines"] = fail_lines(key, g.get("killed_by"))
+        if a.get("kill_note"):
+            rec["kill_note"] = a["kill_note"]
         rec["non_finding"] = {"claim": f"mutant {key} ({rec['patch']}) is killed by the full gate: {g.get('killed_by')}",
                               "command": f"python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src {row['src']} --key {key}",
                               "value": f"gate_rc {g.get('gate_rc')}, killed_by {g.get('killed_by')}"}
