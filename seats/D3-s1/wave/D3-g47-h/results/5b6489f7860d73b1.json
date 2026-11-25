@@ -1,0 +1,36 @@
+{
+ "key": "5b6489f7860d73b1",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2852 CLAMP_DROP",
+ "patch": "rh = min(max(indoor_rh_percent, 0.0), 100.0) / 100.0 -> rh = (max(indoor_rh_percent, 0.0)) / 100.0",
+ "function": "thermal_model",
+ "cluster": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3208.8,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_json": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/gates/5b6489f7860d73b1.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_5b6489f7860d73b1.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_5b6489f7860d73b1.py",
+  "output": [
+   "INPUT (20.0, 100.0, 0.0, 0.7) base 33.794921985364404 mut 33.794921985364404",
+   "INPUT (20.0, 100.0001, 0.0, 0.7) base 33.794921985364404 mut 33.7949457193209",
+   "INPUT (20.0, 120.0, 0.0, 0.7) base 33.794921985364404 mut 38.17183236314228",
+   "INPUT (20.0, 150.0, 0.0, 0.7) base 33.794921985364404 mut 43.667507680809926",
+   "INPUT (20.0, 1000000.0, 0.0, 0.7) base 33.794921985364404 mut 546.4342305108123",
+   "RESULT floor_at_rh150_base=33.794921985364404 mutant=43.667507680809926"
+  ]
+ },
+ "should_fail": "tests/features.py and tests/entities.py execute line 2852 on the traced baseline (carried M4 answer); neither asserts mold_safe_room_floor for indoor_rh_percent > 100 (33.79 vs 43.67 at rh 150)",
+ "provisional": true
+}
