@@ -35,6 +35,14 @@ import sys
 import tempfile
 import threading
 from datetime import UTC, datetime, timedelta
+
+import case_sample  # noqa: E402
+
+# #3885: on a pull request, a seeded sample of this script's sections
+# (tests/case_sample.py); everywhere else every section, and one CASE-SAMPLE
+# line says which.
+if case_sample.engage(__file__, "entities"):
+    raise SystemExit  # unreachable: engage() exits with the sampled run's status
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path

@@ -725,7 +725,15 @@ lane_e2e() {
 # machine. stress.py's solve-time guard calibrates against this machine while
 # it runs, and the rest of the suite must not be part of what it measures.
 lane_stress() {
-  run "$PYTHON" tests/stress.py
+  # #3885: not on a pull request. CI's fast job names its event in
+  # HPO_CI_EVENT; a pull-request run under a scoped gate skips stress.py by
+  # name, and the push to main (GATE_SCOPE=full) and nightly.yml's `slow`
+  # job run it. A local run sets no event and runs it as before.
+  if [ "${HPO_CI_EVENT:-}" = pull_request ] && [ "$GATE_SCOPE" != full ]; then
+    skip tests/stress.py "SKIP: tests/stress.py (pull_request: the push to main and the nightly run it, #3885)"
+  else
+    run "$PYTHON" tests/stress.py
+  fi
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
   # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
