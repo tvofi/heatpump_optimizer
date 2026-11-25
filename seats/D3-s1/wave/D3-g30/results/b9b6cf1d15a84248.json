@@ -1,0 +1,86 @@
+{
+ "key": "b9b6cf1d15a84248",
+ "site": "custom_components/heatpump_optimizer/price_model.py:337 GUARD_OFF",
+ "patch": "if not day_types or not np.isfinite(level) or level <= 0.0: -> if False:",
+ "function": "PriceShapeModel.expected_daily_min",
+ "cluster": "price_model.py:PriceShapeModel.expected_daily_min@337-342",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3147.4,
+  "load1_start": 0.29,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/b9b6cf1d15a84248.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py",
+  "baseline": {
+   "edm_empty_day_types_level_0p8": "None",
+   "edm_level_nan": "None"
+  },
+  "mutant": {
+   "edm_empty_day_types_level_0p8": "'raises ValueError'",
+   "edm_level_nan": "nan"
+  },
+  "moved": {
+   "edm_inputs_moved": "5 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "empty_day_types_level_0p8,level_nan,level_zero,level_negative,level_inf,normal_level_0p8",
+  "all_results": {
+   "edm_empty_day_types_level_0p8_baseline": "None",
+   "edm_empty_day_types_level_0p8_mutant": "'raises ValueError'",
+   "edm_level_nan_baseline": "None",
+   "edm_level_nan_mutant": "nan",
+   "edm_level_zero_baseline": "None",
+   "edm_level_zero_mutant": "0.0",
+   "edm_level_negative_baseline": "None",
+   "edm_level_negative_mutant": "-0.116576",
+   "edm_level_inf_baseline": "None",
+   "edm_level_inf_mutant": "inf",
+   "null_edm_normal_level_0p8_baseline": "0.233151",
+   "null_edm_normal_level_0p8_mutant": "0.233151",
+   "edm_inputs_moved": "5 count",
+   "null_delta": "0 count",
+   "inputs_tried": "empty_day_types_level_0p8,level_nan,level_zero,level_negative,level_inf,normal_level_0p8",
+   "reach_caller_guards_empty_day_types": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.76",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "With the guard off, expected_daily_min([], 0.8) on a trained model raises ValueError (min() of an empty list) where the baseline returns None, and level nan/0/-0.4/inf return nan/0.0/-0.117/inf instead of None. The coordinator's #47 caller (coordinator.py:4355-4375) builds day_types from the days strictly after today up to the legionella deadline and guards only level > 1e-6, so an overdue or due-today cycle hands it []; no gated script calls it with an empty span.",
+ "should_fail": "tests/features.py '#47 the elastic legionella gate' block (~20012-20044, traced executing expected_daily_min): its four checks pass non-empty day types and level 1.0; it lacks expected_daily_min([], level) is None (the overdue-deadline span) and expected_daily_min([0], nan/0.0) is None.",
+ "finding": {
+  "title": "price_model.py:337 expected_daily_min's input guard deleted survives the full gate: an empty day-type span raises ValueError",
+  "claim": "With the guard off, expected_daily_min([], 0.8) on a trained model raises ValueError (min() of an empty list) where the baseline returns None, and level nan/0/-0.4/inf return nan/0.0/-0.117/inf instead of None. The coordinator's #47 caller (coordinator.py:4355-4375) builds day_types from the days strictly after today up to the legionella deadline and guards only level > 1e-6, so an overdue or due-today cycle hands it []; no gated script calls it with an empty span.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "metric_definition": "PriceShapeModel.expected_daily_min(day_types, level) on a model with 5 folded weekday and weekend days: value, None, or the exception raised; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b9b6cf1d15a84248.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b9b6cf1d15a84248",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.expected_daily_min), custom_components/heatpump_optimizer/price_model.py:337",
+  "perturbation": "the one-line mutant b9b6cf1d15a84248: `if not day_types or not np.isfinite(level) or level <= 0.0:` -> `if False:`; direction edm_empty_day_types_level_0p8: None -> 'raises ValueError'; edm_level_nan: None -> nan",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}
