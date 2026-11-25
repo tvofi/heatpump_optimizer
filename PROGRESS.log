@@ -1,3 +1,4 @@
 1795603522 INIT r11-rev-3892
 1795603531 HB alive
 1795603588 CKPT packet rendered; diff read; classify loop starting snapshot 22179790b40a
+1795604008 CKPT claims verified: carry byte-identical, roster==tip f520ce03, null control reproduced, merge-tree clean, brief_lint 0; closures mutant running snapshot f8a1d66d1f48
