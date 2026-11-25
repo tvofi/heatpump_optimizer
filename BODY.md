@@ -23,9 +23,28 @@ Merge of main, 2026-11-25. The head merges origin/main `0f63320c96cb4e1926a584c8
 
 ## Head
 
-`859dda1c385f66ff956cd6cde0734d5871d92724`, one commit on the merge `b45c72ba20751a63c4d5b5bf89d2eddf47795887` of origin/main `0f63320c96cb4e1926a584c89d0dfe920d1778ab`, measured at 2026-11-25T01:03:39Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+`f2f9e3f5d55b90fbf20d470e6d5bf913d77c0125` merges origin/main `d3d66c40408e76351ffc528686353cadf815a05c` into `875dfbc86f`. This is the repair round for the fix review's M1, M8 and M9, two commits on the PR head `3f8fb54ffc`:
+- `2b382a93d9` (tests/block_duty.py):
+  - `_solve_winter_mild` takes `under_way`, `window`, `min_c` and `tank_c`.
+  - A new end-to-end check runs a 00:15-02:00 window at a 53 degC minimum on a 52 degC tank with 4 K hysteresis. With a charge under way the solve charges step 0. With none, step 0 is 0 and step 1 is bought.
+  - A new unit check: `place_startable(..., charge_running=False)` with a repair that re-places a first-step charge leaves `[0, 0, 0]`. With `True` it leaves `[1, 0, 0]`.
+- `875dfbc86f` (dhw_planner.py, dhw_start.py, tests/features.py): M8 is an equivalent mutant. `place_startable` hands the repair only plans `drop_unstartable` has already judged, so `startable_steps` reads step 0 the same with the flag `True` or `False`. The PR's added `charge_running` parameter of `_repair_dhw_floor`, its binding and the features.py stand-in's keyword are removed, back to main's form. `place_startable`'s docstring says why.
+- Merge resolution (`git diff d3d66c4040 f2f9e3f5d5 -- dev/audit/rounds/round4/D6 tests/deployment_shape.py docs/architecture.md`): each side added one module (`dhw_start.py` here, `solve_gate.py` on main), so the module counts become 103 and the package closure 122 files. `claims.py` was re-run. The ledger driver resolved `tests/structure_budgets.json` and `tests/closures.json`.
+
+`3f8fb54ffcf92146097881fe4762866340446fe8` merges the authored code head `66814ae9f65301a2889428c29365c3031b94b85c` and then merges origin/main `5594a34a49` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`66814ae9f65301a2889428c29365c3031b94b85c`, written 2026-11-25T04:07Z (UTC): `9f5da4195d` merges `origin/main` `5594a34a49` into `859dda1c38`, then `tests/derive_closures.sh --single tests/cycle_lane.py` records that script's closure over the new `dhw_planner` -> `dhw_start` import (110 files), the closure `tests / closures` predicted UNDER-SCOPED. No production line changes in either commit.
+
+Previous head: `859dda1c385f66ff956cd6cde0734d5871d92724`, one commit on the merge `b45c72ba20751a63c4d5b5bf89d2eddf47795887` of origin/main `0f63320c96cb4e1926a584c89d0dfe920d1778ab`, measured at 2026-11-25T01:03:39Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
 
 ## Mutation proof
+
+This repair round's mutants each ran `PYTHONPATH=tests/hastub python3 tests/block_duty.py` at `875dfbc86f` (base: `ALL 161 BLOCK DUTY CHECKS PASSED`):
+- M1, the planner's flag read `initial_state.dhw_charge_under_way` replaced by `True`: rc 1, KILLED. `FAIL with no charge under way the planner drops a step-0 hot water run on a tank at or above its start temperature and re-buys from step 1; null control, with one under way it charges step 0`.
+- M9, `place_startable`'s last `drop_unstartable(plan, start_below, temps_of, charge_running)` with `charge_running` dropped: rc 1, KILLED. `FAIL with no charge under way a repair that keeps re-placing a first-step charge on a warm tank still leaves a plan without it; null control, with one under way the charge stands`.
+- M9 inner, the first drop's `charge_running` dropped: rc 1, KILLED by the end-to-end check above.
+- M8, `charge_running` unbound from the repair at `dhw_planner.py:1205`: it survived every run before `875dfbc86f` because it is equivalent (`## Head`), and the site no longer exists.
+- NULL, a comment-only change: rc 0, `ALL 161 BLOCK DUTY CHECKS PASSED`.
 
 The block run is `python3 tools/audit/seat/features_block.py --prelude 'exec(open("PRE").read())' "# The coordinator hands the reading" "# What the commit program is told"` with `PYTHONPATH=tests/hastub`. PRE is written by `features_block.py --emit-prelude PRE` with the same two markers.
 - At this head (`859dda1c38`): `ALL 3 FEATURES BLOCK PASSED`.
@@ -56,6 +75,9 @@ Architecture score: dS -0.0006 (`python3 tools/audit/archscore/score.py --diff $
 
 ## Red checks
 
+- Local scoped gate at `875dfbc86f` (`GATE_SCOPE=auto GOLDEN_MODE=drift`, `MODE: SCOPED -- 29 script(s) run`, host load average 50-100): `block_duty.py`, `features.py`, `config_flow_steps.py` and `deployment_shape.py` ok. Five scripts failed: `optimality.py` (a recorded claim's gap at the bar on this host's BLAS), `card.mjs`, `entities.py` (1 of 2760, a late-writing-descendant timing check), `typing_ruler.py` (the host's unpinned venv-ha interpreter) and `stress.py` (2 timing checks). The same five failed on an unrelated branch's gate on this host the same morning (#3870 at `d7324bbc58`, whose diff is one test line), so these are host load and environment. CI is the authority.
+- The PR was DIRTY on main (`dev/audit/rounds/round4/D6/claims.py`, `tests/deployment_shape.py`). The merge `f2f9e3f5d5` (`## Head`) repairs it.
+
 - `tests / fast (3.14)` at `0814b685`: `tests/features.py` printed `1 of 6028 FEATURE CHECKS FAILED` on the what-if pin, and `tests/harness_headers.py` printed 2 FAILs on the claims.py header (98 against 99). Both came from this pull request's own tree, and both are repaired above. Cheaper detector: `tools/audit/seat/features_block.py` on the block that holds the check, under one second, and `python3 dev/audit/rounds/round4/D6/claims.py`, about 2 s. Both already exist, so nothing is built.
 - `tests / mutation` at `0814b685`: `MUTATION TABLE REFUSED -- 1929 unpinned site(s) against 1923 ... 6 of them added by this diff`. The six are pinned above. Cheaper detector: `ci_predict.py` (prepr step 6d) names them before the push, at no standing cost; it existed already.
 - `gate` at `0814b685`: derived from the two above.
@@ -77,3 +99,4 @@ none
 ## Friction
 
 none
+
