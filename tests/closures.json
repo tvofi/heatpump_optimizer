@@ -1570,6 +1570,7 @@
    "tests/card_browser.mjs",
    "tests/card_drift.mjs",
    "tests/card_rig.mjs",
+   "tests/case_sample.py",
    "tests/ci_ratchet.py",
    "tests/closures.json",
    "tests/comment_ratchet.py",
