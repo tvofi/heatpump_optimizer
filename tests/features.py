@@ -23,6 +23,8 @@ from heatpump_optimizer import away as away_mode
 from heatpump_optimizer import boost as boost_mod
 from heatpump_optimizer import battery as battery_view
 from heatpump_optimizer import presets, price_tiles, pv
+from heatpump_optimizer import solve_gate
+
 from heatpump_optimizer.accuracy import (
     AccuracySample,
     AccuracyTracker,
@@ -719,6 +721,14 @@ def _fi_restart(at, store_of, payload, loader):
     return c
 
 
+def _next_main_solve(coord):
+    """One main solve's start and end through the solve gate, so the background
+    what-if a test drives next is admitted, as a cycle's would be (D9-s1-02)."""
+    gate = solve_gate.gate_for(coord)
+    solve_gate.begin_solve(gate)
+    solve_gate.end_solve(gate)
+
+
 def _fi_fuse_held(stamp, gate):
     """FI-sw1: the 7-day recompute cooldown still holds at ``gate``."""
     c = _fi_restart(
@@ -730,6 +740,7 @@ def _fi_fuse_held(stamp, gate):
         _fi_dt.freeze(when)
         before = c._fuse_advisor_at
         try:
+            _next_main_solve(c)
             _fi_aio.run(c._maybe_run_fuse_advisor(_solve_record_now(c)))
         except Exception:  # noqa: BLE001 -- only whether the cooldown held is read
             pass
@@ -1307,63 +1318,93 @@ class _R9F13Hass(FakeHass):
         return _r9f13_aio.get_running_loop().create_task(coro)
 
 
-def _r9f13_press(reason):
-    """Press the button with the coordinator refusing `reason`; `None` runs."""
-    hass, entry, coord = _r9f13_make(f"f13_press_{reason}")
-    requested = []
+def _r9f13_press(reason, failed_key=None, mode=None):
+    """Press the button with the refresh's solve answering `reason`; `None` runs.
+
+    The press awaits ``solve_gate.async_optimize_now`` (D17-s3-01): one real
+    refresh, whose cycle records its solve's answer on the gate. `failed_key`
+    fails the refresh's price fetch with that translation key instead; `mode`
+    sets a fixed mode, whose refresh solves nothing. Returns the press's
+    outcome and the solves and refreshes it cost.
+    """
+    hass, entry, coord = _r9f13_make(f"f13_press_{reason}_{failed_key}_{mode}")
+    calls = {"solve": 0, "refresh": 0}
+    real_refresh = coord.async_refresh
 
     async def _solve():
+        calls["solve"] += 1
         return reason
 
     async def _refresh():
-        requested.append(True)
-        await _r9f13_aio.Event().wait()
+        calls["refresh"] += 1
+        await real_refresh()
+
+    async def _no_prices():
+        raise _r9f13_update_failed("injected", translation_key=failed_key)
 
     coord.async_run_optimization = _solve
-    coord.async_request_refresh = _refresh
+    coord.async_refresh = _refresh
+    if failed_key is not None:
+        coord._fetch_tibber_prices = _no_prices
+    if mode is not None:
+        coord._mode = mode
     ent = _r9f13_button.ForceOptimizationButton(coord, entry)
     ent.hass = _R9F13Hass()
 
     async def _scenario():
         try:
-            await _r9f13_aio.wait_for(ent.async_press(), timeout=5.0)
+            await _r9f13_aio.wait_for(ent.async_press(), timeout=30.0)
             out = "returned"
         except _r9f13_err as err:
             out = getattr(err, "translation_key", None) or "raised:plain"
         except TimeoutError:
             out = "hung"
-        # One yield: 3.12's wait_for awaits the inner coroutine inline, so
-        # the refresh task the press scheduled has not started yet here;
-        # without this the `requested` read races the interpreter version.
-        await _r9f13_aio.sleep(0)
         for task in _r9f13_aio.all_tasks() - {_r9f13_aio.current_task()}:
             task.cancel()
-        return out, bool(requested)
+        return out, calls["solve"], calls["refresh"]
 
     return _r9f13_aio.run(_scenario())
 
+
+from homeassistant.helpers.update_coordinator import UpdateFailed as _r9f13_update_failed  # noqa: E402
 
 _r9f13_press_refused = _r9f13_press("no_prices")
 _r9f13_press_ran = _r9f13_press(None)
 R.check(
     "D10-s1-02: the press raises the action's own no-prices refusal when the "
     "solve did not run",
-    _r9f13_press_refused == ("run_optimization_no_prices", True),
-    f"got {_r9f13_press_refused} (want ('run_optimization_no_prices', True))",
+    _r9f13_press_refused == ("run_optimization_no_prices", 1, 1),
+    f"got {_r9f13_press_refused} (want ('run_optimization_no_prices', 1, 1))",
 )
 R.check(
-    "D10-s1-02: the press returns normally when the solve ran, still off "
-    "the refresh it asked for",
-    _r9f13_press_ran == ("returned", True),
-    f"got {_r9f13_press_ran} (want ('returned', True))",
+    "D17-s3-01: the press returns normally when the solve ran, and costs one "
+    "refresh and the one solve inside it -- never a second solve beside it",
+    _r9f13_press_ran == ("returned", 1, 1),
+    f"got {_r9f13_press_ran} (want ('returned', 1, 1))",
 )
 _r9f13_press_solve_failed = _r9f13_press("solve_failed")
 R.check(
     "D10-s1-02: the press raises the action's solve-failed refusal when the "
     "solve died (the reason-is-not-None arm of the same refusal -- the "
     "mutation survivor at button.py's second guard)",
-    _r9f13_press_solve_failed == ("run_optimization_solve_failed", True),
-    f"got {_r9f13_press_solve_failed} (want ('run_optimization_solve_failed', True))",
+    _r9f13_press_solve_failed == ("run_optimization_solve_failed", 1, 1),
+    f"got {_r9f13_press_solve_failed} (want ('run_optimization_solve_failed', 1, 1))",
+)
+_r9f13_press_no_cover = _r9f13_press(None, failed_key="tibber_fetch_failed")
+_r9f13_press_cycle_failed = _r9f13_press(None, failed_key="update_failed")
+R.check(
+    "D17-s3-01: a refresh failed on prices that cover no step is the no-prices "
+    "refusal, any other failed refresh the solve-failed one; neither solved",
+    _r9f13_press_no_cover == ("run_optimization_no_prices", 0, 1)
+    and _r9f13_press_cycle_failed == ("run_optimization_solve_failed", 0, 1),
+    f"no cover {_r9f13_press_no_cover}, other {_r9f13_press_cycle_failed}",
+)
+_r9f13_press_fixed = _r9f13_press(None, mode=_r9f13_const.MODE_COMFORT)
+R.check(
+    "D17-s3-01: in a fixed mode, whose refresh solves nothing, the press "
+    "solves the private plan once and then refreshes",
+    _r9f13_press_fixed == ("returned", 1, 1),
+    f"got {_r9f13_press_fixed} (want ('returned', 1, 1))",
 )
 R.check(
     "D10-s1-02: no button press queues behind another (PARALLEL_UPDATES 0, "
@@ -13388,8 +13429,17 @@ R.check(
 )
 
 
+_WC_IDS = __import__("itertools").count()
+
+
 def _write_coord(**extra):
-    return _zone_coord(_BASE, max_temperature=23.5, **extra)
+    # The valve entity reads a value before the first write: the optimizer
+    # captures it as the baseline it restores on Off (ADR-004).
+    seen = {**_BASE, "number.valve": FakeState("21"),
+            "climate.valve": FakeState("heat", attributes={"temperature": 21.0})}
+    coord = _zone_coord(seen, max_temperature=23.5, **extra)
+    coord.entry.entry_id = f"wc{next(_WC_IDS)}"  # the persisted record is per entry id
+    return coord
 
 
 _wc = _write_coord(
@@ -13476,8 +13526,8 @@ R.check(
 R.check(
     "#2351: a write the valve refused is not remembered as commanded, so the "
     "next cycle retries it rather than skipping it as unchanged",
-    _uc._valve_commanded_target is None,
-    f"remembered {_uc._valve_commanded_target!r} after an uncommandable write",
+    _uc._valve_target.commanded_c is None,
+    f"remembered {_uc._valve_target.commanded_c!r} after an uncommandable write",
 )
 
 # With a hold schedule in force the actuator follows *it*, not the fixed
@@ -15037,7 +15087,8 @@ R.check(
 # Once a weekly snapshot is newer, the restore is the ordinary one again.
 _fr_w_before, _fr_w_entry, _, _ = _fr_case("learners", "fr_weekly")
 _fr_w_ring = _fr_w_entry.runtime_data._snapshot_ring
-_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {}, True)
+# In band: a snapshot with no accuracy evidence is no restore point (D17-s3-03).
+_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {"temperature_bias": 0.1}, True)
 R.check(
     "a weekly snapshot newer than the undo point takes the restore back from it",
     _fr_w_ring.undo_target() is _fr_w_ring.snapshots[-1] and "before_reset" not in _fr_w_ring.snapshots[-1]
@@ -15535,8 +15586,9 @@ def _lsl_ring():
     coord._house_heat_loss_samples = 33
     coord._apply_cop_scale(1.1)
     coord._cop_samples = 21
+    # In band: a snapshot with no accuracy evidence is no restore point (D17-s3-03).
     coord._snapshot_ring.take(datetime.now(timezone.utc), coord._learner_snapshot_payloads(),
-                              coord._accuracy.summary(), True)
+                              {**coord._accuracy.summary(), "temperature_bias": 0.1}, True)
     return coord._snapshot_ring.as_dict()
 
 
@@ -19697,6 +19749,7 @@ _cad = _advisor_coord()
 from heatpump_optimizer import whatif as _whatif_mod
 _whatif_mod.state_for(_cad).answer = {"marker": "card"}
 _whatif_mod.state_for(_cad).last_at = None
+_next_main_solve(_cad)
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 _adv = _cad._fuse_advisor
 R.check(
@@ -19718,6 +19771,7 @@ R.check(
     _whatif_mod.state_for(_cad).answer == {"marker": "card"}
     and _whatif_mod.state_for(_cad).last_at is None,
 )
+_next_main_solve(_cad)
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 R.check(
     "a second run inside the week is skipped",
@@ -19733,6 +19787,7 @@ _cad2 = _advisor_coord(
         "min_room_temperature": 19.5,
     }
 )
+_next_main_solve(_cad2)
 _asyncio.run(_cad2._maybe_run_fuse_advisor(_solve_record_now(_cad2)))
 R.check(
     "a shortfall the baseline plan shares is not blamed on the fuse",
@@ -19748,6 +19803,7 @@ _cad3 = _advisor_coord(
         "min_room_temperature": 19.5,
     }
 )
+_next_main_solve(_cad3)
 _asyncio.run(_cad3._maybe_run_fuse_advisor(_solve_record_now(_cad3)))
 R.check(
     "a shortfall the cap itself forces still fails the candidate",
@@ -19763,6 +19819,7 @@ R.check(
 _adv_calls.clear()
 _cad4 = _advisor_coord(payload_extra={"error": "no_prices"})
 _cad4._fuse_advisor = {"candidate_kw": 11.04, "feasible": True}
+_next_main_solve(_cad4)
 _asyncio.run(_cad4._maybe_run_fuse_advisor(_solve_record_now(_cad4)))
 R.check(
     "an errored what-if keeps last month's real verdict",
@@ -19774,6 +19831,7 @@ R.check(
 # --- #782 the weekly guard survives a store round-trip ----------------------
 _adv_calls.clear()
 _cad_persist = _advisor_coord()
+_next_main_solve(_cad_persist)
 _asyncio.run(_cad_persist._maybe_run_fuse_advisor(_solve_record_now(_cad_persist)))
 _persist_payload = {}
 
@@ -19802,6 +19860,7 @@ R.check(
 _cad_restore = _advisor_coord()
 _cad_restore._ledger_store = _FuseStore()
 _adv_calls.clear()
+_next_main_solve(_cad_restore)
 _asyncio.run(_cad_restore._maybe_run_fuse_advisor(_solve_record_now(_cad_restore)))
 R.check(
     "a restored advisor timestamp still skips a second run inside the week",
@@ -19821,6 +19880,7 @@ class _OldLed:
 _cad_old = _advisor_coord()
 _cad_old._ledger_store = _OldLed()
 _adv_before = list(_adv_calls)
+_next_main_solve(_cad_old)
 _asyncio.run(_cad_old._maybe_run_fuse_advisor(_solve_record_now(_cad_old)))
 R.check(
     "an older ledger store without advisor keys still runs the what-if",
@@ -20443,13 +20503,14 @@ R.check(
     "no configured pump entities means no service call, ever",
     len(_c7v.hass.services.calls) == 0,
 )
+from heatpump_optimizer import circulation as _circ  # noqa: E402
 _c6b = _t2_coord(vvc_pump_entity="switch.vvc")
 _c6b._thermal_params.dhw_enabled = False
-_c6b._pump_commanded["switch.vvc"] = False  # last schedule-driven command
+_circ.commanded(_c6b.entry)["switch.vvc"] = False  # last schedule-driven command
 _asyncio.run(_c6b._async_drive_pumps())
 R.check(
     "hot water disabled leaves the loop pump ON, never stuck off",
-    _c6b._pump_commanded.get("switch.vvc") is True
+    _circ.commanded(_c6b.entry).get("switch.vvc") is True
     and len(_c6b.hass.services.calls) == 1
     and _c6b.hass.services.calls[0][1] == "turn_on",
     "a configured pump abandoned in its last commanded state is a "
@@ -20466,8 +20527,8 @@ _c6c.hass.services.async_call = _failing_call
 _asyncio.run(_c6c._async_drive_pumps())
 R.check(
     "a failed pump command is retried next tick, not remembered as done",
-    "switch.vvc" not in _c6c._pump_commanded,
-    f"cache {_c6c._pump_commanded} — recording before the call succeeded "
+    "switch.vvc" not in _circ.commanded(_c6c.entry),
+    f"cache {_circ.commanded(_c6c.entry)} — recording before the call succeeded "
     "meant one unavailable moment froze the pump state forever",
 )
 
@@ -20580,7 +20641,8 @@ R.check(
 
 # The class D1-02 states, as a rule rather than an instance: every actuation
 # seam the cycle reaches (a `hass.services.async_call` whose service verb
-# writes, `async_publish_current_action`, or `_async_set_pump`) is either
+# writes, `async_publish_current_action`, or a `command` seam -- the circulation
+# pumps' and the frequency watchdog's) is either
 # gated on `_plan_is_stale` -- itself or through a module-level helper it
 # calls by name -- or is named below with the reason it is not. The rule reads
 # the source, so a write path added to the cycle is returned by it and has to
@@ -20591,18 +20653,18 @@ R.check(
 # named seams above, and a service call whose verb is not a literal counts as
 # actuation -- so an unknown call is reported rather than skipped. A read-only
 # service (weather.get_forecasts) is not an actuation, which is what keeps the
-# cycle's fetch paths out of the list. `_command_frequency` is the one seam
-# without a gate, and the reason is D1-02's: its write is keyed on
-# `_commanded_power()`, which reads the same frozen `_current_action` the
-# frequency watchdog's divergence test reads, so gating the write alone would
-# stand control down on a command the pump is entitled to ignore.
+# cycle's fetch paths out of the list. `_command_frequency` was the one seam
+# without a gate (D1-02: its write is keyed on `_commanded_power()`, which
+# reads the same frozen `_current_action` the watchdog's divergence test
+# reads); ADR-004 gates it through `_plan_let_go`, and `off_restore` hands the
+# frequency back on the stale cycle, so every seam is gated.
 import ast as _d102_ast  # noqa: E402
 import inspect as _d102_inspect  # noqa: E402
 
 from heatpump_optimizer import coordinator as _d102_mod  # noqa: E402
 
 _D102_VERBS = {"turn_on", "turn_off", "set_value", "set_temperature"}
-_D102_DIRECT = {"async_publish_current_action", "_async_set_pump"}
+_D102_DIRECT = {"async_publish_current_action", "command"}
 _D102_FUNCS = (_d102_ast.FunctionDef, _d102_ast.AsyncFunctionDef)
 
 
@@ -20686,14 +20748,14 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
 
 _d102_paths = _cycle_actuation_paths()
 R.check(
-    "every actuation seam the cycle reaches is gated on plan staleness, or is "
-    "the frequency stage whose reason D1-02 records (#1449)",
+    "every actuation seam the cycle reaches is gated on plan staleness, the "
+    "frequency stage included since the stale plan lets it go (ADR-004; #1449)",
     sorted(_d102_paths)
     == sorted(
         [
             ("_apply_action", True),
             ("_async_drive_pumps", True),
-            ("_command_frequency", False),
+            ("_command_frequency", True),
         ]
     ),
     f"the enumeration rule returned {_d102_paths}",
@@ -26272,6 +26334,7 @@ async def _fake_sim(overrides, limited=True, base=None, steady=False):
 
 
 _ctile.async_simulate = _fake_sim
+_next_main_solve(_ctile)
 _asyncio.run(_ctile._maybe_refresh_price_tile(_solve_record_now(_ctile)))
 R.check(
     "with the flag off no tile ever computes, whatever solves happen",
@@ -26279,6 +26342,7 @@ R.check(
 )
 _ctile2 = _t2_coord(price_tiles_enabled=True)
 _ctile2.async_simulate = _fake_sim
+_next_main_solve(_ctile2)
 _asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
 R.check(
     "one solve refreshes exactly one tile, in rotation",
@@ -26302,6 +26366,7 @@ async def _fake_sim_route(overrides, limited=True, base=None, steady=False):
 
 
 _ctile2.async_simulate = _fake_sim_route
+_next_main_solve(_ctile2)
 _asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
 R.check(
     "#1753: the tile solves through the user-limit-free path, so its turn "
@@ -26500,6 +26565,7 @@ async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None, stead
 
 
 _ctile3.async_simulate = _fake_sim_poison
+_next_main_solve(_ctile3)
 _asyncio.run(_ctile3._maybe_refresh_price_tile(_solve_record_now(_ctile3)))
 R.check(
     "#1753: the tile takes the limited=False path -- no borrow to restore",
@@ -26531,6 +26597,7 @@ async def _fake_sim_err(overrides, limited=True, base=None, steady=False):
 
 
 _ctile4.async_simulate = _fake_sim_err
+_next_main_solve(_ctile4)
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
@@ -26540,6 +26607,7 @@ R.check(
 # Turning the flag off retires the published tiles too.
 _ctile5 = _t2_coord()
 price_tiles.book(_ctile5)["stale"] = {"monthly_cost_delta": 1.0}
+_next_main_solve(_ctile5)
 _asyncio.run(_ctile5._maybe_refresh_price_tile(_solve_record_now(_ctile5)))
 R.check(
     "gate off means gone: no stale what-if money outlives the flag",
@@ -27554,6 +27622,8 @@ R.check(
     f"plan={_svc_coord._optimization_result is not None}",
 )
 
+# D17-s3-01: the action fetches before it solves, so the dead feed is the sensor's too.
+_svc_hass.states.set("sensor.prices", FakeState("unavailable"))
 _svc_check(
     "run_optimization with no usable prices raises a translated operational error",
     _svc_call(_svc_hass, "run_optimization", {}),
@@ -27606,6 +27676,7 @@ R.check(
     _asyncio.run(_stale_coord.async_run_optimization()) == "no_prices"
     and _stale_coord._optimization_result is None,
 )
+_stale_hass.states.set("sensor.prices", FakeState("unavailable"))  # the fetch finds nothing newer
 _svc_check(
     "run_optimization on a stale list raises the same no-prices error",
     _svc_call(_stale_hass, "run_optimization", {}),
@@ -27856,6 +27927,26 @@ R.check(
     f"never {_dsp_cfg_never.duty_switch_stop_probability}, read "
     f"{_dsp_cfg_read.duty_switch_stop_probability} {_dsp_cfg_read.duty_switch_off_seconds}",
 )
+# R11-OUTSIDE-3849: an unlatched record is priced shrunk and masked from the legs.
+_dsp_push_u = _dsp_push_ds.DutySwitchLearner({
+    "dhw_space": _dsp_push_d(k=2.0, kept_w=0.0, first_day=_dsp_push_day, last_day=_dsp_push_day,
+                             usable=False, off_s=[501.0]),
+    "space_dhw": _dsp_push_d(),
+})
+_dsp_cfg_unever, _dsp_cfg_uread, _ = _dsp_pushed(_dsp_push_u)
+R.check(
+    "the coordinator passes the unlatched mask with the pairs: none on a pump "
+    "never arbitrated (both directions unlatched, priced zero), the latched "
+    "learner's read latched, and an unlatched record's stop priced at "
+    "k / (n + PRIOR_N) beside its mask, its off time unread",
+    _dsp_cfg_never.duty_switch_unlatched == (True, True)
+    and _dsp_cfg_read.duty_switch_unlatched == (False, False)
+    and _dsp_cfg_uread.duty_switch_unlatched == (True, True)
+    and _dsp_cfg_uread.duty_switch_stop_probability == (2.0 / (2.0 + _dsp_push_ds.PRIOR_N), 0.0)
+    and _dsp_cfg_uread.duty_switch_off_seconds == (0.0, 0.0),
+    f"never {_dsp_cfg_never.duty_switch_unlatched} read {_dsp_cfg_read.duty_switch_unlatched} "
+    f"unlatched {_dsp_cfg_uread.duty_switch_stop_probability} {_dsp_cfg_uread.duty_switch_unlatched}",
+)
 
 _svc_sim_hass = FakeHass()
 _seed_prices(_svc_sim_hass)  # #924
@@ -27900,6 +27991,7 @@ async def _svc_ok_restore():
 
 
 _svc_coord.async_run_optimization = _svc_ok_run
+_seed_prices(_svc_hass)  # the feed back: the refresh the action runs fetches
 _svc_out = _svc_call(_svc_hass, "run_optimization", {})
 R.check(
     "run_optimization returns normally when the solve ran",
@@ -31414,8 +31506,10 @@ async def _shutdown_after_completed_refresh(*, light: bool = False) -> dict:
     survived = []
 
     async def caller():
-        await coord._async_update_data()
-        refreshed.set()
+        try:
+            await coord._async_update_data()
+        finally:
+            refreshed.set()  # a refresh that raises ends the scenario at `await task`, never parks it
         await gate.wait()
         survived.append(True)
 
@@ -31544,7 +31638,7 @@ def _g1754_overrides(now):
     return o1, o2
 
 
-async def _g1754_arm(*, swap):
+async def _g1754_arm(*, swap, nested):
     coord = _solve_coord()
     hass = coord.hass
     hass.entered = _asyncio.Event()
@@ -31567,15 +31661,34 @@ async def _g1754_arm(*, swap):
         coord._manual_override = o2
         # The in-flight refresh: async_apply_manual_plan's async_request_refresh
         # funnels a second run here, and the guard is what dropped it (#1754).
-        await coord.async_run_optimization()
+        # Bounded: a second solve started beside the in-flight one waits on the
+        # gate this rig opens only after the call returns, so an unbounded
+        # await deadlocks the script instead of failing a check. Not cancelled:
+        # the gate opens below and the second solve, if any, ends on its own.
+        second = _asyncio.ensure_future(coord.async_run_optimization())
+        done, _ = await _asyncio.wait({second}, timeout=_G1754_NESTED_S)
+        nested.append("returned" if done else "blocked")
     hass.release.set()
     await task
+    if swap:
+        await second
     return seen, o1, o2
 
 
-_g1754_swap_seen, _g1754_swap_o1, _g1754_swap_o2 = _asyncio.run(_g1754_arm(swap=True))
-_g1754_noswap_seen, _g1754_noswap_o1, _ = _asyncio.run(_g1754_arm(swap=False))
+_G1754_NESTED_S = 10.0  # an absorbed request returns without awaiting the gate
+_g1754_nested: list[str] = []
+_g1754_swap_seen, _g1754_swap_o1, _g1754_swap_o2 = _asyncio.run(
+    _g1754_arm(swap=True, nested=_g1754_nested))
+_g1754_noswap_seen, _g1754_noswap_o1, _ = _asyncio.run(_g1754_arm(swap=False, nested=[]))
 _g1754_steps = lambda o: [r["step"] for r in o.released_space]  # noqa: E731
+
+R.check(
+    "a run request during an in-flight solve returns at once, recorded as its re-run, "
+    "never a second solve started beside it (#1754, the solve gate)",
+    _g1754_nested == ["returned"],
+    f"nested request {_g1754_nested}; 'blocked' is a second solve waiting on the gate "
+    f"the in-flight one holds",
+)
 
 R.check(
     "a refresh requested during an in-flight solve re-solves against the new "
@@ -31663,6 +31776,84 @@ R.check(
     "the what-if actually reached a solve (else the sharing check is vacuous)",
     _wi_params is not None and "cost_delta" in _wi_payload,
     f"payload keys: {sorted(_wi_payload)[:5]}",
+)
+R.check(
+    "T2: a what-if that capped no power carries no power_cap_breach_c -- the key is "
+    "the capped ask's comfort cost, never a solve's own predictive info leaking through",
+    "power_cap_breach_c" not in _wi_payload,
+    f"payload carries power_cap_breach_c={_wi_payload.get('power_cap_breach_c')!r}",
+)
+
+
+async def _wi_overtaken_asks():
+    """Three user asks while the first one's solve outlasts the rate limit (D9-s1-03).
+
+    The first is held at the executor gate; the limiter's slot is reopened
+    before each later ask, as a solve longer than the interval reopens it, so
+    the second and third reach the user slot and wait there.
+    """
+    coord = _solve_coord()
+    await coord.async_run_optimization()
+    hass, held = coord.hass, _coord_mod.whatif.state_for(coord)
+    hass.entered, hass.release = _asyncio.Event(), _asyncio.Event()
+    solves = []
+    real_job = hass.async_add_executor_job
+
+    async def counted(func, *args):
+        solves.append(1)
+        return await real_job(func, *args)
+
+    hass.async_add_executor_job = counted
+    held.last_at = None
+    first = _asyncio.ensure_future(coord.async_simulate({"target_temp": 20.5}))
+    await hass.entered.wait()
+    asks = []
+    for target in (21.0, 21.5):
+        held.last_at = None
+        asks.append(_asyncio.ensure_future(coord.async_simulate({"target_temp": target})))
+        for _ in range(3):
+            await _asyncio.sleep(0)
+    in_flight = len(solves)
+    hass.release.set()
+    answers = [await first] + [await a for a in asks]
+    return in_flight, len(solves), [bool(a.get("rate_limited")) for a in answers]
+
+
+_wi_ov_in_flight, _wi_ov_solves, _wi_ov_limited = _asyncio.run(_wi_overtaken_asks())
+R.check(
+    "D9-s1-03: of three user what-ifs overlapping one solve, the ask a newer one "
+    "overtook while it waited answers held and rate-limited, and solves nothing; "
+    "the first and the newest solve",
+    _wi_ov_in_flight == 1 and _wi_ov_limited == [False, True, False]
+    and _wi_ov_solves == 2 * _wi_ov_in_flight,
+    f"executor jobs while held {_wi_ov_in_flight}, in all {_wi_ov_solves}; "
+    f"rate_limited per ask {_wi_ov_limited}",
+)
+
+
+async def _wi_short_horizon(steps):
+    """A what-if on a horizon cut to ``steps`` quarters: its error, or 'raised'."""
+    coord = _solve_coord()
+    await coord.async_run_optimization()
+    real = coord._forecast_arrays
+
+    def cut(now=None):
+        return _coord_mod.ForecastArrays(*(a[:steps] for a in real(now)))
+
+    coord._forecast_arrays = cut
+    _coord_mod.whatif.state_for(coord).last_at = None
+    try:
+        return (await coord.async_simulate({"target_temp": 20.5})).get("error")
+    except Exception as err:  # noqa: BLE001 -- the check reads only "not no_prices"
+        return f"raised {type(err).__name__}"
+
+
+_wi_short = {n: _asyncio.run(_wi_short_horizon(n)) for n in (3, 4)}
+R.check(
+    "a what-if needs four priced quarters: three answer no_prices, four do not "
+    "(the bound is the solve's own minimum, not one step more)",
+    _wi_short[3] == "no_prices" and _wi_short[4] != "no_prices",
+    f"errors by horizon length {_wi_short}",
 )
 R.check(
     "the what-if's scratch config carries the override the user asked for "
@@ -32201,6 +32392,7 @@ async def _st_failures():
             price_tiles.monthly_figure(cap, answer), _st_whatif.state_for(coord).live_steady,
         )
         coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        _next_main_solve(coord)
         await coord._maybe_run_fuse_advisor(record)
         out["fuse_failed"] = dict(coord._fuse_advisor)
     # And healthy: the fuse advisor's money is the answer's steady key.
@@ -32214,6 +32406,7 @@ async def _st_failures():
     coord.async_simulate = _spy
     try:
         coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        _next_main_solve(coord)
         await coord._maybe_run_fuse_advisor(record)
     finally:
         del coord.async_simulate
@@ -32273,6 +32466,7 @@ async def _st_tiles():
         # tile's clock and solves nothing.
         before = seams.counts()
         for _ in names:
+            _next_main_solve(coord)
             await coord._maybe_refresh_price_tile(record)
         out["clock_first"] = (tuple(b - a for a, b in zip(before, seams.counts())), sorted(price_tiles.book(coord)))
         price_tiles.book(coord).clear()
@@ -32280,12 +32474,14 @@ async def _st_tiles():
         # The rotation position is whatever the seeding solve left it at.
         for _ in names:
             before, had = seams.counts(), {k: len(v.get("days", [])) for k, v in price_tiles.book(coord).items()}
+            _next_main_solve(coord)
             await coord._maybe_refresh_price_tile(record)
             name = next(k for k, v in price_tiles.book(coord).items() if len(v.get("days", [])) != had.get(k, 0)
                         or k not in had)
             out[name] = tuple(b - a for a, b in zip(before, seams.counts()))
         before = seams.counts()
         coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        _next_main_solve(coord)
         await coord._maybe_run_fuse_advisor(record)
         out["fuse"] = tuple(b - a for a, b in zip(before, seams.counts()))
         user = _st_whatif.state_for(coord)
@@ -32299,6 +32495,7 @@ async def _st_tiles():
             _st_dt.freeze(start + age)
             before, stamp = seams.counts(), price_tiles.book(coord)["power_cap_75"]["computed_at"]
             for _ in names:
+                _next_main_solve(coord)
                 await coord._maybe_refresh_price_tile(record)
             out["clock_" + label] = (tuple(b - a for a, b in zip(before, seams.counts())),
                                      price_tiles.book(coord)["power_cap_75"]["computed_at"] != stamp)
@@ -32706,14 +32903,14 @@ _st_tie_sides = [_st_ns(reference_day=lambda inputs, d=d: d) for d in _st_tie_da
 R.check(
     "and the branch is taken on the setpoints, never the energies: the tie is a "
     "schedule ask, equal setpoints with unequal energies are not",
-    _st_whatif.schedule_days((_st_tie_sides[0], None), (_st_tie_sides[1], None))
+    _st_whatif.schedule_days(*_st_whatif.reference_days((_st_tie_sides[0], None), (_st_tie_sides[1], None)))
     == (_st_tie_days[0][1], _st_tie_days[1][1])
-    and _st_whatif.schedule_days(
+    and _st_whatif.schedule_days(*_st_whatif.reference_days(
         (_st_ns(reference_day=lambda inputs: ([21.0], 5.0)), None),
-        (_st_ns(reference_day=lambda inputs: ([21.0], 6.0)), None)) is None
-    and _st_whatif.schedule_days(
+        (_st_ns(reference_day=lambda inputs: ([21.0], 6.0)), None))) is None
+    and _st_whatif.schedule_days(*_st_whatif.reference_days(
         (_st_ns(reference_day=lambda inputs: ([21.0, 19.5], 5.0)), None),
-        (_st_ns(reference_day=lambda inputs: ([21.0, 19.51], 6.0)), None)) == (5.0, 6.0),
+        (_st_ns(reference_day=lambda inputs: ([21.0, 19.51], 6.0)), None))) == (5.0, 6.0),
     "schedule_days",
 )
 
@@ -32724,6 +32921,13 @@ async def _st_nan_day(energy=_st_math.nan):
     coord = await _st_coord()
     real = _st_omod.HeatPumpOptimizer.reference_day
     _st_omod.HeatPumpOptimizer.reference_day = lambda self, inputs: (real(self, inputs)[0], energy)
+    real_off = _coord_mod._await_off_loop
+
+    async def _here(hass, fn, *args):
+        # The patch above lives in this process; the reference days run here.
+        return fn(*args) if fn is _st_whatif.reference_days else await real_off(hass, fn, *args)
+
+    _coord_mod._await_off_loop = _here
     try:
         with _StSeams() as seams:
             record = _solve_record_now(coord)
@@ -32733,6 +32937,7 @@ async def _st_nan_day(energy=_st_math.nan):
                     answer.get(_ST_KEY))
     finally:
         _st_omod.HeatPumpOptimizer.reference_day = real
+        _coord_mod._await_off_loop = real_off
 
 
 _st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
@@ -45293,10 +45498,10 @@ _ghc_pub(_gfo, 2.0)
 _gfo_warn = _ghc_logged(lambda: _asyncio.run(_ghc_restore.async_forget(_gfo.hass, "ghcp_forget_neutral")))
 R.check(
     "remove with a baseline still armed names the entity and the value to set by hand, writes "
-    "nothing and deletes the record; a neutral entry is dropped silently (C4)",
+    "nothing and deletes the record; a neutral entry still armed is named once, with no value (C4, ADR-004)",
     len(_gfa_warn) == 1 and _GHCP_ENT in _gfa_warn[0] and "22" in _gfa_warn[0]
     and len(_gfa.hass.services.calls) == _gfa_n and _ghcp_record(_gfa) is None
-    and _gfo_warn == [] and _ghcp_record(_gfo) is None,
+    and len(_gfo_warn) == 1 and "heat_curve" in _gfo_warn[0] and _ghcp_record(_gfo) is None,
     "armed=%r neutral=%r" % (_gfa_warn, _gfo_warn),
 )
 _gst = _ghcp_coord(entry_id="ghcp_state")
@@ -48617,6 +48822,29 @@ R.check(
         "savings_pct": 25.0, "old_basis": False, "below_meter_floor": False, "estimated": False,
         "meter_calibration": None, "calibration_basis": None, "stored_heat_sek": 0.0, "comfort_sek": 0.0},
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
+)
+def _st_cal_row(planned_kw):
+    led = _SavLedger()
+    for _hh in range(2):
+        led.add_savings_settlement(
+            _SavDT(2026, 1, 3, _hh), baseline_kw=1.0, actual_kwh=3.0, spot=2.0, dt=1.0,
+            planned_kw=planned_kw, stored_kw_th=-1.0, steady_cop=2.0, comfort_kw=0.25,
+        )
+    return led.savings_months(_SavDT(2026, 2, 10))[0]
+
+
+_st_c1, _st_c15 = _st_cal_row(3.0), _st_cal_row(2.0)  # meter calibration 1.0 and 1.5
+R.check(
+    "R11-SEAM-tests (carry 0, M9): a calibrated month scales the stored-heat line as it scales the thermostat",
+    _st_c1["meter_calibration"] == 1.0 and _st_c15["meter_calibration"] == 1.5
+    and _st_c1["stored_heat_sek"] < 0.0
+    and _st_c15["stored_heat_sek"] == round(1.5 * _st_c1["stored_heat_sek"], 2),
+    f"{_st_c1} / {_st_c15}",
+)
+R.check(
+    "R11-SEAM-tests (carry 0, M10): a calibrated month scales the comfort line as it scales the thermostat",
+    _st_c1["comfort_sek"] > 0.0 and _st_c15["comfort_sek"] == round(1.5 * _st_c1["comfort_sek"], 2),
+    f"{_st_c1} / {_st_c15}",
 )
 _st_z = _SavLedger()
 _st_z.add_savings_settlement(
@@ -55452,12 +55680,11 @@ def _t4_count_solve_work(coord):
 _t4_force_busy = _t4_coord()
 _t4_count_refresh(_t4_force_busy)
 _t4_count_solve_work(_t4_force_busy)
-_t4_force_busy._optimization_running = True
+solve_gate.gate_for(_t4_force_busy).solving = True
 _t4_drive(_t4_force_busy, "async_run_optimization")
 _t4_force_idle = _t4_coord()
 _t4_count_refresh(_t4_force_idle)
 _t4_count_solve_work(_t4_force_idle)
-_t4_force_idle._optimization_running = False
 _t4_drive(_t4_force_idle, "async_run_optimization")
 R.check(
     "forcing an optimization while one runs is dropped, not queued "
@@ -56063,12 +56290,13 @@ R.check(
     "the driver runs every cycle, so without the transition test a pump "
     "would take a service call every thirty seconds for as long as it runs",
 )
+from heatpump_optimizer import circulation as _circ  # noqa: E402
 _t5_pump_fail = _t5_pumps(vvc_pump_entity="switch.vvc", fail=True)
 R.check(
     "a pump command that FAILED is not remembered as done",
-    dict(_t5_pump_fail._pump_commanded) == {}
+    dict(_circ.commanded(_t5_pump_fail.entry)) == {}
     and _t5_pump_fail._t5_escaped is None,
-    f"commanded {dict(_t5_pump_fail._pump_commanded)!r}, escaped "
+    f"commanded {dict(_circ.commanded(_t5_pump_fail.entry))!r}, escaped "
     f"{_t5_pump_fail._t5_escaped!r} -- recording before the call succeeds "
     "leaves a briefly unavailable entity in the wrong state until the next "
     "transition, which may be hours",
@@ -56080,9 +56308,9 @@ _t5_pump_plan = _t5_pumps(
 )
 R.check(
     "the space pump follows a solved plan, indexed from the plan's own clock",
-    dict(_t5_pump_plan._pump_commanded) == {"switch.space": True}
+    dict(_circ.commanded(_t5_pump_plan.entry)) == {"switch.space": True}
     and _t5_pump_plan._t5_escaped is None,
-    f"{dict(_t5_pump_plan._pump_commanded)!r} from a plan heating at the "
+    f"{dict(_circ.commanded(_t5_pump_plan.entry))!r} from a plan heating at the "
     "current step -- the index comes from the plan's first timestamp against "
     "the clock, not from position, so a stale plan cannot read as step 0",
 )
@@ -56509,7 +56737,7 @@ R.check(
 )
 
 _t5_opt_busy = _t5_solve_spy()
-_t5_opt_busy._optimization_running = True
+solve_gate.gate_for(_t5_opt_busy).solving = True
 _t5_run(_t5_opt_busy)
 R.check(
     "a solve already in flight is skipped rather than run a second time",
@@ -56620,7 +56848,6 @@ _T6_PROPERTY_PAIRS = (
     ("mode", "_mode", "boost"),
     ("prices", "_prices", [{"total": 9.99}]),
     ("dhw_temperature", "_dhw_temperature", 53.75),
-    ("optimization_running", "_optimization_running", True),
     # The read-only views the entity platforms read (R9-EG-B2, #1739).
     ("thermal_params", "_thermal_params", "sentinel-params"),
     ("thermal_model", "_thermal_model", "sentinel-model"),
@@ -56631,7 +56858,7 @@ _t6_prop_moved = _t6_coord()
 for _t6_pname, _t6_attr, _t6_value in _T6_PROPERTY_PAIRS:
     setattr(_t6_prop_moved, _t6_attr, _t6_value)
 R.check(
-    "seven published properties and views each read the attribute they front, not a neighbour",
+    "six published properties and views each read the attribute they front, not a neighbour",
     all(
         getattr(_t6_prop_moved, name) == value
         and getattr(_t6_prop_start, name) != value
@@ -58417,11 +58644,18 @@ _g8_cyc_floor = _g8_cyc._ctx._opt_config.min_temp
 _g8_cyc_real = _coord_mod._await_optimize
 
 
+_g8_cyc_calls = []
+
+
 async def _g8_cyc_mid_solve(*_args, **_kwargs):
-    await _g8_cyc.async_update_thermal_params(
-        {"dhw_min_temperature": 38.0, "dhw_idle_min_temperature": 31.0}
-    )
-    await _g8_cyc.async_set_target_temperature(19.5)
+    # Each cycle's first solve takes the writes; their request re-runs it once
+    # (#1754, D1-s1-03), and the re-run is left quiet so it ends.
+    _g8_cyc_calls.append(1)
+    if len(_g8_cyc_calls) % 2:
+        await _g8_cyc.async_update_thermal_params(
+            {"dhw_min_temperature": 38.0, "dhw_idle_min_temperature": 31.0}
+        )
+        await _g8_cyc.async_set_target_temperature(19.5)
     raise RuntimeError("the solve is not the point here")
 
 
@@ -64619,6 +64853,7 @@ class _PaCoord:
         # published builder reads its own.
         return _pa.ArbiterInputs(
             hass=self.hass,
+            entry=self.entry,
             config=self._config,
             mode=self._mode,
             plan=self._optimization_result,
@@ -64649,6 +64884,24 @@ class _PaCoord:
 
 def _pa_run(coord, minutes):
     _pa_aio.run(_pa.apply(coord, _PA_T0 + timedelta(minutes=minutes)))
+
+
+from heatpump_optimizer import off_restore as _pa_orr  # noqa: E402
+
+
+def _pa_unload(coord):
+    """The unload's two halves, as ``async_unload_entry`` runs them: the restore, which
+    writes the baseline row back (ADR-004), then the arbiter's release, which writes nothing."""
+    coord.entry.runtime_data = coord
+    _pa_aio.run(_pa_orr.async_restore(coord.hass, coord.entry, coord._config, "unload"))
+    _pa_aio.run(_pa.release(coord))
+
+
+def _pa_enter_off(coord):
+    """The coordinator's own path into Off: the hook's restore, then the mode."""
+    coord.entry.runtime_data = coord
+    _pa_aio.run(_pa_orr.async_mode_change(coord.hass, coord.entry, coord._config, coord._mode, _PA_OFF))
+    coord._mode = _PA_OFF
 
 
 # #2351: the misdeclared-indoor bound is strict. An indoor entity whose minimum
@@ -64885,7 +65138,7 @@ _pa_tuya.device("select.pump_mode", "Heating + DHW")
 _pa_run(_pa_tuya, 1)
 _pa_tuya.device("select.pump_mode", "DHW (Hot Water)")
 _pa_tuya.hass.services.calls.clear()
-_pa_aio.run(_pa.release(_pa_tuya))
+_pa_unload(_pa_tuya)
 R.check(
     "unloading writes the baseline over a mode the arbiter still owns",
     ("select", "select_option", "Heating + DHW") in _pa_tuya.writes(),
@@ -65275,13 +65528,14 @@ R.check(
 )
 _pa_offun = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_offun)
-_pa_offun._mode = _PA_OFF
-_pa_aio.run(_pa.release(_pa_offun))
+_pa_enter_off(_pa_offun)
+_pa_settled(_pa_offun)  # the Off wrote the baseline row back, and the pump took it
+_pa_unload(_pa_offun)
 _pa_onun = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_onun)
-_pa_aio.run(_pa.release(_pa_onun))
+_pa_unload(_pa_onun)
 R.check(
-    "unloading with the optimizer off writes nothing; null control: with it on, the baseline",
+    "unloading after an Off that restored writes nothing more; null control: with it on, the baseline",
     _pa_offun.writes() == []
     and ("select", "select_option", "Heating + DHW") in _pa_onun.writes(),
     f"{_pa_offun.writes()} / {_pa_onun.writes()}",
@@ -65311,6 +65565,11 @@ _pa_ro = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_ro)                          # baseline 53 captured, the gate 25 written
 _pa_ro_sent = _pa_turn_off(_pa_ro)
 _pa_ro_written = dict(_pa.state_for(_pa_ro).written)
+_pa_ro_calls = list(_pa_ro.hass.services.calls)
+for _d, _sv, _data in _pa_ro_calls:  # the device answers each write, as _pa_settled does
+    _pa_ro.device(_data["entity_id"], str(_data.get("option", _data.get("value"))))
+_pa_ro_states = {e: _pa_ro.hass.states.get(e).state
+                 for e in ("select.pump_mode", "number.dhw_set", "number.water_set")}
 from homeassistant.helpers.storage import SAVE_COUNTS as _pa_saves  # noqa: E402
 _pa_ro_key = f"heatpump_optimizer_{_pa_ro.entry.entry_id}_pump_duty"
 _pa_ro_saved = _pa_saves.get(_pa_ro_key, 0)
@@ -65321,24 +65580,31 @@ _pa_ro_null = _PaCoord(_PA_TUYA, duty="observe")
 _pa_settled(_pa_ro_null)
 _pa_ro_null_sent = _pa_turn_off(_pa_ro_null)
 R.check(
-    "R10-ARBITER-OFF-RESTORE: switching the optimizer off writes the space set-point's baseline back, "
-    "once, and nothing else, its record saved once; null control: with the arbiter not controlling, off writes nothing",
-    _pa_ro_sent == 1 and _pa_space(_pa_ro) == [53.0] and len(_pa_ro.writes()) == 1
+    "R10-ARBITER-OFF-RESTORE (D16 ruling 2026-11-15): switching the optimizer off returns each entity the "
+    "arbiter wrote to its baseline once (space set-point 53, mode and tank to the baseline row), writes no "
+    "other entity, its record saved once; null control: with the arbiter not controlling, off writes nothing",
+    _pa_ro_sent == 2 and _pa_space(_pa_ro) == [53.0]
+    and sorted(_pa_ro.writes(), key=str) == [("number", "set_value", 53), ("select", "select_option", "Heating + DHW")]
+    and _pa_ro_states == {"select.pump_mode": "Heating + DHW", "number.dhw_set": "48", "number.water_set": "53"}
+    and {d["entity_id"] for _d, _sv, d in _pa_ro_calls} <= {"select.pump_mode", "number.dhw_set", "number.water_set"}
     and _pa_ro_written == {} and _pa_ro_resaved == 0
     and _pa_ro_null_sent == 0 and _pa_ro_null.writes() == [],
-    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_written=} {_pa_ro_resaved=} / {_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
+    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_states=} {_pa_ro_written=} {_pa_ro_resaved=} / "
+    f"{_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
 )
 _pa_ru = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_ru)
 _pa_ru.entry.runtime_data = _pa_ru
 _pa_ru_sent = _pa_aio.run(_pa_or.async_restore(_pa_ru.hass, _pa_ru.entry, _pa_ru._config, "unload"))
+_pa_ru_before = list(_pa_ru.writes())
 _pa_aio.run(_pa.release(_pa_ru))
 R.check(
-    "R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the release writes the "
-    "fallback row without the space set-point over it",
-    _pa_ru_sent == 1 and _pa_space(_pa_ru) == [53.0]
-    and ("select", "select_option", "Heating + DHW") in _pa_ru.writes(),
-    f"{_pa_ru_sent=} {_pa_ru.writes()=}",
+    "R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the baseline row (off_restore, "
+    "not the release, which writes nothing)",
+    _pa_ru_sent == 2 and _pa_space(_pa_ru) == [53.0]
+    and ("select", "select_option", "Heating + DHW") in _pa_ru_before
+    and _pa_ru.writes() == _pa_ru_before,
+    f"{_pa_ru_sent=} {_pa_ru_before=} {_pa_ru.writes()=}",
 )
 # Persisted: a restart's new coordinator, entry and hass restore the baseline
 # read before the first write, never the optimizer's own value it now reads.
@@ -65351,7 +65617,7 @@ _pa_rr2_sent = _pa_turn_off(_pa_rr2)
 R.check(
     "R10-ARBITER-OFF-RESTORE: the baseline survives a restart: off after it restores 53, not the 25 "
     "the optimizer wrote",
-    _pa_rr2_sent == 1 and _pa_space(_pa_rr2) == [53.0],
+    _pa_rr2_sent == 2 and _pa_space(_pa_rr2) == [53.0],
     f"{_pa_rr2_sent=} {_pa_rr2.writes()=}",
 )
 
@@ -65379,11 +65645,1331 @@ R.check(
     "R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as "
     "the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the "
     "person's own is captured, written over, and restored on off",
-    _pa_up_first == [25.0] and _pa_up_sent == 1 and _pa_space(_pa_up) == [35.0]
-    and _pa_up_n_first == [25.0] and _pa_up_n_sent == 1 and _pa_space(_pa_up_n) == [31.0],
+    _pa_up_first == [25.0] and _pa_up_sent == 2 and _pa_space(_pa_up) == [35.0]
+    and _pa_up_n_first == [25.0] and _pa_up_n_sent == 2 and _pa_space(_pa_up_n) == [31.0],
     f"{_pa_up_first=} {_pa_up_sent=} {_pa_up.writes()=} / {_pa_up_n_first=} {_pa_up_n_sent=} "
     f"{_pa_up_n.writes()=}",
 )
+
+
+# R11-SEAM-actuation-release (ADR-004; D16 ruling tvofi 2026-11-15): one restore owner for every written entity
+R.section("R11-SEAM-actuation-release: one restore owner for every written entity (ADR-004, D16 ruling 2026-11-15)")
+# The D16 ruling: each entity the optimizer wrote returns to the baseline it held
+# before the first write, once, when the optimizer lets go -- Off, unload and
+# remove, a stale plan for the entities cut from the plan. The plant is the
+# finder's: every actuator slot configured, the harness's own plan, the
+# service calls applied to the state machine as the device would, and every
+# assertion read from that state machine, never from a record of the calls.
+import asyncio as _r11ar_aio  # noqa: E402
+import itertools as _r11ar_it  # noqa: E402
+import json as _r11ar_json  # noqa: E402
+import logging as _r11ar_log  # noqa: E402
+from dataclasses import replace as _r11ar_replace  # noqa: E402
+
+import golden as _r11ar_golden  # noqa: E402
+import heatpump_optimizer as _r11ar_integ  # noqa: E402
+from harness import FakeEntry as _r11ar_Entry  # noqa: E402
+from homeassistant.helpers.storage import SAVE_COUNTS as _r11ar_saves  # noqa: E402
+from homeassistant.util import dt as _r11ar_dt  # noqa: E402
+try:  # a module this section's subject adds: absent, each check that needs it fails by name
+    from heatpump_optimizer import circulation as _r11ar_circ  # noqa: E402
+except ImportError:
+    _r11ar_circ = None
+from heatpump_optimizer import off_restore as _r11ar_or  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _r11ar_pa  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _R11AR_AUTO, MODE_OFF as _R11AR_OFF  # noqa: E402
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as _R11arCoord  # noqa: E402
+from heatpump_optimizer.inputs import InputReader as _r11ar_Reader  # noqa: E402
+from heatpump_optimizer.optimizer import OptimizationResult as _r11ar_Result  # noqa: E402
+
+_R11AR_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=timezone.utc)
+_R11AR_IDS = _r11ar_it.count()
+_R11AR_TUYA = ["Heating", "DHW (Hot Water)", "Heating + DHW", "Cooling", "Cooling + DHW"]
+#: The Modbus select: no single heating duty, so a space-only step gates the tank set-point.
+_R11AR_MODBUS = ["Off", "Cool + DHW", "Heat + DHW"]
+#: What each entity reads before the optimizer's first write.
+_R11AR_BASE = {
+    "select.pump_mode": "Heating + DHW", "number.dhw_set": "50", "number.water_set": "45",
+    "switch.hp": "on", "number.freq": "70", "number.valve": "22", "switch.vvc": "on",
+    "number.offset": "0", "switch.dis": "off",
+    "mqtt:ecl110/displace/set": "0", "mqtt:ecl110/command": "0",
+}
+#: The four entities the cycle's own seams write (supply, frequency, valve, hot-water circulation pump).
+_R11AR_FOUR = ("switch.hp", "number.freq", "number.valve", "switch.vvc")
+
+
+def _r11ar_config(duty="control", windows="08:00-09:00"):
+    return {
+        **_r11ar_golden.coordinator_scenarios()["coord_all_features"],
+        "dhw_setpoint": 50.0, "pump_duty_mode": duty,
+        "heat_pump_mode_entity": "select.pump_mode", "dhw_setpoint_entity": "number.dhw_set",
+        "space_setpoint_entity": "number.water_set", "space_setpoint_unit": "flow",
+        "heat_pump_switch_entity": "switch.hp",
+        "compressor_freq_entity": "number.freq", "freq_control_mode": "control",
+        "mixing_valve_mode": "smart_write", "mixing_valve_write_entity": "number.valve",
+        "vvc_pump_entity": "switch.vvc", "heat_curve_displace_entity": "number.offset",
+        "ecl110_displace_set_topic": "ecl110/displace/set", "ecl110_command_topic": "ecl110/command",
+        "dhw_disinfection_switch_entity": "switch.dis", "dhw_disinfection_mode": "control",
+        "dhw_windows": windows,  # the null arm's window covers the clock: the circulation pump stays on
+        "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    }
+
+
+def _r11ar_states(base=_R11AR_BASE, options=_R11AR_TUYA):
+    return {
+        "select.pump_mode": FakeState(base["select.pump_mode"], attributes={"options": list(options)}),
+        "number.dhw_set": FakeState(base["number.dhw_set"], attributes={"min": 40, "max": 63}),
+        "number.water_set": FakeState(base["number.water_set"], attributes={"min": 25, "max": 63}),
+        "switch.hp": FakeState(base["switch.hp"]),
+        "number.freq": FakeState(base["number.freq"], attributes={"min": 20, "max": 90}),
+        "number.valve": FakeState(base["number.valve"], attributes={"min": 15, "max": 30}),
+        "switch.vvc": FakeState(base["switch.vvc"]),
+        "number.offset": FakeState(base["number.offset"], unit="K", attributes={"min": -10, "max": 10, "step": 1}),
+        "switch.dis": FakeState(base["switch.dis"]),
+        "mqtt:ecl110/displace/set": FakeState(base["mqtt:ecl110/displace/set"]),
+        "mqtt:ecl110/command": FakeState(base["mqtt:ecl110/command"]),
+        "sensor.indoor": FakeState("21.0", unit="°C"),
+        "sensor.outdoor": FakeState("-5.0", unit="°C"),
+    }
+
+
+def _r11ar_plan(duties, start=_R11AR_T0):
+    """The harness's own solve result: 's' space 1.5 kW, 'd' hot water 2 kW, '-' idle, from ``start``."""
+    n = len(duties)
+    return _r11ar_Result(
+        power_schedule=[1.5 if c in "sb" else 0.0 for c in duties],
+        room_temp_trajectory=[21.0] * n, slab_temp_trajectory=[21.0] * n,
+        timestamps=[start + timedelta(minutes=15 * i) for i in range(n)], prices=[1.0] * n,
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0, savings_percentage=0.0,
+        optimal_setpoints=[21.0] * n, status="ok",
+        dhw_power_schedule=[2.0 if c in "db" else 0.0 for c in duties],
+    )
+
+
+def _r11ar_key(data):
+    """The written thing a call names: its entity, or ``mqtt:<topic>`` for a publish."""
+    data = data or {}
+    return data.get("entity_id") or (f"mqtt:{data['topic']}" if "topic" in data else None)
+
+
+def _r11ar_hass(base=_R11AR_BASE, options=_R11AR_TUYA):
+    """A FakeHass whose disinfection switch follows a write at once (the module reads every write back)."""
+    hass = FakeHass(_r11ar_states(base, options))
+    real = hass.services.async_call
+
+    async def device(domain, service, data=None, **kw):
+        out = await real(domain, service, data, **kw)
+        if (data or {}).get("entity_id") == "switch.dis" and service in ("turn_on", "turn_off"):
+            hass.states.get("switch.dis").state = "on" if service == "turn_on" else "off"
+        return out
+    hass.services.async_call = device
+    return hass
+
+
+def _r11ar_settle(hass):
+    """Apply every recorded call to the state machine, as the device would; return them."""
+    calls = list(hass.services.calls)
+    for _domain, service, data in calls:
+        data = data or {}
+        ent = _r11ar_key(data)
+        if service == "publish" and ent is not None:
+            payload = str(data["payload"])
+            if payload.startswith("{"):
+                payload = str(_r11ar_json.loads(payload)["command"]["displace"])
+            hass.states.get(ent).state = payload
+            continue
+        st = hass.states.get(ent) if isinstance(ent, str) else None
+        if st is None:
+            continue
+        if service == "select_option":
+            st.state = str(data["option"])
+        elif service in ("set_value", "set_temperature"):
+            v = data.get("value", data.get("temperature"))
+            st.state = str(int(v) if float(v).is_integer() else v)
+        elif service in ("turn_on", "turn_off"):
+            st.state = "on" if service == "turn_on" else "off"
+    hass.services.calls.clear()
+    return calls
+
+
+def _r11ar_n(calls, entity):
+    """The writes ``entity`` received among ``calls``."""
+    return sum(1 for _d, _s, data in calls if _r11ar_key(data) == entity)
+
+
+async def _r11ar_cycle(c, minute, post=False):
+    """The cycle's write half at T0+minute: the arbiter and supply (and the MQTT and heat-curve arms the
+    action publishes), frequency, valve, circulation pump; ``post`` adds the disinfection follower."""
+    _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=minute))
+    c._last_optimization = _R11AR_T0 + timedelta(minutes=minute)  # a fresh plan
+    await c._apply_action()
+    await c._command_frequency()
+    await c._command_valve_target()
+    await c._async_drive_pumps()
+    if post:
+        c._legionella.disinfect.observe(_r11ar_Reader(c.hass, dict(c.entry.data)))
+        await c._legionella.async_track_cycle(None)
+
+
+def _r11ar_coord(hass, entry):
+    c = _R11arCoord(hass, entry)
+    entry.runtime_data = c
+    c._freq_map.recommend = lambda *_a, **_k: 45.0  # input: a frequency map with evidence
+    c._freq_last_write = None  # input: no write inside the rate limit (construction stamps the wall clock)
+    return c
+
+
+async def _r11ar_drive(c, null=False, duties="dd--dd--", disinfect=False, idle=True):
+    """Write phase: a hot-water-only step, then an idle step, of the harness's plan.
+
+    Null arm: the plan starts two hours ahead, so the arbiter serves its baseline row. The action keeps the
+    supply on and the valve at its reading, the frequency map answers the reading, and the circulation pump's
+    window covers the clock. Every write equals the baseline, so nothing can be owed back."""
+    c._mode = _R11AR_AUTO
+    c._optimization_result = _r11ar_plan(duties, start=_R11AR_T0 + timedelta(hours=2) if null else _R11AR_T0)
+    c._current_action = {"heat_pump_on": True, "displace_value": 0.0 if null else 2.0,
+                         "valve_target": 22.0 if null else 20.0}
+    if null:
+        c._freq_map.recommend = lambda *_a, **_k: 70.0
+    written = set()
+    await _r11ar_cycle(c, 1)
+    if disinfect and not null:
+        # A planned disinfection run starts the pump's program (the integration holds the switch on); the
+        # arbiter's next pass raises the tank to the cycle temperature (pump_arbiter._dhw_target).
+        await c._legionella.disinfect.turn_on(dhw_blocked=False)
+    written |= {_r11ar_key(d) for _do, _s, d in _r11ar_settle(c.hass)}
+    if not idle:
+        return written - {None}
+    if not null:
+        c._current_action = {"heat_pump_on": False, "displace_value": 3.0, "valve_target": 18.0}
+    await _r11ar_cycle(c, 31)
+    written |= {_r11ar_key(d) for _do, _s, d in _r11ar_settle(c.hass)}
+    written.discard(None)
+    return written
+
+
+async def _r11ar_plant(null=False, modbus=False, disinfect=False, duty="control", idle=True):
+    """(hass, entry, coord, written) after the write phase."""
+    base = {**_R11AR_BASE, "select.pump_mode": "Heat + DHW"} if modbus else _R11AR_BASE
+    hass = _r11ar_hass(base, _R11AR_MODBUS if modbus else _R11AR_TUYA)
+    entry = _r11ar_Entry(data=_r11ar_config(duty=duty, windows="05:00-09:00" if null else "08:00-09:00"),
+                         entry_id=f"r11ar_{next(_R11AR_IDS)}")
+    c = _r11ar_coord(hass, entry)
+    written = await _r11ar_drive(c, null, duties="ssssssss" if modbus else "dd--dd--", disinfect=disinfect, idle=idle)
+    return hass, entry, c, written
+
+
+def _r11ar_read(hass, entities):
+    return {e: hass.states.get(e).state for e in entities}
+
+
+def _r11ar_try(fn, *args):
+    """``fn(*args)``, or the exception it raised: a check on a missing symbol fails by name, not by crash."""
+    try:
+        return fn(*args)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _r11ar_ok(res, pred):
+    return not isinstance(res, BaseException) and bool(pred(res))
+
+
+# ---- B1/B2 (D16-s3-02): the four entities the cycle's seams write ----
+async def _r11ar_off_scn(null=False, trigger="off"):
+    hass, entry, c, written = await _r11ar_plant(null=null)
+    before = _r11ar_read(hass, _R11AR_FOUR)
+    after, calls = [], []
+    if trigger == "off":
+        await c.async_set_mode(_R11AR_OFF, refresh=False)
+        calls += _r11ar_settle(hass)
+        await _r11ar_cycle(c, 32, post=True)
+        calls += _r11ar_settle(hass)
+    else:
+        await _r11ar_integ.async_unload_entry(hass, entry)
+        calls += _r11ar_settle(hass)
+        if trigger == "remove":
+            await _r11ar_integ.async_remove_entry(hass, entry)
+            calls += _r11ar_settle(hass)
+    return before, _r11ar_read(hass, _R11AR_FOUR), {e: _r11ar_n(calls, e) for e in _R11AR_FOUR}
+
+
+_r11ar_want = {e: _R11AR_BASE[e] for e in _R11AR_FOUR}
+for _r11ar_trig in ("off", "unload", "remove"):
+    _r11ar_b, _r11ar_a, _r11ar_w = _r11ar_aio.run(_r11ar_off_scn(trigger=_r11ar_trig))
+    _r11ar_nb, _r11ar_na, _r11ar_nw = _r11ar_aio.run(_r11ar_off_scn(null=True, trigger=_r11ar_trig))
+    R.check(
+        f"D16-s3-02: after {_r11ar_trig} the supply switch, the frequency, the valve and the circulation pump "
+        "read what they read before the optimizer's first write, each written back once",
+        all(_r11ar_b[e] != _r11ar_want[e] for e in _R11AR_FOUR) and _r11ar_a == _r11ar_want
+        and all(n == 1 for n in _r11ar_w.values()),
+        f"before {_r11ar_b} after {_r11ar_a} writes {_r11ar_w}",
+    )
+    R.check(
+        f"D16-s3-02 null control ({_r11ar_trig}): commands equal to the baseline leave all four unchanged",
+        _r11ar_nb == _r11ar_want and _r11ar_na == _r11ar_want,
+        f"before {_r11ar_nb} after {_r11ar_na} writes {_r11ar_nw}",
+    )
+
+
+# ---- B3 (D16-s3-01): Off restores the arbiter's row ----
+_R11AR_ROW = ("select.pump_mode", "number.dhw_set")
+
+
+async def _r11ar_row_scn(null=False, modbus=False):
+    hass, entry, c, _written = await _r11ar_plant(null=null, modbus=modbus)
+    before = _r11ar_read(hass, _R11AR_ROW)
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    calls = _r11ar_settle(hass)
+    await _r11ar_cycle(c, 32, post=True)
+    calls += _r11ar_settle(hass)
+    return before, _r11ar_read(hass, _R11AR_ROW), calls
+
+
+_r11ar_tuya = _r11ar_try(_r11ar_aio.run, _r11ar_row_scn())
+_r11ar_modbus = _r11ar_try(_r11ar_aio.run, _r11ar_row_scn(modbus=True))
+_r11ar_tuya_n = _r11ar_try(_r11ar_aio.run, _r11ar_row_scn(null=True))
+_r11ar_modbus_n = _r11ar_try(_r11ar_aio.run, _r11ar_row_scn(null=True, modbus=True))
+R.check(
+    "D16-s3-01: Off returns the pump's mode select to the baseline row on the Tuya arm "
+    "(the arbiter had written the hot-water duty)",
+    _r11ar_ok(_r11ar_tuya, lambda r: r[0]["select.pump_mode"] != "Heating + DHW"
+              and r[1]["select.pump_mode"] == "Heating + DHW"),
+    f"{_r11ar_tuya!r}",
+)
+R.check(
+    "D16-s3-01: Off returns the tank set-point to the configured 50 on the Modbus arm "
+    "(space-only steps had gated it)",
+    _r11ar_ok(_r11ar_modbus, lambda r: r[0]["number.dhw_set"] != "50" and r[1]["number.dhw_set"] == "50"),
+    f"{_r11ar_modbus!r}",
+)
+R.check(
+    "D16-s3-01 null control: with the arbiter serving its baseline row (plan two hours ahead) both arms "
+    "already read the baseline and Off changes neither",
+    _r11ar_ok(_r11ar_tuya_n, lambda r: r[0] == r[1] == {"select.pump_mode": "Heating + DHW", "number.dhw_set": "50"})
+    and _r11ar_ok(_r11ar_modbus_n, lambda r: r[0] == r[1] == {"select.pump_mode": "Heat + DHW", "number.dhw_set": "50"}),
+    f"{_r11ar_tuya_n!r} / {_r11ar_modbus_n!r}",
+)
+
+
+# ---- B4 (D16-s3-03): unload under a held disinfection ----
+async def _r11ar_hold_scn(hold):
+    hass, entry, c, _written = await _r11ar_plant(disinfect=hold)
+    before = hass.states.get("number.dhw_set").state
+    await _r11ar_integ.async_unload_entry(hass, entry)
+    _r11ar_settle(hass)
+    return before, hass.states.get("number.dhw_set").state, c
+
+
+_r11ar_held = _r11ar_try(_r11ar_aio.run, _r11ar_hold_scn(True))
+_r11ar_free = _r11ar_try(_r11ar_aio.run, _r11ar_hold_scn(False))
+R.check(
+    "D16-s3-03: unloaded while the integration holds the pump's disinfection (the arbiter raised the tank "
+    "to the cycle target 60), the tank set-point reads the configured 50 afterwards",
+    _r11ar_ok(_r11ar_held, lambda r: r[0] == "60" and r[1] == "50"),
+    f"{_r11ar_held[:2] if not isinstance(_r11ar_held, BaseException) else _r11ar_held!r}",
+)
+R.check(
+    "D16-s3-03 null control: the same drive with no hold never raised the tank to 60 and reads 50 after the unload",
+    _r11ar_ok(_r11ar_free, lambda r: r[0] != "60" and r[1] == "50"),
+    f"{_r11ar_free[:2] if not isinstance(_r11ar_free, BaseException) else _r11ar_free!r}",
+)
+
+
+def _r11ar_rows(c):
+    now = _R11AR_T0 + timedelta(minutes=31)
+    inp = _r11ar_replace(c.arbiter_inputs(), disinfecting=True)
+    return (_r11ar_pa.baseline_row(c, inp, now).dhw_setpoint,
+            _r11ar_pa.desired(c, inp, None, now).dhw_setpoint)
+
+
+_r11ar_rowpair = None if isinstance(_r11ar_held, BaseException) else _r11ar_try(_r11ar_rows, _r11ar_held[2])
+R.check(
+    "D16-s3-03: the baseline row under a disinfection hold carries the configured 50",
+    _r11ar_ok(_r11ar_rowpair, lambda r: r[0] == 50.0),
+    f"{_r11ar_rowpair!r}",
+)
+R.check(
+    "D16-s3-03 null control: the plain desired row under the same hold carries the cycle target, above 50, "
+    "so the hold flag is what moves the row",
+    _r11ar_ok(_r11ar_rowpair, lambda r: r[1] > 50.0),
+    f"{_r11ar_rowpair!r}",
+)
+
+
+# ---- B5 (D16-s1-04): a stale plan hands back what is cut from the plan ----
+async def _r11ar_stale_scn(null=False):
+    hass, entry, c, _written = await _r11ar_plant(null=null)
+    before = _r11ar_read(hass, _R11AR_FOUR)
+    now = _R11AR_T0 + timedelta(minutes=61)
+    _r11ar_dt.freeze(now)
+    c._last_optimization = now - timedelta(hours=10)
+    stale = c._plan_is_stale()
+    out = []
+    for _ in range(3):
+        await c._apply_action()
+        await c._command_frequency()
+        await c._command_valve_target()
+        await c._async_drive_pumps()
+        calls = _r11ar_settle(hass)
+        out.append((calls, _r11ar_read(hass, _R11AR_FOUR)))
+    return before, stale, out, _r11ar_or.diagnostics(entry)
+
+
+_r11ar_st = _r11ar_try(_r11ar_aio.run, _r11ar_stale_scn())
+_r11ar_stn = _r11ar_try(_r11ar_aio.run, _r11ar_stale_scn(null=True))
+R.check(
+    "D16-s1-04 precondition: the last fresh cycle left the supply off and the plan is stale",
+    _r11ar_ok(_r11ar_st, lambda r: r[0]["switch.hp"] == "off" and r[1] is True),
+    f"{_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04: a stale plan returns the supply switch to on and the frequency and valve to their pre-write "
+    "readings 70 and 22, one write each in that cycle",
+    _r11ar_ok(_r11ar_st, lambda r: r[2][0][1]["switch.hp"] == "on" and r[2][0][1]["number.freq"] == "70"
+              and r[2][0][1]["number.valve"] == "22"
+              and all(_r11ar_n(r[2][0][0], e) == 1 for e in ("switch.hp", "number.freq", "number.valve"))),
+    f"{_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04: a second stale cycle writes nothing to the four restored entities, and the restore is "
+    "recorded as plan_stale",
+    _r11ar_ok(_r11ar_st, lambda r: all(_r11ar_n(r[2][1][0], e) == 0 for e in _R11AR_FOUR)
+              and r[3]["last_restore"] == "plan_stale"),
+    f"the only writes in that cycle are the arbiter's own baseline row (mode select, space set-point), "
+    f"written once the switch reads on: {_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04: a third stale cycle writes nothing at all",
+    _r11ar_ok(_r11ar_st, lambda r: r[2][2][0] == []),
+    f"{_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04: the hot-water circulation pump (a clock, not the plan) is not written by the stale cycle's restore",
+    _r11ar_ok(_r11ar_st, lambda r: _r11ar_n(r[2][0][0], "switch.vvc") == 0),
+    f"{_r11ar_st!r}",
+)
+R.check(
+    "D16-s1-04 null control: the supply on at the last fresh step with commands equal to the baseline, the "
+    "stale cycle writes nothing to the supply switch",
+    _r11ar_ok(_r11ar_stn, lambda r: r[1] is True and r[0]["switch.hp"] == "on"
+              and _r11ar_n(r[2][0][0], "switch.hp") == 0),
+    f"{_r11ar_stn!r}",
+)
+
+
+# ---- B6 (D16-s3-04): a restore that failed is retried until it lands ----
+async def _r11ar_retry_scn(entity, fail=True):
+    hass, entry, c, _written = await _r11ar_plant()
+    state = {"fail": fail}
+    real = hass.services.async_call
+
+    async def flaky(domain, service, data=None, **kw):
+        if state["fail"] and _r11ar_key(data) == entity:
+            raise RuntimeError("device briefly unreachable")
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = flaky
+    pre = hass.states.get(entity).state
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    at_off = _r11ar_settle(hass)
+    mid = hass.states.get(entity).state
+    state["fail"] = False  # the device answers again; nobody touches anything
+    for minute in range(32, 32 + 50):  # a cycle every 15 minutes, the arbiter's tick between
+        _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=minute))
+        if minute % 15 == 2:
+            await _r11ar_cycle(c, minute, post=True)
+        else:
+            await _r11ar_pa.apply(c)
+    later = _r11ar_settle(hass)
+    return pre, mid, _r11ar_n(at_off, entity), _r11ar_n(later, entity), hass.states.get(entity).state
+
+
+for _r11ar_ent, _r11ar_base_v in (("number.water_set", "45"), ("number.offset", "0")):
+    _r11ar_fail = _r11ar_try(_r11ar_aio.run, _r11ar_retry_scn(_r11ar_ent))
+    _r11ar_calm = _r11ar_try(_r11ar_aio.run, _r11ar_retry_scn(_r11ar_ent, fail=False))
+    R.check(
+        f"D16-s3-04: a restore of {_r11ar_ent} that raised at the change into Off is retried by the Off "
+        f"cycles: exactly one write lands and the entity reads its baseline {_r11ar_base_v}",
+        _r11ar_ok(_r11ar_fail, lambda r: r[0] != _r11ar_base_v and r[1] == r[0] and r[3] == 1
+                  and r[4] == _r11ar_base_v),
+        f"(before Off, after the failed Off, writes at Off, writes later, final) {_r11ar_fail!r}",
+    )
+    R.check(
+        f"D16-s3-04 null control: with no failure the restore of {_r11ar_ent} lands at Off, and the Off "
+        "cycles after it write nothing to it",
+        _r11ar_ok(_r11ar_calm, lambda r: r[2] == 1 and r[3] == 0 and r[4] == _r11ar_base_v),
+        f"{_r11ar_calm!r}",
+    )
+
+
+# ---- B7 (D1-s2-04): concurrent first reads of the persisted record ----
+from unittest import mock as _r11ar_mock  # noqa: E402
+from homeassistant.helpers import storage as _r11ar_storage  # noqa: E402
+from heatpump_optimizer.entry_config import EntryConfig as _r11ar_EC  # noqa: E402
+
+
+async def _r11ar_race_scn(serial):
+    """The persisted record holds the heat curve's baseline 3.0; its first read suspends 10 ms."""
+    entry = _r11ar_Entry(data={"heat_curve_displace_entity": "number.curve", "heat_curve_target_kind": "persistent"},
+                         entry_id=f"r11ar_race_{next(_R11AR_IDS)}")
+    key = f"heatpump_optimizer_{entry.entry_id}_off_restore"
+    _r11ar_storage._DISK[key] = _r11ar_json.dumps({"armed": {"heat_curve": {"entity_id": "number.curve", "value": 3.0}}})
+    _r11ar_storage._VERSIONS[key] = 1
+    hass = FakeHass({"number.curve": FakeState("5.0", attributes={"min": -10, "max": 10, "step": 1})})
+    config = _r11ar_EC.from_mapping(dict(entry.data))
+    loaded_in_flight = []
+    real_load = _r11ar_storage.Store.async_load
+
+    async def slow_load(self):
+        if self._key == key:
+            held = _r11ar_or._RECORDS.get(entry)
+            loaded_in_flight.append(None if held is None else held.loaded)
+            await _r11ar_aio.sleep(0.01)
+        return await real_load(self)
+
+    with _r11ar_mock.patch.object(_r11ar_storage.Store, "async_load", slow_load):
+        if serial:
+            seen = await _r11ar_or.async_armed_entry(hass, entry, "heat_curve")
+            sent = await _r11ar_or.async_restore(hass, entry, config, "mode_off")
+        else:
+            first = _r11ar_aio.ensure_future(_r11ar_or.async_armed_entry(hass, entry, "heat_curve"))
+            await _r11ar_aio.sleep(0)  # the first caller's read is in flight
+            sent = await _r11ar_or.async_restore(hass, entry, config, "mode_off")
+            seen = await first
+    writes = [(s, (d or {}).get("value")) for _do, s, d in hass.services.calls if _r11ar_key(d) == "number.curve"]
+    return sent, writes, seen, _r11ar_json.loads(_r11ar_storage._DISK[key]), loaded_in_flight
+
+
+_r11ar_race = _r11ar_try(_r11ar_aio.run, _r11ar_race_scn(False))
+_r11ar_serial = _r11ar_try(_r11ar_aio.run, _r11ar_race_scn(True))
+_r11ar_want_race = (1, [("set_value", 3.0)], {"entity_id": "number.curve", "value": 3.0}, {})
+R.check(
+    "D1-s2-04: an off restore running while another caller's first read of the record is in flight "
+    "waits for it: the baseline 3.0 is written back once, the first caller saw it, the saved record is the "
+    "restored one",
+    _r11ar_ok(_r11ar_race, lambda r: (*r[:3], r[3]['armed']) == _r11ar_want_race),
+    f"{_r11ar_race!r}",
+)
+R.check(
+    "D1-s2-04 null control: the same two calls one after the other give the same result",
+    _r11ar_ok(_r11ar_serial, lambda r: (*r[:3], r[3]['armed']) == _r11ar_want_race),
+    f"{_r11ar_serial!r}",
+)
+R.check(
+    "D1-s2-04: the record reads as not loaded while its first read is in flight",
+    _r11ar_ok(_r11ar_race, lambda r: r[4] == [False]),
+    f"{_r11ar_race!r}",
+)
+
+
+# ---- B8 (design invariant 2): a restore empties each write record ----
+async def _r11ar_again_scn(off):
+    """Cycle 1 writes the valve 20, the frequency 45 and the circulation pump off; ``off``: Off then On
+    between that and cycle 2, whose action asks for the same things."""
+    hass, entry, c, _written = await _r11ar_plant(idle=False)
+    action = {"heat_pump_on": True, "displace_value": 2.0, "valve_target": 20.0}
+    pre = (c._valve_target.commanded_c, c._freq_watchdog.commanded, dict(_r11ar_circ.commanded(entry)))
+    _r11ar_settle(hass)
+    recorded = None
+    if off:
+        await c.async_set_mode(_R11AR_OFF, refresh=False)
+        await _r11ar_cycle(c, 16)
+        _r11ar_settle(hass)
+        recorded = (c._valve_target.commanded_c, c._freq_watchdog.commanded, dict(_r11ar_circ.commanded(entry)))
+        await c.async_set_mode(_R11AR_AUTO, refresh=False)
+    c._mode, c._current_action = _R11AR_AUTO, dict(action)
+    c._freq_last_write = None  # no write inside the rate limit
+    await _r11ar_cycle(c, 31)
+    calls = _r11ar_settle(hass)
+    return pre, recorded, calls
+
+
+_r11ar_ag = _r11ar_try(_r11ar_aio.run, _r11ar_again_scn(True))
+_r11ar_ng = _r11ar_try(_r11ar_aio.run, _r11ar_again_scn(False))
+
+
+def _r11ar_vals(calls, entity):
+    return [d.get("value") for _do, _s, d in calls if _r11ar_key(d) == entity]
+
+
+R.check(
+    "design invariant 2, valve: after Off then On the same planned target 20 is sent again, and the record "
+    "of the last write is empty right after the restore",
+    _r11ar_ok(_r11ar_ag, lambda r: r[0][0] == 20.0 and r[1][0] is None and _r11ar_vals(r[2], "number.valve") == [20]),
+    f"{_r11ar_ag!r}",
+)
+R.check(
+    "design invariant 2, valve null control: with no Off between, the second cycle sends no valve write",
+    _r11ar_ok(_r11ar_ng, lambda r: r[0][0] == 20.0 and _r11ar_vals(r[2], "number.valve") == []),
+    f"{_r11ar_ng!r}",
+)
+R.check(
+    "design invariant 2, frequency: after Off then On the same target is sent again, and the watchdog's "
+    "commanded value is None right after the restore",
+    _r11ar_ok(_r11ar_ag, lambda r: r[0][1] is not None and r[1][1] is None
+              and _r11ar_vals(r[2], "number.freq") == [45]),
+    f"{_r11ar_ag!r}",
+)
+R.check(
+    "design invariant 2, frequency null control: with no Off between, the second cycle sends no frequency write",
+    _r11ar_ok(_r11ar_ng, lambda r: r[0][1] is not None and _r11ar_vals(r[2], "number.freq") == []),
+    f"{_r11ar_ng!r}",
+)
+R.check(
+    "design invariant 2, hot-water circulation pump: after Off the record has no entry for the pump, and "
+    "after On its next off command is sent again",
+    _r11ar_ok(_r11ar_ag, lambda r: r[0][2] == {"switch.vvc": False} and "switch.vvc" not in r[1][2]
+              and [s for _do, s, d in r[2] if _r11ar_key(d) == "switch.vvc"] == ["turn_off"]),
+    f"{_r11ar_ag!r}",
+)
+R.check(
+    "design invariant 2, circulation pump null control: with no Off between, the second cycle sends no pump write",
+    _r11ar_ok(_r11ar_ng, lambda r: r[0][2] == {"switch.vvc": False}
+              and [s for _do, s, d in r[2] if _r11ar_key(d) == "switch.vvc"] == []),
+    f"{_r11ar_ng!r}",
+)
+
+
+# ---- B9 (verdict item 9): Off taken on an idle step, the pump's switch still reading off ----
+async def _r11ar_idle_off_scn(idle):
+    hass, entry, c, _written = await _r11ar_plant(idle=idle)
+    switch_before = hass.states.get("switch.hp").state
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    in_pass = list(hass.services.calls)  # nothing settled: the switch still reads what it read
+    switch_in_pass = hass.states.get("switch.hp").state
+    armed_in_pass = _r11ar_or.diagnostics(entry)["armed"]
+    _r11ar_settle(hass)
+    await _r11ar_cycle(c, 32, post=True)
+    _r11ar_settle(hass)
+    return (switch_before, switch_in_pass, in_pass, armed_in_pass, _r11ar_read(hass, ("select.pump_mode", "switch.hp")),
+            _r11ar_or.diagnostics(entry)["armed"])
+
+
+_r11ar_idle = _r11ar_try(_r11ar_aio.run, _r11ar_idle_off_scn(True))
+_r11ar_busy = _r11ar_try(_r11ar_aio.run, _r11ar_idle_off_scn(False))
+R.check(
+    "verdict item 9: Off taken on an idle step sends the supply switch on but writes no mode select while "
+    "the switch still reads off, and the row stays armed",
+    _r11ar_ok(_r11ar_idle, lambda r: r[1] == "off"
+              and any(s == "turn_on" and _r11ar_key(d) == "switch.hp" for _do, s, d in r[2])
+              and _r11ar_n(r[2], "select.pump_mode") == 0 and "pump_arbiter_row" in r[3]),
+    f"{_r11ar_idle!r}",
+)
+R.check(
+    "verdict item 9: once the switch reads on, the next cycle writes the baseline row (the select reads "
+    "Heating + DHW) and the row is no longer armed",
+    _r11ar_ok(_r11ar_idle, lambda r: r[4] == {"select.pump_mode": "Heating + DHW", "switch.hp": "on"}
+              and "pump_arbiter_row" not in r[5]),
+    f"{_r11ar_idle!r}",
+)
+R.check(
+    "verdict item 9 null control: with the switch on at the Off trigger (a hot-water step, not idle) the "
+    "row is written in the Off pass itself",
+    _r11ar_ok(_r11ar_busy, lambda r: r[1] == "on" and _r11ar_n(r[2], "select.pump_mode") == 1
+              and "pump_arbiter_row" not in r[3]),
+    f"{_r11ar_busy!r}",
+)
+
+
+# ---- B10 (verdict item 8): the arbiter forgets its record while the row is being written ----
+async def _r11ar_interleave_scn(interleave):
+    hass, entry, c, _written = await _r11ar_plant()
+    real = hass.services.async_call
+    fired = []
+
+    async def racing(domain, service, data=None, **kw):
+        if interleave and service == "select_option" and not fired:
+            fired.append(True)
+            _r11ar_pa._forget(_r11ar_pa.state_for(c))
+            await _r11ar_pa._persist(c)
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = racing
+    sent = await _r11ar_or.async_restore(hass, entry, c._config, "unload")
+    return (sent, bool(fired), "pump_arbiter_row" in _r11ar_or.diagnostics(entry)["armed"],
+            sorted(set(_r11ar_pa.state_for(c).written) - {"space_setpoint"}))
+
+
+_r11ar_il = _r11ar_try(_r11ar_aio.run, _r11ar_interleave_scn(True))
+_r11ar_il0 = _r11ar_try(_r11ar_aio.run, _r11ar_interleave_scn(False))
+R.check(
+    "verdict item 8: a pass that forgets the arbiter's record between two slot writes of the row's restore "
+    "does not stop it: the restore completes, the row is disarmed and the record holds no slot but the space set-point",
+    _r11ar_ok(_r11ar_il, lambda r: r[0] >= 1 and r[1] and r[2] is False and r[3] == []),
+    f"(restores, interleaved, row still armed, leftover slots) {_r11ar_il!r}",
+)
+R.check(
+    "verdict item 8 null control: without the interleaving the end state is the same",
+    _r11ar_ok(_r11ar_il0, lambda r: r[0] >= 1 and not r[1] and r[2] is False and r[3] == []),
+    f"{_r11ar_il0!r}",
+)
+
+
+# ---- B11, B12 (design note item 3): a write racing the restore ----
+async def _r11ar_race_write_scn(race):
+    hass, entry, c, _written = await _r11ar_plant()
+    real = hass.services.async_call
+    fired = []
+
+    async def racing(domain, service, data=None, **kw):
+        if race and service == "turn_on" and _r11ar_key(data) == "switch.hp" and not fired:
+            fired.append(True)
+            await _r11ar_pa.switch_supply(hass, entry, c._config, "switch.hp", False)
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = racing
+    await _r11ar_integ.async_unload_entry(hass, entry)
+    calls = _r11ar_settle(hass)
+    return (hass.states.get("switch.hp").state, "pump_arbiter_supply" in _r11ar_or.diagnostics(entry)["armed"],
+            [s for _do, s, d in calls if _r11ar_key(d) == "switch.hp"], bool(fired))
+
+
+_r11ar_rw = _r11ar_try(_r11ar_aio.run, _r11ar_race_write_scn(True))
+_r11ar_rw0 = _r11ar_try(_r11ar_aio.run, _r11ar_race_write_scn(False))
+R.check(
+    "design note 3: an off write of the supply switch racing the unload's restore is refused or restored: "
+    "after the unload the switch reads on and its restore is not left armed",
+    _r11ar_ok(_r11ar_rw, lambda r: r[3] and r[0] == "on" and r[1] is False),
+    f"(switch, armed, switch calls, raced) {_r11ar_rw!r}",
+)
+R.check(
+    "design note 3 null control: with no racing write the same end state, from exactly one turn_on",
+    _r11ar_ok(_r11ar_rw0, lambda r: not r[3] and r[0] == "on" and r[1] is False and r[2].count("turn_on") == 1),
+    f"{_r11ar_rw0!r}",
+)
+
+
+async def _r11ar_guard_scn():
+    hass, entry, c, _written = await _r11ar_plant()
+    key = _r11ar_pa.SUPPLY
+    outside = await _r11ar_or.async_arm(hass, entry, c._config, key)
+    real = hass.services.async_call
+    seen = []
+
+    async def probing(domain, service, data=None, **kw):
+        if service == "turn_on" and _r11ar_key(data) == "switch.hp" and not seen:
+            seen.append(await _r11ar_or.async_arm(hass, entry, c._config, key))
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = probing
+    await _r11ar_or.async_restore(hass, entry, c._config, "mode_off")
+    after = await _r11ar_or.async_arm(hass, entry, c._config, key)
+    return outside, seen, after
+
+
+_r11ar_gd = _r11ar_try(_r11ar_aio.run, _r11ar_guard_scn())
+R.check(
+    "in-flight guard: async_arm refuses (False) a key while that key's restore write is awaited, and "
+    "accepts it again (True) once the restore has finished",
+    _r11ar_ok(_r11ar_gd, lambda r: r[1] == [False] and r[2] is True),
+    f"(outside, in flight, after) {_r11ar_gd!r}",
+)
+R.check(
+    "in-flight guard null control: called outside a restore, async_arm answers True",
+    _r11ar_ok(_r11ar_gd, lambda r: r[0] is True),
+    f"{_r11ar_gd!r}",
+)
+
+
+# ---- B13: the registry, entry-only (no coordinator) ----
+class _R11arLogs(_r11ar_log.Handler):
+    def __init__(self):
+        super().__init__(_r11ar_log.WARNING)
+        self.messages = []
+
+    def emit(self, record):
+        self.messages.append(record.getMessage())
+
+
+def _r11ar_unit(stale_a=False, stale_b=False, entry_id=None):
+    """A bare entry and hass with two throwaway consumers, ``_r11ar_a`` registered before ``_r11ar_b``."""
+    order = []
+
+    def factory(entity):
+        async def write(_hass, entity_id, value):
+            order.append(entity_id)
+        return lambda _cfg: _r11ar_or.Restorer(entity, write, neutral=1.0)
+    _r11ar_or.register_consumer("_r11ar_a", factory("number.a"), stale=stale_a)
+    _r11ar_or.register_consumer("_r11ar_b", factory("number.b"), stale=stale_b)
+    entry = _r11ar_Entry(data={}, entry_id=entry_id or f"r11ar_unit_{next(_R11AR_IDS)}")
+    return FakeHass(), entry, order
+
+
+def _r11ar_unregister(*keys):
+    for key in keys:
+        for name in ("_CONSUMERS", "_STALE", "_RELEASES", "_WRITERS"):
+            getattr(_r11ar_or, name, {}).pop(key, None)
+
+
+async def _r11ar_registry_scn():
+    out = {}
+    # (a) restores run in registration order, whatever order they were armed in
+    hass, entry, order = _r11ar_unit()
+    for key in ("_r11ar_b", "_r11ar_a"):
+        await _r11ar_or.async_arm(hass, entry, {}, key)
+    await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    out["order"] = list(order)
+    # (b) a cycle with neither Off nor a stale plan restores nothing; a stale plan restores the stale keys only
+    hass, entry, order = _r11ar_unit(stale_b=True)
+    for key in ("_r11ar_a", "_r11ar_b"):
+        await _r11ar_or.async_arm(hass, entry, {}, key)
+    none = await _r11ar_or.async_cycle(hass, entry, {}, False, False)
+    out["cycle_none"] = (none, list(order))
+    stale = await _r11ar_or.async_cycle(hass, entry, {}, False, True)
+    out["cycle_stale"] = (stale, list(order), _r11ar_or.diagnostics(entry)["armed"])
+    # (c) Off restores both
+    hass, entry, order = _r11ar_unit(stale_b=True)
+    for key in ("_r11ar_a", "_r11ar_b"):
+        await _r11ar_or.async_arm(hass, entry, {}, key)
+    off = await _r11ar_or.async_cycle(hass, entry, {}, True, False)
+    out["cycle_off"] = (off, list(order), _r11ar_or.diagnostics(entry)["armed"])
+    # (d) a pass that restores nothing does not save; one that restores saves once
+    hass, entry, order = _r11ar_unit()
+    store_key = _r11ar_or._store(hass, entry.entry_id)._key
+    await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    idle_saves = _r11ar_saves.get(store_key, 0)
+    for key in ("_r11ar_a", "_r11ar_b"):
+        await _r11ar_or.async_arm(hass, entry, {}, key)
+    before = _r11ar_saves.get(store_key, 0)
+    await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    out["saves"] = (idle_saves, _r11ar_saves.get(store_key, 0) - before)
+    # (f) removing an entry with a neutral key still armed names it
+    hass, entry, order = _r11ar_unit()
+    await _r11ar_or.async_arm(hass, entry, {}, "_r11ar_a")
+    handler, logger = _R11arLogs(), _r11ar_log.getLogger(_r11ar_or.__name__)
+    logger.addHandler(handler)
+    try:
+        await _r11ar_or.async_forget(hass, entry.entry_id)
+    finally:
+        logger.removeHandler(handler)
+    out["forget"] = list(handler.messages)
+    return out
+
+
+try:
+    _r11ar_reg = _r11ar_try(_r11ar_aio.run, _r11ar_registry_scn())
+finally:
+    _r11ar_unregister("_r11ar_a", "_r11ar_b")
+R.check(
+    "registry (a): restores run in registration order, though the keys were armed in reverse",
+    _r11ar_ok(_r11ar_reg, lambda r: r["order"] == ["number.a", "number.b"]),
+    f"{_r11ar_reg!r}",
+)
+R.check(
+    "registry (b): a cycle with neither Off nor a stale plan restores nothing, and a stale plan restores "
+    "the stale=True key only",
+    _r11ar_ok(_r11ar_reg, lambda r: r["cycle_none"] == (0, []) and r["cycle_stale"] == (1, ["number.b"], ["_r11ar_a"])),
+    f"{_r11ar_reg!r}",
+)
+R.check(
+    "registry (c): a cycle in Off restores both keys",
+    _r11ar_ok(_r11ar_reg, lambda r: r["cycle_off"] == (2, ["number.a", "number.b"], [])),
+    f"{_r11ar_reg!r}",
+)
+R.check(
+    "registry (d): a pass that restores nothing does not save the store, one that restores saves it once",
+    _r11ar_ok(_r11ar_reg, lambda r: r["saves"] == (0, 1)),
+    f"{_r11ar_reg!r}",
+)
+R.check(
+    "registry (f): removing an entry with a neutral key still armed logs a warning naming the key",
+    _r11ar_ok(_r11ar_reg, lambda r: len(r["forget"]) == 1 and "_r11ar_a" in r["forget"][0]),
+    f"{_r11ar_reg!r}",
+)
+
+
+async def _r11ar_release_scn():
+    out = {}
+    for name, answer in (("false", False), ("true", True), ("raises", RuntimeError("release failed"))):
+        calls = []
+
+        async def release(_hass, _entry, _config, reason, answer=answer, calls=calls):
+            calls.append(reason)
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+        _r11ar_or.register_release("_r11ar_rel", release)
+        hass, entry = FakeHass(), _r11ar_Entry(data={}, entry_id=f"r11ar_rel_{next(_R11AR_IDS)}")
+        await _r11ar_or.async_arm(hass, entry, {}, "_r11ar_rel")
+        sent = await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+        out[name] = (sent, calls, _r11ar_or.diagnostics(entry)["armed"])
+    return out
+
+
+try:
+    _r11ar_rel = _r11ar_try(_r11ar_aio.run, _r11ar_release_scn())
+finally:
+    _r11ar_unregister("_r11ar_rel")
+R.check(
+    "registry (e): a release consumer answering False stays armed, one answering True is disarmed, and one "
+    "that raises stays armed and does not raise into the restore",
+    _r11ar_ok(_r11ar_rel, lambda r: r["false"][2] == ["_r11ar_rel"] and r["true"] == (1, ["mode_off"], [])
+              and r["raises"][2] == ["_r11ar_rel"] and r["raises"][1] == ["mode_off"]),
+    f"{_r11ar_rel!r}",
+)
+R.check(
+    "registry (e) null control: the consumer that answered False was asked, and counted no restore",
+    _r11ar_ok(_r11ar_rel, lambda r: r["false"][:2] == (0, ["mode_off"]) and r["raises"][0] == 0),
+    f"{_r11ar_rel!r}",
+)
+
+
+# ---- design note 3, a later key: a write racing the unload after the supply's restore landed ----
+async def _r11ar_late_race_scn(race):
+    hass, entry, c, _written = await _r11ar_plant()
+    real = hass.services.async_call
+    fired = []
+
+    async def racing(domain, service, data=None, **kw):
+        if race and _r11ar_key(data) == "number.valve" and not fired:
+            fired.append(True)  # the supply's restore has landed: its key is free to arm again
+            await _r11ar_pa.switch_supply(hass, entry, c._config, "switch.hp", False)
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = racing
+    await _r11ar_integ.async_unload_entry(hass, entry)
+    calls = _r11ar_settle(hass)
+    return (hass.states.get("switch.hp").state, "pump_arbiter_supply" in _r11ar_or.diagnostics(entry)["armed"],
+            [s for _do, s, d in calls if _r11ar_key(d) == "switch.hp"], bool(fired))
+
+
+_r11ar_lr = _r11ar_try(_r11ar_aio.run, _r11ar_late_race_scn(True))
+_r11ar_lr0 = _r11ar_try(_r11ar_aio.run, _r11ar_late_race_scn(False))
+R.check(
+    "design note 3 (later key): an off write of the supply switch landing during a later key's unload "
+    "restore is handed back by the unload's second restore: the switch reads on and its restore is not left armed",
+    _r11ar_ok(_r11ar_lr, lambda r: r[3] and r[0] == "on" and r[1] is False),
+    f"(switch, armed, switch calls, raced) {_r11ar_lr!r}",
+)
+R.check(
+    "design note 3 (later key) null control: with no racing write the same end state, from exactly one turn_on",
+    _r11ar_ok(_r11ar_lr0, lambda r: not r[3] and r[0] == "on" and r[1] is False and r[2].count("turn_on") == 1),
+    f"{_r11ar_lr0!r}",
+)
+
+
+# ---- a restore already in flight for a key is not sent twice ----
+async def _r11ar_twice_scn(concurrent):
+    writes = []
+
+    async def write(_hass, entity_id, _value):
+        writes.append(entity_id)
+        await _r11ar_aio.sleep(0.01)
+    _r11ar_or.register_consumer("_r11ar_slow", lambda _cfg: _r11ar_or.Restorer("number.slow", write, neutral=1.0))
+    hass, entry = FakeHass(), _r11ar_Entry(data={}, entry_id=f"r11ar_twice_{next(_R11AR_IDS)}")
+    await _r11ar_or.async_arm(hass, entry, {}, "_r11ar_slow")
+    if concurrent:
+        sent = sum(await _r11ar_aio.gather(*(_r11ar_or.async_restore(hass, entry, {}, "mode_off") for _ in range(2))))
+    else:
+        sent = await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+        sent += await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    return sent, len(writes)
+
+
+try:
+    _r11ar_tw = _r11ar_try(_r11ar_aio.run, _r11ar_twice_scn(True))
+    _r11ar_tw0 = _r11ar_try(_r11ar_aio.run, _r11ar_twice_scn(False))
+finally:
+    _r11ar_unregister("_r11ar_slow")
+R.check(
+    "two restores running at once on one entry send a key's restore write once, the summed count being 1",
+    _r11ar_ok(_r11ar_tw, lambda r: r == (1, 1)),
+    f"(restores, writes) {_r11ar_tw!r}",
+)
+R.check(
+    "null control: the same two restores one after the other also send one write",
+    _r11ar_ok(_r11ar_tw0, lambda r: r == (1, 1)),
+    f"{_r11ar_tw0!r}",
+)
+
+
+# ---- the space circulation pump is handed back on a stale plan, the hot-water one is not ----
+async def _r11ar_pump_stale_scn(pump, field, entity):
+    hass = FakeHass({entity: FakeState("on")})
+    entry = _r11ar_Entry(data={}, entry_id=f"r11ar_pump_{next(_R11AR_IDS)}")
+    config = {field: entity}
+    await _r11ar_circ.command(hass, entry, config, pump, False, "r")
+    _r11ar_settle(hass)
+    off = hass.states.get(entity).state
+    held = dict(_r11ar_circ.commanded(entry))
+    await _r11ar_or.async_cycle(hass, entry, config, False, True)
+    calls = _r11ar_settle(hass)
+    return off, held, hass.states.get(entity).state, dict(_r11ar_circ.commanded(entry)), _r11ar_n(calls, entity)
+
+
+_r11ar_ps = _r11ar_try(_r11ar_aio.run, _r11ar_pump_stale_scn(
+    _r11ar_circ and _r11ar_circ.SPACE, "space_circulation_pump_entity", "switch.space_pump"))
+_r11ar_pd = _r11ar_try(_r11ar_aio.run, _r11ar_pump_stale_scn(
+    _r11ar_circ and _r11ar_circ.DHW, "vvc_pump_entity", "switch.vvc_pump"))
+R.check(
+    "a stale-plan cycle switches the space circulation pump back on and empties its record",
+    _r11ar_ok(_r11ar_ps, lambda r: r[0] == "off" and r[1] == {"switch.space_pump": False}
+              and r[2] == "on" and r[3] == {} and r[4] == 1),
+    f"{_r11ar_ps!r}",
+)
+R.check(
+    "null control: the same stale-plan cycle does not write the hot-water circulation pump, which a clock drives",
+    _r11ar_ok(_r11ar_pd, lambda r: r[0] == "off" and r[2] == "off" and r[3] == {"switch.vvc_pump": False} and r[4] == 0),
+    f"{_r11ar_pd!r}",
+)
+
+
+# ---- a pump command that failed is not recorded as done ----
+async def _r11ar_failed_cmd_scn(fail):
+    hass = FakeHass({"switch.vvc_pump": FakeState("off")})
+    entry = _r11ar_Entry(data={}, entry_id=f"r11ar_cmd_{next(_R11AR_IDS)}")
+    attempts = []
+
+    async def call(domain, service, data=None, **kw):
+        attempts.append(service)
+        if fail:
+            raise RuntimeError("entity unavailable")
+    hass.services.async_call = call
+    config = {"vvc_pump_entity": "switch.vvc_pump"}
+    await _r11ar_circ.command(hass, entry, config, _r11ar_circ.DHW, True, "r")
+    recorded = dict(_r11ar_circ.commanded(entry))
+    await _r11ar_circ.command(hass, entry, config, _r11ar_circ.DHW, True, "r")
+    return recorded, attempts
+
+
+_r11ar_fc = _r11ar_try(_r11ar_aio.run, _r11ar_failed_cmd_scn(True))
+_r11ar_fc0 = _r11ar_try(_r11ar_aio.run, _r11ar_failed_cmd_scn(False))
+R.check(
+    "a circulation pump command whose service call raised is not recorded, and the same command is sent again",
+    _r11ar_ok(_r11ar_fc, lambda r: r[0] == {} and r[1] == ["turn_on", "turn_on"]),
+    f"{_r11ar_fc!r}",
+)
+R.check(
+    "null control: a command that succeeded is recorded and the same command is not sent again",
+    _r11ar_ok(_r11ar_fc0, lambda r: r[0] == {"switch.vvc_pump": True} and r[1] == ["turn_on"]),
+    f"{_r11ar_fc0!r}",
+)
+
+
+# ---- prepr's diff mutants: a refused arm sends nothing; the neutrals; the space pump's let-go ----
+async def _r11ar_refused_arm_scn(busy):
+    hass = FakeHass({"switch.vvc_pump": FakeState("on")})
+    entry = _r11ar_Entry(data={}, entry_id=f"r11ar_arm_{next(_R11AR_IDS)}")
+    config = {"vvc_pump_entity": "switch.vvc_pump"}
+    held = await _r11ar_or._armed_record(hass, entry)
+    if busy:  # the key's restore is in flight: the arm is refused
+        held.busy.add(_r11ar_circ.DHW)
+    await _r11ar_circ.command(hass, entry, config, _r11ar_circ.DHW, False, "r")
+    return [s for _d, s, _data in hass.services.calls], dict(_r11ar_circ.commanded(entry))
+
+
+def _r11ar_neutrals():
+    from heatpump_optimizer import pump_arbiter as _pa
+    made = {
+        _r11ar_circ.DHW: _r11ar_or._CONSUMERS[_r11ar_circ.DHW]({"vvc_pump_entity": "switch.v"}),
+        _r11ar_circ.SPACE: _r11ar_or._CONSUMERS[_r11ar_circ.SPACE]({"space_circulation_pump_entity": "switch.s"}),
+        _pa.SUPPLY: _r11ar_or._CONSUMERS[_pa.SUPPLY]({"heat_pump_switch_entity": "switch.hp"}),
+    }
+    return {k: (r.entity_id, r.neutral) for k, r in made.items()}, \
+        _r11ar_or._CONSUMERS[_r11ar_circ.DHW]({}), _r11ar_or._CONSUMERS[_pa.SUPPLY]({})
+
+
+def _r11ar_space_drive(stale):
+    from types import SimpleNamespace
+    from heatpump_optimizer import coordinator as _cm
+    from heatpump_optimizer.const import MODE_AUTO
+    coord = SimpleNamespace(_mode=MODE_AUTO, _plan_is_stale=lambda: stale,
+                            _config=SimpleNamespace(space_circulation_pump_entity="switch.space_pump"))
+    return _cm._space_pump_to_drive(coord), _cm._plan_let_go(coord)
+
+
+_r11ar_ra = _r11ar_try(_r11ar_aio.run, _r11ar_refused_arm_scn(True))
+_r11ar_ra0 = _r11ar_try(_r11ar_aio.run, _r11ar_refused_arm_scn(False))
+R.check(
+    "a circulation pump's off command whose restore cannot be armed is not sent and not recorded",
+    _r11ar_ok(_r11ar_ra, lambda r: r == ([], {})),
+    f"{_r11ar_ra!r}",
+)
+R.check(
+    "null control: the same off command with the arm taken is sent once and recorded",
+    _r11ar_ok(_r11ar_ra0, lambda r: r == (["turn_off"], {"switch.vvc_pump": False})),
+    f"{_r11ar_ra0!r}",
+)
+_r11ar_nt = _r11ar_try(_r11ar_neutrals)
+R.check(
+    "the two circulation pumps and the supply switch are restored to on (neutral 1.0) on the entity the config "
+    "names, and an entity not configured has no restorer",
+    _r11ar_ok(_r11ar_nt, lambda r: r[0] == {
+        "circulation_dhw": ("switch.v", 1.0), "circulation_space": ("switch.s", 1.0),
+        "pump_arbiter_supply": ("switch.hp", 1.0)} and r[1] is None and r[2] is None),
+    f"{_r11ar_nt!r}",
+)
+_r11ar_sd = _r11ar_try(_r11ar_space_drive, True)
+_r11ar_sd0 = _r11ar_try(_r11ar_space_drive, False)
+R.check(
+    "on a stale plan in a plan mode the space circulation pump is not driven: the let-go predicate holds it",
+    _r11ar_ok(_r11ar_sd, lambda r: r == (None, True)),
+    f"{_r11ar_sd!r}",
+)
+R.check(
+    "null control: on a fresh plan the same pump is the one to drive",
+    _r11ar_ok(_r11ar_sd0, lambda r: r == ("switch.space_pump", False)),
+    f"{_r11ar_sd0!r}",
+)
+
+
+# ---- the survivors CI measured at b3f0f7d676, and the repair's sites: the write tails, the row's
+# release, an unreadable baseline, the valve's log ----
+async def _r11ar_tail_scn(kind, last, target):
+    """One write tail from ``last`` to ``target``: (its answer, the values sent)."""
+    from heatpump_optimizer.freq_control import FrequencyWatchdog
+    from heatpump_optimizer.mixing_valve import ValveTarget
+    sent = []
+
+    async def arm():
+        return True
+
+    async def send(value):
+        sent.append(value)  # the valve's send answers None: written
+    if kind == "freq":
+        tail = FrequencyWatchdog()
+        tail.commanded = last
+    else:
+        tail = ValveTarget(epsilon_k=0.5, commanded_c=last)
+    return await tail.command(target, arm, send), sent
+
+
+_r11ar_tails = {
+    (kind, target): _r11ar_try(_r11ar_aio.run, _r11ar_tail_scn(kind, last, target))
+    for kind, last, targets in (("freq", 50.0, (51.0, 50.5)), ("valve", 22.0, (22.5, 22.25)))
+    for target in targets
+}
+R.check(
+    "a frequency one FREQ_WRITE_EPSILON_HZ (1 Hz) from the last command, and a valve target one epsilon_k "
+    "from the last write, are each written, and the write's tail answers True",
+    _r11ar_tails[("freq", 51.0)] == (True, [51.0]) and _r11ar_tails[("valve", 22.5)] == (True, [22.5]),
+    f"{_r11ar_tails!r}",
+)
+R.check(
+    "null control: a move of half that is not written, and the tail answers False",
+    _r11ar_tails[("freq", 50.5)] == (False, []) and _r11ar_tails[("valve", 22.25)] == (False, []),
+    f"{_r11ar_tails!r}",
+)
+
+
+async def _r11ar_row_owed_scn(fail):
+    """Off with the mode select refusing its write: (select calls tried, armed keys, the stored record's slots
+    after, and before)."""
+    from homeassistant.helpers import storage as _st
+    hass, entry, c, _written = await _r11ar_plant()
+    real, tried = hass.services.async_call, []
+    before = sorted(_r11ar_json.loads(_st._DISK[_r11ar_pa._store(c)._key])["written"])
+
+    async def select(domain, service, data=None, **kw):
+        if service == "select_option" and _r11ar_key(data) == "select.pump_mode":
+            tried.append(data["option"])
+            if fail:
+                raise RuntimeError("select unavailable")
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = select
+    await c.async_set_mode(_R11AR_OFF, refresh=False)
+    _r11ar_settle(hass)
+    await _r11ar_cycle(c, 32)  # the supply switch reads on again: the row's restore runs
+    _r11ar_settle(hass)
+    stored = _r11ar_json.loads(_st._DISK[_r11ar_pa._store(c)._key])
+    return tried, _r11ar_or.diagnostics(entry)["armed"], sorted(stored["written"]), before
+
+
+_r11ar_owed = _r11ar_try(_r11ar_aio.run, _r11ar_row_owed_scn(True))
+_r11ar_owed0 = _r11ar_try(_r11ar_aio.run, _r11ar_row_owed_scn(False))
+R.check(
+    "Off with the pump's mode select refusing the baseline row's write: the row's restore stays armed, "
+    "so the next cycle writes it again",
+    _r11ar_ok(_r11ar_owed, lambda r: r[0] and _r11ar_pa.ROW in r[1]),
+    f"(select writes tried, armed, stored slots) {_r11ar_owed!r}",
+)
+R.check(
+    "null control: the same Off with the select taking the write disarms the row",
+    _r11ar_ok(_r11ar_owed0, lambda r: r[0] and _r11ar_pa.ROW not in r[1]),
+    f"{_r11ar_owed0!r}",
+)
+R.check(
+    "the row's restore that landed leaves the arbiter's stored record holding the space set-point slot alone",
+    _r11ar_ok(_r11ar_owed0, lambda r: set(r[2]) <= {"space_setpoint"}),
+    f"{_r11ar_owed0!r}",
+)
+R.check(
+    "null control: before that Off the stored record held the mode and tank set-point slots",
+    _r11ar_ok(_r11ar_owed0, lambda r: {"mode", "dhw_setpoint"} <= set(r[3])),
+    f"{_r11ar_owed0!r}",
+)
+
+
+async def _r11ar_unread_arm_scn(write_unread, reading):
+    """A first arm of a baseline restorer whose entity reads ``reading``: (the arm's answer, the armed entry)."""
+    async def write(_hass, _entity_id, _value):
+        return True
+    _r11ar_or.register_consumer("_r11ar_unread", lambda _cfg: _r11ar_or.Restorer(
+        "number.unread", write, baseline_of=lambda _h, _e: reading, write_unread=write_unread))
+    hass, entry = FakeHass(), _r11ar_Entry(data={}, entry_id=f"r11ar_unread_{next(_R11AR_IDS)}")
+    armed = await _r11ar_or.async_arm(hass, entry, {}, "_r11ar_unread")
+    held = await _r11ar_or._armed_record(hass, entry)
+    return armed, held.armed.get("_r11ar_unread", "absent")
+
+
+try:
+    _r11ar_ua = {(wu, rd): _r11ar_try(_r11ar_aio.run, _r11ar_unread_arm_scn(wu, rd))
+                 for wu, rd in ((False, None), (True, None), (False, 40.0))}
+finally:
+    _r11ar_unregister("_r11ar_unread")
+R.check(
+    "a baseline restorer that is not write_unread refuses the write when its entity reads no baseline, "
+    "and arms nothing",
+    _r11ar_ua[(False, None)] == (False, "absent"),
+    f"{_r11ar_ua!r}",
+)
+R.check(
+    "null control: the same unreadable entity under a write_unread restorer arms a restore of nothing, "
+    "and a readable one arms its reading",
+    _r11ar_ua[(True, None)] == (True, None)
+    and _r11ar_ua[(False, 40.0)] == (True, {"entity_id": "number.unread", "value": 40.0}),
+    f"{_r11ar_ua!r}",
+)
+
+
+async def _r11ar_release_bare_scn(key):
+    """Release ``key`` on an entry with no coordinator: (restores, armed keys, warnings)."""
+    hass, entry = FakeHass(), _r11ar_Entry(data={}, entry_id=f"r11ar_bare_{next(_R11AR_IDS)}")
+    await _r11ar_or.async_arm(hass, entry, {}, key)
+    handler, logger = _R11arLogs(), _r11ar_log.getLogger("heatpump_optimizer")
+    logger.addHandler(handler)
+    try:
+        sent = await _r11ar_or.async_restore(hass, entry, {}, "mode_off")
+    finally:
+        logger.removeHandler(handler)
+    return sent, _r11ar_or.diagnostics(entry)["armed"], handler.messages
+
+
+async def _r11ar_raising_release(_hass, entry, _config, _reason):
+    return entry.runtime_data.arbiter_inputs() is None  # no coordinator: raises
+
+
+_r11ar_or.register_release("_r11ar_bare", _r11ar_raising_release)
+try:
+    _r11ar_bare = _r11ar_try(_r11ar_aio.run, _r11ar_release_bare_scn(_r11ar_pa.ROW))
+    _r11ar_bare0 = _r11ar_try(_r11ar_aio.run, _r11ar_release_bare_scn("_r11ar_bare"))
+finally:
+    _r11ar_unregister("_r11ar_bare")
+R.check(
+    "the row's release on an entry whose coordinator is gone answers not done without raising: "
+    "the row stays armed and nothing is logged as failed",
+    _r11ar_ok(_r11ar_bare, lambda r: r == (0, [_r11ar_pa.ROW], [])),
+    f"(restores, armed, warnings) {_r11ar_bare!r}",
+)
+R.check(
+    "null control: a release that reads the missing coordinator and raises stays armed and logs one warning",
+    _r11ar_ok(_r11ar_bare0, lambda r: r[:2] == (0, ["_r11ar_bare"]) and len(r[2]) == 1),
+    f"{_r11ar_bare0!r}",
+)
+
+
+async def _r11ar_valve_log_scn(fail):
+    """A valve target write after the first: (warnings, the INFO lines naming a commanded valve target)."""
+    hass, _entry, c, _written = await _r11ar_plant(idle=False)
+    real = hass.services.async_call
+
+    async def valve(domain, service, data=None, **kw):
+        if fail and _r11ar_key(data) == "number.valve":
+            raise RuntimeError("valve unavailable")
+        return await real(domain, service, data, **kw)
+    hass.services.async_call = valve
+    c._current_action = {**c._current_action, "valve_target": 18.0}
+    handler, logger = _R11arLogs(), _r11ar_log.getLogger("heatpump_optimizer")
+    level = logger.level
+    handler.setLevel(_r11ar_log.INFO)
+    logger.addHandler(handler)
+    logger.setLevel(_r11ar_log.INFO)
+    try:
+        await c._command_valve_target()
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(level)
+    return ([m for m in handler.messages if "Valve write entity" in m],
+            [m for m in handler.messages if m.startswith("Commanded mixing valve target")])
+
+
+_r11ar_vlog = _r11ar_try(_r11ar_aio.run, _r11ar_valve_log_scn(True))
+_r11ar_vlog0 = _r11ar_try(_r11ar_aio.run, _r11ar_valve_log_scn(False))
+R.check(
+    "a valve target write that raised logs why, and no line that the target was commanded",
+    _r11ar_ok(_r11ar_vlog, lambda r: len(r[0]) == 1 and r[1] == []),
+    f"{_r11ar_vlog!r}",
+)
+R.check(
+    "null control: the same write landing logs the commanded target once",
+    _r11ar_ok(_r11ar_vlog0, lambda r: r[0] == [] and len(r[1]) == 1),
+    f"{_r11ar_vlog0!r}",
+)
+
+
+# ---- B14 (D7-s1-05): the two day-count notices share one raiser ----
+def _r11ar_guard(probe=False):
+    """A coordinator whose guard is overdue: hot water and the cycle on, 20 days since the last one, a 7-day interval."""
+    data = {"price_source": "entity", "price_entity": "sensor.prices", "weather_entity": "weather.home"}
+    if probe:  # the overdue notice watches only an install with a tank probe
+        data["dhw_temp_entity"] = "sensor.tank"
+    c = _R11arCoord(FakeHass(), _r11ar_Entry(data=data, entry_id=f"r11ar_lg_{next(_R11AR_IDS)}"))
+    c._thermal_params.dhw_enabled = True
+    c._thermal_params.dhw_legionella_enabled = True
+    c._thermal_params.dhw_legionella_interval_days = 7.0
+    c._legionella.last_cycle = _r11ar_dt.now() - timedelta(days=20)
+    return c
+
+
+def _r11ar_notices():
+    out = {}
+    c = _r11ar_guard()
+    guard, recorded = c._legionella, []
+    guard._interval_notice = lambda *a: recorded.append(a)
+    guard.check_mode_block(True)
+    out["mode_block"] = [(a[0], a[1], a[2]) for a in recorded]
+    c2 = _r11ar_guard(probe=True)
+    rec2 = []
+    c2._legionella._interval_notice = lambda *a: rec2.append(a)
+    c2._legionella.check_overdue()
+    out["overdue"] = [(a[0], a[1], a[2]) for a in rec2]
+    # Unpatched: the issue's placeholders for a number, and cleared for None.
+    c3 = _r11ar_guard()
+    params = c3._thermal_params
+    g = c3._legionella
+    g._interval_notice("dhw_legionella_overdue", "days", 12, params)
+    raised = [i for i in getattr(c3.hass, "issues", []) if i[1] == "dhw_legionella_overdue"]
+    out["raised"] = [i[2].get("translation_placeholders") for i in raised]
+    g._interval_notice("dhw_legionella_overdue", "days", None, params)
+    out["cleared"] = [i for i in getattr(c3.hass, "issues", []) if i[1] == "dhw_legionella_overdue"]
+    return out
+
+
+_r11ar_nt = _r11ar_try(_r11ar_notices)
+R.check(
+    "D7-s1-05: check_mode_block raises its notice through _interval_notice with the key "
+    "dhw_legionella_mode_blocked and the field overdue_days",
+    _r11ar_ok(_r11ar_nt, lambda r: len(r["mode_block"]) == 1
+              and r["mode_block"][0][:2] == ("dhw_legionella_mode_blocked", "overdue_days")
+              and isinstance(r["mode_block"][0][2], int)),
+    f"{_r11ar_nt!r}",
+)
+R.check(
+    "D7-s1-05: check_overdue raises its notice through _interval_notice with the key "
+    "dhw_legionella_overdue and the field days",
+    _r11ar_ok(_r11ar_nt, lambda r: len(r["overdue"]) == 1 and r["overdue"][0][:2] == ("dhw_legionella_overdue", "days")
+              and isinstance(r["overdue"][0][2], int)),
+    f"{_r11ar_nt!r}",
+)
+R.check(
+    "D7-s1-05: unpatched, a day count raises the issue with the count under its own name and the interval",
+    _r11ar_ok(_r11ar_nt, lambda r: r["raised"] == [{"days": "12", "interval_days": "7"}]),
+    f"{_r11ar_nt!r}",
+)
+R.check(
+    "D7-s1-05 null control: the same call with no day count clears the issue",
+    _r11ar_ok(_r11ar_nt, lambda r: r["cleared"] == []),
+    f"{_r11ar_nt!r}",
+)
+
+
+_r11ar_dt.freeze(None)
 
 
 # R10-HOTFIX-FLOW-SETPOINT-STUCK (tvofi, 2026-11-13, a Rotenso on v7.1.15 held
@@ -65479,7 +67065,7 @@ R.check(
     "(nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline "
     "row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity "
     "reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too",
-    _pa_stuck_cycle() == (0, 55.0, 1, [35.0])
+    _pa_stuck_cycle() == (0, 55.0, 2, [35.0])
     and _pa_dropped_over(55.0, 25.0) == 55.0 and _pa_dropped_over(55.0, 40.0) == 55.0,
     f"{_pa_stuck_cycle()=} {_pa_dropped_over(55.0, 25.0)=} {_pa_dropped_over(55.0, 40.0)=}",
 )
@@ -65487,7 +67073,7 @@ R.check(
     "R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds "
     "restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is "
     "restored as set",
-    _pa_stuck_off() == (1, [35.0]) and _pa_stuck_off("40") == (1, [40.0]),
+    _pa_stuck_off() == (2, [35.0]) and _pa_stuck_off("40") == (2, [40.0]),
     f"{_pa_stuck_off()=} {_pa_stuck_off('40')=}",
 )
 
@@ -65518,8 +67104,8 @@ R.check(
     "R10-ARBITER-OFF-RESTORE: a space set-point a person sets between writes becomes the baseline off "
     "restores; null controls: the reading the entity held before the write (a refused write) and a "
     "reading after the pump was switched off (its own reset) leave the baseline at 53",
-    _pa_between("40") == (1, [40.0]) and _pa_between("25") == (1, [53.0])
-    and _pa_between("40", switch_off=True) == (1, [53.0]),
+    _pa_between("40") == (2, [40.0]) and _pa_between("25") == (2, [53.0])
+    and _pa_between("40", switch_off=True) == (2, [53.0]),
     f"{_pa_between('40')=} {_pa_between('25')=} {_pa_between('40', switch_off=True)=}",
 )
 _pa_echo = _PaCoord(_PA_TUYA, duties="dds-s")
@@ -65541,14 +67127,14 @@ _pa_same_sent = _pa_turn_off(_pa_same)
 R.check(
     "R10-ARBITER-OFF-RESTORE: a reading inside the echo grace, and one that holds the write, are no "
     "edit: off restores 53",
-    _pa_echo_sent == 1 and _pa_space(_pa_echo) == [53.0]
-    and _pa_same_sent == 1 and _pa_space(_pa_same) == [53.0],
+    _pa_echo_sent == 2 and _pa_space(_pa_echo) == [53.0]
+    and _pa_same_sent == 2 and _pa_space(_pa_same) == [53.0],
     f"{_pa_echo_target=} {_pa_space(_pa_echo)=} {_pa_space(_pa_same)=}",
 )
 R.check(
     "R10-ARBITER-OFF-RESTORE: a second differing reading is a write the pump does not take, never a "
     "second edit: off restores the first edit, 40, not 41",
-    _pa_between("40", then="41") == (1, [40.0]),
+    _pa_between("40", then="41") == (2, [40.0]),
     f"{_pa_between('40', then='41')=}",
 )
 # #3402 item 5b825bae: an adopted baseline is a value the entity takes, or
@@ -65556,7 +67142,7 @@ R.check(
 R.check(
     "R10-ARBITER-OFF-RESTORE: an edit outside the entity's own range is adopted bounded to it: off "
     "restores 63 for a reading of 70; null control: 40, inside it, is restored as read",
-    _pa_between("70") == (1, [63.0]) and _pa_between("40") == (1, [40.0]),
+    _pa_between("70") == (2, [63.0]) and _pa_between("40") == (2, [40.0]),
     f"{_pa_between('70')=} {_pa_between('40')=}",
 )
 
@@ -65576,7 +67162,7 @@ def _pa_at_grace(after_s):
 R.check(
     "R10-ARBITER-OFF-RESTORE: a reading exactly ECHO_GRACE_S after the write is past the grace and "
     "adopted; null control: one a second inside it is not, and off restores 53",
-    _pa_at_grace(_pa.ECHO_GRACE_S) == (1, [40.0]) and _pa_at_grace(_pa.ECHO_GRACE_S - 1) == (1, [53.0]),
+    _pa_at_grace(_pa.ECHO_GRACE_S) == (2, [40.0]) and _pa_at_grace(_pa.ECHO_GRACE_S - 1) == (2, [53.0]),
     f"{_pa_at_grace(_pa.ECHO_GRACE_S)=} {_pa_at_grace(_pa.ECHO_GRACE_S - 1)=}",
 )
 # #3402 item 648c3c80, the write-ahead order: the baseline is on disk before
@@ -66169,6 +67755,8 @@ _pa_wire_hass.states.get("select.pump_mode").state = "DHW (Hot Water)"
 _pa_aio.run(_pa_wire._update_current_state())
 _pa_wire_diag = _pa_diag._coordinator_snapshot(_pa_wire)["pump_duty"]
 _pa_wire_hass.services.calls.clear()
+_pa_wire.entry.runtime_data = _pa_wire
+_pa_aio.run(_pa_orr.async_restore(_pa_wire_hass, _pa_wire.entry, _pa_wire._config, "unload"))
 _pa_aio.run(_pa_wire.async_shutdown())
 R.check(
     "the real coordinator's action pass writes a hot-water-only step to the pump",
@@ -66915,7 +68503,7 @@ R.check(
 
 # D1-s1-02: best_restore must never raise on a stored bias leaf of any shape.
 _si_bias = {}
-for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
+for _si_leaf in (0.3, "0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
     _si_r = _SiRing.from_dict({"snapshots": [{
         "taken_at": "2026-06-01T12:00:00+00:00", "healthy": True,
         "accuracy": {"temperature_bias": _si_leaf}, "learners": {},
@@ -66926,10 +68514,33 @@ for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
         _si_bias[repr(_si_leaf)] = type(_si_err).__name__
 R.check(
     "best_restore skips a non-numeric or out-of-band stored bias instead of "
-    "raising, and still restores an in-band numeric one (D1-s1-02)",
-    _si_bias == {"'0.3'": True, "'garbage'": False, "[0.3]": False,
+    "raising, and still restores an in-band numeric one (D1-s1-02); text that "
+    "spells a number is out of its declared domain (R11-SEAM-store)",
+    _si_bias == {"0.3": True, "'0.3'": False, "'garbage'": False, "[0.3]": False,
                  "{'v': 0.3}": False, "nan": False, "0.9": False},
     f"{_si_bias}",
+)
+
+# D17-s3-03: the first heartbeat's snapshot is taken before any accuracy sample,
+# so its summary carries no bias: no evidence of in-band accuracy, and neither
+# the service nor the drift rollback may take it. Driven through take() with an
+# empty tracker's own summary; the same ring with an in-band bias restores
+# (null control).
+from heatpump_optimizer.snapshots import BIAS_BAND_C as _SI_BAND  # noqa: E402
+
+_si_unevidenced = {}
+for _si_label, _si_summary in (("empty", AccuracyTracker().summary()), ("in_band", {"temperature_bias": 0.1}),
+                               ("edge", {"temperature_bias": -_SI_BAND}),
+                               ("past", {"temperature_bias": _SI_BAND + 0.01})):
+    _si_r = _SiRing()
+    _si_r.take(datetime(2026, 6, 1, 12, tzinfo=UTC), {"marker": _si_label}, _si_summary, True)
+    _si_unevidenced[_si_label] = (_si_r.best_restore() is not None, _si_r.undo_target() is not None)
+R.check(
+    "a snapshot whose accuracy summary carries no bias is no restore point for the service "
+    "or the drift rollback, and an in-band one is, the band's edge included (D17-s3-03)",
+    _si_unevidenced == {"empty": (False, False), "in_band": (True, True), "edge": (True, True),
+                        "past": (False, False)},
+    f"{_si_unevidenced}",
 )
 
 # D1-s3-01: the typed return time is the user's wall clock, and boost, the
@@ -68194,11 +69805,16 @@ def _p6_accepts():
     return acc
 
 
+_P6_IDS = __import__("itertools").count()
+
+
 def _p6_coord(states, **cfg):
     data = {"tibber_token": "x", "weather_entity": "weather.home",
             "indoor_temp_entity": "sensor.indoor",
             "outdoor_temp_entity": "sensor.outdoor", **cfg}
-    return Coord(FakeHass(states), _P6Entry(data=data))
+    # One entry id per coordinator: the off-restore record persists per id, and a
+    # census that drives many writers must not hand one's armed entity to the next.
+    return Coord(FakeHass(states), _P6Entry(data=data, entry_id=f"p6_{next(_P6_IDS)}"))
 
 
 async def _p6_switch(eid):
@@ -68214,10 +69830,13 @@ async def _p6_switch(eid):
     return coord.hass.services.calls
 
 
+from heatpump_optimizer import circulation as _circ  # noqa: E402
 async def _p6_pump(eid):
-    coord = _p6_coord({})
-    await coord._async_set_pump(eid, True, "p6")
-    await coord._async_set_pump(eid, False, "p6")
+    key = eid.split(".p6_", 1)[1]  # the census names each entity after the slot it fills
+    coord = _p6_coord({}, **{key: eid})
+    pump = _circ.SPACE if key == hp_const.CONF_SPACE_PUMP_ENTITY else _circ.DHW
+    await _circ.command(coord.hass, coord.entry, coord._config, pump, True, "p6")
+    await _circ.command(coord.hass, coord.entry, coord._config, pump, False, "p6")
     return coord.hass.services.calls
 
 
@@ -68230,7 +69849,8 @@ async def _p6_disinfect(eid):
 
 
 async def _p6_valve(eid):
-    coord = _p6_coord({}, mixing_valve_mode="smart_write",
+    # The valve reads a value first: the baseline the optimizer restores on Off.
+    coord = _p6_coord({eid: FakeState("21", attributes={"temperature": 21.0})}, mixing_valve_mode="smart_write",
                       **{hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: eid})
     await coord._command_valve_target()
     return coord.hass.services.calls
@@ -72494,6 +74114,7 @@ def _r9egb9_borrow_arm(borrower, kind):
             coord._fuse_advisor_at = _r9egb9_dt.now() - timedelta(days=8)
             call = _f25_partial(
                 coord._maybe_run_fuse_advisor, _solve_record_now(coord))
+        _next_main_solve(coord)  # the borrower runs after a solve of its own (D9-s1-02)
         out = {"U0": _r9egb9_ov(u0)}
         if kind == "null":
             await call()
@@ -72505,11 +74126,15 @@ def _r9egb9_borrow_arm(borrower, kind):
                 # The window has now been open past the 3 s limiter (S2 held
                 # it 3.2 s of real time; the stamp is the same knob).
                 _coord_mod.whatif.state_for(coord).last_at = _coord_mod.whatif.state_for(coord).last_at - timedelta(seconds=4)
-            u1 = await coord.async_simulate({"target_temp": 22.0})
+            # Bounded and never cancelled: a borrower holding the user slot
+            # would hold U1 behind the gate this rig opens only after it.
+            u1_task = _r9egb9_aio.ensure_future(coord.async_simulate({"target_temp": 22.0}))
+            done, _ = await _r9egb9_aio.wait({u1_task}, timeout=60)
             u1_stamp = _coord_mod.whatif.state_for(coord).last_at
-            out["U1"] = _r9egb9_ov(u1)
+            out["U1"] = _r9egb9_ov(u1_task.result()) if done else "blocked behind the borrower"
             _R9EGB9Gate.release.set()
             await task
+            await u1_task
             _R9EGB9Gate.disarm()
             # The unconditional restore is the defect: it reverts the cache
             # to U0's answer and the stamp to U0's slot.
@@ -74248,9 +75873,9 @@ async def _dbg_week(flush):
         first = _dbg.collector_for(coord)
         out = {"subscribed": len(coord._listeners) - listeners}
         t = await _dbg_cycles(hass, coord, _DBG_T0, 1)
-        coord._optimization_running = True
+        solve_gate.gate_for(coord).solving = True
         coord.async_update_listeners()
-        coord._optimization_running = False
+        solve_gate.gate_for(coord).solving = False
         coord.async_update_listeners()
         t = await _dbg_cycles(hass, coord, t, 1)
         out["walls"] = [r.get("solve_wall_ms") for r in first.rows]
@@ -81266,18 +82891,21 @@ R.check(
 # L1: the smart_write valve target goes through the same rule. The commanded
 # value it remembers stays degC, so the unchanged-target guard compares like
 # with like.
+_DF_IDS = __import__("itertools").count()
+
+
 def _df_valve(entity, state, instance):
     coord = Coord(FakeHass({entity: state}), _DfEntry(data={
         "tibber_token": "x", "weather_entity": "weather.home",
         "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
         "max_temperature": 23.5, "mixing_valve_mode": "smart_write",
         "mixing_valve_write_entity": entity,
-    }))
+    }, entry_id=f"df{next(_DF_IDS)}"))  # the persisted baseline is per entry id
     coord.hass.config.units = _DfNS(temperature_unit=instance)
     _df_aio.run(coord._command_valve_target())
     _df_aio.run(coord._command_valve_target())
     data = [c[2] for c in coord.hass.services.calls]
-    return [d.get("temperature", d.get("value")) for d in data], coord._valve_commanded_target
+    return [d.get("temperature", d.get("value")) for d in data], coord._valve_target.commanded_c
 
 
 _df_valves = {
@@ -81289,7 +82917,8 @@ _df_valves = {
 }
 R.check(
     "the smart_write valve target is written in the entity's unit, once, "
-    "and remembered in degC (L1)",
+    "and remembered in degC (L1); a climate that reads no target has no baseline "
+    "to restore, so it is written and restores nothing (ADR-004)",
     _df_valves == {
         "climate on degF": ([74], 23.5),
         "climate on degF, no target": ([74], 23.5),
@@ -81298,6 +82927,80 @@ R.check(
         "number declaring degC": ([23], 23.5),
     },
     f"{_df_valves}",
+)
+
+
+# A baseline that cannot be read never parks the write until a person acts.
+# The entity is written and arms a restore of nothing. That entry is kept while
+# armed, so the optimizer's own write is never captured as the baseline. The
+# next arm after the restore drops it captures the entity's reading, and no arm
+# before it does, while the entity reads the optimizer's own write. Driven from
+# "no baseline" to the first write that lands, for the valve on a climate that
+# is off with no target and the frequency entity with no readable state.
+def _nb_drive(key, entity, first, written, second, entry_data):
+    from heatpump_optimizer import off_restore as _nb_or
+    hass = FakeHass({entity: first})
+    coord = Coord(hass, _DfEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+        "max_temperature": 23.5, **entry_data,
+    }, entry_id=f"nb{next(_DF_IDS)}"))
+    coord.hass.config.units = _DfNS(temperature_unit=_DC)
+    cfg = coord._ctx._config
+    armed_blind = [_df_aio.run(_nb_or.async_arm(hass, coord.entry, cfg, key)) for _ in range(3)]
+    entry_blind = _df_aio.run(_nb_or.async_armed_entry(hass, coord.entry, key))
+    hass.states.set(entity, written)
+    armed_blind.append(_df_aio.run(_nb_or.async_arm(hass, coord.entry, cfg, key)))
+    entry_blind = (entry_blind, _df_aio.run(_nb_or.async_armed_entry(hass, coord.entry, key)))
+    calls_before = len(hass.services.calls)
+    restored = _df_aio.run(_nb_or.async_restore(hass, coord.entry, cfg, "mode_off"))
+    restore_calls = len(hass.services.calls) - calls_before
+    hass.states.set(entity, second)
+    armed_read = _df_aio.run(_nb_or.async_arm(hass, coord.entry, cfg, key))
+    entry_read = _df_aio.run(_nb_or.async_armed_entry(hass, coord.entry, key))
+    return armed_blind, entry_blind, restored, restore_calls, armed_read, entry_read
+
+
+_nb = {
+    "valve, climate off with no target": _nb_drive(
+        "mixing_valve_target", "climate.valve", FakeState("off"),
+        FakeState("heat", attributes={"temperature": 23.5}),
+        FakeState("heat", attributes={"temperature": 20.0}),
+        {"mixing_valve_mode": "smart_write", "mixing_valve_write_entity": "climate.valve"}),
+    "frequency, no readable state": _nb_drive(
+        "compressor_frequency", "number.hp_freq", FakeState("unavailable"),
+        FakeState("55", unit="Hz"), FakeState("40", unit="Hz"),
+        {"compressor_freq_entity": "number.hp_freq"}),
+}
+_nb_want = {
+    "valve, climate off with no target": (
+        [True, True, True, True], (None, None), 0, 0, True, {"entity_id": "climate.valve", "value": 20.0}),
+    "frequency, no readable state": (
+        [True, True, True, True], (None, None), 0, 0, True, {"entity_id": "number.hp_freq", "value": 40.0}),
+}
+R.check(
+    "an entity whose baseline is unreadable is still written and restores nothing; "
+    "an arm after its own write lands keeps that, the restore that drops it writes "
+    "nothing, and the next arm captures the reading (the valve on an off climate, "
+    "the frequency with no state)",
+    _nb == _nb_want,
+    f"{_nb}",
+)
+_valve_off_hass = FakeHass({"climate.valve": FakeState("off")})
+_valve_off = Coord(_valve_off_hass, _DfEntry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "max_temperature": 23.5, "mixing_valve_mode": "smart_write",
+    "mixing_valve_write_entity": "climate.valve",
+}, entry_id=f"nb{next(_DF_IDS)}"))
+_valve_off.hass.config.units = _DfNS(temperature_unit=_DC)
+for _ in range(5):
+    _df_aio.run(_valve_off._command_valve_target())
+R.check(
+    "a smart_write valve on a climate that is off with no target is written on "
+    "the first cycle, once, not parked until the climate reports one",
+    len(_valve_off_hass.services.calls) == 1,
+    f"{len(_valve_off_hass.services.calls)} writes over 5 cycles",
 )
 
 
@@ -83396,9 +85099,11 @@ async def _ls_tile_cancel():
 
     coord.async_simulate = _sim
     try:
+        _next_main_solve(coord)
         await coord._maybe_refresh_price_tile(record)
     except _ls_aio.CancelledError:
         pass
+    _next_main_solve(coord)
     await coord._maybe_refresh_price_tile(record)
     return [dict(o) for o in seen], [dict(o) for _n, o in specs]
 
@@ -85119,6 +86824,33 @@ R.check(
     and [_he_store.in_domain(_bt_hdom, v) for v in (0.0, 0.5, None, -0.1)] == [True, True, True, False],
     f"{_bt_store.get('space_settle')}",
 )
+# D1-s2-06: the restore reads a boosted sum against that declaration before
+# timedelta() sees it. One longer than two datetimes can bound reads unknown,
+# and the rest of the restore still runs. One inside it is restored as stored,
+# and the next overlay's run still adds to the longest.
+_bt_range = {}
+for _bt_h in (1.5, 3e10, 1e14):
+    _bt_far = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+    try:
+        boost_mod._restore_settle(_bt_far, {
+            "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat(), "boosted_h": _bt_h},
+            "space": {"until": (NOW + timedelta(hours=1)).isoformat(),
+                      "since": (NOW - timedelta(hours=1)).isoformat()},
+        }, NOW)
+        _bt_range[_bt_h] = (_bt_far.space_boosted, _bt_far.space_since == NOW - timedelta(hours=1))
+    except Exception as _bt_err:  # noqa: BLE001 -- the escape is the measurement
+        _bt_range[_bt_h] = type(_bt_err).__name__
+_bt_top = (datetime.max - datetime.min) // timedelta(hours=1)
+_bt_longest = boost_mod.BoostState(space_boosted=timedelta(hours=_bt_top))
+R.check(
+    "a stored boosted sum longer than two datetimes bound reads unknown and the overlay's "
+    "start is still restored, one inside it is restored as stored, the declaration's ceiling "
+    "is that span, and a run added to it does not overflow (D1-s2-06)",
+    _bt_range == {1.5: (timedelta(hours=1.5), True), 3e10: (None, True), 1e14: (None, True)}
+    and [_he_store.in_domain(_bt_hdom, v) for v in (float(_bt_top), float(_bt_top + 1))] == [True, False]
+    and _bt_longest._boosted_with(datetime.max, datetime.min) >= timedelta(hours=2 * _bt_top),
+    f"{_bt_range}",
+)
 
 
 # R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (a): boosts add up. Three 20-minute presses
@@ -86256,7 +87988,7 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
                 await coord._apply_action()
             if m == room_cut_at:
                 # An early cut-off, as ``early_cutoff.on_room_event`` writes it.
-                await _sa_pa.switch_supply(hass, "switch.hp", False)
+                await _sa_pa.switch_supply(hass, coord.entry, coord.arbiter_inputs().config, "switch.hp", False)
             for tick in list(ticks):
                 await tick(now)
             for domain, service, _data in hass.services.calls:
@@ -86764,9 +88496,13 @@ R.section("supply switch: the cycle writes the step it lands in")
 # (a reload's cold solve, the price tile, the fuse advisor before the write):
 # it writes the plan's command for the step it lands in, not the action's.
 # The null control is the same cycle inside the action's own step.
+_MS_IDS = __import__("itertools").count()
+
+
 async def _ms_stale(minute):
     hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
-    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"},
+                                  entry_id=f"ms{next(_MS_IDS)}"))
     coord._mode = "auto"
     coord._optimization_result = SimpleNamespace(
         timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=[1.5, 0.0],
@@ -86808,7 +88544,8 @@ _ms_main = lambda _inp, _boosts, on, now=None: on
 async def _ms_cycle(minute, *, sched=(1.5, 0.0), cut=True, mode="auto", boosted=False,
                     sysid=False, age_minutes=0, main=False):
     hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
-    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"},
+                                  entry_id=f"ms{next(_MS_IDS)}"))  # a persisted off-restore record is per entry id
     coord._mode = mode
     coord._optimization_result = SimpleNamespace(
         timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=list(sched),
@@ -87204,14 +88941,14 @@ class _ShLog(logging.Handler):
         self.seen.append(record.getMessage())
 
 
-_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh_log, _sh_level = _ShLog(), _sh._LOGGER.level
+_sh._LOGGER.addHandler(_sh_log)
+_sh._LOGGER.setLevel(logging.DEBUG)
 try:
     _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh._LOGGER.removeHandler(_sh_log)
+    _sh._LOGGER.setLevel(_sh_level)
 _sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "a held OFF is not logged as the cooling or blocked-mode skip",
@@ -87235,13 +88972,13 @@ async def _sh_blocked_write():
 
 
 _sh_log.seen.clear()
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh._LOGGER.addHandler(_sh_log)
+_sh._LOGGER.setLevel(logging.DEBUG)
 try:
     _sh_bcalls = _asyncio.run(_sh_blocked_write())
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh._LOGGER.removeHandler(_sh_log)
+    _sh._LOGGER.setLevel(_sh_level)
 _sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
@@ -87309,6 +89046,44 @@ for _ms_name, _ms_over, _ms_want in (
     R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
 
 
+# The supply restore that lands switches the pump on and ends the step tick's
+# held write: the tick in that same step writes nothing, where the held write
+# alone (the null control) retries the action's OFF over the restore.
+class _SrCoord:
+    pass
+
+
+async def _sr_tick(restore):
+    from heatpump_optimizer import off_restore as _sr_or
+    inp = _sa_pa.ArbiterInputs(**{**vars(_sh_inputs(3, state="on")()), "mode": "economy", "plan": None,
+                                  "action": {"heat_pump_on": False}})
+    coord, held = _SrCoord(), _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    entry = _DfEntry(data=dict(inp.config), entry_id=f"sr{next(_DF_IDS)}")
+    entry.runtime_data = coord
+    _sa_pa._STATES[coord] = held
+    landed = None
+    if restore:
+        await _sr_or.async_arm(inp.hass, entry, inp.config, _sa_pa.SUPPLY)
+        landed = await _sr_or.async_restore(inp.hass, entry, inp.config, "mode_off")
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return landed, wrote, held.supply_held, [c[:2] for c in inp.hass.services.calls]
+
+
+_sr_got = {"restored": _asyncio.run(_sr_tick(True)), "null, held only": _asyncio.run(_sr_tick(False))}
+R.check(
+    "the supply restore that lands ends the step tick's held write: the same step's "
+    "tick writes nothing over it (null control: the held write alone retries OFF)",
+    _sr_got == {"restored": (1, [], False, [("switch", "turn_on")]),
+                "null, held only": (None, [False], True, [])},
+    f"{_sr_got}",
+)
+
+
 # An install with no power switch: the gate reads no switch. Upstream's
 # ``StateMachine.get`` lowers a missed entity id, so ``get(None)`` raises
 # (tests/ha_contract.py, "StateMachine.get(None) raises"); FakeStates returns
@@ -87344,6 +89119,241 @@ except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
     _sh_ns = repr(_sh_err)
 R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
         _sh_ns == ([], False), f"{_sh_ns}")
+
+# Cooling is the user's season (``pump_arbiter.cooling_mode``). While the
+# pump's mode reads Cooling or Cooling + DHW, the cycle's supply gate writes
+# the power switch in neither direction, a live space boost included. It
+# raises ``ISSUE_COOLING`` once per episode, cleared when the mode leaves
+# cooling. Driven as the cycle drives it: ``cycle_supply`` with the
+# coordinator's own boost record, then ``_write_supply``.
+from heatpump_optimizer import pump_arbiter as _cg_pa  # noqa: E402
+from heatpump_optimizer import boost as _cg_boost  # noqa: E402
+from heatpump_optimizer import early_cutoff as _cg_ec  # noqa: E402
+from heatpump_optimizer import issues as _cg_issues  # noqa: E402
+from homeassistant.util import dt as _cg_dt  # noqa: E402
+
+_CG_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+
+
+def _cg_coord(mode_state, *, switch="off", power=0.0):
+    hass = FakeHass({
+        "switch.hp": FakeState(switch, last_updated=_CG_T0 - timedelta(hours=1)),
+        "select.hp_mode": FakeState(mode_state, last_updated=_CG_T0 - timedelta(hours=1)),
+    })
+    coord = Coord(hass, FakeEntry(data={
+        **_LC_DATA, "heat_pump_switch_entity": "switch.hp",
+        "heat_pump_mode_entity": "select.hp_mode", "pump_duty_mode": "observe",
+    }))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_CG_T0 + timedelta(minutes=15 * i) for i in range(4)],
+        power_schedule=[power] * 4, dhw_power_schedule=[0.0] * 4, optimal_setpoints=[21.0] * 4)
+    return hass, coord
+
+
+async def _cg_cycle(coord, *, boosted=True, minute=0):
+    """One cycle's supply write; the switch calls and the ON the plan or boost asked."""
+    now = _CG_T0 + timedelta(minutes=minute)
+    if boosted:
+        _cg_boost.held_for(coord).until[_cg_boost.CHANNEL_SPACE] = _CG_T0 + timedelta(hours=1)
+    _cg_dt.freeze(now)
+    try:
+        on = _cg_pa.cycle_supply(coord.arbiter_inputs(), _cg_boost.held_for(coord), False, now)
+        await coord._write_supply(on)
+    finally:
+        _cg_dt.freeze(None)
+    return on, [c for c in coord.hass.services.calls if c[0] == "switch"]
+
+
+def _cg_boost_run(mode_state, **kw):
+    hass, coord = _cg_coord(mode_state, **kw)
+    return _asyncio.run(_cg_cycle(coord))
+
+
+for _cg_name, _cg_mode, _cg_want_calls in (
+    ("a space boost with the mode reading Cooling writes no switch-on", "Cooling", 0),
+    ("a space boost with the mode reading Cooling + DHW writes no switch-on", "Cooling + DHW", 0),
+    ("null control: the same boost with the mode reading Heating switches the pump on", "Heating", 1),
+    ("null control: the same boost with the mode reading Heating + DHW switches the pump on", "Heating + DHW", 1),
+):
+    _cg_on, _cg_calls = _cg_boost_run(_cg_mode)
+    R.check(f"cooling hands-off: {_cg_name}",
+            _cg_on is True and len(_cg_calls) == _cg_want_calls
+            and all(c[1] == "turn_on" for c in _cg_calls), f"{_cg_on} {_cg_calls}")
+
+
+# A plan ON (no boost) is held off the switch the same way, and an OFF
+# (a pump the user left running in Cooling) is not written either.
+def _cg_plan_run(mode_state, power, switch):
+    hass, coord = _cg_coord(mode_state, switch=switch, power=power)
+    return _asyncio.run(_cg_cycle(coord, boosted=False))
+
+
+for _cg_name, _cg_args, _cg_want in (
+    ("a plan ON with the mode reading Cooling writes nothing", ("Cooling", 1.5, "off"), (True, [])),
+    ("a plan OFF with the pump running in Cooling writes nothing", ("Cooling", 0.0, "on"), (False, [])),
+    ("null control: a plan OFF with the pump running in Heating switches it off", ("Heating", 0.0, "on"), (False, [("switch", "turn_off")])),
+):
+    _cg_got = _cg_plan_run(*_cg_args)
+    _cg_got = (_cg_got[0], [c[:2] for c in _cg_got[1]])
+    R.check(f"cooling hands-off: {_cg_name}", _cg_got == _cg_want, f"{_cg_got}")
+
+
+# The cycle's reading carries the last good mode across a dropout: with the
+# select unavailable and the cycle's signals reading Cooling, a boost still
+# writes no switch-on (``cooling_mode``'s second arm).
+async def _cg_dropout(cooling):
+    hass, coord = _cg_coord("unavailable")
+    cap = importlib.import_module(_cg_pa.__package__ + ".pump_mode").MODES["cool" if cooling else "heat"]
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "mode": cap})
+    return await _cg_cycle(coord)
+
+
+for _cg_name, _cg_cool, _cg_n in (
+    ("the cycle's last good Cooling holds a boost's switch-on through a dropout", True, 0),
+    ("null control: the cycle's last good Heating lets it through", False, 1),
+):
+    _cg_on, _cg_calls = _asyncio.run(_cg_dropout(_cg_cool))
+    R.check(f"cooling hands-off: {_cg_name}", len(_cg_calls) == _cg_n, f"{_cg_on} {_cg_calls}")
+
+
+async def _cg_read(coord, minute):
+    _cg_dt.freeze(_CG_T0 + timedelta(minutes=minute))
+    try:
+        await coord._update_current_state()
+    finally:
+        _cg_dt.freeze(None)
+
+
+# The repair: raised once for the episode however many writes ask for heat,
+# cleared when the mode leaves cooling, and raised again in the next episode.
+async def _cg_episode():
+    hass, coord = _cg_coord("Cooling")
+    made = []
+    real = _cg_issues.create_issue
+    _cg_issues.create_issue = lambda h, d, i, **k: (made.append(i), real(h, d, i, **k))[1]
+    try:
+        seen = []
+        for minute in (0, 1):
+            await _cg_cycle(coord, minute=minute)
+        seen.append(([i[1] for i in getattr(hass, "issues", [])], list(made)))
+        coord._mode = "off"  # the clear does not wait for a supply write
+        await _cg_read(coord, 3)  # the cycle's own signal read, no heat asked
+        seen.append([i[1] for i in getattr(hass, "issues", [])])
+        hass.states.set("select.hp_mode", FakeState("Heating", last_updated=_CG_T0))
+        await _cg_read(coord, 4)
+        seen.append([i[1] for i in getattr(hass, "issues", [])])
+        coord._mode = "auto"
+        hass.states.set("select.hp_mode", FakeState("Cooling + DHW", last_updated=_CG_T0))
+        await _cg_cycle(coord, minute=2)
+        seen.append((([i[1] for i in getattr(hass, "issues", [])]), len(made)))
+        return seen
+    finally:
+        _cg_issues.create_issue = real
+
+
+try:
+    _cg_ep = _asyncio.run(_cg_episode())
+except Exception as _cg_err:  # noqa: BLE001 -- each check reports what raised
+    _cg_ep = [repr(_cg_err)] * 4
+_CG_ID = "pump_mode_cooling"
+R.check("cooling repair: raised once for two boosted writes in one Cooling episode",
+        _cg_ep[0] == ([_CG_ID], [_CG_ID]), f"{_cg_ep[0]}")
+R.check("cooling repair: a cycle that asks for no heat keeps it while the mode reads Cooling",
+        _cg_ep[1] == [_CG_ID], f"{_cg_ep[1]}")
+R.check("cooling repair: cleared when the mode leaves cooling", _cg_ep[2] == [], f"{_cg_ep[2]}")
+R.check("cooling repair: raised again in the next episode (Cooling + DHW)",
+        _cg_ep[3] == ([_CG_ID], 2), f"{_cg_ep[3]}")
+
+
+# Null control for the repair: a heating mode asked for heat raises nothing.
+async def _cg_no_episode():
+    hass, coord = _cg_coord("Heating")
+    await _cg_cycle(coord)
+    return [i[1] for i in getattr(hass, "issues", [])]
+
+
+R.check("cooling repair: null control: a boost in Heating raises no cooling repair",
+        _CG_ID not in _asyncio.run(_cg_no_episode()), "")
+
+
+# Nor does a write that asks for no heat: a plan OFF in Cooling.
+async def _cg_off_in_cooling():
+    hass, coord = _cg_coord("Cooling", switch="on")
+    await _cg_cycle(coord, boosted=False)
+    return [i[1] for i in getattr(hass, "issues", [])]
+
+
+_cg_off_issues = _asyncio.run(_cg_off_in_cooling())
+R.check("cooling repair: a plan OFF in Cooling asks for no heat and raises no cooling repair",
+        _CG_ID not in _cg_off_issues, f"{_cg_off_issues}")
+
+
+# The early cut-off writes the same switch (OFF) through ``switch_supply``:
+# a cooling mode exempts its step, as the gate leaves the switch alone.
+def _cg_cutoff(mode_state):
+    hass, coord = _cg_coord(mode_state, switch="on", power=1.5)
+    coord._current_action = {"heat_pump_on": True}
+    return _cg_ec._exempt(coord.arbiter_inputs(), _cg_boost.held_for(coord), _CG_T0)
+
+
+for _cg_mode, _cg_want in (("Cooling", "cooling"), ("Cooling + DHW", "cooling"), ("Heating", None)):
+    _cg_got = _cg_cutoff(_cg_mode)
+    R.check(f"early cut-off: a space step with the mode reading {_cg_mode} -> {_cg_want}",
+            _cg_got == _cg_want, f"{_cg_got}")
+
+
+# The live select, where it reads a known mode, outranks the cycle's reading:
+# a select reading Heating over a stale Cooling reading lets a boost through.
+async def _cg_stale(live, cooling):
+    hass, coord = _cg_coord(live)
+    cap = importlib.import_module(_cg_pa.__package__ + ".pump_mode").MODES["cool" if cooling else "heat"]
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "mode": cap})
+    _on, calls = await _cg_cycle(coord)
+    return [c[1] for c in calls], [i[1] for i in getattr(hass, "issues", [])]
+
+
+for _cg_name, _cg_args, _cg_want in (
+    ("a select reading Heating over a stale Cooling reading switches a boost on", ("Heating", True), ["turn_on"]),
+    ("null control: select Heating, reading Heating switches it on", ("Heating", False), ["turn_on"]),
+    ("null control: select Cooling over a stale Heating reading writes nothing", ("Cooling", False), []),
+):
+    _cg_calls, _cg_iss = _asyncio.run(_cg_stale(*_cg_args))
+    R.check(f"cooling hands-off: {_cg_name}",
+            _cg_calls == _cg_want and (_CG_ID in _cg_iss) is (not _cg_want), f"{_cg_calls} {_cg_iss}")
+
+
+# The refusal's release: a plan ON the cycle could not write in Cooling lands
+# at the step tick once the select leaves cooling, not at the next cycle.
+async def _cg_release(leave):
+    hass, coord = _cg_coord("Cooling", power=1.5)
+    held = _cg_pa.state_for(coord)
+    held.supply_unsub = lambda: None  # the tick is driven by hand below
+    on, _calls = await _cg_cycle(coord, boosted=False)
+    _cg_pa.note_supply(held, _cg_pa.SupplyWiring(coord.arbiter_inputs, _cg_boost.held_for(coord), coord._write_supply), on, _CG_T0)
+    if leave:
+        hass.states.set("select.hp_mode", FakeState("Heating", last_updated=_CG_T0 + timedelta(minutes=1)))
+    seen = []
+    for minute in (2, 15):
+        _cg_dt.freeze(_CG_T0 + timedelta(minutes=minute))
+        try:
+            await _cg_pa.supply_tick(held, _cg_pa.SupplyWiring(coord.arbiter_inputs, _cg_boost.held_for(coord), coord._write_supply))
+        finally:
+            _cg_dt.freeze(None)
+        seen.append([c[1] for c in hass.services.calls if c[0] == "switch"])
+    return seen, [i[1] for i in getattr(hass, "issues", [])]
+
+
+for _cg_name, _cg_leave, _cg_want in (
+    ("the select set to Heating: the refused ON lands at the next tick and the notice clears", True, ([["turn_on"], ["turn_on"]], [])),
+    ("null control: the select still Cooling: no tick writes the switch", False, ([[], []], [_CG_ID])),
+):
+    try:
+        _cg_got = _asyncio.run(_cg_release(_cg_leave))
+    except Exception as _cg_err:  # noqa: BLE001 -- the check reports what raised
+        _cg_got = repr(_cg_err)
+    R.check(f"cooling release: {_cg_name}", _cg_got == _cg_want, f"{_cg_got}")
+
 
 
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
@@ -93038,7 +95048,8 @@ R.check(
 )
 
 
-def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5.5, cyc=0.3):
+def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5.5, cyc=0.3,
+             unlatched=(False, False)):
     params = _DspTP()
     params.mixing_valve_mode = "none"
     params.buffer_tank_volume = 750.0
@@ -93047,6 +95058,7 @@ def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5
     cfg = _DspCfg(clamp_planned_levels=clamp, cycling_cost=cyc)
     if pair is not None:
         cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = pair, off
+        cfg.duty_switch_unlatched = unlatched
     return _DspOpt(_DspTM(params), cfg)
 
 
@@ -93438,10 +95450,11 @@ R.check(
 )
 
 
-def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, out_mean=2.0, **install):
+def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, out_mean=2.0,
+               unlatched=(False, False), **install):
     """One full ``optimize``; the planner builds, the published simulation's
     inputs and the objective closures are recorded beside the result."""
-    opt = _dsp_opt(pair, off, **install)
+    opt = _dsp_opt(pair, off, unlatched=unlatched, **install)
     seen = _DspNS(
         builds=[], sims=[], objectives=[], solves=[], solved=[], min_runs=[],
         energy=[None], vectors=[0], vectors_outside=[0], solving=[0], stages=[], opt=opt,
@@ -94539,7 +96552,8 @@ R.check(
     f"{_dsp_rt_back.directions}",
 )
 
-# The read: both pairs in the leaf's order, zeros unless the stored latch is on.
+# The read: both pairs in the leaf's order; an off time only once the stored
+# latch is on, a stop probability shrunk by PRIOR_N before it (R11-OUTSIDE-3849).
 _dsp_table = _dsp_ds.DutySwitchLearner()
 for _dsp_i in range(6):
     _dsp_stop(_dsp_table, _DSP_DAY + timedelta(hours=7 * _dsp_i), 501)
@@ -94557,9 +96571,17 @@ _DSP_LEARNERS = {
     "an install whose every switch was kept": _dsp_ds.DutySwitchLearner(
         {"dhw_space": _dsp_dir(0.0, 10.0, usable=False), "space_dhw": _dsp_dir(0.0, 10.0, usable=False)}),
 }
+_DSP_NULL_LEARNERS = ("an empty learner", "an install whose every switch was kept")
+_DSP_UNDER = _DSP_LEARNERS["a learner under its on-threshold, off times stored"]
 R.check(
-    "the read returns zeros while a direction is unlatched, its off times with it",
-    all(l.planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for l in _DSP_LEARNERS.values()),
+    "the read returns no off time while a direction is unlatched, and its stop "
+    "probability shrunk to k / (n + PRIOR_N): zeros with no evidence and with "
+    "every switch kept, 4 / 9 for four stops under the on-threshold; every "
+    "direction of the three reads unlatched",
+    all(_DSP_LEARNERS[n].planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for n in _DSP_NULL_LEARNERS)
+    and _DSP_UNDER.planner_pairs() == ((4.0 / (4.0 + _dsp_ds.PRIOR_N), 0.0), (0.0, 0.0))
+    and _dsp_ds.PRIOR_N == 5.0
+    and all(l.unlatched() == (True, True) for l in _DSP_LEARNERS.values()),
     f"{ {n: l.planner_pairs() for n, l in _DSP_LEARNERS.items()} }",
 )
 _dsp_two = _dsp_ds.DutySwitchLearner({
@@ -94576,8 +96598,9 @@ R.check(
 # 4, the learner arm: each null state's read, handed to a full optimize.
 _dsp_arm_bad = []
 for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
-    for _dsp_label, _dsp_l in _DSP_LEARNERS.items():
-        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), **_dsp_kw)
+    for _dsp_label in _DSP_NULL_LEARNERS:
+        _dsp_l = _DSP_LEARNERS[_dsp_label]
+        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), unlatched=_dsp_l.unlatched(), **_dsp_kw)
         if (
             not _dsp_same_plan(_dsp_null, _dsp_base[_dsp_name])
             or _dsp_null.bans or _dsp_null.opt._space_avail is not None
@@ -94585,9 +96608,9 @@ for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
         ):
             _dsp_arm_bad.append((_dsp_name, _dsp_label))
 R.check(
-    "null controls from learner state: an empty learner, one under its "
-    "on-threshold and an install whose every switch was kept each read a plan "
-    "identical to today's on all three install classes",
+    "null controls from learner state: an empty learner and an install whose "
+    "every switch was kept each read a plan identical to today's on all three "
+    "install classes (one under its on-threshold is priced since R11-OUTSIDE-3849)",
     not _dsp_arm_bad,
     f"{_dsp_arm_bad}",
 )
@@ -94598,6 +96621,146 @@ R.check(
         for n, kw in _DSP_INSTALLS.items()),
 )
 
+
+# R11-OUTSIDE-3849 (issue 3849, Bankaifan): the hot water to heating stop was
+# priced at zero until the learner latched (n >= N_ON over two days). An
+# install whose switch stopped the compressor three times in three was planned
+# as if it never did. Before the latch the planner now prices k / (n + PRIOR_N)
+# (``Direction.priced``); the arbiter's leg order and merge still move on a
+# latch only (``duty_legs.leg_rule``'s unlatched mask), so the plan prices the
+# legs the arbiter serves whatever the latch.
+def _dsp_3849(usable=False, k=2.0, kept_w=0.0, off_s=(501.0, 492.0, 530.0)):
+    """The issue's record: hot water to heating stopped 3, kept 0, n = 2."""
+    d = _dsp_dir(k, kept_w, usable=usable, off_s=off_s)
+    d.stopped = 3
+    return _dsp_ds.DutySwitchLearner({"dhw_space": d, "space_dhw": _dsp_ds.Direction()})
+
+
+_dsp_i49, _dsp_i49_on = _dsp_3849(), _dsp_3849(usable=True)
+R.check(
+    "issue 3849's record (three stops in three switches, n = 2, unlatched) prices "
+    "hot water to heating at 2 / (2 + PRIOR_N) and reads no off time; control: "
+    "the same record latched prices p = 1 and its median off time",
+    _dsp_i49.planner_pairs() == ((2.0 / (2.0 + _dsp_ds.PRIOR_N), 0.0), (0.0, 0.0))
+    and _dsp_i49.unlatched() == (True, True)
+    and _dsp_i49_on.planner_pairs() == ((1.0, 0.0), (501.0, 0.0))
+    and _dsp_i49_on.unlatched() == (False, True),
+    f"unlatched {_dsp_i49.planner_pairs()} latched {_dsp_i49_on.planner_pairs()}",
+)
+_dsp_grid = [(k / 2.0, w / 2.0) for k in range(int(2 * _dsp_ds.N_CAP) + 1)
+             for w in range(int(2 * _dsp_ds.N_CAP) + 1)]
+_dsp_shrunk_bad = [
+    (k, w, d.priced, d.p) for k, w in _dsp_grid
+    for d in [_dsp_dir(k, w, usable=False)]
+    if not (0.0 <= d.priced < 1.0 and (d.priced == 0.0) == (k == 0.0)
+            and (k == 0.0 or d.priced < d.p) and d.priced == k / (k + w + _dsp_ds.PRIOR_N))
+]
+_dsp_cap = _dsp_dir(_dsp_ds.N_CAP, 0.0, usable=False)
+R.check(
+    f"the shrunk price over every unlatched record on a half-episode grid to the "
+    f"cap ({len(_dsp_grid)} records): zero exactly where no stop weighs, under p "
+    "wherever one does, never a whole start; at the cap with every switch a stop "
+    "it is N_CAP / (N_CAP + PRIOR_N); latched it is p",
+    len(_dsp_grid) == (2 * int(_dsp_ds.N_CAP) + 1) ** 2 and not _dsp_shrunk_bad
+    and _dsp_cap.priced == _dsp_ds.N_CAP / (_dsp_ds.N_CAP + _dsp_ds.PRIOR_N)
+    and _dsp_dir(3.0, 1.0).priced == 0.75,
+    f"{_dsp_shrunk_bad[:5]} cap {_dsp_cap.priced!r}",
+)
+R.check(
+    "an unlatched direction moves neither the order nor the merge: issue "
+    "3849's read is DEFAULT_RULE, hot water first and never merged; control: "
+    "the same pairs read as latched serve space first",
+    _dsp_i49.split() == _dsp_dl.DEFAULT_RULE
+    and _dsp_dl.leg_rule(*_dsp_i49.planner_pairs()) == ("space", None)
+    and _dsp_i49_on.split() == ("space", None),
+    f"{_dsp_i49.split()} {_dsp_dl.leg_rule(*_dsp_i49.planner_pairs())} {_dsp_i49_on.split()}",
+)
+R.check(
+    "the mask is per direction: hot water to heating latched beside an unlatched, "
+    "priced switch the other way serves space first, as with that switch unpriced; "
+    "control: both latched serve hot water first and merge into heating",
+    _dsp_dl.leg_rule((1.0, 0.4), (501.0, 0.0), (False, True))
+    == _dsp_dl.leg_rule((1.0, 0.0), (501.0, 0.0)) == ("space", None)
+    and _dsp_dl.leg_rule((1.0, 0.4), (501.0, 0.0)) == ("dhw", 501.0 / 60.0)
+    and _dsp_dl.leg_rule((0.4, 1.0), (0.0, 300.0), (True, False)) == ("dhw", None)
+    and _dsp_dl.leg_rule((0.4, 1.0), (0.0, 300.0)) == ("dhw", 0.0),
+)
+# One rule, read twice: every learner state the census enumerates (each
+# direction empty, unlatched with a stop, latched with a stop, latched all kept)
+# gives the configuration the coordinator builds the leg rule the arbiter splits by.
+_dsp_states = {
+    "empty": lambda: _dsp_ds.Direction(),
+    "unlatched": lambda: _dsp_dir(2.0, 0.0, usable=False, off_s=[501.0]),
+    "latched": lambda: _dsp_dir(3.0, 1.0, off_s=[400.0, 620.0]),
+    "latched kept": lambda: _dsp_dir(0.0, 6.0),
+}
+_dsp_rule_pairs = [
+    (a, b, _dsp_ds.DutySwitchLearner({"dhw_space": _dsp_states[a](), "space_dhw": _dsp_states[b]()}))
+    for a in _dsp_states for b in _dsp_states
+]
+_dsp_rule_bad = [
+    (a, b) for a, b, l in _dsp_rule_pairs
+    if _dsp_om._leg_rule(_dsp_opt(*l.planner_pairs(), unlatched=l.unlatched())) != l.split()
+]
+_dsp_rule_nomask = [
+    (a, b) for a, b, l in _dsp_rule_pairs
+    if _dsp_om._leg_rule(_dsp_opt(*l.planner_pairs())) != l.split()
+]
+R.check(
+    f"the planner's leg rule is the arbiter's on all {len(_dsp_rule_pairs)} learner "
+    "states the census enumerates (four per direction); control: a configuration "
+    "without the mask disagrees exactly where an unlatched stop would move the "
+    "rule: hot water to heating unlatched beside anything, and heating to hot "
+    "water unlatched beside a latched stop the other way",
+    len(_dsp_rule_pairs) == len(_dsp_states) ** 2 and not _dsp_rule_bad
+    and sorted(_dsp_rule_nomask)
+    == sorted([("unlatched", b) for b in _dsp_states] + [("latched", "unlatched")]),
+    f"bad {_dsp_rule_bad} nomask {_dsp_rule_nomask}",
+)
+# A design choice, not an accident of the default. A configuration that never
+# sets the mask (a harness handed a pair, the R10 fixtures above) reads its
+# pair as latched. Every pair it prices then moves the legs as before.
+_dsp_nomask_cfg = _DspCfg()
+_dsp_nomask_cfg.duty_switch_stop_probability = (1.0, 0.0)
+R.check(
+    "a configuration that never sets the mask reads its pair as latched: hot "
+    "water to heating alone stopping serves space first",
+    _dsp_om._leg_rule(_DspOpt(_DspTM(_DspTP()), _dsp_nomask_cfg)) == ("space", None),
+)
+_dsp_i49_rec = _dsp_ds._Record(None, None, learner=_dsp_i49, loaded=True)
+_dsp_i49_start = datetime(2026, 11, 21, 12, 30, tzinfo=UTC)
+_dsp_i49_legs = [
+    _dsp_ds.both_step_duty(_dsp_i49_rec, _dsp_i49_start, _dsp_i49_start + timedelta(minutes=m),
+                           2.0, 2.0, 15.0, "space")
+    for m in (0, 7, 8, 14)
+]
+R.check(
+    "the arbiter serves issue 3849's both step as before the learner existed: "
+    "hot water for its share, then heating",
+    _dsp_i49_legs == ["dhw", "dhw", "space", "space"]
+    and _dsp_i49_rec.order[1] == _dsp_dl.both_step_legs(2.0, 2.0, 15.0),
+    f"{_dsp_i49_legs}",
+)
+_dsp_i49_solved = {
+    name: _dsp_solve(*_dsp_i49.planner_pairs(), unlatched=_dsp_i49.unlatched(), **kw)
+    for name, kw in _DSP_INSTALLS.items()
+}
+_dsp_i49_moved = [n for n, seen in _dsp_i49_solved.items() if not _dsp_same_plan(seen, _dsp_base[n])]
+_dsp_i49_w = {
+    n: (_dsp_dl.switch_weight(_dsp_base[n].space, _dsp_base[n].dhw, (1.0, 0.0), 5.5),
+        _dsp_dl.switch_weight(seen.space, seen.dhw, (1.0, 0.0), 5.5))
+    for n, seen in _dsp_i49_solved.items()
+}
+R.check(
+    "issue 3849's read reaches a full optimize: the switch is an operand of the "
+    "objective, the solve's leg rule is DEFAULT_RULE, and it moves the plan on "
+    "every install class (null control: the empty learner's read moves none, above)",
+    all(_dsp_om._switch_cost_fn(seen.opt)(seen.space, seen.dhw) is not None
+        and _dsp_om._leg_rule(seen.opt) == _dsp_dl.DEFAULT_RULE
+        for seen in _dsp_i49_solved.values())
+    and sorted(_dsp_i49_moved) == sorted(_DSP_INSTALLS),
+    f"moved {_dsp_i49_moved}; hot water to heating weight base -> priced {_dsp_i49_w}",
+)
 
 # R11-OUTSIDE-HONEST-STARTS-RUNS, the descents of a solve that prices a stop.
 # The relaxed descent weighs a switch at the combined draw and the true
@@ -97764,6 +99927,474 @@ R.check(
 )
 
 
+
+# -- R11-SEAM-cycle-solve: when a solve runs (solve_gate) ------------------------
+import asyncio as _sg_aio  # noqa: E402
+import subprocess as _sg_sp  # noqa: E402
+from heatpump_optimizer import coordinator as _sg_cm  # noqa: E402
+from heatpump_optimizer import whatif as _sg_whatif  # noqa: E402
+
+_sg_g = solve_gate.SolveGate()
+_sg_idle = solve_gate.absorb_request(_sg_g, False)
+_sg_idle_flags = (_sg_g.rerun, _sg_g.trailing)
+_sg_refreshing = solve_gate.absorb_request(_sg_g, True)
+_sg_first, _sg_second = solve_gate.begin_solve(_sg_g), solve_gate.begin_solve(_sg_g)
+_sg_ends = (solve_gate.end_solve(_sg_g), solve_gate.end_solve(_sg_g))
+_sg_trails = (solve_gate.take_trailing(_sg_g), solve_gate.take_trailing(_sg_g))
+R.check(
+    "solve_gate: an idle request is not absorbed and sets nothing; one during a refresh "
+    "trails it once; a second solve start is refused and recorded as one re-run, taken once",
+    _sg_idle is False and _sg_idle_flags == (False, False) and _sg_refreshing is True
+    and (_sg_first, _sg_second) == (True, False) and _sg_ends == (True, False)
+    and _sg_trails == (True, False) and not _sg_g.solving,
+    f"idle={_sg_idle} {_sg_idle_flags} refreshing={_sg_refreshing} starts={(_sg_first, _sg_second)} "
+    f"ends={_sg_ends} trails={_sg_trails}",
+)
+_sg_b = solve_gate.SolveGate()
+solve_gate.begin_solve(_sg_b)
+_sg_bg = [solve_gate.admit_background(_sg_b), solve_gate.admit_background(_sg_b)]
+solve_gate.end_solve(_sg_b)
+solve_gate.begin_solve(_sg_b)
+_sg_bg.append(solve_gate.admit_background(_sg_b))
+R.check(
+    "D9-s1-02: one background what-if per main solve -- the second is denied, and the next "
+    "solve opens a fresh budget",
+    _sg_bg == [True, False, True],
+    f"admissions {_sg_bg}",
+)
+
+
+async def _sg_slot_burst(k):
+    """K user asks overlapping the first one's solve: which solve, which are held."""
+    gate, solved, release = solve_gate.SolveGate(), [], _sg_aio.Event()
+
+    async def ask(i):
+        async with solve_gate.user_slot(gate) as ok:
+            if not ok:
+                return "held"
+            solved.append(i)
+            if i == 0:
+                await release.wait()
+            return "solved"
+
+    tasks = [_sg_aio.create_task(ask(i)) for i in range(k)]
+    for _ in range(3):
+        await _sg_aio.sleep(0)
+
+    async def background_entry():
+        async with solve_gate.user_slot(gate, False) as admitted:  # never waits on the user slot
+            return admitted
+
+    # Bounded and never cancelled: a background caller that waits on the user
+    # slot would wait on the ask this rig releases only after it, and deadlock.
+    entry = _sg_aio.ensure_future(background_entry())
+    done, _ = await _sg_aio.wait({entry}, timeout=_SG_BACKGROUND_S)
+    release.set()
+    answers = await _sg_aio.gather(*tasks)
+    late = await entry
+    return solved, answers, late if done else "waited", gate.user_running
+
+
+_SG_BACKGROUND_S = 5.0  # a background entry returns without awaiting anything
+
+
+_sg_burst4 = _sg_aio.run(_sg_slot_burst(4))
+_sg_burst1 = _sg_aio.run(_sg_slot_burst(1))
+R.check(
+    "D9-s1-03: of four overlapping user what-ifs only the one in flight and the newest solve; "
+    "the two overtaken are held, a background caller never waits, and the slot is freed; "
+    "null control, one ask solves",
+    _sg_burst4 == ([0, 3], ["solved", "held", "held", "solved"], True, False)
+    and _sg_burst1 == ([0], ["solved"], True, False),
+    f"four {_sg_burst4}, one {_sg_burst1}",
+)
+
+
+class _SgOpt:
+    def __init__(self, day):
+        self.day = day
+
+    def reference_day(self, _inputs):
+        return self.day
+
+
+_sg_days = _sg_whatif.reference_days((_SgOpt(([20.0], 3.0)), None), (_SgOpt(([19.0], 2.5)), None))
+R.check(
+    "D9-s1-04: the reference days are one shippable function of the two sides, and the "
+    "schedule branch reads them -- a moved setpoint prices the pair, an unmoved one is None",
+    _sg_days == (([20.0], 3.0), ([19.0], 2.5))
+    and _sg_whatif.schedule_days(*_sg_days) == (3.0, 2.5)
+    and _sg_whatif.schedule_days(([20.0], 3.0), ([20.0], 9.0)) is None,
+    f"{_sg_days}",
+)
+
+
+async def _sg_requests():
+    """The coordinator's own request path, against a counted debouncer."""
+    _hass, _entry, coord = _r9f13_make("sg_requests")
+    calls = []
+
+    async def _call():
+        calls.append(1)
+
+    coord._debounced_refresh.async_call = _call
+    gate = solve_gate.gate_for(coord)
+    coord._refresh_task = object()
+    await coord.async_request_refresh()
+    during_refresh = (len(calls), gate.trailing)
+    coord._refresh_task = None
+    gate.solving = True
+    await coord.async_request_refresh()
+    during_solve = (len(calls), gate.rerun)
+    gate.solving = gate.rerun = gate.trailing = False
+    await coord.async_request_refresh()
+    return during_refresh, during_solve, len(calls)
+
+
+_sg_req = _sg_aio.run(_sg_requests())
+R.check(
+    "D1-s1-03: a request during a refresh trails it, one during a solve re-runs it, and only an "
+    "idle one reaches the debouncer -- which drops a call made while it executes",
+    _sg_req == ((0, True), (0, True), 1),
+    f"{_sg_req}",
+)
+
+
+async def _sg_trailing():
+    """A write lands while the refresh fetches: the refresh's end runs one more."""
+    _hass, _entry, coord = _r9f13_make("sg_trailing")
+    loop = _sg_aio.get_running_loop()
+    coord.hass.async_create_task = (
+        lambda coro, name=None, eager_start=True: _sg_aio.Task(coro, loop=loop, eager_start=eager_start))
+    calls, refreshes = [], []
+
+    async def _call():
+        calls.append(1)
+
+    async def _solve():
+        return None
+
+    real_state = coord._update_current_state
+
+    async def _state_with_write():
+        refreshes.append(1)
+        await real_state()
+        if len(refreshes) == 1:
+            await coord.async_request_refresh()  # a user write mid-refresh
+
+    coord._debounced_refresh.async_call = _call
+    coord.async_run_optimization = _solve
+    coord._update_current_state = _state_with_write
+    await coord.async_refresh()
+    for _ in range(5):
+        await _sg_aio.sleep(0)
+    return len(calls), len(refreshes), solve_gate.gate_for(coord).trailing
+
+
+_sg_trail = _sg_aio.run(_sg_trailing())
+R.check(
+    "D1-s1-03: a request landing while a refresh runs is answered by one more refresh once it "
+    "ends, run directly rather than through the debouncer, and the trailing mark is spent",
+    _sg_trail == (0, 2, False),
+    f"debouncer calls, refreshes, trailing: {_sg_trail}",
+)
+
+
+class _SgUpstreamDebouncer:
+    """``homeassistant.helpers.debounce.Debouncer``'s call path as of 2025.2.0
+    (cooldown, ``immediate=True``), the part the stub's inline one lacks.
+
+    ``async_call`` holds ``_execute_lock`` while it awaits the job, which
+    ``hass.async_run_hass_job`` runs as a separate eagerly started task, and
+    arms the cooldown only after that task ends. A call meeting the held lock
+    with no timer armed is dropped ("any call is good, so abort"); one inside
+    the cooldown runs at its end. The stub awaits the job inline and arms the
+    timer before any spawned task runs, so it cannot show the drop.
+
+    Each eager task names the running loop, as upstream's ``create_eager_task``
+    passes ``hass.loop``: Python 3.13's ``Task`` given no loop fails its eager
+    start, and the coverage job runs this script on 3.13.
+    """
+
+    def __init__(self, function, cooldown):
+        self.function, self.cooldown = function, cooldown
+        self._execute_lock = _sg_aio.Lock()
+        self._timer_task = None
+        self._execute_at_end_of_timer = False
+        self._shutdown_requested = False
+
+    def _async_schedule_or_call_now(self):
+        if self._shutdown_requested:
+            return False
+        if self._timer_task:
+            self._execute_at_end_of_timer = True
+            return False
+        if self._execute_lock.locked():
+            return False
+        return True
+
+    async def _run_job(self):
+        try:
+            await _sg_aio.Task(self.function(), loop=_sg_aio.get_running_loop(), eager_start=True)
+        finally:
+            self._schedule_timer()
+
+    async def async_call(self):
+        if not self._async_schedule_or_call_now():
+            return
+        async with self._execute_lock:
+            if self._timer_task:
+                return
+            await self._run_job()
+
+    async def _handle_timer_finish(self):
+        self._timer_task = None
+        if not self._execute_at_end_of_timer:
+            return
+        self._execute_at_end_of_timer = False
+        if self._execute_lock.locked():
+            return
+        async with self._execute_lock:
+            if self._timer_task:
+                return
+            await self._run_job()
+
+    def _on_debounce(self):
+        self._timer_task = None
+        _sg_aio.Task(self._handle_timer_finish(), loop=_sg_aio.get_running_loop(), eager_start=True)
+
+    def _schedule_timer(self):
+        if not self._shutdown_requested:
+            self._timer_task = _sg_aio.get_running_loop().call_later(self.cooldown, self._on_debounce)
+
+    def async_cancel(self):
+        if self._timer_task:
+            self._timer_task.cancel()
+            self._timer_task = None
+        self._execute_at_end_of_timer = False
+
+    def async_shutdown(self):
+        self._shutdown_requested = True
+        self.async_cancel()
+
+
+async def _sg_upstream_trailing(origin, write=True):
+    """Refreshes run when a write lands mid-refresh, under upstream's debouncer and
+    eager ``async_create_task``; every state read suspends, as a real one does.
+    Returns the count and the refreshes' nesting, ``(`` at each ``async_refresh``
+    entry and ``)`` at its return: a trailing refresh started inside the one
+    that owed it publishes before it, and the older data lands last."""
+    _hass, _entry, coord = _r9f13_make(f"sg_up_{origin}_{write}")
+    loop = _sg_aio.get_running_loop()
+    coord.hass.async_create_task = (
+        lambda coro, name=None, eager_start=True: _sg_aio.Task(coro, loop=loop, eager_start=eager_start))
+    real_refresh, nesting = coord.async_refresh, []
+
+    async def _refresh_traced():
+        nesting.append("(")
+        try:
+            await real_refresh()
+        finally:
+            nesting.append(")")
+
+    coord.async_refresh = _refresh_traced
+    coord._debounced_refresh = _SgUpstreamDebouncer(coord.async_refresh, cooldown=0.05)
+    refreshes = []
+
+    async def _solve():
+        return None
+
+    real_state = coord._update_current_state
+
+    async def _state_suspending():
+        refreshes.append(1)
+        await _sg_aio.sleep(0)
+        await real_state()
+        if write and len(refreshes) == 1:
+            await coord.async_request_refresh()  # a user write mid-refresh, not solving
+
+    coord.async_run_optimization = _solve
+    coord._update_current_state = _state_suspending
+    if origin == "debounced":
+        await coord.async_request_refresh()
+    else:
+        await coord.async_refresh()
+    for _ in range(15):
+        await _sg_aio.sleep(0.02)
+    return len(refreshes), "".join(nesting)
+
+
+_sg_up = {
+    (origin, write): _sg_aio.run(_sg_upstream_trailing(origin, write))
+    for origin in ("debounced", "direct") for write in (True, False)
+}
+R.check(
+    "D1-s1-03: under upstream's debouncer, a write landing while a debounced refresh runs is "
+    "answered by one more refresh once it has returned, never nested inside it, as one during "
+    "a direct refresh is; null control: with no write each origin runs exactly one",
+    _sg_up == {("debounced", True): (2, "()()"), ("direct", True): (2, "()()"),
+               ("debounced", False): (1, "()"), ("direct", False): (1, "()")},
+    f"refreshes by (origin, write): {_sg_up}",
+)
+
+
+async def _sg_diagnose():
+    """A diagnose publishes the insight view and asks for no cycle."""
+    _hass, _entry, coord = _r9f13_make("sg_diagnose")
+    coord.data = {"insight": "stale", "sensor_advisor": ["kept"]}
+    requests = []
+
+    async def _req():
+        requests.append(1)
+
+    async def _proc(_hass, _fn, *_args):
+        return None
+
+    coord.async_request_refresh = _req
+    real_proc, real_payload = _sg_cm._await_process, _sg_cm._diagnose_payload
+    _sg_cm._await_process, _sg_cm._diagnose_payload = _proc, lambda _c: ()
+    try:
+        await coord.async_diagnose_interval()
+    finally:
+        _sg_cm._await_process, _sg_cm._diagnose_payload = real_proc, real_payload
+    return len(requests), isinstance(coord.data["insight"], dict), coord.data["sensor_advisor"]
+
+
+_sg_diag = _sg_aio.run(_sg_diagnose())
+R.check(
+    "D9-s1-01: a diagnose press republishes the insight view with the advisor ranking kept, "
+    "and requests no refresh -- so no solve",
+    _sg_diag == (0, True, ["kept"]),
+    f"{_sg_diag}",
+)
+
+
+class _SgDeaf:
+    """A child the kill does not end: every wait times out."""
+
+    def __init__(self):
+        self.killed, self.waits = 0, []
+
+    def kill(self):
+        self.killed += 1
+
+    def wait(self, timeout=None):
+        self.waits.append(timeout)
+        if timeout is None:
+            raise AssertionError("an unbounded wait on a kill-deaf child")
+        raise _sg_sp.TimeoutExpired("worker", timeout)
+
+
+_sg_deaf = _SgDeaf()
+_sg_cm._reap_killed(_sg_deaf)
+R.check(
+    "D1-s3-04: the fault arms' reap of a kill-deaf worker is bounded by the shutdown "
+    "timeout and does not raise",
+    _sg_deaf.killed == 1 and _sg_deaf.waits == [_sg_cm._SHUTDOWN_LOCK_TIMEOUT_S],
+    f"kills={_sg_deaf.killed} waits={_sg_deaf.waits}",
+)
+
+
+class _SgHass:
+    def __init__(self):
+        self.data, self.executor_jobs = {}, 0
+
+    async def async_add_executor_job(self, *_a):
+        self.executor_jobs += 1
+        return "in-process plan"
+
+
+def _sg_fallback_probe(stopping):
+    hass, notes = _SgHass(), []
+
+    async def _dead(*_a):
+        raise _sg_cm.ProcessWorkerUnavailable("killed by the stop")
+
+    real = (_sg_cm._await_process, _sg_cm._note_worker_fallback)
+    _sg_cm._await_process = _dead
+    _sg_cm._note_worker_fallback = lambda *a: notes.append(a)
+    if stopping:
+        hass.data[solve_gate.WORKER_STOPPING] = True
+    try:
+        out = _sg_aio.run(_sg_cm._await_optimize(hass, None, None))
+    except _sg_cm.ProcessWorkerUnavailable:
+        out = "raised"
+    finally:
+        _sg_cm._await_process, _sg_cm._note_worker_fallback = real
+    return out, len(notes), hass.executor_jobs
+
+
+_sg_stop = _sg_fallback_probe(True)
+_sg_run = _sg_fallback_probe(False)
+R.check(
+    "D1-s1-01: a worker the stop killed raises no fallback notice and runs no in-process "
+    "solve; null control, the same death while running falls back with its notice",
+    _sg_stop == ("raised", 0, 0) and _sg_run == ("in-process plan", 1, 1),
+    f"stopping {_sg_stop}, running {_sg_run}",
+)
+
+
+def _sg_clear_probe(latched):
+    deleted = []
+    real_delete, causes = _sg_cm.ir.async_delete_issue, dict(_sg_cm._WORKER_FALLBACK_CAUSES)
+    _sg_cm.ir.async_delete_issue = lambda _h, _d, issue: deleted.append(issue)
+    _sg_cm._WORKER_FALLBACK_CAUSES.clear()
+    _sg_cm._WORKER_FALLBACK_CAUSES.update(latched)
+    try:
+        _sg_cm._clear_worker_fallback(_SgHass(), "entry-a")
+    finally:
+        _sg_cm.ir.async_delete_issue = real_delete
+        _sg_cm._WORKER_FALLBACK_CAUSES.clear()
+        _sg_cm._WORKER_FALLBACK_CAUSES.update(causes)
+    return deleted
+
+
+_sg_restored = _sg_clear_probe({})
+_sg_other = _sg_clear_probe({"entry-b": "OSError: x"})
+R.check(
+    "D1-s1-01: a healthy solve clears a fallback notice restored from before a restart, "
+    "with no cause latched in this process; null control, another entry's latched cause keeps it",
+    _sg_restored == ["solve_worker_fallback"] and _sg_other == [],
+    f"restored {_sg_restored}, other entry latched {_sg_other}",
+)
+
+
+async def _sg_stop_midsolve():
+    _hass, _entry, coord = _r9f13_make("sg_stop_midsolve")
+
+    async def _killed(*_a):
+        raise _sg_cm.ProcessWorkerUnavailable("killed by the stop")
+
+    real = _sg_cm._await_optimize
+    _sg_cm._await_optimize = _killed
+    coord.hass.data[solve_gate.WORKER_STOPPING] = True
+    try:
+        reason = await coord.async_run_optimization()
+    finally:
+        _sg_cm._await_optimize = real
+        coord.hass.data.pop(solve_gate.WORKER_STOPPING, None)
+    return reason, coord._solve_failures, solve_gate.gate_for(coord).solving
+
+
+_r9f13_dt.freeze(_R9F13_NOW)
+_sg_midsolve = _sg_aio.run(_sg_stop_midsolve())
+_r9f13_dt.freeze(None)
+R.check(
+    "D1-s1-01: a solve the stop broke answers 'shutdown', counts no solve failure and "
+    "frees the gate",
+    _sg_midsolve == ("shutdown", 0, False),
+    f"{_sg_midsolve}",
+)
+_sg_view = _r9f13_make("sg_view")[2]
+_sg_view_idle = _sg_view.optimization_running
+solve_gate.gate_for(_sg_view).solving = True
+R.check(
+    "the published optimization_running view reads the solve gate",
+    _sg_view_idle is False and _sg_view.optimization_running is True,
+    f"idle {_sg_view_idle}, solving {_sg_view.optimization_running}",
+)
+
+
 # --- R10-DRAW-MAP-EVIDENCE part A (design/R10-DRAW-MAP-EVIDENCE at 9aa450f5,
 # approved at design-verdict f10dd418). Each Control pass on a flow set-point
 # is recorded with where its write came from (``pump_arbiter.pass_origin``,
@@ -99192,6 +101823,52 @@ R.check(
     _rh_ul_ok and not _rh_ul_before
     and _rh_ul_doc.get("data", _rh_ul_doc).get("times", "").split(",") == [str(_RH_M0), str(_RH_M0 + 30)],
     f"before={_rh_ul_before} after={_rh_ul_doc}",
+)
+
+R.section("R11-OWNER-CARD-EXTERNAL-HEAT: the binary sensors the card reads by id suffix")
+# The card derives a binary sensor's id from the plan sensor's device prefix
+# plus a suffix constant (`planBinaryTwin`): the status pill reads
+# EXTERNAL_HEAT_SUFFIX, the health page INPUT_PROBLEM_SUFFIX. Home Assistant
+# makes that id's tail from the entity's English name, so each constant must
+# be the slug of the en.json name of the translation key its sensor class
+# passes. The pill's behaviour is pinned in tests/card.mjs; this pins the
+# contract the card cannot see. Null control: a suffix one letter off fails
+# the same comparison.
+import ast as _oc_ast  # noqa: E402
+import json as _oc_json  # noqa: E402
+import re as _oc_re  # noqa: E402
+from pathlib import Path as _oc_Path  # noqa: E402
+
+_oc_card = _oc_Path("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js").read_text(encoding="utf-8")
+_oc_en = _oc_json.loads(_oc_Path("custom_components/heatpump_optimizer/translations/en.json").read_text(encoding="utf-8"))
+_oc_keys = {}
+for _oc_cls in _oc_ast.parse(_oc_Path("custom_components/heatpump_optimizer/binary_sensor.py").read_text(encoding="utf-8")).body:
+    if not isinstance(_oc_cls, _oc_ast.ClassDef):
+        continue
+    for _oc_call in _oc_ast.walk(_oc_cls):
+        if (isinstance(_oc_call, _oc_ast.Call) and isinstance(_oc_call.func, _oc_ast.Attribute)
+                and _oc_call.func.attr == "__init__" and len(_oc_call.args) == 4
+                and isinstance(_oc_call.args[3], _oc_ast.Constant)):
+            _oc_keys[_oc_cls.name] = _oc_call.args[3].value
+
+
+def _oc_slug(cls: str) -> str | None:
+    key = _oc_keys.get(cls)
+    name = ((_oc_en.get("entity", {}).get("binary_sensor", {}).get(key) or {}).get("name")) if key else None
+    return "_" + _oc_re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") if name else None
+
+
+_oc_pairs = [("EXTERNAL_HEAT_SUFFIX", "ExternalHeatBinarySensor"), ("INPUT_PROBLEM_SUFFIX", "InputHealthBinarySensor")]
+_oc_rows = []
+for _oc_const, _oc_cls_name in _oc_pairs:
+    _oc_m = _oc_re.search(rf'const {_oc_const} = "([a-z_]+)";', _oc_card)
+    _oc_rows.append((_oc_const, _oc_m and _oc_m.group(1), _oc_slug(_oc_cls_name)))
+R.check(
+    "each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name "
+    "(_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match",
+    all(card and card == want for _, card, want in _oc_rows)
+    and all(want and card[:-1] != want for _, card, want in _oc_rows),
+    str(_oc_rows),
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

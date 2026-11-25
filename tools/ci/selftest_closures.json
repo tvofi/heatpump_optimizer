@@ -2849,6 +2849,7 @@
     "dev/governance/config/policy_budgets.json",
     "tests/ci_budgets.json",
     "tests/coverage_budgets.json",
+    "tests/cycle_budgets.json",
     "tests/layout.json",
     "tests/layout.py",
     "tests/mutation_budgets.json",
@@ -3000,7 +3001,9 @@
    "run_sha": "493783248b75a0de7544a6396b62a2bc2021aee6f8aa2b790cbfc7183cf607f0",
    "files": [
     ".github/workflows/governance.yml",
+    ".github/workflows/hassfest.yml",
     ".github/workflows/tests.yml",
+    ".github/workflows/validate.yml",
     "tests/closures.json",
     "tools/ci/fixtures/gate_requeued_needs_runs.json",
     "tools/ci/ghapi.py",
@@ -9820,8 +9823,11 @@
     "tools/release"
    ],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": true,
+   "git": [
+    "cat-file",
+    "ls-tree"
+   ]
   },
   "roster-ops-mutation-harness": {
    "run_sha": "ff64ecaef9c502f634ec498485bc646c76e67e625d81961b0ab116701e85812d",
@@ -10365,6 +10371,25 @@
     "rev-list",
     "show"
    ]
+  },
+  "selftest-absorb": {
+   "run_sha": "5da184dd54cb73a918555ff17e77f723cddb3c5332b9deea5d61fd184abf3bef",
+   "files": [
+    ".github/workflows/governance.yml",
+    "tools/audit/seat/selftest_absorb.py",
+    "tools/ci/selftest_scope.py",
+    "tools/pr/app_push.sh"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
   },
   "selftest-scope": {
    "run_sha": "f5ec792ec3efe1110346aa55286c78476472afa3a83a128272f5e87587085203",

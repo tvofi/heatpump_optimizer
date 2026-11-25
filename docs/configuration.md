@@ -861,12 +861,16 @@ writes, at every 15-minute plan step:
   the compressor running, the new duty asking for heat and the plan keeping
   that duty; a stop within 3 minutes of a counted switch counts against its
   direction, and a switch a person's own mode change explains is not
-  counted. Once a direction has
+  counted. From the first counted stop the plan charges that switch a share of
+  the **Cost of one compressor start**: the stops over the counted switches
+  plus 5, so three stops in three switches are charged 3/8 of a start, and
+  tries to place hot water where no such switch follows it (not on a combi
+  store). Once a direction has
   stopped the compressor on at least half of a weighted 5 or more switches,
-  seen on at least two calendar days (a switch weighs half after 14 days), the plan charges that switch a share of
-  the **Cost of one compressor start** and tries to place hot water where no
-  such switch follows it (not on a combi store). For a switch from hot water
-  to heating it also expects the median measured off time as heat not
+  seen on at least two calendar days (a switch weighs half after 14 days), the
+  share is the stops over the switches, and it is learned: only then does it
+  change the order of a split step (above). For a switch from hot water
+  to heating a learned direction also expects the median measured off time as heat not
   delivered in the heating that follows; a switch the other way is priced
   but costs no heat. With the start cost at 0 only that lost heat is planned
   for. The counts per direction are attributes of the
@@ -916,11 +920,31 @@ writes, at every 15-minute plan step:
   or the weather curve for a water set-point, the planned room temperature for
   an indoor one), and the optimizer writes the set-point from its first pass.
   Set it on the pump once while the optimizer is on to have your own
-  value restored instead. The mode and the hot-water set-point are not restored.
+  value restored instead.
+- **Turning it off hands the rest back too.** Turning **Optimizer active** off,
+  and every unload, sets the pump's mode back to heating both circuits and the
+  hot-water set-point back to the one you configured, switches the heat pump's
+  power switch and the circulation pumps back on, and writes the compressor
+  frequency and the mixing-valve target back to what they read before the
+  optimizer's first write; one that read nothing then is still written, and is
+  left as the optimizer set it. Only what the optimizer wrote is written back, once;
+  a write-back that fails is tried again every cycle while the optimizer stays
+  off. When the plan goes stale and the optimizer stops actuating, the power
+  switch, the frequency, the valve target and the space circulation pump are
+  handed back the same way.
 - **A write the pump does not hold is retried.** If the value written back
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or
   when *Control* is left. An unavailable mode entity is no reading at all.
+- **A pump in cooling is left alone.** While the mode reads *Cooling* or
+  *Cooling + DHW*, nothing is written: not the mode, not the set-points, not
+  the silent switch, and not the heat pump power switch, which is switched
+  neither on nor off, by the plan, a boost or the early cut-off. Cooling is
+  your season, so the optimizer never writes a heating mode back over it.
+  When the plan or a boost asks for heat while the mode reads cooling, a
+  warning repair notice is raised once, and it clears when the mode leaves
+  cooling. The power switch is left alone with *Pump duty control* on Observe
+  too.
 - **A pump switched off is left alone.** While the heat pump power switch
   reads off, nothing is compared or written: switched off, a pump can report
   set-points of its own (a Tuya pump reads 25 °C). Once it is on, a reset that
