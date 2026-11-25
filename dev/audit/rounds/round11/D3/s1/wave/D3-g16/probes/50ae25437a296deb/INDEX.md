@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py (saved as .py.txt while gates run; rename on restore): pins the DHW power planned at step 0 (kW) when the binding headroom times c_dhw is exactly 1e-6 kWh.

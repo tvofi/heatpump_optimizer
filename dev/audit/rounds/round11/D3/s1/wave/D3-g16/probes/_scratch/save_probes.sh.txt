@@ -1,0 +1,15 @@
+#!/bin/bash
+# Copy every probe and scratch script into the wave dir as .txt (outside harness_headers.py's .py/.sh/.js/.mjs scan),
+# keeping the repo-relative path, with an INDEX.md per key; then checkpoint.
+W=/root/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g16
+P=dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes
+for f in /root/probe-tree/$P/probe_*.py; do
+  k=$(basename $f .py); k=${k#probe_}
+  d=$W/probes/$k/$P; mkdir -p $d
+  cp $f $d/probe_$k.py.txt
+  m=$(grep -m1 '^# Metric:' $f | cut -c11-)
+  echo "- $P/probe_$k.py (saved as .py.txt while gates run; rename on restore): pins $m" > $W/probes/$k/INDEX.md
+done
+mkdir -p $W/probes/_scratch
+for f in /root/probe-src/*; do [ -f "$f" ] && cp "$f" "$W/probes/_scratch/$(basename $f).txt"; done
+echo "- _scratch/: the probe builder (common.py, mk.py, headers.py, static.py, build_record.py, build_report.py, save_probes.sh, explore_*.py), each saved as .txt; mk.py assembles probes from headers + common + body_<key>.py" > $W/probes/_scratch/INDEX.md

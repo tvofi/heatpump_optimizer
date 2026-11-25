@@ -1,0 +1,15 @@
+# Metric: count of inputs on which the plan DhwPlanner._plan_dhw_cheapest_first returns differs, over 21 inputs that include every way to leave no usable step.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_88a992e9013ee436.py
+# EXPECTED RESULT inputs_tried=21 count
+# EXPECTED RESULT baseline_plans_with_nothing_bought=6 count
+# EXPECTED RESULT outputs_differing=0 count
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_cheapest_first (custom_components/heatpump_optimizer/dhw_planner.py:2236 `if not candidates:  (the second, line 2236)`).
+# Perturbation: mutant 88a992e9013ee436, `if not candidates:  (the second, line 2236)` -> `if False:`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: none found: with no candidates the fall-through sorts an empty list, buys nothing, and the `added <= 1e-9` branch adds k to unreachable exactly as the guard's `continue` does.
+# Reach: production.
+# Null control: the grid itself; liveness is the no-candidate path being reached.
+# Count key: the value the production method returns (never an input attribute).

@@ -1,0 +1,103 @@
+{
+ "key": "50ae25437a296deb",
+ "site": "dhw_planner.py:2280 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2280,
+ "patch": "if take <= 1e-6: -> if take < 1e-6:",
+ "function": "DhwPlanner._plan_dhw_cheapest_first",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first@2232-2307",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3559.1,
+  "child_cpu_s": 5874.6,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/50ae25437a296deb.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 50ae25437a296deb",
+ "gate_provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py",
+  "results": {
+   "step0_kw_baseline": "0.0000 kW",
+   "step0_kw_mutant": "0.1000 kW",
+   "off_tie_inputs_moved": "0 of 4 (-)",
+   "thread_factor": "1.000",
+   "load1": "0.79",
+   "swapins": "0"
+  },
+  "baseline_value": "0.0000 kW",
+  "mutant_value": "0.1000 kW",
+  "inputs_tried": "a 6-step horizon with only step 0 runnable and c_dhw tuned to 0.2319999999922984 so the binding headroom d * c_dhw == 1e-6 exactly (moves: 0 -> 0.1 kW); headroom 1e-9 K either side, c_dhw 0.232 and a loose ceiling (do not move)",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "reach": "exact float tie only: needed, spare and headroom never land on 1e-6 kWh to the last bit except by construction (here c_dhw is tuned to 0.2319999999922984)",
+ "should_fail": "tests/features.py: the cheapest-first cases (~63622, ~82539) never land take on exactly 1e-6 kWh; no check pins the boundary as a skip",
+ "finding": {
+  "title": "No check pins _plan_dhw_cheapest_first's 1e-6 kWh skip as inclusive; <= vs < is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 50ae25437a296deb at dhw_planner.py:2280 (if take <= 1e-6: -> if take < 1e-6:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet probe_50ae25437a296deb.py moves: step0_kw_baseline=0.0000 kW vs step0_kw_mutant=0.1000 kW.",
+  "mechanism": "Reach: exact float tie only: needed, spare and headroom never land on 1e-6 kWh to the last bit except by construction (here c_dhw is tuned to 0.2319999999922984). Check that should have failed (D3.M4): tests/features.py: the cheapest-first cases (~63622, ~82539) never land take on exactly 1e-6 kWh; no check pins the boundary as a skip.",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_cheapest_first",
+  "metric_definition": "the DHW power planned at step 0 (kW) when the binding headroom times c_dhw is exactly 1e-6 kWh",
+  "phenomenon_property": "A top-up of at most 1e-6 kWh is skipped (never rounded up to min_run_power): the comparison is inclusive",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list), each key's fullgate.py verdict SURVIVED or RED-AS-NULL and its probe moving",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py"
+  ],
+  "proposed_fix_scope": "tests only: a boundary check at take == 1e-6 asserting nothing is bought",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py",
+   "value": "0.1000 kW",
+   "unit": "step0_kw_mutant",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 0.79,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant 50ae25437a296deb applied in memory by the probe (method re-compiled from its source); full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 50ae25437a296deb",
+   "expected_direction": "step 0 power up (0 -> min_run_power) on the exact tie only",
+   "observed_value": "0.1000 kW"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py",
+   "value": "headroom 1e-9 K either side, c_dhw 0.232 and a loose ceiling: 0 moved",
+   "note": "arms where the edit cannot matter, identical outputs under baseline and mutant; the full-gate null is gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_50ae25437a296deb.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 50ae25437a296deb"
+  ]
+ }
+}

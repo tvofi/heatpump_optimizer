@@ -1,0 +1,47 @@
+MUT = mutant_method("_dhw_legionella_due", "if known is not None:", "if False:")
+from types import SimpleNamespace  # noqa: E402
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig  # noqa: E402
+
+N = 24
+
+
+def legionella(known, prices, *, tank=55.0, p_run=3.0, volume=200.0, ceiling=1.0, off=None, fn=None):
+    """(due, hour, step, ready_temps) from DhwPlanner._dhw_legionella_due inside the elastic window (130 h since
+    the last cycle: past the 5-day minimum, before the 7-day deadline, so the hard-deadline branch is not taken)."""
+    p = ThermalParameters(dhw_enabled=True, dhw_legionella_enabled=True, dhw_elastic_legionella_enabled=True,
+                          dhw_legionella_price_ceiling=ceiling, dhw_tank_volume=volume)
+    planner = DhwPlanner(ThermalModel(p), OptimizationConfig(horizon_hours=N, time_step_minutes=60), None, known)
+    h = SimpleNamespace(initial_state=ThermalState(dhw_temperature=tank, dhw_hours_since_legionella=130.0),
+                        n_steps=N, dt=1.0, outdoor_temps=np.full(N, 5.0), humidity=None)
+    ready = np.zeros(N)
+    due, hour, step = (fn or DhwPlanner._dhw_legionella_due)(
+        planner, h, params=p, hours_mod=np.arange(N, dtype=float), draw_rates=np.zeros(N),
+        ready_temps=ready, p_dhw_run=p_run, dhw_prices=np.asarray(prices, dtype=float), off_steps=off)
+    return due, hour, step, ready.tobytes()
+
+prices = np.full(N, 2.0)
+prices[20] = 0.1                                  # the one price under the ceiling (1.0) is in the estimated half
+part_known = np.array([True] * 12 + [False] * 12)  # day-ahead published for 12 h, the rest from the prior
+b = legionella(part_known, prices)
+m = legionella(part_known, prices, fn=MUT)
+print(f"# headline: baseline (due, hour, step)={b[:3]} mutant={m[:3]}")
+print(f"RESULT cycle_placed_baseline={int(b[0])} count")
+print(f"RESULT cycle_placed_mutant={int(m[0])} count")
+print(f"RESULT mutant_step_price_known={int(bool(part_known[m[2]])) if m[2] is not None else 'none'}")
+inputs = {
+    "all_known": np.ones(N, dtype=bool),
+    "known_None_fresh_optimizer": None,
+    "cheap_step_in_known_half": None,
+}
+moved = []
+for name, known in inputs.items():
+    pr = prices
+    if name == "cheap_step_in_known_half":
+        known, pr = part_known, np.where(np.arange(N) == 5, 0.1, 2.0)
+    bb, mm = legionella(known, pr), legionella(known, pr, fn=MUT)
+    print(f"# input {name}: baseline={bb[:3]} mutant={mm[:3]}")
+    if bb != mm:
+        moved.append(name)
+print(f"RESULT null_inputs_moved={len(moved)} of {len(inputs)} ({','.join(moved) or '-'})")
+footer()

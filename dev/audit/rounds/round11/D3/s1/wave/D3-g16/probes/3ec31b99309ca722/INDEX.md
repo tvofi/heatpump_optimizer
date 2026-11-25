@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py (saved as .py.txt while gates run; rename on restore): pins whether DhwPlanner._effective_dhw_windows raises (0/1) on a 24-entry pattern with every hour below 1.0.

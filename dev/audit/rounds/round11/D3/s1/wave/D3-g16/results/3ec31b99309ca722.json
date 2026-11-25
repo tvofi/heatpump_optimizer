@@ -1,0 +1,105 @@
+{
+ "key": "3ec31b99309ca722",
+ "site": "dhw_planner.py:549 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 549,
+ "patch": "if not busy_hours: -> if False:",
+ "function": "DhwPlanner._effective_dhw_windows",
+ "cluster": "dhw_planner.py:DhwPlanner._effective_dhw_windows@547-556",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3352.0,
+  "child_cpu_s": 5534.2,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/3ec31b99309ca722.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3ec31b99309ca722",
+ "gate_provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py",
+  "results": {
+   "window_hours_baseline": "24.0 h",
+   "window_hours_mutant": "nan h",
+   "mutant_raises": "1",
+   "null_delta_hours": "0.0 h",
+   "inputs_moved": "2 of 10 (flat_0.5_unnormalised,all_just_below_1)",
+   "thread_factor": "1.000",
+   "load1": "0.94",
+   "swapins": "0"
+  },
+  "baseline_value": "24.0 h",
+  "mutant_value": "1",
+  "inputs_tried": "flat 0.5 (not mean-1) and all 1 - 1e-12 raise IndexError under the mutant; the 8 other patterns do not move",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "reach": "direct call; through production only at a learned profile whose every hour sits below 1.0, which normalize_profile's mean-1 rescale admits only within its 1e-12 tolerance (all_just_below_1)",
+ "should_fail": "tests/features.py: the window/floor block (~38020-38033) never feeds a pattern with every hour below 1.0, asserting the [FULL_DAY] fallback",
+ "finding": {
+  "title": "No check feeds _effective_dhw_windows a pattern with every hour below 1; dropping the empty-busy fallback is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 3ec31b99309ca722 at dhw_planner.py:549 (if not busy_hours: -> if False:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet probe_3ec31b99309ca722.py moves: window_hours_baseline=24.0 h vs mutant_raises=1.",
+  "mechanism": "Reach: direct call; through production only at a learned profile whose every hour sits below 1.0, which normalize_profile's mean-1 rescale admits only within its 1e-12 tolerance (all_just_below_1). Check that should have failed (D3.M4): tests/features.py: the window/floor block (~38020-38033) never feeds a pattern with every hour below 1.0, asserting the [FULL_DAY] fallback.",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._effective_dhw_windows",
+  "metric_definition": "whether DhwPlanner._effective_dhw_windows raises (0/1) on a 24-entry pattern with every hour below 1.0",
+  "phenomenon_property": "When no hour reaches the threshold, _effective_dhw_windows falls back to the full day instead of indexing an empty list",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list), each key's fullgate.py verdict SURVIVED or RED-AS-NULL and its probe moving",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py"
+  ],
+  "proposed_fix_scope": "tests only: a check with every hour below 1.0 asserting ([FULL_DAY], True)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py",
+   "value": "1",
+   "unit": "mutant_raises",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 0.94,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant 3ec31b99309ca722 applied in memory by the probe (method re-compiled from its source); full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3ec31b99309ca722",
+   "expected_direction": "an IndexError instead of the full-day fallback",
+   "observed_value": "1"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py",
+   "value": "the shipped default pattern: 0 h",
+   "note": "arms where the edit cannot matter, identical outputs under baseline and mutant; the full-gate null is gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_3ec31b99309ca722.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3ec31b99309ca722"
+  ]
+ }
+}

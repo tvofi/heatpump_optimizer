@@ -1,0 +1,17 @@
+# Metric: the DHW planning price of a step where the space-heating profile draws more than the PV surplus (per-kWh), and the cheapest step's index.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_72882f2ac25c19b1.py
+# EXPECTED RESULT step0_price_baseline=2.000000
+# EXPECTED RESULT step0_price_mutant=3.333333
+# EXPECTED RESULT cheapest_step_baseline=0
+# EXPECTED RESULT cheapest_step_mutant=1
+# EXPECTED RESULT null_inputs_moved=0 of 4
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_planning_prices (custom_components/heatpump_optimizer/dhw_planner.py:474 `surplus = np.clip(surplus - space_demand[: len(prices)], 0.0, None)`).
+# Perturbation: mutant 72882f2ac25c19b1, `surplus = np.clip(surplus - space_demand[: len(prices)], 0.0, None)` -> `surplus = (surplus - space_demand[: len(prices)])`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: price up: a negative surplus inflates the import price by margin * deficit / p_run, and the ranking flips.
+# Reach: production: the co-optimization replan passes the space profile (optimizer.py:2065 and 3986 -> DhwPlanner._build_dhw_requirements -> dhw_planner.py:1147); space demand above the PV surplus is the ordinary case on a cold sunny morning.
+# Null control: space demand below, equal to, absent and zero: 0 moved.
+# Count key: the value the production method returns (never an input attribute).

@@ -1,0 +1,11 @@
+exec(open('/root/probe-src/common.py').read().replace('repo_root(__file__)','repo_root("/root/probe-tree/x")'))
+exec(open('/root/probe-src/wf_common.py').read())
+from custom_components.heatpump_optimizer.dhw_draws import labels_for
+spec="06:00-08:30, 17:00-22:00"
+p = ThermalParameters(dhw_enabled=True, dhw_schedule_enabled=True, dhw_windows=parse_windows(spec))
+print(labels_for(p.dhw_windows), p.dhw_setpoint, p.dhw_min_temp)
+for st in (None, {"06:00-08:30":[0.0,8]}, {"06:00-08:30":[30.0,8]}):
+    p.dhw_window_ready_energy=st
+    pl=DhwPlanner(ThermalModel(p), OptimizationConfig(horizon_hours=24, time_step_minutes=60))
+    out=DhwPlanner._dhw_window_floors(pl,p,p.dhw_windows,np.arange(24.0),None,1.0,24,None)
+    print(st, [np.round(np.asarray(a,float),2)[5:10].tolist() for a in out[1:]])

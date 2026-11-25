@@ -1,0 +1,51 @@
+from custom_components.heatpump_optimizer.thermal_model import DHW_HOURLY_DRAW_PATTERN  # noqa: E402
+OLD = "if not busy_hours:"
+NEW = "if False:"
+INPUTS = [
+    ("default_profile", list(DHW_HOURLY_DRAW_PATTERN)),
+    ("flat_1.0", [1.0] * 24),
+    ("flat_0.5_unnormalised", [0.5] * 24),
+    ("mean1_shoulder_1.1", [0.518] * 11 + [1.1] * 3 + [1.5] * 10),
+    ("plateau_1.0_peak_2.0", [1.0] * 20 + [2.0] * 4),
+    ("alternating_2.0_0.2", [2.0, 0.2] * 12),
+    ("single_peak_mean1", [0.2] * 23 + [24 - 0.2 * 23]),
+    ("all_just_below_1", [1.0 - 1e-12] * 24),
+    ("mean1_plateau_1.25", [0.5] * 8 + [1.25] * 16),
+    ("wrap_22_to_2_mean1", [2.4] * 2 + [0.6] * 20 + [2.4] * 2),
+]
+MAIN = 2  # index into INPUTS of the headline input
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, DHW_HOURLY_DRAW_PATTERN  # noqa: E402
+
+MUT = mutant_method("_effective_dhw_windows", OLD, NEW)
+
+
+def windows(pattern, fn=None):
+    """The (windows, learned) pair the planner plans against: schedule on, no windows entered, learned pattern."""
+    p = ThermalParameters(dhw_enabled=True, dhw_schedule_enabled=True, dhw_windows=[],
+                          dhw_hourly_draw_pattern=[float(x) for x in pattern])
+    planner = DhwPlanner(ThermalModel(p), None)
+    try:
+        return (fn or DhwPlanner._effective_dhw_windows)(planner)
+    except Exception as err:  # the mutant arm may raise
+        return f"raises {type(err).__name__}"
+
+
+def window_hours(res):
+    return float(sum(e - s for s, e in res[0])) if isinstance(res, tuple) else float("nan")
+
+
+moved = []
+for name, pat in INPUTS:
+    b, m = windows(pat), windows(pat, MUT)
+    print(f"# input {name}: baseline={b} mutant={m}")
+    if b != m:
+        moved.append(name)
+name, pat = INPUTS[MAIN]
+b, m = windows(pat), windows(pat, MUT)
+print(f"RESULT window_hours_baseline={window_hours(b)} h")
+print(f"RESULT window_hours_mutant={window_hours(m)} h")
+print(f"RESULT mutant_raises={int(isinstance(m, str))}")
+nb, nm = windows(DHW_HOURLY_DRAW_PATTERN), windows(DHW_HOURLY_DRAW_PATTERN, MUT)
+print(f"RESULT null_delta_hours={abs(window_hours(nm) - window_hours(nb)) if not isinstance(nm, str) else 'raises'} h")
+print(f"RESULT inputs_moved={len(moved)} of {len(INPUTS)} ({','.join(moved) or '-'})")
+footer()
