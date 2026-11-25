@@ -6,7 +6,7 @@ Root-cause seat, `root-cause.md`, 2026-11-25. Measured at `origin/main`
 0.38 (5/13). Each time below is a commit, check-run or dispatch-ledger
 timestamp, read by the command named. Nothing was fixed or written to GitHub.
 The overlay and replay files are under
-`/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/P-R11-DISPATCH-UNIT-REDS/`.
+`~/hpo-orch/r10s6/r11/proto/P-R11-DISPATCH-UNIT-REDS/`.
 
 ## 1. The five blocks
 
@@ -52,7 +52,7 @@ over each commit's `tests/closures.json`:
   could use CI's readings, which is a sequencing choice and not a missed
   detection. Host load on the local seats did make local gates
   untrustworthy (above).
-- **prepr's ancestry self-test fault** (`/private/tmp/claude-501/st/prepr.sh.1`
+- **prepr's ancestry self-test fault** (`<session-tmp>/st/prepr.sh.1`
   and `.2`: "an ancestry no commit of which carries any check run skips"
   FAIL). *Refuted.* It is a `prepr.sh --self-test` row, and it bears on
   `instrument-self-tests`, not on any `tests / fast` script. Its outputs are
@@ -178,20 +178,20 @@ Demonstration (`replay.sh` → `blocked.out`, `null20.out`):
 Mid-round, tracked tooling is frozen, so this is a proposal plus a local
 overlay:
 
-- overlay `/Users/timmalmstrom/hpo-orch/r10s6/r11/proto/P-R11-DISPATCH-UNIT-REDS/unit_reds.py <checkout> <head>`,
+- overlay `~/hpo-orch/r10s6/r11/proto/P-R11-DISPATCH-UNIT-REDS/unit_reds.py <checkout> <head>`,
   run before each `bus.sh dispatch`: rc 1 means do not dispatch, rc 0 means
   dispatch.
 - proposal `P-R11-DISPATCH-UNIT-REDS`, for round-end instrument triage.
 
 **Brief text (dispatch and relay seats):** "Before `bus.sh dispatch`, run
-`python3 /Users/timmalmstrom/hpo-orch/r10s6/r11/proto/P-R11-DISPATCH-UNIT-REDS/unit_reds.py <checkout> <head>`;
+`python3 ~/hpo-orch/r10s6/r11/proto/P-R11-DISPATCH-UNIT-REDS/unit_reds.py <checkout> <head>`;
 on rc 1 (`UNIT-RED`) do not dispatch: the head goes back to its fixer as
 REPAIR-OWED with the named unit."
 
 **Brief text (fixer and merge seats, the upstream half; carries
 R11-RCA-PAIRNOTE-MERGE's overlay):** "After any merge of origin/main into a
 head you hand off or update, run
-`python3 /Users/timmalmstrom/hpo-seats/r10s6/rca-pairnote/pairnote_check.py --repo . --ref HEAD`
+`python3 ~/hpo-seats/r10s6/rca-pairnote/pairnote_check.py --repo . --ref HEAD`
 and `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` at the merged head
 before the push, and repair any red in that push; a red you have measured at
 the head is repaired before the handoff, never declared and handed off."
