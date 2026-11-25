@@ -35,3 +35,4 @@
 1795633414 HB alive
 1795634018 HB alive
 1795634621 HB alive
+1795634732 CKPT BLOCKED: REFUSED PREDICTOR (closures UNDER-SCOPED static false positive); code on handoff, body on handoff-wip-body snapshot a5de3c3fae4f
