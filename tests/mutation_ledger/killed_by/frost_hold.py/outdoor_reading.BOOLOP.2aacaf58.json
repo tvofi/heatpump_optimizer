@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/frost_hold.py:outdoor_reading BOOLOP 2aacaf58",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "    return got.value if got is not None and got.ok else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return got.value if got is not None or got.ok else None`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}
