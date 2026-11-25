@@ -3961,6 +3961,18 @@ def _p2_registry(sources):
                      "the explicit answer is stored and takes its verdict from "
                      "dhw_enabled_from_config",
              }),
+        # D1-s3-04: a killed worker's reap. The transport arm waited without a
+        # bound, holding the lock every peer's solve waits on, where its
+        # timeout sibling bounded the same wait.
+        dict(fact="killed_worker_reap", finding="D1-s3-04",
+             match=_p2_match_node(
+                 (ast.Call,), r"^worker\.wait\(",
+                 lambda n: getattr(n.func, "attr", None) == "wait"),
+             owners=["coordinator.py::_reap_killed"], dispositions={
+                 "coordinator.py::_shutdown_process_pool":
+                     "the stop's own reap, outside the lock: terminate's bounded "
+                     "wait, and at interpreter exit #533's kill and timeout-less "
+                     "wait, when no peer's solve is left to wait"}),
         # D1-s5-01: a state's age. inputs.state_stamp owns the stamp rule
         # (last_reported first, #775); age_of re-derived it.
         dict(fact="state_age", finding="D1-s5-01",
@@ -4379,6 +4391,15 @@ _P2_CENSUSES = {
     "zoned_store_credit_live": (
         "tests/features.py",
         "zoned store census: the terminal cost credits the tank in every zoning (#2500)"),
+    # R11-SEAM-store (D15-s1-04, D15-s1-05): a stored field's domain is
+    # store.DOMAINS's -- every field a saver writes lies in it, and every loader
+    # keeps what its saver wrote; Arm 6 drives every store's real saver and loader.
+    "store_domain_declares_writers": (
+        "tests/finite_boundary.py",
+        "every store the rich seed writes is seeded, and every field it writes is declared"),
+    "store_loader_keeps_writers": (
+        "tests/finite_boundary.py",
+        "the healthy rich seed round-trips unchanged through every loader and saver"),
 }
 
 
