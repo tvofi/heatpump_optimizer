@@ -21,3 +21,4 @@
 1795589263 CKPT 4 sites pinned at 34cefdc55b snapshot b881ce75a840
 1795589309 CKPT mutation proof M1-M15 running at head and 0d345358 snapshot 9b28e58dce35
 1795589452 CKPT body drafted; scoped prepr running at 34cefdc5 snapshot 0f273447e4c3
+1795591954 CKPT BLOCKED pushed 451fa9e9: prepr carry step cannot see PR-added carry-3881.json snapshot 834d6d130378
