@@ -630,7 +630,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written while the plan is in charge. A space boost or Boost mode writes the set-point entity's own maximum instead (up to 70 °C), capped by a value here other than 55 °C. A stored value at or below the 25 °C gate is read as 55 °C. |
 | Follow the planned power on the measured draw (`space_setpoint_power_feedback`) | On | on / off | Shown when the unit above is *Flow* or *Return temperature*; acts only when a heat-pump power sensor is configured too. Closes the heating value on the measured draw (see [Pump duty control](#pump-duty-control)). Off writes the inlet plus the lift. |
 | Controller's minimum set-point sensor (`space_setpoint_low_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the lowest value the controller accepts for the set-point entity (for example a Luxtronik through ha-luxtronik-shi: “Temperature: return target minimum”, input 10104). *Follow the planned power* then never sends a value below it (see [Pump duty control](#pump-duty-control)). Empty changes nothing. |
-| Controller's maximum set-point sensor (`space_setpoint_high_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the controller accepts (for example a Luxtronik: “Temperature: return limit”, input 10103). *Follow the planned power* then never sends a value above it. Empty changes nothing. |
+| Controller's maximum set-point sensor (`space_setpoint_high_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the controller accepts (for example a Luxtronik: “Temperature: return limit”, input 10103). No space water set-point above it is written: *Follow the planned power*, a boost and every heating step stay under it. With a maximum set-point typed in the next row as well, the lower of the two applies. Empty changes nothing. |
+| Controller's maximum set-point (`space_setpoint_high_limit_c`) | none | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the pump accepts, typed by hand, for a set-point entity whose own maximum is higher than what the pump takes. No space water set-point above it is written, a boost's included. With the sensor in the row above as well, the lower of the two applies; one below the lowest heating value (the gate plus one step of the set-point entity) is left out and logged, and so is one below the entity's own minimum, which the gate already sits above. Empty: the entity's own maximum applies. |
 
 ### Power and solar sensors
 
@@ -861,12 +862,16 @@ writes, at every 15-minute plan step:
   the compressor running, the new duty asking for heat and the plan keeping
   that duty; a stop within 3 minutes of a counted switch counts against its
   direction, and a switch a person's own mode change explains is not
-  counted. Once a direction has
+  counted. From the first counted stop the plan charges that switch a share of
+  the **Cost of one compressor start**: the stops over the counted switches
+  plus 5, so three stops in three switches are charged 3/8 of a start, and
+  tries to place hot water where no such switch follows it (not on a combi
+  store). Once a direction has
   stopped the compressor on at least half of a weighted 5 or more switches,
-  seen on at least two calendar days (a switch weighs half after 14 days), the plan charges that switch a share of
-  the **Cost of one compressor start** and tries to place hot water where no
-  such switch follows it (not on a combi store). For a switch from hot water
-  to heating it also expects the median measured off time as heat not
+  seen on at least two calendar days (a switch weighs half after 14 days), the
+  share is the stops over the switches, and it is learned: only then does it
+  change the order of a split step (above). For a switch from hot water
+  to heating a learned direction also expects the median measured off time as heat not
   delivered in the heating that follows; a switch the other way is priced
   but costs no heat. With the start cost at 0 only that lost heat is planned
   for. The counts per direction are attributes of the
@@ -889,7 +894,7 @@ writes, at every 15-minute plan step:
   write the set-point entity's own maximum on every step they cover,
   whatever power the plan booked for the step, capped by a heating flow
   ceiling set to anything but its 55 °C default and by the controller's
-  maximum set-point sensor when one is configured. An entity whose maximum it cannot read, or one above
+  maximum set-point, its sensor or the value typed by hand, the lower where both are set. An entity whose maximum it cannot read, or one above
   70 °C (a generic number helper), keeps the planned level instead. A boost
   lasts two hours and is not trimmed on the room temperature, so on a
   low-temperature floor heating set the heating flow ceiling to bound it.
@@ -932,6 +937,15 @@ writes, at every 15-minute plan step:
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or
   when *Control* is left. An unavailable mode entity is no reading at all.
+- **A pump in cooling is left alone.** While the mode reads *Cooling* or
+  *Cooling + DHW*, nothing is written: not the mode, not the set-points, not
+  the silent switch, and not the heat pump power switch, which is switched
+  neither on nor off, by the plan, a boost or the early cut-off. Cooling is
+  your season, so the optimizer never writes a heating mode back over it.
+  When the plan or a boost asks for heat while the mode reads cooling, a
+  warning repair notice is raised once, and it clears when the mode leaves
+  cooling. The power switch is left alone with *Pump duty control* on Observe
+  too.
 - **A pump switched off is left alone.** While the heat pump power switch
   reads off, nothing is compared or written: switched off, a pump can report
   set-points of its own (a Tuya pump reads 25 °C). Once it is on, a reset that

@@ -107,6 +107,8 @@ class ArbiterState:
     supply_held: bool = False
     #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
     held_until: datetime | None = None
+    #: ``supply_hold.ISSUE_COOLING`` is raised for this cooling episode.
+    cooling_asked: bool = False
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
     #: The step the action was last cut or refused for, and whether a rate

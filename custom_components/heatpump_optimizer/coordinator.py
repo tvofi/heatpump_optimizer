@@ -2673,6 +2673,7 @@ class CoordinatorDiagnostics:
     tibber_outage_cycles: int | None = None
     tibber_reauth_started: bool | None = None
     solve_failures: int | None = None
+    mode: str | None = None
     cop_scale: float | None = None
     cop_samples: int | None = None
     house_heat_loss_scale: float | None = None
@@ -2681,8 +2682,8 @@ class CoordinatorDiagnostics:
     LEARNERS = ("_accuracy", "_comfort_learner", "_curve_learner", "_price_model")
 
     @classmethod
-    def of(cls, coord: Any) -> "CoordinatorDiagnostics":
-        """Read ``coord``'s live counters and learner summaries into a view.
+    def of(cls, coord: Any, mode: str | None = None) -> "CoordinatorDiagnostics":
+        """Read ``coord``'s live counters and learner summaries, with the ``mode`` it hands, into a view.
 
         Lives beside the fields it fills, so a member diagnostics needs and
         a field here go stale together, not apart. A learner whose
@@ -2703,6 +2704,7 @@ class CoordinatorDiagnostics:
             tibber_outage_cycles=getattr(coord, "_tibber_outage_cycles", None),
             tibber_reauth_started=getattr(coord, "_tibber_reauth_started", None),
             solve_failures=getattr(coord, "_solve_failures", None),
+            mode=mode,
             cop_scale=getattr(coord, "_cop_scale", None),
             cop_samples=getattr(coord, "_cop_samples", None),
             house_heat_loss_scale=getattr(coord, "_house_heat_loss_scale", None),
@@ -4132,7 +4134,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def diagnostics_state(self) -> CoordinatorDiagnostics:
         """What diagnostics may read about this instance, as one view (#1739)."""
-        return CoordinatorDiagnostics.of(self)
+        return CoordinatorDiagnostics.of(self, self.mode)
 
     async def _async_setup_ecl110_state_subscription(self) -> None:
         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
@@ -6220,8 +6222,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _floor_widening(self) -> tuple[float, ...]:
         """Economy's wider band, then #26's (gated) open-window relax: while
         a window is detected open, holding the comfort floor heats the street."""
-        ctx = getattr(self, "_ctx", self)
-        relax = self._vent_cusum.tripped and ctx._config.open_window_relax_enabled
+        relax = self._vent_cusum.tripped and _ctx_of(self)._config.open_window_relax_enabled
         return tuple(by for on, by in (
             (self._mode == MODE_ECONOMY, ECONOMY_MIN_TEMP_WIDENING),
             (relax, OPEN_WINDOW_RELAX_C),
@@ -6734,6 +6735,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._pump_mode_last_good_at = _mode_now
         _observe_heat_energy(self, reader, _mode_now)
         self._check_pump_mode_expired()
+        supply_hold.note_cooling(pump_arbiter.state_for(self), self.arbiter_inputs(), self._pump_signals)  # clears once cooling is left
         # The arbiter's own gate, wired here: the coordinator owns both
         # sides of the seam, so setpoint_check needs no import-time hook
         # back into pump_arbiter (#1739).
@@ -7787,19 +7789,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _write_supply(self, on: bool) -> None:
         """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
         held = pump_arbiter.state_for(self)
-        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
-            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
+        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), supply_hold.supply_write(
+            held, self.arbiter_inputs(), early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
             await pump_arbiter.write_supply(self, switch_entity, value)
-        elif switch_entity and not held.supply_held:
-            _LOGGER.debug(
-                "Not switching %s off: mode %s is cooling or blocks both "
-                "channels, so an empty plan is this integration's doing "
-                "rather than a decision to stop the pump",
-                switch_entity,
-                self._pump_signals.mode.label,
-            )
     # ------------------------------------------------------------------
     # Published state
     # ------------------------------------------------------------------
@@ -8340,7 +8334,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not persist ledger: %s", err)
 
     async def _async_load_accuracy(self) -> None:
-        ctx = getattr(self, "_ctx", self)
         stored = await load_mapping(self._accuracy_store, "accuracy history")
         if stored is None:
             return
@@ -8353,9 +8346,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         stored_mode = stored.get("mode")
         if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:
             self._mode = stored_mode
+            boost.note_mode_change(self, None, stored_mode)  # ADR-005: boost is told a restored mode
         self._comfort_learner = ComfortLearner.from_dict(
             stored.get("comfort"),
-            ctx._config.comfort_weight,
+            _ctx_of(self)._config.comfort_weight,
         )
         self._apply_comfort_weight()
     async def _async_save_accuracy(self) -> None:
@@ -10419,9 +10413,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         the replacement fields. With the flag off this is exactly the
         configured value.
         """
-        ctx = getattr(self, "_ctx", self)
         cost = self.effective_config.compressor_cycling_cost
-        if ctx._config.wear_autotune_enabled:
+        if _ctx_of(self)._config.wear_autotune_enabled:
             cost = max(cost, self._wear_price())
         return cost
     def _book_starts(self, starts: list[datetime]) -> None:
