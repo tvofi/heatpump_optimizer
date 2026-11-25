@@ -23,3 +23,4 @@
 1795604596 HB alive
 1795604685 CKPT setup ok; role pack and packet rendered snapshot 567ba590802e
 1795604994 CKPT mutants run (3b, cb); edge.py on survivors running; fast red being located snapshot 3e81a4cadcd2
+1795605083 CKPT mutants done (K8 only survivor); local features/entities running to locate fast red snapshot 721ededeef4b
