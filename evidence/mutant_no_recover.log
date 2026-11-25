@@ -301,6 +301,9 @@
   ok   an untouched entities_pump page keeps heat_pump_fault_entity
   ok   clearing heat_pump_fault_entity sticks once the manager validates the post
   ok   the same clear without the schema call clears heat_pump_fault_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_fault_text_entities
+  ok   clearing heat_pump_fault_text_entities sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_fault_text_entities (the old path)
   ok   an untouched entities_pump page keeps heat_pump_backup_heater_entity
   ok   clearing heat_pump_backup_heater_entity sticks once the manager validates the post
   ok   the same clear without the schema call clears heat_pump_backup_heater_entity (the old path)
@@ -415,8 +418,8 @@
   ok   a hass without a state machine renders the page and suggests nothing
   ok   an entity id holding no state is skipped, suggesting nothing
   ok   a live Pulse power state is offered as the house power suggestion
-  ok   a picker the grouping table forgot stays on the page, flat
-  ok   the intact grouping table hides nothing: only the three sections
+  ok   the flat fields and the sections are one table: rebound to one group, both hold exactly its two pickers
+  ok   the intact grouping table hides nothing: only the three sections, holding every flat field
   ok   a location whose default cannot be recomputed is kept, not dropped
   ok   the same location over a working hass is dropped as the computed default
   ok   a window coerced over a stored string keeps the stored string type
@@ -563,7 +566,7 @@ Invalid per-day DHW window 'x' for dhw_windows_fri (Invalid window 'x' (expected
 Invalid per-day DHW window 'x' for dhw_windows_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
 Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
   ok   positive control: a non-default stored value is seen
-  .. 218 candidate key(s): 204 behave identically, 14 differ, 36 unobserved by the refresh, 82 with a named read not proven; 199 proven safe
+  .. 219 candidate key(s): 205 behave identically, 14 differ, 37 unobserved by the refresh, 82 with a named read not proven; 200 proven safe
   .. differs when stored at its default: comfort_temp_day_weekend: .after._ctx._config.comfort_temp_day_weekend: None != 21.0
   .. differs when stored at its default: comfort_temp_night_weekend: .after._ctx._config.comfort_temp_night_weekend: None != 19.5
   .. differs when stored at its default: day_end_hour_weekend: .after._ctx._config.day_end_hour_weekend: None != 22
@@ -589,7 +592,7 @@ Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected
   ok   every listed fallback is the value the form shows while the key is absent
 
 -- options: an untouched page does not reload
-/tmp/tmp.wYpEzvpqPw/main/tests/harness.py:598: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/root/wt/tests/harness.py:610: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   never saved page by page: only the pages posting a behaviour-changing default reload
@@ -801,11 +804,17 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   a list longer than 32 rooms is refused; null control, 32 saves
   ok   after its rooms error the same flow finishes
   ok   the room page offers the lift toggle, off by default, and saves it on beside the list; null control, the untouched page above stored no toggle
-  ok   every rendered flow error is recovered on the flow that rendered it
-RESULT flow_error_triples=56
-RESULT unrecovered_flow_error_triples=0
 
-RESULT flow_checks_covered=580/580 checks
+-- options: the fault-text list saves up to four entities and refuses a fifth
+  ok   the telemetry page renders the fault-text field, a selector taking several sensor, text or input_text entities, beside the fault alarm
+  ok   five fault-text entities are refused with their own error; null control, four save
+  ok   an emptied submit clears the stored list (null control: the list was stored)
+  FAIL every rendered flow error is recovered on the flow that rendered it  [options/entities_pump/too_many_fault_text_entities]
+RESULT flow_error_triples=57
+RESULT unrecovered_flow_error_triples=1
+UNRECOVERED options/entities_pump/too_many_fault_text_entities
+
+RESULT flow_checks_covered=586/586 checks
 RESULT step_user happy=7/7 error_branches=11/11
 RESULT step_user_sensors happy=2/2 error_branches=0/0
 RESULT step_finish_setup happy=5/5 error_branches=0/0
@@ -826,7 +835,7 @@ RESULT step_opt_advanced happy=3/3 error_branches=0/0
 RESULT step_opt_setup_overview happy=4/4 error_branches=0/0
 RESULT step_opt_entities happy=50/50 error_branches=7/7
 RESULT step_opt_entities_metering happy=39/39 error_branches=2/2
-RESULT step_opt_entities_pump happy=34/34 error_branches=0/0
+RESULT step_opt_entities_pump happy=37/37 error_branches=0/0
 RESULT step_opt_comfort happy=7/7 error_branches=4/4
 RESULT step_opt_hot_water happy=17/17 error_branches=9/9
 RESULT step_opt_hot_water_tank happy=11/11 error_branches=3/3
@@ -853,4 +862,4 @@ RESULT reconfigure_round_trips=1
 RESULT options_close_round_trips=1
 RESULT duplicate_aborts=1
 
-ALL 684 checks PASSED
+1 of 690 checks FAILED

@@ -592,7 +592,7 @@ Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected
   ok   every listed fallback is the value the form shows while the key is absent
 
 -- options: an untouched page does not reload
-/home/user/heatpump_optimizer/tests/harness.py:598: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/root/wt/tests/harness.py:610: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   never saved page by page: only the pages posting a behaviour-changing default reload
@@ -808,11 +808,11 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 -- options: the fault-text list saves up to four entities and refuses a fifth
   ok   the telemetry page renders the fault-text field, a selector taking several sensor, text or input_text entities, beside the fault alarm
   ok   five fault-text entities are refused with their own error; null control, four save
+  ok   after its entities_pump error the same flow finishes
   ok   an emptied submit clears the stored list (null control: the list was stored)
-  FAIL every rendered flow error is recovered on the flow that rendered it  [options/entities_pump/too_many_fault_text_entities]
+  ok   every rendered flow error is recovered on the flow that rendered it
 RESULT flow_error_triples=57
-RESULT unrecovered_flow_error_triples=1
-UNRECOVERED options/entities_pump/too_many_fault_text_entities
+RESULT unrecovered_flow_error_triples=0
 
 RESULT flow_checks_covered=586/586 checks
 RESULT step_user happy=7/7 error_branches=11/11
@@ -862,4 +862,4 @@ RESULT reconfigure_round_trips=1
 RESULT options_close_round_trips=1
 RESULT duplicate_aborts=1
 
-1 of 690 checks FAILED
+ALL 691 checks PASSED
