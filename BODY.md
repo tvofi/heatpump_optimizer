@@ -19,6 +19,18 @@ Alternatives not taken:
 
 ## Head
 
+`d13c3e840a1cdc2b9dab8813449ecfe9a7d6c97a` is the code head of this handoff: it merges `origin/main` `dc2b2bab3164` (#3875) into `76b84e40a7`, and its one conflict, the `.store` import in `boost.py`, keeps both sides' names (`admitted` from main, `save_held` from this branch) with every other hunk of each side unchanged.
+
+The group's seven live roster carries, each unchanged by this head:
+
+- Carry 0: roster carry 0 of R11-SEAM-cycle-reporting, item a1204677 (D15 bundle fields), addressed to R11-CARRY-DRAWMAP part F. This branch's diff touches none of `last_pass`, `last_sweep`, `pass_record`, `diagnostics_view` or a debug-week trace, so the carry is not answered here and stays open on the roster (`origin/handoff/audit-r11-roster`) for part F.
+- Carry 1: roster carry 1 of R11-SEAM-cycle-reporting, item d3edeb82 (owner rulings S1-S4), addressed to R11-CARRY-DRAWMAP part F. This branch's diff touches none of `last_pass`, `last_sweep`, `pass_record`, `diagnostics_view` or a debug-week trace, so the carry is not answered here and stays open on the roster (`origin/handoff/audit-r11-roster`) for part F.
+- Carry 2: roster carry 2 of R11-SEAM-cycle-reporting, item 130d54ae (P7 row-size re-measure), addressed to R11-CARRY-DRAWMAP part F. This branch's diff touches none of `last_pass`, `last_sweep`, `pass_record`, `diagnostics_view` or a debug-week trace, so the carry is not answered here and stays open on the roster (`origin/handoff/audit-r11-roster`) for part F.
+- Carry 3: roster carry 3 of R11-SEAM-cycle-reporting, item 1d00d09f (pass-record hook), addressed to R11-CARRY-DRAWMAP part F. This branch's diff touches none of `last_pass`, `last_sweep`, `pass_record`, `diagnostics_view` or a debug-week trace, so the carry is not answered here and stays open on the roster (`origin/handoff/audit-r11-roster`) for part F.
+- Carry 4: roster carry 4 of R11-SEAM-cycle-reporting, item 8525a020 (debug-week store wear), addressed to R11-CARRY-DRAWMAP part F. This branch's diff touches none of `last_pass`, `last_sweep`, `pass_record`, `diagnostics_view` or a debug-week trace, so the carry is not answered here and stays open on the roster (`origin/handoff/audit-r11-roster`) for part F.
+- Carry 5: roster carry 5 of R11-SEAM-cycle-reporting, item 54019afd (sweep-row weighting), addressed to R11-CARRY-DRAWMAP part F. This branch's diff touches none of `last_pass`, `last_sweep`, `pass_record`, `diagnostics_view` or a debug-week trace, so the carry is not answered here and stays open on the roster (`origin/handoff/audit-r11-roster`) for part F.
+- Carry 6: roster carry 6 of R11-SEAM-cycle-reporting, item e97e01d8 (diagnostics_view rows; issue 3106), addressed to R11-CARRY-DRAWMAP part F. This branch's diff touches none of `last_pass`, `last_sweep`, `pass_record`, `diagnostics_view` or a debug-week trace, so the carry is not answered here and stays open on the roster (`origin/handoff/audit-r11-roster`) for part F.
+
 `ce185aeaf998928227a9e88076ae72a0ae9e3c34` is the code head of this handoff, merged into #3845's branch. It is four commits on `fa1a024782`, the merge of `origin/main` `608c95decc94` (main's tip at 2026-11-22T10:56Z) into `f418d51c77`, which merged with no conflict but `tests/structure_budgets.json`, resolved by the ledger driver. At `fa1a024782`, `python3 tests/structure.py` printed `FAIL module_excess_loc 21802 > 21779 (+23)`: this branch's growth past `MODULE_LOC_LIMIT` is coordinator.py +19, config_flow.py +1, optimizer.py +2 and pump_arbiter.py +1. It is paid in production code, not by a raise:
 
 - `eded0bde02` moves the #13 peak-tariff option parsers, `_peak_tariff_months` and `_peak_tariff_hours`, from `coordinator.py` to `tariff.py` as `peak_tariff_months` and `peak_tariff_hours`, beside `CapacityTariff`, whose options they parse. Their bodies are unchanged, and `tariff.py` now imports `GridFeeError` and `parse_month_range` from `grid_fee.py`, which imports nothing from `tariff.py`. `coordinator.py` drops 39 lines, and `tariff.py` stays under the limit at 1262. The five mutation-ledger rows of the two parsers move with their sites (`tests/mutation_ledger/{killed_by,survivor_triage}/tariff.py/`), each keeping its digest, with its anchor re-keyed to `tariff.py:peak_tariff_*`. `mutation_table.completeness_problems` over `tariff.py` and `coordinator.py` reports 0 problems. The R10-FEEDS flood probe in `tests/features.py` calls `tariff_mod.peak_tariff_*`, and `tests/entities.py`'s unlatched-WARNING allowance names `("tariff.py", "peak_tariff_*")`.
@@ -143,11 +155,6 @@ None of the light harnesses below reads these.
     - `features.py`: `ALL 6000 FEATURE CHECKS PASSED`.
   - The block at 7dd02c4135 prints `ALL 12 FEATURES BLOCK PASSED`, and the exception-translation section (`features_block.py` from "# D10-17 (#217, …" to "# #226: …", prelude from `--emit-prelude`) prints `ALL 33 FEATURES BLOCK PASSED`.
 - **Structure.** `python3 tests/structure.py --record`, in its own commit with the reason, moves `class_excess_loc` 17322 → 17318 and `max_class_loc` 7873 → 7865. No other row moves.
-<!-- figure-block: scope-line mb=608c95decc94a8240565aba68fa8f0e1dece8c3d head=ce185aeaf998928227a9e88076ae72a0ae9e3c34 -->
-~~~text
-MODE: SCOPED -- 28 script(s) run, 5 scoped out.
-~~~
-<!-- /figure-block -->
 
 ## Architecture score
 
