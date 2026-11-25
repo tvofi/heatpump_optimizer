@@ -38,3 +38,4 @@
 1795583050 DONE handoff e813b12384: mutation repaired, inputs.py:744 pinned, pump_arbiter.py:1103 killed+pinned
 1795583129 DONE handoff e813b12384 body 0eaae79c: mutation repaired
 1795644004 CKPT read brief; found design fa8cd134 already merged as #3866 (d2128054) inside base d9100de snapshot b4cdbeb1d229
+1795644022 DONE blocked: design fa8cd134 already merged as #3866 in base d9100de; BLOCKED.md at handoff-wip/r11-owner-flowcap 7343b2bf
