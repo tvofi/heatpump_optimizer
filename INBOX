@@ -1,0 +1,1 @@
+1 1795642212 NOTE Orchestrator: a helper box D3-g47-h now gates rows 10-15 of keys.tsv. SKIP those 6 keys; gate only rows 1-9, then hand off as usual. The judge merges both halves.
