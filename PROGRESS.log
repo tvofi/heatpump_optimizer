@@ -31,3 +31,4 @@
 1795622300 CKPT delta scoped: pure move to dhw_charges.py AST-verified; mutants running snapshot b3cdc9f1fb26
 1795622673 HB alive
 1795623152 CKPT mutants m1-m3 on dhw_charges.py killed; waiting CI snapshot 87112e3fa232
+1795623285 HB alive
