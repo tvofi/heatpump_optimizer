@@ -1,0 +1,13 @@
+diff --git a/tests/stress.py b/tests/stress.py
+index 6abfe4331b..a8b0a299eb 100644
+--- a/tests/stress.py
++++ b/tests/stress.py
+@@ -5411,7 +5411,7 @@ if __name__ == "__main__":
+         return [
+             label for label, entry in budget_table.items()
+             if isinstance(entry, dict)
+-        ]
++        ][:6]
+ 
+     if record_mode:
+         mem_labels = [label for label, _ in _by_cost]

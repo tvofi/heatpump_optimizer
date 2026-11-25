@@ -1,0 +1,3 @@
+tests/stress.py:5599:            "the memory pass probes every recorded row",
+grep: tests/__pycache__/stress.cpython-314.pyc: binary file matches
+dev/audit/rounds/round4/D9/h7_memory_gate.py:72:    RESULT scenarios_memory_probed=54        (6 until D9-s3-01: the gate probes every recorded row)
