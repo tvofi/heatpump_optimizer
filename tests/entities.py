@@ -3961,6 +3961,18 @@ def _p2_registry(sources):
                      "the explicit answer is stored and takes its verdict from "
                      "dhw_enabled_from_config",
              }),
+        # D1-s3-04: a killed worker's reap. The transport arm waited without a
+        # bound, holding the lock every peer's solve waits on, where its
+        # timeout sibling bounded the same wait.
+        dict(fact="killed_worker_reap", finding="D1-s3-04",
+             match=_p2_match_node(
+                 (ast.Call,), r"^worker\.wait\(",
+                 lambda n: getattr(n.func, "attr", None) == "wait"),
+             owners=["coordinator.py::_reap_killed"], dispositions={
+                 "coordinator.py::_shutdown_process_pool":
+                     "the stop's own reap, outside the lock: terminate's bounded "
+                     "wait, and at interpreter exit #533's kill and timeout-less "
+                     "wait, when no peer's solve is left to wait"}),
         # D1-s5-01: a state's age. inputs.state_stamp owns the stamp rule
         # (last_reported first, #775); age_of re-derived it.
         dict(fact="state_age", finding="D1-s5-01",
@@ -4387,6 +4399,15 @@ _P2_CENSUSES = {
     "zoned_store_credit_live": (
         "tests/features.py",
         "zoned store census: the terminal cost credits the tank in every zoning (#2500)"),
+    # R11-SEAM-store (D15-s1-04, D15-s1-05): a stored field's domain is
+    # store.DOMAINS's -- every field a saver writes lies in it, and every loader
+    # keeps what its saver wrote; Arm 6 drives every store's real saver and loader.
+    "store_domain_declares_writers": (
+        "tests/finite_boundary.py",
+        "every store the rich seed writes is seeded, and every field it writes is declared"),
+    "store_loader_keeps_writers": (
+        "tests/finite_boundary.py",
+        "the healthy rich seed round-trips unchanged through every loader and saver"),
 }
 
 
@@ -17284,7 +17305,10 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
         script = td / "drive.sh"
         script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=${JOBS:-1}; LANE=x; step=0\n%s\n\"$@\"\n"
                           % (sys.executable, fns))
-        env = {k: v for k, v in _os.environ.items() if not k.startswith("HPO_GATE")}
+        # Not the CI job's event or scope: on a pull request lane_stress skips
+        # stress.py (#3885), and this pin is about the lease, not the skip.
+        env = {k: v for k, v in _os.environ.items()
+               if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
         env["HPO_GATE_LOCK_DIR"] = str(lock)
         drive = lambda jobs, *cmd: _subprocess.Popen(
             ["bash", str(script), *cmd], cwd=td, env={**env, "JOBS": jobs},
@@ -17313,6 +17337,37 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_run_sh_leases_stress()
 R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
+def _gl_stress_off_pull_requests() -> dict[tuple[str, str], tuple[bool, bool]]:
+    """#3885: run.sh's own lane_stress, sourced and driven against the stub
+    tree under each (HPO_CI_EVENT, GATE_SCOPE): (stress.py ran, the SKIP line
+    was printed). Only a pull request under a scoped gate skips it."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|in_scope|run|run_always|leased|skip|lane_stress)\(\) \{.*?^\}\n", text))
+    out = {}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=1; LANE=x; step=0\n%s\n\"$@\"\n"
+                          % (sys.executable, fns))
+        base = {k: v for k, v in _os.environ.items()
+                if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
+        base["HPO_GATE_LOCK_DIR"] = str(Path(tds) / "lock")
+        for event, scope in (("pull_request", "auto"), ("pull_request", "full"), ("push", "auto"), ("", "auto")):
+            (td / "stress.ran").unlink(missing_ok=True)
+            env = {**base, "GATE_SCOPE": scope, **({"HPO_CI_EVENT": event} if event else {})}
+            r = _subprocess.run(["bash", str(script), "lane_stress"], cwd=td, env=env, timeout=120,
+                                capture_output=True, text=True)
+            out[(event or "local", scope)] = ((td / "stress.ran").exists(), "SKIP: tests/stress.py" in r.stdout)
+    return out
+
+
+_gl_off = _gl_stress_off_pull_requests()
+R.check("run.sh's lane_stress skips stress.py on a pull request under a scoped gate, and runs it under "
+        "GATE_SCOPE=full, on a push and locally (#3885)",
+        _gl_off == {("pull_request", "auto"): (False, True), ("pull_request", "full"): (True, False),
+                    ("push", "auto"): (True, False), ("local", "auto"): (True, False)}, str(_gl_off))
 
 
 def _gl_run_sh_wait_unrun() -> dict[str, tuple[bool, str]]:
@@ -23009,7 +23064,8 @@ _D5 = [st for st in _CODEQL_STEPS
        if "codeql_scope.py extracted" in str(st.get("run"))]
 R.check(
     "codeql.yml carries the D-5 extracted-files check, on push, after the analysis",
-    len(_D5) == 1 and _D5[0].get("if") == "github.event_name == 'push'"
+    # A light push's skipped leg uploads main's stand-in (#3885): it extracted nothing to check.
+    len(_D5) == 1 and _D5[0].get("if") == "github.event_name == 'push' && steps.standin.outputs.ok != 'true'"
     and _CODEQL_STEPS.index(_D5[0]) > max(
         i for i, st in enumerate(_CODEQL_STEPS)
         if str(st.get("uses", "")).startswith("github/codeql-action/analyze@")),
@@ -29997,7 +30053,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery", "selftests"],
+    == ["base", "light", "machinery", "selftests", "stand_down"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
