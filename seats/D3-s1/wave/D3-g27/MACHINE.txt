@@ -8,3 +8,13 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 load1: 0.84
 note: $HOME/venv-ci is a symlink to /opt/hpo/venv-ci (this container's venv-ci location)
+
+re-fire 2026-11-25T00:51:25Z (new container, resumed from 4eb777948ba2)
+nproc: 4
+cpu:  Intel(R) Xeon(R) Processor @ 2.10GHz
+               total        used        free      shared  buff/cache   available
+Mem:           16087         783       14026          12        1549       15304
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1: 0.70
