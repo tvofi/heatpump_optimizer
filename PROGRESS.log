@@ -20,3 +20,4 @@
 1795584874 CKPT extraction arbiter_record.py pushed f455d35490; paying coord_footprint +14 next snapshot 6929c51e15ff
 1795585081 CKPT coord_footprint paid 2517<=2521 (dS +0.0023), pushed; features.py full run in flight snapshot f9002f68b378
 1795585384 HB alive
+1795585403 CKPT fixed finite_boundary night_before domain, kw publish call, docs counts; pushed; full features/entities in flight snapshot e24003575b64
