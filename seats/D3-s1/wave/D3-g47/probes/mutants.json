@@ -1,0 +1,77 @@
+{
+ "d2463d81efddd380": [
+  2998,
+  "    if draw_kw <= 0.0:",
+  "    if draw_kw < 0.0:"
+ ],
+ "0aa9e2e025b11284": [
+  3003,
+  "    t_in = min(t_in, dhw_setpoint)",
+  "    t_in = (t_in)"
+ ],
+ "41063896cdb5ea71": [
+  3004,
+  "    span = max(dhw_setpoint - inlet_temp, 1e-6)",
+  "    span = (dhw_setpoint - inlet_temp)"
+ ],
+ "b27ac4781778a34a": [
+  3073,
+  "    if base_u <= 1e-6 or capacity <= 1e-6:",
+  "    if base_u <= 1e-6 or capacity < 1e-6:"
+ ],
+ "bed063118e10d683": [
+  3073,
+  "    if base_u <= 1e-6 or capacity <= 1e-6:",
+  "    if base_u < 1e-6 or capacity <= 1e-6:"
+ ],
+ "721aca562f60ab2c": [
+  3080,
+  "    if not np.isfinite(target):",
+  "    if False:"
+ ],
+ "09412cb43997a47f": [
+  2851,
+  "    frsi = min(max(frsi, 0.3), 0.98)",
+  "    frsi = min((frsi), 0.98)"
+ ],
+ "4c3cfbe1e4ad2a14": [
+  2851,
+  "    frsi = min(max(frsi, 0.3), 0.98)",
+  "    frsi = (max(frsi, 0.3))"
+ ],
+ "28b6107a17d9b814": [
+  2852,
+  "    rh = min(max(indoor_rh_percent, 0.0), 100.0) / 100.0",
+  "    rh = min((indoor_rh_percent), 100.0) / 100.0"
+ ],
+ "5b6489f7860d73b1": [
+  2852,
+  "    rh = min(max(indoor_rh_percent, 0.0), 100.0) / 100.0",
+  "    rh = (max(indoor_rh_percent, 0.0)) / 100.0"
+ ],
+ "1111a3e5d9c44e3f": [
+  2854,
+  "    if e <= 1e-9:",
+  "    if e < 1e-9:"
+ ],
+ "67a0550ee998a213": [
+  2854,
+  "    if e <= 1e-9:",
+  "    if False:"
+ ],
+ "75b300b2bc47485f": [
+  2856,
+  "    t_surface_min = dew_point_for_pressure(e / max(surface_rh_limit, 0.05))",
+  "    t_surface_min = dew_point_for_pressure(e / (surface_rh_limit))"
+ ],
+ "92c063e90dafcc35": [
+  2903,
+  "    if hp_temp > flow_set:",
+  "    if hp_temp >= flow_set:"
+ ],
+ "6fa8436f09ad7e06": [
+  2906,
+  "        span = max(flow_set - floor_temp, 1e-6)",
+  "        span = (flow_set - floor_temp)"
+ ]
+}
