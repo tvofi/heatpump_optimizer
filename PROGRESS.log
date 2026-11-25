@@ -23,13 +23,12 @@
 1795575881 HB alive
 1795576485 HB alive
 1795577088 HB alive
-1795577391 HB alive
-1795577436 CKPT merged PR head 1aa635 onto wip bc71899 -> 39b182d75f snapshot 6ba2802caadf
-1795577995 HB alive
-1795578432 CKPT kills verified (M09 M10 M12 at duty_legs 184/146); entities/structure/features green at 39b182d7; prepr running snapshot 6eccc4c47da4
-1795578601 HB alive
-1795579198 HB alive
-1795579801 HB alive
-1795580405 HB alive
-1795581001 HB alive
-1795581605 HB alive
+1795577686 HB alive
+1795578290 HB alive
+1795578622 CKPT merged PR head 1aa635d into repair at f8b8ad98; re-running gate snapshot e4497944799c
+1795578894 HB alive
+1795579491 HB alive
+1795580096 HB alive
+1795580700 HB alive
+1795581299 HB alive
+1795581903 HB alive
