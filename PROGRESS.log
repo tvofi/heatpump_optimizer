@@ -4,3 +4,4 @@
 1795609288 CKPT archscore NULL, doc_claims/deployment_shape/structure ok; awaiting mutants+CI snapshot b42ac3468847
 1795609609 HB alive
 1795610213 HB alive
+1795610785 DONE verdict pushed probe/rev-3883-070b2082 110e9610: blocked mutation-vacuous (_pass_record gate unpinned)
