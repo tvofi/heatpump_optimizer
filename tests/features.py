@@ -103735,6 +103735,46 @@ R.check(
     str(_sa_gap.approach.age_h(_sa_gap_t)),
 )
 
+# The learner's boundaries. Three runs (MIN_COUNT) already read a profile. An
+# ask exactly at the floor's tolerance is an entry sample; a draw exactly at
+# standby is no ramp sample. An interval starting exactly one interval after
+# the last ended is no gap, so the run continues; a gap inside a live run
+# leaves its age unknown. A sample at the age the profile covers is outside it.
+def _sa_obs(prof, drawn, space, t, **kw):
+    return prof.observe(drawn, (space, 0.0), 0.53, t, t + 300.0, sample=True, standby_kw=0.25,
+                        tolerance=0.15, config=(0.53, 3.0), **kw)
+
+
+_sa_three = _sa_dr.solve_approach(_sa_learned(runs_n=3)[0], _SA_P, _sa_learned(runs_n=3)[1])
+_sa_b = _sa_dr.DrawRange.from_dict(_sa_d.as_dict()).approach
+_sa_bt = _sa_t
+_sa_bn = len(_sa_b.entry[0])
+_sa_obs(_sa_b, 1.25, (1.0 + 0.15) * 0.53, _sa_bt)
+_sa_at_edge = len(_sa_b.entry[0]) == _sa_bn + 1
+_sa_cont = _sa_b.age_h(_sa_bt + 900.0)
+_sa_obs(_sa_b, 1.2, 0.53, _sa_bt + 600.0)
+_sa_cont_after = _sa_b.age_h(_sa_bt + 900.0)
+_sa_obs(_sa_b, 1.2, 0.53, _sa_bt + 7200.0)
+_sa_gap_age = _sa_b.age_h(_sa_bt + 7500.0)
+_sa_r0 = _sa_dr.DrawRange.from_dict(_sa_d.as_dict()).approach
+_sa_obs(_sa_r0, 0.6, 0.53, _sa_t)
+_sa_rk = len(_sa_r0.ramp[0])
+_sa_standby = _sa_obs(_sa_r0, 0.25, 0.0, _sa_t + 300.0)
+_sa_cov = _sa_dr.DrawRange.from_dict(_sa_d.as_dict()).approach
+_sa_obs(_sa_cov, 1.25, 0.53, _sa_t)
+_sa_edge_age = _sa_a.entry.size * 5 * 60.0
+_sa_kinds = [_sa_obs(_sa_cov, 0.6, 0.53, _sa_t + age) for age in np.arange(300.0, _sa_edge_age + 1.0, 300.0)][-2:]
+R.check(
+    "approach learner boundaries: three runs read a profile; an ask at the tolerance's edge is an entry sample; a "
+    "draw at standby is no ramp sample; an interval one interval after the last is no gap; a gap in a live run "
+    "reads its age unknown; the last covered bin is inside and the next is not",
+    _sa_three is not None and _sa_at_edge and _sa_cont_after is not None and _sa_cont_after > 0.0
+    and _sa_gap_age is None and _sa_standby is None and len(_sa_r0.ramp[0]) == _sa_rk
+    and _sa_kinds == ["inside", None],
+    f"three {_sa_three is not None} edge {_sa_at_edge} cont {_sa_cont_after} gap {_sa_gap_age} "
+    f"standby {_sa_standby} kinds {_sa_kinds}",
+)
+
 # 4. The ramp-down: the first pause interval after a space run is a ramp sample and
 # no idle reading (design note s3); with no run before it, it is the idle store's.
 _SA_GATE = _sa_NS(written_c=20.0, gate_c=20.0, ceiling_c=45.0)
