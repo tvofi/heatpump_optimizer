@@ -344,7 +344,7 @@ disposed() { ledger disposed "$1" "$2"; }  # the orchestrator ran `dispose` on t
 dispose() { # dispose <ref> <sha>: a probe or handoff ref at that sha is handled; it is OWED again once it moves
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
   [ $# = 2 ] || { echo "usage: cloud_relay.sh dispose <ref> <sha40>" >&2; return 2; }
-  case $1 in refs/heads/probe/?*|refs/heads/handoff/?*|refs/heads/handoff-body/?*|refs/heads/review/?*) ;; *) die "'$1' is not a refs/heads/probe/, handoff/, handoff-body/ or review/ ref"; return;; esac
+  case $1 in refs/heads/probe/?*|refs/heads/handoff/?*|refs/heads/handoff-body/?*|refs/heads/handoff-wip/?*|refs/heads/review/?*) ;; *) die "'$1' is not a refs/heads/probe/, handoff/, handoff-body/, handoff-wip/ or review/ ref"; return;; esac
   printf '%s' "$2" | grep -Eq '^[0-9a-f]{40}$' || { die "sha must be 40 lowercase hex"; return; }
   ledger dispose "$1" "$2" relay-dispose >/dev/null || return $?
   local lv; lv=$(relay_log).level   # owed no longer: off the level now, not at the next pass
@@ -730,7 +730,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     fi
     # Its output is kept until it ends, so a failure records its reason: the last REFUSE line, else the last line.
     # A body-only move skipped the review freeze, so update_pr.sh refuses one that would move the head.
-    HPO_UPDATE_BODY_ONLY=$bonly pr_own_group "${upd[@]}" "$br" "$([ -n "$bonly" ] && echo - || echo "$hs")" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
+    # Scoped prepr for relay updates (tvofi 2026-11-15: openers and updates run prepr scoped; CI is the authority). Local fix, P-R11-08.
+    PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-1} PREPR_SKIP_CODE=${PREPR_SKIP_CODE:-1} HPO_UPDATE_BODY_ONLY=$bonly pr_own_group "${upd[@]}" "$br" "$([ -n "$bonly" ] && echo - || echo "$hs")" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
     [ -n "${HPO_RELAY_UPDATE:-}" ] || rm -rf "$state/relay-tools.lock"
     cat "$bd/update.out" >&2
@@ -913,6 +914,7 @@ owed_red_text() { # <topic> <BLOCKED.md text>: prints `owed red text ... <file>`
       [ -n "$name" ] || continue
       awk -F'\t' -v n="$name" '$1 == n { c = $2 } END { print "- " n ": " (c == "" ? "no failing run at the head" : c) }' "$d/failing.tsv" 2>/dev/null
       awk -v n="$name" 'index($0, n "\t") == 1 { f = 1; next } /^[^ ]/ { f = 0 } f' "$d.out"
+    disposed "$ref" "$sha" && continue  # mut:folddispose -- the orchestrator disposed this stop at this sha (local fix, P-R11-08); owed again once it moves
     done <<< "$names"; } > "$f"
   echo "owed red text for the seat's next message: $f"
 }
@@ -1261,6 +1263,7 @@ EOF
   chk "--interval 0 is refused" 2 watch --interval 0
   chk "--once makes one pass and returns" 0 watch --once
   mk 5 $h $h $n; rm -f "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused"; : > "$LOG"; CONFIRM=1; HPO_RELAY_CONFIRM=$cstub
+  chk "dispose takes a handoff-wip ref (a blocked stop)" 0 dispose refs/heads/handoff-wip/scan-x "$PX"
   probe_arm >/dev/null 2>&1
   chk "a watch pass with --confirm confirms and logs POSTED" 0 grep -q "^POSTED .* 5 " "$LOG"
   CONFIRM=
