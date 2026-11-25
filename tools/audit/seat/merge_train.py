@@ -3214,14 +3214,12 @@ class Train:
         `app_push.sh` pushes only a committed tip, and a detached auto-merge
         sha is not the committed tip of anything (#1943).
 
-        A cross-repository head (`fork_head`) reads nothing of `origin/<branch>`:
-        a fork names its own branch, and ours of that name is another head. Its
-        worktree is DETACHED at refs/pull/<pr>/head -- so no local branch of
-        ours is reset and no holder is ever freed for it -- and remerge_main.sh
-        is told the head repository the pulls API names (--head-repo), which
-        moves the fork's branch by GitHub's own update-branch. The merge is
-        automatic or the entry parks naming the fork: the train never
-        resolves, and no approval of ours rides on what it pushed."""
+        A cross-repository head (`fork_head`) that does not contain main is
+        never recarried: no identity of ours merges into, pushes to or
+        `update-branch`es a contributor's fork (tvofi, 2026-11-22: "DO NOT MERGE
+        ANYTHING ON ANOTHER USERS FORK"). The entry parks [OUTSIDE] naming the
+        fork, before any fetch, worktree or call to remerge_main.sh, until the
+        contributor has merged main into their own branch."""
         pr, v = int(item["pr"]), item["verdict"]
         if not is_sha(v):
             raise Stop("queue", f"verdict '{v}' is not a 40-hex sha")
@@ -3239,17 +3237,13 @@ class Train:
         if not self.contains_main(h) and not self.merges_as_is(item, h):
             self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
             fork = self.fork_head(pr)
-            br = fork[1] if fork else item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
+            if fork:
+                raise Stop("recarry", f"the fork head {fork[0]}:{fork[1]} does not contain main; parked: no identity of ours "
+                           "merges into, pushes to or updates a contributor's fork, so the contributor brings the branch up "
+                           "to date with main, and the new head is verdicted by their reviewer (decision 0017)", cls=OUTSIDE)
+            br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
-            if fork and not wt.exists():
-                ref = f"refs/remotes/pull/{pr}/head"
-                self.run(["git", "fetch", "-q", "origin", f"+refs/pull/{pr}/head:{ref}"])
-                if not self.ok("git", "worktree", "add", "-q", "--detach", str(wt), ref):
-                    raise Stop("recarry", f"could not make a detached worktree at {wt} from refs/pull/{pr}/head "
-                               f"(the fork head {fork[0]}:{br})", cls=OUTSIDE)
-                if not item.get("worktree"):
-                    self.made_wts.append(wt)
-            elif not wt.exists():
+            if not wt.exists():
                 self.run(["git", "fetch", "-q", "origin", br])
                 # The worktree must hold the pull request's BRANCH, not a
                 # detached HEAD: remerge_main.sh's app_push pushes only a
@@ -3266,19 +3260,11 @@ class Train:
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
             # The recarry itself takes 5-15 min inside app_push's prepr and logs
             # only on completion; this line makes it visible mid-flight.
-            self.log(f"#{pr} recarry START ({'fork ' + fork[0] + ', ' if fork else ''}branch {br})")
-            code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body),
-                                *(["--head-repo", fork[0]] if fork else [])])
-            if "MERGE CONFLICT" in o and fork:
-                raise Stop("recarry", f"main does not merge into the fork head {fork[0]}:{br} without a resolution; "
-                           "parked: the train never resolves on a fork, its owner merges main and the "
-                           "contributor's reviewer verdicts the new head (decision 0017)", cls=OUTSIDE)
+            self.log(f"#{pr} recarry START (branch {br})")
+            code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
             failed = next((ln.strip() for ln in o.splitlines() if ln.startswith("REMERGE FAILED")), None)
-            if failed and fork and " at push" in failed:
-                raise Stop("recarry", f"{failed}; parked: no identity of ours moved the fork's branch, and no "
-                           "personal token is tried without the owner (decision 0017)", cls=OUTSIDE)
             if failed:  # carry f7d2bf7c: git failed before any conflict, so nothing is owed a fixer
                 raise Stop("recarry", f"{failed}; run the train again once git answers")
             if "PUSHED" not in o:
@@ -6386,8 +6372,8 @@ def _self_test() -> int:
     rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
     check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
           re.search(r'bash "\$_push" --recarry ', rm) is not None and "RECARRY|" in rm)
-    check("remerge_main.sh takes a fork head's repository as --head-repo and moves it by update-branch, never app_push.sh",
-          '"${1:-}" = --head-repo' in rm and "/update-branch" in rm and "expected_head_sha" in rm)
+    check("remerge_main.sh refuses --head-repo before it fetches or pushes, and holds no update-branch call",
+          '"${1:-}" = --head-repo' in rm and "exit 1" in rm and "/update-branch" not in rm and "expected_head_sha" not in rm)
 
     # DECISION 0017, PART 2: a head that is a fork's. tools/pr/outside.py is part
     # 1's and owns every fact. The train makes two calls of it: `pull_facts(repo,
@@ -6699,55 +6685,30 @@ def _self_test() -> int:
                                                       carried_item.get("carry_refused")), approval_carry=True)
     check("fork head: --approval-carry carries nothing on a cross-repository head, its reason left for the park line",
           got[0] is None and "cross-repository" in got[1] and not approved(calls))
-    # The main merge: worktree from the pull ref, push target from the pulls API, park on conflict.
-    w = {"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "heads": [H0, H1],
-         "remerge": f"RECARRY: fork head {FORK}:{FREF} merged with main\nPUSHED {H1} to {FORK}:{FREF}"}
-    w["gate"].at = [H1]  # the one step 6 is at the merged head
+    # The main merge: a fork head is never recarried (tvofi, 2026-11-22), a head of ours is.
+    def untouched(calls):
+        return not any(("remerge_main.sh" in " ".join(c) or "update-branch" in " ".join(c) or "--head-repo" in c
+                        or c[:2] == ["git", "push"] or c[:3] == ["git", "worktree", "add"]
+                        or (c[:2] == ["git", "fetch"] and any("refs/pull" in x for x in c))) for c in calls)
+    w = {"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "heads": [H0, H1]}
     rc, lines, calls = go(w)
-    rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
-    check("fork head recarry: the worktree is DETACHED at refs/pull/<pr>/head, nothing of origin/<branch> is fetched "
-          "or reset, and remerge_main.sh gets the pulls API's branch and --head-repo; merged at the new head",
-          rc == 0 and ["git", "fetch", "-q", "origin", "+refs/pull/7/head:refs/remotes/pull/7/head"] in calls
-          and ["git", "worktree", "add", "-q", "--detach", "/nonexistent-wt", "refs/remotes/pull/7/head"] in calls
-          and not any("-B" in c or f"origin/{FREF}" in c or "origin/fix/x" in c for c in calls)
-          and rm_argv[-5:] == ["/nonexistent-wt", FREF, rm_argv[-3], "--head-repo", FORK]
-          and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
-          and f"#7 recarry START (fork {FORK}, branch {FREF})" in lines
-          and w["gate"].asked == [("o/r", 7, "origin/main")])
-    for given, what in ((None, "one it made is this run's to release"), ("/nonexistent-wt", "one it was handed is not")):
-        made: list = []
-        it = {k: v for k, v in item.items() if k != "worktree" or given}
-
-        def recarried(t):
-            t.recarry(dict(it))
-            made.extend(str(x) for x in t.made_wts)
-            return str(t.state / "wt" / "7")
-        got, calls, _ = seat({"pull": THEIRS, "contains": [False], "heads": [H0, H1]}, recarried)
-        check(f"fork head recarry: the detached worktree -- {what}", made == ([] if given else [got]))
+    check("fork head recarry: a fork head that does not contain main parks [OUTSIDE] naming the fork and saying the "
+          "contributor brings the branch up to date; no pull-ref fetch, worktree, remerge_main.sh, update-branch or push; "
+          "nothing merged or approved",
+          rc == 1 and "[OUTSIDE]" in lines[-1] and FORK in lines[-1] and "contributor brings the branch up to date" in lines[-1]
+          and untouched(calls) and not merged(calls) and not approved(calls))
+    for out in ("MERGE CONFLICT 7", f"REMERGE FAILED 7 at push (fork {FORK}:{FREF})"):
+        rc, lines, calls = go({"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "remerge": out})
+        check(f"fork head recarry: whatever remerge_main.sh would answer (`{out.split(' (')[0]}`), it is never run",
+              rc == 1 and "[OUTSIDE]" in lines[-1] and untouched(calls))
     rc, lines, calls = go({"pull": OURS, "gate": OutsideStub(), "contains": [False], "heads": [H0, H1]})
     rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
     check("... null control: a head of ours is recarried from origin/<branch> on -B, with no --head-repo",
           rc == 0 and ["git", "worktree", "add", "-q", "-B", "fix/x", "/nonexistent-wt", "origin/fix/x"] in calls
           and "--head-repo" not in rm_argv and not any("refs/pull/7/head" in " ".join(c) for c in calls))
-    EVIL = 'a";$(id)'
-    rc, lines, calls = go({"pull": pull_of(FORK, EVIL), "gate": OutsideStub(), "contains": [False], "heads": [H0, H1]})
-    rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
-    check("fork head recarry: a branch name of the contributor's choosing travels as ONE argv element, verbatim, "
-          "and into no git ref or refspec", EVIL in rm_argv and not any(EVIL in x for c in calls if c[0] == "git" for x in c))
-    for out, words in (("MERGE CONFLICT 7", ("does not merge into the fork head", "never resolves")),
-                       (f"REMERGE FAILED 7 at push (fork {FORK}:{FREF}): GitHub refused update-branch",
-                        ("at push", "no personal token"))):
-        rc, lines, calls = go({"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "remerge": out})
-        check(f"fork head recarry: `{out.split(' (')[0]}` parks [OUTSIDE] naming the fork; nothing merged or approved",
-              rc == 1 and "[OUTSIDE]" in lines[-1] and FORK in lines[-1] and all(x in lines[-1] for x in words)
-              and not merged(calls) and not approved(calls))
     rc, lines, calls = go({"pull": OURS, "gate": OutsideStub(), "contains": [False], "remerge": "MERGE CONFLICT 7"})
     check("... null control: a conflict on a head of ours is the fixer's, as before, and carries no [OUTSIDE]",
           rc == 1 and "[OUTSIDE]" not in lines[-1] and "that is a fixer's, and a re-review" in lines[-1])
-    rc, lines, calls = go({"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "wt_add": (128, "fatal")})
-    check("fork head recarry: a worktree that cannot be made at the pull ref parks [OUTSIDE]; no holder is freed for it",
-          rc == 1 and "[OUTSIDE]" in lines[-1] and "refs/pull/7/head" in lines[-1]
-          and not any("remerge_main.sh" in " ".join(c) or "--detach" in c and c[1] == "checkout" for c in calls))
     # Carries 16 and 26: check runs are keyed by commit, so a second pull request at the same head,
     # open or closed, leaves runs of the same names there. Which the platform cross-check counts:
     def rollup(*conclusions: str) -> dict:

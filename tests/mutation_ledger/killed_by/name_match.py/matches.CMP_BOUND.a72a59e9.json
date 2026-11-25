@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/name_match.py:matches CMP_BOUND a72a59e9",
+  "killed_by": "tests/features.py",
+  "old": "        runner_up = ranked[1][0] if len(ranked) > 1 else 0.0",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`runner_up = ranked[1][0] if len(ranked) >= 1 else 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
