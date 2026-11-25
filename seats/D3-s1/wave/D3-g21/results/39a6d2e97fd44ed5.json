@@ -41,7 +41,10 @@
   "python3 tests/stress.py"
  ],
  "failing_check_lines": [
-  "  FAIL shoulder: cheaper than holding the setpoint  [4.68 vs 3.96]"
+  "  FAIL no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)  [summer/1z/space/valve: 168248 production calls against the baseline's 187866 = 0.896x on work the counts vouch at 0.824x, over the 1.05x allowance (thermal_model.py +11156, optimizer.py +1612, mixing_valve.py +397); summer/2z/space/valve-direct-slab: 214887 production calls against the baseline's 266156 = 0.807x on work the counts vouch at 0.767x, over the 1.05x allowance (thermal_model.py +6535, optimizer.py +2382, mixing_valve.py +1463); interpreter work outside the named seams -- a per-row loop, an uncached property, a repeated pass -- moves no evaluation or simulate count and sits under the 3.0x CPU factor, so this is the only channel that sees it]",
+  "  FAIL shoulder: cheaper than holding the setpoint  [4.68 vs 3.96]",
+  "2 of 116 STRESS CHECKS FAILED",
+  ">>> FAILED: python3 tests/stress.py"
  ],
  "non_finding": "the suite fails on it: KILLED by python3 tests/stress.py (gate_rc 1)",
  "note": "stress.py's two red checks are behavioural, not timing: 'shoulder: cheaper than holding the setpoint [4.68 vs 3.96]' and the production-call-count channel on summer/1z/space/valve and summer/2z/space/valve-direct-slab; the probe's carried equivalent-candidate reading (classify.json) is overturned by the gate. Probe kept: /root/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_39a6d2e97fd44ed5.py"
