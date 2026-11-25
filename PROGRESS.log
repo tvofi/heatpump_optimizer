@@ -8,3 +8,4 @@
 1795614343 INIT r11-rev-3895
 1795614457 HB alive
 1795614499 CKPT brief, role pack, packet read snapshot e0a7710d1510
+1795614614 CKPT mutants run: 15 of 16 killed; F equivalence check; stalepin re-measure running snapshot 3c5e48496dcc
