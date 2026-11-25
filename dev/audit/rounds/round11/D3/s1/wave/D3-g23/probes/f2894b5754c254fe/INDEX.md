@@ -1,0 +1,1 @@
+- probe_f2894b5754c254fe.py (+ _g23_common.py): pins what _safety_release_steps returns when the DHW requirement is shorter than the DHW schedule; and how many real manual-plan release calls ever carry such a requirement. Output of the recorded run: probe_output.txt.

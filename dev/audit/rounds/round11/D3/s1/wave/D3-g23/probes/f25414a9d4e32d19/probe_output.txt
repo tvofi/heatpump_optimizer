@@ -1,0 +1,7 @@
+RESULT direct_long_guess_baseline=[1.0,2.0,5.0]
+RESULT direct_long_guess_mutant=IndexError
+RESULT null_equal_length_delta=0
+RESULT reach_length_mismatch_calls=0 of 14 (over 7 solves)
+RESULT thread_factor=1.001
+RESULT load1=4.99
+RESULT swapins=0

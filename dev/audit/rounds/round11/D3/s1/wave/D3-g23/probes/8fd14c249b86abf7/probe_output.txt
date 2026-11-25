@@ -1,0 +1,7 @@
+RESULT direct_off_step_at_floor_plus_0.1_release_baseline=([0],[])
+RESULT direct_off_step_at_floor_plus_0.1_release_mutant=([],[])
+RESULT null_deep_breach_delta=0
+RESULT optimize_off_block_differing_plans=11 of 55
+RESULT thread_factor=1.000
+RESULT load1=4.91
+RESULT swapins=0

@@ -1,0 +1,1 @@
+- probe_65e0ffa75d60d319.py (+ _g23_common.py): pins whether _settlement_caps returns a 'wood' cap (and its value, C) for a two-tank 4-way-valve house; and how many OptimizationResult fields optimize() changes with the wood tank starting at 99 C (a probe reading above the 95 C rating). Output of the recorded run: probe_output.txt.

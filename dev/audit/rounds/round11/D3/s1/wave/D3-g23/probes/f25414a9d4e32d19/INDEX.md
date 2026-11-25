@@ -1,0 +1,1 @@
+- probe_f25414a9d4e32d19.py (+ _g23_common.py): pins what _seed_pinned_guess returns for a guess longer than its bounds; and how many real solve calls pass a guess whose length differs from the bounds. Output of the recorded run: probe_output.txt.
