@@ -10,3 +10,17 @@ df -h $HOME:
 Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 python3: /root/venv-ci -> /opt/hpo/venv-ci (symlink; venv lives at /opt/hpo/venv-ci in this container)
+
+--- re-fire (resumed from handoff-wip e9db1f9881c5) ---
+date_utc: 2026-11-25T00:47:11Z
+nproc: 4
+cpu_model: Intel(R) Xeon(R) Processor @ 2.10GHz
+load1: 0.50
+free -m:
+               total        used        free      shared  buff/cache   available
+Mem:           16087         765       14045          12        1547       15321
+Swap:              0           0           0
+df -h $HOME:
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+python3: /root/venv-ci -> /opt/hpo/venv-ci (symlink)

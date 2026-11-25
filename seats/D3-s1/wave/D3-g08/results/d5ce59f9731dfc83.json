@@ -1,0 +1,109 @@
+{
+ "key": "d5ce59f9731dfc83",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8176 CMP_BOUND",
+ "patch": "positives = [t for t in totals if t > 0.0] -> positives = [t for t in totals if t >= 0.0]",
+ "function": "HeatPumpOptimizerCoordinator._mixing_valve_view",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._mixing_valve_view@8176-8176",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3448.1,
+  "load1_start": 0.79,
+  "load1_end": 1.03,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/d5ce59f9731dfc83.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.out",
+  "result_lines": [
+   "RESULT throttling_mode=manual",
+   "RESULT zero_slot_baseline=price_ratio 0.5 reason 'Set to the'",
+   "RESULT zero_slot_mutant=price_ratio 0.0 reason 'Set to the'",
+   "RESULT missing_total_baseline=price_ratio 1.0 reason 'Prices are nearly'",
+   "RESULT missing_total_mutant=price_ratio 0.0 reason 'Set to the'",
+   "RESULT nan_total_baseline=price_ratio 0.833 reason 'Set to the'",
+   "RESULT nan_total_mutant=price_ratio 0.0 reason 'Set to the'",
+   "RESULT zero_and_one_positive_baseline=price_ratio None reason 'Set to the'",
+   "RESULT zero_and_one_positive_mutant=price_ratio 0.0 reason 'Set to the'",
+   "RESULT negative_and_zero_baseline=price_ratio 0.75 reason 'Set to the'",
+   "RESULT negative_and_zero_mutant=price_ratio 0.0 reason 'Set to the'",
+   "RESULT cases_moved=5 count of 5",
+   "RESULT null_moved=0 count of 2"
+  ],
+  "baseline_value": "price_ratio 0.5 for totals [0.0, 0.1, 0.2]; 1.0 with the 'Prices are nearly flat' reason for [missing, 1.0, 1.0]",
+  "mutant_value": "price_ratio 0.0 in all 5 cases (and the reason flips to 'Set to the top' for [missing, 1.0, 1.0]): cases_moved=5 of 5",
+  "inputs_tried": "[0.0, 0.1, 0.2]; [None, 1.0, 1.0]; [NaN, 0.5, 0.6]; [0.0, 0.2]; [-0.1, 0.0, 0.3, 0.4]; nulls [0.1, 0.2, 0.3], [-0.2, 0.1, 0.4]",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "any published price list holding a zero total, or a slot whose total is missing or NaN (finite_float(..., 0.0) at coordinator.py:8174 reads it as 0.0), on an install with a throttling mixing valve",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:8176; also config_flow_steps)",
+  "assertion": "the D3-04 ratio checks (features.py:13295-13320) feed [1.0, 4.0] and [1.0]; none feeds a zero or missing total and pins price_ratio"
+ },
+ "finding": {
+  "title": "No check feeds the valve ratio a zero or missing price total; t > 0 -> t >= 0 is unseen",
+  "claim": "Mutant d5ce59f9731dfc83 (coordinator.py:8176 `t > 0.0` -> `t >= 0.0`) survives the full gate, yet the published valve price_ratio for totals [0.0, 0.1, 0.2] moves from 0.5 to 0.0, and a missing total flips the recommendation's reason. Full gate verdict RED-AS-NULL.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "mechanism": "Reach: any published price list holding a zero total, or a slot whose total is missing or NaN (finite_float(..., 0.0) at coordinator.py:8174 reads it as 0.0), on an install with a throttling mixing valve. Check that should have failed (D3.M4): tests/features.py (traced baseline executes coordinator.py:8176; also config_flow_steps): the D3-04 ratio checks (features.py:13295-13320) feed [1.0, 4.0] and [1.0]; none feeds a zero or missing total and pins price_ratio.",
+  "metric_definition": "published valve_target_recommendation.price_ratio for price totals [0.0, 0.1, 0.2], manual valve",
+  "phenomenon_property": "The valve price ratio is cheapest over dearest of the strictly positive published totals",
+  "seam_rule": "awk -F'\\t' 'NR>1' dev/audit/rounds/round11/D3/s1/wave/D3-g08/keys.tsv (this box's full-gate survivors; the wave list: awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._mixing_valve_view",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py",
+   "value": 0.0,
+   "unit": "price_ratio (baseline 0.5)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g08: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the full-gate wall and load1 are provisional"
+  },
+  "perturbation": {
+   "change": "mutant d5ce59f9731dfc83 at custom_components/heatpump_optimizer/coordinator.py:8176 (positives = [t for t in totals if t > 0.0] -> positives = [t for t in totals if t >= 0.0]), applied in memory by the probe; full gate: fullgate.py run --src complete --key d5ce59f9731dfc83",
+   "expected_direction": "down"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py",
+   "value": "0 count",
+   "note": "all-positive totals and a list whose non-positive entry is negative: identical under both arms (null_moved=0 of 2); full-gate null: this box's fullgate.py null (gates/null.json)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d5ce59f9731dfc83"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's moving input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

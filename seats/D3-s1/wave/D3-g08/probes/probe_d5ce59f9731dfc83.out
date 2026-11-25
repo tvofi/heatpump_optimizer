@@ -1,0 +1,13 @@
+RESULT throttling_mode=manual
+RESULT zero_slot_baseline=price_ratio 0.5 reason 'Set to the'
+RESULT zero_slot_mutant=price_ratio 0.0 reason 'Set to the'
+RESULT missing_total_baseline=price_ratio 1.0 reason 'Prices are nearly'
+RESULT missing_total_mutant=price_ratio 0.0 reason 'Set to the'
+RESULT nan_total_baseline=price_ratio 0.833 reason 'Set to the'
+RESULT nan_total_mutant=price_ratio 0.0 reason 'Set to the'
+RESULT zero_and_one_positive_baseline=price_ratio None reason 'Set to the'
+RESULT zero_and_one_positive_mutant=price_ratio 0.0 reason 'Set to the'
+RESULT negative_and_zero_baseline=price_ratio 0.75 reason 'Set to the'
+RESULT negative_and_zero_mutant=price_ratio 0.0 reason 'Set to the'
+RESULT cases_moved=5 count of 5
+RESULT null_moved=0 count of 2
