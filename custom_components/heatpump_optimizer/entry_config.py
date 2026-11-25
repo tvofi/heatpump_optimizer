@@ -393,7 +393,7 @@ class EntryConfig(Mapping[str, Any]):
 #: The parses that read a value they refuse as the key's default, so a refused
 #: stored value and an absent key parse alike.
 _DEFAULTED_NUMBERS: tuple[Parse, ...] = (
-    finite_float, _nonzero_number, _interval_minutes, _lead_minutes, _whole,
+    finite_float, _nonzero_number, _interval_minutes, _lead_minutes, _leg_minutes, _whole,
 )
 
 

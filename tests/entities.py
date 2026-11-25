@@ -15768,7 +15768,7 @@ def _mig_raw_numbers(read):
 
 _MIG_NUMERIC_PARSES = {
     const.finite_float, _mig_entry._nonzero_number, _mig_entry._interval_minutes,
-    _mig_entry._lead_minutes, _mig_entry._whole, _mig_entry._refused_number,
+    _mig_entry._lead_minutes, _mig_entry._leg_minutes, _mig_entry._whole, _mig_entry._refused_number,
 }
 _mig_parse = {f.name: f.metadata["parse"] for f in _mig_fields(_MigEC) if f.metadata}
 _mig_class = {
