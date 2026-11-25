@@ -1,0 +1,32 @@
+diff --git a/tests/features.py b/tests/features.py
+index 04f9315321..44c2a5a325 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -101855,6 +101855,27 @@ R.check(
+     f"oracle={_sk_o_sent} no-swap sent={_sk_n_sent} floor={_sk_n_held.last_pass and _sk_n_held.last_pass.floor_c}",
+ )
+ 
++
++# PROBE (reviewer): _pass_record on an experiment step and a return target, within the settle span
++def _pr_probe(unit, action):
++    inp = _sk_inp(unit=unit, action=action)
++    inp.config["pump_duty_mode"] = _sk_pa.PUMP_DUTY_MODES[2] if hasattr(_sk_pa, "PUMP_DUTY_MODES") else "control"
++    inp.mode = "auto"; inp.measured_power_kw = 3.0; inp.draw = None
++    class _D(_sk_ns):
++        def __getattr__(self, k): return None
++    inp.state = _D(**vars(inp.state)); inp.state.defrosting = False
++    inp = _D(**vars(inp))
++    held = _sk_pa.ArbiterState(served=_sk_swap)
++    held.written["space_setpoint"] = (40.0, _SK_T0)
++    rec = _sk_pa._pass_record(held, inp, "space", False, _SK_T0)
++    ref = _sk_pa._pass_record(_sk_pa.ArbiterState(written=dict(held.written)), inp, "space", False, _SK_T0)
++    return (rec and rec.floor_c, ref and ref.floor_c)
++for _u, _a in (("flow", _sk_probe), ("return", None), ("flow", None)):
++    try:
++        print("PROBE", _u, _a, _pr_probe(_u, _a))
++    except Exception as e:
++        import traceback; print("PROBE-ERR", _u, repr(e)); traceback.print_exc()
++
+ R.section("R11-OWNER-CARD-EXTERNAL-HEAT: the binary sensors the card reads by id suffix")
+ # The card derives a binary sensor's id from the plan sensor's device prefix
+ # plus a suffix constant (`planBinaryTwin`): the status pill reads
