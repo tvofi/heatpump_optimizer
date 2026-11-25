@@ -1,0 +1,105 @@
+{
+ "key": "7da9151a6a79c43e",
+ "site": "dhw_planner.py:2234 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 2234,
+ "patch": "if not candidates: -> if False:",
+ "function": "DhwPlanner._plan_dhw_cheapest_first",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first@2232-2307",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3473.9,
+  "child_cpu_s": 5772.0,
+  "load1_start": 0.66,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/7da9151a6a79c43e.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7da9151a6a79c43e",
+ "gate_provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py",
+  "results": {
+   "dhw_kw_sum_baseline": "1.9870 kW",
+   "dhw_kw_sum_mutant": "0.0000 kW",
+   "tank_at_need_baseline": "55.451 C  (requirement 55)",
+   "tank_at_need_mutant": "41.891 C",
+   "null_inputs_moved": "0 of 2 (-)",
+   "thread_factor": "1.000",
+   "load1": "0.86",
+   "swapins": "0"
+  },
+  "baseline_value": "55.451 C  (requirement 55)",
+  "mutant_value": "41.891 C",
+  "inputs_tried": "a forced-off pin over the whole lead window (steps 8-10) (moves: 1.987 kW bought at step 0 -> nothing; tank 55.45 -> 41.89 C at the need); no pin, a pin outside the lead window (do not move)",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "reach": "production: forced_off carries manual pins and the quiet Off window",
+ "should_fail": "tests/features.py: the cheapest-first cases (~63622, ~82539) pass no forced_off; no check pins the whole lead window off and asserts the shortfall is bought earlier",
+ "finding": {
+  "title": "No check pins the lead window off for the cheapest-first planner; dropping its fallback leaves hot water unbought, unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 7da9151a6a79c43e at dhw_planner.py:2234 (if not candidates: -> if False:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet probe_7da9151a6a79c43e.py moves: tank_at_need_baseline=55.451 C  (requirement 55) vs tank_at_need_mutant=41.891 C.",
+  "mechanism": "Reach: production: forced_off carries manual pins and the quiet Off window. Check that should have failed (D3.M4): tests/features.py: the cheapest-first cases (~63622, ~82539) pass no forced_off; no check pins the whole lead window off and asserts the shortfall is bought earlier.",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_cheapest_first",
+  "metric_definition": "the tank temperature at the need step (C) of the plan DhwPlanner._plan_dhw_cheapest_first returns when a manual Off pin covers the whole lead window",
+  "phenomenon_property": "When no step inside the lead window is usable, _plan_dhw_cheapest_first falls back to every usable step before the need rather than giving the requirement up",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list), each key's fullgate.py verdict SURVIVED or RED-AS-NULL and its probe moving",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py"
+  ],
+  "proposed_fix_scope": "tests only: a check with forced_off over the lead window asserting the requirement is still met from an earlier step",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py",
+   "value": "41.891 C",
+   "unit": "tank_at_need_mutant",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 0.86,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant 7da9151a6a79c43e applied in memory by the probe (method re-compiled from its source); full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7da9151a6a79c43e",
+   "expected_direction": "nothing bought: the requirement is marked unreachable instead of being bought before the pin (55.45 C -> 41.89 C)",
+   "observed_value": "41.891 C"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py",
+   "value": "no pin and a pin outside the lead window: 0 moved",
+   "note": "arms where the edit cannot matter, identical outputs under baseline and mutant; the full-gate null is gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7da9151a6a79c43e"
+  ]
+ }
+}
