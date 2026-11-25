@@ -247,7 +247,7 @@ def commit(
         ran, paused = tie_break(bool(q[k] > 0.0))
         cost, bal, back = advance(
             cost, bal, state_moves(*lengths, want[k]),
-            ([_run((level[k] - q[k]) * dt, price[k] * level[k] * dt + ran, entry_kwh, price[k])], [_shift(-q[k] * dt, paused)]),
+            ([_entry_action((level[k] - q[k]) * dt, price[k] * level[k] * dt + ran, entry_kwh, price[k])], [_shift(-q[k] * dt, paused)]),
             float(start_cost), cells, min_on)
         trail.append(back)
     ending = cost + fine * np.maximum(np.abs(bal) - f * dt / 2.0, 0.0)
@@ -318,7 +318,7 @@ def _shift(change: float, paid: float) -> Action:
     return lambda bal, _ran: (bal + change, paid)
 
 
-def _run(change: float, paid: float, entry_kwh: float, price: float) -> Action:
+def _entry_action(change: float, paid: float, entry_kwh: float, price: float) -> Action:
     """:func:`commit`'s run action: :func:`_shift`, and out of a pause the
     entry's energy above the level besides, at the step's price."""
     if not entry_kwh > 0.0:
