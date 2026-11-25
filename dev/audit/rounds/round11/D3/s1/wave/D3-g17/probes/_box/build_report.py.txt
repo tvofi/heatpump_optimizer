@@ -1,0 +1,90 @@
+"""Box D3-g17 REPORT.json / REPORT.md builder (re-fire seat; scratch, out of tree)."""
+import json, glob, os
+H = os.path.expanduser("~")
+S1 = f"{H}/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1"; W = f"{S1}/wave/D3-g17"
+REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g17"
+BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+u1b = json.load(open(f"{S1}/REPORT-D3-u1b.json"))
+keys = [l.split("\t") for l in open(f"{W}/keys.tsv").read().splitlines()]
+hdr, rows = keys[0], [dict(zip(keys[0], r)) for r in keys[1:] if r and r[0]]
+res = {r["key"]: json.load(open(f"{W}/results/{r['key']}.json")) for r in rows if os.path.exists(f"{W}/results/{r['key']}.json")}
+null = json.load(open(f"{W}/gates/null.json"))
+cov = []
+for c in u1b["coverage"]:
+    if c["step"] == "D3.M3":
+        others = []
+        for f in sorted(glob.glob(f"{H}/otherkeys/D3-g*.tsv")):
+            b = os.path.basename(f)[:-4]
+            if b == "D3-g17": continue
+            ks = [l.split("\t")[0] for l in open(f).read().splitlines()[1:] if l.strip()]
+            others.append(f"assigned to box {b}: {len(ks)} keys ({', '.join(ks)})")
+        timeouts = [k for k, d in res.items() if d["class"] == "timeout"]
+        missing = [r["key"] for r in rows if r["key"] not in res]
+        examined = len(res) - len(timeouts)
+        nr = others + [f"TIMEOUT on box D3-g17: {k} (past the 4 h cap)" for k in timeouts] + [f"not gated on box D3-g17: {k}" for k in missing]
+        cov.append(dict(step="D3.M3",
+            enumerator="awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list, 742 keys; SURVIVORS.tsv is not in the tree at e3cb5c01, so the box re-derived the list as the union of the 47 dispatch/finder-r11-D3-g01..g47 keys.tsv files: 742 distinct keys)",
+            universe=742, examined=examined, not_reached=nr,
+            redispatched=[{"item": "C3", "state": "examined"}, {"item": "C5", "state": "examined"}],
+            evidence=("box D3-g17 gated its 16 keys with gate_wave.sh run (fullgate.py run --src complete --key <key>: one-line mutant committed, "
+                      "gate_lock lease, GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh, reset) against its null control "
+                      f"fullgate.py null ({REL}/gates/null.json); records {REL}/gates/<key>.json; per-key records {REL}/results/<key>.json. "
+                      "examined counts this box's gated non-TIMEOUT keys; the earlier boxes' D3.M3 rows (D3-u1a..d full net, D3-top6, D3-rem) are carried in their own reports; "
+                      "the other 726 keys are named by box in not_reached")))
+    else:
+        c = dict(c); c["evidence"] = "carried verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json. " + c.get("evidence", "")
+        cov.append(c)
+gated = [dict(key=k, site=d["site"], verdict=d["gate"]["verdict"], killed_by=d["gate"].get("killed_by"), **{"class": d["class"]}) for k, d in res.items()]
+cand = [d for d in res.values() if d["class"] == "candidate"]
+eqv = [d for d in res.values() if d["class"] == "equivalent-candidate"]
+nf = []
+for d in res.values():
+    if d["class"] == "killed":
+        nf.append(dict(claim=f"mutant {d['key']} at {d['site']} ({d['patch']}) is KILLED by the full gate: {d['gate'].get('killed_by')}",
+                       command=d["gate_command"], value=f"verdict KILLED gate_rc {d['gate'].get('gate_rc')} killed_by {d['gate'].get('killed_by')}"))
+    elif d["class"] == "equivalent-candidate":
+        nf.append(dict(claim=f"mutant {d['key']} at {d['site']} ({d['patch']}) survives the full gate ({d['gate']['verdict']}) and is an equivalent-candidate: {d['should_fail']}",
+                       command=d["probe"]["command"], value=json.dumps(d["probe"]["results"], sort_keys=True)))
+unf = [dict(step="D3.M3", what=f"{d['key']} {d['site']}: TIMEOUT past the {d['gate'].get('cap_s')} s cap") for d in res.values() if d["class"] == "timeout"]
+unf += [dict(step="D3.M3", what=f"{r['key']} not gated on box D3-g17") for r in rows if r["key"] not in res]
+harn = ["dev/audit/rounds/round11/D3/s1/fullgate.py"] + [f"{REL}/probes/probe_{k}.py" for k in sorted(res)] + [f"{REL}/probes/_g17.py"]
+exposure = ("No docs/ or GitHub records read. The re-fire seat read COMMON.md, D3.md, dev/audit/README.md and finding.schema.json (through a haiku extractor), "
+            "REPORT-D3-u1b.json/top6/rem JSON D3.M3 rows, this box's checkpoint (gates, probes, results, written by the predecessor seat), and the 47 dispatch refs' keys.tsv for the key-to-box map.")
+rep = dict(dimension="D3", baseline_sha=BASE, report_path=f"{REL}/REPORT.md", box="D3-g17", seat="D3-s1", exposure=exposure,
+           coverage=cov, unfinished=unf, findings=[], non_findings=nf, harnesses=harn, leads=[],
+           gated=gated, gate_survivors=cand, equivalent_candidates=eqv,
+           gate_wave_procedure="gate_wave.sh (out of tree, shipped on dispatch/finder-r11-D3-g17): null, then run (fullgate.py run per keys.tsv key, one at a time, 4 h cap, checkpoint after each gate)",
+           null_control=dict(record=f"{REL}/gates/null.json", gate_rc=null.get("gate_rc"), failed_scripts=null.get("failed_scripts"), wall_s=null.get("wall_s"), provisional=True))
+json.dump(rep, open(f"{W}/REPORT.json", "w"), indent=1)
+# markdown
+from collections import Counter
+tv = Counter(g["verdict"] for g in gated); tc = Counter(g["class"] for g in gated)
+kb = Counter(str(g["killed_by"]) for g in gated if g["verdict"] == "KILLED")
+L = [f"# D3-s1 box D3-g17 — full gate for 16 u1 full-net survivors (round 11)", "",
+     f"Baseline `{BASE}`. Seat D3-s1, box D3-g17. findings: [] (ids assigned at consolidation); candidates under `gate_survivors`.", "",
+     "## Machine and controls", "", "```", open(f"{W}/MACHINE.txt").read().strip(), "```", "",
+     f"Null control: `fullgate.py null` (comment-only marker), record `{REL}/gates/null.json`: gate_rc {null.get('gate_rc')}, failed scripts {null.get('failed_scripts')}, wall {null.get('wall_s')} s (provisional).",
+     "Box note: " + open(f"{W}/gates/null-note.txt").read().strip() if os.path.exists(f"{W}/gates/null-note.txt") else "",
+     "", "The null was taken by the predecessor seat on this box before a stall; the re-fire seat restored it from the checkpoint (gate_wave.sh null: once, restored on a re-fire) and re-ran all 16 probes in a fresh baseline worktree with identical RESULT lines. All walls/loads are provisional (nproc 4, Intel Xeon @ 2.10GHz).", "",
+     "## Tally", "", f"- gated: {len(gated)} of 16", f"- verdicts: {dict(tv)}", f"- KILLED by: {dict(kb) if kb else 'none'}",
+     f"- classes: {dict(tc)}", f"- candidates: {len(cand)}; equivalent-candidates: {len(eqv)}", "",
+     "| key | site | verdict | wall_s | load1 | class |", "|---|---|---|---|---|---|"]
+for k, d in res.items():
+    g = d["gate"]; L.append(f"| {k} | {d['site']} | {g['verdict']} | {g.get('wall_s')} | {g.get('load1_start')}..{g.get('load1_end')} | {d['class']} |")
+L += ["", "## Survivors: step-4 answers and probe numbers", ""]
+for k, d in res.items():
+    if d["class"] in ("candidate", "equivalent-candidate"):
+        r = d["probe"]["results"]
+        nums = "; ".join(f"{a}={b}" for a, b in r.items() if a not in ("inputs_tried", "reach", "load1", "thread_factor", "swapins"))
+        L.append(f"**{k}** `{d['site']}` (`{d['patch']}`), gate {d['gate']['verdict']} -> **{d['class']}**. Reach: {d['reach']}. "
+                 f"Check that should fail: {d['should_fail']}. Probe `{d['probe']['path']}` (`{d['probe']['command']}`): {nums}. Inputs tried: {d['probe']['inputs_tried']}."
+                 + (f" Finding candidate: {d['finding']['title']}." if d['class'] == 'candidate' else ""))
+        L.append("")
+    elif d["class"] == "killed":
+        L += [f"**{k}** `{d['site']}`: KILLED by {d['gate'].get('killed_by')} (non-finding).", ""]
+    elif d["class"] == "timeout":
+        L += [f"**{k}** `{d['site']}`: TIMEOUT (unfinished).", ""]
+L += ["## Unfinished", ""] + ([f"- {u['what']}" for u in unf] or ["- none"])
+L += ["", "## Harnesses", ""] + [f"- `{h}`" for h in harn] + ["- gate_wave.sh procedure (dispatch ref tool, out of tree)"]
+open(f"{W}/REPORT.md", "w").write("\n".join(L) + "\n")
+print("REPORT", len(gated), dict(tv), dict(tc))

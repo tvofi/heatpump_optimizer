@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_b1a8d3056bf42597.py (stored as .py.txt):  count of random scenarios (and max |plan delta| kW) where DhwPlanner._plan_dhw_min_cost's plan differs under the mutant, split by p_total_max.

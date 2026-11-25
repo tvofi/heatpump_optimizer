@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_fd9b39c806b43b56.py (stored as .py.txt):  max |plan_mutant - plan_baseline| (kW) of DhwPlanner._plan_dhw_cheapest_first, and the count of differing inputs.

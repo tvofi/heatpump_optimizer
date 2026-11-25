@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_4f1f941124291aeb.py (stored as .py.txt):  planned power (kW) at the step whose simulated tank temperature equals its ceiling minus 0.1 C exactly.

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_b7a6f145165338bf.py (stored as .py.txt):  what DhwPlanner._plan_dhw_min_cost returns (plan, None, or the exception type) when linprog raises.

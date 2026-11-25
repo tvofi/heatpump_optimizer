@@ -1,0 +1,16 @@
+RESULT null_decay=0.988
+RESULT null_warnings_baseline=0
+RESULT null_warnings_mutant=0
+RESULT null_plan_delta_kw=0 kW
+RESULT decay0_decay=0
+RESULT decay0_warnings_baseline=0
+RESULT decay0_warnings_mutant=1
+RESULT decay0_plan_delta_kw=0 kW
+RESULT sweep_inputs=80
+RESULT differing_inputs=0
+RESULT sweep_max_delta_kw=0 kW
+RESULT reach=decay 0 needs the tank's standby loss over one step to reach its whole stored heat (here dhw_cooling_rate 3.0 on a 0.01 kWh/C store); a realistic 200 l tank decays 0.988 per hour
+RESULT inputs_tried=decay 0.988 (null) and 0.0, 24 steps; 80 random scenarios at decay 0.988 for plan deltas
+RESULT thread_factor=1.005
+RESULT load1=1.31
+RESULT swapins=0

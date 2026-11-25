@@ -1,0 +1,13 @@
+RESULT plan_baseline=[0,0,0,0,0,0,0,2.999999,0,0,0.202506121,0]
+RESULT plan_mutant=[0,0,0,0,0,0,0,3,0,0,0.202506121,0]
+RESULT step7_baseline=2.999999 kW
+RESULT step7_mutant=3 kW
+RESULT delta_kw=1e-06 kW
+RESULT cost_baseline=0.907518264
+RESULT cost_mutant=0.907518364
+RESULT null_delta_kw=0 kW
+RESULT sweep_inputs=120 sweep_differing_inputs=0
+RESULT inputs_tried=initial plan step 7 at p_dhw_max-1e-6 (tie), at p_dhw_max-2e-6 (null); 120 random (no tie: 0 differ)
+RESULT thread_factor=1.000
+RESULT load1=1.25
+RESULT swapins=0

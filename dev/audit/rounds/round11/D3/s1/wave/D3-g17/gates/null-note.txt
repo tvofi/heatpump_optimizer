@@ -1,0 +1,6 @@
+Box D3-g17 null control (fullgate.py null, comment-only marker), 2026-11-22T21:41Z..22:36Z, wall 3358.4 s (provisional), load1 0.85..0.93, nproc 4.
+gate_rc=1, red on artefact checks only, read as the box's floor (a mutant is KILLED only beyond these counts):
+- python3 tests/closure.py selftest: 2 of 118 FAILED (merge-reason pins: status 'skip-not-under-scoped' in this detached, stripped worktree)
+- python3 tests/entities.py: 1 of 2723 FAILED ('and is accepted when it does' [the scoped path records only what the diff can reach]: the scoped-recording rig in this checkout)
+- python3 tests/harness_headers.py: 3 of 115 FAILED (round4/D6/claims.py header 123/0 vs printed 122/1 and its committed output rewritten: the finder-wall strip removed what claims.py reads)
+No script is red because of the machine (card.mjs passed at the default heap), so the null was not re-taken.
