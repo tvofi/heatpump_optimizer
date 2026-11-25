@@ -1,6 +1,0 @@
-applied 1
--    return drop_unstartable(plan, start_below, temps_of, charge_running)
-+    return drop_unstartable(plan, start_below, temps_of)
-  FAIL with no charge under way a repair that keeps re-placing a first-step charge on a warm tank still leaves a plan without it; null control, with one under way the charge stands  [predicate false]
-1 of 161 BLOCK DUTY CHECKS FAILED
-rc=1

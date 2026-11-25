@@ -1,3 +1,0 @@
-  FAIL every count of a tree-measurable set the reader corpus states is the tree's (17 counts over 11 shapes)  [architecture.md:306 modules_free_of_homeassistant: documented=65 measured=66]
-1 of 443 checks FAILED
-rc=1
