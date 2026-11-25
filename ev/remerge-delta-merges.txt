@@ -1,0 +1,13 @@
+== 581a69edc9c21d86900e15de75f74db418997ac8
+9673fea60bce74bb4e496dca1d1c3242871ea390 ea88e99baaf3e23e8e1156a62afabd9462877c8c
+== 615c5eccb558313cd657b786abf23e96e9973dfb
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17298 + both deltas = 17295
+  re-run the gate that owns this file before pushing
+581a69edc9c21d86900e15de75f74db418997ac8 bb6377b4dad4e398d1a28bde54d30036a5b25a82
+== c6a3da6510a6fc5c01e573672699ee9f00c7b621
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17297 + both deltas = 17288
+  max_class_loc: 7841 + both deltas = 7832
+  re-run the gate that owns this file before pushing
+615c5eccb558313cd657b786abf23e96e9973dfb d3d66c40408e76351ffc528686353cadf815a05c
