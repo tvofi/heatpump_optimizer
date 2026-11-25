@@ -15046,7 +15046,8 @@ R.check(
 # Once a weekly snapshot is newer, the restore is the ordinary one again.
 _fr_w_before, _fr_w_entry, _, _ = _fr_case("learners", "fr_weekly")
 _fr_w_ring = _fr_w_entry.runtime_data._snapshot_ring
-_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {}, True)
+# In band: a snapshot with no accuracy evidence is no restore point (D17-s3-03).
+_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {"temperature_bias": 0.1}, True)
 R.check(
     "a weekly snapshot newer than the undo point takes the restore back from it",
     _fr_w_ring.undo_target() is _fr_w_ring.snapshots[-1] and "before_reset" not in _fr_w_ring.snapshots[-1]
@@ -15544,8 +15545,9 @@ def _lsl_ring():
     coord._house_heat_loss_samples = 33
     coord._apply_cop_scale(1.1)
     coord._cop_samples = 21
+    # In band: a snapshot with no accuracy evidence is no restore point (D17-s3-03).
     coord._snapshot_ring.take(datetime.now(timezone.utc), coord._learner_snapshot_payloads(),
-                              coord._accuracy.summary(), True)
+                              {**coord._accuracy.summary(), "temperature_bias": 0.1}, True)
     return coord._snapshot_ring.as_dict()
 
 
@@ -48631,6 +48633,29 @@ R.check(
         "meter_calibration": None, "calibration_basis": None, "stored_heat_sek": 0.0, "comfort_sek": 0.0},
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
 )
+def _st_cal_row(planned_kw):
+    led = _SavLedger()
+    for _hh in range(2):
+        led.add_savings_settlement(
+            _SavDT(2026, 1, 3, _hh), baseline_kw=1.0, actual_kwh=3.0, spot=2.0, dt=1.0,
+            planned_kw=planned_kw, stored_kw_th=-1.0, steady_cop=2.0, comfort_kw=0.25,
+        )
+    return led.savings_months(_SavDT(2026, 2, 10))[0]
+
+
+_st_c1, _st_c15 = _st_cal_row(3.0), _st_cal_row(2.0)  # meter calibration 1.0 and 1.5
+R.check(
+    "R11-SEAM-tests (carry 0, M9): a calibrated month scales the stored-heat line as it scales the thermostat",
+    _st_c1["meter_calibration"] == 1.0 and _st_c15["meter_calibration"] == 1.5
+    and _st_c1["stored_heat_sek"] < 0.0
+    and _st_c15["stored_heat_sek"] == round(1.5 * _st_c1["stored_heat_sek"], 2),
+    f"{_st_c1} / {_st_c15}",
+)
+R.check(
+    "R11-SEAM-tests (carry 0, M10): a calibrated month scales the comfort line as it scales the thermostat",
+    _st_c1["comfort_sek"] > 0.0 and _st_c15["comfort_sek"] == round(1.5 * _st_c1["comfort_sek"], 2),
+    f"{_st_c1} / {_st_c15}",
+)
 _st_z = _SavLedger()
 _st_z.add_savings_settlement(
     _SavDT(2026, 1, 3), baseline_kw=2.0, actual_kwh=1.0, spot=2.0, dt=1.0,
@@ -68283,7 +68308,7 @@ R.check(
 
 # D1-s1-02: best_restore must never raise on a stored bias leaf of any shape.
 _si_bias = {}
-for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
+for _si_leaf in (0.3, "0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
     _si_r = _SiRing.from_dict({"snapshots": [{
         "taken_at": "2026-06-01T12:00:00+00:00", "healthy": True,
         "accuracy": {"temperature_bias": _si_leaf}, "learners": {},
@@ -68294,10 +68319,33 @@ for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
         _si_bias[repr(_si_leaf)] = type(_si_err).__name__
 R.check(
     "best_restore skips a non-numeric or out-of-band stored bias instead of "
-    "raising, and still restores an in-band numeric one (D1-s1-02)",
-    _si_bias == {"'0.3'": True, "'garbage'": False, "[0.3]": False,
+    "raising, and still restores an in-band numeric one (D1-s1-02); text that "
+    "spells a number is out of its declared domain (R11-SEAM-store)",
+    _si_bias == {"0.3": True, "'0.3'": False, "'garbage'": False, "[0.3]": False,
                  "{'v': 0.3}": False, "nan": False, "0.9": False},
     f"{_si_bias}",
+)
+
+# D17-s3-03: the first heartbeat's snapshot is taken before any accuracy sample,
+# so its summary carries no bias: no evidence of in-band accuracy, and neither
+# the service nor the drift rollback may take it. Driven through take() with an
+# empty tracker's own summary; the same ring with an in-band bias restores
+# (null control).
+from heatpump_optimizer.snapshots import BIAS_BAND_C as _SI_BAND  # noqa: E402
+
+_si_unevidenced = {}
+for _si_label, _si_summary in (("empty", AccuracyTracker().summary()), ("in_band", {"temperature_bias": 0.1}),
+                               ("edge", {"temperature_bias": -_SI_BAND}),
+                               ("past", {"temperature_bias": _SI_BAND + 0.01})):
+    _si_r = _SiRing()
+    _si_r.take(datetime(2026, 6, 1, 12, tzinfo=UTC), {"marker": _si_label}, _si_summary, True)
+    _si_unevidenced[_si_label] = (_si_r.best_restore() is not None, _si_r.undo_target() is not None)
+R.check(
+    "a snapshot whose accuracy summary carries no bias is no restore point for the service "
+    "or the drift rollback, and an in-band one is, the band's edge included (D17-s3-03)",
+    _si_unevidenced == {"empty": (False, False), "in_band": (True, True), "edge": (True, True),
+                        "past": (False, False)},
+    f"{_si_unevidenced}",
 )
 
 # D1-s3-01: the typed return time is the user's wall clock, and boost, the
@@ -86573,6 +86621,33 @@ R.check(
     == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS
     and [_he_store.in_domain(_bt_hdom, v) for v in (0.0, 0.5, None, -0.1)] == [True, True, True, False],
     f"{_bt_store.get('space_settle')}",
+)
+# D1-s2-06: the restore reads a boosted sum against that declaration before
+# timedelta() sees it. One longer than two datetimes can bound reads unknown,
+# and the rest of the restore still runs. One inside it is restored as stored,
+# and the next overlay's run still adds to the longest.
+_bt_range = {}
+for _bt_h in (1.5, 3e10, 1e14):
+    _bt_far = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+    try:
+        boost_mod._restore_settle(_bt_far, {
+            "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat(), "boosted_h": _bt_h},
+            "space": {"until": (NOW + timedelta(hours=1)).isoformat(),
+                      "since": (NOW - timedelta(hours=1)).isoformat()},
+        }, NOW)
+        _bt_range[_bt_h] = (_bt_far.space_boosted, _bt_far.space_since == NOW - timedelta(hours=1))
+    except Exception as _bt_err:  # noqa: BLE001 -- the escape is the measurement
+        _bt_range[_bt_h] = type(_bt_err).__name__
+_bt_top = (datetime.max - datetime.min) // timedelta(hours=1)
+_bt_longest = boost_mod.BoostState(space_boosted=timedelta(hours=_bt_top))
+R.check(
+    "a stored boosted sum longer than two datetimes bound reads unknown and the overlay's "
+    "start is still restored, one inside it is restored as stored, the declaration's ceiling "
+    "is that span, and a run added to it does not overflow (D1-s2-06)",
+    _bt_range == {1.5: (timedelta(hours=1.5), True), 3e10: (None, True), 1e14: (None, True)}
+    and [_he_store.in_domain(_bt_hdom, v) for v in (float(_bt_top), float(_bt_top + 1))] == [True, False]
+    and _bt_longest._boosted_with(datetime.max, datetime.min) >= timedelta(hours=2 * _bt_top),
+    f"{_bt_range}",
 )
 
 

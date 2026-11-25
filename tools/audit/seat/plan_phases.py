@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A round's phases: the linted input file and the plan page's phases section.
 
-    python3 tools/audit/seat/plan_phases.py --check dev/programme/round11/phases.json
+    python3 tools/audit/seat/plan_phases.py --check dev/programme/round<N>/phases.json
     python3 tools/audit/seat/plan_phases.py --phases FILE --html page.html
 
 The plan page draws a round's fix groups from the roster and plan.json, which
