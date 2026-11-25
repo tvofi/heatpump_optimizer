@@ -75,9 +75,11 @@
 # worse, because it would look like a pass.
 #
 # The safety net that makes this acceptable: the full unscoped suite still
-# runs on every push to main and on every release (.github/workflows/tests.yml
-# forces GATE_SCOPE=full there). Scoping applies to pull requests only, so a
-# wrong closure turns main red within one gate instead of never.
+# runs on every push to main whose range touches production, and on every
+# release (.github/workflows/tests.yml runs GATE_SCOPE=full there; a light
+# push, touching no production file, is scoped as a pull request is,
+# tools/ci/prelude.py), so a wrong closure turns main red at the next such
+# push instead of never.
 #
 # In lane mode each script's output is captured and replayed in full, one
 # script at a time, after the lanes finish — interleaved output from four
@@ -725,7 +727,15 @@ lane_e2e() {
 # machine. stress.py's solve-time guard calibrates against this machine while
 # it runs, and the rest of the suite must not be part of what it measures.
 lane_stress() {
-  run "$PYTHON" tests/stress.py
+  # #3885: not on a pull request. CI's fast job names its event in
+  # HPO_CI_EVENT; a pull-request run under a scoped gate skips stress.py by
+  # name, and the push to main (GATE_SCOPE=full) and nightly.yml's `slow`
+  # job run it. A local run sets no event and runs it as before.
+  if [ "${HPO_CI_EVENT:-}" = pull_request ] && [ "$GATE_SCOPE" != full ]; then
+    skip tests/stress.py "SKIP: tests/stress.py (pull_request: the push to main and the nightly run it, #3885)"
+  else
+    run "$PYTHON" tests/stress.py
+  fi
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
   # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
@@ -867,8 +877,8 @@ if [ -n "$SCOPE_RUN" ]; then
   echo "  Each line above is a claim that no file changed by this branch is in"
   echo "  that script's MEASURED closure (tests/closures.json, recorded by"
   echo "  tests/derive_closures.sh from real instrumented runs). The claim is"
-  echo "  re-checked in full: every push to main runs this suite unscoped, so"
-  echo "  a closure that is wrong turns main red within one gate."
+  echo "  re-checked in full: every push to main touching production runs this"
+  echo "  suite unscoped, so a closure that is wrong turns main red at that push."
   echo "  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh"
 fi
 
