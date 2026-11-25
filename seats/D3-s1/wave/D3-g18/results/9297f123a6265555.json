@@ -1,0 +1,88 @@
+{
+ "key": "9297f123a6265555",
+ "site": "grid_fee.py:483 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/grid_fee.py",
+ "line": 483,
+ "patch": "if not product_id or product_id == DSO_PRODUCT_NONE: -> if False:",
+ "function": "apply_catalog",
+ "cluster": "grid_fee.py:apply_catalog@483-496",
+ "slice": "u1c",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "m4_carried": "9297f123a6265555 (u1c): should_have_failed tests/config_flow_steps.py, entities.py, features.py; full net SURVIVED.",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3463.7,
+  "load1_start": 0.86,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/9297f123a6265555.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/9297f123a6265555.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9297f123a6265555",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_9297f123a6265555.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_9297f123a6265555.py",
+  "baseline_value": "warnings_baseline=0 over 3 submits (dso_product 'none', absent, '')",
+  "mutant_value": "warnings_mutant=3 ('Unknown DSO catalog product none|None|; not writing', one per submit); differing_stored_fields=0; null (a real product) delta 0",
+  "inputs_tried": "config-flow grid-fee submits with dso_product 'none' (the default choice), absent, ''; null: 'goteborg_energi_effekt_2026'",
+  "reach": "executed by config_flow_steps.py, entities.py, features.py (state/reach.tsv). Without the guard every grid-fee step finished with the default 'none' product logs a WARNING 'Unknown DSO catalog product' into the Home Assistant log; the stored fields are unchanged.",
+  "result_lines": [
+   "RESULT warnings_baseline=0 count",
+   "RESULT warnings_mutant=3 count",
+   "RESULT differing_stored_fields=0 count",
+   "RESULT null_delta_warnings=0 count",
+   "RESULT thread_factor=1.000 ratio",
+   "RESULT load1=1.65",
+   "RESULT swapins=0 count"
+  ],
+  "run": "re-fire 2026-11-25, clean probe worktree at the baseline (never the gate tree), nice 19"
+ },
+ "class": "candidate",
+ "should_fail": "tests/entities.py:8236 'none writes nothing' and :8232 'an unknown catalog id writes nothing' execute line 483 on the traced baseline and assert the return only; neither (nor config_flow_steps.py's grid-fee step) asserts that the 'none' choice logs no WARNING, the one output that separates 'none' from an unknown id.",
+ "title": "No check separates the DSO 'none' choice from an unknown catalog id; dropping the guard logs a WARNING on every default grid-fee submit unseen",
+ "claim": "Mutant 9297f123a6265555 at grid_fee.py:483 (if not product_id or product_id == DSO_PRODUCT_NONE: -> if False:) survives the full gate (RED-AS-NULL); its probe moves: warnings_mutant=3 ('Unknown DSO catalog product none|None|; not writing', one per submit); differing_stored_fields=0; null (a real product) delta 0.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "bug",
+ "metric_definition": "WARNING records from the heatpump_optimizer.grid_fee logger over three config-flow grid-fee submits whose DSO product is 'none', absent or empty, per arm",
+ "phenomenon_property": "Leaving the DSO product at 'none' writes nothing and logs nothing",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_9297f123a6265555.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_9297f123a6265555.py",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.grid_fee:apply_catalog",
+ "perturbation": {
+  "change": "mutant 9297f123a6265555: if not product_id or product_id == DSO_PRODUCT_NONE: -> if False: at custom_components/heatpump_optimizer/grid_fee.py:483, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9297f123a6265555",
+  "expected_direction": "up (warnings 0 -> 3)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_9297f123a6265555.py",
+  "value": "a real catalog product id: both arms write the row with no warning (null_delta_warnings=0)",
+  "full_gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/grid_fee.py"
+ ],
+ "proposed_fix_scope": "tests only: a check in the named script that fails under the mutant"
+}
