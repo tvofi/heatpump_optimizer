@@ -12,3 +12,4 @@
 1795580772 HB alive
 1795580856 CKPT delta mapped: b638f1ce move to dhw_charges.py + budgets/closures/claims snapshot 0bedc36c128f
 1795581065 CKPT AST move-equivalence + null done; features/harness/mutant runs started snapshot 333a9534a576
+1795581153 CKPT structure/D6 figures re-derived; features x3 + harnesses running snapshot ced7101fb9f4
