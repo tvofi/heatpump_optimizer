@@ -8073,6 +8073,52 @@
     "note": "wired by the roster-wiring seat 2026-11-25: #3885 was open with no group although its work was running; outside item folds into round 11 (not deferred by the owner or the reporter)",
     "pr": 3896
    }
+  },
+  {
+   "group": "R11-CARRY-D0-CONTINUATION",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [
+    3881
+   ],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "source": "programme",
+   "brief": "Issue #3881, found by pull request 3879 (R11-SEAM-two-zone-slab): the half-price continuation in optimizer.py's multi-start can ship a two-zone storage plan worse than the multi-start's plain result from a low tank start. The owning seam, the multi-start start set (R11-SEAM-solver), is done, and no open group owns it. Its recorded destination is D0 (price optimality) at the next round's finders: dev/programme/carries/carry-3881.json, landed by pull request 3892, holds the control, the re-measurement instruction and the question (should the continuation keep the better of its candidate and the plain result). Deferred: round 11 is in its fix phase and the measurement is D0's. Re-measure every carried figure at your own merge base before building.",
+   "carry": [],
+   "resume": {
+    "stage": "deferred",
+    "commit": null,
+    "branch": "fix/r11-carry-d0-continuation",
+    "last_step": null,
+    "next_step": "next round's D0 finders measure carry-3881.json; a confirmed finding is re-homed to the solver seam's group then",
+    "note": "deferred to the next round's D0 finders, the destination carry-3881.json records (pull request 3892); wired by the roster-wiring seat 2026-11-25 so the issue carries a disposition; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-wallclock-dst, R11-LATE-P1-OPTIONS, R11-LATE-P2-ZONE-GATE, R11-LATE-P2-REPLAY-FINITE): deferred to the next round's D0 finders, so it builds nothing in round 11 and cannot collide with these groups' optimizer.py and tests/features.py edits; a confirmed finding is re-homed at that round's plan",
+    "pr": null
+   }
   }
  ]
 }
