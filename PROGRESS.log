@@ -26,3 +26,4 @@
 1795635941 HB alive
 1795636135 CKPT gate FULL: 2 failed (entities, doc_claims: HA-free 66->67 merge miss), fixed; entities rerun snapshot 90742c40c779
 1795636545 HB alive
+1795636830 DONE handoff/r11-outside-honest-dhw-runs a6d8334a46 (ff from fed97c77; delta b2b6ff8c93..a6d8334a46: 2b83d911 merge of main 91773476, 4967642106 combi check deterministic, a6d8334a46 HA-free 67); handoff-body 8aae7aa01b
