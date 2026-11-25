@@ -1,0 +1,62 @@
+{
+ "key": "a074fb25836c2bc6",
+ "site": "custom_components/heatpump_optimizer/tariff.py:824 CMP_BOUND",
+ "patch": "close = np.abs(count - k) < 1e-6 -> close = np.abs(count - k) <= 1e-6",
+ "function": "_smooth_topk_sum_batch",
+ "cluster": "tariff.py:_smooth_topk_sum_batch@801-832",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4060.4,
+  "load1_start": 0.74,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/gates/a074fb25836c2bc6.json",
+  "provisional": true
+ },
+ "machine": "box D3-g40, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (MACHINE.txt); wall/load provisional",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_a074fb25836c2bc6.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_a074fb25836c2bc6.py",
+  "metric": "differing_all_direct",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "unit": "count",
+  "observed": "0 differ, 0 warnings; no row hit |count - k| == 1e-6 exactly",
+  "inputs_tried": "same corpus (batch mode) incl. exacttie 1000",
+  "run_output": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/a074fb25836c2bc6/RUN.txt",
+  "probe_class": "equivalent-candidate"
+ },
+ "should_fail": {
+  "scripts": {
+   "line_executing_per_carried_m4": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ],
+   "full_net_scripts_run_green": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  "assertion_lacking": "none at value level"
+ }
+}

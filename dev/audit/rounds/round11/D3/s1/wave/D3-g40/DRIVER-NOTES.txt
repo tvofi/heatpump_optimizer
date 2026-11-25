@@ -1,0 +1,1 @@
+2026-11-25T15:54:46Z driver restarted (session restart moved the git proxy port; old driver's pushes failed and left the comms lock held); gate 13 1894e6dcd2251a30 attempt 1 interrupted at ~10 min by SIGINT, tree reset, re-run from start
