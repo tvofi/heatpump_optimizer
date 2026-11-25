@@ -90536,6 +90536,24 @@ def _ml_space_first_legs(space_kw, dhw_kw):
             for step in _ds_legs.plan_legs(space_kw, dhw_kw, rule=_ml_space_first)]
 
 
+_ml_space_first_fed = {before: _ds_legs.LegRule("space", None, 10.0, 0.0, before)
+                       for before in (_ds_legs.DHW, _ds_legs.SPACE)}
+# T6d: R2's sides at the plan's two edges, space first. (a) step 0's heating leg has the pump's leg
+# on its left; null, the pump in heating. (b) the plan's last step's heating leg has its own
+# hot-water leg on its right; null, N = 9.
+_ml_t6d = tuple([" ".join(f"{d}:{m:g}" for d, m in step) for step in _ds_legs.plan_legs(space, dhw, rule=rule)]
+                for space, dhw, rule in (
+                    ([1.5, 0.0], [1.0, 1.0], _ml_space_first_fed[_ds_legs.DHW]),
+                    ([1.5, 0.0], [1.0, 1.0], _ml_space_first_fed[_ds_legs.SPACE]),
+                    ([0.0, 1.5], [1.0, 1.0], _ml_space_first),
+                    ([0.0, 1.5], [1.0, 1.0], _ds_legs.LegRule("space", None, 9.0, 0.0, _ds_legs.IDLE))))
+R.check(
+    "T6d, R2 reads the plan's edges: a space-first heating leg in step 0 after the pump's hot-water leg, and one "
+    "in the last step before its own hot-water leg, merge at N = 10; null controls, the pump in heating and N = 9 "
+    "keep them",
+    _ml_t6d == (["dhw:15", "dhw:15"], ["space:9 dhw:6", "dhw:15"], ["dhw:15", "dhw:15"], ["dhw:15", "space:9 dhw:6"]),
+    str(_ml_t6d),
+)
 _ml_t6b = (_ml_legs([1.5], [1.0], heat=10), _ml_legs([1.5, 0.0], [1.0, 1.0], heat=10),
            _ml_space_first_legs([0.0, 1.5, 0.0], [0.0, 1.0, 1.0]),
            _ml_space_first_legs([0.0, 1.5, 0.0], [1.0, 1.0, 1.0]))
