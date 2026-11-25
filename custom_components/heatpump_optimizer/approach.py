@@ -25,6 +25,7 @@ from typing import Any, Deque
 
 import numpy as np
 
+from .const import finite_float
 from .thermal_model import planned_draw_runs
 
 #: Age bin width, minutes. This, :data:`BINS`, :data:`RAMP_BINS`,
@@ -162,9 +163,9 @@ class ApproachProfile:
             return out
         out.entry = _stored_bins(data.get("entry"), BINS)
         out.ramp = _stored_bins(data.get("ramp"), RAMP_BINS)
-        out.entered_s = _stored_time(data.get("entered_s"))
-        out.ended_s = _stored_time(data.get("ended_s"))
-        out.seen_s = _stored_time(data.get("seen_s"))
+        out.entered_s = finite_float(data.get("entered_s"))
+        out.ended_s = finite_float(data.get("ended_s"))
+        out.seen_s = finite_float(data.get("seen_s"))
         running = data.get("running")
         out.running = running if isinstance(running, bool) else None
         if out.running and out.entered_s is None:
@@ -176,10 +177,10 @@ def stored_config(data: Any) -> tuple[float, float] | None:
     """A stored record's configured ``(min, max)`` key, or ``None`` where
     unreadable or not finite: the evidence it keys is dropped with it."""
     try:
-        lo, hi = (float(v) for v in data["config"])
-    except (TypeError, ValueError, OverflowError, KeyError, IndexError):
+        lo, hi = (finite_float(v) for v in data["config"])
+    except (TypeError, ValueError, KeyError, IndexError):
         return None
-    return (lo, hi) if np.isfinite(lo) and np.isfinite(hi) else None
+    return None if lo is None or hi is None else (lo, hi)
 
 
 def _put(bins: list[Deque[float]], age_min: float, drawn_kw: float) -> None:
@@ -191,22 +192,8 @@ def _put(bins: list[Deque[float]], age_min: float, drawn_kw: float) -> None:
 def _stored_bins(raw: Any, n: int) -> list[Deque[float]]:
     out = _bins(n)
     for b, cells in zip(out, raw if isinstance(raw, list) else []):
-        for cell in cells if isinstance(cells, list) else []:
-            try:
-                v = float(cell)
-            except (TypeError, ValueError, OverflowError):
-                continue
-            if np.isfinite(v) and v >= 0.0:
-                b.append(v)
+        b.extend(v for cell in (cells if isinstance(cells, list) else []) if (v := finite_float(cell)) is not None and v >= 0.0)
     return out
-
-
-def _stored_time(raw: Any) -> float | None:
-    try:
-        v = float(raw)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return v if np.isfinite(v) else None
 
 
 def _levels(bins: list[Deque[float]], floor_kw: float, tolerance: float) -> np.ndarray:
