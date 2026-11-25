@@ -1,0 +1,35 @@
+{
+ "key": "6f546669421ba07b",
+ "mutant": {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/sysid.py",
+  "line": 676,
+  "old": "    settle_band = min(config.settle_hours, config.step_hours, config.relax_hours)",
+  "new": "    settle_band = (config.settle_hours)",
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:slab_mode_one_state_identifiability CLAMP_DROP b592c18f"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 4
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 4010.9,
+ "child_cpu_s": 6635.6,
+ "load1_start": 0.87,
+ "load1_end": 0.92,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}
