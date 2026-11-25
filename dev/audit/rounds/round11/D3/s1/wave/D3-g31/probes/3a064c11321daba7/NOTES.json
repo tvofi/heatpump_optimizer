@@ -1,0 +1,28 @@
+{
+ "cls": "candidate",
+ "base": "weekday_sigma max=0.538 (24 of 24 bins non-zero after 28 observed days)",
+ "mut": "weekday_sigma max=0.0 (24 of 24 bins zero)",
+ "inputs": "28 days folded by observe_day (seeded rng 11, Mon 2026-01-05..); null: a fresh model (residual_var 0)",
+ "should_fail": "tests/features.py, which drives the coordinator's _grid_view (price_prior: PriceShapeModel.summary()) on the traced baseline (carried full-net scripts_ran), lacks an assertion that price_prior.weekday_sigma equals sqrt(residual_var) after observed days; no check in tests/ names weekday_sigma at all (grep count 0)",
+ "finding": {
+  "title": "No check pins price_prior.weekday_sigma against the learned residual variance; zeroing it is unseen",
+  "claim": "Replacing price_model.py:417 sqrt(max(0, v)) by sqrt(0) in PriceShapeModel.summary publishes an all-zero weekday_sigma after 28 learned days (0.538 -> 0.0) and the full GATE_SCOPE=full GOLDEN_MODE=drift gate stays green",
+  "severity": "medium",
+  "metric_definition": "max over the 24 bins of PriceShapeModel.summary()['weekday_sigma'] after 28 observe_day folds (seeded)",
+  "perturbation": {
+   "change": "price_model.py:417 `round(float(np.sqrt(max(0.0, v))), 4)` -> `round(float(np.sqrt((0.0))), 4)`",
+   "expected_direction": "to_zero",
+   "observed_value": 0.0
+  },
+  "null_control": {
+   "command": "the same probe's fresh-model arm",
+   "value": "null_bins_differ=0",
+   "note": "a model with residual_var 0 publishes zeros in both arms"
+  },
+  "phenomenon_property": "The published price prior's per-hour sigma equals the square root of the learned residual variance",
+  "files": [
+   "custom_components/heatpump_optimizer/price_model.py"
+  ],
+  "proposed_fix_scope": "tests/features.py: one check folding days and asserting summary()['weekday_sigma'] == round(sqrt(residual_var), 4)"
+ }
+}

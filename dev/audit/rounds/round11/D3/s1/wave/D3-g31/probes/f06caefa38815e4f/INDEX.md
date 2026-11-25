@@ -1,0 +1,1 @@
+- probes/probe_f06caefa38815e4f.py (output probes/probe_f06caefa38815e4f.out): pins profile [0.5]*23+[bound] restored unchanged, 0 warnings; guessed 17:00 price at level 1.0 = 0.5 vs mutant clipped and renormalised (max |delta| 2.53448), 1 warning; guessed 17:00 price = 0.827586; provisional class if the gate survives: candidate

@@ -1,0 +1,1 @@
+- probes/probe_c1e06ebefdc5abad.py (output probes/probe_c1e06ebefdc5abad.out): pins prod_differ=0 of 192; direct short step_start_times (len 2 < n 4) -> last start reused vs mutant prod identical; direct -> IndexError (2 of 6); provisional class if the gate survives: equivalent-candidate

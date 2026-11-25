@@ -1,0 +1,1 @@
+- probes/probe_c9f07b68ade152e6.py (output probes/probe_c9f07b68ade152e6.out): pins prod_differ=0 of 900; direct nan factor at trust 0 -> 1.0 vs mutant prod_differ=0 of 900; direct nan factor at trust 0 -> nan; provisional class if the gate survives: equivalent-candidate

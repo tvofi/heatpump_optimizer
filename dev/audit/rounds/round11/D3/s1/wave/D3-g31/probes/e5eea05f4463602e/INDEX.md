@@ -1,0 +1,1 @@
+- probes/probe_e5eea05f4463602e.py (output probes/probe_e5eea05f4463602e.out): pins 401/403 text/html body -> verdict reauth; 502 text/html -> fail vs mutant 401/403/502 text/html -> aiohttp.ContentTypeError raised out of pull_prices (the coordinator catches it as an ordinary ClientError fetch failure, no reauth); provisional class if the gate survives: candidate

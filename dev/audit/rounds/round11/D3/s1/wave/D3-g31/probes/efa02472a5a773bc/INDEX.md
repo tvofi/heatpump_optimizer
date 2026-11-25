@@ -1,0 +1,1 @@
+- probes/probe_efa02472a5a773bc.py (output probes/probe_efa02472a5a773bc.out): pins weekend_sigma max=0.4726 (24 of 24 bins non-zero after 28 observed days) vs mutant weekend_sigma max=0.0 (24 of 24 bins zero); provisional class if the gate survives: candidate

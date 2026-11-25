@@ -1,0 +1,8 @@
+{
+ "cls": "equivalent-candidate",
+ "base": "prod_differ=0 of 900; direct nan factor at trust 0 -> 1.0",
+ "mut": "prod_differ=0 of 900; direct nan factor at trust 0 -> nan",
+ "inputs": "from_dict-loaded models, quarter factor in {0.25,0.5,1.0,1.3,4.0,nan,inf,-1,0} x quarter_days {0,1,3,5,9} at 20 instants (weekday and weekend, every quarter mark); direct-constructed factors nan, inf, -inf, 1.3, 0.25 at trust 0",
+ "should_fail": "none through production; a direct unit call of quarter_factor on a constructed model with a non-finite factor at quarter_days 0 asserting 1.0 would",
+ "note": "At trust 0 the mutant returns 1 + (f - 1) * 0 == 1.0 for every finite factor; only a non-finite stored factor separates, and from_dict's _stored_rows rejects non-finite bins and _in_domain clips the rest to [0.25, 4.0], while the learner writes clipped finite factors. Equivalent through every load and learn path."
+}
