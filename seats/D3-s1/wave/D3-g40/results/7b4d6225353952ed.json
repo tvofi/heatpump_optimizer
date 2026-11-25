@@ -1,0 +1,61 @@
+{
+ "key": "7b4d6225353952ed",
+ "site": "custom_components/heatpump_optimizer/tariff.py:763 CLAMP_DROP",
+ "patch": "z = np.clip((x - mid) / scale, -60.0, 60.0) -> z = ((x - mid) / scale)",
+ "function": "_smooth_topk_sum",
+ "cluster": "tariff.py:_smooth_topk_sum@744-773",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3838.3,
+  "load1_start": 0.92,
+  "load1_end": 0.98,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/gates/7b4d6225353952ed.json",
+  "provisional": true
+ },
+ "machine": "box D3-g40, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (MACHINE.txt); wall/load provisional",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_7b4d6225353952ed.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_7b4d6225353952ed.py",
+  "metric": "differing_all_direct",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "unit": "count",
+  "observed": "0 values differ; RuntimeWarnings 0 -> 2620 (exp overflow inside the bisection when the bracket is far from the plateau)",
+  "inputs_tried": "same 2322-input corpus (scalar mode)",
+  "run_output": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/7b4d6225353952ed/RUN.txt",
+  "probe_class": "equivalent-candidate"
+ },
+ "should_fail": {
+  "scripts": {
+   "line_executing_per_carried_m4": [
+    "tests/features.py"
+   ],
+   "full_net_scripts_run_green": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  "assertion_lacking": "only a warnings-as-errors run of a tiny-peak plateau would fail; no value-level assertion can"
+ }
+}
