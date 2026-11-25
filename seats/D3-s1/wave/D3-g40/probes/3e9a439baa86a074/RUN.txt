@@ -1,0 +1,15 @@
+baseline {'zero': {'before_billed': 1.3335666666666668, 'before_threshold': 0.0003, 'n': 3, 'billed': 1.3333333333333333, 'threshold': 0.0, 'closed_billed': 1.3333333333333333}, 'null': {'before_billed': 3.0, 'before_threshold': 2.0, 'n': 3, 'billed': 3.0, 'threshold': 2.0, 'closed_billed': 3.0}}
+mutant {'zero': {'before_billed': 1.3335666666666668, 'before_threshold': 0.0003, 'n': 1, 'billed': 4.0, 'threshold': 4.0, 'closed_billed': 4.0}, 'null': {'before_billed': 3.0, 'before_threshold': 2.0, 'n': 3, 'billed': 3.0, 'threshold': 2.0, 'closed_billed': 3.0}}
+RESULT billed_peak_before_restart=1.333567 kW
+RESULT peaks_reloaded_baseline=3 count
+RESULT peaks_reloaded_mutant=1 count
+RESULT billed_peak_kw_baseline=1.333333 kW
+RESULT billed_peak_kw_mutant=4.000000 kW
+RESULT threshold_kw_baseline=0.000000 kW
+RESULT threshold_kw_mutant=4.000000 kW
+RESULT closed_month_billed_baseline=1.333333 kW
+RESULT closed_month_billed_mutant=4.000000 kW
+RESULT null_delta=0 kW
+RESULT load1=0.93
+RESULT thread_factor=1.0 ratio  (single-threaded pure-value probe; thread pin set)
+RESULT swapins=0

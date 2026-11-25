@@ -1,0 +1,1 @@
+- probe_3e9a439baa86a074.py (+ probe_lib.py): pins _stored_peaks' zero-peak keep across a PeakTracker as_dict->from_dict restart; billed 1.333 -> 4.0 kW, threshold 0.0 -> 4.0 kW under the mutant
