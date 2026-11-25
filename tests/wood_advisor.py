@@ -224,6 +224,27 @@ R.check(
     _lighting(_lead90) == (_at(4, 30), _at(6)),
     repr(_lighting(_lead90)),
 )
+_lead_views = {}
+for _lead in ("0", "240", "1440", "1440.5", "1e12", "-5", "nan"):
+    try:
+        _lead_views[_lead] = _lighting(
+            _wood_view({6, 7}, config={**_WOOD_READY, "wood_lighting_lead_minutes": float(_lead)})
+        )
+    except (OverflowError, ValueError) as _exc:
+        _lead_views[_lead] = repr(_exc)
+R.check(
+    "a lead inside [0, a day] is its own: 0 lights at the window's start, 240 four hours "
+    "before, and a day's lead lights now",
+    _lead_views["0"] == (_at(6), _at(6)) and _lead_views["240"] == (_at(2), _at(6))
+    and _lead_views["1440"] == (_at(0), _at(6)),
+    repr(_lead_views),
+)
+R.check(
+    "a stored lead outside [0, a day] is the default 60 min: 1e12 does not overflow "
+    "the window's datetime, and a negative or NaN lead is not one",
+    all(_lead_views[_bad] == (_at(5), _at(6)) for _bad in ("1440.5", "1e12", "-5", "nan")),
+    repr(_lead_views),
+)
 _now_open = _wood_view({0, 1})
 R.check(
     "a window open at the plan's first step lights now, never in the past",
@@ -259,6 +280,42 @@ R.check(
     _local.get("cheaper_windows")
     == [{"start": "2026-01-15T23:00:00+01:00", "end": "2026-01-16T00:00:00+01:00"}],
     repr(_local.get("cheaper_windows")),
+)
+# PR #3728 review (wood_fuel cheaper_windows/_attach_windows): a naive plan
+# stamp is UTC under any host zone (drift.utc_instant), never the host's. The
+# same 22:00-23:00 UTC cheap steps, naive, built under a Tokyo host, must give
+# the aware build's windows; read with the host zone they land nine hours off.
+import os as _os
+import time as _time
+
+_saved_host_tz = _os.environ.get("TZ")
+_os.environ["TZ"] = "Asia/Tokyo"
+_time.tzset()
+try:
+    _host_took = _time.localtime(1768435200).tm_gmtoff == 9 * 3600  # 2026-01-15
+    _naive_local = build_wood_fuel_view(
+        _WOOD_READY,
+        prices=[4.0 if i in (22, 23) else 1.0 for i in range(30)],
+        cops=[3.0] * 30,
+        runs=[True] * 30,
+        timestamps=[ts.replace(tzinfo=None) for ts in _STAMPS],
+        forecast_kw=[],
+        local_tz=_CET,
+    )
+finally:
+    if _saved_host_tz is None:
+        _os.environ.pop("TZ", None)
+    else:
+        _os.environ["TZ"] = _saved_host_tz
+    _time.tzset()
+R.check(
+    "a naive plan stamp is UTC under a non-UTC host zone: the windows and the "
+    "lighting window equal the aware build's",
+    _host_took
+    and _naive_local.get("cheaper_windows") == _local.get("cheaper_windows")
+    and _lighting(_naive_local) == _lighting(_local),
+    f"host zone took {_host_took}, {_naive_local.get('cheaper_windows')!r} "
+    f"{_lighting(_naive_local)!r}",
 )
 from heatpump_optimizer.wood_fuel import cheaper_windows as _cheaper_windows
 

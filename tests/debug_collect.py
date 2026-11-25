@@ -1178,6 +1178,19 @@ R.check(
     [replay_doc.numeric(v) for v in ("1.5", 3, 2.5, "warm", None, ["1"])]
     == [True, True, True, False, False, False],
 )
+# Round-11 D7-s3-04: numeric is const.finite_float's domain, written out because
+# replay_doc imports no sibling; the census drives both with the same probes,
+# among them the three this copy once admitted (a bool, "nan", "inf").
+_numeric_probes = ("1.5", " 7 ", 3, 2.5, -0.0, True, False, "warm", "", None, ["1"],
+                   float("nan"), float("inf"), "nan", "inf", "-inf", "1e400")
+_numeric_split = [(v, replay_doc.numeric(v), const_mod.finite_float(v) is not None) for v in _numeric_probes]
+R.check(
+    "replay_doc.numeric answers exactly as const.finite_float on every probe, "
+    "refusing a bool, NaN and infinity in any spelling",
+    all(a == b for _, a, b in _numeric_split)
+    and not any(replay_doc.numeric(v) for v in (True, "nan", "inf", float("nan"))),
+    f"{[(v, a, b) for v, a, b in _numeric_split if a != b]}",
+)
 R.check(
     "replay_doc.json_decimal_places counts the JSON spelling's decimals, a string's as "
     "written, and answers None for a bool, a word or a non-number",

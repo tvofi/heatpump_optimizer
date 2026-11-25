@@ -35,6 +35,10 @@ Metrics (definitions, one line each; the code is the authority):
                               copies merged, dead code deleted -- lower it
                               (#2285's review). A class under the limit costs
                               nothing, so a new small class is free
+  module_excess_loc           every module's span past MODULE_LOC_LIMIT,
+                              summed: a module-level function in no class and
+                              under the function thresholds is priced
+                              (D7-s1-04)
   max_method_loc              the largest function span in the integration --
                               the WORST offender, not a count of offenders
                               (#374). Reads 0 when nothing exceeds
@@ -92,17 +96,31 @@ Metrics (definitions, one line each; the code is the authority):
                               and compared PACKAGE-wide; each class counts its
                               members past the first -- the copies that would
                               go if the logic were shared (#1738 arm a)
+  in_function_copies          the same window written at two or more
+                              non-overlapping places of ONE function and in no
+                              other (R11 D7-s1-02): duplication_copies joins
+                              functions, so a copy inside one function moved
+                              no row. Keyed by place; each window counts its
+                              places past the first
   functions_cc_over_25 /      cyclomatic complexity 1 + decision points
   functions_cc_over_15        (if/elif, for, while, ternary, except, assert,
                               boolean operator terms beyond the first, each
                               comprehension clause and its ifs, each match
                               case), counted over the whole function span
                               including nested defs
-  const_modules_over_50       modules importing more than 50 names from
-                              ``.const``
+  const_modules_over_50       modules reading more than 50 distinct names of
+                              ``.const``, through ``from .const import`` or a
+                              binding of the module (``const.X``): a
+                              re-spelling moves nothing (D7-s1-01)
   import_cycle_modules        modules in a cycle of the package's import
                               graph, function-scope imports in and imports
                               under ``if TYPE_CHECKING:`` out (#1738)
+  unloaded_package_imports    ``from .<module> import N`` bindings the
+                              importing module never loads, that no other
+                              module re-imports from it and that no string in
+                              it names (R11 D7-s1-03): dead_top_level_symbols
+                              counts definitions, and a binding nothing reads
+                              keeps its definition live by name alone
   dead_top_level_symbols      top-level defs/classes/assignments no load in
                               the integration resolves to (dunder, HA entry
                               points, HA convention constants and
@@ -257,6 +275,9 @@ DUP_WINDOW_STATEMENTS = 2
 DUP_MIN_NODES = 30
 CC_LIMITS = (25, 15)
 CONST_FANOUT_LIMIT = 50
+# The module span past which a module's lines are priced (owner, 2026-11-18;
+# D7-s1-04): module_excess_loc sums each module's lines beyond it.
+MODULE_LOC_LIMIT = 2000
 
 # The seam partition of #193's plan of record. A coordinator method's seam is
 # its entry in SEAM_MAP_FILE, never its name (#1539): bucketing by name let a
@@ -584,6 +605,36 @@ def bound_references(trees: list[tuple[Path, ast.Module]]) -> set[tuple[str, str
     return {(str(mods[m][0].relative_to(REPO_ROOT)), n) for m, n in found if m in mods}
 
 
+def unloaded_package_imports(trees: list[tuple[Path, ast.Module]]) -> list[tuple[str, int, str]]:
+    """``(rel, line, bound name)`` per package from-import nothing reads (R11 D7-s1-03).
+
+    A binding ``from .<module> import N [as A]`` is unused when three things
+    hold. The importing module never loads ``A``. No module imports ``A`` from
+    it (a re-export, read off ``import_bindings``' own symbol bindings). No
+    string in it names ``A`` (``__all__``, a ``getattr`` name, a patch
+    target). A star
+    import binds no one name, so it is never a row.
+    """
+    mods = {p.relative_to(PACKAGE_DIR).as_posix()[:-3].replace("/", "."): (p, t)
+            for p, t in trees}
+    sym_bind, _mod_bind = import_bindings({m: (str(p), t) for m, (p, t) in mods.items()})
+    reexported = set(sym_bind.values())
+    out = []
+    for mod, (path, tree) in mods.items():
+        loads = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and not isinstance(n.ctx, ast.Store)}
+        words = {w for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)
+                 for w in n.value.replace(".", " ").split()}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or node.level == 0:
+                continue
+            for alias in node.names:
+                bound = alias.asname or alias.name
+                if alias.name == "*" or bound in loads or bound in words or (mod, bound) in reexported:
+                    continue
+                out.append((str(path.relative_to(REPO_ROOT)), node.lineno, bound))
+    return sorted(out)
+
+
 def is_dead_symbol(key: tuple[str, str], bound: set[tuple[str, str]],
                    exempt: set[tuple[str, str]]) -> bool:
     """No load resolves to ``(rel, name)``, and no convention or proof exempts it."""
@@ -766,21 +817,16 @@ def normalized_window(stmts: list[ast.stmt], local: set[str], modalias: set[str]
         ast.dump(Normalize().visit(ast.parse(ast.unparse(s)).body[0])) for s in stmts)
 
 
-def duplicate_clones(trees: list[tuple[Path, ast.Module]],
+def function_windows(trees: list[tuple[Path, ast.Module]],
                      window: int = DUP_WINDOW_STATEMENTS,
-                     min_nodes: int = DUP_MIN_NODES) -> list[list[tuple[str, str, int]]]:
-    """Clone classes: functions sharing a normalized statement window, package-wide.
+                     min_nodes: int = DUP_MIN_NODES):
+    """Yield ``(owner, digest, (first line, last line))`` per statement window.
 
-    A window is ``window`` consecutive statements of one block (a body, an
-    ``else``, a handler) carrying at least ``min_nodes`` AST nodes, nested
-    defs excluded. Two functions sharing any window are joined, IN ANY MODULE
-    (#1738 arm a: a copy placed in another module used to move nothing, the
-    same copy in its own module moved it). Each connected group of functions
-    is one clone class; ``duplication_copies`` counts every member past the
-    first, the copies that would go if the logic were shared -- a count of
-    copies, not of pairs, so a third copy costs one more, not two.
+    The one window rule both clone rows read: ``window`` consecutive
+    statements of one block (a body, an ``else``, a handler) carrying at least
+    ``min_nodes`` AST nodes, nested defs excluded, digested in
+    ``normalized_window``'s form. ``owner`` is ``(rel, function, line)``.
     """
-    windows: dict[str, set[tuple[str, str, int]]] = defaultdict(set)
     for path, tree in trees:
         rel = str(path.relative_to(REPO_ROOT))
         modalias = _module_aliases(tree)
@@ -809,7 +855,55 @@ def duplicate_clones(trees: list[tuple[Path, ast.Module]],
                             continue
                         digest = hashlib.sha1(
                             normalized_window(stmts, local, modalias).encode()).hexdigest()
-                        windows[digest].add(owner)
+                        yield owner, digest, (stmts[0].lineno, stmts[-1].end_lineno)
+
+
+def in_function_copies(trees: list[tuple[Path, ast.Module]],
+                       window: int = DUP_WINDOW_STATEMENTS,
+                       min_nodes: int = DUP_MIN_NODES,
+                       ) -> list[tuple[str, str, int, list[tuple[int, int]]]]:
+    """``(rel, function, line, places)`` per window one function writes twice.
+
+    ``duplicate_clones`` joins FUNCTIONS, so a rule written at two places of
+    one function is one member and moved no row (R11 D7-s1-02). This keys the
+    window by PLACE: the spans one function holds it at, overlapping spans
+    merged. A statement repeated three times in a row is one place, not two.
+    Only a window no second function holds is read: one that a second holds
+    is a clone class already, priced by ``duplication_copies``.
+    """
+    owners: dict[str, set[tuple[str, str, int]]] = defaultdict(set)
+    spans: dict[tuple[tuple[str, str, int], str], list[tuple[int, int]]] = defaultdict(list)
+    for owner, digest, span in function_windows(trees, window, min_nodes):
+        owners[digest].add(owner)
+        spans[(owner, digest)].append(span)
+    out = []
+    for (owner, digest), found in spans.items():
+        places: list[tuple[int, int]] = []
+        for span in sorted(found):
+            if not places or span[0] > places[-1][1]:
+                places.append(span)
+        if len(places) > 1 and len(owners[digest]) == 1:
+            out.append((*owner, places))
+    return sorted(out)
+
+
+def duplicate_clones(trees: list[tuple[Path, ast.Module]],
+                     window: int = DUP_WINDOW_STATEMENTS,
+                     min_nodes: int = DUP_MIN_NODES) -> list[list[tuple[str, str, int]]]:
+    """Clone classes: functions sharing a normalized statement window, package-wide.
+
+    A window is ``window`` consecutive statements of one block (a body, an
+    ``else``, a handler) carrying at least ``min_nodes`` AST nodes, nested
+    defs excluded. Two functions sharing any window are joined, IN ANY MODULE
+    (#1738 arm a: a copy placed in another module used to move nothing, the
+    same copy in its own module moved it). Each connected group of functions
+    is one clone class; ``duplication_copies`` counts every member past the
+    first, the copies that would go if the logic were shared -- a count of
+    copies, not of pairs, so a third copy costs one more, not two.
+    """
+    windows: dict[str, set[tuple[str, str, int]]] = defaultdict(set)
+    for owner, digest, _span in function_windows(trees, window, min_nodes):
+        windows[digest].add(owner)
     parent: dict[tuple[str, str, int], tuple[str, str, int]] = {}
 
     def find(x):
@@ -2925,6 +3019,44 @@ def class_excess(trees: list[tuple[Path, ast.Module]],
 # the metrics
 
 
+def module_excess(trees: list[tuple[Path, ast.Module]]) -> int:
+    """``module_excess_loc``: each module's span past MODULE_LOC_LIMIT, summed (D7-s1-04).
+
+    The class rows price lines inside a class, and the function rows a
+    function crossing 150 lines or CC 15. A module-level function under both
+    was in no row: coordinator.py could grow beside its class while the class
+    rows fell. A module's span runs from line 1 to the end of its last
+    statement, so lines cost the same in a class, a helper or a function, and
+    a module under the limit costs nothing. A sum, not a threshold count: a
+    count stops pricing a module once it has crossed the line.
+    """
+    return sum(max(0, (tree.body[-1].end_lineno if tree.body else 0) - MODULE_LOC_LIMIT)
+               for _path, tree in trees)
+
+
+def const_names_read(tree: ast.Module) -> set[str]:
+    """The distinct ``.const`` names a module reads, by either spelling (D7-s1-01).
+
+    ``from .const import X`` and ``const.X`` off ``from . import const [as c]``
+    are the same dependency. Counting only the names on from-import statements
+    read entry_config.py's 118 binding reads as 3. A re-spelling of
+    thermal_model.py's from-import lowered the row with the coupling unchanged.
+    """
+    names: set[str] = set()
+    bindings: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        if (node.level == 1 and node.module == "const") or node.module == "heatpump_optimizer.const":
+            names |= {a.name for a in node.names}
+        elif node.level == 1 and node.module is None:
+            bindings |= {a.asname or a.name for a in node.names if a.name == "const"}
+    if bindings:
+        names |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)
+                  and isinstance(n.value, ast.Name) and n.value.id in bindings}
+    return names
+
+
 def measure() -> dict:
     """Recompute every metric from the working tree. Returns a dict with the
     flat metric values (the budget keys) under ``metrics`` and everything the
@@ -2935,7 +3067,7 @@ def measure() -> dict:
     god_classes = []       # (loc, file, span, name, methods)
     monsters = []          # (loc, file, span, name)
     cc_scores = []         # (cc, file, line, name)
-    const_fanout = {}      # file -> imported names from .const
+    const_fanout = {}      # file -> distinct .const names read, by either spelling
 
     # -- classes, functions, imports, dead symbols -------------------------
     top_level_defs: dict[tuple[str, str], int] = {}
@@ -2978,13 +3110,7 @@ def measure() -> dict:
             if cc > CC_LIMITS[1]:
                 cc_scores.append((cc, rel, fn.lineno, fn.name))
 
-        fanout = 0
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and (
-                (node.level == 1 and node.module == "const")
-                or node.module == "heatpump_optimizer.const"
-            ):
-                fanout += len(node.names)
+        fanout = len(const_names_read(tree))
         if fanout:
             const_fanout[rel] = fanout
 
@@ -3009,6 +3135,8 @@ def measure() -> dict:
     writers = coordinator_writers(roles)
 
     clones = duplicate_clones(trees)
+    in_fn_copies = in_function_copies(trees)
+    unused_imports = unloaded_package_imports(trees)
     cycles = import_cycle_modules(trees)
     excess, helper_loc = class_excess(trees, helpers)
     max_method_loc, max_cc = table_maxima(monsters, cc_scores)
@@ -3024,6 +3152,9 @@ def measure() -> dict:
         # Every class's lines past the limit, the coordinator's helpers in
         # its span: growth anywhere is priced, a verbatim move is not a gain.
         "class_excess_loc": excess,
+        # Every module's lines past MODULE_LOC_LIMIT: lines outside any
+        # class are priced too (D7-s1-04).
+        "module_excess_loc": module_excess(trees),
         # The worst offender, off tables that are already built and already
         # sorted (#374). The four threshold counts above stop pricing a
         # function once it has crossed the line, so without these two the
@@ -3033,6 +3164,8 @@ def measure() -> dict:
         "max_method_loc": max_method_loc,
         "max_cc": max_cc,
         "duplication_copies": sum(len(g) - 1 for g in clones),
+        "in_function_copies": sum(len(places) - 1 for *_owner, places in in_fn_copies),
+        "unloaded_package_imports": len(unused_imports),
         "functions_cc_over_25": sum(1 for cc, *_ in cc_scores if cc > CC_LIMITS[0]),
         "functions_cc_over_15": len(cc_scores),
         "const_modules_over_50": sum(1 for n in const_fanout.values() if n > CONST_FANOUT_LIMIT),
@@ -3063,6 +3196,8 @@ def measure() -> dict:
         "dynamic_exempt": sorted(dynamic_exempt),
         "dynamic_problems": dynamic_problems,
         "clones": clones,
+        "in_function_copies": in_fn_copies,
+        "unused_imports": unused_imports,
         "seam_rows": seam["seam_rows"],
         "helpers": sorted(helpers),
         "private_reach": reach,
@@ -3110,7 +3245,7 @@ def print_report(result: dict) -> None:
           " module docstring)" % metrics["max_cc"])
 
     print()
-    print("########## .const import fan-out (names imported per module) ##########")
+    print("########## .const fan-out (distinct names read per module, either spelling) ##########")
     for rel, n in tables["const_fanout"].items():
         flag = "  > %d" % CONST_FANOUT_LIMIT if n > CONST_FANOUT_LIMIT else ""
         print(f"  {rel}: {n}{flag}")
@@ -3157,6 +3292,16 @@ def print_report(result: dict) -> None:
           % DUP_WINDOW_STATEMENTS)
     for group in tables["clones"]:
         print("  " + "  ==  ".join(f"{rel}:{line} {name}" for rel, name, line in group))
+
+    print()
+    print("########## duplication inside one function (the same window at two places) ##########")
+    for rel, name, line, places in tables["in_function_copies"]:
+        print(f"  {rel}:{line} {name}  " + "  ==  ".join(f"{a}-{b}" for a, b in places))
+
+    print()
+    print("########## package from-imports nothing reads ##########")
+    for rel, line, bound in tables["unused_imports"]:
+        print(f"  {rel}:{line}  {bound}")
 
     print()
     print("########## coordinator private reach (outside its methods and helpers) ##########")
@@ -4058,6 +4203,50 @@ ROLE_SELF_CHECK_SOURCES = {
         "        return 4\n",
 }
 
+# One window written twice in one function is an in-function copy; the same
+# window in a second function is a clone class, and three consecutive copies
+# of one statement are a run, so neither of those is.
+IN_FUNCTION_SELF_CHECK_SOURCES = {
+    "twice": (
+        "def twice(xs, k):\n"
+        "    t = sum(v * k for v in xs if v > 0)\n"
+        "    r = max(t, len(xs) * k - 1)\n"
+        "    print(r)\n"
+        "    t = sum(v * k for v in xs if v > 0)\n"
+        "    r = max(t, len(xs) * k - 1)\n"
+        "    return r\n"),
+    "two_functions": (
+        "def one(xs, k):\n"
+        "    t = sum(v * k for v in xs if v > 0)\n"
+        "    r = max(t, len(xs) * k - 1)\n"
+        "    print(r)\n"
+        "    t = sum(v * k for v in xs if v > 0)\n"
+        "    r = max(t, len(xs) * k - 1)\n"
+        "    return r\n"
+        "def other(xs, k):\n"
+        "    t = sum(v * k for v in xs if v > 0)\n"
+        "    r = max(t, len(xs) * k - 1)\n"
+        "    return r\n"),
+    "run": (
+        "def run(xs, k):\n"
+        "    t = max(sum(v * k for v in xs if v > 0), len(xs) * k - 1)\n"
+        "    t = max(sum(v * k for v in xs if v > 0), len(xs) * k - 1)\n"
+        "    t = max(sum(v * k for v in xs if v > 0), len(xs) * k - 1)\n"
+        "    return t\n"),
+}
+
+#: ``reader.py`` binds five names: one loaded, one only named in a string, one
+#: re-imported from it by ``user.py``, and two read nowhere (one through ``as``).
+UNUSED_IMPORT_SELF_CHECK_SOURCES = {
+    "const.py": "READ = 1\nNAMED = 2\nPASSED = 3\nUNREAD = 4\nORIGINAL = 5\n",
+    "reader.py": ("from .const import READ, NAMED, PASSED, UNREAD\n"
+                  "from .const import ORIGINAL as renamed\n"
+                  "from .const import *\n"
+                  "__all__ = ['NAMED']\n"
+                  "def f():\n    return READ\n"),
+    "user.py": "from .reader import PASSED\nprint(PASSED)\n",
+}
+
 # One window, three spellings of it: a second copy in another module is a
 # copy, and a third costs one more, not two more.
 DUP_SELF_CHECK_BODY = (
@@ -4185,6 +4374,47 @@ def class_self_check() -> tuple[tuple[str, bool], ...]:
     )
 
 
+def const_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin const_modules_over_50's key (D7-s1-01): the distinct names read, by either spelling."""
+    names = [f"CONF_K{i}" for i in range(CONST_FANOUT_LIMIT + 1)]
+    imported = "from .const import " + ", ".join(names) + "\nX = [" + ", ".join(names) + "]\n"
+    bound = "from . import const\nX = [" + ", ".join(f"const.{n}" for n in names) + "]\n"
+    aliased = "from . import const as c\nX = [" + ", ".join(f"c.{n}" for n in names) + "]\n"
+    both = "from .const import CONF_K0\n" + bound
+    unbound = "X = [" + ", ".join(f"other.{n}" for n in names) + "]\n"
+
+    def read(src: str) -> int:
+        return len(const_names_read(ast.parse(src)))
+
+    return (
+        ("a from-import re-spelled as a binding read moves no const row",
+         read(bound) == read(imported) == CONST_FANOUT_LIMIT + 1),
+        ("a read through an aliased binding of const counts", read(aliased) == read(bound)),
+        ("a name read by both spellings counts once", read(both) == read(bound)),
+        ("an attribute read off a name that is not a const binding is no const read",
+         read(unbound) == 0),
+    )
+
+
+def module_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin module_excess_loc (D7-s1-04): a module's growth is priced wherever in it the lines land."""
+    under = "".join(f"x{i} = {i}\n" for i in range(MODULE_LOC_LIMIT))
+    fn = "def grown():\n" + MOVED_BODY
+    method = "class Grown:\n" + "".join("    " + ln + "\n" for ln in fn.splitlines())
+    added = span_loc(ast.parse(fn).body[0])
+
+    def excess(src: str) -> int:
+        return module_excess([(PACKAGE_DIR / "m.py", ast.parse(src))])
+
+    return (
+        ("a module at the module limit costs nothing", excess(under) == 0),
+        ("a module-level function past the module limit is priced by its lines",
+         excess(under + fn) == added),
+        ("the same lines in a class past the module limit cost the same",
+         excess(under + method) == excess(under + fn) + 1),
+    )
+
+
 # ``HA_ENTITY_METHODS``' two halves, side by side: the same member name on the
 # class HA instantiates and on one it does not. A key of the name alone reads
 # both the same -- the entry would then silence a same-named member of a class
@@ -4280,6 +4510,13 @@ def role_self_check() -> tuple[tuple[str, bool], ...]:
         return sum(len(g) - 1 for g in duplicate_clones(
             [(PACKAGE_DIR / f"m{i}.py", ast.parse(s)) for i, s in enumerate(srcs)]))
 
+    def in_function(source: str) -> list[int]:
+        return [len(places) for *_owner, places in in_function_copies(
+            [(PACKAGE_DIR / "twice.py", ast.parse(source))])]
+
+    unused = {(rel.rsplit("/", 1)[-1], bound) for rel, _line, bound in unloaded_package_imports([
+        (PACKAGE_DIR / m, ast.parse(src)) for m, src in UNUSED_IMPORT_SELF_CHECK_SOURCES.items()])}
+
     field_dead, field_kept = dead_members(
         Package([(PACKAGE_DIR / "fields.py", ast.parse(FIELD_SELF_CHECK_SOURCE))]))
 
@@ -4320,6 +4557,15 @@ def role_self_check() -> tuple[tuple[str, bool], ...]:
         ("a copy in another module is one copy, renamed or not",
          copies(("xs", "k", "t"), ("values", "scale", "total")) == 1),
         ("a third copy costs one more", copies(("a", "b", "c"), ("d", "e", "f"), ("g", "h", "i")) == 2),
+        ("a window written twice in one function is an in-function copy",
+         in_function(IN_FUNCTION_SELF_CHECK_SOURCES["twice"]) == [2]),
+        ("a window one function writes twice and another once is a clone class, not an in-function copy",
+         in_function(IN_FUNCTION_SELF_CHECK_SOURCES["two_functions"]) == []
+         and copies(("xs", "k", "t"), ("xs", "k", "t")) == 1),
+        ("a statement repeated in a row is one place, not two",
+         in_function(IN_FUNCTION_SELF_CHECK_SOURCES["run"]) == []),
+        ("a package from-import nothing loads is unused",
+         unused == {("reader.py", "UNREAD"), ("reader.py", "renamed")}),
         ("a function-scope import closes a cycle", cycles(CYCLE_SELF_CHECK_SOURCES["b.py"]) == [["a", "b"]]),
         ("a TYPE_CHECKING import is not an edge", cycles(CYCLE_SELF_CHECK_GUARDED) == []),
     )
@@ -4357,6 +4603,8 @@ def self_check() -> int:
         *role_self_check(),
         *typed_self_check(),
         *class_self_check(),
+        *const_self_check(),
+        *module_self_check(),
         *entity_self_check(),
     )
     failures = [message for message, ok in rules if not ok]

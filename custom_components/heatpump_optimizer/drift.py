@@ -36,8 +36,14 @@ STAT_CAP_FACTOR = 1.5
 REFERENCE_PRIOR_COV = 1.0
 
 
-def _as_utc(value: datetime) -> datetime:
-    """Home Assistant's ``as_utc`` rule: naive is UTC, aware is converted."""
+def utc_instant(value: datetime) -> datetime:
+    """``value`` as an aware UTC instant: naive is read as UTC, aware is converted.
+
+    This is the package's one reading of a naive instant's zone (round-11
+    D7-s3-04). The stored and solver stamps are UTC-walked, so a naive one is
+    UTC, never the host's zone. ``open_meteo`` read it with ``astimezone`` and
+    landed nine hours off under a Tokyo host.
+    """
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
@@ -51,7 +57,7 @@ def utc_elapsed_seconds(newer: datetime, older: datetime) -> float:
     both to UTC first measures the instants. A naive pair keeps its wall
     difference, which is what the identity-zone test clock means by it.
     """
-    return (_as_utc(newer) - _as_utc(older)).total_seconds()
+    return (utc_instant(newer) - utc_instant(older)).total_seconds()
 
 
 def utc_shift(when: datetime, delta: timedelta) -> datetime:
@@ -126,8 +132,37 @@ def stored_age_seconds(raw: Any, now: datetime) -> float | None:
     return age if age >= 0.0 else None
 
 
+#: Evidence lines a detector keeps, newest last.
+EVIDENCE_KEEP = 6
+
+
+class EvidenceNotes:
+    """The evidence log a detector publishes: timestamped lines, the newest few kept.
+
+    The one owner of the line's shape and of the cap (round-11 D7-s1-05, the
+    ``note`` arm). The drift detectors, the peak guard and the coordinator's
+    immersion inference publish the same list, so they write it through the
+    same method; each subclass declares its own ``evidence`` field.
+    """
+
+    evidence: list[str]
+
+    def note(self, when: datetime, text: str) -> None:
+        """Append ``text`` stamped ``when``, keeping the newest :data:`EVIDENCE_KEEP`."""
+        self.evidence.append(f"{when.isoformat(timespec='seconds')}: {text}")
+        del self.evidence[:-EVIDENCE_KEEP]
+
+
 @dataclass
-class Cusum:
+class EvidenceLog(EvidenceNotes):
+    """An evidence log with no detector state around it: the coordinator's
+    immersion inference keeps its trail here rather than trimming its own list."""
+
+    evidence: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Cusum(EvidenceNotes):
     """A one-sided CUSUM with a drift allowance and hysteresis release.
 
     ``update`` folds one residual; the statistic accumulates
@@ -192,7 +227,7 @@ class Cusum:
         )
         if not self.tripped and self.stat >= self.threshold:
             self.tripped = True
-            self._note(
+            self.note(
                 when,
                 f"accumulated {self.stat:.2f} over threshold "
                 f"{self.threshold:.2f}; tripped",
@@ -200,7 +235,7 @@ class Cusum:
             return True
         if self.tripped and self.stat <= release_at:
             self.tripped = False
-            self._note(when, f"decayed to {self.stat:.2f}; released")
+            self.note(when, f"decayed to {self.stat:.2f}; released")
             return True
         return False
 
@@ -277,15 +312,11 @@ class Cusum:
             return False
         self.tripped = False
         self.stat = 0.0
-        self._note(
+        self.note(
             now,
             f"no residuals for {max_gap_hours:.0f} h; released as stale",
         )
         return True
-
-    def _note(self, when: datetime, text: str) -> None:
-        self.evidence.append(f"{when.isoformat(timespec='seconds')}: {text}")
-        del self.evidence[:-6]
 
     def as_dict(self) -> dict[str, Any]:
         data = {
@@ -322,7 +353,7 @@ class Cusum:
         self.tripped = data.get("tripped") is True
         raw = data.get("evidence")
         if isinstance(raw, list):
-            self.evidence = [str(e) for e in raw[-6:]]
+            self.evidence = [str(e) for e in raw[-EVIDENCE_KEEP:]]
         raw_fed = data.get("last_fed")
         if isinstance(raw_fed, str):
             self.last_fed = stored_instant(raw_fed)

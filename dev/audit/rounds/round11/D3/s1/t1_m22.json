@@ -1,0 +1,1 @@
+[{"kind": "R10C2", "file": "custom_components/heatpump_optimizer/tariff.py", "line": 595, "old": "    return bool(tariff.months) or (", "new": "    return bool(tariff.months) and (", "anchor": "custom_components/heatpump_optimizer/tariff.py:R10-C3C6 M22", "c2_id": "M22"}]

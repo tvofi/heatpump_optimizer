@@ -1,0 +1,301 @@
+
+########## environment ##########
+  python   3.14.7 (linux)
+  cpu      Intel(R) Xeon(R) Processor @ 2.10GHz
+  blas     Haswell
+  stack    numpy 2.5.4, scipy 1.18.1
+
+########## python3 tests/env_drift.py --claims-only 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ##########
+claims hygiene: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ok
+
+########## python3 tests/closure.py selftest ##########
+  SLOT: tests/closure.py joins a heavy slot as run.sh-6573
+
+=== closure shrink guard (#527) ===
+  ok   card_drift.mjs's committed closure covers plan_view.py
+  ok   the 6-file raw trace is a strict subset of that claim
+  ok   a full merge does not drop files from card_drift.mjs
+  ok   a full merge writes the _comment's stub-seconds disclosure
+  ok   a shrinking script does not abort an unrelated grow
+  ok   the shrink path does not tell you to run a full derive
+  ok   a grow-only partial merge still grows (null control)
+  ok   a partial merge refreshes a stale _comment
+  ok   card_drift.mjs inherits plan_view.py's closure the way card.mjs does
+  ok   a broken-recording refusal names the command that takes the flag
+  ok   a stale-closure refusal names --single, not a bare full derive
+  ok   a refused merge surfaces merge()'s reason, not just skip-merge-failed
+  ok   and a merge that succeeds carries no merge reason (null control)
+  ok   a warm __pycache__ .pyc open attributes the source it was compiled from
+  ok   the #1309 instance maps: governance_cost's cache attributes its source
+  ok   a cache whose source is gone attributes nothing (null control)
+  ok   the cold path is unchanged (control)
+  ok   the header corpus is the six-part path under dev/audit/rounds
+  ok   merge drops a committed entry whose path does not exist (#1310)
+  ok   merge still keeps a committed REAL file the run did not touch (#527 null control)
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check passes on the same table once the phantom is gone (#1310 null control)
+  ok   check fails on a phantom in the committed inert_reads (R9-RO-10)
+  ok   prune drops committed phantom entries (#1310)
+  ok   prune keeps a closures key whose every entry was a phantom, empty: select reads a missing key as no closure recorded (R9-RO-9a)
+  ok   prune drops dead inert_reads entries, and a key left with none (R9-RO-10)
+  ok   prune is idempotent (#1310 null control)
+  ok   a partial merge keeps committed inert_reads the run cannot see (#1886)
+  ok   a recording that saw other inert reads grows, never swaps (#1886 grow arm)
+  ok   a full merge keeps committed inert_reads the run cannot see (#1886)
+  ok   the #1886 sequence stays green: Darwin merge, then Linux check
+
+=== coverage reuses only what the scoped gate skips (#1812) ===
+  ok   a FULL plan measures every script, base data or not
+  ok   a plan of no known mode measures every script
+  ok   scoped: only a skipped script with base data is reused
+  ok   scoped, cache miss: nothing is reused
+  ok   coverage-split reads .coverage.<n> and <n>.nodata as base data
+  ok   a push diff no closure mentions selects a FULL plan
+  ok   the FULL plan reuses nothing from a fully populated base
+  ok   a FULL plan measures even the script its own skip names
+  ok   the push marker at the expected base is trusted
+  ok   a non-push run's marker is discarded: reuse never engages from a non-push run
+  ok   a push marker naming another commit is discarded
+  ok   a missing marker is a discard, never a trust
+  ok   coverage-trust exits 0 only on the trusted marker
+  ok   the summary line states the reuse count and the backstop loss
+  ok   a run that reused nothing says so
+  ok   the push arm restores through the same key formula
+  ok   the push arm's plan comes from select at the restored base
+  ok   the coverage job states the reuse count in its summary
+  ok   coverage_tree.sh provenances every entry it leaves in per/
+
+=== a recording's rc says whether it ended, and the log says it (#1987) ===
+  ok   record() runs the script with HPO_CLOSURE_RECORDING=1, the flag stress.py keys its timing verdicts on
+  ok   stress.py reads the same variable name
+  ok   harness_headers.py reads the same variable name (its CPU-headroom grade)
+  ok   derive_closures.sh's done line reports a recording's exit 3
+  ok   derive_closures.sh's done line reports a recording's exit 0
+
+=== a layout git merges without a driver (R9-CI-2b) ===
+  ok   within-band: the partial merge succeeds
+  ok   a timing re-recorded within 2x keeps the committed seconds
+  ok   outside-band: the partial merge succeeds
+  ok   a timing re-recorded outside 2x takes the new seconds
+  ok   ours: the partial merge succeeds
+  ok   theirs: the partial merge succeeds
+  ok   two branches re-timing one script merge with no driver
+  ok   legacy: the partial merge succeeds
+  ok   a merge writes sorted keys and sorted lists
+  ok   layout_errors names an unsorted list and unsorted keys
+  ok   check passes a sorted table
+  ok   check refuses an unsorted table
+  ok   check passes write_closures' own text (null control)
+  ok   check refuses a recorded entry as {seconds, rc}
+  ok   check refuses top-level keys unsorted
+  ok   check refuses indent 2
+  ok   the committed tests/closures.json is in the layout
+
+=== the batch proof's recordings fail closed (round-9 C2) ===
+  ok   proof-consume accepts recordings whose manifest names this tree
+  ok   proof-consume refuses a manifest naming ANOTHER tree
+  ok   proof-consume refuses no manifest at all
+  ok   proof-consume refuses an artifact with no recordings
+  ok   proof-consume refuses an unhealthy recording
+  ok   proof-consume refuses a set missing selectable scripts
+[... 15678 lines trimmed; full log in the box's handoff ref handoff/audit-r11-find-D3-top6 at fdd9e2d827a9 ...]
+  ok    UX-HEALTH E: an unknown refusal code reads as not enough data, never raw
+  ok    UX-HEALTH E: the learner's own refusal is said before the gate's wait for draw evidence
+  ok    UX-HEALTH E: a COP this install cannot measure says so and names what would measure it, never 'not enough data yet'
+  ok    UX-HEALTH E: the latched COP shows its age
+  ok    UX-HEALTH E: a watched COP still reads Normal (null control)
+  ok    UX-HEALTH E: a heat-metered COP with an open span stays Normal and names its meter (carry 11)
+  ok    UX-HEALTH E: the learning row says the same COP reason as the model row
+  ok    UX-HEALTH E: every published COP code has its own en words
+  ok    UX-HEALTH E: every published COP code has its own sv words
+  ok    UX-HEALTH E: every published COP code has its own de words
+  ok    UX-HEALTH G: Show opens this entry's entity table, disabled entities included
+  ok    UX-HEALTH G: Download diagnostics fetches the entry's endpoint (200)
+  ok    UX-HEALTH G: a 200 saves the file through navigateTo's download mode
+  ok    UX-HEALTH G: Download diagnostics fetches the entry's endpoint (403)
+  ok    UX-HEALTH G: a refused fetch falls back to the entry page
+  ok    UX-HEALTH G: navigateTo's download mode saves through an anchor and pushes no route
+  ok    UX-HEALTH H: the collection status is asked of debug_collect with a response, for this entry
+  ok    UX-HEALTH H: a finished collection reads finished with its records
+  ok    UX-HEALTH H: the first Start on a finished collection only says it would discard it
+  ok    UX-HEALTH H: the second Start starts it
+  ok    UX-HEALTH H: a status flat at the top level reads off, never finished
+  ok    UX-HEALTH H: a status without the response wrapper reads off, never finished
+  ok    UX-HEALTH H: a status keyed by another entry reads off, never finished
+  ok    UX-HEALTH H: an active collection shows no Start
+  ok    placeLabel names a known place and keeps an unknown id as itself
+  ok    P08/P41: the Configure chip of a place with no options page names the place, never undefined
+  ok    the plan tab still renders beside Health
+  ok    the setup tab still renders beside Health
+  ok    the savings tab still renders beside Health
+  ok    the advisor tab still renders beside Health
+  ok    the census records through the navigation surface the card loaded against
+  ok    haLink builds the three deep links Home Assistant routes
+  ok    haLink refuses an unknown kind and an entity link with no entity
+  ok    haLink without a resolved entry falls back to the domain, never a guessed entry
+  ok    the act set the census declares is the one the card's source dispatches
+  ok    the census pressed every act branch the card can dispatch
+  ok    the event arm has a literal type to allow, so it measures something
+  ok    no primitive this census does not instrument is reached for on a page or a press
+  ok    the census reached every navigateTo and openHaLink mention
+  ok    the census drove a listener from every addEventListener site in the card
+  ok    the card wires no handler outside addEventListener
+  ok    no press throws
+  ok    every link the census records from a press is one haLink builds for this entry
+  ok    every PENDING row still names a button that makes its unconverted navigation
+  ok    openSetupSlot opens the slot's picker, focused only from the keyboard
+  ok    openSetupSlot renders the page it opens
+  ok    openHaLink asks the registry for its own plan sensor and links this entry
+  ok    openHaLink falls back to the whole integration when the registry refuses
+  ok    why-now: a row per known driver, with its mark and signed share, in the published order
+  ok    why-now: the block and each row carry the plain-words metric as their hover
+  ok    why-now: each row names its direction in words: toward running, toward idle, no effect now
+  ok    why-now: no why_now attribute renders the no-data line and no rows
+  ok    why-now: every driver neutral renders the one all-neutral line
+  ok    why-now: Swedish words, hover and percent spacing
+  ok    why-now: German words, hover and percent spacing
+  ok    why-now: every en string has its twin in every card language, and every driver code has a label and an explanation
+  ok    collapse: both folds render a header button, collapsed by default
+  ok    collapse: a folded section renders no body
+  ok    collapse: the narrative summary is the rows' kWh and cost total, visible while folded
+  ok    collapse: the why-now summary is its strongest driver, visible while folded
+  ok    collapse: a click opens its own fold and only that one
+  ok    collapse: the toggle does not reach the card's open-on-click
+  ok    collapse: focus returns to the rebuilt header
+  ok    collapse: the why-now fold opens to its rows
+  ok    collapse: a second click folds it again
+  ok    collapse: a hass refresh rebuilds the card and keeps each fold as it was
+  ok    collapse: focus returns to the dialog's copy of the pressed header
+  ok    collapse: the doubly rendered headline mints no id and no aria-controls
+  ok    collapse: the folds sit after the savings figure and before the chart
+  ok    collapse: a rule under the last fold closes the headline off from the chart
+  ok    collapse: the fold summary wraps and never ellipsises
+  ok    collapse: the folded card keeps the visibility the dialog's chips last saved
+  ok    collapse: unpaired lines summarise as the first line; no why_now as the no-data line
+  ok    collapse: the folded card renders no series chip and no legend
+  ok    collapse: the expanded dialog carries the chips and the legend
+  ok    collapse: every fold string has its twin in en, sv and de
+  ok    collapse: the headers speak the card language
+  ok    user text: every setup.page_* and advisor.step_* names the options flow's own menu path, in every card language
+  ok    user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language
+  ok    user text: the invalid-window error names no channel, in every card language
+  ok    user text: Save and Simulate both refuse an invalid quiet window with the channel-neutral error
+  ok    user text: the refit row states the band_percent the refit publishes, in every card language
+  ok    user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language
+
+ALL CARD CHECKS PASSED
+
+########## node tests/setup_qa_render.mjs ##########
+  SLOT: tests/setup_qa_render.mjs joins a heavy slot as run.sh-6573
+ heatpump-optimizer-card  v10.0.2 
+coil: /home/user/setup-qa/coil.svg
+  boxes: [{"place":"outdoor","x":16,"y":16,"w":200,"h":98,"col":0},{"place":"heat_pump","x":16,"y":128,"w":200,"h":81,"col":0},{"place":"wood_tank","x":16,"y":223,"w":200,"h":93,"col":0},{"place":"mixing_valve","x":260,"y":16,"w":200,"h":93,"col":1},{"place":"buffer_tank","x":260,"y":123,"w":200,"h":127,"col":1},{"place":"dhw_tank","x":260,"y":264,"w":200,"h":115,"col":1},{"place":"upper_zone","x":504,"y":16,"w":200,"h":81,"col":2},{"place":"lower_zone","x":504,"y":111,"w":200,"h":81,"col":2}]
+two-tank: /home/user/setup-qa/two-tank.svg
+  boxes: [{"place":"outdoor","x":16,"y":16,"w":200,"h":98,"col":0},{"place":"heat_pump","x":16,"y":128,"w":200,"h":81,"col":0},{"place":"wood_tank","x":16,"y":223,"w":200,"h":93,"col":0},{"place":"mixing_valve","x":260,"y":16,"w":200,"h":93,"col":1},{"place":"buffer_tank","x":260,"y":123,"w":200,"h":127,"col":1},{"place":"dhw_tank","x":260,"y":264,"w":200,"h":98,"col":1},{"place":"upper_zone","x":504,"y":16,"w":200,"h":81,"col":2},{"place":"lower_zone","x":504,"y":111,"w":200,"h":81,"col":2}]
+single-buffer: /home/user/setup-qa/single-buffer.svg
+  boxes: [{"place":"outdoor","x":16,"y":16,"w":200,"h":98,"col":0},{"place":"heat_pump","x":16,"y":128,"w":200,"h":81,"col":0},{"place":"wood_tank","x":16,"y":223,"w":200,"h":127,"col":0},{"place":"mixing_valve","x":260,"y":16,"w":200,"h":76,"col":1},{"place":"buffer_tank","x":260,"y":106,"w":200,"h":127,"col":1},{"place":"dhw_tank","x":260,"y":247,"w":200,"h":98,"col":1},{"place":"upper_zone","x":504,"y":16,"w":200,"h":81,"col":2},{"place":"lower_zone","x":504,"y":111,"w":200,"h":81,"col":2}]
+QA RENDERS WRITTEN
+
+########## node tests/card_drift.mjs 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ##########
+ heatpump-optimizer-card  v10.0.2 
+ heatpump-optimizer-card  v10.0.2 
+card_drift: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 = 92d38ecb640b, tree = 835152b1b51d, 45 states
+  identical  no_plan
+  identical  no_plan_expanded
+  identical  plan_inline
+  identical  plan_inline_sv
+  identical  plan_short_window
+  identical  custom_title_currency
+  identical  hidden_series
+  identical  score_open
+  identical  expanded_plan
+  identical  what_if_off
+  identical  expanded_zoomed
+  identical  draft_dirty_menu_open
+  identical  draft_mid_drag
+  identical  whatif_edited
+  identical  whatif_weekly
+  identical  override_active
+  identical  shared_steps
+  identical  shared_steps_hover
+  identical  tooltip_hover
+  identical  coarse_pointer
+  identical  reduced_motion
+  identical  setup_single_buffer
+  identical  setup_two_tank
+  identical  setup_coil
+  identical  advisor_page
+  identical  savings_page
+  identical  savings_empty
+  identical  health_page
+  identical  setup_not_published
+  identical  advisor_empty
+  identical  layout_editing_dragged
+  identical  layout_editing_tidy
+  identical  picker_open_filtered
+  identical  wood_alert
+  identical  wood_lane
+  identical  wood_whatif
+  identical  away_toggle
+  identical  away_return
+  identical  away_status
+  identical  editor_schema
+  identical  history_panned
+  identical  history_deep_panned
+  identical  history_no_power
+  identical  history_unavailable
+  identical  history_pending
+
+card_drift: identical in all 45 states
+
+########## python3 tests/stress.py ##########
+  LEASE: tests/stress.py runs under the gate lease as run.sh-6573
+gate_lock: waiting for the lease held by D3-s1-r11 until 2026-11-19 16:44:56.612227+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waited 465 s for the lease held by D3-s1-r11 until 2026-11-19 16:44:56.612227+00:00, past its bound of 463 s; run.sh-6573 gives up the wait
+
+SKIP: tests/stress.py (waited past its bound for the gate lease; left to CI, named unrun)
+
+########## python3 tests/harness_headers.py ##########
+  LEASE: tests/harness_headers.py runs under the gate lease as run.sh-6573
+gate_lock: waiting for the lease held by D3-s1-r11 until 2026-11-19 16:44:56.612227+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waited 330 s for the lease held by D3-s1-r11 until 2026-11-19 16:44:56.612227+00:00, past its bound of 328 s; run.sh-6573 gives up the wait
+
+SKIP: tests/harness_headers.py (waited past its bound for the gate lease; left to CI, named unrun)
+
+########## wall clock ##########
+       0s  python3 tests/env_drift.py --claims-only 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+       3s  python3 tests/closure.py selftest
+     657s  python3 tests/features.py
+     467s  python3 tests/entities.py
+       7s  python3 tests/block_duty.py
+       9s  python3 tests/doc_claims.py
+       0s  node tests/md_tables.mjs
+       1s  python3 tests/wood_advisor.py
+      16s  python3 tests/config_flow_steps.py
+      16s  python3 tests/structure.py
+      17s  python3 tests/typing_ruler.py
+       1s  python3 tests/ha_contract.py
+       5s  python3 tests/manual_plan.py
+       0s  python3 tests/open_meteo.py
+       1s  python3 tests/solar_alignment.py
+       4s  python3 tests/guard_pins.py
+       1s  python3 tests/debug_collect.py
+      84s  python3 tests/finite_boundary.py
+       4s  python3 tests/layout.py
+       2s  python3 tests/deployment_shape.py
+      94s  python3 tests/env_drift.py --all 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+     716s  python3 tests/arch_score.py
+      42s  python3 tests/arch_score_head.py
+      19s  python3 tests/validate.py
+      21s  python3 tests/edge.py
+      53s  python3 tests/backtest.py
+     168s  python3 tests/boost_drift_replay.py
+      98s  python3 tests/optimality.py
+       0s  python3 tests/plan_view.py
+       1s  python3 tests/frontend.py
+      80s  node tests/card.mjs
+       1s  node tests/setup_qa_render.mjs
+       4s  node tests/card_drift.mjs 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+    3389s  TOTAL (1 lane(s))
+
+ALL TEST SCRIPTS PASSED

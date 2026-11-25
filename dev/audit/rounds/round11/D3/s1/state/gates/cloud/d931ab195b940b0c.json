@@ -1,0 +1,26 @@
+{
+ "key": "d931ab195b940b0c",
+ "mutant": {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/tariff.py",
+  "line": 744,
+  "old": "    if x.size == 0 or k <= 0:",
+  "new": "    if x.size == 0 or k < 0:",
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:R10-C2 M31",
+  "c2_id": "M31"
+ },
+ "gate_rc": 0,
+ "failed_scripts": [],
+ "summary": [
+  "ALL TEST SCRIPTS PASSED"
+ ],
+ "wall_s": 3404.7,
+ "child_cpu_s": 4547.2,
+ "load1_start": 0.0,
+ "load1_end": 0.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "killed_by": [],
+ "verdict": "SURVIVED"
+}

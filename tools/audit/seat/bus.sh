@@ -677,8 +677,22 @@ mechanical_block() { # pr -> rc 0 when the latest blocked verdict on verdict/<pr
   [ -n "$cls" ] && case $MECHANICAL_CLASSES in *" $cls "*) return 0;; esac
   return 1
 }
+# A second block on one unenumerated axis (fix-review.md step 6's `class-open: axis <set> unenumerated`) is the
+# same signal at any round: the claim, not its next member, is what the next round would fix (R11-RCA-3729-OPEN-AXIS).
+axis_repeat() { # pr -> rc 0 when verdict/<pr>'s latest block names an axis an earlier head was blocked on; rc 1 otherwise or unreadable
+  local subj last re
+  subj=$(verdict_log "$1") || return 1
+  re="^verdict: #$1 Fix review: blocked \([0-9a-f]\{7,40\}\) class-open: axis \(.*\) unenumerated.*\$"
+  last=$(grep -m 1 "^verdict: #$1 Fix review: blocked " <<<"$subj") || return 1
+  last=$(sed -n "s/$re/\1 \2/p" <<<"$last"); [ -n "$last" ] || return 1  # the latest block is no axis block
+  sed -n "s/$re/\1 \2/p" <<<"$subj" | AX_HEAD=${last%% *} AX_SET=${last#* } \
+    awk '{ h = $1; sub(/^[^ ]+ /, "") } h != ENVIRON["AX_HEAD"] && $0 == ENVIRON["AX_SET"] { f = 1 } END { exit !f }'
+}
 three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
   local k body
+  if [ -z "$2" ] && axis_repeat "$1"; then  # mut:axisrepeat
+    printf '#%s is blocked a second time on one unenumerated axis: the orchestrator narrows the claim, splits or closes it (fixer.md), or passes --past-three <reason>' "$1"; return 1
+  fi
   k=$(blocked_rounds "$1") || { printf 'cannot read verdict/%s to count its review rounds' "$1"; return 1; }
   [ "$k" -ge 3 ] && [ -z "$2" ] || return 0
   # A latest block of a mechanical class (tvofi, 2026-11-09: "the split should never apply when the gap is
@@ -779,7 +793,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     # A red classify --pr reads from merge_train.introduced_at (R10-INTRODUCED-REDS-BARRIER)
     # carries INTRODUCED lines and names those, not a required context's.
     1) intro=$(printf '%s\n' "$cls" | sed -n 's/^INTRODUCED //p' | awk 'NR > 1 { printf "; " } { printf "%s", $0 }')
-       if [ -n "$intro" ]; then why="instrument-self-tests went red here and not at its merge base (INTRODUCED: $intro)"
+       if [ -n "$intro" ]; then why="instrument-self-tests went red here on a step its diff reaches (INTRODUCED: $intro)"
        else why="a required context's latest run there concluded failure ($(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p'))"; fi
        printf 'bus: REPAIR-OWED: dispatch: #%s'"'"'s head %s is not reviewable: %s -- back to its fixer for a repair; do not retry\n' "$pr" "$h" "$why" >&2; exit 5 ;;
     *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
@@ -2277,6 +2291,26 @@ B
   git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/40"
   out=$(run dispatch 40 "$h1" cmsg_T); rc=$?
   [ $rc != 0 ]; expect "only the LATEST block's class is read: mechanical rounds then a harness block refuses (carry 11)" $?
+  # R11-RCA-3729-OPEN-AXIS: a second block on one unenumerated axis refuses at any round, with no ## Re-cut escape.
+  blka() { git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${2:+-p "$2"} \
+             -m "verdict: #$3 Fix review: blocked $(printf '%040d' "$1") class-open: axis $4 unenumerated (e.g. seam $1)"; }
+  rp=$(blka 1 "" 90 "dependency writers"); rp=$(blka 2 "$rp" 90 "dependency writers"); git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/90"
+  printf '## Re-cut\nreplaced\n' > "$W/body31"; n=$(grep -c . "$W/state/dispatched")
+  out=$(run dispatch 90 "$h1" cmsg_T); rc=$?
+  [ $rc != 0 ] && outhas -q "second time on one unenumerated axis" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+  expect "a second class-open block on one axis refuses at round two, a ## Re-cut body notwithstanding, and records nothing" $?
+  out=$(run dispatch 90 "$h1" cmsg_T --past-three "axis narrowed to the package's own text"); rc=$?
+  [ $rc = 0 ] && outhas -q '^bus-nonce: '; expect "--past-three dispatches past a repeated axis" $?
+  rp=$(blka 1 "" 91 "dependency writers"); rp=$(blka 2 "$rp" 91 "logger spellings"); git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/91"
+  out=$(run dispatch 91 "$h1" cmsg_T); rc=$?
+  [ $rc = 0 ] && outhas -q '^bus-nonce: '; expect "null control: two blocks on two different axes dispatch" $?
+  rp=$(blka 1 "" 92 "dependency writers"); rp=$(blka 1 "$rp" 92 "dependency writers"); git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/92"
+  out=$(run dispatch 92 "$h1" cmsg_T); rc=$?
+  [ $rc = 0 ] && outhas -q '^bus-nonce: '; expect "null control: an axis block re-posted at one head is one block and dispatches" $?
+  rp=$(blka 1 "" 93 "dependency writers"); rp=$(blka 2 "$rp" 93 "dependency writers"); rp=$(blkc 3 "$rp" 93 harness)
+  git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/93"; printf '## Re-cut\nreplaced\n' > "$W/body31"
+  out=$(run dispatch 93 "$h1" cmsg_T); rc=$?
+  [ $rc = 0 ] && outhas -q '^bus-nonce: '; expect "null control: two blocks on one axis, then a later block of another class, dispatch" $?
 
   # THE REVIEW PACKET: dispatch names the packet rendered at its head and passes the
   # finder's harness through; a REFUSED head records nothing; a seat that cannot render
@@ -2306,7 +2340,7 @@ B
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
   expect "a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded" $?
   out=$(BUS_CLASSIFY_RC=1 BUS_CLASSIFY_INTRO='(the job concluded timed_out)' dhid 7 "$h1" cmsg_K); rc=$?
-  [ $rc = 5 ] && outhas -qF "is not reviewable: instrument-self-tests went red here and not at its merge base (INTRODUCED: (the job concluded timed_out); census)" \
+  [ $rc = 5 ] && outhas -qF "is not reviewable: instrument-self-tests went red here on a step its diff reaches (INTRODUCED: (the job concluded timed_out); census)" \
     && ! outhas -q "required context" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
   expect "an INTRODUCED red (classify --pr RED, the required set green) owes REPAIR-OWED naming each INTRODUCED line, never a required context" $?
   out=$(BUS_CLASSIFY_RC=0 dhid 7 "$h1" cmsg_K); rc=$?

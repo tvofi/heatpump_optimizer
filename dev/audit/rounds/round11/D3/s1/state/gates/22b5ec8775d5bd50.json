@@ -1,0 +1,26 @@
+{
+ "key": "22b5ec8775d5bd50",
+ "mutant": {
+  "kind": "R10C2",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 2593,
+  "old": "        ) / max(dt_hours, 1e-6)",
+  "new": "        ) / min(dt_hours, 1e-6)",
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:R10-C3C6 M07",
+  "c2_id": "M07"
+ },
+ "gate_rc": 0,
+ "failed_scripts": [],
+ "summary": [
+  "ALL TEST SCRIPTS PASSED"
+ ],
+ "wall_s": 3405.6,
+ "child_cpu_s": 4518.2,
+ "load1_start": 0.05,
+ "load1_end": 0.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "killed_by": [],
+ "verdict": "SURVIVED"
+}

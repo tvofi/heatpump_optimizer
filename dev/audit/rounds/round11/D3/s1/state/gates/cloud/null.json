@@ -1,0 +1,16 @@
+{
+ "key": "null",
+ "mutant": null,
+ "gate_rc": 0,
+ "failed_scripts": [],
+ "summary": [
+  "ALL TEST SCRIPTS PASSED"
+ ],
+ "wall_s": 3446.2,
+ "child_cpu_s": 4578.8,
+ "load1_start": 0.43,
+ "load1_end": 0.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+}

@@ -1,0 +1,25 @@
+{
+ "key": "121362d48b408236",
+ "mutant": {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/grid_fee.py",
+  "line": 173,
+  "old": "    if not sep:",
+  "new": "    if False:",
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:_parse_rule GUARD_OFF f8c4994a"
+ },
+ "gate_rc": 0,
+ "failed_scripts": [],
+ "summary": [
+  "ALL TEST SCRIPTS PASSED"
+ ],
+ "wall_s": 3298.1,
+ "child_cpu_s": 4430.9,
+ "load1_start": 0.08,
+ "load1_end": 0.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "killed_by": [],
+ "verdict": "SURVIVED"
+}
