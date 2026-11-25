@@ -1,0 +1,98 @@
+{
+ "key": "1785780ac9dd1b18",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9836 GUARD_OFF",
+ "patch": "if self._pv_production is not None: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._pv_forecast",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast@9819-9836",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3181.1,
+  "child_cpu_s": 5150.6,
+  "load1_start": 0.52,
+  "load1_end": 1.01,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/1785780ac9dd1b18.json",
+ "gate_command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1785780ac9dd1b18  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_1785780ac9dd1b18.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/out_1785780ac9dd1b18.txt",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_1785780ac9dd1b18.py",
+  "metric": "RESULT measured_production_kw_meter_{baseline,mutant}: _pv_forecast(...)[1].get('measured_production_kw') with a 3.0 kW production meter",
+  "baseline_value": "measured_production_kw=3.0",
+  "mutant_value": "measured_production_kw=None (key absent from _pv_summary)",
+  "inputs_tried": [
+   "meter 3.0 kW",
+   "no meter"
+  ],
+  "null_control": "no-meter cell: both None",
+  "load1": 0.9,
+  "thread_factor": 1.0
+ },
+ "should_fail": "tests/config_flow_steps.py and env_drift.py fixtures execute line 9836 but no check reads the PV summary's measured_production_kw with a production meter configured",
+ "title": "The PV summary's measured_production_kw can vanish and the gate passes",
+ "claim": "HeatPumpOptimizerCoordinator._pv_forecast (coordinator.py:9836) may drop the measured_production_kw key (`if ...:` -> `if False:`) and the full gate passes; with a 3.0 kW production meter the baseline publishes measured_production_kw 3.0 and the mutant publishes no key (probe).",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "medium",
+ "stop_rule_class": "bug",
+ "metric_definition": "RESULT measured_production_kw_meter_{baseline,mutant}: _pv_forecast(...)[1].get('measured_production_kw') with a 3.0 kW production meter",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._pv_forecast",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_1785780ac9dd1b18.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_1785780ac9dd1b18.py",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_1785780ac9dd1b18.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_1785780ac9dd1b18.py",
+  "value": "measured_production_kw=None (key absent from _pv_summary)",
+  "unit": "count",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-g09: 4 vCPU Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB, no swap",
+  "cpu_or_wall": "count",
+  "contention_note": "one full gate running on the box (GATE_JOBS=1); the probe's numbers are counts and values, contention-immune",
+  "tolerance": "exact",
+  "load1": 0.9,
+  "thread_factor": 1.0
+ },
+ "gate_evidence": {
+  "command": "cd $TREE && GATE_JOBS=1 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1785780ac9dd1b18  (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh on the one-line mutant)",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/1785780ac9dd1b18.json",
+  "verdict": "RED-AS-NULL",
+  "gate_rc": 1,
+  "null_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g09/gates/null.json"
+ },
+ "perturbation": {
+  "change": "mutant 1785780ac9dd1b18: if self._pv_production is not None: -> if False: (custom_components/heatpump_optimizer/coordinator.py:9836), applied in memory by the probe and on disk by fullgate.py",
+  "expected_direction": "to_zero",
+  "observed_value": "measured_production_kw=None (key absent from _pv_summary)",
+  "direction": "key present (3.0) -> absent"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_1785780ac9dd1b18.py",
+  "value": "no-meter cell: both None",
+  "note": "the probe's equal-arm cells; for the gate, this box's fullgate.py null (gates/null.json)"
+ },
+ "phenomenon_property": "a production line whose one-line mutant changes the value its own seam delivers on a stated input is pinned by at least one check of the closure that executes it",
+ "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivors; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g09/keys.tsv)",
+ "files": [
+  "custom_components/heatpump_optimizer/coordinator.py"
+ ],
+ "proposed_fix_scope": "tests only: add the distinguishing arm named in should_fail to the closure script that executes the line"
+}
