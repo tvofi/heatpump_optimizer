@@ -1,0 +1,80 @@
+{
+ "key": "13cadf1ab9a2de61",
+ "site": "custom_components/heatpump_optimizer/price_model.py:400 CMP_BOUND",
+ "patch": "if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX: -> if var is not None and max(max(s) for s in var) < RESIDUAL_VAR_MAX:",
+ "function": "PriceShapeModel.from_dict",
+ "cluster": "price_model.py:PriceShapeModel.from_dict@400-400",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3156.6,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/13cadf1ab9a2de61.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py",
+  "baseline": {
+   "var_loaded_exactly_cap_225": "225.0"
+  },
+  "mutant": {
+   "var_loaded_exactly_cap_225": "0.0"
+  },
+  "moved": {
+   "var_loaded_inputs_moved": "1 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "exactly_cap_225,below_cap_224p9,above_cap_225p1,typical_0p3",
+  "all_results": {
+   "var_loaded_exactly_cap_225_baseline": "225.0",
+   "var_loaded_exactly_cap_225_mutant": "0.0",
+   "null_var_loaded_below_cap_224p9_baseline": "224.9",
+   "null_var_loaded_below_cap_224p9_mutant": "224.9",
+   "null_var_loaded_above_cap_225p1_baseline": "0.0",
+   "null_var_loaded_above_cap_225p1_mutant": "0.0",
+   "null_var_loaded_typical_0p3_baseline": "0.3",
+   "null_var_loaded_typical_0p3_mutant": "0.3",
+   "var_loaded_inputs_moved": "1 count",
+   "null_delta": "0 count",
+   "inputs_tried": "exactly_cap_225,below_cap_224p9,above_cap_225p1,typical_0p3",
+   "reach_max_var_written_adversarial": "18.8029 (cap 225.0)",
+   "thread_factor": "1.000",
+   "load1": "0.85",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "A stored residual_var bin exactly at RESIDUAL_VAR_MAX (225.0) loads as 225.0 at the baseline and restarts at 0.0 under the mutant through PriceShapeModel.from_dict (the restore path); 224.9 and 225.1 load alike in both arms. The learner itself wrote at most 18.8 on an adversarial sequence, so only a hand-edited or foreign store reaches the boundary.",
+ "should_fail": "tests/features.py D1-s5-02 check (~66815-66862, traced executing line 400): it plants 300.0 (above the cap), where both arms reset; it lacks a stored bin of exactly RESIDUAL_VAR_MAX asserting it loads as written.",
+ "finding": {
+  "title": "price_model.py:400 from_dict's variance load gate <= -> < survives the full gate (boundary only)",
+  "claim": "A stored residual_var bin exactly at RESIDUAL_VAR_MAX (225.0) loads as 225.0 at the baseline and restarts at 0.0 under the mutant through PriceShapeModel.from_dict (the restore path); 224.9 and 225.1 load alike in both arms. The learner itself wrote at most 18.8 on an adversarial sequence, so only a hand-edited or foreign store reaches the boundary.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "residual_var[weekday][0] after PriceShapeModel.from_dict of a stored variance row; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 13cadf1ab9a2de61",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.from_dict), custom_components/heatpump_optimizer/price_model.py:400",
+  "perturbation": "the one-line mutant 13cadf1ab9a2de61: `if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX:` -> `if var is not None and max(max(s) for s in var) < RESIDUAL_VAR_MAX:`; direction var_loaded_exactly_cap_225: 225.0 -> 0.0",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}
