@@ -14,7 +14,15 @@ Harness ports, both under fixer step 3 (a fold deleting a name a harness drives)
 
 ## Head
 
-76827903e91640fd06dcad586eb67e8ac3d861f3, on merge base 7f7e05118feebc6731b854a2a3c7a73b13e4cdd3. origin/main was at dc2b2bab316419ced8f919c256908275a2cc3e25 at 2026-11-25 06:23 UTC; `git merge-tree --write-tree origin/main HEAD` reports no conflict. The `stress.py` figures below were taken at db56b365b157aa1f60c46926bd5eb05229bd114a. The only commit after it, 76827903, touches the two harnesses alone.
+`8e92c8bb22a55b52ceacb45cd2169ba33640229e` merges the authored code head `d9844d45f59031d1c1f9f1a2e5297c7282467488`.
+
+`5591297f497ac679e61a4fe21605ccce7c8d96f1` merges the authored code head `d9844d45f59031d1c1f9f1a2e5297c7282467488`.
+
+`005a5afd71cfc72fe55942aa478dfb07bfe174d0` merges the authored code head `d9844d45f59031d1c1f9f1a2e5297c7282467488`.
+
+d9844d45f59031d1c1f9f1a2e5297c7282467488 is the head. It is 8d1774b5b0d903a4d335ff49b0fd44857d8cbb32 (the head the review blocked, review/3890 cd7cfdf1, `tests-red`; it is 76827903 plus a merge of origin/main at ae319a5f and the delivery-row commit) plus one commit, d9844d45, which changes `tests/stress_budgets.json` alone: the memory re-record under `## Raise justification`. No code moved, so every figure below still holds at the head except the stress memory verdict, which this commit answers.
+
+Before that: 76827903e91640fd06dcad586eb67e8ac3d861f3, on merge base 7f7e05118feebc6731b854a2a3c7a73b13e4cdd3. The `stress.py` figures below were taken at db56b365b157aa1f60c46926bd5eb05229bd114a. The only commit after it, 76827903, touches the two harnesses alone.
 
 ## Mutation proof
 
@@ -35,7 +43,7 @@ The finder's harness `$EXPORT/dev/audit/rounds/round11/D9/s3/mem_confined.py` (s
 | inject (`--ballast-factor` 1.0) | `probed_by_gate` 6, `detected_confined` 6, `blind_confined` 48 | `probed_by_gate` 54, `detected_confined` 54, `blind_confined` 0 |
 | null (`--ballast-factor 0`) | `detected_confined` 0, `blind_confined` 11, `flagged_if_probed` 11 | `detected_confined` 11, `blind_confined` 0, `flagged_if_probed` 11 |
 
-The null's 11 flags are a clean tree reading over the record. Every one is traced-side; the attributable RSS of each sits at or under the record. They are the rows the re-record must decide (Forward-carry). This box reads 11 where the finder read 9. The two extra rows, `summer/2z/space/valve-direct-slab` (x1.506) and `summer/2z/space/wood-two-tank` (x1.527), sit just over the 1.5 factor.
+The null's 11 flags are a clean tree reading over the record. Every one is traced-side; the attributable RSS of each sits at or under the record. They are the rows the re-record must decide, which `## Raise justification` does at the head. This box reads 11 where the finder read 9. The two extra rows, `summer/2z/space/valve-direct-slab` (x1.506) and `summer/2z/space/wood-two-tank` (x1.527), sit just over the 1.5 factor.
 
 ## Figures
 
@@ -56,17 +64,40 @@ The null's 11 flags are a clean tree reading over the record. Every one is trace
 
 ## Red checks
 
-`tests / fast (3.14)` is predicted red at this head. The stress lane fails `the probed scenarios' memory peaks stay within their recorded budgets` on the rows over their record, which the Figures list from this box. Cheaper detector: none. The red is the measurement the design's §7 owner-gated step needs, because only the CI platform's clean all-row run may set which rows rise. A row recorded from this box would be a non-CI number, which the brief refuses.
+- `tests / fast (3.14)` at 8d1774b5 (job 139068952639): `FAILED python3 tests/stress.py`, `1 of 122 STRESS CHECKS FAILED`, on `the probed scenarios' memory peaks stay within their recorded budgets`. It was predicted: the memory pass now probes every row, and 11 rows read over 1.5x their September record on the CI runner. The head re-records those rows, and two at 1.49x, from that job's readings (`## Raise justification`). Cheaper detector: none. The red is the CI platform's all-row reading, which design §7 requires as the source of the record; no check could read it earlier, because before this pull request no run probed those rows.
+- `gate` failed on 8d1774b5 because it aggregates `fast`'s red, and the same commit answers it.
+- `budget-raise-gate` is red at this head by design: it lists the 13 `traced_peak_mb` raises in `tests/stress_budgets.json` (for example `flat/1z/space.traced_peak_mb: 0.91 -> 1.7`) and stays red until the approving review at the head, here the mandate's (6893738184, scope `all`) under `## Raise justification`. Cheaper detector: none; the gate is the detector, and a raise is meant to stop at it.
+- `tests / nightly-status` was red at 8d1774b5. It is not a required check, so it is not owed here.
 
 ## Raise justification
 
-No budget row moves at this head: `tests/stress_budgets.json` is untouched. The memory-half re-record is owed in this pull request, by the producing group, after its CI run (design §7, CLAUDE.md rule 2, budget-raise-gate 0013). The CI `tests / fast (3.14)` stress log is the clean all-row reading, and each row it fails on `memory peaks stay within their recorded budgets` is a raise. This box's candidates are the null's 11: flat/1z/space, flat/2z/space, shoulder/1z/space, shoulder/2z/space, summer/2z/space/valve-direct-slab, summer/2z/space/wood-two-tank, winter/2z/space, winter_extreme/2z/space, winter_mild/1z/space, winter_mild/2z/dhw, winter_mild/2z/space. Their RSS side is unread here. The record comes from `stress.py --record-memory` on the CI platform (five passes per row at this head), and the raise merges only on the owner's or the mandate's raise review.
-Payments tried: (1) probing only the rows whose record still fits, refused because it is the blind selection this fix removes; (2) widening `MEMORY_BUDGET_FACTOR`, refused because it would blind every row's 2x detection, which the detection check holds under `DETECTION_TARGET`; (3) lowering the traced peak in production, outside this group's seam, since the design reads production files only.
-Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --diff 7f7e05118feebc6731b854a2a3c7a73b13e4cdd3 HEAD`; diff mode scores `custom_components/` only, and this diff touches no production file).
+The head raises `traced_peak_mb` on 13 rows of `tests/stress_budgets.json`. Each goes to its traced reading on the CI runner (job 139068952639, `tests / fast (3.14)` at 8d1774b5, the clean all-row run) and no higher. 11 rows read over the 1.5x factor and failed the check. Two more, `summer/2z/space` and `summer_negative/2z/space`, read 1.3 MiB against a 0.87 record, 1.49x, which is under the line by less than the log's rounding: the log prints the traced peak to 0.1 MiB, so a true peak between 1.305 and 1.35 MiB prints the same 1.3 and fails, and the next run can trip it on rounding alone. The other 19 rows that read above their record, all under 1.49x, are left at their recorded values, since only a failing row earns a raise (ratchet-budgets.md). No other field moves: `rss_attrib_mb` and `rss_peak_mb` are unchanged, because on this platform every probe reads at the import floor (`attributable RSS: 54 of 54`), which records nothing. Every CPU `ratio` is unchanged too. The 21 rows that read at or under their record are untouched too, since a lowering is a separate re-record. The old records date from 2026-09-28 (9358ef7a, f2766871). Since then the old selector probed only six leaders, so no check read these rows against later production changes.
+
+Deviation from design §7, with its reason: §7 names `stress.py --record-memory`, five passes per row. These figures are the check-mode readings from the CI log, one draw per row, per the orchestrator's brief. `traced_fail_threshold`'s docstring gives the traced peak's run-to-run spread as about 0.1 MiB, against `ru_maxrss`'s 2x spread. The five-pass rule exists for the attributable RSS column, which is not re-recorded here, so one traced draw is the statistic.
+
+| row | record | CI reading (new record) | rise |
+|---|---|---|---|
+| `flat/1z/space` | 0.91 | 1.7 | 1.87x |
+| `flat/2z/space` | 0.93 | 2.2 | 2.37x |
+| `shoulder/1z/space` | 0.89 | 1.5 | 1.69x |
+| `shoulder/2z/space` | 0.91 | 2.2 | 2.42x |
+| `summer/2z/space` | 0.87 | 1.3 | 1.49x |
+| `summer/2z/space/valve-direct-slab` | 0.85 | 1.3 | 1.53x |
+| `summer/2z/space/wood-two-tank` | 0.91 | 1.4 | 1.54x |
+| `summer_negative/2z/space` | 0.87 | 1.3 | 1.49x |
+| `winter/2z/space` | 0.92 | 2.0 | 2.17x |
+| `winter_extreme/2z/space` | 0.94 | 2.2 | 2.34x |
+| `winter_mild/1z/space` | 0.91 | 1.8 | 1.98x |
+| `winter_mild/2z/dhw` | 1.82 | 3.3 | 1.81x |
+| `winter_mild/2z/space` | 0.91 | 2.2 | 2.42x |
+
+Approval: a raise in `*_budgets.json`. It goes under mandate 6893738184 (scope `all`), by CLAUDE.md rule 2's mandate arm and `budget-raise-gate` (0013). The approving review is the mandate's, after the delta review.
+Payments tried: (1) probing only the rows whose record still fits; (2) widening `MEMORY_BUDGET_FACTOR`; (3) keeping the old records and carrying the rise. None of (1)-(3) is an architecture payment: each removes detection (the blind top-N selection this fix deletes, a 2x regression hidden on every row, or a required `fast` red left standing) instead of moving, deleting, sharing or refactoring code, so no tree built from one could score as sounder under `tools/audit/archscore/`, and none was built or scored. (4) lowering the solver's traced working set on these rows is the one real payment. It is a production change outside R11-SEAM-tests (the design reads production files only), so it is carried under `## Forward-carry`, not paid here. The raised values are CI job 139068952639's readings, unpadded.
+Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`; measured at the head d9844d45; the diff touches no production file)
 
 ## Forward-carry
 
-none
+- The solver's traced working set on the 13 raised stress rows (the 2z/space rows above among them) exceeds their pre-raise `traced_peak_mb` by 1.49x to 2.42x on the CI runner (job 139068952639). Lowering it would let these 13 rows return to their prior budgets. Destination: `dev/programme/rosters/wave-r11-groups.json` (R11-SEAM-cycle-solve's brief). Carry: dismissed: not receivable at roster f520ce03 (R11-SEAM-cycle-solve at carries-open); the orchestrator lands it in R11-SEAM-cycle-solve's roster brief at the next roster landing (ledger CARRY-OWED 3890)
 
 ## Friction
 
