@@ -16,3 +16,4 @@
 1795612881 CKPT M1/M9/M9inner killed, M8 equivalent (sweep); entities.py+doc_claims red at head on merge-resolution counts; main control running snapshot 767a3b39cbb6
 1795613407 HB alive
 1795613652 DONE verdict pushed: blocked 8681cc72f6 tests-red (stale counts from main-merge: arch HA-free 65->66, #1218 pairs 182->184); M1/M9/M9inner killed, M8 equivalent
+1795615168 HB alive
