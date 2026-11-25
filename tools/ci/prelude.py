@@ -27,7 +27,8 @@ repository, headed by this SHA, based on `base`) or the prelude fails, and the
 gate, which re-verifies, fails with it. A verified one is scoped like that PR's
 pull_request run (CI-2): its legs, machinery and self-tests read the three-dot
 diff against origin/<base>, which `dispatch_diff` reads from the checkout; an
-unreadable or empty diff leaves it unscoped. A non-code run waits (`wait_sources`)
+unreadable or empty diff leaves it unscoped. A non-code run whose workset holds a
+SOURCE_READERS unit (pr-contract: an edit run) waits (`wait_sources`)
 until no run at its head that it orders after can still add a source: every
 EARLIER run and every CODE run, whatever its id (a held run aside). GitHub
 does not number a same-second push and body edit in event order
@@ -64,6 +65,14 @@ BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-
 # code run's gate judges the LATEST body.
 EDIT_UNDER_CODE = BODY_ON_EDIT - {"pr-contract"}
 STARTED = ("in_progress", "completed")
+# #3885: the one unit that reads OTHER runs' sources (its red list). A non-code
+# run whose workset holds none of these -- a review (budget-raise-gate reads
+# reviews only), a label, kernel-points -- holds no runner waiting: its gate
+# defers at once on a busy head (gate.py DEFERRAL) and gate-sweep.yml re-runs
+# it when the deciding run completes, the completion-driven re-evaluation the
+# wait predates. Measured: review run 45300212967's prelude held a runner
+# 21.4 min to derive a one-unit verdict.
+SOURCE_READERS = frozenset({"pr-contract"})
 # R10-CI-SLIM card C7(a): the machinery lanes (tests / arch-instrument, tests /
 # closures' recording, governance / env-matrix, governance /
 # instrument-self-tests) stand down on a pull request whose every changed file
@@ -477,7 +486,7 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
                 return out, ""
         except ghapi.ApiError as e:
             return out, str(e)
-    if not why and kind != "code":
+    if not why and kind != "code" and set(out["workset"].split()) & SOURCE_READERS:
         why = wait_sources(ctx, get, sleep)
     return out, why
 
@@ -656,6 +665,23 @@ def self_test() -> int:
     f, naps = edit_out([run(40, "edit", "in_progress", in_units)], [run(40, "edit", "in_progress", done("edit"))])
     check("C3: an unfinished EDIT run is no deferral; it is waited on as before", (f()[0]["workset"], naps),
           ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    def no_wait(c):
+        """outputs() for `c` beside a busy code run; a poll raises, so a wait is a failed check, not a hang."""
+        f_get, _ = timeline([run(40, "code", "in_progress", done("code", gate=False))])
+
+        def nap(s):
+            raise TimeoutError("polled")
+        try:
+            return outputs(c, None, f_get, nap)[1]
+        except TimeoutError as e:
+            return f"WAITED: {e}"
+    check("#3885: a review run beside a busy code run holds no runner: no poll, no failure (its gate defers)",
+          no_wait(rctx), "")
+    lctx = ctx("pull_request", action="labeled", label={"name": "x"}, pull_request=pr)
+    check("#3885: a label run beside a busy code run holds no runner", no_wait(lctx), "")
+    check("#3885 null control: an edit run (pr-contract) beside the same busy code run still waits",
+          no_wait(ctx("pull_request", action="edited", pull_request=pr)).startswith("WAITED"), True)
+    check("#3885: only pr-contract reads other runs' sources", SOURCE_READERS <= set(BODY_UNITS), True)
     check("C3: a review run never defers (only an edit does)",
           outputs(rctx, None, timeline([run(40, "code", "in_progress", done("code"))])[0])[0]["workset"], "budget-raise-gate")
     # C7(a): the machinery lanes stand down only on an all-product pull request.
