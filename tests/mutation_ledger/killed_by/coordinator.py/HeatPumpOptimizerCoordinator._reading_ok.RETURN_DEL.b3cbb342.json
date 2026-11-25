@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._reading_ok RETURN_DEL b3cbb342",
+  "killed_by": "tests/structure.py",
+  "old": "        return bool(reading is not None and reading.entity_id and reading.ok)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}
