@@ -1,0 +1,80 @@
+{
+ "key": "a1576c7241b67401",
+ "site": "dhw_planner.py:1342 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1342,
+ "patch": "covered = free_temps[1:] >= requirement - 0.5 -> covered = free_temps[1:] > requirement - 0.5",
+ "function": "DhwPlanner._build_dhw_requirements",
+ "cluster": "dhw_planner.py:DhwPlanner._build_dhw_requirements@1138-1348",
+ "slice": "u1c",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3583.5,
+  "load1_start": 0.89,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/a1576c7241b67401.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a1576c7241b67401"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_a1576c7241b67401.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_a1576c7241b67401.py",
+  "baseline_value": "suppressed_baseline=1, step0_kw_baseline=0.0",
+  "mutant_value": "suppressed_mutant=0, step0_kw_mutant=3.2 kW",
+  "inputs_tried": [
+   "tank 44.646992926832446 C: coasting after step 0 equals requirement-0.5 exactly (separates)",
+   "its float predecessor (null, 0)",
+   "+0.01 C (null, 0)"
+  ],
+  "production_reach": "production only at an exact float tie between the coasting temperature and requirement - 0.5 (measure-zero)"
+ },
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes dhw_planner.py:1342; also env_drift.py)",
+  "assertion": "no check places the coasting temperature exactly on requirement - 0.5 and asserts the step counts as covered"
+ },
+ "finding": {
+  "title": "No check pins the external-heat 'covered' boundary at coasting == requirement - 0.5",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant a1576c7241b67401 at dhw_planner.py:1342 (covered = free_temps[1:] >= requirement - 0.5 -> covered = free_temps[1:] > requirement - 0.5) survives the full gate (RED-AS-NULL, gate_rc 1, no script beyond this box's null control), yet the probe's number moves: baseline suppressed_baseline=1, step0_kw_baseline=0.0, mutant suppressed_mutant=0, step0_kw_mutant=3.2 kW. Reach: production only at an exact float tie between the coasting temperature and requirement - 0.5 (measure-zero).",
+  "metric_definition": "DhwPlan.external_heat_suppressed_steps at the exact tie tank temperature 44.646992926832446 C",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._build_dhw_requirements line 1342",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_a1576c7241b67401.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/_g14lib.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_a1576c7241b67401.py",
+  "perturbation": {
+   "change": "the one-line mutant a1576c7241b67401 (covered = free_temps[1:] >= requirement - 0.5 -> covered = free_temps[1:] > requirement - 0.5) applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a1576c7241b67401",
+   "direction": "down (1 -> 0; step 0 power 0 -> 3.2 kW)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_a1576c7241b67401.py",
+   "value": "null arm delta 0 (see the probe's null_* RESULT lines)",
+   "gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}
