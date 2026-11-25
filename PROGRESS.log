@@ -1,2 +1,3 @@
 1795610655 INIT r11-merge-actw
 1795610664 HB alive
+1795610672 CKPT merge started: conflicts pump_arbiter.py + 3 supply_tick killed_by pins snapshot c352fb61ec03
