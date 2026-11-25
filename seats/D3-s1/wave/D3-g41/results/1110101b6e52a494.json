@@ -1,0 +1,36 @@
+{
+ "key": "1110101b6e52a494",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4476 CMP_BOUND",
+ "patch": "if carnot_ref > 1e-9: -> if carnot_ref >= 1e-9:",
+ "function": "ThermalModel._batch_cop",
+ "cluster": "thermal_model.py:ThermalModel._batch_cop@4453-4482",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2910.8,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/1110101b6e52a494.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1110101b6e52a494",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_1110101b6e52a494.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_1110101b6e52a494.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_1110101b6e52a494.txt",
+  "metric": "moved_inputs",
+  "baseline_value": "0",
+  "mutant_value": "0",
+  "inputs_tried": "9 references (35, 20, 7, 0, -273.15, -273.15+1e-9, 1e-9-273.15, -273.15-1e-9, -300) x 12 outdoor temps: 108 inputs, 0 moved; the nearest carnot_ref to the tie is 9.9999e-10 (float rounding never lands on 1e-9)"
+ },
+ "should_fail": "none can: carnot_ref is (ref+273.15)/max(.,1) >= 11 at the fixed 35 C reference; the 1e-9 tie needs an absolute reference of ~1e-9 K"
+}
