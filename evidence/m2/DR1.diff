@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/draw_range.py b/custom_components/heatpump_optimizer/draw_range.py
+index e18f0a5099..6a14d76752 100644
+--- a/custom_components/heatpump_optimizer/draw_range.py
++++ b/custom_components/heatpump_optimizer/draw_range.py
+@@ -903,7 +903,7 @@ def fold(
+     ):
+         return
+     if experiment_s is not None and draw.takes_ceiling(drawn_kw, command):
+-        if not ceiling_frozen:
++        if True:
+             draw.observe_ceiling(drawn_kw, experiment_s)
+     else:
+         draw.observe(

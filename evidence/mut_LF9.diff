@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/learning_freeze.py b/custom_components/heatpump_optimizer/learning_freeze.py
+index 982f0615ee..7ff1b9bddf 100644
+--- a/custom_components/heatpump_optimizer/learning_freeze.py
++++ b/custom_components/heatpump_optimizer/learning_freeze.py
+@@ -185,7 +185,7 @@ def _shared(facts: Facts, keys: tuple[str, ...], sample: Sample) -> str | None:
+     # #26: training on an open window teaches a phantom heat loss the
+     # house does not have -- measured in degC-scale residuals, far above
+     # any learning signal. A sample with no room air in it is untouched.
+-    if sample in _ROOM_AIR_KINDS and facts.ventilation:
++    if facts.ventilation:
+         return REASON_VENTILATION
+     # #1935: boost space heating -- either surface -- actuates heat the
+     # plan's trajectory never assumed, so every residual is warm-side

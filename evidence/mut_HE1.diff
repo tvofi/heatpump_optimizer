@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/heat_energy.py b/custom_components/heatpump_optimizer/heat_energy.py
+index 9482f91fbe..33c686f263 100644
+--- a/custom_components/heatpump_optimizer/heat_energy.py
++++ b/custom_components/heatpump_optimizer/heat_energy.py
+@@ -294,7 +294,7 @@ def unplanned_charge(a: Attribution, tank_rise_k: float | None) -> bool:
+     """
+     return (
+         not a.observed and a.dhw <= 0.0 < a.space
+-        and tank_rise_k is not None and tank_rise_k > UNPLANNED_CHARGE_RISE_K
++        and tank_rise_k is not None and tank_rise_k > 10 * UNPLANNED_CHARGE_RISE_K
+     )
+ 
+ 

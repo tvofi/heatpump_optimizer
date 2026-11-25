@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/learning_freeze.py b/custom_components/heatpump_optimizer/learning_freeze.py
+index 982f0615ee..20c6609580 100644
+--- a/custom_components/heatpump_optimizer/learning_freeze.py
++++ b/custom_components/heatpump_optimizer/learning_freeze.py
+@@ -60,7 +60,7 @@ _ROOM_AIR_KINDS = frozenset(
+     {Sample.ROOM_AIR, Sample.OCCUPANCY, Sample.COMFORT, Sample.SPACE_HEAT, Sample.CEILING}
+ )
+ #: Kinds an away period falsifies: the occupancy-borne ones.
+-_AWAY_KINDS = frozenset({Sample.OCCUPANCY, Sample.COMFORT, Sample.TANK_DRAW})
++_AWAY_KINDS = frozenset({Sample.OCCUPANCY, Sample.COMFORT})
+ 
+ 
+ @dataclass(frozen=True)

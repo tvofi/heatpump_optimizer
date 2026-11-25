@@ -1,0 +1,21 @@
+start 2026-11-25T13:27:13Z sha1 e70319d5a44bda23a8394d548baa92dac5f61278
+RESULT arm=unseen+tuya_mode+plan_only
+RESULT cycles_ok=16 count (of 16)
+RESULT plans_published=16 count
+RESULT spans_closed=7 count
+RESULT spans_with_dhw=0 count
+RESULT spans_observed=7 count
+RESULT spans_plan_dhw_share=0 count
+RESULT bad_spans=0 count
+RESULT spans_true_dhw=0 count
+RESULT inflated_space_spans=0 count
+RESULT inflated_spans_folded=0 count
+RESULT space_spans_folded=3 count
+RESULT cop_records=3 count
+RESULT dhw_cop_records=0 count
+RESULT dhw_cop_records_unseen=0 count
+RESULT wall_s=15.6 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=4.93
+RESULT swapins=0
+rc 0

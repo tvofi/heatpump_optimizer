@@ -1,0 +1,43 @@
+m3_freeze base same
+m3_freeze head same
+m3_away base same
+m3_away head same
+tankfall base same
+tankfall head same
+drawrange base same
+drawrange head same
+crosscov base same
+crosscov head same
+crosscov_r0 base same
+crosscov_r0 head same
+comments base same
+comments head same
+spans base DIFFERS
+7c7
+< RESULT spans_plan_dhw_share=2 count
+---
+> RESULT spans_plan_dhw_share=1 count
+9c9
+< RESULT spans_true_dhw=4 count
+---
+> RESULT spans_true_dhw=3 count
+spans head DIFFERS
+7c7
+< RESULT spans_plan_dhw_share=2 count
+---
+> RESULT spans_plan_dhw_share=1 count
+9c9
+< RESULT spans_true_dhw=4 count
+---
+> RESULT spans_true_dhw=3 count
+spans_plan base same
+spans_plan head same
+dutyfloor base same
+dutyfloor head same
+sysid_plant base same
+sysid_plant head same
+m5sysid base same
+m5sysid head same
+     24 rc 0
+start 2026-11-25T13:26:13Z sha1 e70319d5a44bda23a8394d548baa92dac5f61278
+start 2026-11-25T13:26:33Z sha1 e70319d5a44bda23a8394d548baa92dac5f61278

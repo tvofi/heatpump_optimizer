@@ -1,0 +1,57 @@
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:487:def _learned_pair(entry: Any, least: int = 1) -> list[Any]:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:642:def _track_states(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:927:def _fold_flow_lift(coord: Any, now: datetime) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:982:    coord._flow_bias.observe(supply, curve)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1114:def _observe_heat_energy(coord: Any, reader: Any, at: datetime) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1122:    meter.observe_cycle(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1180:async def _async_learn_heat_span(coord: Any, clean: dict[str, bool]) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1341:def _learned_zone_temperature(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:2188:    vars(experiment).update(state)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:2474:def _record_manual_release(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:2503:def _fold_away(state: away_mode.AwayState, data: Mapping[str, object]) -> AwayFold:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:2785:    changes.update((attr, convert(params[key])) for key, attr, convert in _THERMAL_PARAM_CONVERSIONS
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:3156:    data.update(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:3235:    data.update(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5240:        state = self._external_heat.update(observation)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5314:    def _learn_measured_cop(self, draw: draw_range.DrawRange | None = None) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5317:    def _fold_measured_cop(self, draw: draw_range.DrawRange | None) -> str | None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5379:    def _fold_cop_evidence(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5427:            self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp, dt_util.now())
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5619:    async def _async_learn_buffer_cooling(self, buffer_temp: float) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5742:    async def _async_learn_house_heat_loss(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5817:        vent_changed = span_heat_kw is None and self._vent_cusum.update(now, float(residual), (
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5874:    async def _async_learn_interval(self, prior: ThermalState, *, slab_unsensed: bool) -> float | None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5899:    async def _async_learn_lower_floor_loss(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:6776:        rooms.record(self, read_rooms(reader, ctx._config.room_temperature_entities))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:6811:        self._defrost_window.observe(dt_util.now(), self._pump_signals.defrosting)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:6877:    def _learning_frozen(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:7882:    def _learning_view(self) -> LearningView:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8554:    async def _async_learn_price_shape(self) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8561:        if self._price_learner.fold(self._prices):
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8604:    def _track_realised_peak(self) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8618:        self._peak_tracker.observe(dt_util.now(), float(house), tariff,
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8667:        self._defrost_window.observe(dt_util.now(), flag)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8731:            self._peak_tracker.observe(now, kw, tariff, dt_hours=dt_h)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8759:        changed = self._peak_guard.update(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9158:    def _track_curve_comfort(self, now: datetime) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9234:    def _fold_capacity_envelope(self, observed_cop: float, heat_kw: float | None = None) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9303:    def _fold_solar_aperture(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9347:    def _fold_internal_gains(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9393:    def _observe_cop_health(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9427:            changed = self._cop_health_cusum.update(dt_util.now(), shortfall)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9500:    def _learner_snapshot_payloads(self) -> dict[str, dict[str, Any]]:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9608:        healthy = self._snapshot_ring.observe_health(reason_now)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9620:        changed = self._snapshot_ring.observe_bias(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9920:                self._defrost.observe_duty(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9933:            self._defrost.observe(outdoor, sample.humidity, ratio)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9935:    def _record_accuracy(self) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9963:            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=space_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None, ceiling_frozen=_ceiling_frozen(self))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10034:                    self._accuracy.record(sample)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10261:        self._ledger.observe_spot_and_settle_savings(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10461:    def _fold_score_sample(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10488:            book.update(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10521:            self._operation_score = driving_grade.fold(drivers, self._operation_score, book, mean_spot)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10659:        price_tiles.record(price_tiles.book(self), name, overrides, answer, dt_util.now())
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10715:    def _observe_frequency(self, now: datetime) -> None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10782:        self._freq_map.observe(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10917:    def _record_quiet_comfort_period(self) -> None:

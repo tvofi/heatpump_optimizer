@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 698ac3e474..59d3e502f3 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1121,7 +1121,7 @@ def _observe_heat_energy(coord: Any, reader: Any, at: datetime) -> None:
+     heat, tank = reader.read(CONF_HEAT_ENERGY_ENTITY), reader.read(CONF_DHW_TEMP_ENTITY)
+     meter.observe_cycle(
+         at, coord._pump_signals, heat, coord._measured_energy, ctx._config.optimization_interval,
+-        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params, tank.value if tank.ok else None,
++        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params, None,
+     )
+ 
+ 

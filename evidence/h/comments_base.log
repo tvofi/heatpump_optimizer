@@ -1,0 +1,13 @@
+start 2026-11-25T12:30:36Z sha1 638fdfbcc959a19322664d946bc070c23bfc339f
+FILE custom_components/heatpump_optimizer/sysid.py units=143 unresolved=1 long=43 hist=15 num=4
+RESULT units=143 count
+RESULT unresolved_units=1 count
+RESULT long_units=43 count
+RESULT hist_units=15 count
+RESULT num_units=4 count
+RESULT unresolved_tokens=2 count
+RESULT thread_factor=1.000
+RESULT load1=6.70
+RESULT swapins=0
+RESULT wall=14.2 s provisional cpu=6.8
+rc 0

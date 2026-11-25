@@ -1,0 +1,14 @@
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1285:        float(pending.get("dhw_power") or 0.0),
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:3166:            "dhw_heating_active": current_action.get("dhw_heating_active", False),
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:3809:            heating_active=lambda: bool(planned().get("dhw_heating_active", False)),
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:4991:        space = float(action.get("power", 0.0))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:4992:        dhw = float(action.get("dhw_power", 0.0))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5629:        heating = planned_draw_runs(float(self._current_action.get("power", 0.0)))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8874:            house_now = float(self._current_action.get("power", 0.0)) + float(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:8875:                self._current_action.get("dhw_power", 0.0)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9998:                    predicted_power_kw=pending.get("power"),
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10006:                        (pending.get("power") or 0.0) * elapsed * price
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10057:            "space_power": float(self._current_action.get("power", 0.0)),
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10058:            "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10601:                    self._current_action.get("power") or 0.0
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:11021:            plan_power_kw=float(self._current_action.get("power", 0.0)),

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/learning_freeze.py b/custom_components/heatpump_optimizer/learning_freeze.py
+index 982f0615ee..db364093c2 100644
+--- a/custom_components/heatpump_optimizer/learning_freeze.py
++++ b/custom_components/heatpump_optimizer/learning_freeze.py
+@@ -128,7 +128,7 @@ def reason(
+     power gate owns the shared reasons and exempts ``defrosting``, the
+     derate's own input.
+     """
+-    if sample is not Sample.DELIVERED_RATIO:
++    if True:
+         shared = _shared(facts, keys, sample)
+         if shared is not None:
+             return shared

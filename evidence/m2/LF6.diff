@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/learning_freeze.py b/custom_components/heatpump_optimizer/learning_freeze.py
+index 982f0615ee..b78cf4f5ad 100644
+--- a/custom_components/heatpump_optimizer/learning_freeze.py
++++ b/custom_components/heatpump_optimizer/learning_freeze.py
+@@ -115,7 +115,7 @@ _ADDITIVE: tuple[tuple[str, frozenset[Sample], Callable[[Facts, Evidence], bool]
+      lambda f, e: e.unplanned_charge),
+     (REASON_AT_RUNNING_FLOOR, frozenset({Sample.CEILING}), lambda f, e: e.at_running_floor),
+     (REASON_CHARGE_OPEN, frozenset({Sample.TANK_DRAW}), lambda f, e: e.charge_open),
+-    (REASON_ASK_IGNORED, frozenset({Sample.DELIVERED_RATIO}), lambda f, e: e.ask_ignored),
++    (REASON_ASK_IGNORED, frozenset({Sample.DELIVERED_RATIO}), lambda f, e: False),
+ )
+ 
+ 

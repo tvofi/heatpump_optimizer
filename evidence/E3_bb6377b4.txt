@@ -1,0 +1,15 @@
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:1262:        float(pending.get("dhw_power") or 0.0),
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:3143:            "dhw_heating_active": current_action.get("dhw_heating_active", False),
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:3761:            heating_active=lambda: bool(planned().get("dhw_heating_active", False)),
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:4944:        space = float(action.get("power", 0.0))
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:4945:        dhw = float(action.get("dhw_power", 0.0))
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:5582:        heating = planned_draw_runs(float(self._current_action.get("power", 0.0)))
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:6076:                _ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp, self._measured_power, float(self._current_action.get("power", 0.0)), float(self._current_action.get("dhw_power", 0.0)))), "Room history skipped: %s")
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:8894:            house_now = float(self._current_action.get("power", 0.0)) + float(
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:8895:                self._current_action.get("dhw_power", 0.0)
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:10007:                    predicted_power_kw=pending.get("power"),
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:10015:                        (pending.get("power") or 0.0) * elapsed * price
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:10066:            "space_power": float(self._current_action.get("power", 0.0)),
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:10067:            "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:10610:                    self._current_action.get("power") or 0.0
+bb6377b4:custom_components/heatpump_optimizer/coordinator.py:11028:            plan_power_kw=float(self._current_action.get("power", 0.0)),

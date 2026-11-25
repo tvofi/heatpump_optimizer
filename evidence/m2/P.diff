@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 698ac3e474..e49137fed2 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5768,7 +5768,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # ventilation pass-through below and leaves no counter span clean.
+         raw = learner_room_unread(ctx._config) or self._learning_frozen(
+             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY,
+-            sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, self._commanded_split()))
++            sample=learning_freeze.Sample.SPACE_HEAT)
+         heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, raw)
+         # "ventilation" is the one reason to look past: the detector below
+         # clears it and needs the residual to see the window close. Any other

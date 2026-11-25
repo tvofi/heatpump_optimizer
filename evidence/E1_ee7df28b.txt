@@ -1,0 +1,43 @@
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:968:                              evidence=_space_evidence(coord, coord._commanded_split())) is not None:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:972:    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:973:    if a.space + a.dhw <= 1e-6 or heat_energy.dhw_share(a) > coord._COP_CURVE_SHARE:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1004:    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1005:    return heat_energy.space_heat_kw(coord._flow_bias.heat_output_kw, a, integrated=False)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1098:    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1099:    kw = draw_range.space_draw_kw(
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1151:        heat_energy.meter_of(coord), coord._commanded_split(), probe_install(cfg).heat_sees_dhw,
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1189:    split = coord._commanded_split()
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1277:def _planned_split(pending: dict[str, Any]) -> tuple[float, float]:
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1306:    a = heat_energy.meter_of(coord).attribution(_planned_split(pending))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:1307:    share = draw_range.space_share(a.space, a.dhw)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5018:        space, dhw = self._commanded_split()
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5040:        commanded_space, dhw_share = self._commanded_split()
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5041:        if heat_energy.ran_hot_water((m := heat_energy.meter_of(self)).attribution(split := (commanded_space, dhw_share))) or m.unplanned_charge(split):
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5303:        heat_kw, a = span or (bias.heat_output_kw, heat_energy.meter_of(self).attribution(self._commanded_split()))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5335:        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, sample=learning_freeze.space_heat(heat_kw is not None or heat_energy.meter_of(self).counter), evidence=_space_evidence(self, self._commanded_split())):
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5771:            sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, self._commanded_split()))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:5931:            sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, self._commanded_split()),
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:9960:        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and not heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10054:            "split": self._commanded_split(),
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10243:        planned_space, planned_dhw = _planned_split(pending)
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:10282:        dhw_share = heat_energy.meter_of(self).booked_dhw_share((planned_space, planned_dhw))
+ee7df28b:custom_components/heatpump_optimizer/coordinator.py:11003:                                  evidence=_space_evidence(self, self._commanded_split())),
+ee7df28b:custom_components/heatpump_optimizer/draw_range.py:611:def space_share(space_kw: float, dhw_kw: float) -> float:
+ee7df28b:custom_components/heatpump_optimizer/draw_range.py:620:def space_draw_kw(
+ee7df28b:custom_components/heatpump_optimizer/draw_range.py:639:    return running_kw(draw, drawn_kw) * space_share(*split) if space_served else 0.0
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:237:def attribution(shares: tuple[float, float] | None, plan_split: tuple[float, float]) -> Attribution:
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:244:def space_heat_kw(heat_kw: float | None, a: Attribution, integrated: bool) -> float | None:
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:260:def ran_hot_water(a: Attribution) -> bool:
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:281:def dhw_share(a: Attribution) -> float:
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:346:    space_kw = space_heat_kw(heat_kw, ev.attribution, integrated=True)
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:347:    if space_kw is not None and (e.dhw_seen or ran_hot_water(ev.attribution)):
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:452:        return unplanned_charge(self.attribution(plan_split), rise)
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:454:    def booked_dhw_share(self, plan_split: tuple[float, float]) -> float:
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:458:        return dhw_share(self.attribution(plan_split))
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:467:        a = self.attribution(plan_split)
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:470:    def attribution(self, plan_split: tuple[float, float]) -> Attribution:
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:472:        return attribution(self.dwell.shares(*self.cycle), plan_split)
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:562:                e, self.refusal, *self._anchor, self._clean, self._plan, attribution(shares, self._plan),
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:586:    def bridges_hot_water(self, plan_split: tuple[float, float], sees_dhw: bool, heater_on: bool) -> bool:
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:596:        return self.counter and sees_dhw and not heater_on and ran_hot_water(self.attribution(plan_split))
+ee7df28b:custom_components/heatpump_optimizer/heat_energy.py:668:    carried = interval is not None or meter.bridges_hot_water(plan_split, sees_dhw, heater_on)

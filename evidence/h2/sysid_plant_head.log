@@ -1,0 +1,111 @@
+start 2026-11-25T13:26:48Z sha1 7991792b1d11e1d33885278cbbf65fbab28b804c
+
+=== Stress and economics ===
+# [base] SLAB_INTERCEPT_PRIOR_SD_KW=0.1 SLAB_PAIR_PRIOR_LOG_SD=0.1
+preset        cell         seed  2state_bias  admit  | 1order_bias admit | reason(2state)
+light_new     told            0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     mass_x0.5       0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     mass_x2         0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     ks_x0.5         0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     ks_x2           0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     gains+0.3       0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     gains-0.2       0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     gains+0.5       0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     gains+0.8       0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     mass_x0.33      0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     mass_x3         0         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     told_s0.01      1         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     told_s0.01      2         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     told_s0.01      3         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     told_s0.01      4         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     told_s0.02      1         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     told_s0.02      2         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     told_s0.02      3         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+light_new     told_s0.02      4         n/a  False  |        n/a False | even a noise-free night on the declared plant plac || 1o: not enough samples
+heavy_old     told            0     +0.0065  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_told_s0=+0.0065 ratio admit=True weight=0.670
+heavy_old     mass_x0.5       0     -0.0293  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_mass_x0p5_s0=-0.0293 ratio admit=True weight=0.601
+heavy_old     mass_x2         0     +0.0235  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_mass_x2_s0=+0.0235 ratio admit=True weight=0.665
+heavy_old     ks_x0.5         0     -0.0036  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_ks_x0p5_s0=-0.0036 ratio admit=True weight=0.676
+heavy_old     ks_x2           0     +0.0192  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_ks_x2_s0=+0.0192 ratio admit=True weight=0.644
+heavy_old     gains+0.3       0     -0.0391  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_gainsp0p3_s0=-0.0391 ratio admit=True weight=0.650
+heavy_old     gains-0.2       0     +0.0368  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_gainsm0p2_s0=+0.0368 ratio admit=True weight=0.682
+heavy_old     gains+0.5       0     -0.0695  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_gainsp0p5_s0=-0.0695 ratio admit=True weight=0.636
+heavy_old     gains+0.8       0     -0.1153  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_gainsp0p8_s0=-0.1153 ratio admit=True weight=0.613
+RESULT adopted_scale_shift_heavy_old_gainsp0p8_s0=-0.0706 ratio
+heavy_old     mass_x0.33      0     -0.0600  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_mass_x0p33_s0=-0.0600 ratio admit=True weight=0.507
+heavy_old     mass_x3         0     +0.0282  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_mass_x3_s0=+0.0282 ratio admit=True weight=0.654
+heavy_old     told_s0.01      1     +0.0178  True   |        n/a False | adopted || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_heavy_old_told_s0p01_s1=+0.0178 ratio admit=True weight=0.512
+heavy_old     told_s0.01      2     -0.0054  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: sensor noise dominates the excursion
+RESULT ua_bias_2state_heavy_old_told_s0p01_s2=-0.0054 ratio admit=False weight=0.000
+heavy_old     told_s0.01      3     +0.0731  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: sensor noise dominates the excursion
+RESULT ua_bias_2state_heavy_old_told_s0p01_s3=+0.0731 ratio admit=False weight=0.000
+heavy_old     told_s0.01      4     +0.0220  True   |        n/a False | adopted || 1o: sensor noise dominates the excursion
+RESULT ua_bias_2state_heavy_old_told_s0p01_s4=+0.0220 ratio admit=True weight=0.343
+heavy_old     told_s0.02      1     +0.0298  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: sensor noise dominates the excursion
+RESULT ua_bias_2state_heavy_old_told_s0p02_s1=+0.0298 ratio admit=False weight=0.000
+heavy_old     told_s0.02      2     -0.0214  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: sensor noise dominates the excursion
+RESULT ua_bias_2state_heavy_old_told_s0p02_s2=-0.0214 ratio admit=False weight=0.000
+/tmp/claude-0/-home-user-heatpump-optimizer/5c1af605-2a09-5abb-995c-8c5baf685cbe/scratchpad/wt/head2/custom_components/heatpump_optimizer/sysid.py:966: RuntimeWarning: overflow encountered in exp
+  float(np.exp(x[0])), float(np.exp(x[1])), float(x[2]),
+heavy_old     told_s0.02      3     +0.1527  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: sensor noise dominates the excursion
+RESULT ua_bias_2state_heavy_old_told_s0p02_s3=+0.1527 ratio admit=False weight=0.000
+heavy_old     told_s0.02      4     +0.0329  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: sensor noise dominates the excursion
+RESULT ua_bias_2state_heavy_old_told_s0p02_s4=+0.0329 ratio admit=False weight=0.000
+typical_slab  told            0     +0.0078  True   |        n/a False | adopted || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_told_s0=+0.0078 ratio admit=True weight=0.253
+typical_slab  mass_x0.5       0     -0.2312  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_mass_x0p5_s0=-0.2312 ratio admit=False weight=0.000
+typical_slab  mass_x2         0     +0.0323  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_typical_slab_mass_x2_s0=+0.0323 ratio admit=False weight=0.000
+typical_slab  ks_x0.5         0     -0.0238  True   |        n/a False | adopted || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_ks_x0p5_s0=-0.0238 ratio admit=True weight=0.396
+typical_slab  ks_x2           0     +0.0557  False  |        n/a False | heat-loss interval (+-10 %) is wider than the +-10 || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_ks_x2_s0=+0.0557 ratio admit=False weight=0.000
+typical_slab  gains+0.3       0     -0.0740  True   |        n/a False | adopted || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_gainsp0p3_s0=-0.0740 ratio admit=True weight=0.182
+typical_slab  gains-0.2       0     +0.0622  True   |        n/a False | adopted || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_gainsm0p2_s0=+0.0622 ratio admit=True weight=0.295
+typical_slab  gains+0.5       0     -0.1287  True   |        n/a False | adopted || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_gainsp0p5_s0=-0.1287 ratio admit=True weight=0.127
+RESULT adopted_scale_shift_typical_slab_gainsp0p5_s0=-0.0164 ratio
+typical_slab  gains+0.8       0     -0.2111  True   |        n/a False | adopted || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_gainsp0p8_s0=-0.2111 ratio admit=True weight=0.031
+RESULT adopted_scale_shift_typical_slab_gainsp0p8_s0=-0.0066 ratio
+typical_slab  mass_x0.33      0         n/a  False  |        n/a False | room temperature drifted beyond the allowed excurs || 1o: fit gave implausible signs
+typical_slab  mass_x3         0         n/a  False  |        n/a False | fitted parameters outside plausible bounds || 1o: fitted gains outside plausible bounds
+typical_slab  told_s0.01      1     +0.0173  True   |        n/a False | adopted || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_told_s0p01_s1=+0.0173 ratio admit=True weight=0.074
+typical_slab  told_s0.01      2     -0.0164  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_told_s0p01_s2=-0.0164 ratio admit=False weight=0.000
+typical_slab  told_s0.01      3     +0.1194  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_typical_slab_told_s0p01_s3=+0.1194 ratio admit=False weight=0.000
+typical_slab  told_s0.01      4     +0.0296  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_told_s0p01_s4=+0.0296 ratio admit=False weight=0.000
+typical_slab  told_s0.02      1     +0.0271  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_told_s0p02_s1=+0.0271 ratio admit=False weight=0.000
+typical_slab  told_s0.02      2     -0.0432  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_told_s0p02_s2=-0.0432 ratio admit=False weight=0.000
+typical_slab  told_s0.02      3     +0.2193  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fitted gains outside plausible bounds
+RESULT ua_bias_2state_typical_slab_told_s0p02_s3=+0.2193 ratio admit=False weight=0.000
+typical_slab  told_s0.02      4     +0.0537  False  |        n/a False | heat-loss interval (unbounded) is wider than the + || 1o: fit gave implausible signs
+RESULT ua_bias_2state_typical_slab_told_s0p02_s4=+0.0537 ratio admit=False weight=0.000
+RESULT cells=57 count
+RESULT biased_admitted=3 count
+RESULT biased_admitted_first_order=0 count
+RESULT thread_factor=1.000
+RESULT load1=4.82
+RESULT swapins=0
+# cpu 7.0s (provisional, not a finding)
+rc 0

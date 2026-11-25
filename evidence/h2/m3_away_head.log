@@ -1,0 +1,29 @@
+start 2026-11-25T13:26:05Z sha1 55dac7720dd4b4a84f2d3a04a14eabb5bbc35ce9
+# [base] real plan span: away 0.751 K, home 0.972 K
+RESULT comfort_weight_ratio_away_14d=1.0000 ratio
+RESULT comfort_weight_ratio_home_null_14d=1.0000 ratio
+RESULT dhw_zero_occurrences_0600_0900_away0d=0 count (of 26)
+RESULT dhw_p50_0600_0900_away0d=1.600 kWh
+RESULT dhw_p90_0600_0900_away0d=2.066 kWh
+RESULT dhw_zero_occurrences_1800_2200_away0d=0 count (of 26)
+RESULT dhw_p50_1800_2200_away0d=1.593 kWh
+RESULT dhw_p90_1800_2200_away0d=2.079 kWh
+RESULT dhw_zero_occurrences_0600_0900_away14d=0 count (of 26)
+RESULT dhw_p50_0600_0900_away14d=1.600 kWh
+RESULT dhw_p90_0600_0900_away14d=2.066 kWh
+RESULT dhw_zero_occurrences_1800_2200_away14d=0 count (of 26)
+RESULT dhw_p50_1800_2200_away14d=1.593 kWh
+RESULT dhw_p90_1800_2200_away14d=2.079 kWh
+RESULT dhw_zero_occurrences_0600_0900_away28d=0 count (of 26)
+RESULT dhw_p50_0600_0900_away28d=1.600 kWh
+RESULT dhw_p90_0600_0900_away28d=2.066 kWh
+RESULT dhw_zero_occurrences_1800_2200_away28d=0 count (of 26)
+RESULT dhw_p50_1800_2200_away28d=1.593 kWh
+RESULT dhw_p90_1800_2200_away28d=2.079 kWh
+RESULT gains_profile_mean_over_g0_absent50pct_14d=1.0000 ratio
+RESULT gains_profile_mean_over_g0_absent100pct_14d=1.0000 ratio
+RESULT thread_factor=1.000
+RESULT load1=3.87
+RESULT swapins=0
+# cpu 3.5s (provisional, not a finding)
+rc 0

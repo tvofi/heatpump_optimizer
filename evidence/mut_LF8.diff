@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/learning_freeze.py b/custom_components/heatpump_optimizer/learning_freeze.py
+index 982f0615ee..b38a058f49 100644
+--- a/custom_components/heatpump_optimizer/learning_freeze.py
++++ b/custom_components/heatpump_optimizer/learning_freeze.py
+@@ -110,7 +110,7 @@ def space_heat(metered: bool) -> Sample:
+ #: climbs back through it, so the recovery refuses the comfort kind alone.
+ _ADDITIVE: tuple[tuple[str, frozenset[Sample], Callable[[Facts, Evidence], bool]], ...] = (
+     (REASON_AWAY, _AWAY_KINDS, lambda f, e: f.away),
+-    (REASON_AWAY_RECOVERY, frozenset({Sample.COMFORT}), lambda f, e: f.away_recovery),
++    (REASON_AWAY_RECOVERY, _AWAY_KINDS, lambda f, e: f.away_recovery),
+     (REASON_UNPLANNED_CHARGE, frozenset({Sample.SPACE_HEAT, Sample.METERED_SPACE_HEAT}),
+      lambda f, e: e.unplanned_charge),
+     (REASON_AT_RUNNING_FLOOR, frozenset({Sample.CEILING}), lambda f, e: e.at_running_floor),
