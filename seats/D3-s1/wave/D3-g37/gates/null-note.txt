@@ -1,0 +1,12 @@
+Null control, box D3-g37 (fullgate.py null, comment-only marker), 2026-11-25 00:53-01:59 UTC: gate_rc=1, wall 4025.7 s
+(provisional), load1 0.59 -> 0.92, nproc 4, Intel Xeon @ 2.10GHz. Red on artefact checks only, so the null is usable
+(no re-take):
+- tests/closure.py selftest (2 FAIL): "a refused merge surfaces merge()'s reason..." and its null control,
+  status='skip-not-under-scoped' -- the scoped-gate autofix pins, which read CI/branch state this detached worktree lacks.
+- tests/entities.py (1 of 2723): "and is accepted when it does [the scoped path records only what the diff can reach]"
+  -- a scoped-gate pin, same cause.
+- tests/harness_headers.py (4 of 115): round4/D6/claims.py header vs printed (2) and its committed-output byte check (1),
+  the round-4 evidence the finder strip removed; and "every inlined walk matches the canonical helper" naming this box's
+  own probes/_mut.py, whose repo_root copy dropped one line. Fixed at 02:05 UTC (during key 1's gate) to the canonical
+  text (tools/audit/repo_root.py; _fn_text comparison True), so every later gate counts at most 3 there: a mutant
+  can only read FEWER harness_headers FAIL lines than this null, never more, so the fix cannot make a key read KILLED.

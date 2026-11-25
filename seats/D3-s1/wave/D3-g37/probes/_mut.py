@@ -16,6 +16,8 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXP
 
 
 def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
     here = Path(start).resolve()
     if here.is_file():
         here = here.parent
@@ -24,7 +26,6 @@ def repo_root(start):
         if (cand / marker).is_file():
             return cand
     raise RuntimeError(f"no repository root above {start}")
-
 
 ROOT = repo_root(__file__)
 if str(ROOT) not in sys.path:
