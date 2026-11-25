@@ -70,3 +70,4 @@
 1795623691 HB alive
 1795623694 INBOX acked through 1
 1795624295 HB alive
+1795624487 CKPT repair commit 9ff0d214c9: stub key, ledger_unread, M4/M5 pins; mutants M13-M17 killed snapshot b122d474c09e
