@@ -1,3 +1,39 @@
+## v10.1.4
+
+**Patch stamp: 19 merges since v10.1.3 (`git log --first-parent --merges --format=%h v10.1.3..HEAD | wc -l`): a pump whose mode reads cooling is left alone; the card's status pill names external heat and what is heating; an unlatched duty switch is priced before the learner latches; the cycle owns when a solve runs; the store's schema is one declaration; every written entity is returned to its baseline on Off, stale plans and unload; the rest is tooling, CI, audit records and the round-11 roster.**
+
+### Action needed
+
+Nothing asks you to act: no option is added, no entity id changes and no option default changes. Changes you may notice without acting: a new repair, `pump_mode_cooling`, appears while the pump's mode reads cooling and a plan or boost asks for heat (#3864); the card's heating pill reads `Heating space`, `Heating DHW` or `Heating space+DHW` and shows `External heat detected` while that sensor is on (#3871); in Off and on a stale plan, the circulation pumps, compressor frequency and valve target the integration wrote are restored to their readings before its first write, as the supply switch and set-points already were (#3812).
+
+### #3864 A pump in cooling is left alone (R11-OWNER-COOLING-GUARD)
+
+While the pump's mode reads Cooling or Cooling + DHW, no writer touches the power switch in either direction: neither a plan, a boost nor the early cut-off switches it. A request for heat in that state raises the `pump_mode_cooling` repair once per episode; it clears when the mode leaves cooling. A live mode select reading Heating outranks a stale Cooling reading. Nothing writes Heating back over a device-side Cooling. Strings in en, sv and de.
+
+### #3871 Card status pill: external heat and what is heating (R11-OWNER-CARD-EXTERNAL-HEAT)
+
+The card's header pill reads `External heat detected` while the plan's External Heat Source binary sensor is on, after manual, fallback and stale in precedence, and the heating state names space, DHW or both.
+
+### #3877 Honest duty-switch price before the learner latches (R11-OUTSIDE-3849)
+
+Reported and diagnosed by outside contributor Bankaifan in #3849. The planner priced a switch between hot water and heating at zero until the duty-switch learner latched; it now prices an unlatched direction at its shrunk estimate `k / (n + N_ON)`. The legs and the off time still move only on a latch.
+
+### #3738 The cycle owns when a solve runs (R11-SEAM-cycle-solve)
+
+A new `solve_gate.py` holds the in-flight guard, a trailing refresh, the background what-if budget and the user what-if slot. Every refresh request reaches one router, so a request made during a refresh is no longer dropped; the Optimize Now button and the `run_optimization` action run one refresh that fetches, solves, actuates and publishes, and report why a run did not happen; one background what-if runs per main solve, and a user what-if overtaken while waiting gets the held answer marked `rate_limited`.
+
+### #3875 The store's schema is one declaration, part 1 of 2 (R11-SEAM-store)
+
+`store.DOMAINS` declares what the writers write, and a restored value is checked against it before it is applied: debug rows with an unpriced accuracy sample are kept, a capacity-envelope bucket raised only by a measured floor is kept, an out-of-range boosted span reads as unknown instead of failing the restore, and the snapshot restore refuses a snapshot that carries no bias.
+
+### #3812 Actuation release (R11-SEAM-actuation-release)
+
+Every entity the integration writes is returned to its baseline once on Off, on a stale plan and at unload, through one registry: supply switch, the arbiter's row, both circulation pumps (new `circulation.py`), compressor frequency and valve target. The stored document and store version are unchanged.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3893, #3888 and #3887 (#3885 CI: `tests/stress.py` skipped on pull requests, light grading for non-production diffs, self-test job caps), #3868 (corpus mirror paces GraphQL batches by query cost), #3880 (replan, roster queue and closeout read the live roster), #3825 (R11-SEAM-tests), #3867 (first outside contributor allowlisted, decision 0017), #3876 (root-cause record: mutation-vacuous review blocks), #3834 (self-test table drift absorbed by a standing beat), #3889 (round-11 roster), #3886, #3884 and #3878 (delivery rows, autofix).
+
 ## v10.1.3
 
 **Patch stamp: 25 merges since v10.1.2 (`git log --first-parent --merges --format=%h v10.1.2..HEAD | wc -l`): the dashboard card's hit targets, type and spacing scales, status colours, failure text and history retention are reworked; values entering the integration are tested finite and in domain, and numeric options an earlier release stored as non-numbers are repaired on the first start; one plan-step kernel and one value each for water's heat capacity, a naive timestamp's zone and a finite number; the draw map records its part A (pass record and map rows); the rest is tooling, audit records and dependency bumps.**
