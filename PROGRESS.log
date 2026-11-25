@@ -13,3 +13,4 @@
 1795611808 CKPT block_duty 161 green at head; counts re-derived; mutants running snapshot 667eacaf7e68
 1795612207 HB alive
 1795612811 HB alive
+1795612881 CKPT M1/M9/M9inner killed, M8 equivalent (sweep); entities.py+doc_claims red at head on merge-resolution counts; main control running snapshot 767a3b39cbb6
