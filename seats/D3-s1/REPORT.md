@@ -130,3 +130,10 @@ No docs/ or GitHub read beyond this box's dispatch, inbox and wip refs and the s
 ## Coverage
 
 D3.M3: universe 742 (wave list), examined 16 (this box), not reached 46 entries (the other boxes' keys by box, plus any TIMEOUT key here). D3.M1, D3.M2, D3.M4, D3.M5 rows carried verbatim from REPORT-D3-u1b.json.
+
+## Resume and local workarounds
+
+- This box was re-fired after the first seat stalled during the `a28fd1af46c39331` gate. The new seat restored the checkpoint from `handoff-wip/finder-r11-D3-g03` at b5ca71c2 (7 of 16 gated, 7 records) and continued from there. `a28fd1af46c39331` had no record, so its gate re-ran from the start. Keys 8 to 16 were gated on the re-fire container, which is the same machine class (4 vCPU Intel Xeon @ 2.10GHz, 16 GB; see MACHINE.txt).
+- The null control is the one the first container took (gates/null.json), restored from the checkpoint as gate_wave.sh does on a re-fire. It was not re-taken.
+- gate_wave.sh puts `$HOME/venv-ci/bin` on PATH, but that directory did not exist on the re-fire container. It was symlinked to `/opt/hpo/venv-ci`, which `cloud-setup.sh --check` reports as the venv-ci python3. This was local only and nothing was pushed.
+- probes/_box/build_report.py.txt is the box's out-of-tree report builder. Its count-closure assert read `_n == universe` where `_n` was already the comparison, so it failed on correct counts. It was corrected to `assert _n` in the box's own copy. The counts close: 16 gated plus 726 assigned to other boxes equals 742.
