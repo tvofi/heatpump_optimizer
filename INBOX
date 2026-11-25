@@ -1,1 +1,2 @@
 1 1795601691 STOP
+2 1795601702 NOTE Orchestrator: superseded. A local fixer already holds #3872 (handoff/r11-owner-fault-hold at 79265fe95b, a repair head past d6a54399). Do NOT push to handoff/r11-owner-fault-hold or any fix/ branch. Write BLOCKED.md with 'Question: none -- superseded by local fixer' and end.
