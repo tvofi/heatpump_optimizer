@@ -3,3 +3,4 @@
 1795617166 CKPT setup ok, packet rendered (introduced-red unreadable: CI queued) snapshot 36b672e58c79
 1795617553 CKPT mutants and finder harnesses running at both ends snapshot 6a59c009a007
 1795617704 HB alive
+1795617952 CKPT finder harnesses both ends match body; structure/archscore ok; awaiting features mutants snapshot 4998dee32cfc
