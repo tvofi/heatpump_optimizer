@@ -54,10 +54,12 @@ You may run the reviewer yourself. It follows
 
 The first line of `VERDICT.md` must be the first line of the comment, exactly.
 
-After that, do not push again. The project adopts the verdict, merges `main`
-into your branch itself when needed (leave "Allow edits by maintainers" on),
-and merges the pull request. Any other new commit on the branch voids the
-verdict and the review starts over.
+After that, do not push anything but a merge of `main`. The project adopts the
+verdict and merges the pull request. The project never merges into or pushes
+to your fork: when `main` has moved on, the pull request waits until you have
+merged `main` into your branch yourself (a plain merge commit, no other
+change). Any other new commit on the branch voids the verdict and the review
+starts over.
 
 ## For the owner: approving the owner-read paths yourself
 
