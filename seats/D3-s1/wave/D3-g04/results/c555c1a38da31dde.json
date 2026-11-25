@@ -1,0 +1,56 @@
+{
+ "key": "c555c1a38da31dde",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4391 CMP_BOUND",
+ "patch": "if 40.0 - inlet < 1.0: -> if 40.0 - inlet <= 1.0:",
+ "function": "HeatPumpOptimizerCoordinator._dhw_mixed_water",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._dhw_mixed_water@4391-4396",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2739.4,
+  "load1_start": 0.8,
+  "load1_end": 0.95,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 4549.7,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/c555c1a38da31dde.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_c555c1a38da31dde.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_c555c1a38da31dde.py",
+  "rc": 0,
+  "baseline_value": "litres_baseline=3200.0 at inlet 39.0",
+  "mutant_value": "litres_mutant=absent",
+  "results": {
+   "litres_baseline": "3200.0 at inlet 39.0",
+   "litres_mutant": "absent",
+   "inlet_options_max": "33 C",
+   "live_inlet_accepted": "{30.0: 30.0, 35.0: 35.0, 35.5: None, 39.0: None}",
+   "inlet_max_reachable": "35.0 C",
+   "inlets_scanned": "81 (-5.0..35.0 step 0.5)",
+   "differing_reachable": "0 count",
+   "null_delta": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.93",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "inlet 39.0 (separates: 3200 L -> {})",
+   "inlets -5.0..35.0 step 0.5 (81 values)",
+   "live inlet 30, 35 accepted; 35.5, 39 refused by _dhw_inlet_c",
+   "null: inlet 10"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_c555c1a38da31dde.out"
+ },
+ "should_fail": "none reachable: the inlet production resolves is at most 35 C (options 25 + 8 seasonal; a live probe above 35 C is refused by _dhw_inlet_c), so 40 - inlet >= 5 and the boundary at 1.0 is never met."
+}

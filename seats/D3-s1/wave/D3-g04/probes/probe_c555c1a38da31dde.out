@@ -1,0 +1,11 @@
+RESULT litres_baseline=3200.0 at inlet 39.0
+RESULT litres_mutant=absent
+RESULT inlet_options_max=33 C
+RESULT live_inlet_accepted={30.0: 30.0, 35.0: 35.0, 35.5: None, 39.0: None}
+RESULT inlet_max_reachable=35.0 C
+RESULT inlets_scanned=81 (-5.0..35.0 step 0.5)
+RESULT differing_reachable=0 count
+RESULT null_delta=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.93
+RESULT swapins=0
