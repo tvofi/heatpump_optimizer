@@ -17299,7 +17299,10 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
         script = td / "drive.sh"
         script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=${JOBS:-1}; LANE=x; step=0\n%s\n\"$@\"\n"
                           % (sys.executable, fns))
-        env = {k: v for k, v in _os.environ.items() if not k.startswith("HPO_GATE")}
+        # Not the CI job's event or scope: on a pull request lane_stress skips
+        # stress.py (#3885), and this pin is about the lease, not the skip.
+        env = {k: v for k, v in _os.environ.items()
+               if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
         env["HPO_GATE_LOCK_DIR"] = str(lock)
         drive = lambda jobs, *cmd: _subprocess.Popen(
             ["bash", str(script), *cmd], cwd=td, env={**env, "JOBS": jobs},
@@ -17328,6 +17331,37 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_run_sh_leases_stress()
 R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
+def _gl_stress_off_pull_requests() -> dict[tuple[str, str], tuple[bool, bool]]:
+    """#3885: run.sh's own lane_stress, sourced and driven against the stub
+    tree under each (HPO_CI_EVENT, GATE_SCOPE): (stress.py ran, the SKIP line
+    was printed). Only a pull request under a scoped gate skips it."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|in_scope|run|run_always|leased|skip|lane_stress)\(\) \{.*?^\}\n", text))
+    out = {}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=1; LANE=x; step=0\n%s\n\"$@\"\n"
+                          % (sys.executable, fns))
+        base = {k: v for k, v in _os.environ.items()
+                if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
+        base["HPO_GATE_LOCK_DIR"] = str(Path(tds) / "lock")
+        for event, scope in (("pull_request", "auto"), ("pull_request", "full"), ("push", "auto"), ("", "auto")):
+            (td / "stress.ran").unlink(missing_ok=True)
+            env = {**base, "GATE_SCOPE": scope, **({"HPO_CI_EVENT": event} if event else {})}
+            r = _subprocess.run(["bash", str(script), "lane_stress"], cwd=td, env=env, timeout=120,
+                                capture_output=True, text=True)
+            out[(event or "local", scope)] = ((td / "stress.ran").exists(), "SKIP: tests/stress.py" in r.stdout)
+    return out
+
+
+_gl_off = _gl_stress_off_pull_requests()
+R.check("run.sh's lane_stress skips stress.py on a pull request under a scoped gate, and runs it under "
+        "GATE_SCOPE=full, on a push and locally (#3885)",
+        _gl_off == {("pull_request", "auto"): (False, True), ("pull_request", "full"): (True, False),
+                    ("push", "auto"): (True, False), ("local", "auto"): (True, False)}, str(_gl_off))
 
 
 def _gl_run_sh_wait_unrun() -> dict[str, tuple[bool, str]]:
