@@ -509,7 +509,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
     "pump_duty": {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,
         # The silent switch (#1911) and the GCHV night-mode registers (#1913)
-        # are held slots on the same record (``pump_arbiter._writable``).
+        # are held slots on the same record (``arbiter_record.writable``).
         "written/silent/0": _FLAG,
         # A loop move's dropped space write (``pump_arbiter._note_sent``).
         "dropped/space_setpoint": _R,

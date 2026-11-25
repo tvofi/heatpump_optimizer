@@ -141,22 +141,20 @@ the planned duty against what the pump did, read from what the integration
 already reads -- the measured electrical draw (running or not), the mode
 select (DHW only) and the tank temperature, closed into one verdict per
 step by :mod:`duty_ledger`. The last
-:func:`log_steps` steps and their counts are in the diagnostics; the ledger
+:func:`~.arbiter_record.log_steps` steps and their counts are in the diagnostics; the ledger
 is not persisted. It is what decides whether control is worth turning on:
 ``delivered`` over the other verdicts is how often the pump already does
 what the plan wanted.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import math
-from collections import Counter, deque
+from collections import Counter
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any, NamedTuple, cast
-from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
 from homeassistant.helpers import issue_registry as ir
@@ -190,6 +188,17 @@ from .const import (
     PUMP_DUTY_MODES,
     SPACE_SETPOINT_WATER_UNITS,
 )
+from .arbiter_record import (
+    NIGHT_KEYS as _NIGHT_KEYS,
+    OWN_MODES as _OWN_MODES,
+    SLOTS as _SLOTS,
+    STATES as _STATES,
+    ArbiterState,
+    FeedbackRun,
+    load as _load,
+    persist as _persist,
+    state_for,
+)
 from .entry_config import EntryConfig
 from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
@@ -202,8 +211,6 @@ from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_MINUTES, plan_step_index, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
-from .drift import stored_instant
-from .store import QuarantiningStore, load_mapping
 from .sysid import KIND_PROBE
 from .thermal_model import (
     configured_flow_heat_c,
@@ -251,17 +258,9 @@ FLOW_HOLD_C = 35.0
 #: and may change on its own.
 RETURN_SUPPLY_OFFSET_K = 5.0
 SETPOINT_TOLERANCE = 0.3
-#: The v6.6.12 stand-down repair, cleared wherever a record from then loads.
-ISSUE_MANUAL = "pump_manual_change"
 ISSUE_IGNORED = "pump_write_ignored"
 #: How long an ignored write waits before it is sent again.
 RETRY_MINUTES = 5.0
-_STORE_VERSION = 1
-
-
-def log_steps() -> int:
-    """One day of plan steps, the decision log's length (width owned by plan_step)."""
-    return 24 * 60 // PLAN_STEP_MINUTES
 
 
 _TICK = timedelta(minutes=1)
@@ -333,85 +332,6 @@ class PumpCommand:
     silent: bool | None = None
 
 
-@dataclass
-class FeedbackRun:
-    """One compressor run under the power-feedback loop; never persisted.
-
-    A restart re-enters the start-hold, which writes today's target. The
-    target ``w_c`` is kept unrounded, so a move smaller than the entity's
-    step accumulates instead of rounding away.
-    """
-
-    start: datetime
-    w_c: float
-    seen: datetime
-    #: (when, measured kW) over :data:`FEEDBACK_WINDOW`.
-    samples: deque[tuple[datetime, float]] = field(default_factory=deque)
-    running: bool = False
-    #: The last value the loop sent that differs from today's target, and
-    #: the record it replaced: the bracket ``hold`` reads a clamp cut in.
-    sent_c: float | None = None
-    prev_c: float | None = None
-    #: Where the controller cut a loop write: the target never passes it.
-    cut_lo_c: float | None = None
-    cut_hi_c: float | None = None
-    #: When the compressor stopped under this run (:func:`_kept`).
-    stopped: datetime | None = None
-
-
-@dataclass
-class ArbiterState:
-    """Per-coordinator record: what was written, and what did not hold."""
-
-    #: slot -> (value written, when); the ownership record, persisted.
-    written: dict[str, tuple[Any, datetime]] = field(default_factory=dict)
-    #: slot -> the last write a loop move dropped from ``written`` to resend
-    #: (:func:`_note_sent`), read while that record is missing, until a
-    #: restore or release ends it; persisted with it. A loop run's reset
-    #: keeps it. A write lands only once the off restore is armed, which
-    #: :func:`_arm_space` no longer refuses, so no write needs to end it.
-    dropped: dict[str, Any] = field(default_factory=dict)
-    #: slot -> differing readings in a row; slot -> when a value the pump
-    #: did not hold is sent again.
-    misses: dict[str, int] = field(default_factory=dict)
-    retry: dict[str, datetime] = field(default_factory=dict)
-    step: dict[str, Any] | None = None
-    log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=log_steps()))
-    dhw_since: datetime | None = None
-    last_duty: str | None = None
-    loaded: bool = False
-    unsubs: list[Any] = field(default_factory=list)
-    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-    #: (step start, the supply the plan commanded for that step): written by
-    #: the cycle's switch write and moved by :func:`supply_tick` (#2492).
-    supply: tuple[datetime, bool] | None = None
-    #: The step tick's listener and wiring; dropped only at unload, never by duty mode.
-    supply_unsub: Callable[[], None] | None = None
-    wiring: "SupplyWiring | None" = None
-    #: The space set-point's reading when the arbiter last armed a write to
-    #: it; ``None`` unknown (a restart, or the power switch read off since).
-    #: A later reading that is neither this nor the write is a person's edit.
-    space_before: float | None = None
-    #: The power-feedback loop's live run, and the inlet-to-target gap at
-    #: which a loop-lowered target stopped the compressor (:func:`_feedback`).
-    feedback: FeedbackRun | None = None
-    stop_gap_k: float | None = None
-    #: A supply write ``supply_hold`` held back; the step tick retries it.
-    supply_held: bool = False
-    #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
-    held_until: datetime | None = None
-    #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
-    last_pass: draw_range.PassRecord | None = None
-    #: The step the action was last cut or refused for, and whether a rate
-    #: limit refused its target (:func:`_step_writes`).
-    step_cut: datetime | None = None
-    step_pending: bool = False
-    #: Held around one re-cut and its tail, by cycle and tick alike.
-    tail_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-    #: GCHV night register -> its reading before the first write; persisted.
-    night_before: dict[str, int] = field(default_factory=dict)
-
-
 @dataclass(frozen=True)
 class ArbiterInputs:
     """One pass's read-only inputs from the coordinator (#1739).
@@ -446,16 +366,6 @@ class ArbiterInputs:
     draw: Any = None
 
 
-_STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
-_OWN_MODES = frozenset((pump_mode.MODE_HEAT, pump_mode.MODE_DHW, pump_mode.MODE_HEAT_DHW))
-_SLOTS = ("mode", "dhw_setpoint", "space_setpoint", "silent")
-#: GCHV night-mode registers 518/519 as hour then minute per register (#1913).
-_NIGHT_KEYS = {
-    "night_start_hour": "start_hour",
-    "night_start_minute": "start_minute",
-    "night_end_hour": "end_hour",
-    "night_end_minute": "end_minute",
-}
 _NIGHT_SLOTS = tuple(_NIGHT_KEYS)
 #: The mode slot's writable domains; its third, ``sensor``, is read-only.
 _MODE_DOMAINS = frozenset(("select", "input_select"))
@@ -524,14 +434,6 @@ def _heat_ceiling_c(config: Any) -> float:
     """
     ceiling = configured_flow_heat_c(config, FLOW_HEAT_C)
     return ceiling if ceiling > FLOW_GATE_C else FLOW_HEAT_C
-
-
-def state_for(coord: Any) -> ArbiterState:
-    held = _STATES.get(coord)
-    if held is None:
-        held = ArbiterState()
-        _STATES[coord] = held
-    return held
 
 
 def duty_mode(config: Any) -> str:
@@ -2353,71 +2255,6 @@ def _listen(coord: Any) -> None:
     if entities:
         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
     duty_switch.attach(duty_switch.record_for(coord))
-
-
-def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
-    return QuarantiningStore(
-        coord.hass,
-        _STORE_VERSION,
-        f"{DOMAIN}_{coord.entry.entry_id}_pump_duty",
-        naive_zone=dt_util.DEFAULT_TIME_ZONE,  # _load's zone
-    )
-
-
-async def _persist(coord: Any) -> None:
-    held = state_for(coord)
-    payload = {
-        "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
-        "dropped": dict(held.dropped),
-        "night_before": dict(held.night_before),
-    }
-    try:
-        await _store(coord).async_save(payload)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not persist the pump duty record: %s", err)
-
-
-async def _load(coord: Any) -> None:
-    """Restore the ownership record once, so a restart keeps what it wrote."""
-    held = state_for(coord)
-    if held.loaded:
-        return
-    held.loaded = True
-    raw = await load_mapping(_store(coord), "the pump duty record")
-    if raw is None:
-        return
-    if raw.get("manual"):
-        issues.clear_issue(coord.hass, ISSUE_MANUAL)
-    written = raw.get("written")
-    for slot, pair in written.items() if isinstance(written, dict) else ():
-        try:
-            value, at = pair[0], stored_instant(pair[1], dt_util.DEFAULT_TIME_ZONE)
-        except (TypeError, KeyError, IndexError):
-            continue
-        if at is not None and _writable(slot, value):
-            held.written[slot] = (value, at)
-    held.dropped = _restored(raw.get("dropped"), (*_SLOTS, *_NIGHT_KEYS))
-    held.night_before = _restored(raw.get("night_before"), _NIGHT_KEYS)
-
-
-def _restored(raw: Any, slots: Any) -> dict[str, Any]:
-    """A stored slot map, each entry one the arbiter could have written to a slot of ``slots``."""
-    return {k: v for k, v in raw.items() if k in slots and _writable(k, v)} if isinstance(raw, dict) else {}
-
-
-def _writable(slot: str, value: Any) -> bool:
-    """Whether ``value`` is one the arbiter could have written to ``slot``.
-
-    A restored record is compared and rewritten on every pass, so one of any
-    other shape raised there on every cycle (D1-s3-03).
-    """
-    if slot == "mode":
-        return isinstance(value, str) and value in _OWN_MODES
-    if slot == "silent":
-        return value is True or value is False
-    if slot in _NIGHT_KEYS:
-        return isinstance(value, int) and not isinstance(value, bool)
-    return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 boost.bind_cold_lease(block_cold_lease)
