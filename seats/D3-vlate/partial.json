@@ -14,7 +14,6 @@
   "thread_factor": "1.0"
  },
  "gates_pending": [
-  "D3-s1-63",
   "D3-s1-64",
   "D3-s1-65",
   "D3-s1-66",
@@ -95,15 +94,23 @@
    "severity": "nit",
    "value": "max_abs_component label fixed -> rules on a |rate| tie; value delta 0.0",
    "metric_definition": "(value, source label) returned by max_abs_component on a fixed/rule |rate| tie",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 95779f9d6d71c50d`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3398 s, load1 1.0, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "attacks": "consequence: value_delta 0.0 on a tie, so only a message label changes -> severity cut to nit",
-   "reproduced": "probe_95779f9d.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): label fixed -> rules, label_changed 1, value_delta 0.0, rules-only tie delta 0, null 0, reach_from_config_tie 1; full gate PENDING",
+   "reproduced": "probe_95779f9d.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): label fixed -> rules, label_changed 1, value_delta 0.0, rules-only tie delta 0, null 0, reach_from_config_tie 1; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 95779f9d6d71c50d`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3398 s, load1 1.0, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_simple.py own tie: (0.4,'fixed') -> (0.4,'rules'); null 0",
    "reachable": "yes via from_config, but only the repair-issue placeholder text (coordinator.py:7623) reads the label; the number is equal in both arms",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at grid_fee.py:355, then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "SURVIVED",
+    "gate_rc": "0",
+    "failed_scripts": "0",
+    "killed": "0",
+    "wall_s": "3398",
+    "load1": "1.0",
+    "thread_factor": "1.0"
+   }
   },
   {
    "id": "D3-s1-64",

@@ -6,14 +6,14 @@ Null full gate: gate_rc 0, failed_scripts 0, wall 3767 s, load1 1.0.
 
 At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.py` and `tests/features.py` only (seats/D3-vlate/athead.sh); the full gate was not re-run at head. A not-killed reading there is therefore 'not killed by those two scripts', not 'survives the full gate at head'.
 
-**Gates still pending:** D3-s1-63, D3-s1-64, D3-s1-65, D3-s1-66, D3-s1-67, D3-s1-68, D3-s1-69, D3-s1-70, D3-s1-71
+**Gates still pending:** D3-s1-64, D3-s1-65, D3-s1-66, D3-s1-67, D3-s1-68, D3-s1-69, D3-s1-70, D3-s1-71
 
 | id | vote | severity | full gate | at head |
 |---|---|---|---|---|
 | D3-s1-02 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-52 | verify | low | n/a | not re-run |
 | D3-s1-62 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
-| D3-s1-63 | weaken | nit | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
+| D3-s1-63 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-64 | weaken | nit | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-65 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-66 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
@@ -67,7 +67,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - vote: **weaken**, severity nit
 - value: max_abs_component label fixed -> rules on a |rate| tie; value delta 0.0
 - metric: (value, source label) returned by max_abs_component on a fixed/rule |rate| tie
-- V1 reproduced: probe_95779f9d.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): label fixed -> rules, label_changed 1, value_delta 0.0, rules-only tie delta 0, null 0, reach_from_config_tie 1; full gate PENDING
+- V1 reproduced: probe_95779f9d.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): label fixed -> rules, label_changed 1, value_delta 0.0, rules-only tie delta 0, null 0, reach_from_config_tie 1; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 95779f9d6d71c50d`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3398 s, load1 1.0, thread_factor 1.0; null gate: gate_rc 0, failed 0
 - V2 independent: v2_simple.py own tie: (0.4,'fixed') -> (0.4,'rules'); null 0
 - V3 reachable: yes via from_config, but only the repair-issue placeholder text (coordinator.py:7623) reads the label; the number is equal in both arms
 - V3 class: I1; class_guess 'new' corrected
