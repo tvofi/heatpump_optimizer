@@ -12,9 +12,19 @@ No budget was raised. The ratchet sat at zero headroom and the first cut breache
 
 ## Head
 
-a0c6e7afb03597309fc87842ef9f0574ff4578eb
+34cefdc55bdad2131361a3bf0b4043af86874a2f
 
-Nine commits on merge base e3cb5c019b464a770cc7c6fe2fbc858ed29debf7: eb9ce02f98 the failing tests (a) to (d), (a) and (b) red there; 77ce50fd07 the law, the claims, the two install digests and `REFERENCE_BASIS`; 947e346765 the ratchet record; 4f47bd11b3 the harness; 46dfae1621 the mutation-ledger and closure repairs `ci_predict.py` named; 3c06aed0d2 the checks the scoped gate at 46dfae1621 read red, and the direct slab's call count; e669f3c1fb the ratchet record; 47482aac24 two triage records for the equivalent survivors and a0c6e7afb0 their removal, since `ci_predict.py` reads them as stale pins (the ledger's inventory generates no CONST_SWAP site on either line). Measured against origin/main 9276ddf6b122816149ecba82a607aedf38d87ba1, 2026-11-22T23:47Z.
+Round 2 repairs the block at 0d345358c4 (`test-gap`: the valve-fed law's zone weighting unpinned off r = 0.5). It adds five commits over the reviewed head 0d345358c4, none in production code:
+
+- 3e2dc1b603: `mutation-autofix`'s three pins.
+- 3417bbc286: (a), (b) and (d) also run at the splits 0.3/0.7 and 0.7/0.3, beside the install's 0.5 (`_TZ_SPLITS`); adds the R9-F2.1 P3 carry file.
+- 49d11471f5: that test's comment split under the 40-word sentence ratchet.
+- 82b18b46e9: `carry-3881.json` classified in `tests/entities.py`'s closure.
+- 34cefdc55b: the four remaining sites pinned (Unpinned sites section).
+
+The delta reviewer reads 0d345358c4..34cefdc55b. Merge base 24e3f37620f8f51022a2f9c82f863c7ba28fc6d4. `git merge-tree --write-tree origin/main HEAD` against origin/main fb768d5dbe5b48ff9bd6b34df2346c1f32afedc0 merges cleanly, so no merge was made; 2026-11-25T06:49Z.
+
+Round 1: nine commits on merge base e3cb5c019b464a770cc7c6fe2fbc858ed29debf7: eb9ce02f98 the failing tests (a) to (d), (a) and (b) red there; 77ce50fd07 the law, the claims, the two install digests and `REFERENCE_BASIS`; 947e346765 the ratchet record; 4f47bd11b3 the harness; 46dfae1621 the mutation-ledger and closure repairs `ci_predict.py` named; 3c06aed0d2 the checks the scoped gate at 46dfae1621 read red, and the direct slab's call count; e669f3c1fb the ratchet record; 47482aac24 two triage records for the equivalent survivors and a0c6e7afb0 their removal, since `ci_predict.py` reads them as stale pins (the ledger's inventory generates no CONST_SWAP site on either line). Measured against origin/main 9276ddf6b122816149ecba82a607aedf38d87ba1, 2026-11-22T23:47Z.
 
 ## Checks this diff restates
 
@@ -28,7 +38,13 @@ The scoped gate at 46dfae1621 read 11 `tests/features.py` checks and one `tests/
 
 ## Mutation proof
 
-Re-run on 3c06aed0d2's tree (e669f3c1fb changes only `tests/structure_budgets.json`) with the same eight edits; each result below is that run's. The block is `tests/features.py` from `# R11-SEAM-two-zone-slab (#3713)` to `# R11-VALVE-REFERENCE (carries 0, 1)`, run as `python3 tools/audit/seat/features_block.py "# R11-SEAM-two-zone-slab (#3713)" "# R11-VALVE-REFERENCE (carries 0, 1)"` with `PYTHONPATH=tests/hastub:tests:custom_components`, one production edit at a time in `thermal_model.py`, restored after each. Unmutated: rc 0, 0 failed. Its four checks are (a) "the plant at its pump, settled, holds the room at the valve's 21 C within 0.02 K, scalar step and batch twin", (b) "a thermostat set to 21 C holds 21 C behind it", (c) "an unvalved install's curve and a direct slab's curve and day keep their bits", (d) "the curve the model reports is the plant's own, at zero wind and rain".
+Round 2 ran the reviewer's driver at 34cefdc55b, and unchanged at 0d345358c4 as the null control. The driver is `verdict/3879` a581342ec6 `evidence/mutate.py`, sha1 ac2aaca5e7f907058b6691a65afe55181021e1a6. It applies fifteen edits, M1 to M15, one at a time to the same block and restores after each. Unmutated, the block at 34cefdc55b prints `ALL 4 FEATURES BLOCK PASSED`.
+
+- M9, the gains weighted to the wrong floors (`(w_upper * (1.0 - r) + w_lower * r)`): rc 1 at 34cefdc55b. (a) FAILs: split 0.3/0.7 reads 21.0713 and split 0.7/0.3 reads 21.0401 at +5/−5/−15 C, scalar and batch alike, while the install's 0.5 rows read 21.0000. (b) FAILs: split 0.7/0.3 reads 21.0401. At 0d345358c4 it is rc 0 with no FAIL line, so the block read nothing there.
+- M1 to M8 and M10 to M13: rc 1 at both heads, each failing the checks round 1 names. M13 now fails (a) and (b); at 0d345358c4 it failed (a) alone.
+- M14 (the batch twin's call passes `None` for the step's valve target) and M15 (`and not p.slab_fed_direct` dropped from `flow_target_for_indoor`): rc 0 at both heads, as the review's dispositions record. M15 is equivalent by construction. M14 is a moved line whose `vt` fallback is the base's.
+
+Round 1: re-run on 3c06aed0d2's tree (e669f3c1fb changes only `tests/structure_budgets.json`) with the same eight edits; each result below is that run's. The block is `tests/features.py` from `# R11-SEAM-two-zone-slab (#3713)` to `# R11-VALVE-REFERENCE (carries 0, 1)`, run as `python3 tools/audit/seat/features_block.py "# R11-SEAM-two-zone-slab (#3713)" "# R11-VALVE-REFERENCE (carries 0, 1)"` with `PYTHONPATH=tests/hastub:tests:custom_components`, one production edit at a time in `thermal_model.py`, restored after each. Unmutated: rc 0, 0 failed. Its four checks are (a) "the plant at its pump, settled, holds the room at the valve's 21 C within 0.02 K, scalar step and batch twin", (b) "a thermostat set to 21 C holds 21 C behind it", (c) "an unvalved install's curve and a direct slab's curve and day keep their bits", (d) "the curve the model reports is the plant's own, at zero wind and rain".
 
 - the slab in series dropped (`ua_slab = ua_floor`): rc 1, (a) and (b) FAIL.
 - the zone weights made equal (`w_upper = w_lower = 1.0`, the conductance sum): rc 1, (a) and (b) FAIL.
@@ -47,6 +63,14 @@ At the merge base the same block prints (a) and (b) FAIL with room 20.719/20.350
 
 ## Figures
 
+- Round 2, at 34cefdc55b unless named, each command with `PYTHONPATH=tests/hastub`:
+  - `tests/doc_claims.py`: `ALL 441 checks PASSED` at 49d11471f5. The first pooled drive's baseline of it at 3417bbc286 read rc 1, `long units 465 -> 466`.
+  - `tests/entities.py`: `ALL 2761 ENTITY CHECKS PASSED` at 82b18b46e9's tree. The second drive's baseline of it at 49d11471f5 read rc 1, failed 2, one of them `these force the FULL suite when touched: dev/programme/carries/carry-3881.json`.
+  - `tests/features.py`: rc 0, failed 0 in the `--pin-killed` baselines at 82b18b46e9's tree; 34cefdc55b adds only ledger rows.
+  - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+  - `node tools/policy/brief_lint.mjs`: clean.
+  - Gate scope, `python3 tests/closure.py select --diff 24e3f37620f8f51022a2f9c82f863c7ba28fc6d4`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out`.
+  - No production line moved since 0d345358c4: `git diff --quiet 0d345358c4 34cefdc55b -- custom_components/` exits 0. So round 1's harness, golden and production figures below still describe this head. They were measured at e669f3c1fb against an older origin/main, as each line states.
 - Finder's harness, `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_held_install.py` (sha1 d2737fe37dc8befd2707d4e86286c5f2169e2417), `install` rows room/upper/lower, held = end = plant = settled: base e3cb5c019b 20.719/21.009/20.428, 20.350/20.835/19.864, 19.980/20.661/19.300; head 46dfae1621 21.000/21.296/20.704, 21.000/21.499/20.501, 21.000/21.701/20.299 at +5/−5/−15 C.
 - Second install, `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r11_two_zone_slab.py` (sha1 da3b5043fe08225649aedda4c2152e0093aade89), `fed` rows held = plant room/upper/lower: base 20.396/20.455/20.338, 19.858/19.961/19.755, 19.320/19.466/19.173; head 21.000/21.061/20.939, 21.000/21.108/20.892, 21.000/21.154/20.846.
 - `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_steady_seams.py fields` (sha1 3c41242331405911f8c800c2c4c6e785343c7352): identical at both ends (`diff` exit 0).
@@ -60,15 +84,17 @@ At the merge base the same block prints (a) and (b) FAIL with room 20.719/20.350
 
 ## Unpinned sites
 
-`ci_predict.py` names seven sites this diff adds; each is killed by the checks named and left to `mutation-autofix`, whose lane mutates `custom_components/`:
+None at 34cefdc55b. At 3e2dc1b603, `tests / mutation` refused `1922 unpinned against 1919 at base` on four sites this diff added. Each is now pinned under `tests/mutation_ledger/killed_by/` by `python3 tests/mutation_table.py --pin-killed --base origin/main`. That command records a row only when the driver's baseline is green and the null control, a comment-only edit, survives it.
 
-- custom_components/heatpump_optimizer/ledger.py:83 CONST (`REFERENCE_BASIS = 5`): killed by the stamp checks (Mutation proof, ledger arm). Pinned by `mutation-autofix`.
-- custom_components/heatpump_optimizer/thermal_model.py:2299 GUARD_OFF (`_valve_flow_set`'s `elif p.slab_fed_direct:`): killed by (c). Pinned by `mutation-autofix`.
-- custom_components/heatpump_optimizer/thermal_model.py:3525 BOOLOP (`flow_target_for_indoor`'s valved condition): an unvalved install enters the valved arm and `direct_flow_carnot`'s literals in (c) fail. Pinned by `mutation-autofix`.
-- custom_components/heatpump_optimizer/thermal_model.py:3525 GUARD_OFF (the same condition forced true): the same, (c). Pinned by `mutation-autofix`.
-- custom_components/heatpump_optimizer/thermal_model.py:3528 RETURN_DEL (`flow_target_for_indoor`'s valved return): the valved arm falls through to the unvalved expression and (d) fails. Pinned by `mutation-autofix`.
-- custom_components/heatpump_optimizer/thermal_model.py:4672 BOOLOP (`simulate_trajectory_batch`'s `if p.two_zone_enabled and throttled:`): a single-zone valved batch and an unvalved two-zone batch each raise `UnboundLocalError` on `ua_rad` (a direct `simulate_trajectory_batch` call on `profiles.house` at 46dfae1621 with the guard forced true, restored; the line is unchanged since), so every batched check on such an install fails. Pinned by `mutation-autofix`.
-- custom_components/heatpump_optimizer/thermal_model.py:4672 GUARD_OFF (the same condition forced true): the same. Pinned by `mutation-autofix`.
+- custom_components/heatpump_optimizer/ledger.py:83 CONST (`REFERENCE_BASIS = 10`): `tests/features.py` rc 0 → rc 1, 3 failed.
+- custom_components/heatpump_optimizer/thermal_model.py:2299 GUARD_OFF (`_valve_flow_set`'s `elif False:`): `tests/features.py` rc 0 → rc 1, 2 failed.
+- custom_components/heatpump_optimizer/thermal_model.py:3525 GUARD_OFF (`flow_target_for_indoor`'s `if False:`): `tests/features.py` rc 0 → rc 1, 3 failed.
+  - The pooled `--pin-killed` run (`--jobs 3`, every driver) read this site `lives`.
+  - Driven alone it was killed: `--anchor "...flow_target_for_indoor GUARD_OFF b2545d99" --scripts tests/features.py`. The row comes from `--pin-killed --scripts tests/features.py --jobs 1`.
+  - The block reads it too, `features_block.py "def _vr_curve_agrees():" "def _vr_mild_curve():"` with its `--emit-prelude`. Under the mutant it prints FAIL "single-zone valve: the curve the model reports is the plant's own, at zero wind and rain": the manual valve at −5 C reads 24.343 against 28.586. Unmutated it prints ok.
+- custom_components/heatpump_optimizer/thermal_model.py:4672 BOOLOP (`simulate_trajectory_batch`'s `if p.two_zone_enabled or throttled:`): `tests/stress.py` rc 0 → rc 1, 8 failed.
+
+The first two pooled drives read INCONCLUSIVE: the cherry-pick carried a red baseline, `tests/doc_claims.py` first and then `tests/entities.py`. 49d11471f5 and 82b18b46e9 repair them, and both scripts now pass whole (Figures section). The rows above come from drivers whose own baselines were green in that run, `tests/features.py` (929 s) and `tests/stress.py` (330 s), and the null control survived each.
 
 Diff mutants, `prepr.sh` with `MUTANT_CMD` the R11-SEAM-two-zone-slab features block (`features_block.py "# R11-SEAM-two-zone-slab (#3713)" "# R11-VALVE-REFERENCE (carries 0, 1)"`), report-only over the first 40 mutants of added lines: four survivors, each answered.
 
@@ -77,13 +103,16 @@ Diff mutants, `prepr.sh` with `MUTANT_CMD` the R11-SEAM-two-zone-slab features b
 
 ## Red checks
 
-- `tests / mutation`, predicted by `tools/pr/ci_predict.py` and `prepr.sh` on the seven sites under `## Unpinned sites`, each added by this diff and killed by the checks named there; `mutation-autofix` pins them after the push (`ci-autofix.md`). The cheaper detector exists and ran: `python3 tools/pr/ci_predict.py` printed the seven before the handoff, standing cost its own run (14.4 s wall clock on this seat at e669f3c1fb, `time` around the call); no further detector is owed.
+- `tests / mutation` (owed: `merge_train.py owed-reds` names it). It went red at 3e2dc1b603 on the four sites the Unpinned sites section lists, all now pinned.
+  - Cheaper detector: `tools/pr/ci_predict.py`, which names a diff's unpinned sites before the push. Round 1 ran it; its standing cost is its own run (14.4 s at e669f3c1fb). It named seven sites, and round 1 left them to `mutation-autofix`, which pinned three and left four. This round's local `--pin-killed` pinned those four.
+  - No further detector is owed. The lane that went red is the one that pins, and a local `--pin-killed` before the handoff is the cheaper run of the same check.
+- `gate`: the aggregate of the above.
 
 ## Forward-carry
 
 - Design item s2, measured: on `valve_upper_direct_slab`'s configuration (the golden two-zone house, slab on raw tank water) the radiator circuit's curve, still the floors' summed loss over both circuits' UA, holds the upper floor 0.232/0.451/0.670 K below 21 C with the lower floor at 21 C, at +5/−5/−15 C (`r11_two_zone_slab.py`, `direct` rows, `miss` column), identical at base and head; this design kept that curve's bits (invariant (c)). The sibling-seam rule routes it to a new issue, which this seat may not file; it is recorded against the issue it arises from, which this pull request's merge closes, so the orchestrator files the sibling issue before that merge or rules otherwise. Carry: #3713
 
-- R9-F2.1 P3, measured: from a 35 C two-zone tank the half-price continuation now ships a worse plan than the multi-start without it, 0.043 to 0.057 on each of four kernel classes (`## Checks this diff restates`), where the base gained +1.500; the check moved to the one start measured to gain on all four, as its comment's precedent does. Whether the continuation should guard against shipping a worse candidate is D0's question (the check's comment carries optimality there); this seat may not edit that brief. Carry: #3713
+- R9-F2.1 P3, measured: from a 35 C two-zone tank the half-price continuation now ships a worse plan than the multi-start without it, 0.043 to 0.057 on each of four kernel classes (`## Checks this diff restates`), where the base gained +1.500; the check moved to the one start measured to gain on all four, as its comment's precedent does. Whether the continuation should guard against shipping a worse candidate is D0's question. The finding, its control (the 35 C start, the four kernel classes, the base's +1.500) and a re-measurement instruction are in `dev/programme/carries/carry-3881.json`, which `brief_lint.mjs` lints clean at 34cefdc55b. Carry: #3881
 
 ## Friction
 
