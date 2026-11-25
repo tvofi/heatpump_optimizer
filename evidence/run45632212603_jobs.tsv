@@ -1,0 +1,30 @@
+completed	failure	2026-11-25T16:01:46Z	2026-11-25T16:04:13Z	codeql / Analyze (javascript-typescript)
+completed	failure	2026-11-25T16:01:46Z	2026-11-25T16:08:33Z	codeql / Analyze (actions)
+completed	skipped	2026-11-25T15:59:23Z	2026-11-25T15:59:23Z	cancel-superseded
+completed	skipped	2026-11-25T15:59:23Z	2026-11-25T15:59:23Z	refresh
+completed	skipped	2026-11-25T16:01:46Z	2026-11-25T16:01:46Z	arch-score
+completed	skipped	2026-11-25T16:01:46Z	2026-11-25T16:01:46Z	budget-raise-gate
+completed	skipped	2026-11-25T16:01:46Z	2026-11-25T16:01:46Z	kernel-points
+completed	skipped	2026-11-25T16:01:46Z	2026-11-25T16:01:46Z	tests / closure-scope
+completed	skipped	2026-11-25T16:01:46Z	2026-11-25T16:01:46Z	tests / nightly-ha
+completed	skipped	2026-11-25T16:01:46Z	2026-11-25T16:01:46Z	tests / nightly-status
+completed	skipped	2026-11-25T16:01:46Z	2026-11-25T16:01:46Z	tests / replay
+completed	skipped	2026-11-25T16:09:21Z	2026-11-25T16:09:21Z	tests / mutation-autofix
+completed	skipped	2026-11-25T16:09:21Z	2026-11-25T16:09:21Z	tests / mutation-pins
+completed	success	2026-11-25T15:59:23Z	2026-11-25T16:00:55Z	prelude
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:02:26Z	validate / validate-hacs
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:04:57Z	tests / briefs
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:06:56Z	hassfest / hassfest
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:08:15Z	governance / env-matrix
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:08:18Z	tests / mutation
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:10:56Z	governance / wave-script
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:12:58Z	governance / policy-docs
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:15:49Z	governance / record
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:19:42Z	tests / typing
+completed	success	2026-11-25T16:01:46Z	2026-11-25T16:27:59Z	tests / browser
+in_progress	null	2026-11-25T16:01:46Z	2026-11-25T16:03:36Z	governance / instrument-self-tests
+in_progress	null	2026-11-25T16:01:46Z	2026-11-25T16:05:14Z	codeql / Analyze (python)
+in_progress	null	2026-11-25T16:01:46Z	2026-11-25T16:12:14Z	tests / fast (3.14)
+in_progress	null	2026-11-25T16:01:46Z	2026-11-25T16:14:54Z	tests / coverage
+in_progress	null	2026-11-25T16:01:46Z	2026-11-25T16:26:29Z	tests / closures
+in_progress	null	2026-11-25T16:01:46Z	2026-11-25T16:27:59Z	tests / arch-instrument

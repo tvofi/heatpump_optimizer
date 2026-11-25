@@ -1,0 +1,3 @@
+MUTANT [age >= setting -> age > setting]: cancel_superseded self-test: 87 checks, 0 failed
+MUTANT [r for r in runs if r.get("head_branch") == "main" and r.get("event") == "push"] -> r for r in runs]]: cancel_superseded self-test: 87 checks, 0 failed
+MUTANT [if w), "") -> ), "")]: cancel_superseded self-test: 87 checks, 0 failed
