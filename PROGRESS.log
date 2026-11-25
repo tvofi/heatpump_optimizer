@@ -19,3 +19,4 @@
 1795583244 INIT r11-rev-3738
 1795583332 HB alive
 1795583463 CKPT classify rc 2 (instrument-self-tests cancelled); reading delta merges snapshot 0ae6670e1979
+1795583539 CKPT structure+claims ok at head; testing 3.13 rig fix snapshot 1d2f3795ce48
