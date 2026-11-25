@@ -21562,6 +21562,13 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
+# #3885 closeout audit U3: ci.yml pushes run on main alone and a merge-queue run heads no pull
+# request, so sweep.py's first read (`SKIP run N: no pull request ...`) ends every such sweep; the
+# job's own `if:` decides it without a runner. The 48 h to 2026-11-25T10:20Z: 179 sweeps, 85.9
+# runner-minutes, 21 of a 24-log sample doing nothing.
+_GS_SKIP_IF = "github.event.workflow_run.event != 'push' && github.event.workflow_run.event != 'merge_group'"
+
+
 def _gs_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
     on = doc.get("on", doc.get(True)) or {}
@@ -21577,6 +21584,8 @@ def _gs_defects(text: str) -> "list[str]":
     if doc.get("permissions") != {} or job.get("permissions") != {
             "actions": "write", "contents": "read", "pull-requests": "read"}:
         out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
+    if job.get("if") != _GS_SKIP_IF:
+        out.append(f"if {job.get('if')!r} (want {_GS_SKIP_IF!r}: a completion with no pull request holds no runner)")
     steps = job.get("steps") or []
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
     if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
@@ -21612,10 +21621,11 @@ _GS_PLANTS = {
         "permissions: {}\n", "permissions: {}\n\nconcurrency:\n  group: sweep-${{ github.event.workflow_run.id }}\n", 1),
     "the PR's head checked out": _GS_TEXT.replace(
         "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}", 1),
+    "a runner for a push completion": _GS_TEXT.replace(f"    if: {_GS_SKIP_IF}\n", "", 1),
 }
 _GS_PLANT_MISSED = sorted(k for k, t in _GS_PLANTS.items() if t == _GS_TEXT or not _gs_defects(t))
 R.check(
-    "gate-sweep.yml: on CI's completion, no concurrency, main's program on "
+    "gate-sweep.yml: on CI's completion but a push's or a merge queue's (#3885 U3), no concurrency, main's program on "
     "the trigger's run id alone, its outcome read from the output's word "
     "(SWEEP-DONE / SKIP / SWEEP done, RATE-LIMITED and anything else red), "
     "never from the exit code (U0c)",
@@ -21626,6 +21636,31 @@ R.check(
     f"gate={_closure.is_gate_file(str(_GS_PATH))}; a sweep keyed on its exit "
     "code reads a rate limit as a crash, and one that reads a crash as done "
     "leaves a stale red `gate` unannounced",
+)
+
+
+# #3885 closeout audit U2: pages.yml's build reads no history (the site lists `git ls-files`; the
+# release step fetches its one tag), so it checks out one commit. Full history was 139.8 of the
+# build's 181.8 runner-minutes over the 171 plan-page dispatches in the 48 h to 2026-11-25T10:20Z.
+def _pages_defects(text: str) -> "list[str]":
+    job = ((_yaml.safe_load(text) or {}).get("jobs") or {}).get("pages-build") or {}
+    steps = job.get("steps") or []
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    out = []
+    if len(co) != 1 or (co[0].get("with") or {}).get("fetch-depth") != 1 or (co[0].get("with") or {}).get("fetch-tags"):
+        out.append(f"checkout {[s.get('with') for s in co]} (want fetch-depth 1, no tags)")
+    rel = next((str(s.get("run", "")) for s in steps if s.get("name") == "Check out the release"), "")
+    if "git ls-remote --tags" not in rel or "--depth 1" not in rel:
+        out.append("the release step does not fetch its one tag at depth 1")
+    return out
+
+
+_PAGES_TEXT = Path(".github/workflows/pages.yml").read_text()
+_PAGES_PLANT = _PAGES_TEXT.replace("          fetch-depth: 1\n", "          fetch-depth: 0\n          fetch-tags: true\n", 1)
+R.check(
+    "pages.yml: the build checks out one commit and the release step fetches its one tag (#3885 U2)",
+    not _pages_defects(_PAGES_TEXT) and _PAGES_PLANT != _PAGES_TEXT and bool(_pages_defects(_PAGES_PLANT)),
+    f"defects={_pages_defects(_PAGES_TEXT)} plant caught={bool(_pages_defects(_PAGES_PLANT))}",
 )
 
 
