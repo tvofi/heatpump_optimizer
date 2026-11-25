@@ -1,0 +1,51 @@
+{
+ "key": "6462c28df2f973e0",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4702 CLAMP_DROP",
+ "patch": "drawn - wood_draw, np.maximum(avail_hp, 0.0) -> drawn - wood_draw, (avail_hp)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3380.4,
+  "load1_start": 0.31,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": []
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py",
+  "baseline_value": 0,
+  "mutant_value": "0.0166438",
+  "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 4",
+  "parity_mutant_vs_scalar": "0.0166438",
+  "inputs_tried": "see probe battery"
+ },
+ "should_fail": "tests/features.py `_grad_parity`: a two-tank cell at zero power with the buffer at or below the floor temperature so avail_hp < 0.",
+ "provisional": true,
+ "title": "Batch two-tank hp draw clamp max(avail_hp, 0) is unpinned",
+ "claim": "Replacing `np.maximum(avail_hp, 0.0)` by `avail_hp` moves the batch trajectories by 0.0166 K (4 scenarios: two-tank, buffer just below the floor temperature at zero power) and breaks parity with the scalar path, yet the full gate stays as red as the null.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "N-structure-blind",
+ "severity_claimed": "low",
+ "metric_definition": "max abs difference over the batch trajectory arrays (K) between baseline and the one-line mutant across the probe's scenario battery",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_6462c28df2f973e0.py",
+ "perturbation": {
+  "change": "drawn - wood_draw, np.maximum(avail_hp, 0.0) -> drawn - wood_draw, (avail_hp) (thermal_model.py:4702)",
+  "expected_direction": "up",
+  "observed_value": "0.0166438"
+ },
+ "null_control": "the same battery against an unedited scratch copy of the baseline: baseline_vs_baseline diff 0; batch_vs_scalar_parity_baseline=0"
+}

@@ -1,0 +1,33 @@
+{
+ "key": "daf153fda85092ff",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4711 CLAMP_DROP",
+ "patch": "/ max(dt, 1e-6) -> / (dt)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3489.0,
+  "load1_start": 0.49,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": []
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_daf153fda85092ff.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_daf153fda85092ff.py",
+  "baseline_value": 0,
+  "mutant_value": "2.55385e+08",
+  "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 2",
+  "parity_mutant_vs_scalar": "0",
+  "inputs_tried": "`/ max(dt, 1e-6)` -> `/ dt` in avail (non-wood): moves only at dt=0 (2 scenarios, max abs diff 2.55e8 = inf/NaN propagation); every dt >= 1e-6 gives 0 moved. dt is the positive plan step in every production caller."
+ },
+ "should_fail": "none identified: equivalent-candidate",
+ "provisional": true
+}

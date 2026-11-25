@@ -1,0 +1,6 @@
+scenarios=144 errored=0 moved=0
+RESULT batch_baseline_vs_mutant_max_abs_diff=0
+RESULT batch_scenarios_moved=0
+RESULT batch_wood_array_dropped_scenarios=0
+RESULT batch_vs_scalar_parity_baseline=0
+RESULT batch_vs_scalar_parity_mutant=0

@@ -1,0 +1,8 @@
+scenarios=144 errored=0 moved=2
+  moved: single dtneg maxdiff=369.111
+  moved: slabdirect dtneg maxdiff=2.55385e+08
+RESULT batch_baseline_vs_mutant_max_abs_diff=2.55385e+08
+RESULT batch_scenarios_moved=2
+RESULT batch_wood_array_dropped_scenarios=0
+RESULT batch_vs_scalar_parity_baseline=0
+RESULT batch_vs_scalar_parity_mutant=0

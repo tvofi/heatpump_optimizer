@@ -1,0 +1,10 @@
+scenarios=144 errored=0 moved=4
+  moved: twotank dt0_coldwood maxdiff=inf
+  moved: twotank dtneg maxdiff=369.37
+  moved: smartread_twotank dt0_coldwood maxdiff=inf
+  moved: smartread_twotank dtneg maxdiff=369.37
+RESULT batch_baseline_vs_mutant_max_abs_diff=inf
+RESULT batch_scenarios_moved=4
+RESULT batch_wood_array_dropped_scenarios=0
+RESULT batch_vs_scalar_parity_baseline=0
+RESULT batch_vs_scalar_parity_mutant=0

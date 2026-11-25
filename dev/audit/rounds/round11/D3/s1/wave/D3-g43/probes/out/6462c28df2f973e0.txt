@@ -1,0 +1,10 @@
+scenarios=144 errored=0 moved=4
+  moved: twotank buf_just_below_floor_p0 maxdiff=0.0166438
+  moved: twotank wood_just_below_floor_p0 maxdiff=5.83515e-05
+  moved: smartread_twotank buf_just_below_floor_p0 maxdiff=0.0166438
+  moved: smartread_twotank wood_just_below_floor_p0 maxdiff=5.83515e-05
+RESULT batch_baseline_vs_mutant_max_abs_diff=0.0166438
+RESULT batch_scenarios_moved=4
+RESULT batch_wood_array_dropped_scenarios=0
+RESULT batch_vs_scalar_parity_baseline=0
+RESULT batch_vs_scalar_parity_mutant=0.0166438

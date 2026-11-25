@@ -1,0 +1,12 @@
+scenarios=144 errored=0 moved=12
+  moved: single slab_colder_than_upper maxdiff=5.95029
+  moved: single slab_cold_buf_cold_p0 maxdiff=2.3265
+  moved: single slab_cold_buf_hot maxdiff=4.9147
+  moved: twotank slab_colder_than_upper maxdiff=8.93874
+  moved: twotank slab_cold_buf_cold_p0 maxdiff=3.2125
+  moved: twotank slab_cold_buf_hot maxdiff=3.81663
+RESULT batch_baseline_vs_mutant_max_abs_diff=8.93874
+RESULT batch_scenarios_moved=12
+RESULT batch_wood_array_dropped_scenarios=0
+RESULT batch_vs_scalar_parity_baseline=0
+RESULT batch_vs_scalar_parity_mutant=8.93874

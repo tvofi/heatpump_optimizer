@@ -1,0 +1,33 @@
+{
+ "key": "876be7bf2f538255",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4578 BOOLOP",
+ "patch": "if p.two_zone_enabled and throttled: -> if p.two_zone_enabled or throttled:",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3663.5,
+  "load1_start": 1.07,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": []
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_876be7bf2f538255.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_876be7bf2f538255.py",
+  "baseline_value": 0,
+  "mutant_value": "0",
+  "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = 0",
+  "parity_mutant_vs_scalar": "0",
+  "inputs_tried": "`if p.two_zone_enabled and throttled` -> `or`: the extra branch only computes ua_rad/ua_floor, which are read only under the two-zone throttled branch. battery of 144 scenarios x 4 schedules: configs novalve/single-tank valve/two-tank 4-way (+wood)/valve_upper_direct_slab/smart_read two-tank/single-zone valve; states hot/cold/mid buffer, hot/cold wood, slab colder than upper floor, buffer just below the floor temperature, hot floors with cold buffer at zero power, ext heat, pmax 0/6/9, mild weather, dt 1 h/0.25/1e-4/1e-6/1e-7/0/-0.25, start_hour None/7/18, a 24-entry gains profile, valve targets: 0 moved."
+ },
+ "should_fail": "none identified: equivalent-candidate",
+ "provisional": true
+}
