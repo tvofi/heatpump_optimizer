@@ -12,3 +12,4 @@
 1795632827 HB alive
 1795632856 CKPT merge 3b3f4806 pushed to handoff-wip; BLOCKED on structure raise (max_class_loc +1, module_excess_loc +10) snapshot cddbccd292d7
 1795632860 DONE BLOCKED 3b3f4806: merge of main 91773476 needs owner ruling on max_class_loc 7832->7833, module_excess_loc 21763->21773; handoff/ untouched at d05081fb
+1795634298 INBOX acked through 5
