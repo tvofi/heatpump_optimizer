@@ -1,0 +1,11 @@
+RESULT cop_out30_baseline=np.float64(5.25)
+RESULT cop_out30_mutant=np.float64(5.512500000000001)
+RESULT cop_out30_scalar=5.25
+RESULT inputs_tried=12 count (outdoor temps x 5 tank temps each)
+RESULT moved_inputs=3 count
+RESULT null_moved=0 count (outdoor <= 27 C)
+RESULT parity_breaks_baseline=0 count
+RESULT parity_breaks_mutant=3 count
+RESULT thread_factor=0.999 ratio
+RESULT load1=1.06
+RESULT swapins=0 count

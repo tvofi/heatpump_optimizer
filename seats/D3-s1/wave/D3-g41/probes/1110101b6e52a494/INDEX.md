@@ -1,0 +1,1 @@
+- probe_1110101b6e52a494.py: Metric: count of inputs on which ThermalModel._batch_cop's COP differs between `carnot_ref > 1e-9` and `>= 1e-9`;

@@ -1,0 +1,1 @@
+- probe_d97762e31739dd75.py: Metric: count of inputs on which ThermalModel._simulate_step_two_zone's next state (every ThermalState field) or its

@@ -1,0 +1,17 @@
+RESULT amb90_cop_m2_baseline=np.float64(1.6275000000000002)
+RESULT amb90_cop_m2_mutant=np.float64(2.44125)
+RESULT amb90_cop_m2_scalar=1.6275000000000002
+RESULT amb90_moved=11 count (of 12)
+RESULT amb90_parity_breaks_baseline=0 count
+RESULT amb90_parity_breaks_mutant=11 count
+RESULT amb90_finite_hum_null_moved=0 count
+RESULT amb_none_cop_m2_baseline=np.float64(2.44125)
+RESULT amb_none_cop_m2_mutant=np.float64(2.44125)
+RESULT amb_none_cop_m2_scalar=2.44125
+RESULT amb_none_moved=0 count (of 12)
+RESULT amb_none_parity_breaks_baseline=0 count
+RESULT amb_none_parity_breaks_mutant=0 count
+RESULT amb_none_finite_hum_null_moved=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.06
+RESULT swapins=0 count

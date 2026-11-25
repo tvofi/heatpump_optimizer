@@ -1,0 +1,23 @@
+RESULT inputs_tried=14904 count
+RESULT moved_inputs=896 count
+RESULT null_moved=0 count
+RESULT work_rows_costed_baseline=1 count
+RESULT work_rows_costed_mutant=3 count
+RESULT work_case_value_baseline=[0.,29.999993,0.]
+RESULT work_case_value_mutant=[0.,29.999993,0.]
+RESULT below_row_cost_n4_k1_baseline=np.float64(0.0) ; mutant=np.float64(0.0) (price units; row 2's cost np.float64(37.500026264262566) / np.float64(37.500026264262566))
+RESULT below_row_cost_n4_k3_baseline=np.float64(0.0) ; mutant=np.float64(0.0) (price units; row 2's cost np.float64(112.49997373573741) / np.float64(112.49997373573741))
+RESULT below_row_cost_n8_k1_baseline=np.float64(0.0) ; mutant=np.float64(0.0) (price units; row 2's cost np.float64(37.499990000684676) / np.float64(37.499990000684676))
+RESULT below_row_cost_n8_k3_baseline=np.float64(0.0) ; mutant=np.float64(0.0) (price units; row 2's cost np.float64(112.49998670737794) / np.float64(112.49998670737794))
+RESULT below_row_cost_n24_k1_baseline=np.float64(0.0) ; mutant=np.float64(0.0) (price units; row 2's cost np.float64(37.49996514341124) / np.float64(37.49996514341124))
+RESULT below_row_cost_n24_k3_baseline=np.float64(0.0) ; mutant=np.float64(0.0) (price units; row 2's cost np.float64(112.49997000205403) / np.float64(112.49997000205403))
+RESULT below_row_cost_n96_k1_baseline=np.float64(0.0) ; mutant=np.float64(0.0) (price units; row 2's cost np.float64(37.500035938361265) / np.float64(37.500035938361265))
+RESULT below_row_cost_n96_k3_baseline=np.float64(0.0) ; mutant=np.float64(0.0) (price units; row 2's cost np.float64(112.49996798058686) / np.float64(112.49996798058686))
+RESULT first_moved_case=None
+RESULT scalar_peak_cost_smooth_below_row=0.0 (the scalar twin the batch must match, #948)
+RESULT nan_row_cost_baseline=np.float64(0.0) ; nan_row_cost_mutant=np.float64(nan)
+RESULT nan_row_scalar_peak_cost_smooth=0.0
+RESULT nan_row_finite_row_cost_baseline=np.float64(37.500026264262566) ; mutant=np.float64(37.500026264262566)
+RESULT thread_factor=0.998 ratio
+RESULT load1=1.16
+RESULT swapins=0 count

@@ -1,0 +1,1 @@
+- probe_2d037a10caa62e28.py: Metric: tariff.realised_peak's answer (kW, or the exception raised) for an empty power series.

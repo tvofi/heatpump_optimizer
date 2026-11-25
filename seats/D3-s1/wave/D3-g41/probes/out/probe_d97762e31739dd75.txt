@@ -1,0 +1,11 @@
+RESULT inputs_tried=270 count
+RESULT inputs_ok=270 count
+RESULT moved_inputs=0 count
+RESULT null_moved=0 count
+RESULT tie_refused_baseline=0.0 kWh
+RESULT tie_refused_mutant=0.0 kWh
+RESULT tie_moved=0 count
+RESULT tie_state_ok=1
+RESULT thread_factor=0.996 ratio
+RESULT load1=1.14
+RESULT swapins=0 count

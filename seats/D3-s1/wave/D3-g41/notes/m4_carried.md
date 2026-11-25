@@ -1,0 +1,16 @@
+# Carried M4 answers (from keys.tsv m4_source), per key
+- 2765114b9329f57f tariff.py:588 metering_windows GUARD_OFF `if not pieces:`->`if False:` | m4_u1a_part10: equivalent on reachable inputs (pieces never empty for non-empty series)
+- d3ea4bcc330436ef tariff.py:1196 peak_cost_batch `excess > 0`->`excess >= 0` | u1d: equivalent in value, all rows costed (work only)
+- 2d037a10caa62e28 tariff.py:1225 realised_peak GUARD_OFF `if house.size == 0:` | u1a part10: gap, np.max on empty raises; reachable only with empty horizon
+- 6600497e58836413 tariff.py:674 window_factors `n_windows <= 0`->`< 0` | u1b: no check reads an outcome
+- 43b54266f12bfb21 thermal_model.py:4453 _batch_cop CLAMP_DROP min(factor,1.5)->(factor) | u1b
+- dfe094233a9164e0 thermal_model.py:4455 _batch_cop GUARD_OFF `if derate is not None:` | u1d: derate never applied to batch COP
+- e3a350a3272762f1 thermal_model.py:4458 _batch_cop GUARD_OFF NaN-humidity->None | u1d
+- 94ce174acf85b6f2 thermal_model.py:4460 _batch_cop GUARD_OFF `if hum_i is None:` | u1c (no answer text found)
+- 898d741cf6142efb thermal_model.py:4463 _batch_cop BOOLOP and->or | u1c (no answer text found)
+- 29065b9e48071934 thermal_model.py:4475 _batch_cop CLAMP_DROP max(.,1.0) in carnot_ref | u1a part10: boundary, near-equivalent
+- 1110101b6e52a494 thermal_model.py:4476 `carnot_ref > 1e-9`->`>=` | u1a part4: equivalent
+- d6023ebc83ac4317 thermal_model.py:4482 `T_buf > ref`->`>=` | u1d: equivalent (ratio==1 at equality)
+- a6cebb125b72f083 thermal_model.py:3328 _cop_law CLAMP_DROP min(factor,1.5) | u1c (no answer text found)
+- d97762e31739dd75 thermal_model.py:4003 `dT_wood > dT_wood_cap`->`>=` | u1d: equivalent
+- c5e678a5d1812e40 thermal_model.py:4019 CLAMP_DROP max(dt_hours,1e-6) | u1d: dt_hours=0 ZeroDivisionError

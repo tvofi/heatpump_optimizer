@@ -1,0 +1,14 @@
+RESULT carnot_ref_at_ref35.0=11.005357142857141
+RESULT carnot_ref_at_ref20.0=22.549999999999997
+RESULT carnot_ref_at_ref7.0=280.15
+RESULT carnot_ref_at_ref0.0=273.15
+RESULT carnot_ref_at_ref-273.15=0.0
+RESULT carnot_ref_at_ref-273.149999999=9.999894245993346e-10
+RESULT carnot_ref_at_ref-273.149999999=9.999894245993346e-10
+RESULT carnot_ref_at_ref-273.15000000099997=-9.999894245993346e-10
+RESULT carnot_ref_at_ref-300.0=-26.850000000000023
+RESULT inputs_tried=108 count
+RESULT moved_inputs=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.06
+RESULT swapins=0 count

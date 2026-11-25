@@ -1,0 +1,1 @@
+- probe_94ce174acf85b6f2.py: Metric: ThermalModel._batch_cop COP for a step with no humidity (hum_i None) when the live ambient humidity is known

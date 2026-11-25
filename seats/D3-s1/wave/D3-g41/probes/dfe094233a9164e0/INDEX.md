@@ -1,0 +1,1 @@
+- probe_dfe094233a9164e0.py: Metric: ThermalModel._batch_cop COP with a learned defrost derate (inferred factor 0.7, trusted) at -2 C / 90 % RH,

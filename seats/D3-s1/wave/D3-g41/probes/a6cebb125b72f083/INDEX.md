@@ -1,0 +1,1 @@
+- probe_a6cebb125b72f083.py: Metric: ThermalModel.compute_cop / _cop_law COP at each outdoor temperature, baseline vs mutant; count of outdoor

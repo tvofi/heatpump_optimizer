@@ -1,0 +1,1 @@
+- probe_43b54266f12bfb21.py: Metric: (a) count of (outdoor, tank) inputs on which ThermalModel._batch_cop's COP differs between baseline and mutant;

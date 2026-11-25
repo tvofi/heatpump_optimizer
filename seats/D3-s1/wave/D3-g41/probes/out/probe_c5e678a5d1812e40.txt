@@ -1,0 +1,25 @@
+RESULT dt0.25_buf_baseline=70.0 ; dt0.25_buf_mutant=70.0
+RESULT moved_dt0.25=0 count (of 10)
+RESULT dt0.0833333_buf_baseline=70.0 ; dt0.0833333_buf_mutant=70.0
+RESULT moved_dt0.0833333=0 count (of 10)
+RESULT dt0.0166667_buf_baseline=70.0 ; dt0.0166667_buf_mutant=70.0
+RESULT moved_dt0.0166667=0 count (of 10)
+RESULT dt0.03125_buf_baseline=70.0 ; dt0.03125_buf_mutant=70.0
+RESULT moved_dt0.03125=0 count (of 10)
+RESULT dt0.001_buf_baseline=70.0 ; dt0.001_buf_mutant=70.0
+RESULT moved_dt0.001=0 count (of 10)
+RESULT dt1e-06_buf_baseline=70.0 ; dt1e-06_buf_mutant=70.0
+RESULT moved_dt1e-06=0 count (of 10)
+RESULT dt5e-07_buf_baseline=69.99999995 ; dt5e-07_buf_mutant=70.0
+RESULT moved_dt5e-07=1 count (of 10)
+RESULT dt1e-07_buf_baseline=69.99999991 ; dt1e-07_buf_mutant=70.0
+RESULT moved_dt1e-07=1 count (of 10)
+RESULT dt1e-09_buf_baseline=69.99999990010001 ; dt1e-09_buf_mutant=70.0
+RESULT moved_dt1e-09=1 count (of 10)
+RESULT dt0_buf_baseline=69.9999999 ; dt0_buf_mutant='ZeroDivisionError'
+RESULT moved_dt0=10 count (of 10)
+RESULT production_moved=0 count
+RESULT below_floor_moved=13 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.14
+RESULT swapins=0 count

@@ -1,0 +1,7 @@
+RESULT empty_baseline=0.0
+RESULT empty_mutant=raise:ValueError
+RESULT empty_forms_moved=3 count (of 3)
+RESULT nonempty_moved=0 count (of 4)
+RESULT thread_factor=0.996 ratio
+RESULT load1=1.06
+RESULT swapins=0 count

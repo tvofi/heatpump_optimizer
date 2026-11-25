@@ -1,0 +1,1 @@
+- probe_29065b9e48071934.py: Metric: count of (cop_flow_reference_temp, outdoor, tank) inputs on which ThermalModel._batch_cop's COP differs, split
