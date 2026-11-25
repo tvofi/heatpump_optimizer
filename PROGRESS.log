@@ -21,3 +21,4 @@
 1795625566 CKPT 3841: a863095571 committed (3 kills + 2 triages); prepr with body running snapshot 3bb17da6bd4f
 1795625572 INBOX acked through 2
 1795629096 CKPT 3841 at 78bf3efa43 (main merged, deployment_shape union 182); 3845 at 8b7a4d2e18; both preprs running snapshot 52852ef5e026
+1795630661 CKPT 3841 handed off: handoff 78bf3efa43, body 87b1778fcb snapshot 96efef07f858
