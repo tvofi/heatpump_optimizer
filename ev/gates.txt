@@ -1,0 +1,6 @@
+RESULT base=d3d66c40408e files=201 long_units_base=2299 long_units_head=2299
+comment_ratchet: OK
+STRUCTURE RATCHET PASSED
+ALL 118 closure shrink pins PASSED
+all passed
+bash -n ok
