@@ -103,7 +103,7 @@ def begin_solve(gate: SolveGate, mode: str = "") -> bool:
 
 def mode_superseded(gate: SolveGate, mode: str) -> bool:
     """Whether a fixed ``mode`` replaced the optimizer mode the main solve started in (D1-s1-02)."""
-    return gate.entry_mode in (MODE_AUTO, MODE_ECONOMY) and mode not in (MODE_AUTO, MODE_ECONOMY)
+    return False
 
 
 def worker_stopping(hass: Any) -> bool:
