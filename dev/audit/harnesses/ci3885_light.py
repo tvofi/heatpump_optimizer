@@ -6,6 +6,7 @@
     python3 dev/audit/harnesses/ci3885_light.py cost RUN_ID [RUN_ID...]
     python3 dev/audit/harnesses/ci3885_light.py share DAY [--event workflow_dispatch]
     python3 dev/audit/harnesses/ci3885_light.py dup DAY
+    python3 dev/audit/harnesses/ci3885_light.py stalepin DAY
 
 `mutants` reverts one production line of the fix at a time, in place, runs
 `tools/ci/prelude.py --self-test` and prints the checks that fail; the file is
@@ -22,6 +23,13 @@ prelude.light over the named PR's final file list (a push: its first-parent diff
 their runner minutes, and prices each light run's jobs against the lanes this tree's
 prelude would stand down for that list. `dup` counts the day's PR-naming dispatches
 that followed a pull_request run which had already graded the same head.
+`stalepin` attributes each of those duplicates to tools/ci/sweep.py's STALE-PIN arm
+when a job log prints the dispatch on its branch: a job of a gate-sweep.yml run
+created in the hour before it and last updated at most 5 minutes before it, or a
+`sweep-self` job that was running when it was created. It then replays this tree's `Sweep.code_red` over the
+head's other ci.yml runs, as their latest jobs stood at the dispatch's creation.
+`left` is a dispatch the tree's sweep would not fire. A tree without `code_red`
+(main before #3885's second group) is the null control and leaves none.
 """
 from __future__ import annotations
 
@@ -289,6 +297,84 @@ def dup(day: str) -> int:
     return 0
 
 
+def _log(job_id: int) -> str:
+    r = subprocess.run(["gh", "api", "--allow-escape-sequences", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
+                       capture_output=True, text=True)
+    return r.stdout
+
+
+def _ts(s: str) -> dt.datetime:
+    return dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+
+
+def _soft(path: str) -> list:
+    """`api`, with a listing GitHub keeps refusing read as empty (a run whose jobs answer 502 past
+    every retry): one unreadable run must not void the day; its line says jobs_unread."""
+    try:
+        return api(path)
+    except subprocess.CalledProcessError:
+        _soft.unread += 1
+        return []
+
+
+_soft.unread = 0
+
+
+def _minutes(run_id) -> float:
+    m = 0.0
+    for page in _soft(f"repos/{{owner}}/{{repo}}/actions/runs/{run_id}/jobs?filter=all&per_page=100"):
+        for j in page["jobs"]:
+            if j.get("conclusion") != "skipped" and j.get("started_at") and j.get("completed_at"):
+                m += max((_ts(j["completed_at"]) - _ts(j["started_at"])).total_seconds() / 60, 0)
+    return m
+
+
+def stalepin(day: str) -> int:
+    """`dup`'s duplicates, attributed to sweep.py's STALE-PIN arm by its log line, and replayed
+    through this tree's Sweep.code_red (module doc)."""
+    import sweep
+    base = "repos/{owner}/{repo}/actions"
+    runs = [r for page in api(f"{base}/workflows/ci.yml/runs?event=workflow_dispatch&created={day}&per_page=100")
+            for r in page["workflow_runs"] if prelude.parse_title(r.get("display_title") or "")]
+    tot = collections.Counter()
+    for r in runs:
+        t = r["created_at"]
+        at_head = [p for page in api(f"{base}/workflows/ci.yml/runs?head_sha={r['head_sha']}&per_page=100")
+                   for p in page["workflow_runs"] if p["id"] != r["id"] and p["created_at"] < t]
+        if not any(p["event"] == "pull_request" and p["status"] == "completed"
+                   and p["conclusion"] not in ("cancelled", "action_required", "skipped") for p in at_head):
+            continue                                    # a sole grader, not a duplicate (`dup`)
+        lo = (_ts(t) - dt.timedelta(minutes=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        sweeps = [x for page in api(f"{base}/workflows/gate-sweep.yml/runs?created={lo}..{t}&per_page=100")
+                  for x in page["workflow_runs"] if _ts(x["updated_at"]) >= _ts(t) - dt.timedelta(minutes=5)]
+        jobs = [j["id"] for x in sweeps for page in _soft(f"{base}/runs/{x['id']}/jobs?per_page=100") for j in page["jobs"]]
+        jobs += [j["id"] for p in at_head for page in _soft(f"{base}/runs/{p['id']}/jobs?filter=all&per_page=100")
+                 for j in page["jobs"]
+                 if j["name"] == "sweep-self" and (j.get("started_at") or "~") <= t <= (j.get("completed_at") or "~")]
+        mark = f"dispatched on {r['head_branch']} "
+        stale = any("STALE-PIN" in ln and mark in ln for jid in jobs for ln in _log(jid).splitlines())
+        latest = {}
+        for p in at_head:
+            js = [j for page in _soft(f"{base}/runs/{p['id']}/jobs?filter=latest&per_page=100") for j in page["jobs"]]
+            latest[p["id"]] = [j if (j.get("completed_at") or "~") <= t else dict(j, status="in_progress", conclusion=None)
+                               for j in js if (j.get("started_at") or "~") <= t]
+
+        def get(path, params=None):
+            return 200, {}, {"jobs": latest[int(path.split("/runs/")[1].split("/")[0])]}
+        sw = sweep.Sweep("o/r", get, None, out=lambda *_: None)
+        red = sw.code_red(at_head) if stale and hasattr(sw, "code_red") else []
+        k = "unattributed" if not stale else ("left" if red else "dispatched")
+        m = _minutes(r["id"])
+        tot[k, "runs"] += 1
+        tot[k, "min"] += m
+        print(f"{r['id']} {r['head_branch']} {r['conclusion']} {m:.0f}min {k} {', '.join(red)}", flush=True)
+    print(f"stalepin {day}: STALE-PIN duplicates {tot['left', 'runs'] + tot['dispatched', 'runs']}, of which this tree "
+          f"leaves {tot['left', 'runs']} ({tot['left', 'min']:.0f} runner-min) and still dispatches "
+          f"{tot['dispatched', 'runs']} ({tot['dispatched', 'min']:.0f}); unattributed {tot['unattributed', 'runs']} "
+          f"({tot['unattributed', 'min']:.0f}); job listings unread {_soft.unread}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -304,7 +390,11 @@ def main(argv: list[str]) -> int:
     sh.add_argument("--event", default="workflow_dispatch")
     du = sub.add_parser("dup")
     du.add_argument("day")
+    sp = sub.add_parser("stalepin")
+    sp.add_argument("day")
     a = ap.parse_args(argv)
+    if a.cmd == "stalepin":
+        return stalepin(a.day)
     if a.cmd == "dup":
         return dup(a.day)
     if a.cmd == "share":
