@@ -30,3 +30,4 @@
 1795635241 HB alive
 1795636233 HB alive
 1795636514 CKPT pushed handoff bb021c2880, body ae9f9e32, RESULT 9ae2bb1a snapshot 5146d04dc866
+1795636518 DONE merge-actw: handoff at bb021c2880 (main 91773476 merged, clamp unified), body ae9f9e32, RESULT on wip-sync/merge-actw
