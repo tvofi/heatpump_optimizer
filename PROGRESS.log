@@ -22,3 +22,4 @@
 1795616063 CKPT entities ALL 2763 PASSED, doc_claims ALL 443 PASSED at head; waiting CI snapshot c530904d8fa4
 1795616377 HB alive
 1795616974 HB alive
+1795617094 DONE returned: Fix review: merge 498708251b pending-ci: gate (probe/rev-3863-a0f438d8 @ 4f7536ef84)
