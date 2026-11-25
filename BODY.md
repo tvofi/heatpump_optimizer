@@ -10,7 +10,14 @@ Alternatives not taken: methods on `ExternalHeatDetector` (the design's shape) r
 
 ## Head
 
-cfe3dfcec0a27240d63e182674eee237149541f1 (merge base 24e3f37620f8f51022a2f9c82f863c7ba28fc6d4; origin/main 3210fcd7334af9a870a8a7c23322fcaead7e14eb at 2026-11-25T02:00Z).
+80412b13b21110010499820e9799fe7dd4a0b3ce (merge base d3d66c40408e76351ffc528686353cadf815a05c, which is origin/main at 2026-11-25T12:36Z; the PR head dc972220f313, which is cfe3dfce plus a bot merge of main, plus two tests-only commits: b4b8d88a and 80412b13).
+
+## Review repair note
+
+The review at 495f0c65 (review/3874, 2466704010) blocked `mutation-vacuous: diag-block-ignored switch-attr`: the published `block_ignored` replaced by the constant `False` survived in diagnostics.py's `external_heat_block_ignore` row and in switch.py's `ExternalHeatIgnoreBlockSwitch.extra_state_attributes`, because every check read the flag `False` there. b4b8d88a adds one check per read that observes it `True`; production code is unchanged, and the other 15 of the review's 17 mutants are untouched. 80412b13 records `class_excess_loc` 17290 -> 17283 in tests/structure_budgets.json: `python3 tests/structure.py` at dc972220 already printed `1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED`, because the bot merge of main brought the tree 7 lines under the budget. The figure only moves down, and no other row moved.
+
+- tests/features.py, in the #3862 diagnostics step: "diagnostics report the switch on and, with detection enabled, effective (#3862)": a detector with detection enabled, the switch on, the coordinator's data set from its own `_external_heat_view()`, and the row must read `{"switch_on": True, "block_ignored": True}`.
+- tests/entities.py, beside the switch's identity checks: "the external-heat override switch reports block_ignored true once the payload publishes it (#3862)": the switch collected over a payload whose `external_heat` carries `block_ignored: True` must publish `{"block_ignored": True}`.
 
 ## Repair note
 
@@ -41,6 +48,15 @@ RC2 durability block (`features_block.py` from "# RC2 (round 9): the class behin
 
 Unmutated, the same command prints `ALL 20 FEATURES BLOCK PASSED`. Failing first: the head's tests/features.py run by the same command over the base's production tree (baa9a467) stops at the block's first check with `AttributeError: module 'heatpump_optimizer.external_heat' has no attribute 'blocking'`.
 
+### Review repair round (b4b8d88a)
+
+One mutant per survivor, each applied by hand to a worktree at b4b8d88a and run with `PYTHONPATH=tests/hastub`; entities.py serially with `timeout 2400` (mutant_run.py's 600 s default is below entities.py's runtime and reports a false kill):
+
+- S1 diagnostics.py `external_heat_block_ignore` row: `"block_ignored": bool(...)` -> `"block_ignored": False`: `python3 tests/features.py` exit 1, `1 of 6192 FEATURE CHECKS FAILED`: "diagnostics report the switch on and, with detection enabled, effective (#3862)" (`{'switch_on': True, 'block_ignored': False}`).
+- S2 switch.py `ExternalHeatIgnoreBlockSwitch.extra_state_attributes`: `{"block_ignored": bool(published.get("block_ignored"))}` -> `{"block_ignored": False}`: `python3 tests/entities.py` exit 1, `1 of 2770 ENTITY CHECKS FAILED`: "the external-heat override switch reports block_ignored true once the payload publishes it (#3862)" (`{'block_ignored': False}`).
+
+Null control: unmutated at b4b8d88a, `python3 tests/features.py` exit 0 `ALL 6192 FEATURE CHECKS PASSED` and `python3 tests/entities.py` exit 0 `ALL 2770 ENTITY CHECKS PASSED`, both new checks `ok`. Failing first: both checks are new, and the mutants above are exactly the reads they were written to observe.
+
 ## Null control
 
 Every #3862 check has its switch-off or detection-off twin in the same block. Harness: `dev/audit/harnesses/solve_inputs_parity.py` (sha1 e77213759f4b2c2d685d9ade3ec43b7e7b717b56, unchanged base to head) prints byte-identical output at baa9a467 and at this head (`cmp` exit 0), switch off. It measures what this fix leaves alone and reads flat under its own perturbation too: with the solve line forced to `external_heat_active=True` its output is still identical, so it does not observe the term. The companion reading the term is features check "the cached burn reaches the solve with the switch off, and the switch lifts it (#3862)" (M6 kills it).
@@ -49,6 +65,7 @@ The hot-water checks (design item 3) run with the stub clock frozen at 2026-11-2
 
 ## Figures
 
+- Review repair at 80412b13b21110010499820e9799fe7dd4a0b3ce: `PYTHONPATH=tests/hastub GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=d3d66c40408e76351ffc528686353cadf815a05c ./tests/run.sh`: `MODE: SCOPED -- 29 script(s) run, 5 scoped out`; `31 TEST SCRIPT(S) PASSED; 4 SCOPED OUT AND NOT RUN`, exit 0 (features.py `ALL 6192 FEATURE CHECKS PASSED`, entities.py `ALL 2770 ENTITY CHECKS PASSED`, structure.py `STRUCTURE RATCHET PASSED`). The same run at b4b8d88a failed only structure.py, on the unrecorded `class_excess_loc` improvement that 80412b13 records.
 - Mutation: 8 mutants over the #3862 block, 8 killed, plus 2 over the RC2 durability block, 2 killed; commands under `## Mutation proof`.
 - `python3 tests/structure.py` at cfe3dfcec0a27240d63e182674eee237149541f1: `STRUCTURE RATCHET PASSED`; `class_excess_loc`, `max_class_loc`, `module_excess_loc` were re-recorded lower earlier in this branch (`--record`, rows named in the commit).
 - `python3 tools/audit/archscore/score.py --diff 24e3f37620f8f51022a2f9c82f863c7ba28fc6d4` at cfe3dfcec0a27240d63e182674eee237149541f1: `Architecture score: dS -0.0017 WORSENS (inadmissible: coord_footprint 2521->2524)`; `shape_copies` 38 -> 37 (the shared `_KeyedSwitch` base)
@@ -85,7 +102,7 @@ None at cfe3dfcec0a27240d63e182674eee237149541f1: every site below is pinned und
 
 ## Forward-carry
 
-- The card's `statusPill` external-heat branch must also test `attributes.block_ignored !== true` on the twin binary sensor, with the mutation target "drop the `block_ignored` test, a tests/card.mjs case with the switch effective fails" and this group's switch-off case as the null; this PR publishes `block_ignored` in `binary_sensor.<prefix>_external_heat_source`'s attributes as its input. Landed in the group's `carry` on dev/programme/rosters/wave-r11-groups.json at handoff/audit-r11-roster (58e94013). Carry: R11-OWNER-CARD-EXTERNAL-HEAT
+- The card's `statusPill` external-heat branch must also test `attributes.block_ignored !== true` on the twin binary sensor, with the mutation target "drop the `block_ignored` test, a tests/card.mjs case with the switch effective fails" and this group's switch-off case as the null; this PR publishes `block_ignored` in `binary_sensor.<prefix>_external_heat_source`'s attributes as its input. Landed in the group's `carry` on dev/programme/rosters/wave-r11-groups.json at handoff/audit-r11-roster (58e94013). Carry: dismissed: already landed as R11-OWNER-CARD-EXTERNAL-HEAT's roster carry (58e94013), which is carries-open and receives no second copy
 
 ## Friction
 
