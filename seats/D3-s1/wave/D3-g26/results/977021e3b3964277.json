@@ -1,0 +1,43 @@
+{
+ "key": "977021e3b3964277",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2782 GUARD_OFF",
+ "patch": "if self.holiday_comfort_night is not None: -> if False:",
+ "function": "OptimizationConfig._comfort_pair",
+ "cluster": "optimizer.py:OptimizationConfig._comfort_pair@2782-2796",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/stress.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 2741.1,
+  "load1_start": 0.79,
+  "load1_end": 0.85,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/stress.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/977021e3b3964277.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 977021e3b3964277 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "killed",
+ "killed_by": [
+  "python3 tests/stress.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/stress.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "non_finding": {
+  "claim": "mutant 977021e3b3964277 at custom_components/heatpump_optimizer/optimizer.py:2782 is caught by the full gate",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 977021e3b3964277 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+  "value": "KILLED by python3 tests/stress.py (gate_rc 1)"
+ }
+}

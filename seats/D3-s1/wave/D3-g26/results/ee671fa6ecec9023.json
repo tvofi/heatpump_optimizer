@@ -36,8 +36,8 @@
    "released_mutant": "96 count",
    "null_released_delta": "0 count",
    "reach_half_pins": "0 count  (pin values channel_pins can emit: [0.0, 1.0])",
-   "thread_factor": "1.003",
-   "load1": "1.78",
+   "thread_factor": "1.005",
+   "load1": "0.95",
    "swapins": "0"
   },
   "inputs_tried": [

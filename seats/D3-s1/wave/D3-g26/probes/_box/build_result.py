@@ -10,7 +10,7 @@ from keymeta import META, CMD, PDIR  # noqa: E402
 
 W = Path.home() / "audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g26"
 WORK = Path.home() / "g26work"
-MACHINE = "box D3-g26 cloud: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython, alone on its machine"
+MACHINE = "box D3-g26 cloud: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz (first container; probes re-run on the resumed container, Intel Xeon @ 2.10GHz, same RESULT values), 16 GB, venv-ci CPython, alone on its machine"
 BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
 
 

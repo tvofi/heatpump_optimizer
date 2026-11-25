@@ -38,17 +38,6 @@
  "non_finding": {
   "claim": "mutant ec173cf0e67c0689 at custom_components/heatpump_optimizer/optimizer.py:4518 is caught by the full gate",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ec173cf0e67c0689 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
-  "value": "KILLED by python3 tests/stress.py (gate_rc 1); stress.py: \"no scenario's solver work grew on an unchanged plan\" 96 vs 24 evaluations (4.00x > 1.80x), \"no scenario's simulate work grew\" 4.00x, and the per-scenario CPU budget (10.5x vs 7.6x)"
- },
- "failing_check_lines": [
-  "FAIL no scenario exceeds its own recorded cost by the budget factor  [summer/2z/dhw/pin-off at 10.5x its reference vs its own budget 7.6x (recorded 2.5x x 3); confirmed at median 10.0x over 3 re-solves (min 9.9x, max 10.0x); winter/1z/space/pin-off at 6.4x its reference vs its own budget 5.0x (recorded 1.7x x 3); confirmed at median 6.4x over 3 re-solves (min 6.3x, max 6.4x)]",
-  "FAIL no scenario's solver work grew on an unchanged plan  [summer/2z/dhw/pin-off took 96 solver evaluations against the baseline's 24 = 4.00x, over the 1.80x factor, on an unchanged plan (objective 10599.64082); winter/1z/space/pin-off took 168 solver evaluations against the baseline's 42 = 4.00x, over the 1.80x factor, on an unchanged plan (objective 60.10427848); this is the localised-regression check -- the sweep budget is a mean over fifty-one and cannot see one scenario double, and the per-scenario CPU factor is 3.0 because bimodal scenarios need it there (#346)]",
-  "FAIL no scenario's simulate work grew on an unchanged plan (#1229)  [summer/2z/dhw/pin-off stepped the simulation 205408 step-equivalents against the baseline's 51352 = 4.00x, over the 1.80x factor, on an unchanged plan (objective 10599.64082); winter/1z/space/pin-off stepped the simulation 519552 step-equivalents against the baseline's 129888 = 4.00x, over the 1.80x factor, on an unchanged plan (objective 60.10427848); this is the run-twice half of the localised cost check -- the evaluation count cannot see a kernel that is run twice without adding evaluations (round-5 D9-01 measured a double"
- ],
- "probe_corroboration": {
-  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_ec173cf0e67c0689.py",
-  "solves_baseline": 1,
-  "solves_mutant": 4,
-  "note": "the killing stress.py checks are count-based (solver evaluations and simulate step-equivalents 4.00x on unchanged plans, summer/2z/dhw/pin-off and winter/1z/space/pin-off), so the kill is contention-immune; the probe measures the same 1 -> 4 solve multiplication"
+  "value": "KILLED by python3 tests/stress.py (gate_rc 1)"
  }
 }

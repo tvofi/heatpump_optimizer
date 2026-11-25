@@ -36,8 +36,8 @@
    "released_mutant": "96 count",
    "null_released_delta": "0 count",
    "reach_on_pins": "1 count  (pin values channel_pins can emit: [0.0, 1.0])",
-   "thread_factor": "1.004",
-   "load1": "1.81",
+   "thread_factor": "1.005",
+   "load1": "0.95",
    "swapins": "0"
   },
   "inputs_tried": [
@@ -74,12 +74,12 @@
    "value": "96 count",
    "unit": "space steps reported released",
    "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
-   "machine": "box D3-g26 cloud: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython, alone on its machine",
+   "machine": "box D3-g26 cloud: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz (first container; probes re-run on the resumed container, Intel Xeon @ 2.10GHz, same RESULT values), 16 GB, venv-ci CPython, alone on its machine",
    "cpu_or_wall": "count",
    "contention_note": "deterministic count; probes ran in a separate baseline worktree while the box's GATE_JOBS=1 gates ran",
    "tolerance": "exact",
-   "load1": 1.81,
-   "thread_factor": 1.004
+   "load1": 0.95,
+   "thread_factor": 1.005
   },
   "perturbation": {
    "change": "custom_components/heatpump_optimizer/optimizer.py:4560 if not _pin_is_free(value) and value < 0.5: -> if not _pin_is_free(value) or value < 0.5:, applied in memory by the probe (and on disk by fullgate.py for the gate)",

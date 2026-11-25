@@ -1,5 +1,3 @@
-13:def prices(profile, start):
-73:    elif profile == "flat":
 RESULT natural_cells=8 count
 RESULT natural_cells_moved=0 count
 RESULT adopted_baseline_mutant=['valve_storage_smart_write/winter_typical/24h:11', 'valve_storage_smart_write/winter_typical/48h:00', 'valve_storage_smart_write/flat/24h:00', 'valve_storage_smart_write/flat/48h:00', 'wood_two_tank_smart_write/winter_typical/24h:11', 'wood_two_tank_smart_write/winter_typical/48h:00', 'wood_two_tank_smart_write/flat/24h:00', 'wood_two_tank_smart_write/flat/48h:00']
@@ -7,11 +5,5 @@ RESULT forced_tie_solves=2 count
 RESULT forced_tie_adopted_baseline=0
 RESULT forced_tie_adopted_mutant=1
 RESULT thread_factor=1.000
-RESULT load1=2.32
+RESULT load1=1.92
 RESULT swapins=0
-
-real	3m22.883s
-user	3m12.663s
-sys	0m8.074s
-
-[exited with code 0]
