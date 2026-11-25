@@ -1,0 +1,10 @@
+BASE ml: rc=0 | ALL 19 FEATURES BLOCK PASSED
+R1 leg_rule off-time reads unmasked stop (branch side) [ml]: SURVIVED rc=0 fails=0 | ALL 19 FEATURES BLOCK PASSED
+R2 leg_rule ignores unlatched mask [ml]: SURVIVED rc=0 fails=0 | ALL 19 FEATURES BLOCK PASSED
+R3 planner _leg_rule mask -> latched [ml]: SURVIVED rc=0 fails=0 | ALL 19 FEATURES BLOCK PASSED
+R4 _fields drops learner fields (mask/pairs) [ml]: SURVIVED rc=0 fails=0 | ALL 19 FEATURES BLOCK PASSED
+R5 leg_rule heat_min dropped [ml]: KILLED rc=1 fails=1 | 1 of 19 FEATURES BLOCK FAILED
+     FAIL T11, the options: absent reads 10 (DEFAULT_MODE_LEG_MIN_MINUTES); 0 and 15 are kept, and 15.5, -1, text, None and NaN read the default; both rows
+R6 leg_rule before dropped [ml]: SURVIVED rc=0 fails=0 | ALL 19 FEATURES BLOCK PASSED
+R7 split ignores unlatched (arbiter side) [ml]: SURVIVED rc=0 fails=0 | ALL 19 FEATURES BLOCK PASSED
+R8 planner _leg_rule stops unpriced [ml]: SURVIVED rc=0 fails=0 | ALL 19 FEATURES BLOCK PASSED
