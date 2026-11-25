@@ -1,8 +1,35 @@
 {
  "key": "7684dd370eaae807",
- "src": "complete",
- "verdict": "TIMEOUT",
- "cap_s": 14400,
+ "mutant": {
+  "kind": "CMP_BOUND",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 3517,
+  "old": "        if solar_radiation <= 0:",
+  "new": "        if solar_radiation < 0:",
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.compute_solar_gain CMP_BOUND eae534b7"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3879.1,
+ "child_cpu_s": 6551.7,
+ "load1_start": 0.83,
+ "load1_end": 0.99,
  "provisional": true,
- "note": "gate exceeded the box cap or ended without a record; never read as KILLED"
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
 }

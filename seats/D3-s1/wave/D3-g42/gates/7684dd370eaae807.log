@@ -9,7 +9,7 @@
 claims hygiene: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ok
 
 ########## python3 tests/closure.py selftest ##########
-  SLOT: tests/closure.py joins a heavy slot as run.sh-27421
+  SLOT: tests/closure.py joins a heavy slot as run.sh-649
 
 === closure shrink guard (#527) ===
   ok   card_drift.mjs's committed closure covers plan_view.py
@@ -150,7 +150,7 @@ claims hygiene: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ok
 >>> FAILED: python3 tests/closure.py selftest
 
 ########## python3 tests/features.py ##########
-  SLOT: tests/features.py joins a heavy slot as run.sh-27421
+  SLOT: tests/features.py joins a heavy slot as run.sh-649
 
 === Feature modules ===
   ok   keystone: _expire_away_override returns the live override's (True, return time) and a lapsed one's (False, None), saving only the lapse
@@ -1110,21 +1110,6 @@ Learned house heat loss scale 2.000 (fitted against 0.3250 kW/°C, 310 samples) 
   ok   a heated basement scales the slow store once, not twice
 
 -- Configuration mapping
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -1145,14 +1130,29 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -4906,8 +4906,8 @@ Learned lower_floor_loss_ratio reset to the configuration: reset on request
 No electricity price data available; skipping optimization until prices can be fetched
   ok   every entity action returns before the solve it asks for completes
   ok   every entity action's state survives a restart before any cycle completes
-heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-27T09:30:13.291882+00:00 is ahead of the clock; bounded to 2026-11-26 05:30:13.405338+00:00
-heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-27T09:30:13.291882+00:00 is ahead of the clock; bounded to 2026-11-26 05:30:13.418082+00:00
+heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-27T11:40:09.280162+00:00 is ahead of the clock; bounded to 2026-11-26 07:40:09.393018+00:00
+heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-27T11:40:09.280162+00:00 is ahead of the clock; bounded to 2026-11-26 07:40:09.400385+00:00
   ok   a manual plan applied, then cleared, each survives a restart that cancels its refresh
   ok   a store writer that races the startup read waits for it, so the persisted learned state survives the restart (D1-s2-52)
   ok   every set_thermal_parameters field that changes state survives a restart (D1-s2-53)
@@ -7433,7 +7433,7 @@ CARRY8-RUN-ENDS {'off pass': (30.0, None, True), 'no base': (30.0, None, True), 
 ALL 5780 FEATURE CHECKS PASSED
 
 ########## python3 tests/entities.py ##########
-  SLOT: tests/entities.py joins a heavy slot as run.sh-27421
+  SLOT: tests/entities.py joins a heavy slot as run.sh-649
 
 === Entities and platforms ===
 
@@ -8923,28 +8923,28 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   a live agent between commands keeps the lock
   ok   a crashed hold lets take('successor') steal
   ok   a lease whose named owner process is gone is stolen (#1143)
-gate_lock: waiting for the lease held by other until 2026-11-25 09:39:36.819008+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-11-25 11:48:28.896718+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits
   ok   the heavy-slot capacity is the cap unless the owner raises it (#2267)
 lease class: dispatched=36 (floor 30) lease=['tests/stress.py', 'tests/harness_headers.py'] slot=10 none=24 unleased_but_heavy=[]
   ok   every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)
-gate_lock: waiting for the lease held by h until 2026-11-25 09:39:37.508996+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-25 09:39:37.508996+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-25 09:39:37.508996+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-25 09:39:39.025813+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-25 11:48:29.565311+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-25 11:48:29.565311+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-25 11:48:29.565311+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-25 11:48:31.082683+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-25 09:39:39.731107+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-25 11:48:31.787671+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   gate lease queue: FIFO: three waiters take in arrival order, no one jumps
   ok   gate lease queue: renew is refused while a ticket waits; the holder re-queues behind
   ok   gate lease queue: a dead or expired ticket is skipped, a live one behind it is not
   ok   gate lease queue: null control: with no live waiter renew extends and a take succeeds
-gate_lock: waiting for the lease held by h until 2026-11-25 09:39:40.242036+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-25 09:39:40.242036+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-25 09:39:40.858059+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for a heavy slot (0:h until 2026-11-25 09:39:41.061611+00:00)
-gate_lock: waiting for a heavy slot (0:h until 2026-11-25 09:39:41.061611+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-25 09:39:41.472871+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-25 09:39:41.472871+00:00)
+gate_lock: waiting for the lease held by h until 2026-11-25 11:48:32.299074+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-25 11:48:32.299074+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-25 11:48:32.909430+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for a heavy slot (0:h until 2026-11-25 11:48:33.112901+00:00)
+gate_lock: waiting for a heavy slot (0:h until 2026-11-25 11:48:33.112901+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-25 11:48:33.524091+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-25 11:48:33.524091+00:00)
   ok   gate lease priority: priority: an urgent waiter takes before an older normal one, after its ticket rewrite
   ok   gate lease priority: priority: a ticket rewrite keeps its priority and its arrival stamp
   ok   gate lease priority: priority: aging promotes a normal waiter past a later urgent one, and only past the window
@@ -8959,7 +8959,7 @@ gate_lock: waiting for a heavy slot (0:holder until 2026-11-25 09:39:41.472871+0
   ok   gate lease priority: concurrency control: a valid owner landing after the broken read survives the reap
   ok   gate lease priority: concurrency control: a rival in the reap's rename gap leaves one owner and no grave
   ok   gate lease priority: concurrency control: a directory at the slot path is reclaimed, not raised
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-25 09:37:44.519534+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-25 11:46:36.076831+00:00)
   ok   heavy-slot hold: a live holder keeps its slot past its lease, and a fifth taker is blocked
   ok   heavy-slot hold: a slot whose named process is gone is stolen at once (null control)
   ok   heavy-slot hold: a legacy slot with no pid is freed on expiry; a fresh one is respected
@@ -8974,7 +8974,7 @@ gate_lock: waiting for a heavy slot (0:holder until 2026-11-25 09:37:44.519534+0
   ok   run.sh records a wait past its bound as #skip, named unrun, and a run within it by its rc (P206)
   ok   run.sh's lane console prints SKIP, not ok, for a script that waited past its bound
   ok   run.sh names a script ended before its summary apart from a failed check (R10 carry)
-gate_lock: waiting for the lease held by seat until 2026-11-25 09:40:05.255181+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-11-25 11:48:56.395468+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   a seat label never taken fails at once; a held one re-queues behind a waiter
@@ -8988,8 +8988,8 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ok   the widening rule itself leaves the card out
   ok   while still widening to the rest of the integration
   ok   the widening rule leaves the quality-scale register out too
-  baseline worktree add failed on baseline-28322-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
-  baseline worktree add failed on baseline-28322-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-1356-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-1356-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
   ok   a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
   ok   a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
   ok   concurrent gate instances name distinct baseline worktrees (#2119)
@@ -9118,7 +9118,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [15 registered after two entries; catalog 15; extra=[]; missing=[]]
-  FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['clear_manual_plan__dup', 'debug_collect__dup', 'set_mode__dup']; missing=[]]
+  FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_schedule__dup', 'clear_manual_plan__dup', 'set_thermal_parameters__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [15 registered after unload; catalog 15; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 15; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'factory_reset', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -9178,7 +9178,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   FAIL hb:positive_control  [a 600 ms spin read as 500.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
   FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 2 of 2 (at most 3)]
   ok   hb:positive_control passes on any one try that reads all three, and never on three readings split across tries
-  ..   hb:positive_control| stall >= 204 ms; loop thread:
+  ..   hb:positive_control| stall >= 205 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19142, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9188,8 +9188,8 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpy_42pr_5/py-spy', '28322']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 205 ms; loop thread:
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpz2j8yzd6/py-spy', '1356']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19142, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9203,7 +9203,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control| Thread 1 (active+gil)
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
   ok   hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
-  ..   hb:positive_control| stall >= 204 ms; loop thread:
+  ..   hb:positive_control| stall >= 207 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19144, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9215,7 +9215,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (idle)
-  ..   hb:positive_control| stall >= 206 ms; loop thread:
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19144, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9228,8 +9228,8 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (active+gil)
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
-  ok   hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
-  ..   hb:positive_control| stall >= 205 ms; loop thread:
+  ok   hb:positive_control  [a 600 ms spin read as 601.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19145, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9239,8 +9239,8 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmp948iv19y/py-spy', '28322']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 206 ms; loop thread:
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmptvmc_uze/py-spy', '1356']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19145, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9249,9 +9249,9 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2009, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmp948iv19y/py-spy', '28322']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 206 ms; loop thread:
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmptvmc_uze/py-spy', '1356']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 205 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19145, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9265,7 +9265,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control| Thread 1 (active+gil)
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
   ok   hb:positive_control  [a 600 ms spin read as 600.6 ms; dump names the spin: True; sampler rc=0 names it: True; try 3 of 3 (at most 3)]
-  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19146, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9277,7 +9277,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
   ..   hb:positive_control| sampler rc=1:
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
-  ..   hb:positive_control| stall >= 209 ms; loop thread:
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19146, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9290,55 +9290,9 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (active+gil)
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
-  ok   hb:positive_control  [a 600 ms spin read as 600.7 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
-  ..   hb:positive_control| stall >= 204 ms; loop thread:
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19147, in <module>
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpl6_xwu5o/py-spy', '28322']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 204 ms; loop thread:
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19147, in <module>
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpl6_xwu5o/py-spy', '28322']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 204 ms; loop thread:
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19147, in <module>
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpl6_xwu5o/py-spy', '28322']' timed out after 0.5 seconds
-  FAIL hb:positive_control  [a 600 ms spin read as 750.9 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
-  ..   hb:positive_control| stall >= 204 ms; loop thread:
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19148, in <module>
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
-  ..   hb:positive_control| sampler rc=0:
-  ..   hb:positive_control| Thread 1 (idle)
+  ok   hb:positive_control  [a 600 ms spin read as 600.6 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
   ..   hb:positive_control| stall >= 205 ms; loop thread:
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19148, in <module>
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19147, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
@@ -9346,10 +9300,32 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2009, in _hb_spin
-  ..   hb:positive_control| sampler rc=0:
-  ..   hb:positive_control| Thread 1 (idle)
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpvja2ntxs/py-spy', '1356']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 210 ms; loop thread:
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19147, in <module>
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpvja2ntxs/py-spy', '1356']' timed out after 0.5 seconds
   ..   hb:positive_control| stall >= 205 ms; loop thread:
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19147, in <module>
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpvja2ntxs/py-spy', '1356']' timed out after 0.5 seconds
+  FAIL hb:positive_control  [a 600 ms spin read as 754.9 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19148, in <module>
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
@@ -9361,7 +9337,31 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (idle)
-  FAIL hb:positive_control  [a 600 ms spin read as 600.9 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19148, in <module>
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (idle)
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19148, in <module>
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/entities.py", line 19133, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/audit-r11-D3-s1/tests/nightly_ha.py", line 2006, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (idle)
+  FAIL hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
   ok   hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it
   ok   and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted
   ok   the control rests between tries: two tries with a 1 s rest take at least the rest plus both spins
@@ -9449,7 +9449,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /tmp/tmp_yyhtn0d/closures.json
+closure: updated 1 closure(s) in /tmp/tmp1xpd8kob/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -9475,7 +9475,7 @@ closure: updated 1 closure(s) in /tmp/tmp_yyhtn0d/closures.json
   ok   marketplace.yml runs CI's own hassfest and validate units weekly and on dispatch, read-only, a red never hidden (#2965 C5)
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /tmp/closure-inert-78hjd1et/closures.json
+closure: updated 1 closure(s) in /tmp/closure-inert-lxamkc8d/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -9695,7 +9695,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs 7f09cbf43f1a1a274b5932fde01d48a28c06ee8d
+  DRIFT wood_coil: 1 leaves moved vs 0eb33152aec68b04f46dcbdd2b25d24430be92b2
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -10417,33 +10417,33 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
 -- The replay lane: controls, sanitiser, fixture, wiring
   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
-reading the recorder: SQLite database /tmp/tmp_a4d67zs/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpp7wsn0d6/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp7dstp24x/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp6rh3eo65/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp1fuq_yrn/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpcf3otbx8/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpr6nck9fy/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp2iioj8vx/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpcrhghaib/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpprjx0r3h/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp4hp080sw/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmps4cy08rk/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpbm6bq0cz/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpw6oyt87r/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpryeq6tkz/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp30s8056d/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpi6n7r5r_/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpynyfq333/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp17mpppv6/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpl7kslrxv/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpo3mt1o40/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpz7r2vejx/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp9nq6muz6/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpq3qa_np5/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpz9frja3r/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp5eriob6f/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpn1bigml7/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpucqk0jzf/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpc8h322hd/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpcfra5i5u/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpvwk5s8rp/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpevr4e4x8/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpqaqo9j89/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpnyy5ngzr/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpmlbrms0q/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpxclpjyz_/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpswofmngj/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp4uma8k6h/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp4s78pbcr/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpnk9wkxgf/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpo0r4bdge/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpuneatse1/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpe2vxhzqd/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmprzgyyks1/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp6do62zzg/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp2bjr9wo1/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpbyx_j5u0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp8bkqxkxe/home-assistant_v2.db
 left out: entity id(s) under 1 entry key(s) this integration does not read (legacy_probe_entity)
-reading the recorder: SQLite database /tmp/tmpc0byqpg5/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp70wl_0gu/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpmp2nqc7p/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpxjcqve93/home-assistant_v2.db
   ok   replay control:finite
   ok   replay control:unit
   ok   replay control:no_default
@@ -13325,7 +13325,7 @@ RESULT leak_probes_through_download=23 written=23 refused=0 unit=count
 ALL 163 DEBUG COLLECT CHECKS PASSED
 
 ########## python3 tests/finite_boundary.py ##########
-  SLOT: tests/finite_boundary.py joins a heavy slot as run.sh-27421
+  SLOT: tests/finite_boundary.py joins a heavy slot as run.sh-649
 
 === finite store-load boundary ===
   ok   no raw Store() is constructed outside the quarantine boundary
@@ -13421,7 +13421,7 @@ RESULT class_unseeded_sections=30 count
   UNSEEDED thermal_learning:cop_baseline_measured
   UNSEEDED thermal_learning:cop_health_cusum_measured/evidence
   UNSEEDED thermal_learning:vent_cusum/evidence
-RESULT class_arm_seconds=58.0
+RESULT class_arm_seconds=49.6
   ok   the class sweep drove every seeded store (it cannot go green by skipping)
   ok   the healthy populated stores load clean through every loader and consumer (null control)
   ok   no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)
@@ -13430,7 +13430,7 @@ RESULT domain_fields=1337 count
 RESULT domain_probes=966 count
 RESULT domain_refused=0 count
 RESULT domain_unreached=0 count
-RESULT domain_arm_seconds=7.4
+RESULT domain_arm_seconds=6.3
   ok   every store the rich seed writes is seeded, and every field it writes is declared in store.DOMAINS and lies in its declaration (no allow-list)
   ok   a planted undeclared field is refused (the coverage check's own control)
   ok   the healthy rich seed round-trips unchanged through every loader and saver (null control)
@@ -13657,7 +13657,7 @@ DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
   ref       92d38ecb640bd462f2e19c0814d0f0b7df1ee692 -> 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
   tree      4e586eeeffb18109c5d3555bac2fb1c1d3b35bc2
   mode      all
-  captured  3.1 h ago
+  captured  5.2 h ago
   key covers:
     baseline_commit  fcfc50d122e7
     baseline_tree    c82f79ffba0d
@@ -13744,7 +13744,7 @@ NO UNCLAIMED DRIFT: 56 scenario(s) checked against 92d38ecb640bd462f2e19c0814d0f
 NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
 
 ########## python3 tests/arch_score.py ##########
-  SLOT: tests/arch_score.py joins a heavy slot as run.sh-27421
+  SLOT: tests/arch_score.py joins a heavy slot as run.sh-649
 
 === architecture score calibration (R9-EG-A1) ===
   ok   weights.json is the frozen file
@@ -14064,33 +14064,33 @@ ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED
 
 ########## python3 tests/validate.py ##########
 === WINTER, single zone, space + DHW ===
-winter typical, cold               optimal  34.39kWh base= 124.87 cost=  31.06 sav= 50.6% room 16.9-20.9 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=16 kW= 6.0   153ms
-winter extreme prices              optimal  40.39kWh base= 242.93 cost=  55.95 sav= 63.7% room 17.1-20.9 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=17 kW= 6.0   131ms
-winter mild, windy+rain            optimal  27.28kWh base=  66.84 cost=  24.29 sav= 53.9% room 19.5-21.7 dhw>= 45.3 peak%=0.00 dhwpeak%=0.13 starts=11 kW= 6.0  1018ms
-winter flat price (control)        optimal  56.06kWh base= 101.82 cost=  75.71 sav= 20.0% room 17.4-20.9 dhw>= 45.3 peak%=nan dhwpeak%=nan starts=14 kW= 6.0   718ms
+winter typical, cold               optimal  34.39kWh base= 124.87 cost=  31.06 sav= 50.6% room 16.9-20.9 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=16 kW= 6.0   139ms
+winter extreme prices              optimal  40.39kWh base= 242.93 cost=  55.95 sav= 63.7% room 17.1-20.9 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=17 kW= 6.0   175ms
+winter mild, windy+rain            optimal  27.28kWh base=  66.84 cost=  24.29 sav= 53.9% room 19.5-21.7 dhw>= 45.3 peak%=0.00 dhwpeak%=0.13 starts=11 kW= 6.0   967ms
+winter flat price (control)        optimal  56.06kWh base= 101.82 cost=  75.71 sav= 20.0% room 17.4-20.9 dhw>= 45.3 peak%=nan dhwpeak%=nan starts=14 kW= 6.0   755ms
 === WINTER, TWO ZONE, space + DHW ===
-2zone winter typical               optimal  68.52kWh base= 153.88 cost=  69.36 sav= 43.4% room 17.7-21.3 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=14 kW= 6.0  1646ms
-2zone winter extreme               optimal  72.53kWh base= 301.08 cost= 114.53 sav= 56.7% room 18.0-21.3 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=15 kW= 6.0  2214ms
-2zone winter mild                  optimal  26.98kWh base=  77.26 cost=  26.18 sav= 53.4% room 17.7-22.1 dhw>= 45.3 peak%=0.00 dhwpeak%=0.13 starts=11 kW= 6.0  2092ms
-2zone flat price (control)         optimal  74.96kWh base= 126.90 cost=  98.39 sav= 15.5% room 17.8-20.8 dhw>= 45.3 peak%=nan dhwpeak%=nan starts=10 kW= 4.8  1767ms
+2zone winter typical               optimal  68.52kWh base= 153.88 cost=  69.36 sav= 43.4% room 17.7-21.3 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=14 kW= 6.0  1835ms
+2zone winter extreme               optimal  72.53kWh base= 301.08 cost= 114.53 sav= 56.7% room 18.0-21.3 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=15 kW= 6.0  2186ms
+2zone winter mild                  optimal  26.98kWh base=  77.26 cost=  26.18 sav= 53.4% room 17.7-22.1 dhw>= 45.3 peak%=0.00 dhwpeak%=0.13 starts=11 kW= 6.0  1943ms
+2zone flat price (control)         optimal  74.96kWh base= 126.90 cost=  98.39 sav= 15.5% room 17.8-20.8 dhw>= 45.3 peak%=nan dhwpeak%=nan starts=10 kW= 4.8  1842ms
 === SUMMER, DHW only (no space heating demand) ===
-summer warm, DHW only              optimal   0.00kWh base=   4.35 cost=   1.67 sav= 22.7% room 21.0-25.7 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2   138ms
-summer negative prices             optimal   0.00kWh base=   2.40 cost=   0.90 sav= 16.2% room 21.0-25.7 dhw>= 45.0 peak%=nan dhwpeak%=0.72 starts=16 kW= 1.1   145ms
-summer cool rainy                  optimal   2.28kWh base=   6.71 cost=   2.16 sav= 42.7% room 20.5-21.1 dhw>= 45.1 peak%=0.00 dhwpeak%=0.32 starts=12 kW= 3.7  1051ms
-summer flat price (control)        optimal   0.00kWh base=  10.36 cost=   4.55 sav= 13.3% room 21.0-25.7 dhw>= 45.1 peak%=nan dhwpeak%=nan starts=12 kW= 1.2   130ms
-2zone summer warm                  optimal   0.00kWh base=   4.86 cost=   1.67 sav= 35.5% room 21.0-26.5 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2   109ms
+summer warm, DHW only              optimal   0.00kWh base=   4.35 cost=   1.67 sav= 22.7% room 21.0-25.7 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2   110ms
+summer negative prices             optimal   0.00kWh base=   2.40 cost=   0.90 sav= 16.2% room 21.0-25.7 dhw>= 45.0 peak%=nan dhwpeak%=0.72 starts=16 kW= 1.1   114ms
+summer cool rainy                  optimal   2.28kWh base=   6.71 cost=   2.16 sav= 42.7% room 20.5-21.1 dhw>= 45.1 peak%=0.00 dhwpeak%=0.32 starts=12 kW= 3.7  1089ms
+summer flat price (control)        optimal   0.00kWh base=  10.36 cost=   4.55 sav= 13.3% room 21.0-25.7 dhw>= 45.1 peak%=nan dhwpeak%=nan starts=12 kW= 1.2   149ms
+2zone summer warm                  optimal   0.00kWh base=   4.86 cost=   1.67 sav= 35.5% room 21.0-26.5 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2    96ms
 === VALVE + STORAGE (the tank is a planning store) ===
-valve winter typical               optimal  62.53kWh base= 144.78 cost=  66.88 sav= 41.7% room 17.5-21.0 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=14 kW= 6.0  2695ms
-valve winter extreme               optimal  55.13kWh base= 284.43 cost=  84.29 sav= 58.1% room 17.3-21.0 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=16 kW= 6.0  3301ms
-valve summer warm                  optimal   0.00kWh base=   2.06 cost=   1.67 sav= 18.8% room 21.1-27.3 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2   224ms
-valve summer flat (control)        optimal   0.00kWh base=   5.92 cost=   4.55 sav= 23.2% room 21.1-27.3 dhw>= 45.1 peak%=nan dhwpeak%=nan starts=12 kW= 1.2   286ms
+valve winter typical               optimal  62.53kWh base= 144.78 cost=  66.88 sav= 41.7% room 17.5-21.0 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=14 kW= 6.0  2901ms
+valve winter extreme               optimal  55.13kWh base= 284.43 cost=  84.29 sav= 58.1% room 17.3-21.0 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=16 kW= 6.0  3054ms
+valve summer warm                  optimal   0.00kWh base=   2.06 cost=   1.67 sav= 18.8% room 21.1-27.3 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2   190ms
+valve summer flat (control)        optimal   0.00kWh base=   5.92 cost=   4.55 sav= 23.2% room 21.1-27.3 dhw>= 45.1 peak%=nan dhwpeak%=nan starts=12 kW= 1.2   236ms
 === SHOULDER SEASON ===
-april shoulder                     optimal   8.30kWh base=  19.65 cost=   8.60 sav= 43.1% room 20.6-21.5 dhw>= 45.1 peak%=0.44 dhwpeak%=0.80 starts=13 kW= 1.7   870ms
-2zone april shoulder               optimal  10.62kWh base=  23.55 cost=   9.16 sav= 44.0% room 20.2-21.5 dhw>= 45.1 peak%=0.26 dhwpeak%=0.80 starts=15 kW= 5.9  1599ms
+april shoulder                     optimal   8.30kWh base=  19.65 cost=   8.60 sav= 43.1% room 20.6-21.5 dhw>= 45.1 peak%=0.44 dhwpeak%=0.80 starts=13 kW= 1.7   842ms
+2zone april shoulder               optimal  10.62kWh base=  23.55 cost=   9.16 sav= 44.0% room 20.2-21.5 dhw>= 45.1 peak%=0.26 dhwpeak%=0.80 starts=15 kW= 5.9  1698ms
 === SPACE HEATING ONLY (DHW disabled) ===
-winter, no DHW                     optimal  36.00kWh base= 110.04 cost=  23.28 sav= 52.2% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    60ms
-summer, no DHW                     optimal   0.00kWh base=   2.29 cost=   0.00 sav= 26.2% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    67ms
-2zone winter, no DHW               optimal  68.14kWh base= 139.05 cost=  59.10 sav= 45.2% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0  1518ms
+winter, no DHW                     optimal  36.00kWh base= 110.04 cost=  23.28 sav= 52.2% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    80ms
+summer, no DHW                     optimal   0.00kWh base=   2.29 cost=   0.00 sav= 26.2% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    61ms
+2zone winter, no DHW               optimal  68.14kWh base= 139.05 cost=  59.10 sav= 45.2% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0  1537ms
 
 NO ISSUES
 
@@ -14170,7 +14170,7 @@ shoulder season        greedy cheapest      5.03   12.58   20.88   0.00       1
 ALL 25 BACKTEST CHECKS PASSED
 
 ########## python3 tests/boost_drift_replay.py ##########
-  SLOT: tests/boost_drift_replay.py joins a heavy slot as run.sh-27421
+  SLOT: tests/boost_drift_replay.py joins a heavy slot as run.sh-649
 
 === #1935 boost drift replay ===
 
@@ -14240,7 +14240,7 @@ Prediction bias out of band for 5 days on healthy inputs; learned state rolled b
 ALL 46 BOOST DRIFT CHECKS PASSED
 
 ########## python3 tests/optimality.py ##########
-  SLOT: tests/optimality.py joins a heavy slot as run.sh-27421
+  SLOT: tests/optimality.py joins a heavy slot as run.sh-649
 
 === Optimality floor ===
 
@@ -14408,7 +14408,7 @@ Another copy of the Heat Pump Optimizer card is registered at /local/heatpump-op
 ALL FRONTEND CHECKS PASSED
 
 ########## node tests/card.mjs ##########
-  SLOT: tests/card.mjs joins a heavy slot as run.sh-27421
+  SLOT: tests/card.mjs joins a heavy slot as run.sh-649
  heatpump-optimizer-card  v10.0.2 
 defined elements: heatpump-optimizer-card, heatpump-optimizer-card-editor
 customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card","description":"Plots heat-pump price, power and temperature plans on one shared time axis with per-series toggles.","preview":true}]
@@ -15865,7 +15865,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
 ALL CARD CHECKS PASSED
 
 ########## node tests/setup_qa_render.mjs ##########
-  SLOT: tests/setup_qa_render.mjs joins a heavy slot as run.sh-27421
+  SLOT: tests/setup_qa_render.mjs joins a heavy slot as run.sh-649
  heatpump-optimizer-card  v10.0.2 
 coil: /root/setup-qa/coil.svg
   boxes: [{"place":"outdoor","x":16,"y":16,"w":200,"h":98,"col":0},{"place":"heat_pump","x":16,"y":128,"w":200,"h":81,"col":0},{"place":"wood_tank","x":16,"y":223,"w":200,"h":93,"col":0},{"place":"mixing_valve","x":260,"y":16,"w":200,"h":93,"col":1},{"place":"buffer_tank","x":260,"y":123,"w":200,"h":127,"col":1},{"place":"dhw_tank","x":260,"y":264,"w":200,"h":115,"col":1},{"place":"upper_zone","x":504,"y":16,"w":200,"h":81,"col":2},{"place":"lower_zone","x":504,"y":111,"w":200,"h":81,"col":2}]
@@ -15878,7 +15878,7 @@ QA RENDERS WRITTEN
 ########## node tests/card_drift.mjs 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 ##########
  heatpump-optimizer-card  v10.0.2 
  heatpump-optimizer-card  v10.0.2 
-card_drift: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 = 92d38ecb640b, tree = 0fe1f4277bbd, 45 states
+card_drift: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 = 92d38ecb640b, tree = c842fde957ec, 45 states
   identical  no_plan
   identical  no_plan_expanded
   identical  plan_inline
@@ -15996,20 +15996,20 @@ card_drift: identical in all 45 states
 
 -- Combination sweep
   solver-work baseline: solving 54 scenarios from 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 in a pristine worktree, to compare computed against computed (#387); this is the sweep's cost again
-  solver-work baseline: 54 scenarios from 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (92d38ecb640b), captured in 83 s on this machine
-  solve-time guard: reference solve 35.6 ms of CPU on this machine, budget 268x that per scenario (= 9.5 s of CPU), sweep budget 52x, absolute wall ceiling 600000 ms
+  solver-work baseline: 54 scenarios from 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 (92d38ecb640b), captured in 76 s on this machine
+  solve-time guard: reference solve 31.1 ms of CPU on this machine, budget 268x that per scenario (= 8.3 s of CPU), sweep budget 52x, absolute wall ceiling 600000 ms
   ok   all 54 combinations satisfy the invariants
   ok   the comfort floor is never breached beyond what physics forces
   ok   hot water is available when promised
   ok   the solve-time guard calibrated against a reference solve per scenario
-  reference solve over the sweep: 24.5 / 31.8 / 53.5 ms of CPU (min/median/max of 61 samples); the same samples in wall clock: 24.6 / 32.6 / 53.5 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
-  calibration overhead: 2.2 s of wall clock for 61 samples
-  worst scenario: shoulder/tariff+cycle used 3815 ms of CPU = 128.1x its 29.8 ms reference; budget is 268x
+  reference solve over the sweep: 27.2 / 30.5 / 54.7 ms of CPU (min/median/max of 61 samples); the same samples in wall clock: 27.4 / 30.9 / 54.8 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
+  calibration overhead: 2.1 s of wall clock for 61 samples
+  worst scenario: shoulder/tariff+cycle used 3620 ms of CPU = 109.2x its 33.2 ms reference; budget is 268x
   ok   every scenario's solve costs what it should, in CPU, for this machine
   ok   every scenario has a per-scenario budget on record
   ok   no scenario exceeds its own recorded cost by the budget factor
   ok   no scenario got dramatically cheaper without a re-record
-  kernel doubt band: re-solved 1 scenario(s) 3x on both trees in 8.6 s (a worktree of 92d38ecb640bd462f2e19c0814d0f0b7df1ee692); winter_extreme/1z/dhw median 52 ms against 68 ms
+  no scenario in the kernel doubt band
   ok   every scenario in the kernel doubt band was re-measured on both trees (round-5 D9-07)
   solver work: 54 of 54 scenarios judged against the baseline captured beside this run, at 1.80x; 0 re-planned by this branch, 0 new here, 0 dropped
   ok   the solver-work counter counted something for every scenario
@@ -16019,7 +16019,7 @@ card_drift: identical in all 45 states
   ok   no scenario's solver work grew on an unchanged plan
   ok   no scenario's simulate work grew on an unchanged plan (#1229)
   ok   no scenario's simulate kernel got slower per call on an unchanged plan (round-5 D9-07)
-  whole-solve CPU: median 0.973x of the baseline beside this run over 54 of 54 covered scenarios, on work the counts vouch for; factor 1.414x
+  whole-solve CPU: median 1.027x of the baseline beside this run over 54 of 54 covered scenarios, on work the counts vouch for; factor 1.414x
   ok   the whole-solve CPU channel judged every covered scenario (R10 D9-s3-01)
   ok   the sweep's solves did not get slower per unit of counted work, median over the covered scenarios (R10 D9-s3-01)
   ok   production calls were captured on this tree and the baseline
@@ -16031,15 +16031,15 @@ card_drift: identical in all 45 states
   ok   the solver-work floor is a literal, not an environment override
 
 -- Memory (D9-04)
-  empty-probe baseline (same imports, no scenario): 105.3 MiB of RSS, subtracted from every probe below
-  heavy_old/shoulder                 RSS peak   105.3 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 82 / 13 / 3.5)
-  winter/cycle                       RSS peak   105.3 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 84 / 9 / 3.5)
-  winter/pv+cycle                    RSS peak   105.3 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 82 / 13 / 3.5)
-  typical_slab/winter                RSS peak   105.3 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 92 / 14 / 3.4)
-  winter_extreme/1z/dhw              RSS peak   105.3 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 88 / 12 / 3.4)
-  typical_slab/shoulder              RSS peak   105.3 MiB, attributable   0.0 MiB, traced   2.1 MiB (recorded 85 / 9 / 1.8)
+  empty-probe baseline (same imports, no scenario): 105.1 MiB of RSS, subtracted from every probe below
+  heavy_old/shoulder                 RSS peak   105.1 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 82 / 13 / 3.5)
+  winter/cycle                       RSS peak   105.1 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 84 / 9 / 3.5)
+  winter/pv+cycle                    RSS peak   105.1 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 82 / 13 / 3.5)
+  typical_slab/winter                RSS peak   105.1 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 92 / 14 / 3.4)
+  winter_extreme/1z/dhw              RSS peak   105.1 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 88 / 12 / 3.4)
+  typical_slab/shoulder              RSS peak   105.1 MiB, attributable   0.0 MiB, traced   2.1 MiB (recorded 85 / 9 / 1.8)
   ok   no probed solve imports a module inside the traced window (first-call setup is the import's cost, not the scenario's)
-  interned-table fill (winter_extreme/1z/dhw): 43182 interns to the rebuild; filled to 1 short: traced 3.30 MiB, 6.97 without the probe's headroom step, 3.30 clean
+  interned-table fill (winter_extreme/1z/dhw): 43184 interns to the rebuild; filled to 1 short: traced 3.30 MiB, 6.97 without the probe's headroom step, 3.30 clean
   ok   the interned-table fill perturbation lands: without the probe's headroom step a nearly-full table charges the solve its rebuild
   ok   a probe's traced peak does not depend on where the runner's import fill left the interned-string table
   parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
@@ -16050,11 +16050,11 @@ card_drift: identical in all 45 states
   ok   no probed scenario's memory got dramatically cheaper without a re-record
   ok   every memory-pass scenario has recorded peaks
   ok   the memory pass retains less than 512 MiB of RSS in the parent
-  whole sweep: 69.2 s of solver CPU against 1.9 s of reference CPU = 36.87x; budget is 52.44x
+  whole sweep: 68.5 s of solver CPU against 1.8 s of reference CPU = 38.77x; budget is 52.44x
   ok   the sweep as a whole costs what it has always cost, relative to this machine
   detection against the RECORDED costs: per-scenario ceiling 1.32x, sweep budget 1.49x, per-scenario table 3.00x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.80x of that scenario's recorded solver work instead, or at 1.80x of the kernel CPU the baseline spent beside it (round-5 D9-07)
   detection for MEMORY: attributable-RSS budget 1.50x, traced budget 1.50x of the recorded peak, over the 6 scenario(s) this pass probes -- a regression smaller than these multiples passes the memory section green
-  detection on THIS machine: per-scenario ceiling 2.10x (244x x 1.1 wobble), sweep budget 1.42x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+  detection on THIS machine: per-scenario ceiling 2.46x (244x x 1.1 wobble), sweep budget 1.35x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
   ok   the budgets are tight enough to see a 2x regression, uniform or confined to one scenario
   thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
   ok   the reference and the scenarios are parallelised alike, so the thread factor cancels in the ratio
@@ -16099,7 +16099,7 @@ ALL 116 STRESS CHECKS PASSED
   ok   every per-harness CPU bound names an executed harness, under the wall cap
   ok   dev/audit/rounds/round3/D2/dst_window_factors.py exists
   ok   dev/audit/rounds/round3/D2/dst_window_factors.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round3/D2/dst_window_factors.py: cpu=0.9s of the 60s bound
+  dev/audit/rounds/round3/D2/dst_window_factors.py: cpu=0.5s of the 60s bound
   ok   dev/audit/rounds/round3/D2/dst_window_factors.py exits 0
   ok   dev/audit/rounds/round3/D2/dst_window_factors.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT default_horizon_hours matches header
@@ -16110,7 +16110,7 @@ ALL 116 STRESS CHECKS PASSED
   ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT no_mask_returns_none matches header
   ok   dev/audit/rounds/round3/D2/window_size_sweep.py exists
   ok   dev/audit/rounds/round3/D2/window_size_sweep.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round3/D2/window_size_sweep.py: cpu=0.5s of the 60s bound
+  dev/audit/rounds/round3/D2/window_size_sweep.py: cpu=0.4s of the 60s bound
   ok   dev/audit/rounds/round3/D2/window_size_sweep.py exits 0
   ok   dev/audit/rounds/round3/D2/window_size_sweep.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_15min matches header
@@ -16120,7 +16120,7 @@ ALL 116 STRESS CHECKS PASSED
   ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT options_selector_choices matches header
   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py exists
   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round3/D5/option_doc_coverage.py: cpu=0.5s of the 60s bound
+  dev/audit/rounds/round3/D5/option_doc_coverage.py: cpu=0.4s of the 60s bound
   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py exits 0
   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT option_fields_rendered matches header
@@ -16130,14 +16130,14 @@ ALL 116 STRESS CHECKS PASSED
   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT wood_economics_doc_lines matches header
   ok   dev/audit/rounds/round4/D10/qs_rules.py exists
   ok   dev/audit/rounds/round4/D10/qs_rules.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round4/D10/qs_rules.py: cpu=0.8s of the 60s bound
+  dev/audit/rounds/round4/D10/qs_rules.py: cpu=0.6s of the 60s bound
   ok   dev/audit/rounds/round4/D10/qs_rules.py exits 0
   ok   dev/audit/rounds/round4/D10/qs_rules.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round4/D10/qs_rules.py RESULT rules_total matches header
   ok   dev/audit/rounds/round4/D10/qs_rules.py RESULT declared_mismatch matches header
   ok   dev/audit/rounds/round4/D6/claims.py exists
   ok   dev/audit/rounds/round4/D6/claims.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round4/D6/claims.py: cpu=2.9s of the 60s bound
+  dev/audit/rounds/round4/D6/claims.py: cpu=2.3s of the 60s bound
   ok   dev/audit/rounds/round4/D6/claims.py exits 0
   ok   dev/audit/rounds/round4/D6/claims.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_extracted matches header
@@ -16154,7 +16154,7 @@ ALL 116 STRESS CHECKS PASSED
   ok   dev/audit/rounds/round4/D6/claims.py RESULT ha_module_level_importers matches header
   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py exists
   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round4/D7/sysid_estimator_frontier.py: cpu=126.2s of the 480s bound
+  dev/audit/rounds/round4/D7/sysid_estimator_frontier.py: cpu=128.2s of the 480s bound
   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py exits 0
   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT gatepass_plants matches header
@@ -16170,13 +16170,13 @@ ALL 116 STRESS CHECKS PASSED
   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT unridged_fitted_typical_s001 matches header
   ok   dev/audit/rounds/round4/D9/h2_cycle.py exists
   ok   dev/audit/rounds/round4/D9/h2_cycle.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round4/D9/h2_cycle.py: cpu=3.4s of the 60s bound
+  dev/audit/rounds/round4/D9/h2_cycle.py: cpu=3.8s of the 60s bound
   ok   dev/audit/rounds/round4/D9/h2_cycle.py exits 0
   ok   dev/audit/rounds/round4/D9/h2_cycle.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round4/D9/h2_cycle.py RESULT msm_entries_per_cycle matches header
   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py exists
   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round4/D9/h7_memory_gate.py: cpu=4.3s of the 60s bound
+  dev/audit/rounds/round4/D9/h7_memory_gate.py: cpu=5.0s of the 60s bound
   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py exits 0
   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_recorded matches header
@@ -16198,7 +16198,7 @@ ALL 116 STRESS CHECKS PASSED
   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT inject2x_attrib_rule_fires matches header
   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py exists
   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py header names at least one EXPECTED RESULT
-  dev/audit/rounds/round4/D9/h9_batch_cost_loop.py: cpu=5.2s of the 60s bound
+  dev/audit/rounds/round4/D9/h9_batch_cost_loop.py: cpu=5.7s of the 60s bound
   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py exits 0
   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py costs at most 50% of its CPU bound
   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py RESULT cost_terms_batch_calls_per_gradient matches header
@@ -16221,40 +16221,40 @@ ALL 116 STRESS CHECKS PASSED
 
 ########## wall clock ##########
        1s  python3 tests/env_drift.py --claims-only 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
-       3s  python3 tests/closure.py selftest
-     924s  python3 tests/features.py
-     624s  python3 tests/entities.py
+       4s  python3 tests/closure.py selftest
+     884s  python3 tests/features.py
+     586s  python3 tests/entities.py
        9s  python3 tests/block_duty.py
-      11s  python3 tests/doc_claims.py
+      12s  python3 tests/doc_claims.py
        0s  node tests/md_tables.mjs
        1s  python3 tests/wood_advisor.py
-      26s  python3 tests/config_flow_steps.py
-      24s  python3 tests/structure.py
-      27s  python3 tests/typing_ruler.py
-       0s  python3 tests/ha_contract.py
+      22s  python3 tests/config_flow_steps.py
+      22s  python3 tests/structure.py
+      22s  python3 tests/typing_ruler.py
+       1s  python3 tests/ha_contract.py
        7s  python3 tests/manual_plan.py
-       0s  python3 tests/open_meteo.py
+       1s  python3 tests/open_meteo.py
        1s  python3 tests/solar_alignment.py
-       5s  python3 tests/guard_pins.py
-       1s  python3 tests/debug_collect.py
-     115s  python3 tests/finite_boundary.py
+       4s  python3 tests/guard_pins.py
+       2s  python3 tests/debug_collect.py
+     102s  python3 tests/finite_boundary.py
        6s  python3 tests/layout.py
        3s  python3 tests/deployment_shape.py
-     114s  python3 tests/env_drift.py --all 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
-     906s  python3 tests/arch_score.py
-      52s  python3 tests/arch_score_head.py
+     123s  python3 tests/env_drift.py --all 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+     966s  python3 tests/arch_score.py
+      51s  python3 tests/arch_score_head.py
       22s  python3 tests/validate.py
       25s  python3 tests/edge.py
-      70s  python3 tests/backtest.py
-     210s  python3 tests/boost_drift_replay.py
-     112s  python3 tests/optimality.py
+      67s  python3 tests/backtest.py
+     214s  python3 tests/boost_drift_replay.py
+     128s  python3 tests/optimality.py
        1s  python3 tests/plan_view.py
        0s  python3 tests/frontend.py
-     101s  node tests/card.mjs
+     115s  node tests/card.mjs
        0s  node tests/setup_qa_render.mjs
-       5s  node tests/card_drift.mjs 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
-     339s  python3 tests/stress.py
-     153s  python3 tests/harness_headers.py
-    3898s  TOTAL (1 lane(s))
+       6s  node tests/card_drift.mjs 92d38ecb640bd462f2e19c0814d0f0b7df1ee692
+     315s  python3 tests/stress.py
+     156s  python3 tests/harness_headers.py
+    3879s  TOTAL (1 lane(s))
 
 3 TEST SCRIPT(S) FAILED
