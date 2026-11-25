@@ -1,0 +1,9 @@
+
+=== block duty ===
+head solves 162 stats {'calls': 3708, 'step0_on': 47, 'diff': 0} digest 7a4f3403b7d57749
+rc=0
+
+=== block duty ===
+prbind solves 162 stats {'calls': 3708, 'step0_on': 47, 'diff': 0} digest 7a4f3403b7d57749
+rc=0
+cmp plans_head.json plans_prbind.json: IDENTICAL_PLANS

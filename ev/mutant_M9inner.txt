@@ -1,0 +1,6 @@
+applied 1
+-        fixed = repair(plan=drop_unstartable(plan, start_below, temps_of, charge_running), start_below=start_below)
++        fixed = repair(plan=drop_unstartable(plan, start_below, temps_of), start_below=start_below)
+  FAIL with no charge under way the planner drops a step-0 hot water run on a tank at or above its start temperature and re-buys from step 1; null control, with one under way it charges step 0  [predicate false]
+1 of 161 BLOCK DUTY CHECKS FAILED
+rc=1
