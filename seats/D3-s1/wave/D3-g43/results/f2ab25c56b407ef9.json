@@ -23,7 +23,7 @@
   "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2ab25c56b407ef9.py",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_f2ab25c56b407ef9.py",
   "baseline_value": 0,
-  "mutant_value": null,
+  "mutant_value": "0",
   "metric": "max |baseline - mutant| over the probe's arrays, scenarios moved = None",
   "parity_mutant_vs_scalar": null,
   "inputs_tried": "carnot_ref = (ref+273.15)/max(ref+273.15-t_out, 1.0) is >0 for any physical ref, so `<= 1e-9` and `< 1e-9` differ only at carnot_ref == 1e-9 bit-exactly. 576-point grid (ref 25..55, cop_reference_temp -7..12, outdoor -30..30, flow ref-1..60 and NaN): 0 moved; a scan of 4001 floats around ref=-273.15+1e-9 found none with ref+273.15 == 1e-9 exactly."

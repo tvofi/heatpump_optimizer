@@ -1,0 +1,4 @@
+grid_points=576 tie_points=0 tie_refs_found=0
+RESULT grid_moved=0
+RESULT null_grid_moved=0
+RESULT exact_tie_moved=0
