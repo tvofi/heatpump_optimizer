@@ -5,8 +5,8 @@ the row is closed here. A rise of :data:`TANK_RISE_C` over the step is hot
 water. Each step is ``delivered``, ``space-instead``, ``dhw-instead``,
 ``idle-instead``, ``not-startable`` (a hot-water step left idle on a tank at
 or above the pump's own start temperature, the step's target less
-``dhw_hysteresis_entity``), ``unknown`` (no power meter and no tank rise),
-``baseline`` or ``frost-hold`` (kept on by ``frost_hold``). A concurrent
+``dhw_hysteresis_entity``), ``unknown`` (no power meter and no tank rise) or
+``baseline``. A step kept on by ``frost_hold`` is ``frost-hold``. A concurrent
 Heating + DHW run reads as hot water; a big draw can hide a tank rise. Pure:
 a row in, a verdict out.
 """
