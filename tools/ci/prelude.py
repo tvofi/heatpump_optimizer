@@ -127,6 +127,14 @@ LIGHT_LANES = {
     # push it stands down carries its range base's entry forward (tests.yml).
     "coverage": (None, ("tests/", "tools/coverage/")),
 }
+# A lane whose driver is a node script no closure records (NOT_A_TEST): its reads are
+# derived from that script's own source by node_reads -- every relative import,
+# transitively, and every repository path it joins literally -- so a read added to it
+# keeps the lane grading without a list to keep in step (rev-3888).
+NODE_DRIVERS = {"browser": "tests/card_browser.mjs"}
+_NODE_IMPORT = re.compile(r"""(?:\bfrom|\bimport\(?)\s*["'](\.{1,2}/[^"']+)["']""")
+_NODE_JOIN = re.compile(r"""path\.join\(\s*repo\s*,\s*((?:(?:"[^"]*"|'[^']*'|`[^`]*`)\s*,?\s*)+)""")
+_NODE_LITERAL = re.compile(r""""([^"]*)"|'([^']*)'|`([^`]*)`""")
 # The lanes whose every step past the first reads the stand-down; coverage keeps the
 # steps that carry its cache entry forward, and the push lanes gate by MACHINERY_IDLE.
 STEP_GATED = ("browser", "typing", "hassfest", "validate")
@@ -512,16 +520,55 @@ def dispatch_diff(ctx: dict, cwd: Path = HERE.parents[1]) -> "tuple[str, list[st
 
 def light(changed: "list[str] | None") -> bool:
     """#3885: whether a run's changed list is graded light -- readable, non-empty, and
-    holding no production file and nothing under NEVER_LIGHT."""
+    holding no production file and nothing under NEVER_LIGHT. A git-quoted entry (a
+    path git C-quoted, which no prefix can read) is never light (rev-3888)."""
     files = [f for f in (changed or []) if f.strip()]
-    return bool(files) and not any(f.startswith(PRODUCTION_PREFIXES + NEVER_LIGHT) or f in PRODUCTION_FILES
-                                   for f in files)
+    return bool(files) and not any(f.startswith(PRODUCTION_PREFIXES + NEVER_LIGHT + ('"',))
+                                   or f in PRODUCTION_FILES for f in files)
 
 
-def stand_down(changed: "list[str] | None", push: bool, closures_json: Path = CLOSURES_JSON) -> list[str]:
+def node_reads(entry: str, root: Path = HERE.parents[1]) -> "tuple[set[str], tuple[str, ...]] | None":
+    """(files, prefixes) a node script reads: itself and every relative import,
+    transitively, as files; each `path.join(repo, ...)` whose leading arguments are
+    literals as that path (a file, or a directory: a prefix too), cut at a template's
+    first `${` (a prefix only). None when a script in the chain is unreadable."""
+    files: set[str] = set()
+    prefixes: list[str] = []
+    todo = [entry]
+    while todo:
+        rel = todo.pop()
+        if rel in files:
+            continue
+        try:
+            src = (root / rel).read_text()
+        except (OSError, UnicodeDecodeError):
+            return None
+        files.add(rel)
+        for imp in _NODE_IMPORT.findall(src):
+            todo.append(os.path.normpath(os.path.join(os.path.dirname(rel), imp)))
+        for args in _NODE_JOIN.findall(src):
+            parts, cut = [], False
+            for a, b, t in _NODE_LITERAL.findall(args):
+                part = a or b or t
+                if t and "${" in t:
+                    parts.append(t.split("${")[0])
+                    cut = True
+                    break
+                parts.append(part)
+            joined = "/".join(p.strip("/") for p in parts if p.strip("/"))
+            if cut:
+                prefixes.append(joined + ("/" if parts[-1].endswith("/") else ""))
+            elif joined:
+                files.add(joined)
+                prefixes.append(joined + "/")
+    return files, tuple(sorted(set(prefixes)))
+
+
+def stand_down(changed: "list[str] | None", push: bool, closures_json: Path = CLOSURES_JSON,
+               root: Path = HERE.parents[1]) -> list[str]:
     """The lanes a run stands down: none unless `light(changed)`; then every LIGHT_LANES
     lane the change does not reach (and LIGHT_PUSH_LANES on a push). An unreadable
-    script table stands nothing down."""
+    script table, or node driver, stands nothing down."""
     if not light(changed):
         return []
     try:
@@ -533,9 +580,37 @@ def stand_down(changed: "list[str] | None", push: bool, closures_json: Path = CL
         reads = set(closures.get(driver) or ()) if driver else set()
         if driver and not reads:
             return []                        # the driver's closure is unrecorded: nothing is proven
-        if not any(f in reads or f.startswith(extra) or Path(f).name in extra for f in changed):
+        node = node_reads(NODE_DRIVERS[lane], root) if lane in NODE_DRIVERS else (set(), ())
+        if node is None:
+            return []                        # the node driver is unreadable: nothing is proven
+        if not any(f in reads or f in node[0] or f.startswith(extra + node[1]) or Path(f).name in extra
+                   for f in changed):
             lanes.append(lane)
     return sorted(lanes + (list(LIGHT_PUSH_LANES) if push else []))
+
+
+def _quote_probe() -> tuple[list[str], list[str]]:
+    """(the changed list, git's default listing) over a throwaway repo
+    (tests/throwaway_git.py) whose one commit adds `custom_components/\u00fc.py`."""
+    import tempfile
+    sys.path.insert(0, str(HERE.parents[1] / "tests"))
+    from throwaway_git import throwaway_git_init
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q")
+
+        def git(*a: str) -> str:
+            return subprocess.run(["git", *a], cwd=td, env=env, capture_output=True, text=True, check=True).stdout
+        Path(td, "a.md").write_text("a\n")
+        git("add", "-A")
+        git("commit", "-qm", "base")
+        base = git("rev-parse", "HEAD").strip()
+        Path(td, "custom_components").mkdir()
+        Path(td, "custom_components", "\u00fc.py").write_text("x = 1\n")
+        git("add", "-A")
+        git("commit", "-qm", "non-ASCII production path")
+        # quote-null-control: git's default listing on purpose, the form rev-3888 found.
+        porcelain = [l for l in git("diff", "--name-only", f"{base}...HEAD").splitlines() if l]
+        return _codeql_scope().changed_files(base, "HEAD", cwd=td, env=env), porcelain
 
 
 def _is_ancestor(base: str, head: str, cwd: Path) -> bool:
@@ -1022,6 +1097,15 @@ def self_test() -> int:
         check(f"#3885: ... and {f} beside it is not light (null control)", light([rec, f]), False)
     check("#3885: an empty or unread list is not light (fail closed)", (light([]), light(None), light([" "])),
           (False, False, False))
+    # rev-3888 (2): git C-quotes a path with a non-ASCII or special byte unless told not to.
+    quoted = '"custom_components/heatpump_optimizer/\\303\\274.py"'
+    check("#3885: a git-quoted path is not light (fail closed)", light([rec, quoted]), False)
+    check("#3885: ... while an unquoted tools path beside it is (null control)", light([rec, "tools/ci/x.py"]), True)
+    q_listed, q_porcelain = _quote_probe()
+    check("#3885: the changed list names a non-ASCII production path unquoted, and it is not light",
+          (q_listed, light(q_listed)), (["custom_components/\u00fc.py"], False))
+    check("#3885: ... where git's default listing quotes it (null control: the probe reaches the quoting)",
+          q_porcelain, ['"custom_components/\\303\\274.py"'])
     with tempfile.TemporaryDirectory() as td:
         cj = Path(td) / "closures.json"
         cj.write_text(json.dumps({"closures": {"tests/plan_view.py": ["tests/harness.py", "tests/plan_view.py"],
@@ -1039,6 +1123,27 @@ def self_test() -> int:
                   False)
         check("#3885: a file no lane reads keeps none (null control)", stand_down([rec, "tools/ci/gate.py"], False, cj),
               prod_lanes)
+        # rev-3888 (1): the node driver's own reads, derived from its source, keep browser grading.
+        for f in ("tests/card_rig.mjs", "tests/dom_stub.mjs", "docs/img/card/pages.json"):
+            check(f"#3885: {f}, a file tests/card_browser.mjs reads, keeps browser grading",
+                  "browser" in stand_down([rec, f], False, cj), False)
+        check("#3885: ... while a docs file it does not read stands browser down (null control)",
+              "browser" in stand_down([rec, "docs/img/other.png"], False, cj), True)
+        nd = Path(td) / "tests"
+        nd.mkdir()
+        (nd / "drv.mjs").write_text('import { a } from "./lib.mjs";\nimport fs from "node:fs";\n'
+                                    'const repo = 1;\nconst M = path.join(repo, "docs/img", NAME);\n'
+                                    'const T = path.join(repo, `pkg/translations/${l}.json`);\n')
+        (nd / "lib.mjs").write_text('import { b } from "../tests/leaf.mjs";\n')
+        (nd / "leaf.mjs").write_text("export const b = 1;\n")
+        check("#3885: node_reads follows relative imports transitively and reads literal repo joins",
+              node_reads("tests/drv.mjs", Path(td)),
+              ({"tests/drv.mjs", "tests/lib.mjs", "tests/leaf.mjs", "docs/img"},
+               ("docs/img/", "pkg/translations/")))
+        check("#3885: an unreadable node driver reads as unknown (fail closed)",
+              node_reads("tests/none.mjs", Path(td)), None)
+        check("#3885: ... and an unreadable node driver stands nothing down",
+              stand_down([rec], True, cj, Path(td) / "nowhere"), [])
         check("#3885: a tests/ file keeps coverage and stands the rest down",
               stand_down([rec, "tests/other.py"], False, cj), ["browser", "hassfest", "typing", "validate"])
         check("#3885: a production file stands nothing down", stand_down([rec, "hacs.json"], True, cj), [])

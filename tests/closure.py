@@ -2946,13 +2946,15 @@ def proof_consume(expect_tree: str, in_dir: Path) -> int:
 
 def changed_between(base: str, head: str, *, dots: str = "...",
                     cwd: Path | str = ROOT, env: dict | None = None) -> list[str]:
-    """The files `<base><dots><head>` changed, both sides of every rename."""
-    out = subprocess.run(["git", "diff", "--no-renames", "--name-only",
+    """The files `<base><dots><head>` changed, both sides of every rename. `-z`:
+    git C-quotes a non-ASCII or special path in a plain listing, and a quoted
+    name matches no prefix and no closure entry (rev-3888)."""
+    out = subprocess.run(["git", "diff", "--no-renames", "--name-only", "-z",
                           f"{base}{dots}{head}"], cwd=cwd, env=env,
                          capture_output=True, text=True)
     if out.returncode != 0:
         raise SystemExit(f"closure: cannot diff {base}{dots}{head}: {out.stderr.strip()}")
-    return sorted({l.strip() for l in out.stdout.splitlines() if l.strip()})
+    return sorted({l for l in out.stdout.split("\0") if l.strip()})
 
 
 def changed_files(diff_ref: str) -> list[str]:
@@ -2965,10 +2967,10 @@ def changed_files(diff_ref: str) -> list[str]:
         raise SystemExit(f"closure: cannot diff against {diff_ref}: {e}") from None
     # Uncommitted work counts too, so a local `run.sh` scopes to what is
     # actually on disk.
-    for extra in (["git", "diff", "--no-renames", "--name-only", "HEAD"],
-                  ["git", "ls-files", "--others", "--exclude-standard"]):
+    for extra in (["git", "diff", "--no-renames", "--name-only", "-z", "HEAD"],
+                  ["git", "ls-files", "-z", "--others", "--exclude-standard"]):
         o = subprocess.run(extra, cwd=ROOT, capture_output=True, text=True)
-        files += [l.strip() for l in o.stdout.splitlines() if l.strip()]
+        files += [l for l in o.stdout.split("\0") if l.strip()]
     return sorted(set(files))
 
 

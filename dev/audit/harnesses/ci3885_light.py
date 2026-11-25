@@ -67,16 +67,17 @@ MUTANTS = [
      '                continue\n',
      '            run_jobs(get, ctx["repo"], r["id"])\n'),
     ("M3 the root files HACS reads are not production", P,
-     ' or f in PRODUCTION_FILES\n                                   for f in files)',
+     '\n                                   or f in PRODUCTION_FILES for f in files)',
      '\n                                   for f in files)'),
     ("M4 a .github/ change can be light", P,
-     'f.startswith(PRODUCTION_PREFIXES + NEVER_LIGHT)', 'f.startswith(PRODUCTION_PREFIXES)'),
+     "f.startswith(PRODUCTION_PREFIXES + NEVER_LIGHT + ('\"',))", "f.startswith(PRODUCTION_PREFIXES + ('\"',))"),
     ("M5 a light push keeps the full scope", P,
      ', {**ctx, "base_sha": rng[0]}, "auto"', ', {**ctx, "base_sha": rng[0]}, out["scope"]'),
     ("M6 a light push stands down no push-only lane", P,
      '(list(LIGHT_PUSH_LANES) if push else [])', '[]'),
     ("M7 a lane stands down even when the change reaches what it reads", P,
-     '        if not any(f in reads or f.startswith(extra) or Path(f).name in extra for f in changed):\n',
+     '        if not any(f in reads or f in node[0] or f.startswith(extra + node[1]) or Path(f).name in extra\n'
+     '                   for f in changed):\n',
      '        if True:\n'),
     ("M8 a base that is no ancestor is accepted", P,
      'if not base or not (ancestor or _is_ancestor)(base, ctx["head"], cwd):', 'if not base:'),
@@ -99,6 +100,16 @@ MUTANTS = [
      "      STAND_DOWN: ${{ contains(format(' {0} ', inputs.stand_down), ' coverage ') }}\n",
      "    # Nothing to grade when `coverage` stood down (#3885): it measured nothing.\n    env:\n"
      "      STAND_DOWN: false\n"),
+    ("M16 (rev-3888) browser's node driver reads nothing beyond its closure", P,
+     'NODE_DRIVERS = {"browser": "tests/card_browser.mjs"}', 'NODE_DRIVERS = {}'),
+    ("M17 (rev-3888) node_reads follows no relative import", P,
+     '            todo.append(os.path.normpath(os.path.join(os.path.dirname(rel), imp)))\n',
+     '            pass\n'),
+    ("M18 (rev-3888) a git-quoted path can be light", P,
+     "f.startswith(PRODUCTION_PREFIXES + NEVER_LIGHT + ('\"',))", "f.startswith(PRODUCTION_PREFIXES + NEVER_LIGHT)"),
+    ("M19 (rev-3888) the changed list is git's quoted default", ROOT / "tests/closure.py",
+     '["git", "diff", "--no-renames", "--name-only", "-z",\n                          f"{base}{dots}{head}"]',
+     '["git", "diff", "--no-renames", "--name-only",\n                          f"{base}{dots}{head}"]'),
 ]
 
 
