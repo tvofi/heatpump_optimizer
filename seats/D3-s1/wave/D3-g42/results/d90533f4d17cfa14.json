@@ -1,0 +1,51 @@
+{
+ "key": "d90533f4d17cfa14",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3649 GUARD_OFF",
+ "patch": "if hot <= 0.0: -> if False:",
+ "function": "ThermalModel.dhw_coast_hours",
+ "cluster": "thermal_model.py:ThermalModel.dhw_coast_hours@3640-3654",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3579.4,
+  "load1_start": 0.86,
+  "load1_end": 0.93
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_d90533f4d17cfa14.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_d90533f4d17cfa14.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_d90533f4d17cfa14.out",
+  "metrics_moved": "3",
+  "numbers": {
+   "h_10.0_5.0_20.0_baseline": "'0.0'",
+   "h_10.0_5.0_20.0_mutant": "'168.0'",
+   "h_15.0_10.0_20.0_baseline": "'0.0'",
+   "h_15.0_10.0_20.0_mutant": "'168.0'",
+   "h_20.0_10.0_20.0_baseline": "'0.0'",
+   "h_20.0_10.0_20.0_mutant": "'168.0'",
+   "h_40.0_30.0_20.0_baseline": "'57.762265046662115'",
+   "h_40.0_30.0_20.0_mutant": "'57.762265046662115'",
+   "metrics_moved": "3"
+  },
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "tests/features.py: dhw_coast_hours(15.0, 10.0, 20.0) == 0.0",
+ "note": "from_temp <= ambient: baseline 0.0; guard off gives 168.0 (15/10/20, 20/10/20, 10/5/20).",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "title": "dhw_coast_hours's hot<=0 guard has no test: a tank at or below ambient coasts 168 h",
+ "claim": "from_temp <= ambient: baseline 0.0; guard off gives 168.0 (15/10/20, 20/10/20, 10/5/20).",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-boundary-test",
+ "severity_claimed": "low",
+ "metric_definition": "probe_d90533f4d17cfa14.py RESULT metrics_moved: count of probed outputs that differ between the baseline and the one-line mutant",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_d90533f4d17cfa14.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_d90533f4d17cfa14.py",
+ "perturbation": "if hot <= 0.0: -> if False: (thermal_model.py:3649); numbers move baseline -> mutant as listed in probe output",
+ "null_control": "fullgate.py null (comment-only marker) is red only on the artefact scripts; inputs the line cannot distinguish in the same probe give no movement"
+}
