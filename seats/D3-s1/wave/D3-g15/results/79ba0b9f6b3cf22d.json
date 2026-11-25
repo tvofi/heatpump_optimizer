@@ -1,0 +1,59 @@
+{
+ "key": "79ba0b9f6b3cf22d",
+ "site": "dhw_planner.py:596 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 596,
+ "patch": "and interval_hours > 0 -> and interval_hours >= 0",
+ "function": "DhwPlanner._dhw_legionella_due",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4046.2,
+  "load1_start": 0.58,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 6574.5,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/79ba0b9f6b3cf22d.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 79ba0b9f6b3cf22d"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_79ba0b9f6b3cf22d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_79ba0b9f6b3cf22d.py",
+  "baseline_value": "interval0_baseline=(False, None)",
+  "mutant_value": "interval0_mutant=(True, 1)",
+  "results": {
+   "interval0_baseline": "(False, None)",
+   "interval0_mutant": "(True, 1)",
+   "null_moved": "0 count",
+   "reach_flow_min_days": "1",
+   "reach_service_min_days": "0.01",
+   "reach_service_accepts_0": "0 count",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.46",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "interval 0, 0.01, 1, 7, 30 d x hours_since 0/20/150/1000 h; the flow selector and service schema bounds",
+  "reading": "separates only at an interval of exactly 0 days (baseline no cycle, mutant overdue cycle at step 1); every positive interval (16 inputs incl. 0.01 d) agrees; the options flow's selector floor is 1 day and the set_parameters service refuses 0 (accepts from 0.01): unreachable through production",
+  "thread_factor": 1.0,
+  "load1": 3.46
+ },
+ "should_fail": "none through production; only a direct ThermalParameters(dhw_legionella_interval_days=0) separates"
+}
