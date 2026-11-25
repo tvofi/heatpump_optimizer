@@ -1,2 +1,3 @@
 1795608495 INIT r11-rev-3894
 1795608507 HB alive
+1795608600 CKPT diff read; release step reproduced: entities _PG_PLAN scratch repo has no origin snapshot 9098818d217b
