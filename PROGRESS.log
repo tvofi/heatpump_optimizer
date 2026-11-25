@@ -4,3 +4,4 @@
 1795601614 CKPT merge started: 12 conflicted paths incl. add/add duty_ledger.py snapshot b822cf632635
 1795601772 CKPT merge committed 98864c6f06 snapshot 865f087d54c3
 1795601777 INBOX acked through 2
+1795601816 CKPT STOP obeyed: BLOCKED.md at wip-sync/merge-3872 bec2fde09a snapshot 2d32bfc669c4
