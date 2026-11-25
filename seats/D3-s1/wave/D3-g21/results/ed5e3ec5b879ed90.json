@@ -1,0 +1,90 @@
+{
+ "key": "ed5e3ec5b879ed90",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5962 CMP_BOUND",
+ "patch": "float(np.sum((optimal_dhw > 0.1) & ~in_demand_window) * dt), 2 -> float(np.sum((optimal_dhw >= 0.1) & ~in_demand_window) * dt), 2",
+ "function": "HeatPumpOptimizer._optimize_with_dhw",
+ "cluster": "optimizer.py:HeatPumpOptimizer._optimize_with_dhw@5902-5962",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2436.0,
+  "load1_start": 0.87,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/ed5e3ec5b879ed90.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/ed5e3ec5b879ed90.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ed5e3ec5b879ed90.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ed5e3ec5b879ed90.py",
+  "metric": "predictive_info.dhw_preheat_hours (sensor.py:1249) under a 0.1 kW fuse cap",
+  "baseline_value": "0.0",
+  "mutant_value": "13.0",
+  "baseline_name": "dhw_preheat_hours_baseline",
+  "mutant_name": "dhw_preheat_hours_mutant",
+  "inputs_tried": [
+   "fuse cap min 0.1 kW (22 DHW steps at exactly 0.1 kW, 13 outside a window)",
+   "no fuse cap (null)"
+  ],
+  "results": {
+   "dhw_steps_at_0p1": "22 count",
+   "dhw_preheat_hours_baseline": "0.0",
+   "dhw_preheat_hours_mutant": "13.0",
+   "null_delta": "0 count",
+   "plan_dhw_maxabs_diff_kw": "0.0000 kW",
+   "thread_factor": "1.041",
+   "load1": "1.71",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_ed5e3ec5b879ed90.txt"
+ },
+ "should_fail": "tests/entities.py (traced baseline executes optimizer.py:5962, as do 11 other closure scripts): no check publishes a plan whose DHW steps sit at exactly the 0.1 kW floor",
+ "title": "No check reads dhw_preheat_hours at the 0.1 kW DHW floor; > -> >= is unseen",
+ "claim": "Mutant ed5e3ec5b879ed90 at custom_components/heatpump_optimizer/optimizer.py:5962 (float(np.sum((optimal_dhw > 0.1) & ~in_demand_window) * dt), 2 -> float(np.sum((optimal_dhw >= 0.1) & ~in_demand_window) * dt), 2) is not failed by the full gate (RED-AS-NULL), yet the probe's predictive_info.dhw_preheat_hours (sensor.py:1249) under a 0.1 kW fuse cap moves: baseline 0.0, mutant 13.0.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "dhw_preheat_hours counts out-of-window DHW steps strictly above 0.1 kW",
+ "metric_definition": "predictive_info.dhw_preheat_hours (sensor.py:1249) under a 0.1 kW fuse cap",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._optimize_with_dhw",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ed5e3ec5b879ed90.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ed5e3ec5b879ed90.py",
+ "perturbation": {
+  "change": "optimizer.py:5962 float(np.sum((optimal_dhw > 0.1) & ~in_demand_window) * dt), 2 -> float(np.sum((optimal_dhw >= 0.1) & ~in_demand_window) * dt), 2, applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ed5e3ec5b879ed90",
+  "expected_direction": "up: 0.0 -> 13.0 h"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ed5e3ec5b879ed90.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/entities.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}
