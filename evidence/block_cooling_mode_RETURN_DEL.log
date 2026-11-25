@@ -1,0 +1,218 @@
+Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
+tests/features.py[block]:3065: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+
+=== features block ===
+  FAIL cooling hands-off: a space boost with the mode reading Cooling writes no switch-on  [True [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+  FAIL cooling hands-off: a space boost with the mode reading Cooling + DHW writes no switch-on  [True [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+  ok   cooling hands-off: null control: the same boost with the mode reading Heating switches the pump on
+  ok   cooling hands-off: null control: the same boost with the mode reading Heating + DHW switches the pump on
+  FAIL cooling hands-off: a plan ON with the mode reading Cooling writes nothing  [(True, [('switch', 'turn_on')])]
+  FAIL cooling hands-off: a plan OFF with the pump running in Cooling writes nothing  [(False, [('switch', 'turn_off')])]
+  ok   cooling hands-off: null control: a plan OFF with the pump running in Heating switches it off
+  FAIL cooling hands-off: the cycle's last good Cooling holds a boost's switch-on through a dropout  [True [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+  ok   cooling hands-off: null control: the cycle's last good Heating lets it through
+  FAIL cooling repair: raised once for two boosted writes in one Cooling episode  [([], [])]
+  FAIL cooling repair: a cycle that asks for no heat keeps it while the mode reads Cooling  [[]]
+  ok   cooling repair: cleared when the mode leaves cooling
+  FAIL cooling repair: raised again in the next episode (Cooling + DHW)  [([], 0)]
+  ok   cooling repair: null control: a boost in Heating raises no cooling repair
+  ok   cooling repair: a plan OFF in Cooling asks for no heat and raises no cooling repair
+  FAIL early cut-off: a space step with the mode reading Cooling -> cooling  [None]
+  FAIL early cut-off: a space step with the mode reading Cooling + DHW -> cooling  [None]
+  ok   early cut-off: a space step with the mode reading Heating -> None
+  ok   cooling hands-off: a select reading Heating over a stale Cooling reading switches a boost on
+  ok   cooling hands-off: null control: select Heating, reading Heating switches it on
+  FAIL cooling hands-off: null control: select Cooling over a stale Heating reading writes nothing  [['turn_on'] []]
+  ok   cooling release: the select set to Heating: the refused ON lands at the next tick and the notice clears
+  FAIL cooling release: null control: the select still Cooling: no tick writes the switch  [([['turn_on'], ['turn_on']], [])]
+
+-- duty-switch restart learning, part A (design duty-switch-restart-learning)
+  ok   the table replays as three stops (one censored, two off times) and three kept; the 14 s leg counts nothing
+  ok   null control: the 14 s leg with a heated return, or a full leg without a return sensor, does count
+  ok   a switch opens an episode only between the two single duties, while running, with demand, on the plan and with nothing else to explain a stop; a re-send opens nothing
+  ok   each void cause in turn turns the stopped episode void: supply off, a non-plan mode, defrost, disinfection, boost, an electric heater, a fault, 3405's loop, a person's change, a foreign write, a lost signal
+  ok   null control: the same switch with no cause books the stop
+  ok   inside the window another mode write (a re-send included) voids; a stop past the window is kept; a pending change holds the expiry back
+  ok   an attributed stop keeps its count and loses its off time to a later write of any slot, the supply switch or a lost signal
+  ok   each learner call returns whether the stored record changed, which is what the caller saves on; a start edge before any stop is not read as the stop
+  ok   a stop edge at the write's own instant, or half a second after it, is the switch's; one before it voids. A write stamped at the stop's own instant censors nothing; one half a second after it does
+  ok   a gate the arbiter did not state is a gate not passed: demand alone or the plan alone opens nothing; a learner nobody fed has no usable direction, p of nothing is 0 and its span is no day
+  ok   the running class: the frequency at its floor, else the meter at its threshold; an absent or non-finite reading is no signal, never stopped, and the meter never stands in for the frequency
+  ok   a one-frame zero is no edge; a final zero no event follows is confirmed by the pass, at its own time
+  ok   usable switches on at n >= 5 spanning two days with p >= 0.5, and not below any of the three
+  ok   once on it stays on until n < 2.5 or p < 0.3
+  ok   decay halves n in 14 days and leaves p unchanged; a direction that fell under 2.5 does not switch on at one fresh episode; a stamp ahead of the clock decays nothing
+  ok   the span ages with the evidence: once a direction's weight is under SPAN_FLOOR_N its days are forgotten, so one year-old stop and six on a single day span one day and are not usable, as a fresh learner's six; null control, a first stop one half-life old still anchors the span
+  ok   the latch is judged at the booking itself: a stop taking n from 4 to 5 switches a direction on, one taking it from 3 to 4 does not, and a kept episode taking p under 0.3 switches one off
+  ok   the median off time is the middle of an odd list and the mean of the middle two of an even one; a booking ages the counts to its own time first, and every aging moves the stamp
+  ok   p publishes to two places, n as whole episodes (down, never up) and the median to one place; a direction holding only a void publishes a span of no day
+  ok   the published n is aged to the reading's time, p and the tallies are not
+  ok   age alone moves no published attribute within a day, and moves n only a whole episode at a time; null control, the decayed weight read to two places moves within the same day's reads
+  ok   N_ON is a weight: five stops ten hours apart, spanning two days, stay off at a weight under five; a sixth switches the direction on
+  ok   a restart keeps counts, days, off times and the latch through the dict round trip
+  ok   a record on its bounds (a zero and a one-day off time, a full off list, a tally of 10**9, a weight of 1e6) and an empty learner's own (no stamp, no day) load whole and are inside the store's registered domain
+  ok   each of 32 malformed or out-of-bounds payloads loads an empty learner, whole
+  ok   the off list never exceeds its cap and drops the oldest
+  ok   through the arbiter: a dhw->space mode write while running that stops the compressor inside the window books a stop and its off time
+  ok   null control: the same write with the compressor running on books a kept episode
+  ok   a defrost flag on the pump opens nothing; an unavailable frequency voids the open episode
+  ok   a person's change and the re-send that answers it void the episode instead of booking it kept
+  ok   through the arbiter, each reading that could stop the compressor by itself voids the stop: the supply switch off, a mode the plan does not command, disinfection, a boost, either electric heater, a fault, the feedback loop's moved target
+  ok   null control: the same install with every flag reading off books the stop, and so does a fault flag that reads on but stale
+  ok   through the arbiter, a mode write opens no episode without demand on the target duty, when the plan leaves that duty inside the stop window, on a return under the heated margin over the command's water set-point (unit return or flow), or, on an indoor set-point whatever the return reads and with no return sensor, on a replaced mode record younger than the least source leg
+  ok   null control: each gate one step the other side of its bound books the stop
+  ok   through the arbiter, a defrost known only by the interval flag opens nothing, and one that begins after the stop voids it; null control, the flag reading False books the stop
+  ok   through the arbiter, Economy is a plan-control mode like Auto: the stop books in both; null control, Comfort commands no single duty and books nothing
+  ok   through the arbiter, a space->dhw write counts only on hot-water demand: a tank at its set-point, or unread, opens nothing; null control, a tank 0.1 K under it books the kept episode
+  ok   through the arbiter, a mode write the plan's step at the write does not hold opens nothing, though the plan holds the duty by the window's end; null control, the same write on a step that holds it books the stop
+  ok   through the arbiter, a set-point written between the stop and the restart censors the off time; null control, the same install with no such write keeps it
+  ok   an arbiter pass switches off a usable direction whose evidence aged away, and saves the record once for that change, not on every pass; null control, a direction aged one minute stays usable and saves nothing
+  ok   a pass whose read of the record failed saves nothing over it, and the next pass reads and saves; a save that failed leaves the change owed, and the next pass lands it
+  ok   the listener is armed once however often it is attached, and the record heard once however often the arbiter subscribes; not at all with no signal entity; duty mode off on a pump never arbitrated, or never attached, raises nothing and forgets nothing
+  ok   detaching with an episode open drops it uncounted and stops hearing the edges; the running class is the running signal's and outlives the arbiter (R10-START-COUNTER-EDGES)
+  ok   the running signal's reader: unavailable, unknown and non-numeric frequency states are no signal; without a frequency sensor the meter reads against on_threshold_kw; with neither nothing is listened to
+  ok   the running signal's listener triggers no arbiter pass; duty mode off unsubscribes the learner and leaves the listener, which the start counter hears in every mode (R10-START-COUNTER-EDGES)
+  ok   the learned state survives a restart in its own store, per config entry, and the arbiter's record holds none of it
+  ok   a failed read of the record is not marked loaded and is read again; a mode write before the load is dropped
+  ok   a set-point write reports nothing to the learner and a mode write does; a pending change of the running class opens no episode
+  ok   null control, an empty learner, one under the evidence threshold at p = 1 and one from an install where no switch stops the compressor: the split order and every written command are today's, hot water first for its share; and a latched learner does change the split (the controls are not vacuous)
+  ok   and so are they on the install whose switch does stop it, while no direction is latched
+  ok   where only hot water to space is usable the both step serves space first for its share; with only space to hot water, or neither, hot water goes first as today
+  ok   the first duty keeps the whole step only when the switch into the second is usable, the second share (7.5 min) is shorter than SPLIT_MIN_MINUTES plus that direction's median off time, and the plan's next step serves the second duty; a next step serving the first duty or idle, an off time on the bound (150 s), or no off time split as today
+  ok   the split is latched per step: a re-solve moving the next step off the second duty and an unlatched learner inside the step leave it whole; the next both step decides afresh
+  ok   a record whose store is not read yet splits as today and latches nothing; null control, the same learner loaded keeps the whole step
+  ok   on the bounds: hot water's share ends at its own instant, a second later than one second before it; and a direction whose every off time was censored adds no off time to the whole-step bound (5.01 min second share split, under a 5.02 min minimum whole)
+  ok   planner and arbiter read one leg rule: leg_ends under the learner's split gives the first and last leg the arbiter serves in each order and whole-step case; control, the planner on the default rule disagrees where space goes first
+  ok   null control of the latch: the re-solved plan and learner read from the step's start split as today
+  ok   with the whole-step rule active the room and tank delivery summed over the denied step and the next equals the plan's, the next step serving the denied duty whole; and so does today's split
+  ok   the split reads the latches and nothing published: span_days 0 beside non-zero tallies splits as today, and two latched learners whose evidence weighs 5 and 10 (a unit gating fewer switches) split alike
+  ok   n has a ceiling: forty stops over two days hold n at N_CAP with p unchanged, so with no further episode a latched direction unlatches just past two half-lives and is re-tested; a record stored over the cap is held to it by the next pass alike; null control, a day before that it is still latched
+  ok   null control, a flat-price day: each both step of the flat scenario's plan is split and written identically under an empty learner, one under the evidence threshold and one where no switch stops
+  ok   only the arbiter, the sensor and the coordinator name duty_switch, through its report, attach, publish and store calls, and the estimate is read only by the arbiter's split and, once in the coordinator, the planner's read, beside the running class a solve starts from; the module imports none of them, and the running signal it hears imports none of them nor it; the pure half of wear stays pure
+  ok   the starts sensor's attributes are the counter's alone until a direction has an observation; then, per direction, only p, n, stopped, kept, void, censored, span days and (once one exists) the median off seconds, all numeric
+  ok   the span floor reads a direction's whole weight, kept episodes included: three kept and no stop keep their day a minute later and report no change, and lose it, reported once, only when n falls under SPAN_FLOOR_N; null control, three stops read the same
+  ok   through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on the window's end keeps the episode open and books the stop once confirmed; null control, with no stop read the same passes book it kept
+  ok   through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing, though the signal then reads stopped inside the window and running later (no signal is never evidence); null control, the same readings with the compressor read running at the write book the stop
+  ok   through duty_switch.note_mode_write, a mode write while the compressor is read stopped opens nothing and books nothing, whether it stays stopped or starts inside the window (no compressor ran across the switch); null control, the same passes with the compressor read running at the write book it kept
+  ok   through duty_switch.note_mode_write, a mode write while the compressor is settled stopped and a start read inside the debounce before it is still pending opens nothing and books nothing, whether the start holds or reads zero again 15 s after the write (only a settled running compressor is evidence); null control, the same passes with the compressor settled running at the write book it kept
+  ok   the reader's annotations resolve, as Python 3.13 resolves the module's at import: running_signal.source returns and attach takes the one reader type; null control, a seam annotated with a name no module binds does not resolve
+  ok   through duty_switch.note_mode_write, a mode write on a record just loaded whose first reading, 50 Hz, came inside the debounce before the write and is still pending opens nothing and books nothing, whether the reading holds or reads zero 15 s after the write (only a settled running compressor is evidence); null control, the same passes with the compressor settled running at the write book it kept
+  ok   through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it: a defrost that first reads on the pass after the confirming one does not void it, and the stop is booked; null control, the same stop with no defrost and a restart at 300 s books one stop of 240 s
+
+-- R10-CEILING-PROBE: the experiment's step reaches the pump; the ceiling store
+  ok   the probe's step (the configured 5.0 kW maximum) is heating at the flow ceiling
+  ok   the fit's sized 1.5 kW step writes its own level, below the ceiling, from the action not the plan (whose step here is 5.0 kW)
+  ok   the experiment's zero step (the fit's relax) is idle: the gate is written
+  ok   moving control: a plan at 5.0 and at 1.5 kW write two levels, the ceiling and the fit's -- before the fix the experiment wrote the baseline at both
+  ok   the experiment's duty is space exactly where its booked heat_pump_on is True
+  ok   a probe interval: the cycle books the supply on, and the step tick writes nothing over it
+  ok   item 29: the accessor is raw -- eleven samples give None, twelve their median
+  ok   item 29: twelve at 4.5 kW on a 5.0 kW configuration publish 4.5 (within 15 % is still published raw; the agreement ruling is R10-COP-GATE part D's); eleven, None
+  ok   item 29: the accessor is the median of the store, not its mean or its extreme -- one low interval (a cut step, a partial draw) among eleven at 3.0 kW, and one high outlier among eleven, both leave it at 3.0
+  ok   item 29: the accessor is the median, not an upper quantile -- nine intervals at 3.0 kW and three at 4.0 kW give 3.0, where the 90th percentile is 4.0
+  ok   the top lapses 45 days after the newest sample, and a sample stamped ahead of the clock has no knowable age
+  ok   an experiment's ceiling interval writes the store, not the window; the same interval the plan commanded writes the window, not the store
+  ok   a gate-held 1.4 kW draw above a learned 1.1 kW idle is a running sample yet stores nothing, nor does a ceiling draw at the idle draw or a sub-ceiling one; the same 1.4 kW with the ceiling written does
+  ok   reversal control: 48 ceiling draws through the window latch the clamp to the experiment's own measurement; the same 48 in the store leave engaged False, observed() unset and the top published beside the latch
+  ok   item 8: two ordinary ceiling-written draws 20 % over the learned top drop the store; one does not, 10 % over never does, and a sub-ceiling draw is no test
+  ok   a new probe sample restarts the overdraw count
+  ok   the store and its overdraw count persist through the accuracy store, a store-only record (no window, no configuration) included, and the domains admit every cell
+  ok   an unreadable store row is dropped, not the record; a non-count overdraw reads 0
+  ok   the probe's duration search: 2.0 h on the leaky house, 1.0 h on the tight one against the 0.8 K bound, none on a house no two-cycle step fits
+  ok   item 14, both sides of the bound: the probe takes the full 0.8 K, where the fit's noise-headroom bound (0.65 K) would leave the tight house one cycle and refuse it
+  ok   the kind: the fit while unconverged (150, 199), the probe once converged where the install can run one, and a published refusal where it cannot
+  ok   each kind its own clock: the probe waits 7 days unlearned and 30 once learned, from the store's newest sample or this process's last probe step
+  ok   a converged house arms a probe: it settles an hour on the plan, steps the configured 5.0 kW for four intervals, then hands back to the plan, fitting and adopting nothing
+  ok   the view names the kind and the last arm press
+  ok   a converged house with no meter or no flow set-point is refused at the press, and the refusal is published (it used to arm and idle in silence)
+  ok   the comfort and price gates hold the probe: none starts outside the night window
+  ok   the comfort and price gates hold the probe: none starts outside the outdoor band
+  ok   the comfort and price gates hold the probe: none starts on an expensive hour
+  ok   the comfort and price gates hold the probe: none starts on a flat price
+  ok   flat-price null: the fit's gate is unchanged on a flat price (ready), the probe's refuses it
+  ok   the comfort abort still stops a probe mid-step
+  ok   item 15: the searched duration is the one stepped -- the tight house's 1.0 h probe steps two intervals, not the configured 2.0 h
+  ok   a freeze holds an armed experiment and publishes why; once started, it aborts
+  ok   eligibility is install-level and shared with the arbiter's flow-command rule: a meter and a flow set-point driven in Control
+  ok   the button's route: a converged flow-metered install arms the probe, a converged duty-cycling one is refused with the reason, an unconverged one arms the fit
+  ok   item 7: a probe three days ago, read back from the stored record by a fresh experiment object, still refuses the press; eight days ago arms
+  ok   the coordinator's freeze holds the armed probe with its reason, and aborts a started one
+  ok   item 30: a run's last step interval goes to the store although the plan has been adopted since; a plan p_max interval just before a run goes to the window although the experiment has started since
+  ok   the synthetic pump's known 3.0 kW maximum is recovered within 2 %: three 2.0 h probes (four store samples each) and six 1.0 h probes (two each)
+  ok   control: routed on the mode one interval late, the 1.0 h probes store one sample each and a probe interval reaches the window
+  ok   part D's rule table: eleven samples, a lapsed store, a top within 15 %, a top above the configured one and a plan-writes-power install book the configured (1.0, 5.0) with their reasons; twelve samples at 3.0 kW book the learned 3.0
+  ok   part D: the 15 % edge is exclusive (4.25 of 5.0 keeps the configured top), and the bottom never exceeds the top (a configured 3.5 kW minimum under a learned 3.0 books 3.0)
+  ok   part D: the stamp carries the configured and planned tops, the source and the reason
+  ok   item D3: ``replace`` with the learned top keeps a valid ThermalParameters, min <= max
+  ok   invariant 2: a 3.0 kW plan step solved on the learned (1.0, 3.0) writes the 55 degC ceiling; the same step stamped configured, or unstamped, writes the configured band's level
+  ok   item D5: on a plan stamped with the learned band, the probe's configured 5.0 kW step still writes the heat level, and the fit's sized 1.5 kW step maps on the hub's band
+  ok   invariants 1 and 3(iv): twelve store samples at half the hub's maximum put the learned top in the solve copy and never in the hub; eleven leave the copy on the hub's figures
+  ok   _band_fields: a configured band returns no fields; a ceiling_probe band returns its max and min as the solve copy's electrical power range
+  ok   invariant 3 (i, ii, v): solved on eleven samples the plan is stamped configured; the twelfth folded without a solve leaves the arbiter's band and the published reason on that stamp; the next solve books the learned top and stamps it; a store dropped without a solve keeps the stamped learned band
+  ok   part D what-if: with twelve store samples at half the hub's maximum the what-if solve books the learned top the live solve books, not the configured one; with no store both book the configured top
+  ok   part D publish: the learning view carries the live plan's stamp, None with no plan
+  ok   part D publish: an empty stamp publishes None; an arbiter pass on a plan with no stamp (None) writes what the configured band writes and does not raise
+  ok   part D publish: the model status sensor names the configured and planned tops and publishes source and reason as top-level codes; no plan publishes None
+  ok   item D6: a warm start from a (1.0, 5.0) plan into a (1.0, 3.0) solve holds no step above 3.0; a plan inside the band is handed unchanged
+  ok   carry 6: each pump_max_power source and reason code has its user string in strings.json, en and sv (null: the rule table's codes are the set checked)
+  ok   the recorded outcome names the kind, the phase, the refusal and the last press, outside the unrecorded set, where the bulky view stays
+  ok   the fit's clock is inclusive: exactly 30 days after its last run arms it; 200 learner samples is converged, 199 is not
+  ok   the probe's clock is inclusive: exactly 7 days after the newest store sample arms it
+  ok   a fit armed unconverged stands down at the start once the learner reaches 200 samples
+  ok   the lapse is inclusive: a top exactly 45 days old still stands
+  ok   the store's edges: a set-point exactly CEILING_TOLERANCE_K under the ceiling is the ceiling, a draw exactly at the idle margin is the idle draw
+  ok   an overdraw counts at a set-point exactly CEILING_TOLERANCE_K under the ceiling
+  ok   the store keeps the newest 48 samples (CEILING_WINDOW)
+  ok   a stored row at the standby floor is dropped, one above it kept; a negative count reads 0
+  ok   a plan action's power is not the experiment's: the plan's own step (5.0 kW) decides duty and level although the action reads 0 kW
+  ok   no experiment view, no outcome row
+  ok   a probe armed on a declared plant seeds no fit: no slab pair, no re-seeded gains prior
+  ok   a house no two-cycle probe fits is aborted at the step with the reason, injecting nothing and starting no probe clock
+  ok   a draw exactly AGREE_TOLERANCE over the learned top is no overdraw
+  ok   the duration search's bound is inclusive: a peak exactly at the bound keeps the 2.0 h step, one ulp under it shortens to 1.5 h
+  ok   the fit's degenerate-house fallback is strict: a loss or a mass of exactly 1e-6 is no house to size on, and steps 0.3 of the maximum
+  ok   the probe prices its heat at the fit's COP floor (0.1): at a reported COP of 0.05 the 0.5 kW it injects fits no step on this house, where 0.25 kW would fit 2.0 h
+  ok   a step inside a quiet off or silent window is named; outside one, or with none set, it is not
+  ok   inside a quiet off window the coordinator holds an armed probe with the reason and aborts a started one; a window elsewhere in the day holds nothing
+  ok   hold_reason ranks a mode that cannot heat first, then the learners' freeze, then an unread room, then a quiet window, and is None when none holds
+  ok   arm_from_config takes the switch from the entry's configuration: off arms nothing, whatever the sysid config held before
+  ok   arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not
+  ok   R10-HOTFIX-AWAY-PRESENCE a presence entity whose interpreted away state flips, or a holiday calendar whose dates change, asks for a refresh at once, one per change
+  ok   R10-HOTFIX-AWAY-PRESENCE null control: a change that leaves the interpreted away state or the holiday dates as they were asks for no refresh
+  ok   R10-HOTFIX-AWAY-PRESENCE no presence entity or calendar, no listener; one each when both are set, and the entry's unload drops both
+  ok   R10-HOTFIX-AWAY-PRESENCE an entry with no unload list gets no listener: none is registered that its unload could not drop
+  ok   R10-HOTFIX-AWAY-PRESENCE the republished reload handover says the next solve is due now, not the pre-reload cycle's time
+  ok   R10-HOTFIX-AWAY-PRESENCE null control: the handover keeps its own plan age (the plan is still the pre-reload one)
+  ok   R10-TWO-ZONE-HHL a two-zone HousePlant is the zones' loss and mass, whatever the whole-house coefficient
+  ok   R10-TWO-ZONE-HHL null control: a single-zone HousePlant still follows the whole-house coefficient
+
+-- R10-PROD-RESIDUE-PINS: one plan step width in the arbiter; shutdown re-arms the hass latches
+  ok   R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a 30-minute step (6 of a 15-minute one) and the log holds a day of steps
+  ok   R10-PROD-RESIDUE-PINS #2365 null control: at the real 15-minute width the split is minute 6 and the log holds 96 steps
+  ok   R10-PROD-RESIDUE-PINS #2365: a remainder of exactly SPLIT_MIN_MINUTES is still a heating share (the guard is a strict <)
+  ok   R10-PROD-RESIDUE-PINS #2351: async_shutdown re-arms a hass-owned latch (WARNING twice across a shutdown)
+  ok   R10-PROD-RESIDUE-PINS #2351 null control: without the shutdown the second call stays at DEBUG
+  ok   R10-GRADE-DRIVERS tally: a zero-hour interval books no spot time
+  ok   R10-GRADE-DRIVERS tally: a non-finite spot books no spot time
+  ok   R10-GRADE-DRIVERS tally: the first interval is at the running mean, not below it
+  ok   R10-GRADE-DRIVERS day_drivers: an empty book splits a positive sample into zeros
+  ok   R10-GRADE-DRIVERS day_drivers: a negative sample leaves both drivers at 0
+  ok   R10-GRADE-DRIVERS day_drivers: a zero sample leaves both drivers at 0
+  ok   R10-GRADE-DRIVERS day_drivers: a negative-zero sample books the same zeros as a zero one, sign included
+  ok   R10-GRADE-DRIVERS day_drivers: a day that saved nothing scales to 0
+  ok   R10-GRADE-DRIVERS fold: None seeds the grade, a held grade blends by SCORE_ALPHA
+  ok   R10-GRADE-DRIVERS restore: adopts only a mapping the store admitted
+  FAIL R10-WHY-NOW-WIDGET: the cheapest step, mid-band, flat weather: price_rank leads and pushes to run  [None]
+  FAIL R10-WHY-NOW-WIDGET: one weight per step per code, magnitudes summing to 100 or all 0  [{}]
+Traceback (most recent call last):
+  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-issue-3885-programme-recovery-b4183d/d79a914f-18cf-4b0f-aaa8-09217682c233/scratchpad/rev3864/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-issue-3885-programme-recovery-b4183d/d79a914f-18cf-4b0f-aaa8-09217682c233/scratchpad/rev3864/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-issue-3885-programme-recovery-b4183d/d79a914f-18cf-4b0f-aaa8-09217682c233/scratchpad/rev3864/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 3394, in <module>
+TypeError: 'NoneType' object is not subscriptable
