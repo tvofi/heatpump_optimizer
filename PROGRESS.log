@@ -15,3 +15,4 @@
 1795622866 CKPT closure recording for 28 scripts reaching draw_range.py running snapshot 35d870542457
 1795623150 HB alive
 1795623754 HB alive
+1795624071 CKPT fixed finite_boundary + D6 counts; waiting on features/entities recordings snapshot 68290efefc00
