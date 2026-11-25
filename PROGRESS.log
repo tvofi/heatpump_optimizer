@@ -80,6 +80,9 @@
 1795627922 HB alive
 1795628526 HB alive
 1795628530 INBOX acked through 2
-1795629134 HB alive
-1795629738 HB alive
-1795629950 CKPT prepr refused: ci predict (beat-job-rows under-scoped, recording) and pr-body codeql red (answered: upload Server Error) snapshot 524e0d78d71d
+1795628599 HB alive
+1795628684 CKPT resumed at 9ff0d214c9; re-running self-tests and mutants snapshot 9b5413a74f89
+1795628975 HB alive
+1795629579 HB alive
+1795629604 CKPT round-2 mutants M4,M5,M18-M22 killed at 9ff0d214c9; prepr.sh running snapshot 459ee6040f9f
+1795630184 HB alive
