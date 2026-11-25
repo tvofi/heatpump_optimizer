@@ -1,0 +1,13 @@
+# re-fire run 2026-11-25T00:48:51Z, baseline scratch copy (git archive 92d38ecb), nproc 4,  Intel(R) Xeon(R) Processor @ 2.10GHz, load1 1.10
+RESULT production_shaped_moved=0 of 144 []
+RESULT baseline_paths joint_shortcut=48 per_slot=96 count
+RESULT no_weak_in_range baseline=[2.0, 0.0] mutant=[2.0, 0.0]
+RESULT no_weak_above_pmax baseline=[3.0] mutant=[3.5]
+RESULT no_weak_negative baseline=[0.0] mutant=[-0.5]
+RESULT no_weak_nan baseline=[nan] mutant=[nan]
+RESULT direct_no_weak_moved=2 of 4 (above_pmax,negative)
+RESULT reach_cheapest_first_returns=['np.clip(plan, 0.0, p_dhw_max)', 'plan']
+RESULT thread_factor=1.000
+RESULT load1=1.10
+RESULT swapins=0
+rc=0

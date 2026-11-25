@@ -1,0 +1,23 @@
+# re-fire run 2026-11-25T00:48:48Z, baseline scratch copy (git archive 92d38ecb), nproc 4,  Intel(R) Xeon(R) Processor @ 2.10GHz, load1 1.02
+RESULT derate(-1000000000.0) baseline=1.0 mutant=1.0
+RESULT derate(-1.0) baseline=1.0 mutant=1.0
+RESULT derate(-0.3) baseline=1.0 mutant=1.0
+RESULT derate(-1e-12) baseline=1.0 mutant=1.0
+RESULT derate(-0.0) baseline=1.0 mutant=1.0
+RESULT derate(0.0) baseline=1.0 mutant=1.0
+RESULT derate(1e-12) baseline=0.9999999999985 mutant=0.9999999999985
+RESULT derate(0.1) baseline=0.85 mutant=0.85
+RESULT derate(0.3) baseline=0.55 mutant=0.55
+RESULT derate(0.31) baseline=0.55 mutant=0.55
+RESULT derate(1.0) baseline=0.55 mutant=0.55
+RESULT derate(5.0) baseline=0.55 mutant=0.55
+RESULT derate(inf) baseline=0.55 mutant=0.55
+RESULT derate(-inf) baseline=1.0 mutant=1.0
+RESULT derate(nan) baseline=0.55 mutant=0.55
+RESULT inputs_moved=0 of 15 ()
+RESULT DERATE_MAX=1.0
+RESULT posctl_derate_max_1_05 baseline=1.0 mutant=1.05
+RESULT thread_factor=1.000
+RESULT load1=1.02
+RESULT swapins=0
+rc=0

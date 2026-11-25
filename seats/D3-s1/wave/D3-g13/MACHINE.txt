@@ -8,3 +8,15 @@ Filesystem      Size  Used Avail Use% Mounted on
 load1: 0.65
 2026-11-22T21:39:21Z
 python3: /opt/hpo/venv-ci/bin/python3 ($HOME/venv-ci symlinked to it)
+
+re-fire (second seat, new container) 2026-11-25T00:47:34Z:
+nproc: 4
+               total        used        free      shared  buff/cache   available
+Mem:           16087         755       14043          12        1561       15331
+Swap:              0           0           0
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1: 0.34
+python3: /opt/hpo/venv-ci/bin/python3 ($HOME/venv-ci symlinked to it)
+note: CPU differs from the first fire (2.10GHz vs 2.30GHz, both 4 cores/16 GB); the restored null is reused as gate_wave.sh's restore intends; a KILLED verdict on a timing-sensitive script would be re-adjudicated against a null re-taken on this machine.
