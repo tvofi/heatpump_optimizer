@@ -11,6 +11,19 @@ PROBES = "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes"
 PY = "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3"
 
 
+# The closure scripts the carried M4 answer names as executing the line on the traced baseline (slice reports).
+M4_SCRIPTS = {
+    "5f094dbca9a593e9": ["tests/features.py"], "7b4d6225353952ed": ["tests/features.py"],
+    "754e4cb5fa60e129": ["tests/features.py"],
+    "3e9a439baa86a074": ["tests/features.py", "tests/finite_boundary.py"],
+    "64a2ed644109fda3": ["tests/block_duty.py", "tests/boost_drift_replay.py", "tests/config_flow_steps.py",
+                         "tests/entities.py", "tests/features.py", "tests/manual_plan.py", "tests/optimality.py",
+                         "tests/plan_view.py", "tests/validate.py"],
+    "968c552b8acd9df9": ["tests/env_drift.py", "tests/features.py"], "996dce5148e02763": ["tests/env_drift.py", "tests/features.py"],
+    "a074fb25836c2bc6": ["tests/env_drift.py", "tests/features.py"],
+}
+
+
 def gate_fields(g):
     keep = ("verdict", "killed_by", "gate_rc", "wall_s", "load1_start", "load1_end", "failed_scripts", "cap_s", "note")
     out = {k: g.get(k) for k in keep if k in g}
@@ -50,7 +63,10 @@ def main(key):
     a = json.loads((W / "analysis.json").read_text())[key]
     verdict = g.get("verdict")
     probe = f"{PROBES}/probe_{key}.py"
-    should_scripts = mrec.get("should_have_failed") or sorted({r.get("script") for r in mrec.get("runs", []) if isinstance(r, dict) and r.get("script")} | set())
+    m4 = M4_SCRIPTS.get(key)
+    runs = mrec.get("runs", {})
+    should_scripts = {"line_executing_per_carried_m4": m4 or "not named by the carried M4 answer",
+                      "full_net_scripts_run_green": sorted(runs) if isinstance(runs, dict) else []}
     rec = {
         "key": key,
         "site": f"{row['file']}:{row['line']} {row['kind']}",

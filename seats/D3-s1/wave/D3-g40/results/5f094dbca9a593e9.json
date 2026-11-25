@@ -37,7 +37,25 @@
   "probe_class": "candidate"
  },
  "should_fail": {
-  "scripts": [],
+  "scripts": {
+   "line_executing_per_carried_m4": [
+    "tests/features.py"
+   ],
+   "full_net_scripts_run_green": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
   "assertion_lacking": "a _smooth_topk_sum / _plateau_aware_topk_sum unit on a tied plateau with peak below 2e-8 kW asserting the k*tie_level value and no RuntimeWarning"
  },
  "finding": {
