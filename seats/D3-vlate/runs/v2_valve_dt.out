@@ -1,0 +1,8 @@
+RESULT 68_direct dt=0.25 base=0.278400 mut=2.800000 delta=2.521600
+RESULT 68_direct dt=0.1 base=0.696000 mut=2.800000 delta=2.104000
+RESULT 68_direct dt=0.05 base=1.392000 mut=2.800000 delta=1.408000
+RESULT 68_direct dt=0.02 base=2.800000 mut=2.800000 delta=0.000000
+RESULT 68_direct dt=0.01 base=2.800000 mut=2.800000 delta=0.000000
+RESULT 68_direct dt=0.005 base=2.800000 mut=2.800000 delta=0.000000
+RESULT 68_substep_dt_for_finder_plant=[0.01923] calls=13
+rc=0

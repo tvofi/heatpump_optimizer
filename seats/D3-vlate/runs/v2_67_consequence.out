@@ -1,0 +1,2 @@
+RESULT 67_holiday_windows_in_force base=2 mut=0
+RESULT 67_null_not_holiday base=2 mut=2 delta=0
