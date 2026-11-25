@@ -337,9 +337,12 @@ def _shipped_and_received(
 ) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
     """The level each circuit ships at, and the space draw the house receives.
 
-    The two differ only where a priced stop keeps the compressor off for part
-    of a step (``duty_legs.delivered_space``); with no availability vector the
-    received draw is the shipped array itself, the same object. Space is
+    The two differ where a priced stop keeps the compressor off for part of a
+    step (``duty_legs.delivered_space``), and, on the true objective, where a
+    run's first steps or a pause's draw the learned approach
+    (``runs.received``, Bankaifan, comment 6944433306 on pull request 3670),
+    which the stop's share then applies to; with neither the received draw is
+    the shipped array itself, the same object. Space is
     scored as it stands, and what stands is a committed plan
     (:func:`_commit_runs`); hot water is its planner's, so a clamped install's
     ships as its projection, which a descent leaves out.
@@ -347,9 +350,16 @@ def _shipped_and_received(
     if dhw is not None and opt.config.clamp_planned_levels and not descent:
         dhw = project_planned_levels(
             dhw, opt.model.params.min_electrical_power, opt.model.params.max_electrical_power)
+    received = space if descent else _received(opt, space, dhw)
     if avail is None or dhw is None:
-        return space, dhw, space
-    return space, dhw, duty_legs.delivered_space(space, dhw, avail, _duty_floor(opt))
+        return space, dhw, received
+    return space, dhw, duty_legs.delivered_space(received, dhw, avail, _duty_floor(opt))
+
+
+def _received(opt: HeatPumpOptimizer, space: np.ndarray, dhw: np.ndarray | None) -> np.ndarray:
+    """``runs.received`` of a shipped space plan or batch, at the solve's approach."""
+    fn = runs.received_batch if np.ndim(space) == 2 else runs.received
+    return fn(space, 0.0 if dhw is None else dhw, opt._approach, dt=opt.config.dt_hours, p_max=opt.model.params.max_electrical_power)
 
 
 def _switch_cost_fn(
@@ -548,7 +558,7 @@ def _run_plans(
     heats = (hi >= floor) & ((other <= 0.0) | (space >= floor / 2.0))
     masks = runs.candidates(
         space + other, h.prices, floor, hi + other, opt.config.start_price,
-        dt=h.dt, running=h.compressor_running,
+        dt=h.dt, running=h.compressor_running, entry_kwh=0.0 if opt._approach is None else opt._approach.entry_kwh(floor),
         forced=np.where((other > 0.0) | (lo > 0.0), 1.0, np.where(hi + other <= 0.0, 0.0, np.nan)),
     )
     idle = np.where(cycled, space, lo)
@@ -3177,6 +3187,9 @@ class SolveInputs:
     #: The compressor runs at solve time: a run that continues from it is no
     #: start, in the start term and in the published count alike.
     compressor_running: bool = False
+    #: The learned approach of a run's first steps (``runs.Approach``), which
+    #: the true objective reads as received draw; ``None`` learns none.
+    approach: runs.Approach | None = None
 
 
 def _horizon_weather(series: ForecastSeries, n_steps: int) -> WeatherSeries:
@@ -3525,6 +3538,8 @@ class HeatPumpOptimizer:
         #: The ``duty_legs.availability`` vector the last space solve scored
         #: with, riding beside its plan; ``None`` when no stop is charged.
         self._space_avail: np.ndarray | None = None
+        #: ``SolveInputs.approach`` of the solve in hand.
+        self._approach: runs.Approach | None = None
         #: The solve's starting buffer temperature; floors the settlement
         #: value cap so pre-stored heat cannot be drained for free.
         self._initial_buffer_temp: float | None = None
@@ -4650,6 +4665,7 @@ class HeatPumpOptimizer:
         # #1295: the plan the caller hands in -- the coordinator seeds it from
         # the last shipped plan -- is one extra candidate on the FIRST solve
         # only; ``_warm_start_starts`` says why later solves get none.
+        self._approach = inputs.approach
         result = _solve(self._warm_start_starts(n_steps))
 
         # A blocked channel is withheld from the release loop entirely. Its
@@ -5517,7 +5533,7 @@ class HeatPumpOptimizer:
 
             # Electricity cost, piecewise in PV surplus. ``float()`` is
             # identity on the 1-D branch's return and states it.
-            drawn = combined if heat_power is space_power else heat_power + dhw_plan_power
+            drawn = combined if heat_power is space_power else heat_power + (0.0 if dhw_plan_power is None else dhw_plan_power)
             energy_cost = (
                 float(energy_cost_of(drawn)) * self.config.price_weight
             )
@@ -5583,7 +5599,7 @@ class HeatPumpOptimizer:
             )
             return self._cost_terms_batch(
                 traj,
-                grid_power if heat_matrix is space_matrix else heat_matrix + dhw_plan_power,
+                grid_power if heat_matrix is space_matrix else heat_matrix + (0.0 if dhw_plan_power is None else dhw_plan_power),
                 level_cost=_with_switch_cost(
                     _with_switch_cost(capacity_batch(grid_power), start_cost(grid_power, descent)),
                     switch_cost(space_matrix, dhw_plan_power, descent)),
@@ -5965,8 +5981,9 @@ class HeatPumpOptimizer:
         )
         # Received through the vector the adopted solve scored with, never a
         # rebuilt one; the schedule and the achieved objective keep the level.
-        heat_space = optimal_space if self._space_avail is None else duty_legs.delivered_space(
-            optimal_space, optimal_dhw, self._space_avail, _duty_floor(self))
+        heat_space = _received(self, optimal_space, optimal_dhw)
+        heat_space = heat_space if self._space_avail is None else duty_legs.delivered_space(
+            heat_space, optimal_dhw, self._space_avail, _duty_floor(self))
 
         # Simulate with optimal schedule
         published_end: list[ThermalState] = []

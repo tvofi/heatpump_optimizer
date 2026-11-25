@@ -240,6 +240,7 @@ from .accuracy import (
     COP_REFUSED_FROST_BAND,
     COP_REFUSED_FROZEN,
     COP_REFUSED_MODELLED,
+    COP_REFUSED_OFF_ASK,
     COP_REFUSED_NO_HEAT,
     COP_REFUSED_NO_POWER,
     COP_REFUSED_OBSERVED,
@@ -5018,6 +5019,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         space, dhw = self._commanded_split()
         return space + dhw
 
+    def _expected_draw(self) -> tuple[float, bool]:
+        """The draw the plan expects of the meter over the live step, kW, and
+        whether the step sits inside the learned approach of a run's first
+        steps (``draw_range.expected_draw``; Bankaifan, comment 6944433306 on
+        pull request 3670). With none learned, ``_commanded_power()`` and False."""
+        ctx = getattr(self, "_ctx", self)
+        return draw_range.expected_draw(self._accuracy.draw, self._commanded_split(), ctx._thermal_params, dt_util.now().timestamp(), ctx._config.optimization_interval / 60.0)
+
     def _interval_space_power(self) -> float | None:
         """Electrical power that actually heated the house last interval, kW.
 
@@ -5065,7 +5074,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # fabricates a confident 0 kW sample. Same gate, same reasoning as
         # the COP fold: a large total gap is tracking, not measurement, so
         # the interval carries no usable split (v4.0.5 review).
-        commanded_total = commanded_space + dhw_share
+        # Inside a run's learned approach the reference is the draw the plan expected (``_expected_draw``).
+        commanded_total = pending["power"] if (pending := self._pending_prediction) and pending.get("inside_approach") else commanded_space + dhw_share
         if (
             abs(float(self._measured_power) - commanded_total)
             / max(commanded_total, 0.5)
@@ -5337,6 +5347,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
+        if (pending := self._pending_prediction) and pending.get("inside_approach"):
+            return COP_REFUSED_OFF_ASK  # a run's learned approach: drawn over asked is no efficiency reading
         params, measured_heat, priced = ctx._thermal_params, probe_install(ctx._config).measured_heat, self._cop_scale
         # Past the freeze gate (a frozen cycle moves no scale), two things happen. First the held intervals
         # ``MeasuredCop.release`` lets out. Then the scale its heat-ask probe owes this cycle (``owed_scale``;
@@ -6320,6 +6332,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             state=state,
             start_time=solve_now,
             compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),
+            approach=draw_range.solve_approach(self._accuracy.draw, params, solve_now.timestamp()),
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -9950,10 +9963,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # draw pairs with that interval's ask and set-point, not the next one's
         # (#2262), within the window the accuracy pairing below trusts; a
         # prediction recording no split, or a dwell that saw hot water, is none.
-        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and not heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
+        # A dwell that saw hot water moves only the approach's run clock: a charge before a space run leaves it an entry.
+        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
+            draw_range.note_approach(self._accuracy.draw, None, pending["split"], ctx._thermal_params, (pending["when"].timestamp(), now.timestamp()), sample=False)
+        elif pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
             # An unplanned charge is no running space sample (#3760): the pending split's own evidence.
             space_frozen = self._learning_frozen(CONF_POWER_ENTITY, sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, pending["split"]))
-            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=space_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None, ceiling_frozen=_ceiling_frozen(self))
+            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=space_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None, ceiling_frozen=_ceiling_frozen(self), span_s=(pending["when"].timestamp(), now.timestamp()))
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -10043,7 +10059,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # compared against has to be the whole plan. Recording space
             # heating alone made every hot-water charge look like the unit
             # under-delivering, which fed straight into the defrost derate.
-            "power": self._commanded_power(),
+            # R11-OUTSIDE-START-APPROACH: the draw expected of the meter, a run's learned approach included.
+            **dict(zip(("power", "inside_approach"), self._expected_draw())),
             "split": self._commanded_split(),
             "flow_command": pump_arbiter.flow_command(self),
             "mode": self._current_action.get("mode"),  # routes draw_range.fold
@@ -10161,7 +10178,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not trajectory:
             return
         self._accuracy.note_promise(  # R9-UX-6: the day-ahead replay's promise
-            solve_time, dt_h, trajectory, result.power_schedule,
+            solve_time, dt_h, trajectory, draw_range.received_schedule(self._accuracy.draw, ctx._thermal_params, result.power_schedule, result.dhw_power_schedule, solve_time.timestamp(), dt_h),
             result.dhw_power_schedule, result.prices,
         )
         for lead in LEAD_BUCKETS:
@@ -11257,6 +11274,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             start_time=solve_at,
             held_start=held_start,
             compressor_running=duty_switch.record_for(self).solved_running,
+            approach=draw_range.solve_approach(self._accuracy.draw, scratch_params, solve_at.timestamp()),
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,

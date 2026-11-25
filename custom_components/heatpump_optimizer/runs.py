@@ -26,7 +26,7 @@ shortest run and pause.
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, Callable
+from typing import Any, Callable, NamedTuple
 
 import numpy as np
 
@@ -53,6 +53,23 @@ OUT_OF_BAND = 10.0
 _TIE_BREAK = 1e-9
 #: Float slack on a level or an energy compared against the floor, kW or kWh.
 _SLACK = 1e-9
+
+class Approach(NamedTuple):
+    """The learned approach a plan's runs draw (``approach.entry_levels``,
+    ``approach.ramp_levels``): levels by ``bin_h`` bin after a space-run
+    entry and after a run's end, kW, and the live run's age at step 0, hours
+    (``ApproachProfile.age_h``: ``0.0`` with none live, ``None`` unknown)."""
+
+    entry: np.ndarray
+    ramp: np.ndarray
+    age_h: float | None
+    bin_h: float
+
+    def entry_kwh(self, level: float) -> float:
+        """The entry's energy above ``level``, kWh: what a run started from a
+        pause draws beyond its shipped level."""
+        return float(np.sum(np.maximum(self.entry - level, 0.0))) * self.bin_h
+
 
 #: One thing a step may do in a program: from the scalars of the cells it
 #: leaves, and whether those cells were running, to the scalars it arrives
@@ -108,6 +125,79 @@ def edge_count(total: Any, running: bool = False) -> int:
     return int(np.sum(on & ~np.r_[bool(running), on[:-1]]))
 
 
+def _mean_excess(levels: np.ndarray, bin_h: float, age_h: float, dt: float, shipped: float) -> float:
+    """The mean over ``[age_h, age_h + dt)`` of ``levels`` (one per ``bin_h``
+    bin, none past the last) above ``shipped``, kW."""
+    total = 0.0
+    for j in range(max(int(age_h // bin_h), 0), min(levels.size, int(np.ceil((age_h + dt) / bin_h)))):
+        overlap = min(age_h + dt, (j + 1) * bin_h) - max(age_h, j * bin_h)
+        if overlap > 0.0:
+            total += max(float(levels[j]) - shipped, 0.0) * overlap
+    return total / dt
+
+
+def received(space: Any, dhw: Any, approach: Approach | None, *, dt: float, p_max: float) -> Any:
+    """The space draw the pump takes for a shipped space plan, kW per step,
+    given the learned approach (``approach.entry_levels`` and
+    ``approach.ramp_levels``, one level per ``bin_h`` bin).
+
+    A space run is read off the space plan alone (``MIN_RUNNING_DRAW_KW``): a
+    charge beside a run is no entry, a charge before one leaves it one. A step
+    inside a run at age ``a`` takes the shipped level plus the mean of
+    ``entry`` above it over ``[a, a + dt)`` -- ``max(shipped, entry)`` at bin
+    resolution; a pause's steps after a run's end take ``ramp`` alike;
+    elsewhere the shipped level. What is added never takes the step above
+    ``p_max`` less its hot water. ``approach.age_h`` is the live run's age at
+    step 0: ``0.0`` with no run live, ``None`` unknown, which books no entry
+    and no ramp until the plan's next edge. No approach or no levels:
+    ``space`` itself, the same object.
+    """
+    if approach is None or (approach.entry.size == 0 and approach.ramp.size == 0):
+        return space
+    entry, ramp, age_h, bin_h = approach
+    shipped = np.asarray(space, dtype=float)
+    hot = np.broadcast_to(np.asarray(dhw, dtype=float), shipped.shape)
+    out = shipped.copy()
+    run_age: float | None = None if age_h is None or age_h <= 0.0 else float(age_h)
+    since_stop: float | None = None
+    live = age_h is None or age_h > 0.0
+    for k in range(shipped.size):
+        on = bool(shipped[k] > MIN_RUNNING_DRAW_KW)
+        if on:
+            if not live:
+                run_age = 0.0
+            since_stop, levels, age = None, entry, run_age
+        else:
+            if live and run_age is not None:
+                since_stop = 0.0
+            run_age, levels, age = None, ramp, since_stop
+        live = on
+        if age is None:
+            continue
+        add = _mean_excess(levels, bin_h, age, dt, float(shipped[k]))
+        room = max(float(p_max) - float(hot[k]) - float(shipped[k]), 0.0)
+        out[k] = shipped[k] + min(add, room)
+        if on:
+            run_age = age + dt
+        else:
+            since_stop = age + dt
+    return out
+
+
+def received_batch(space: np.ndarray, dhw: Any, approach: Approach | None, *, dt: float, p_max: float) -> np.ndarray:
+    """:func:`received` of each row of a ``[B, n]`` batch, by the one-row
+    function per row, so each row is it bit for bit; ``space`` itself with no
+    levels."""
+    if approach is None or (approach.entry.size == 0 and approach.ramp.size == 0):
+        return space
+    rows = np.asarray(space, dtype=float)
+    hot = np.broadcast_to(np.asarray(dhw, dtype=float), rows.shape)
+    return np.stack([
+        received(rows[b], hot[b], approach, dt=dt, p_max=p_max)
+        for b in range(rows.shape[0])
+    ])
+
+
 def realizable(total: Any, floor: float) -> bool:
     """Every step off or at the floor or above: the plan runs as it stands."""
     q = np.asarray(total, dtype=float)
@@ -117,7 +207,7 @@ def realizable(total: Any, floor: float) -> bool:
 def commit(
     q: Any, prices: Any, floor: float, caps: Any, start_cost: float, band: int,
     *, dt: float, running: bool = False, forced: Any = None,
-    lengths: tuple[int, int] = (1, 1),
+    lengths: tuple[int, int] = (1, 1), entry_kwh: float = 0.0,
 ) -> tuple[np.ndarray, bool]:
     """The on/off mask that runs the relaxed plan ``q`` cheapest, and whether
     it tracked ``q``'s energy within its band.
@@ -133,6 +223,10 @@ def commit(
     cut a run or a pause short. A balance outside the band is held at the
     edge cell and pays :data:`OUT_OF_BAND` for the energy outside: ``False``
     says the mask left the band, a best effort and never a refusal.
+    ``entry_kwh`` is the learned approach's energy above the level
+    (:meth:`Approach.entry_kwh`): a run started out of a pause also moves the
+    balance by it and pays its step's price for it, so the energy an entry
+    delivers is left out later. At zero the run action is :func:`_shift`.
     """
     q = np.asarray(q, dtype=float)
     n = q.size
@@ -159,12 +253,13 @@ def commit(
         ran, paused = tie_break(bool(q[k] > 0.0))
         cost, bal, back = advance(
             cost, bal, state_moves(*lengths, want[k]),
-            ([_shift((level[k] - q[k]) * dt, price[k] * level[k] * dt + ran)], [_shift(-q[k] * dt, paused)]),
+            ([_run((level[k] - q[k]) * dt, price[k] * level[k] * dt + ran, entry_kwh, price[k])], [_shift(-q[k] * dt, paused)]),
             float(start_cost), cells, min_on)
         trail.append(back)
     ending = cost + fine * np.maximum(np.abs(bal) - f * dt / 2.0, 0.0)
     mask = read_back(trail, ending, min_on)[0]
-    walk = np.cumsum(np.where(mask, level, 0.0) - q) * dt
+    entered = mask & ~np.r_[bool(running), mask[:-1]]
+    walk = np.cumsum(np.where(mask, level, 0.0) * dt + entered * float(entry_kwh) - q * dt)
     tracked = bool(
         np.all(np.abs(walk) <= half * quantum + _SLACK) and abs(walk[-1]) <= f * dt / 2.0 + _SLACK)
     return mask, tracked
@@ -172,7 +267,7 @@ def commit(
 
 def candidates(
     q: Any, prices: Any, floor: float, caps: Any, start_cost: float,
-    *, dt: float, running: bool = False, forced: Any = None,
+    *, dt: float, running: bool = False, forced: Any = None, entry_kwh: float = 0.0,
 ) -> list[np.ndarray]:
     """:func:`commit`'s distinct masks over :data:`BANDS`, tightest first, at
     the step counts of :data:`MIN_RUN` and :data:`MIN_PAUSE`.
@@ -188,7 +283,7 @@ def candidates(
             break
         mask, exact = commit(
             q, prices, floor, caps, start_cost, band, dt=dt, running=running,
-            forced=forced, lengths=lengths,
+            forced=forced, lengths=lengths, entry_kwh=entry_kwh,
         )
         tracked |= exact
         if not any(np.array_equal(mask, m) for m in masks):
@@ -227,6 +322,14 @@ def state_moves(min_on: int, min_off: int, want: float, may_start: bool = True) 
 def _shift(change: float, paid: float) -> Action:
     """:func:`commit`'s action: the balance moved by ``change`` for ``paid``."""
     return lambda bal, _ran: (bal + change, paid)
+
+
+def _run(change: float, paid: float, entry_kwh: float, price: float) -> Action:
+    """:func:`commit`'s run action: :func:`_shift`, and out of a pause the
+    entry's energy above the level besides, at the step's price."""
+    if not entry_kwh > 0.0:
+        return _shift(change, paid)
+    return lambda bal, ran: (bal + change + (0.0 if ran else entry_kwh), paid + (0.0 if ran else price * entry_kwh))
 
 
 def advance(
