@@ -161,7 +161,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, draw_range, duty_ledger, duty_switch, issues, off_restore, pump_mode, quiet_windows
+from . import boost, draw_range, duty_ledger, duty_switch, flow_limit, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -392,6 +392,8 @@ class ArbiterState:
     supply_held: bool = False
     #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
     held_until: datetime | None = None
+    #: ``supply_hold.ISSUE_COOLING`` is raised for this cooling episode.
+    cooling_asked: bool = False
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
     #: ``frost_hold``'s, read here, never persisted: its latch, whether an OFF is held, the learners' freeze end.
@@ -532,11 +534,10 @@ def step_duty(result: Any, now: datetime) -> str | None:
     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now.
 
     Each circuit's draw is read by the plan's own running rule
-    (``planned_draw_runs``), so the duty the arbiter serves is the duty the
-    plan booked. No caller supplies a threshold: one that did handed it the
-    meter's and split the two circuits on two numbers (R9 D12-s2-01, #1644 P2).
-    The plan's own floor travels as that rule's ``modulation_floor`` argument,
-    never as module state (D7-arch3-04).
+    (``planned_draw_runs``), with the plan's own floor as its
+    ``modulation_floor`` argument, so the duty the arbiter serves is the duty
+    the plan booked. No caller supplies a threshold: one that did split the two
+    circuits on two numbers (R9 D12-s2-01, #1644 P2).
     """
     i = plan_step_index(result, now)
     if i is None:
@@ -606,6 +607,24 @@ def _grid(inp: ArbiterInputs, slot: str) -> SetpointGrid | None:
     return setpoint_grid(inp.hass, _entities(inp.config)[slot])
 
 
+def _space_limit_c(inp: ArbiterInputs) -> float | None:
+    """The space water set-point's high limit (:func:`flow_limit.high_limit`), degC, or ``None``,
+    always for an indoor unit; a source set aside is logged. Heating writes, a boost and the loop
+    take it as their ``hi``, under which the entity's own maximum still binds; the gate, the
+    draw-range ceiling (a capped write commands no top draw) and an adopted edit do not read it."""
+    entity = _entities(inp.config)["space_setpoint"]
+    if _grid(inp, "space_setpoint") is None or not _flow_unit(inp.config):
+        return None
+    out = flow_limit.high_limit(
+        _setpoint_limits_c(inp)[1],
+        flow_limit.option_c(EntryConfig.from_mapping(inp.config).space_setpoint_high_limit_c),
+        _heating_floor_c(inp)[1],
+    )
+    log_held(inp.hass, f"space_limit_dropped:{entity}", bool(out.dropped), "Pump duty: the %s high "
+             "limit leaves no heating value on %s; not used", " and ".join(out.dropped), entity)
+    return out.limit_c
+
+
 def _planned_room(
     result: Any, now: datetime, attr: str = "optimal_setpoints"
 ) -> float | None:
@@ -659,9 +678,8 @@ def _level_kw(inp: ArbiterInputs, now: datetime, boosted: bool) -> float | None:
     mode with a ceiling to write (``boosted``, :func:`_boost_ceiling_c`), the
     band's top: a boost replaces the plan's power for the space channel with
     the maximum (``boost.overlay``), so the plan's own partial level for the
-    step is not the one served, and mapped it wrote a set-point between the
-    floor and the ceiling (tvofi, 2026-11-13: 41, then 43, during a boost;
-    R10-HOTFIX-BOOST-FLOW-CEILING). Else the plan step's.
+    step is not the one served (R10-HOTFIX-BOOST-FLOW-CEILING). Else the
+    plan step's.
     """
     if (kw := _experiment_kw(inp)) is not None:
         return kw
@@ -889,8 +907,8 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
 
     The set-point entity's own maximum (tvofi, 2026-11-13: "set at the
     maximum value"), capped by a heating ceiling (``flow_heat_c``) set to
-    anything but its default, and by the controller's upper-limit sensor
-    where it reads (:func:`_setpoint_limits_c`). The default caps nothing: an
+    anything but its default. The high limit caps the boost where it is
+    written, in :func:`_map_inputs`. The default caps nothing: an
     absent key reads as it, and an untouched options page must change
     nothing (``tests/config_flow_steps.py``), so a stored default cannot be
     told from no setting.
@@ -907,9 +925,6 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
     caps = [high]
     if (ceiling := _heat_ceiling_c(inp.config)) != DEFAULT_FLOW_HEAT_C:
         caps.append(ceiling)
-    limit = _setpoint_limits_c(inp)[1]
-    if limit is not None and limit > _gate_floor_c(inp.config):
-        caps.append(limit)
     return min(caps)
 
 
@@ -962,7 +977,7 @@ def _flow_target(
     target = _as_target(inp.config, FLOW_HOLD_C if curve is None else max(curve, FLOW_HOLD_C))
     capped = curve is not None or _return_unit(inp.config)
     hold = min(target, ceiling) if capped else target
-    return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
+    return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config), hi=_space_limit_c(inp))
 
 
 class MapInputs(NamedTuple):
@@ -982,7 +997,8 @@ def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool) -> MapInputs:
     for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`)."""
     p_min, p_max = _band_kw(inp)
     boost_c = _boost_ceiling_c(inp) if boosted else None
-    heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
+    # The level map's top is one the pump takes: under the high limit.
+    heat_c = min(_heat_ceiling_c(inp.config) if boost_c is None else boost_c, _space_limit_c(inp) or math.inf)
     floor_c = _or_hold(modulation_floor_flow_c(
         _flow_inlet_c(inp), _gate_c(inp),
         start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
@@ -1078,24 +1094,23 @@ def _feedback_bounds(held: ArbiterState, rec: FeedbackRun, inp: ArbiterInputs, i
     never above the ceiling.
 
     The gate is the value a step that does not heat writes, so a heating
-    write at or below it tells the controller the step is off. A
-    controller's upper limit, read from its sensor or from a cut, that
-    sits under the lowest heating write (the gate plus one entity step)
-    leaves no heating value inside it: it is not the limit of a heating
-    set-point (a sensor in the wrong slot, a placeholder, a parked
-    circuit), and it is left out as an unreadable one is.
+    write at or below it tells the controller the step is off. A cut under the lowest heating write
+    (:func:`_heating_floor_c`) is left out; the upper limit is :func:`_space_limit_c`'s, under the same rule.
     """
-    gate = _gate_c(inp) or _gate_floor_c(inp.config)
-    clear = gate + FEEDBACK_GATE_CLEAR_K
-    lowest = _bounded(inp, "space_setpoint", clear, lo=clear) or clear
-    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, clear]
+    clear, lowest = _heating_floor_c(inp)
+    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, clear, _setpoint_limits_c(inp)[0]]
     if held.stop_gap_k is not None:
         lows.append(inlet - held.stop_gap_k + FEEDBACK_STOP_MARGIN_K)
-    low, high = _setpoint_limits_c(inp)
-    lows.append(low)
     highs = [_heat_ceiling_c(inp.config)]
-    highs += [v for v in (rec.cut_hi_c, high) if v is not None and v >= lowest]
+    highs += [v for v in (rec.cut_hi_c, _space_limit_c(inp)) if v is not None and v >= lowest]
     return (max(v for v in lows if v is not None), min(highs))
+
+
+def _heating_floor_c(inp: ArbiterInputs) -> tuple[float, float]:
+    """``(clear, lowest)``, degC: the gate plus :data:`FEEDBACK_GATE_CLEAR_K`, and that on the step, the
+    lowest heating write; a limit below it (a misplaced sensor, a placeholder) leaves no heating value."""
+    clear = (_gate_c(inp) or _gate_floor_c(inp.config)) + FEEDBACK_GATE_CLEAR_K
+    return clear, _bounded(inp, "space_setpoint", clear, lo=clear) or clear
 
 
 def _setpoint_limits_c(inp: ArbiterInputs) -> tuple[float | None, float | None]:
@@ -1277,11 +1292,8 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime, *, 
     """The row of the module table for ``duty``; ``None`` is the baseline.
     ``frost``: a frost hold, served as space at :func:`_hold_floor_c`, with no loop or boost level."""
     result = inp.plan
-    mode_state = _slot_state(inp, "mode")
     dhw = _dhw_write(inp)
-    if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
-        # Cooling is the user's season, not a duty the plan chose: hands off,
-        # the silent switch included.
+    if cooling_mode(inp):  # hands off, the silent switch included
         return PumpCommand(None, None, None)
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
@@ -1375,7 +1387,7 @@ def _mode_for(inp: ArbiterInputs, duty: str | None) -> str | None:
     A single duty the select does not offer is Heating + DHW, where offered.
     """
     mode_state, duty = _slot_state(inp, "mode"), _disinfecting(inp, duty)
-    if duty == "idle" or pump_mode.capability(getattr(mode_state, "state", None)).cooling:
+    if duty == "idle" or cooling_mode(inp):
         return None
     single = {"space": pump_mode.MODE_HEAT, "dhw": pump_mode.MODE_DHW}.get(duty or "")
     if single is not None and _option_for(mode_state, single):
@@ -1769,7 +1781,7 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
     optimizer's, not the person's. The baseline captured in its place is the
     baseline row's own space target (:func:`_space_target` with no duty), the
     value the arbiter holds when the plan is not in charge, and the write is
-    sent, never held: holding it froze every space write on an upgrade
+    sent: holding it held every space write after an upgrade
     (R10-HOTFIX-FLOW-SETPOINT-STUCK).
     """
     armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
@@ -1909,8 +1921,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         return
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
-    # A frost hold is served as space past a block (it protects the unit) and records no heating.
-    served = "space" if held.frost_holding else _served(coord, inp, duty, now)
+    served = _served(coord, inp, duty, now)  # a frost hold records no heating
     await _command(coord, inp, desired(coord, inp, served, now, frost=held.frost_holding), now)
     boosted = _boosted(coord, inp, now)
     _note_pass(held, inp, "idle" if held.frost_holding else served, boosted, now)
@@ -1923,16 +1934,16 @@ def _step_duty(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime
 
 
 def _served(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
-    """The duty this pass serves: a both step's share, its block dropped again."""
-    return _without_block(coord, _share(coord, inp, duty, now), now)
+    """The duty this pass serves: a both step's share, its block dropped again; a frost
+    hold is space past any block (it protects the unit)."""
+    return "space" if state_for(coord).frost_holding else _without_block(coord, _share(coord, inp, duty, now), now)
 
 
 async def _lead_mode(coord: Any, on: bool) -> None:
     """On a switch-on, write the step's mode while the switch still reads off (#3420, part E).
 
     A pass writes nothing while the switch reads off (:func:`_pump_off`), so
-    the mode used to follow a switch-on by up to a tick and the pump started
-    in the last duty, to be switched while starting. Only the mode: the
+    without this the pump starts in the last duty. Only the mode: the
     set-points the pump reports while off are its own, and the pass after
     the switch-on compares and writes them as before. A failed write is
     logged by :func:`_write` and holds nothing: the switch follows at once.
@@ -1946,7 +1957,7 @@ async def _lead_mode(coord: Any, on: bool) -> None:
         if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held):
             return
         duty = _step_duty(coord, held, inp, now)
-        await _write(coord, inp, "mode", _mode_for(inp, "space" if held.frost_holding else _served(coord, inp, duty, now)), now)
+        await _write(coord, inp, "mode", _mode_for(inp, _served(coord, inp, duty, now)), now)
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
@@ -1976,9 +1987,8 @@ def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
     """The ``(domain, service)`` that switches ``entity_id`` on or off (#1526).
 
     Routed by the target's own domain: Home Assistant resolves
-    ``switch.turn_on`` only against ``switch.*`` entities, so the heat-pump
-    slot's ``input_boolean`` and ``climate`` targets, which ``assign_entity``
-    accepts, were never actuated when the call was hard-coded to ``switch``.
+    ``switch.turn_on`` only against ``switch.*`` entities, and the heat-pump
+    slot also accepts ``input_boolean`` and ``climate`` targets.
     """
     return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"
 
@@ -2015,18 +2025,15 @@ async def write_supply(coord: Any, entity_id: str, on: bool) -> None:
     await switch_supply(coord.hass, coord.entry, coord.arbiter_inputs().config, entity_id, on)
 
 
-def supply_write(on: bool, signals: Any) -> bool | None:
-    """The switch value to write for ``on``, or ``None`` to leave the switch.
+def cooling_mode(inp: ArbiterInputs, signals: Any = None) -> Any:
+    """The cooling mode the pump reads, or ``None``: the user's season, which no writer touches.
 
-    OFF is skipped only when the pump's own mode is cooling or blocks both
-    channels: an empty plan is then this integration's doing, not a decision
-    to stop the pump. A single-channel block (DHW-only, heating-only) still
-    commands OFF, or a summer DHW pulse would leave the supply latched while
-    the tank is supposed to drift.
+    The live select where it reads a known mode, else ``signals``, the cycle's
+    last good reading across a dropout. Nothing writes Heating back over it.
     """
-    if on or not ((signals.space_blocked and signals.dhw_blocked) or signals.mode.cooling):
-        return on
-    return None
+    live = pump_mode.capability(getattr(_slot_state(inp, "mode"), "state", None))
+    mode = live if live.known else getattr(signals, "mode", live)
+    return mode if mode.cooling else None
 
 
 def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
@@ -2098,16 +2105,16 @@ def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetim
 async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | None = None) -> None:
     """At a step boundary, write the supply where the plan's command changes.
 
-    The cycle writes the switch once per interval, so without this a step
-    change reached the pump only at the next cycle, as late as one interval
-    after the boundary, and a step's duty verdict depended on the cycle's
-    phase against the step grid (#2492). Only a change is written: a step
-    that commands what the last one did leaves the switch alone, so an early
-    cut-off still holds until the next cycle, as ``early_cutoff`` documents.
+    The cycle writes once per interval: without this a step change reached
+    the pump up to one interval late, and a step's duty verdict hung on the
+    cycle's phase against the step grid (#2492). Only a change, a held write
+    or one the cooling gate refused (``cooling_asked``) is written: an early
+    cut-off holds until the next cycle, as ``early_cutoff`` documents.
     """
     now = now or dt_util.now()
     step = plan_step_start(now)
-    if held.supply is None or (held.supply[0] == step and not held.supply_held):
+    retry = held.supply_held or held.cooling_asked
+    if held.supply is None or (held.supply[0] == step and not retry):
         return
     inp = wiring.inputs()
     on = None if inp.entry_released else step_supply(inp, wiring.boosts, now)
@@ -2117,7 +2124,7 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
         held.supply_held = False  # a held write dies with its command
         return
     last, held.supply = held.supply[1], (step, on)
-    if on != last or held.supply_held:
+    if on != last or retry:
         await wiring.write(on)
 
 
