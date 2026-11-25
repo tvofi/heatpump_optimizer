@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._solar_forecast_view RETURN_DEL 8221f31b",
+  "killed_by": "tests/features.py",
+  "old": "        return points",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
